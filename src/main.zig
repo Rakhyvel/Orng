@@ -1,24 +1,32 @@
 const std = @import("std");
+const lexer = @import("lexer.zig");
+const Token = @import("token.zig").Token;
 
 pub fn main() !void {
-    // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
-    std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
+    // Get second command line argument
+    const allocator = std.heap.page_allocator;
+    var args = try std.process.ArgIterator.initWithAllocator(allocator);
+    _ = args.next() orelse unreachable;
+    var arg = args.next() orelse {
+        std.debug.print("{s}\n", .{"Usage: zig build run -- <markdown-filename>"});
+        return;
+    };
 
-    // stdout is for the actual output of your application, for example if you
-    // are implementing gzip, then only the compressed bytes should be sent to
-    // stdout, not any debugging messages.
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    // Get the path
+    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    const path: []u8 = try std.fs.realpath(arg, &path_buffer);
 
-    try stdout.print("Run `zig build test` to run the tests.\n", .{});
+    // Open the file
+    var file = try std.fs.cwd().openFile(path, .{});
+    defer file.close();
 
-    try bw.flush(); // don't forget to flush!
-}
-
-test "simple test" {
-    var list = std.ArrayList(i32).init(std.testing.allocator);
-    defer list.deinit(); // try commenting this out and see if zig detects the memory leak!
-    try list.append(42);
-    try std.testing.expectEqual(@as(i32, 42), list.pop());
+    // Read in the file line by line
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
+    var tokens = std.ArrayList(Token).init(allocator);
+    var buf: [1024]u8 = undefined;
+    while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
+        std.debug.print("{s}\n", .{line});
+        try lexer.getTokens(line, &tokens);
+    }
 }
