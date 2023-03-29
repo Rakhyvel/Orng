@@ -1,0 +1,105 @@
+program: top_level_declaration {top_level_declaration}.
+
+top_level_declaration: fn_declaration
+                     | const_declaration
+                     .
+
+param: ["mut" | "const"] expr.
+
+fn_declaration: "fn" [ident ":"] "(" [param] ")" {"throws" [boolExpr] | "invalidates" boolExpr} "->" arrowExpr ["where" arrowExpr] "=" expr.
+
+non_fn_declaration: let_declaration | const_declaration.
+
+let_declaration: "let" ["mut"] ident (":" expr ["=" expr] | "=" expr).
+
+const_declaration: "const" ident [":" expr] "=" expr.
+
+
+statement: non_fn_declaration # (fns are decalred as exprs)
+         | "defer" expr       # defer
+         | "errdefer" expr    # error-defer
+         | "invalidate" expr  # invalidate a symbol
+         | "validate" expr    # validate a symbol
+         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=") expr]
+         .
+
+expr: commaExpr [":" commaExpr ["where" commaExpr]]
+    | fn_declaration
+    .
+
+commaExpr: arrowExpr {"," arrowExpr}.
+
+arrowExpr: boolExpr {["throws" [boolExpr] | "invalidates" boolExpr] "->" boolExpr}.
+
+gaurdExpr: "cond" condExpr
+         | "case" caseExpr
+         | unionExpr
+         .
+
+unionExpr: tupleAppendExpr {"|" tupleAppendExpr}.
+
+tupleAppendExpr: boolExpr {("++" | "--" ) boolExpr}.
+
+boolExpr: neqExpr {("and" | "or") neqExpr}.
+
+neqExpr: conditionalExpr ["!=" conditionalExpr].
+
+conditionalExpr: shiftExpr {("==" | "<" | "<=" | ">" | ">=") shiftExpr}.
+
+coalesceExpr: shiftExpr {("orelse" | "catch")}.
+
+shiftExpr: intExpr {("<<" | ">>") intExpr}.
+
+intExpr: termExpr {("+" | "-" ) termExpr}.
+
+termExpr: prefixExpr {("*" | "/" | "%" | "<>") prefixExpr}.
+
+prefixExpr: "!" prependExpr                         # boolean not
+          | "-" prependExpr                         # negation
+          | "&" ["mut"] prefixExpr                  # address-of
+          | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
+          | "?" prependExpr                         # optional
+          | "try" prependExpr                       # error coalesce or panic
+          | prependExpr
+          .
+
+prependExpr: postfixExpr {".>" postfixExpr}.
+
+postfixExpr: factor {parens | ("[" [expr] [".." [expr]] "]") | ("." ident) | (".?") | ("^")}.
+
+factor: ident
+      | int
+      | hex
+      | octal
+      | bin
+      | real
+      | char
+      | string
+      | "{" blockExpr
+      | "if" ifExpr
+      | "while" whileExpr
+      | "for" forExpr
+      | "unreachable"
+      | parens
+      .
+
+blockExpr: [statement {";" statement}] [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] "}".
+
+ifExpr: [non_fn_declaration ";"] expr "{" blockExpr ["else" "{" blockExpr].
+
+whileExpr: [non_fn_declaration ";"] expr [";" statement ] "{" blockExpr ["else" "{" blockExpr].
+
+forExpr: ["mut"] ident "in" expr "{" blockExpr ["else" "{" blockExpr].
+
+# Bar lists have one or more bar statements, followed by an optional else clause
+barClause: boolExpr ["=>" boolExpr ";"].
+barElse: "else" "=>" boolExpr ";".
+barList: "|" barClause ["|" (barElse | barList)].
+
+condExpr: [non_fn_declaration ";"] barList.
+
+caseExpr: [non_fn_declaration ";"] boolExpr barList.
+
+parens: "(" (expr | named_arg)")".
+
+named_arg: "." ident "=" expr.

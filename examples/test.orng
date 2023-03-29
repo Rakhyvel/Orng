@@ -1,0 +1,98 @@
+// This is a comment
+
+// Some modifier keywords
+fn const let mut throws invalidates
+
+// Some control flow keywords
+if else for break continue case cond return defer errdefer orelse catch try 
+unreachable or and throw invalidate
+
+// Some constants
+true false null
+
+// Identifiers
+these are' _all identifiers123'
+
+fn sum(x T', y T')->T' = x + y - 1.0
+
+// Strings and characters
+"A string"
+
+'a' // character
+
+// Numbers
+1'000'000 1'000'000.0 0xFFFF'FFFF 0o77'7 0b1101'1100
+
+// Punctuation
+: , . .. ... ;
+
+// Math
+= += -= *= /= %= + ++ - -- * ** / %
+
+// Bitwise operations
+<<= >>= << >>
+
+// Boolean operations
+! != == > >= < <= 
+
+// Open and closing
+( ) [ ] { }
+
+// Type specific
+& -> -/>
+
+// Allocates some memory
+fn new:(const T:Type, init:?T = ?default(T))->&mut T = {
+    const malloc:(bytes Int)->[*]Byte = extern("malloc")
+    let retval = reinterpret_cast(malloc(sizeof(T)), &mut T)
+    if reinterpret_cast(retval, Word64) == 0
+        unreachable
+    else
+        if init != null
+            retval.* = init.?
+        retval
+}
+
+// Frees memory, invalidates the address x
+fn free:(x:&mut A') invalidates x -> () =
+    const c_free:(x &A')->() = extern("free")
+    invalidate x
+    c_free(x)
+
+// Deletes an entire slice (type polymorphism!)
+fn free:(x:[mut]A') invalidates x.data -> () = free(x.data)
+
+// Allocates and potentially initializes a slice, panics on memory errors
+fn make:(const T:Type, size:Int, init:?T = ?default(T))->[mut]T = {
+    const malloc:(bytes Int)->[*]Byte = extern("malloc")
+    let addr = reinterpret_cast(malloc(sizeof(T) * size), [*] T)
+    cond
+    | reinterpret_cast(addr, Word64) == 0 => unreachable
+    \ init != null =>
+        while let i = 0; i < size; i += 1
+            addr[i] = init.?
+    (addr, size)
+}
+
+// Takes a slice, frees it, and allocates/copies a new slice of a new length
+fn resize:(x [mut]A', new_len Int, init ?T = ?default(T)) invalidates x.data -> [mut]A' = {
+    let retval = make(A', new_len, null)
+    if init != null
+        while let i = 0; i < new_len; i += 1
+            retval[i] = init.?
+    free(x)
+    retval
+}
+
+// Takes a regular value, allocates some space on the heap and copies the value to it
+fn box:(x A')->&mut A' = new(A', ?x)
+
+fn clone:(x &A')->&mut A' = new(A', ?(x.*))
+
+fn clone:(x []A')->[mut]A' = {
+    let retval = make(A', x.len, null)
+    while let i = 0; i < x.len; i += 1 {
+        retval[i] = x[i]
+    }
+    retval
+}
