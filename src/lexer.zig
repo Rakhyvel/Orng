@@ -15,10 +15,8 @@ pub fn getTokens(line: []u8, tokens: *std.ArrayList(Token)) !void {
             try string.append(line[i]);
         }
         i -= 1;
-        var data = string.toOwnedSlice();
-        std.debug.print("[{s}]\n", .{try data});
+        try tokens.append(Token.create(try string.toOwnedSlice()));
     }
-    _ = tokens;
 }
 
 fn shouldSplitToken(c: u8, start: u8) bool {

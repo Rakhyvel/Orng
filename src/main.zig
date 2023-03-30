@@ -26,7 +26,9 @@ pub fn main() !void {
     var tokens = std.ArrayList(Token).init(allocator);
     var buf: [1024]u8 = undefined;
     while (try in_stream.readUntilDelimiterOrEof(&buf, '\n')) |line| {
-        std.debug.print("{s}\n", .{line});
         try lexer.getTokens(line, &tokens);
+    }
+    for (tokens.items) |*token| {
+        std.debug.print("Token(kind={s} data={s})\n", .{ token.repr(), token.data });
     }
 }
