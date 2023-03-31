@@ -12,6 +12,9 @@ Comments in Orng start with `//`, and end at the end of the line. There are no b
 ```
 // This is a comment!
 ```
+## Keywords
+## Identifiers
+## Literals
 
 # Declarations
 ## Declaring a Variable With `let`
@@ -87,42 +90,18 @@ const msg = "This is fine!"
 ## Shadowing
 Shadowing occurs when two identifiers with the same name are visible in the same location. Shadowing is prohibited in Orng.
 
-# Decision Making
+# Sequencing
 ## Blocks
-## The `if` Operator
-<!-- default showing -->
-<!-- else -->
-<!-- gives value -->
-<!-- gives optional when no-else -->
-<!-- let, let mut, const -->
-## The `cond` Operator
-<!-- default showing -->
-<!-- else -->
-<!-- gives value -->
-<!-- gives optional when no-else -->
-<!-- let, let mut, const -->
-## The `case` Operator
-<!-- default showing -->
-<!-- else -->
-<!-- gives value -->
-<!-- gives optional when no-else -->
-<!-- let, let mut, const -->
+Blocks sequence zero or more statements. They can be declared inline using `{` `}` with statements are separated with `;`, or with indentation with statements separated with newlines. It is not permitted to mix `;` and newlines to separate statements.
+```rs
+// The following are equivalent
+{let x = 4; x += 5; let y = x - 5}
 
-# Loops
-## The `while` Operator
-<!-- default showing -->
-<!-- else -->
-<!-- gives value -->
-<!-- gives optional when no-else -->
-<!-- let, let mut, const -->
-## The `for` ... `in` Operator
-<!-- default showing -->
-<!-- else -->
-<!-- gives value -->
-<!-- gives optional when no-else -->
-<!-- let, let mut, const -->
-## The `break` Statement
-## The `continue` Statement
+// Identation
+    let x = 4
+    x += 4
+    y = x - 5
+```
 ## The `pass` Statement
 The `pass` statement performs no action.
 ```rs
@@ -130,31 +109,43 @@ while let i = 0; i < 10; i += 1
     pass // no action taken
 ```
 ## The `defer` Statement
+The defer statement defers the execution of a statement until after 
 
-# Primitive Data Types
-## Integer Types
-## Floating-Point Types
-## Char Types
-## Bool Types
+# Decision Making
+## The `if` Operator
+<!-- no-else -->
+<!-- else -->
+<!-- gives value -->
+<!-- gives optional when no-else -->
+<!-- let, let mut, const -->
+## The `cond` Operator
+<!-- no-else -->
+<!-- else -->
+<!-- gives value -->
+<!-- gives optional when no-else -->
+<!-- let, let mut, const -->
+## The `case` Operator
+<!-- no-else -->
+<!-- else -->
+<!-- gives value -->
+<!-- gives optional when no-else -->
+<!-- let, let mut, const -->
 
-# Tuple Types
-## Tuple Type Syntax
-### Positional Tuple Type Syntax
-### Named Tuple Type Syntax
-## The `()` Type
-## Value Syntax
-### Positional Tuple Value Syntax
-### Named Tuple Value Syntax
-## Indexing Tuple Fields
-## Accessing Named Tuple Fields
-## Equality Comparison
-## Cycles
-## Casting Rules
-### Default Field Values
-### Overriding Default Field Values
-## Subtype Rules
-## Tuple Type Concatenation
-## Tuple Value Concatenation
+# Loops
+## The `while` Operator
+<!-- no-else -->
+<!-- else -->
+<!-- gives value -->
+<!-- gives optional when no-else -->
+<!-- let, let mut, const -->
+## The `for` ... `in` Operator
+<!-- no-else -->
+<!-- else -->
+<!-- gives value -->
+<!-- gives optional when no-else -->
+<!-- let, let mut, const -->
+## The `break` Statement
+## The `continue` Statement
 
 # Functions
 ## Function Type Syntax
@@ -176,6 +167,33 @@ Functions are first class in Orng. A function type can be created using the `->`
 ## Function Composition
 ## Functions Executed At Compile Time
 ## The `async/await` Keywords
+
+# Primitive Data Types
+## Integer Types
+## Floating-Point Types
+## Char Types
+## Bool Types
+## Named Types
+## Abstract Types
+
+# Tuple Types
+## Tuple Type Syntax
+### Positional Tuple Type Syntax
+### Named Tuple Type Syntax
+## The `()` Type
+## Value Syntax
+### Positional Tuple Value Syntax
+### Named Tuple Value Syntax
+## Indexing Tuple Fields
+## Accessing Named Tuple Fields
+## Equality Comparison
+## Cycles
+## Casting Rules
+### Default Field Values
+### Overriding Default Field Values
+## Subtype Rules
+## Tuple Type Concatenation
+## Tuple Value Concatenation
 
 # Array Types
 ## Array Type Syntax
@@ -313,9 +331,7 @@ The default value of an optional is `null`. This follows from the fact that opti
 ## Subtype Rules
 For two optional types `?A` and `?B`, `?A <: ?B` if and only if `A <: B`.
 
-# Interfaces (Or Type Classes? Which one...)
-
-# Generics
+# Interface Types
 
 # Building
 - Little setup required to begin a new project

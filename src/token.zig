@@ -102,7 +102,7 @@ pub const Token = struct {
     }
 
     pub fn repr(self: *Token) []const u8 {
-        return reprFromTokenKind(self.kind) orelse "<unreprable>";
+        return reprFromTokenKind(self.kind) orelse self.data;
     }
 };
 
