@@ -11,7 +11,7 @@ Orng excels past C in the fact that it has native support for error handling, st
 # Basic Syntax
 ## Comments
 Comments in Orng start with `//`, and end at the end of the line. There are no block comments. Comments are ignored by the compiler before tokenization is done.
-```
+```rs
 // This is a comment!
 ```
 ## Keywords
