@@ -2,3 +2,9 @@ zig-cache/
 zig-out/
 orngdoc_old.md
 parser.py
+
+# Added by cargo
+
+/target
+Cargo.toml
+Cargo.lock

@@ -15,37 +15,6 @@ Comments in Orng start with `//`, and end at the end of the line. There are no b
 // This is a comment!
 ```
 ## Keywords
-The following are keywords in Orng.
-| Keyword       | Description |
-|---------------|-------------|
-| `and`         | Binary and operator |
-| `break`       | Breaks out of a loop |
-| `case`        | Pattern matching expression |
-| `catch`       | Error coalescing |
-| `cond`        | Conditional branching expression |
-| `const`       | Introduces a compile-time constant |
-| `continue`    | Continues to the next loop iteration |
-| `defer`       | Defer statement to after scope, evaluate to expression |
-| `else`        | Introduce a fallback branch |
-| `errdefer`    | Defer statement to after scope only if error thrown, evaluate to expression |
-| `fn`          | Introduces a function |
-| `for`         | Introduces a for-each loop |
-| `if`          | Introduces the ternary operator |
-| `in`          | Specifies an array to iterate through |
-| `invalidate`  | Invalidates a valid resource |
-| `invalidates` | Signifies that a function invalidates a valid resource |
-| `let`         | Introduces a variable declaration |
-| `mut`         | Signifies a mutable variable |
-| `or`          | Binary or operator |
-| `orelse`      | Optional coalescing |
-| `return`      | Set return-value of function and exit |
-| `throw`       | Set error-value of function and exit |
-| `throws`      | Signifies that a function throws a possible error. |
-| `unreachable` | Panic |
-| `validate`    | Validates an invalid resource |
-| `validates`   | Signifies that a function validates an invalid resource |
-| `where`       | Quantified type expression |
-| `while`       | Introduces a conditional loop |
 
 ## Identifiers
 Identifiers start with either a letter or an underscore, can contain letters, underscores, and digits, and can optionally end with apostrophes (see Pattern Matching). Identifiers cannot be keywords, unless surrounded with a  `` ` ` `` pair. 
@@ -56,7 +25,7 @@ thisIsIdentifier2
 
 _ident3'
 ```
-## Number Literals
+## Integers and Floats
 Numbers start with a digit, contain one or more digits, and may optionally contain a decimal point. Number literals represent mathematically ideal numbers, and thus can be coerced to any numeric type granted that the number fits in the type's range.
 
 Number literals can contain apostrophes anywhere as separators, so long as the literal starts and ends with a digit. 
