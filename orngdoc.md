@@ -4,9 +4,44 @@
 - transformation rules similar to Haskell
 - expressional type system -->
 # Introduction
-Orng is a static, strongly typed programming language for developing applications.
+Orng is a performant, ergonomic programming language with the following features:
+- Dead-simple and lightweight feature set
+- Fast, cached compilation
+- Support for algebraic data types, pattern matching
 
-Orng excels past C in the fact that it has native support for error handling, stack traces.
+|    |    |
+|----|----|
+| Go | No enums |
+| Rust | Unergonomic |
+| C | No stacktraces! |
+| Zig | No documentation, literally unuseable |
+| Haskell | Performance unpredictability |
+
+| Julia | Maybe not too bad actually, idk its used for more math stuff not data structure transformations |
+| Nim | Idk, maybe, we'll see |
+| OCaml | Maybe, but then I'd have to learn another language |
+| Odin | Toy project, but seems promising |
+
+| Java | On the JVM |
+| Kotlin | On the JVM |
+| Scala | JVM |
+| Elixir | BEAM |
+| Groovy | JVM |
+| Prolog | Likely slow |
+| Python | Interpreted |
+| JavaScript | Interpreted |
+| Ruby | Interpreted |
+| Clojure | Interpreted, JVM |
+| C# | .NET |
+| F# | .NET |
+| Visual Basic .NET | No |
+| Fortran | No |
+| Assembly | No |
+| Perl | No |
+| Pascal/Delphi | BAD |
+| PHP | BAD |
+| C++ | Bad |
+| Blade | Toy project |
 
 # Basic Syntax
 ## Comments
@@ -39,7 +74,6 @@ Number literals can contain apostrophes anywhere as separators, so long as the l
 // A number with a separator and a decimal point
 1'000.0
 ```
-## Integer Literals in Other Bases
 ### Hexadecimal Integers
 Hexadecimal integer literals begin with the prefix `0x`. They can contain digits `0` to `9`, a mix of uppercase or lowercase letters from `A` to `F`, and separators.
 ```rs
