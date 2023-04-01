@@ -248,10 +248,17 @@ else
     println("This will only run if `osIsWindows` is `false`")
 ```
 <!-- gives value -->
-The `if` operator is indeed an operator, and can be used to give a value.
-```
+The `if` operator is indeed an operator, and can be evaluated as an expression.
+```rs
+let x: Int = userInput()
+let abs_val_of_x = if x < 0 {-x} else {x}
 ```
 <!-- gives optional when no-else -->
+If no `else` clause is given, the type of the `if` operator is an optional type (see Optional Types).
+```rs
+let x: Float = userInput()
+let reciprocal = ?Float = if x != 0 {1.0 / x}
+```
 <!-- let, let mut, const -->
 ## The `cond` Operator
 <!-- no-else -->
