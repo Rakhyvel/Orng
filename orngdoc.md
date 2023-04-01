@@ -257,7 +257,7 @@ let abs_val_of_x = if x < 0 {-x} else {x}
 If no `else` clause is given, the type of the `if` operator is an optional type (see Optional Types).
 ```rs
 let x: Float = userInput()
-let reciprocal = ?Float = if x != 0 {1.0 / x}
+let reciprocal: ?Float = if x != 0 {1.0 / x}
 ```
 <!-- let, let mut, const -->
 ## The `cond` Operator
