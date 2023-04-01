@@ -15,8 +15,97 @@ Comments in Orng start with `//`, and end at the end of the line. There are no b
 // This is a comment!
 ```
 ## Keywords
+The following are keywords in Orng.
+| Keyword       | Description |
+|---------------|-------------|
+| `and`         | Binary and operator |
+| `break`       | Breaks out of a loop |
+| `case`        | Pattern matching expression |
+| `catch`       | Error coalescing |
+| `cond`        | Conditional branching expression |
+| `const`       | Introduces a compile-time constant |
+| `continue`    | Continues to the next loop iteration |
+| `defer`       | Defer statement to after scope, evaluate to expression |
+| `else`        | Introduce a fallback branch |
+| `errdefer`    | Defer statement to after scope only if error thrown, evaluate to expression |
+| `fn`          | Introduces a function |
+| `for`         | Introduces a for-each loop |
+| `if`          | Introduces the ternary operator |
+| `in`          | Specifies an array to iterate through |
+| `invalidate`  | Invalidates a valid resource |
+| `invalidates` | Signifies that a function invalidates a valid resource |
+| `let`         | Introduces a variable declaration |
+| `mut`         | Signifies a mutable variable |
+| `or`          | Binary or operator |
+| `orelse`      | Optional coalescing |
+| `return`      | Set return-value of function and exit |
+| `throw`       | Set error-value of function and exit |
+| `throws`      | Signifies that a function throws a possible error. |
+| `unreachable` | Panic |
+| `validate`    | Validates an invalid resource |
+| `validates`   | Signifies that a function validates an invalid resource |
+| `where`       | Quantified type expression |
+| `while`       | Introduces a conditional loop |
+
 ## Identifiers
-## Literals
+Identifiers start with either a letter or an underscore, can contain letters, underscores, and digits, and can optionally end with apostrophes (see Pattern Matching). Identifiers cannot be keywords, unless surrounded with a  `` ` ` `` pair. 
+```hs
+this_is_an_identifier
+
+thisIsIdentifier2
+
+_ident3'
+```
+## Number Literals
+Numbers start with a digit, contain one or more digits, and may optionally contain a decimal point. Number literals represent mathematically ideal numbers, and thus can be coerced to any numeric type granted that the number fits in the type's range.
+
+Number literals can contain apostrophes anywhere as separators, so long as the literal starts and ends with a digit. 
+```c++
+// An "integer"
+1000
+
+// An "integer" with separator
+1'000
+
+// A number with a separator and a decimal point
+1'000.0
+```
+## Integer Literals in Other Bases
+### Hexadecimal Integers
+Hexadecimal integer literals begin with the prefix `0x`. They can contain digits `0` to `9`, a mix of uppercase or lowercase letters from `A` to `F`, and separators.
+```rs
+// A huge hexadecimal integer
+0xABCEF01234567890
+```
+### Octal Integers
+Octal integer literals begin with the prefix `0o`. They can contain digits `0` to `7` and inner separators.
+```rs
+// An octal integer
+0o1234567
+```
+### Binary Integers
+Binary integer literals begin with the prefix `0b`. They can contain digits `0` and `1` and inner separators.
+```rs
+// A binary integer
+0b01001111
+```
+## Character Literals
+Character literals start and end with a `'` character. They represent the UTF-8 character between the `'` marks.
+```rs
+'🍊' // The character '🍊'
+
+'\'' // The apostrophe, escaped
+'\n' // A new-line character
+```
+<!-- TODO: enumerate escapes -->
+## String Literals
+String literals start and end with a `"` character. They represent a UTF-8 encoded string.
+```rs
+"Hello, Orng!" // A string
+
+"Hello, \"Orng\"!\n" // Another string
+```
+<!-- TODO: enumerate escapes -->
 
 # Declarations
 ## Declaring a Variable With `let`
@@ -97,27 +186,71 @@ Shadowing occurs when two identifiers with the same name are visible in the same
 Blocks sequence zero or more statements. They can be declared inline using `{` `}` with statements are separated with `;`, or with indentation with statements separated with newlines. It is not permitted to mix `;` and newlines to separate statements.
 ```rs
 // The following are equivalent
+
 {let x = 4; x += 5; let y = x - 5}
 
-// Identation
+    // Increase in identation
     let x = 4
     x += 4
     y = x - 5
+// Decrease in indentation
 ```
-## The `pass` Statement
-The `pass` statement performs no action.
+Blocks return the last value evaluated in the block.
 ```rs
-while let i = 0; i < 10; i += 1
-    pass // no action taken
+// The following block takes a character from the console
+// Converts it to ascii and stores the result in user_ascii
+let user_ascii = {let c: Char = console.readKey(); intFromChar(c)}
 ```
-## The `defer` Statement
-The defer statement defers the execution of a statement until after 
+## The `defer` Operator
+The defer statement defers the execution of the right-hand statement until after the scope exits. It immediately returns the value of the left-hand-side expression.
+```rs
+fn deferTest: ()->() = 
+    // Allocate an int on the heap, free it at the end of this scope
+    let x: &Int = new(Int) 
+    defer free(x)
+
+    // Do stuff with x here
+
+    // Here, x will be freed after we're done using it
+```
+Defers are run in reverse order that they are encountered.
+```rs
+fn deferTest: ()->() =
+    let x: &Int = new(Int) 
+    defer free(x)
+    let y: &Int = new(Int) 
+    defer free(y)
+
+    // do something with x and y
+
+    // first y is freed
+    // then  x is freed
+```
 
 # Decision Making
 ## The `if` Operator
 <!-- no-else -->
+The `if` operator is used to execute blocks of code only if a boolean condition is met.
+```rs
+// This will always print
+println("You have a computer.")
+
+if osIsWindows
+    // This will only run if `osIsWindows` is `true`
+    println("Your computer's operating system is Windows.")
+```
 <!-- else -->
+You can give an optional `else` block for an `if` operator. The `else` block is executed when the condition is false.
+```rs
+if osIsWindows
+    println("This will only run if `osIsWindows` is `true`")
+else
+    println("This will only run if `osIsWindows` is `false`")
+```
 <!-- gives value -->
+The `if` operator is indeed an operator, and can be used to give a value.
+```
+```
 <!-- gives optional when no-else -->
 <!-- let, let mut, const -->
 ## The `cond` Operator
