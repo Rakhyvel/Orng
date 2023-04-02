@@ -1,40 +1,43 @@
 // This is a comment
 
 // Some modifier keywords
-// fn const let mut throws invalidates
+fn const let mut throws invalidates
 
 // Some control flow keywords
-// if else for break continue case cond return defer errdefer orelse catch try 
-// unreachable or and throw invalidate
+if else for break continue case cond return defer errdefer orelse catch try 
+unreachable or and throw invalidate
 
 // Some constants
-// true false null
+true false null
 
 // Identifiers
-// these are' _all identifiers123'
+these are' _all identifiers123'
 
 // Strings and characters
-// "A string"
+"A string"
 
-// 'a' // character
+'a' // character
 
 // Numbers
-// 1'000'000 1'000'000.0 0xFFFF'FFFF 0o77'7 0b1101'1100
+1'000'000 1'000'000.0 0xFFFF'FFFF 0o77'7 0b1101'1100
 
 // Punctuation
-// : , . .. ... ;
+: , . .. ... ;
 
 // Math
-// = += -= *= /= %= + ++ - -- * ** / %
+= += -= *= /= %= + ++ - -- * ** / %
 
 // Bitwise operations
-// <<= >>= << >>
+<<= >>= << >>
 
 // Boolean operations
-// ! != == > >= < <= 
+! != == > >= < <= 
 
 // Open and closing
-// ( ) [ ] { }
+( ) [ ] { }
+
+// Open and closing shouldn't bunch up into one symbol
+(()) [[]] {{}}
 
 // Type specific
-// & ->
+& ->

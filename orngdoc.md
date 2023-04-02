@@ -9,39 +9,14 @@ Orng is a performant, ergonomic programming language with the following features
 - Fast, cached compilation
 - Support for algebraic data types, pattern matching
 
-|    |    |
-|----|----|
-| Go | No enums |
-| Rust | Unergonomic |
-| C | No stacktraces! |
-| Zig | No documentation, literally unuseable |
-| Haskell | Performance unpredictability |
-
-| Julia | Maybe not too bad actually, idk its used for more math stuff not data structure transformations |
-| Nim | Idk, maybe, we'll see |
-| OCaml | Maybe, but then I'd have to learn another language |
-| Odin | Toy project, but seems promising |
-
-| Java | On the JVM |
-| Kotlin | On the JVM |
-| Scala | JVM |
-| Elixir | BEAM |
-| Groovy | JVM |
-| Prolog | Likely slow |
-| Python | Interpreted |
-| JavaScript | Interpreted |
-| Ruby | Interpreted |
-| Clojure | Interpreted, JVM |
-| C# | .NET |
-| F# | .NET |
-| Visual Basic .NET | No |
-| Fortran | No |
-| Assembly | No |
-| Perl | No |
-| Pascal/Delphi | BAD |
-| PHP | BAD |
-| C++ | Bad |
-| Blade | Toy project |
+<!-- 
+Language requirements:
+- Sum-types, or at least enums
+- Predictable, high performance
+- Platform independence
+- Mature, official release for at least 5 years
+- Language that's easy to debug, has stack traces on errors
+-->
 
 # Basic Syntax
 ## Comments
