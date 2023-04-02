@@ -27,6 +27,8 @@ pub fn main() !void {
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
 
-    // std.debug.print("{s}\n", .{contents});
-    _ = try lexer.getTokens(contents, allocator);
+    var tokens = try lexer.getTokens(contents, allocator);
+    for (tokens.items) |*token| {
+        std.debug.print("{s}", .{token.repr()});
+    }
 }

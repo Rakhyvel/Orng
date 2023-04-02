@@ -89,6 +89,9 @@ const TokenKind = enum(u32) {
     R_PAREN,
     R_SQUARE,
 
+    // Whitespace
+    WHITESPACE,
+
     // HACK: Used to count how many constructors are in the enum
     len,
 };
@@ -99,8 +102,8 @@ pub const Token = struct {
     // Non-owning slice into the contents of the source file the text data for this token comes from
     data: []u8,
 
-    pub fn create(data: []u8) Token {
-        return .{ .data = data, .kind = kindFromString(data) };
+    pub fn create(data: []u8, kind: ?TokenKind) Token {
+        return .{ .data = data, .kind = kind orelse kindFromString(data) };
     }
 
     pub fn repr(self: *Token) []const u8 {
@@ -135,6 +138,7 @@ fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .OCT_INTEGER,
         .REAL,
         .STRING,
+        .WHITESPACE,
         .len,
         => null,
 

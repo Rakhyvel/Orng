@@ -26,7 +26,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
         comment,
     };
 
-    var retval = std.ArrayList(Token).init(allocator);
+    var tokens = std.ArrayList(Token).init(allocator);
     var slice_start: usize = 0;
     var ix: usize = 0;
     var state: LexState = .none;
@@ -56,7 +56,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
 
             .whitespace => {
                 if (!std.ascii.isWhitespace(next_char)) {
-                    std.debug.print("whitespace: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .WHITESPACE));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -66,7 +66,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
 
             .ident => {
                 if (!std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    std.debug.print("identifier: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .IDENTIFIER));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -74,31 +74,47 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                 }
             },
 
-            .string => {
-                if (next_char == '"') {
+            .string => switch (next_char) {
+                '"' => {
                     ix += 1;
-                    std.debug.print("string: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .STRING));
                     slice_start = ix;
                     state = .none;
-                } else {
+                },
+                '\\' => {
                     ix += 1;
-                }
+                    state = .escapedString;
+                },
+                else => {
+                    ix += 1;
+                },
             },
 
-            .escapedString => {},
+            .escapedString => {
+                ix += 1;
+                state = .string;
+            },
 
-            .char => {
-                if (next_char == '\'') {
+            .char => switch (next_char) {
+                '\'' => {
                     ix += 1;
-                    std.debug.print("char: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .CHAR));
                     slice_start = ix;
                     state = .none;
-                } else {
+                },
+                '\\' => {
                     ix += 1;
-                }
+                    state = .escapedChar;
+                },
+                else => {
+                    ix += 1;
+                },
             },
 
-            .escapedChar => {},
+            .escapedChar => {
+                ix += 1;
+                state = .char;
+            },
 
             .integer => {
                 if (next_char == '.') {
@@ -121,7 +137,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                     ix += 1;
                     state = .integerDigit;
                 } else if (!std.ascii.isDigit(next_char)) {
-                    std.debug.print("integer: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -143,7 +159,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                     ix += 1;
                     state = .realDigit;
                 } else if (!std.ascii.isDigit(next_char)) {
-                    std.debug.print("real: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .REAL));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -167,7 +183,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                     ix += 1;
                 },
                 else => {
-                    std.debug.print("hex: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .HEX_INTEGER));
                     slice_start = ix;
                     state = .none;
                 },
@@ -192,7 +208,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                     ix += 1;
                 },
                 else => {
-                    std.debug.print("octal: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .OCT_INTEGER));
                     slice_start = ix;
                     state = .none;
                 },
@@ -217,7 +233,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                     ix += 1;
                 },
                 else => {
-                    std.debug.print("octal: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], .BIN_INTEGER));
                     slice_start = ix;
                     state = .none;
                 },
@@ -229,9 +245,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                     state = .binary;
                 },
                 else => {
-                    std.debug.print("octal: {s}\n", .{contents[slice_start..ix]});
-                    slice_start = ix;
-                    state = .none;
+                    return error.lexerError;
                 },
             },
 
@@ -247,7 +261,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
                 or contents[slice_start] == '{' //
                 or contents[slice_start] == '}' //
                 or std.ascii.isWhitespace(next_char) or std.ascii.isAlphanumeric(next_char)) {
-                    std.debug.print("symbol: {s}\n", .{contents[slice_start..ix]});
+                    try tokens.append(Token.create(contents[slice_start..ix], null));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -257,7 +271,6 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
 
             .comment => {
                 if (next_char == '\n') {
-                    std.debug.print("comment: {s}\n", .{contents[slice_start..ix]});
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -267,5 +280,5 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
         }
     }
 
-    return retval;
+    return tokens;
 }

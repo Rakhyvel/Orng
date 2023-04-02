@@ -1,3 +1,6 @@
+# 
+# python3.10 ../rdgen/main.py create --input orng.ebnf --output parser.py
+
 program: top_level_declaration {top_level_declaration}.
 
 top_level_declaration: fn_declaration
@@ -6,7 +9,7 @@ top_level_declaration: fn_declaration
 
 param: ["mut" | "const"] expr.
 
-fn_declaration: "fn" [ident ":"] "(" [param] ")" {"throws" [boolExpr] | "invalidates" boolExpr} "->" arrowExpr ["where" arrowExpr] "=" expr.
+fn_declaration: "fn" [ident ":"] "(" [param] ")" {"invalidates" boolExpr} "->" arrowExpr ["where" arrowExpr] "=" expr.
 
 non_fn_declaration: let_declaration | const_declaration.
 
@@ -29,12 +32,14 @@ expr: commaExpr [":" commaExpr ["where" commaExpr]]
 
 commaExpr: arrowExpr {"," arrowExpr}.
 
-arrowExpr: boolExpr {["throws" [boolExpr] | "invalidates" boolExpr] "->" boolExpr}.
+arrowExpr: boolExpr {["invalidates" boolExpr] "->" boolExpr}.
 
 gaurdExpr: "cond" condExpr
          | "case" caseExpr
-         | unionExpr
+         | errorUnionExpr
          .
+
+errorUnionExpr: unionExpr {"!" unionExpr}.
 
 unionExpr: tupleAppendExpr {"|" tupleAppendExpr}.
 
@@ -100,6 +105,6 @@ condExpr: [non_fn_declaration ";"] barList.
 
 caseExpr: [non_fn_declaration ";"] boolExpr barList.
 
-parens: "(" (expr | named_arg)")".
+parens: "(" (expr | infered_dot)")".
 
-named_arg: "." ident "=" expr.
+infered_dot: "." ident ["=" expr].
