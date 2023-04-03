@@ -30,6 +30,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
     var slice_start: usize = 0;
     var ix: usize = 0;
     var state: LexState = .none;
+    var line: i64 = 1;
 
     while (ix < contents.len + 1) {
         // It should be ok to not have a newline at the end of a file
@@ -63,10 +64,13 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     if (slice_start < ix) {
                         // if whitespace token did not contain a sequence of '\n', slice_start will == ix
                         // do not add whitespace tokens if they did not contain '\n'
-                        try tokens.append(Token.create(contents[slice_start..ix], .WHITESPACE));
+                        try tokens.append(Token.create(contents[slice_start..ix], .WHITESPACE, line));
                     }
                     slice_start = ix;
                     state = .none;
+                } else if (next_char == '\n') {
+                    line += 1;
+                    ix += 1;
                 } else {
                     ix += 1;
                 }
@@ -74,7 +78,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
 
             .ident => {
                 if (!std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    try tokens.append(Token.create(contents[slice_start..ix], null));
+                    try tokens.append(Token.create(contents[slice_start..ix], null, line));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -85,7 +89,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             .string => switch (next_char) {
                 '"' => {
                     ix += 1;
-                    try tokens.append(Token.create(contents[slice_start..ix], .STRING));
+                    try tokens.append(Token.create(contents[slice_start..ix], .STRING, line));
                     slice_start = ix;
                     state = .none;
                 },
@@ -106,7 +110,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             .char => switch (next_char) {
                 '\'' => {
                     ix += 1;
-                    try tokens.append(Token.create(contents[slice_start..ix], .CHAR));
+                    try tokens.append(Token.create(contents[slice_start..ix], .CHAR, line));
                     slice_start = ix;
                     state = .none;
                 },
@@ -145,7 +149,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                     state = .integerDigit;
                 } else if (!std.ascii.isDigit(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER));
+                    try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, line));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -167,7 +171,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                     state = .realDigit;
                 } else if (!std.ascii.isDigit(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], .REAL));
+                    try tokens.append(Token.create(contents[slice_start..ix], .REAL, line));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -191,7 +195,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                 },
                 else => {
-                    try tokens.append(Token.create(contents[slice_start..ix], .HEX_INTEGER));
+                    try tokens.append(Token.create(contents[slice_start..ix], .HEX_INTEGER, line));
                     slice_start = ix;
                     state = .none;
                 },
@@ -216,7 +220,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                 },
                 else => {
-                    try tokens.append(Token.create(contents[slice_start..ix], .OCT_INTEGER));
+                    try tokens.append(Token.create(contents[slice_start..ix], .OCT_INTEGER, line));
                     slice_start = ix;
                     state = .none;
                 },
@@ -241,7 +245,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                 },
                 else => {
-                    try tokens.append(Token.create(contents[slice_start..ix], .BIN_INTEGER));
+                    try tokens.append(Token.create(contents[slice_start..ix], .BIN_INTEGER, line));
                     slice_start = ix;
                     state = .none;
                 },
@@ -268,8 +272,18 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                 or contents[slice_start] == ']' //
                 or contents[slice_start] == '{' //
                 or contents[slice_start] == '}' //
+                or contents[slice_start] == '&' //
+                or contents[slice_start] == '?' //
+                or next_char == '(' //
+                or next_char == ')' //
+                or next_char == '[' //
+                or next_char == ']' //
+                or next_char == '{' //
+                or next_char == '}' //
+                or next_char == '&' //
+                or next_char == '?' //
                 or std.ascii.isWhitespace(next_char) or std.ascii.isAlphanumeric(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], null));
+                    try tokens.append(Token.create(contents[slice_start..ix], null, line));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -288,6 +302,6 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
         }
     }
 
-    try tokens.append(Token.create("EOF", .EOF));
+    try tokens.append(Token.create("EOF", .EOF, line));
     return tokens;
 }

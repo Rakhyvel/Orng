@@ -68,7 +68,7 @@ prefixExpr: "!" prependExpr                         # boolean not
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" prependExpr                         # optional
           | "try" prependExpr                       # error coalesce orelese return
-          | "." ident ["<-" prependExpr]            # infered member with optional bind
+          | "." ident ["<-" prependExpr]            # infered member/named argument/named field
           | prependExpr
           .
 

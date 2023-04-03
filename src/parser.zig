@@ -6,20 +6,23 @@ const Token = _token.Token;
 const TokenKind = _token.TokenKind;
 const String = @import("zig-string/zig-string.zig").String;
 
-const ParserError = error{parserError};
+const ParserError = struct {
+    msg: String,
+    line: i64,
+};
 
 pub const Parser = struct {
     tokens: std.ArrayList(Token),
-    errors: std.ArrayList(String),
+    errors: std.ArrayList(ParserError),
     cursor: usize,
     allocator: std.mem.Allocator,
 
     pub fn create(contents: []const u8, allocator: std.mem.Allocator) !Parser {
         var tokens = try lexer.getTokens(contents, allocator);
-        // for (tokens.items) |*token| {
-        //     std.debug.print("{s}\n", .{token.repr()});
-        // }
-        return .{ .tokens = tokens, .errors = std.ArrayList(String).init(allocator), .cursor = 0, .allocator = allocator };
+        for (tokens.items) |*token| {
+            std.debug.print("{s}\n", .{token.repr()});
+        }
+        return .{ .tokens = tokens, .errors = std.ArrayList(ParserError).init(allocator), .cursor = 0, .allocator = allocator };
     }
 
     fn peek(self: *Parser) Token {
@@ -28,7 +31,31 @@ pub const Parser = struct {
 
     fn nextIsExpr(self: *Parser) bool {
         const nextKind = self.peek().kind;
-        return nextKind == .E_MARK or nextKind == .AMPERSAND or nextKind == .L_PAREN or nextKind == .MINUS or nextKind == .Q_MARK or nextKind == .L_SQUARE or nextKind == .WHITESPACE or nextKind == .CASE or nextKind == .COND or nextKind == .CONST or nextKind == .FN or nextKind == .FOR or nextKind == .IF or nextKind == .TRY or nextKind == .UNREACHABLE or nextKind == .WHILE or nextKind == .L_BRACE or nextKind == .BIN_INTEGER or nextKind == .CHAR or nextKind == .HEX_INTEGER or nextKind == .DECIMAL_INTEGER or nextKind == .OCT_INTEGER or nextKind == .REAL or nextKind == .STRING;
+        return nextKind == .E_MARK //
+        or nextKind == .AMPERSAND //
+        or nextKind == .L_PAREN //
+        or nextKind == .MINUS //
+        or nextKind == .Q_MARK //
+        or nextKind == .L_SQUARE //
+        or nextKind == .WHITESPACE //
+        or nextKind == .CASE //
+        or nextKind == .COND //
+        or nextKind == .CONST //
+        or nextKind == .FN //
+        or nextKind == .FOR //
+        or nextKind == .IF //
+        or nextKind == .TRY //
+        or nextKind == .UNREACHABLE //
+        or nextKind == .WHILE //
+        or nextKind == .IDENTIFIER //
+        or nextKind == .L_BRACE //
+        or nextKind == .BIN_INTEGER //
+        or nextKind == .CHAR //
+        or nextKind == .HEX_INTEGER //
+        or nextKind == .DECIMAL_INTEGER //
+        or nextKind == .OCT_INTEGER //
+        or nextKind == .REAL //
+        or nextKind == .STRING;
     }
 
     fn nextIsStatement(self: *Parser) bool {
@@ -50,12 +77,13 @@ pub const Parser = struct {
         if (self.accept(kind)) |token| {
             return token;
         } else {
+            const actual = self.peek();
             var error_string = String.init_with_contents(self.allocator, "expected `") catch unreachable;
             error_string.concat(_token.reprFromTokenKind(kind) orelse "") catch unreachable;
             error_string.concat("`, got `") catch unreachable;
-            error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
+            error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
             error_string.concat("`") catch unreachable;
-            self.errors.append(error_string) catch unreachable;
+            self.errors.append(.{ .msg = error_string, .line = actual.line }) catch unreachable;
             return null;
         }
     }
@@ -66,8 +94,10 @@ pub const Parser = struct {
     }
 
     fn program(self: *Parser) void {
+        while (self.accept(.WHITESPACE)) |_| {}
         while (self.peek().kind == .CONST or self.peek().kind == .FN) {
             self.topLevelDeclaration();
+            while (self.accept(.WHITESPACE)) |_| {}
         }
     }
 
@@ -77,7 +107,7 @@ pub const Parser = struct {
         } else if (self.peek().kind == .CONST) {
             self.constDeclaration();
         } else {
-            self.errors.append(String.init_with_contents(self.allocator, "expected a top-level declaration") catch unreachable) catch unreachable;
+            self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected a top-level declaration") catch unreachable, .line = self.peek().line }) catch unreachable;
         }
     }
 
@@ -87,7 +117,7 @@ pub const Parser = struct {
         } else if (self.peek().kind == .CONST) {
             self.constDeclaration();
         } else {
-            self.errors.append(String.init_with_contents(self.allocator, "expected a variable or constant declaration") catch unreachable) catch unreachable;
+            self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected a variable or constant declaration") catch unreachable, .line = self.peek().line }) catch unreachable;
         }
     }
 
@@ -114,7 +144,7 @@ pub const Parser = struct {
         } else if (self.accept(.EQUALS)) |_| {
             self.expr();
         } else {
-            self.errors.append(String.init_with_contents(self.allocator, "variable declarations require at least a type or a initial value") catch unreachable) catch unreachable;
+            self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "variable declarations require at least a type or a initial value") catch unreachable, .line = self.peek().line }) catch unreachable;
         }
     }
 
@@ -165,7 +195,14 @@ pub const Parser = struct {
             self.expr();
         } else {
             self.expr();
-            if (self.accept(.EQUALS) orelse self.accept(.PLUS_EQUALS) orelse self.accept(.MINUS_EQUALS) orelse self.accept(.STAR_EQUALS) orelse self.accept(.SLASH_EQUALS) orelse self.accept(.PERCENT_EQUALS) orelse self.accept(.D_LSR_EQUALS) orelse self.accept(.D_GTR_EQUALS)) {
+            if (self.accept(.EQUALS) //
+            orelse self.accept(.PLUS_EQUALS) //
+            orelse self.accept(.MINUS_EQUALS) //
+            orelse self.accept(.STAR_EQUALS) //
+            orelse self.accept(.SLASH_EQUALS) //
+            orelse self.accept(.PERCENT_EQUALS) //
+            orelse self.accept(.D_LSR_EQUALS) //
+            orelse self.accept(.D_GTR_EQUALS)) |_| {
                 self.expr();
             }
         }
@@ -182,6 +219,7 @@ pub const Parser = struct {
     fn commaExpr(self: *Parser) void {
         self.annotExpr();
         while (self.accept(.COMMA)) |_| {
+            while (self.accept(.WHITESPACE)) |_| {}
             self.annotExpr();
         }
     }
@@ -412,24 +450,24 @@ pub const Parser = struct {
         } else if (self.accept(.STRING)) |_| {
             //
         } else if (self.peek().kind == .WHITESPACE) {
-            //
+            self.indentBlockExpr();
         } else if (self.peek().kind == .L_BRACE) {
-            //
+            self.braceBlockExpr();
         } else if (self.peek().kind == .IF) {
-            //
+            self.ifExpr();
         } else if (self.peek().kind == .WHILE) {
-            //
+            self.whileExpr();
         } else if (self.peek().kind == .FOR) {
-            //
+            self.forExpr();
         } else if (self.accept(.UNREACHABLE)) |_| {
             //
         } else if (self.peek().kind == .L_PAREN) {
-            //
+            self.parens();
         } else {
             var error_string = String.init_with_contents(self.allocator, "expected an expression, got `") catch unreachable;
             error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
             error_string.concat("`") catch unreachable;
-            self.errors.append(error_string) catch unreachable;
+            self.errors.append(.{ .msg = error_string, .line = self.peek().line }) catch unreachable;
         }
     }
 
@@ -548,7 +586,7 @@ pub const Parser = struct {
             } else if (self.nextIsExpr()) {
                 self.boolExpr();
             } else {
-                self.errors.append(String.init_with_contents(self.allocator, "expected an expression after `=>`") catch unreachable) catch unreachable;
+                self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line }) catch unreachable;
             }
         }
     }
@@ -577,11 +615,15 @@ pub const Parser = struct {
 
     fn parens(self: *Parser) void {
         _ = self.expect(.L_PAREN);
+        while (self.accept(.WHITESPACE)) |_| {}
+
         if (self.peek().kind == .PERIOD) {
             self.inferedDot();
         } else if (self.nextIsExpr()) {
             self.expr();
         }
+        while (self.accept(.WHITESPACE)) |_| {}
+        _ = self.expect(.R_PAREN);
     }
 
     fn inferedDot(self: *Parser) void {

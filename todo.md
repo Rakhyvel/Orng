@@ -6,7 +6,8 @@
 
 ### Parser
 - [x] Write recursive descent parser
-- [x] Add error handling
+- [ ] Add error handling, with token spans
+- [ ] Parse indent blocks
 - [ ] Write ASTs
 
 ### Symbol table

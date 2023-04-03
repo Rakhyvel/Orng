@@ -31,6 +31,6 @@ pub fn main() !void {
     var parser = try Parser.create(contents, allocator);
     parser.parse();
     for (parser.errors.items) |err| {
-        std.debug.print("error: {s}\n", .{err.str()});
+        std.debug.print("file:{} error: {s}\n", .{ err.line, err.msg.str() });
     }
 }

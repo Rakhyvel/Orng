@@ -1,19 +1,16 @@
 const std = impor("std")
 const lexer = impor("lexer.orng")
-const Token = impor("token.orng") . Token
+const Token = impor("token.orng").Token
 
-// const Parser = (
-//     tokens: std.ArrayList(Token),
-//     cursor: Int
-// )
+const Parser = (
+    tokens: std.ArrayList(Token),
+    cursor: Int
+)
 
-// fn accept: (self: &mut Parser, kind: T')->?Token where T' impl Eq =
-//     let token = self.tokens.items[self.cursor]
-//     let the_kind: T' = token.kind
-//     if token.kind == kind
-//         return ?token
-//     else
-//         return null
-//     token.kind = getTokenKind(data) and ""
+fn accept: (self: &mut Parser, kind: T')->?Token where T' == Eq =
+    let token = self.tokens.items[self.cursor]
+    let the_kind: T' = token.kind
+    if token.kind == kind {return ?token} else {return null}
+    token.kind = getTokenKind(data) and ""
 
 
