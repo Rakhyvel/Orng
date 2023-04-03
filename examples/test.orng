@@ -1,43 +1,19 @@
-// This is a comment
+const std = impor("std")
+const lexer = impor("lexer.orng")
+const Token = impor("token.orng") . Token
 
-// Some modifier keywords
-fn const let mut throws invalidates
+// const Parser = (
+//     tokens: std.ArrayList(Token),
+//     cursor: Int
+// )
 
-// Some control flow keywords
-if else for break continue case cond return defer errdefer orelse catch try 
-unreachable or and throw invalidate
+// fn accept: (self: &mut Parser, kind: T')->?Token where T' impl Eq =
+//     let token = self.tokens.items[self.cursor]
+//     let the_kind: T' = token.kind
+//     if token.kind == kind
+//         return ?token
+//     else
+//         return null
+//     token.kind = getTokenKind(data) and ""
 
-// Some constants
-true false null
 
-// Identifiers
-these are' _all identifiers123'
-
-// Strings and characters
-"A string"
-
-'a' // character
-
-// Numbers
-1'000'000 1'000'000.0 0xFFFF'FFFF 0o77'7 0b1101'1100
-
-// Punctuation
-: , . .. ... ;
-
-// Math
-= += -= *= /= %= + ++ - -- * ** / %
-
-// Bitwise operations
-<<= >>= << >>
-
-// Boolean operations
-! != == > >= < <= 
-
-// Open and closing
-( ) [ ] { }
-
-// Open and closing shouldn't bunch up into one symbol
-(()) [[]] {{}}
-
-// Type specific
-& ->

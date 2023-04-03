@@ -1,4 +1,4 @@
-const TokenKind = enum(u32) {
+pub const TokenKind = enum(u32) {
     // Literals
     BIN_INTEGER,
     CHAR,
@@ -33,6 +33,7 @@ const TokenKind = enum(u32) {
     RETURN,
     THROW,
     THROWS,
+    TRY,
     UNREACHABLE,
     VALIDATE,
     WHERE,
@@ -41,7 +42,7 @@ const TokenKind = enum(u32) {
     // Equals
     D_GTR_EQUALS,
     D_LSR_EQUALS,
-    DOUBLE_EQUALS,
+    D_EQUALS,
     EQUALS,
     MINUS_EQUALS,
     NOT_EQUALS,
@@ -89,8 +90,12 @@ const TokenKind = enum(u32) {
     R_PAREN,
     R_SQUARE,
 
-    // Whitespace
+    // Invented
+    PERIOD_GTR,
+
+    // Structure
     WHITESPACE,
+    EOF,
 
     // HACK: Used to count how many constructors are in the enum
     len,
@@ -100,9 +105,9 @@ pub const Token = struct {
     // What kind of token this is
     kind: TokenKind,
     // Non-owning slice into the contents of the source file the text data for this token comes from
-    data: []u8,
+    data: []const u8,
 
-    pub fn create(data: []u8, kind: ?TokenKind) Token {
+    pub fn create(data: []const u8, kind: ?TokenKind) Token {
         return .{ .data = data, .kind = kind orelse kindFromString(data) };
     }
 
@@ -111,7 +116,7 @@ pub const Token = struct {
     }
 };
 
-fn kindFromString(data: []u8) TokenKind {
+fn kindFromString(data: []const u8) TokenKind {
     var ix: usize = 0;
     const num_ctors = @enumToInt(TokenKind.len);
 
@@ -128,19 +133,18 @@ fn kindFromString(data: []u8) TokenKind {
     return TokenKind.IDENTIFIER;
 }
 
-fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
+pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
     return switch (kind) {
-        .BIN_INTEGER, //
-        .CHAR,
-        .DECIMAL_INTEGER,
-        .HEX_INTEGER,
-        .IDENTIFIER,
-        .OCT_INTEGER,
-        .REAL,
-        .STRING,
-        .WHITESPACE,
-        .len,
-        => null,
+        .BIN_INTEGER => "<binary integer>", //
+        .CHAR => "<character literal>",
+        .DECIMAL_INTEGER => "<decimal integer>",
+        .HEX_INTEGER => "<hexadecimal integer>",
+        .IDENTIFIER => "<an identifier>",
+        .OCT_INTEGER => "<octal integer>",
+        .REAL => "<real number>",
+        .STRING => "<string literal>",
+        .WHITESPACE => "<new-line>",
+        .len => null,
 
         .AND => "and",
         .BREAK => "break",
@@ -165,6 +169,7 @@ fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .RETURN => "return",
         .THROW => "throw",
         .THROWS => "throws",
+        .TRY => "try",
         .UNREACHABLE => "unreachable",
         .VALIDATE => "validate",
         .WHERE => "where",
@@ -173,7 +178,7 @@ fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         // Equals
         .D_GTR_EQUALS => ">>=",
         .D_LSR_EQUALS => "<<=",
-        .DOUBLE_EQUALS => "==",
+        .D_EQUALS => "==",
         .EQUALS => "=",
         .MINUS_EQUALS => "-=",
         .NOT_EQUALS => "!=",
@@ -220,10 +225,16 @@ fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .R_BRACE => "]",
         .R_PAREN => "(",
         .R_SQUARE => ")",
+
+        // Invented
+        .PERIOD_GTR => ".>",
+
+        // EOF
+        .EOF => "(EOF)",
     };
 }
 
-fn strEquals(a: []u8, b: []const u8) bool {
+fn strEquals(a: []const u8, b: []const u8) bool {
     if (a.len != b.len) {
         return false;
     } else {

@@ -3,7 +3,7 @@ const std = @import("std");
 
 const LexerErrors = error{lexerError};
 
-pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(Token) {
+pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayList(Token) {
     const LexState = enum { //
         none,
         whitespace,
@@ -56,7 +56,15 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
 
             .whitespace => {
                 if (!std.ascii.isWhitespace(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], .WHITESPACE));
+                    while (contents[slice_start] != '\n' and slice_start < ix) {
+                        // skip any whitespace leading up to a possible newline
+                        slice_start += 1;
+                    }
+                    if (slice_start < ix) {
+                        // if whitespace token did not contain a sequence of '\n', slice_start will == ix
+                        // do not add whitespace tokens if they did not contain '\n'
+                        try tokens.append(Token.create(contents[slice_start..ix], .WHITESPACE));
+                    }
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -66,7 +74,7 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
 
             .ident => {
                 if (!std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    try tokens.append(Token.create(contents[slice_start..ix], .IDENTIFIER));
+                    try tokens.append(Token.create(contents[slice_start..ix], null));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -280,5 +288,6 @@ pub fn getTokens(contents: []u8, allocator: std.mem.Allocator) !std.ArrayList(To
         }
     }
 
+    try tokens.append(Token.create("EOF", .EOF));
     return tokens;
 }
