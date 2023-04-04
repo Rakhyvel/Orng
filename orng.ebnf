@@ -14,7 +14,7 @@ const_declaration: "const" ident [":" expr] "=" expr.
 
 let_declaration: "let" ["mut"] ident (":" expr ["=" expr] | "=" expr).
 
-fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" boolExpr] "=" expr.
+fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" expr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
 param: ["mut" | "const"] ident ":" annotExpr.
 
@@ -27,26 +27,21 @@ statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
          .
 
 
-expr: commaExpr
+expr: sumExpr
     | fn_declaration
     .
 
-commaExpr: annotExpr {"," annotExpr}.
+sumExpr: "cond" condExpr
+       | "case" caseExpr
+       | "|" ident [":" productExpr] {"|" ident [":" productExpr]}
+       | productExpr
+       .
 
-annotExpr: arrowExpr [":" arrowExpr ["where" boolExpr]].
+productExpr: annotExpr {"," annotExpr}.
 
-arrowExpr: gaurdExpr {"->" gaurdExpr}.
+annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr]].
 
-gaurdExpr: "cond" condExpr
-         | "case" caseExpr
-         | errorUnionExpr
-         .
-
-errorUnionExpr: unionExpr {"!" unionExpr}.
-
-unionExpr: tupleAppendExpr {"|" tupleAppendExpr}.
-
-tupleAppendExpr: boolExpr {("++" | "--" ) boolExpr}.
+arrowExpr: boolExpr {"->" boolExpr}.
 
 boolExpr: neqExpr {("and" | "or") neqExpr}.
 
@@ -56,11 +51,9 @@ conditionalExpr: coalesceExpr {("==" | "<" | "<=" | ">" | ">=") coalesceExpr}.
 
 coalesceExpr: shiftExpr {("orelse" | "catch")}.
 
-shiftExpr: intExpr {("<<" | ">>") intExpr}.
+intExpr: termExpr {("+" | "-" | "!!") termExpr}.
 
-intExpr: termExpr {("+" | "-" ) termExpr}.
-
-termExpr: prefixExpr {("*" | "/" | "%" | "<>") prefixExpr}.
+termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
 
 prefixExpr: "!" prependExpr                         # boolean not
           | "-" prependExpr                         # negation
@@ -104,13 +97,13 @@ whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["el
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
 
 # Bar lists have one or more bar statements, followed by an optional else clause
-barClause: boolExpr ["=>" boolExpr ";"].
-barElse: "else" "=>" boolExpr ";".
+barClause: productExpr ["=>" expr ";"].
+barElse: "else" "=>" expr ";".
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barClause ["|" (barElse | barListMiddle)].
 
 condExpr: [non_fn_declaration ";"] barList.
 
-caseExpr: [non_fn_declaration ";"] boolExpr barList.
+caseExpr: [non_fn_declaration ";"] productExpr barList.
 
 parens: "(" expr ")".

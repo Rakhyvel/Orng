@@ -107,9 +107,10 @@ pub const Token = struct {
     // Non-owning slice into the contents of the source file the text data for this token comes from
     data: []const u8,
     line: i64,
+    col: i64,
 
-    pub fn create(data: []const u8, kind: ?TokenKind, line: i64) Token {
-        return .{ .data = data, .kind = kind orelse kindFromString(data), .line = line };
+    pub fn create(data: []const u8, kind: ?TokenKind, line: i64, col: i64) Token {
+        return .{ .data = data, .kind = kind orelse kindFromString(data), .line = line, .col = col };
     }
 
     pub fn repr(self: *Token) []const u8 {
