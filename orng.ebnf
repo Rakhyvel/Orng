@@ -49,7 +49,7 @@ neqExpr: conditionalExpr ["!=" conditionalExpr].
 
 conditionalExpr: coalesceExpr {("==" | "<" | "<=" | ">" | ">=") coalesceExpr}.
 
-coalesceExpr: shiftExpr {("orelse" | "catch")}.
+coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
 intExpr: termExpr {("+" | "-" | "!!") termExpr}.
 
@@ -61,7 +61,7 @@ prefixExpr: "!" prependExpr                         # boolean not
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" prependExpr                         # optional
           | "try" prependExpr                       # error coalesce orelese return
-          | "." ident ["<-" prependExpr]            # infered member/named argument/named field
+          | "." ident ["<-" prefixExpr]            # infered member/named argument/named field
           | prependExpr
           .
 

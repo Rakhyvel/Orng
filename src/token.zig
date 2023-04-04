@@ -52,8 +52,10 @@ pub const TokenKind = enum(u32) {
     STAR_EQUALS,
 
     // Math
+    BACK_SKINNY_ARROW,
     BAR,
     CARET,
+    D_BAR,
     D_PLUS,
     D_MINUS,
     DIAMOND,
@@ -75,6 +77,7 @@ pub const TokenKind = enum(u32) {
     AMPERSAND,
     COLON,
     COMMA,
+    D_E_MARK,
     D_PERIOD,
     E_MARK,
     PERIOD,
@@ -190,8 +193,10 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .STAR_EQUALS => "*=",
 
         // Math
+        .BACK_SKINNY_ARROW => "<-",
         .BAR => "|",
         .CARET => "^",
+        .D_BAR => "||",
         .D_PLUS => "++",
         .D_MINUS => "--",
         .DIAMOND => "<>",
@@ -213,6 +218,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .AMPERSAND => "&",
         .COLON => ":",
         .COMMA => ",",
+        .D_E_MARK => "!!",
         .D_PERIOD => "..",
         .E_MARK => "!",
         .PERIOD => ".",
