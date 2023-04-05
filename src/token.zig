@@ -1,3 +1,5 @@
+const std = @import("std");
+
 pub const TokenKind = enum(u32) {
     // Literals
     BIN_INTEGER,
@@ -118,6 +120,10 @@ pub const Token = struct {
 
     pub fn repr(self: *Token) []const u8 {
         return reprFromTokenKind(self.kind) orelse self.data;
+    }
+
+    pub fn pprint(self: *Token) void {
+        std.debug.print("Token {{kind: {s}, data: {s}}}\n", .{ self.repr(), self.data });
     }
 };
 

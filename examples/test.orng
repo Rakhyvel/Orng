@@ -1,17 +1,8 @@
-const TokenKind = | identifier
-    | integer: (| hex | dec | oct | bin)
-    | char
-    
+fn ()->T =
+    if true
+        return x
+    else 
+        return x
+    return x
 
-const Parser = (
-    tokens: std.ArrayList(Token),
-    cursor: Int
-)
-
-fn accept: (self: &mut Parser, kind: T')->?Token where T' =
-    let token = self.tokens.items[self.cursor]
-    let the_kind: T' = token.kind
-    if token.kind == kind {return ?token} else {return null}
-    token.kind = getTokenKind(data) and ""
-    let lol = TokenKind.integer(.d)
-    
+fn ()->T = x

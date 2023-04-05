@@ -100,7 +100,7 @@ forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
 barClause: productExpr ["=>" expr ";"].
 barElse: "else" "=>" expr ";".
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
-barList: "|" barClause ["|" (barElse | barListMiddle)].
+barList: "|" barListMiddle.
 
 condExpr: [non_fn_declaration ";"] barList.
 

@@ -1,6 +1,7 @@
 const std = @import("std");
 const lexer = @import("lexer.zig");
 const _token = @import("token.zig");
+const main = @import("main.zig");
 
 const Token = _token.Token;
 const TokenKind = _token.TokenKind;
@@ -12,6 +13,8 @@ const ParserError = struct {
     col: i64,
 };
 
+const ParserErrorEnum = error{parserError};
+
 pub const Parser = struct {
     tokens: std.ArrayList(Token),
     errors: std.ArrayList(ParserError),
@@ -20,8 +23,10 @@ pub const Parser = struct {
 
     pub fn create(contents: []const u8, allocator: std.mem.Allocator) !Parser {
         var tokens = try lexer.getTokens(contents, allocator);
-        for (tokens.items) |*token| {
-            std.debug.print("{s}\n", .{token.repr()});
+        if (main.PRINT_TOKENS) {
+            for (tokens.items) |*token| {
+                token.pprint();
+            }
         }
         return .{ .tokens = tokens, .errors = std.ArrayList(ParserError).init(allocator), .cursor = 0, .allocator = allocator };
     }
@@ -39,7 +44,6 @@ pub const Parser = struct {
         or nextKind == .MINUS //
         or nextKind == .Q_MARK //
         or nextKind == .L_SQUARE //
-        or nextKind == .WHITESPACE //
         or nextKind == .CASE //
         or nextKind == .COND //
         or nextKind == .CONST //
@@ -76,7 +80,7 @@ pub const Parser = struct {
         }
     }
 
-    fn expect(self: *Parser, kind: TokenKind) ?Token {
+    fn expect(self: *Parser, kind: TokenKind) ParserErrorEnum!Token {
         if (self.accept(kind)) |token| {
             return token;
         } else {
@@ -87,117 +91,120 @@ pub const Parser = struct {
             error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
             error_string.concat("`") catch unreachable;
             self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
-            return null;
+            return ParserErrorEnum.parserError;
         }
     }
 
-    pub fn parse(self: *Parser) void {
-        program(self);
-        _ = self.expect(.EOF);
+    pub fn parse(self: *Parser) ParserErrorEnum!void {
+        try program(self);
+        _ = try self.expect(.EOF);
     }
 
-    fn program(self: *Parser) void {
+    fn program(self: *Parser) ParserErrorEnum!void {
         while (self.accept(.WHITESPACE)) |_| {}
         while (self.peek().kind == .CONST or self.peek().kind == .FN) {
-            self.topLevelDeclaration();
+            try self.topLevelDeclaration();
             while (self.accept(.WHITESPACE)) |_| {}
         }
     }
 
-    fn topLevelDeclaration(self: *Parser) void {
+    fn topLevelDeclaration(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .FN) {
-            self.fnDeclaration();
+            try self.fnDeclaration();
         } else if (self.peek().kind == .CONST) {
-            self.constDeclaration();
+            try self.constDeclaration();
         } else {
             self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected a top-level declaration") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
         }
     }
 
-    fn nonFnDeclaration(self: *Parser) void {
+    fn nonFnDeclaration(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .LET) {
-            self.letDeclaration();
+            try self.letDeclaration();
         } else if (self.peek().kind == .CONST) {
-            self.constDeclaration();
+            try self.constDeclaration();
         } else {
             self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected a variable or constant declaration") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
         }
     }
 
-    fn constDeclaration(self: *Parser) void {
-        _ = self.expect(.CONST);
-        _ = self.expect(.IDENTIFIER);
+    fn constDeclaration(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.CONST);
+        _ = try self.expect(.IDENTIFIER);
         if (self.accept(.COLON)) |_| {
-            self.expr();
+            try self.expr();
         }
-        _ = self.expect(.EQUALS);
-        self.expr();
+        _ = try self.expect(.EQUALS);
+        try self.expr();
     }
 
-    fn letDeclaration(self: *Parser) void {
-        _ = self.expect(.LET);
+    fn letDeclaration(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.LET);
         _ = self.accept(.MUT);
-        _ = self.expect(.IDENTIFIER);
+        _ = try self.expect(.IDENTIFIER);
         if (self.accept(.COLON)) |_| {
-            self.expr();
+            try self.expr();
             if (self.peek().kind == .EQUALS) {
-                _ = self.expect(.EQUALS);
-                self.expr();
+                _ = try self.expect(.EQUALS);
+                try self.expr();
             }
         } else if (self.accept(.EQUALS)) |_| {
-            self.expr();
+            try self.expr();
         } else {
             self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "variable declarations require at least a type or a initial value") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
         }
     }
 
-    fn fnDeclaration(self: *Parser) void {
-        _ = self.expect(.FN);
+    fn fnDeclaration(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.FN);
         if (self.accept(.IDENTIFIER)) |_| {
-            _ = self.expect(.COLON);
+            _ = try self.expect(.COLON);
         }
-        self.paramlist();
+        try self.paramlist();
         if (self.accept(.INVALIDATES)) |_| {
-            _ = self.boolExpr();
+            try self.boolExpr();
         }
-        _ = self.expect(.SKINNY_ARROW);
-        self.arrowExpr();
+        _ = try self.expect(.SKINNY_ARROW);
+        try self.arrowExpr();
         if (self.accept(.WHERE)) |_| {
-            _ = self.boolExpr();
+            try self.boolExpr();
         }
-        _ = self.expect(.EQUALS);
-        self.expr();
+        _ = try self.expect(.EQUALS);
+        std.debug.print("after `=` : {s}\n", .{self.peek().data});
+        try self.expr();
     }
 
-    fn paramlist(self: *Parser) void {
-        _ = self.expect(.L_PAREN);
-        self.param();
-        if (self.accept(.COMMA)) |_| {
-            self.param();
+    fn paramlist(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.L_PAREN);
+        if (self.peek().kind == .CONST or self.peek().kind == .MUT or self.peek().kind == .IDENTIFIER) {
+            try self.param();
+            if (self.accept(.COMMA)) |_| {
+                try self.param();
+            }
         }
-        _ = self.expect(.R_PAREN);
+        _ = try self.expect(.R_PAREN);
     }
 
-    fn param(self: *Parser) void {
+    fn param(self: *Parser) ParserErrorEnum!void {
         _ = self.accept(.MUT) orelse self.accept(.CONST);
-        _ = self.expect(.IDENTIFIER);
-        _ = self.expect(.COLON);
-        self.annotExpr();
+        _ = try self.expect(.IDENTIFIER);
+        _ = try self.expect(.COLON);
+        try self.annotExpr();
     }
 
-    fn statement(self: *Parser) void {
+    fn statement(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            self.nonFnDeclaration();
+            try self.nonFnDeclaration();
         } else if (self.accept(.DEFER)) |_| {
-            self.expr();
+            try self.expr();
         } else if (self.accept(.ERRDEFER)) |_| {
-            self.expr();
+            try self.expr();
         } else if (self.accept(.INVALIDATE)) |_| {
-            self.expr();
+            try self.expr();
         } else if (self.accept(.VALIDATE)) |_| {
-            self.expr();
+            try self.expr();
         } else {
-            self.expr();
+            try self.expr();
             if (self.accept(.EQUALS) //
             orelse self.accept(.PLUS_EQUALS) //
             orelse self.accept(.MINUS_EQUALS) //
@@ -206,214 +213,214 @@ pub const Parser = struct {
             orelse self.accept(.PERCENT_EQUALS) //
             orelse self.accept(.D_LSR_EQUALS) //
             orelse self.accept(.D_GTR_EQUALS)) |_| {
-                self.expr();
+                try self.expr();
             }
         }
     }
 
-    fn expr(self: *Parser) void {
+    fn expr(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .FN) {
-            self.fnDeclaration();
+            try self.fnDeclaration();
         } else {
-            self.sumType();
+            try self.sumType();
         }
     }
 
-    fn sumType(self: *Parser) void {
+    fn sumType(self: *Parser) ParserErrorEnum!void {
         if (self.accept(.COND)) |_| {
-            self.condExpr();
+            try self.condExpr();
         } else if (self.accept(.CASE)) |_| {
-            self.caseExpr();
+            try self.caseExpr();
         } else if (self.accept(.BAR)) |_| {
-            self.adtType();
+            try self.adtType();
             while (self.accept(.WHITESPACE)) |_| {}
             while (self.accept(.BAR)) |_| {
-                self.adtType();
+                try self.adtType();
                 while (self.accept(.WHITESPACE)) |_| {}
             }
         } else {
-            self.productExpr();
+            try self.productExpr();
         }
     }
 
-    fn adtType(self: *Parser) void {
+    fn adtType(self: *Parser) ParserErrorEnum!void {
         _ = self.accept(.IDENTIFIER);
         if (self.accept(.COLON)) |_| {
-            self.productExpr();
+            try self.productExpr();
         }
     }
 
-    fn productExpr(self: *Parser) void {
-        self.annotExpr();
+    fn productExpr(self: *Parser) ParserErrorEnum!void {
+        try self.annotExpr();
         while (self.accept(.COMMA)) |_| {
             while (self.accept(.WHITESPACE)) |_| {}
-            self.annotExpr();
+            try self.annotExpr();
         }
     }
 
-    fn annotExpr(self: *Parser) void {
-        self.arrowExpr();
+    fn annotExpr(self: *Parser) ParserErrorEnum!void {
+        try self.arrowExpr();
         if (self.accept(.COLON)) |_| {
-            self.arrowExpr();
+            try self.arrowExpr();
             if (self.accept(.WHERE)) |_| {
-                self.boolExpr();
+                try self.boolExpr();
             }
         }
     }
 
-    fn arrowExpr(self: *Parser) void {
-        self.boolExpr();
+    fn arrowExpr(self: *Parser) ParserErrorEnum!void {
+        try self.boolExpr();
         while (self.accept(.SKINNY_ARROW)) |_| {
-            self.boolExpr();
+            try self.boolExpr();
         }
     }
 
-    fn boolExpr(self: *Parser) void {
-        self.neqExpr();
+    fn boolExpr(self: *Parser) ParserErrorEnum!void {
+        try self.neqExpr();
         while (true) {
             if (self.accept(.AND)) |_| {
-                self.neqExpr();
+                try self.neqExpr();
             } else if (self.accept(.OR)) |_| {
-                self.neqExpr();
+                try self.neqExpr();
             } else {
                 break;
             }
         }
     }
 
-    fn neqExpr(self: *Parser) void {
-        self.conditionalExpr();
+    fn neqExpr(self: *Parser) ParserErrorEnum!void {
+        try self.conditionalExpr();
         if (self.accept(.NOT_EQUALS)) |_| {
-            self.conditionalExpr();
+            try self.conditionalExpr();
         }
     }
 
-    fn conditionalExpr(self: *Parser) void {
-        self.coalesceExpr();
+    fn conditionalExpr(self: *Parser) ParserErrorEnum!void {
+        try self.coalesceExpr();
         while (true) {
             if (self.accept(.D_EQUALS)) |_| {
-                self.coalesceExpr();
+                try self.coalesceExpr();
             } else if (self.accept(.GTR)) |_| {
-                self.coalesceExpr();
+                try self.coalesceExpr();
             } else if (self.accept(.LSR)) |_| {
-                self.coalesceExpr();
+                try self.coalesceExpr();
             } else if (self.accept(.GTE)) |_| {
-                self.coalesceExpr();
+                try self.coalesceExpr();
             } else if (self.accept(.LTE)) |_| {
-                self.coalesceExpr();
+                try self.coalesceExpr();
             } else {
                 break;
             }
         }
     }
 
-    fn coalesceExpr(self: *Parser) void {
-        self.intExpr();
+    fn coalesceExpr(self: *Parser) ParserErrorEnum!void {
+        try self.intExpr();
         while (true) {
             if (self.accept(.CATCH)) |_| {
-                self.intExpr();
+                try self.intExpr();
             } else if (self.accept(.ORELSE)) |_| {
-                self.intExpr();
+                try self.intExpr();
             } else {
                 break;
             }
         }
     }
 
-    fn intExpr(self: *Parser) void {
-        self.termExpr();
+    fn intExpr(self: *Parser) ParserErrorEnum!void {
+        try self.termExpr();
         while (true) {
             if (self.accept(.PLUS)) |_| {
-                self.termExpr();
+                try self.termExpr();
             } else if (self.accept(.MINUS)) |_| {
-                self.termExpr();
+                try self.termExpr();
             } else if (self.accept(.D_E_MARK)) |_| {
-                self.termExpr();
+                try self.termExpr();
             } else {
                 break;
             }
         }
     }
 
-    fn termExpr(self: *Parser) void {
-        self.prefixExpr();
+    fn termExpr(self: *Parser) ParserErrorEnum!void {
+        try self.prefixExpr();
         while (true) {
             if (self.accept(.STAR)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else if (self.accept(.SLASH)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else if (self.accept(.PERCENT)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else if (self.accept(.DIAMOND)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else if (self.accept(.D_PLUS)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else if (self.accept(.D_MINUS)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else if (self.accept(.D_BAR)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             } else {
                 break;
             }
         }
     }
 
-    fn prefixExpr(self: *Parser) void {
+    fn prefixExpr(self: *Parser) ParserErrorEnum!void {
         if (self.accept(.E_MARK)) |_| {
-            self.prependExpr();
+            try self.prependExpr();
         } else if (self.accept(.MINUS)) |_| {
-            self.prependExpr();
+            try self.prependExpr();
         } else if (self.accept(.AMPERSAND)) |_| {
             _ = self.accept(.MUT);
-            self.prefixExpr();
+            try self.prefixExpr();
         } else if (self.accept(.L_SQUARE)) |_| {
             if (self.accept(.MUT)) |_| {
                 //
             } else if (self.accept(.STAR)) |_| {
                 //
             } else {
-                self.expr();
+                try self.expr();
             }
-            _ = self.expect(.R_SQUARE);
-            self.prefixExpr();
+            _ = try self.expect(.R_SQUARE);
+            try self.prefixExpr();
         } else if (self.accept(.Q_MARK)) |_| {
-            self.prependExpr();
+            try self.prependExpr();
         } else if (self.accept(.TRY)) |_| {
-            self.prependExpr();
+            try self.prependExpr();
         } else if (self.accept(.PERIOD)) |_| {
-            _ = self.expect(.IDENTIFIER);
+            _ = try self.expect(.IDENTIFIER);
             if (self.accept(.BACK_SKINNY_ARROW)) |_| {
-                self.prefixExpr();
+                try self.prefixExpr();
             }
         } else {
-            self.prependExpr();
+            try self.prependExpr();
         }
     }
 
-    fn prependExpr(self: *Parser) void {
-        self.postfixExpr();
+    fn prependExpr(self: *Parser) ParserErrorEnum!void {
+        try self.postfixExpr();
         while (self.accept(.PERIOD_GTR)) |_| {
-            self.postfixExpr();
+            try self.postfixExpr();
         }
     }
 
-    fn postfixExpr(self: *Parser) void {
-        self.factor();
+    fn postfixExpr(self: *Parser) ParserErrorEnum!void {
+        try self.factor();
         while (true) {
             if (self.peek().kind == .L_PAREN) {
-                self.parens();
+                try self.parens();
             } else if (self.accept(.L_SQUARE)) |_| {
                 if (self.nextIsExpr()) {
-                    self.expr();
+                    try self.expr();
                 }
                 if (self.accept(.D_PERIOD)) |_| {
                     if (self.nextIsExpr()) {
-                        self.expr();
+                        try self.expr();
                     }
                 }
-                _ = self.expect(.R_SQUARE);
+                _ = try self.expect(.R_SQUARE);
             } else if (self.accept(.PERIOD)) |_| {
-                _ = self.expect(.IDENTIFIER);
+                _ = try self.expect(.IDENTIFIER);
             } else if (self.accept(.PERIOD_Q_MARK)) |_| {
                 //
             } else if (self.accept(.CARET)) |_| {
@@ -424,7 +431,7 @@ pub const Parser = struct {
         }
     }
 
-    fn factor(self: *Parser) void {
+    fn factor(self: *Parser) ParserErrorEnum!void {
         if (self.accept(.IDENTIFIER)) |_| {
             //
         } else if (self.accept(.DECIMAL_INTEGER)) |_| {
@@ -442,19 +449,19 @@ pub const Parser = struct {
         } else if (self.accept(.STRING)) |_| {
             //
         } else if (self.peek().kind == .WHITESPACE) {
-            self.indentBlockExpr();
+            try self.indentBlockExpr();
         } else if (self.peek().kind == .L_BRACE) {
-            self.braceBlockExpr();
+            try self.braceBlockExpr();
         } else if (self.peek().kind == .IF) {
-            self.ifExpr();
+            try self.ifExpr();
         } else if (self.peek().kind == .WHILE) {
-            self.whileExpr();
+            try self.whileExpr();
         } else if (self.peek().kind == .FOR) {
-            self.forExpr();
+            try self.forExpr();
         } else if (self.accept(.UNREACHABLE)) |_| {
             //
         } else if (self.peek().kind == .L_PAREN) {
-            self.parens();
+            try self.parens();
         } else {
             var error_string = String.init_with_contents(self.allocator, "expected an expression, got `") catch unreachable;
             error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
@@ -463,13 +470,15 @@ pub const Parser = struct {
         }
     }
 
-    fn indentBlockExpr(self: *Parser) void {
-        _ = self.expect(.WHITESPACE); // TODO: Calculate whitespace
-        if (self.nextIsStatement()) {
-            self.statement();
-            while (self.accept(.WHITESPACE)) |_| {
-                // peek at whitespace, break if its IDENTIFIERation lesser
-                self.statement();
+    fn indentBlockExpr(self: *Parser) ParserErrorEnum!void {
+        var start_token_len = (try self.expect(.WHITESPACE)).data.len;
+        std.debug.print("{s} {}\n", .{ "entered block, sir", start_token_len });
+
+        while (self.nextIsStatement()) {
+            try self.statement();
+            if (self.peek().kind == .WHITESPACE and self.peek().data.len < start_token_len) {
+                // peek at whitespace, break if its indentation lesser
+                return;
             }
         }
 
@@ -479,18 +488,35 @@ pub const Parser = struct {
             //
         } else if (self.accept(.RETURN)) |_| {
             if (self.nextIsExpr()) {
-                self.expr();
+                try self.expr();
             }
         }
-        // expect a dedent whitespace with lesser indentation, but do not consume
+
+        // expect a dedent whitespace with lesser indentation, consume if its equal?
+        if (self.peek().kind != .EOF) {
+            var end_token = self.peek();
+            if (end_token.kind != .WHITESPACE) {
+                // This is actually an error about unreachable code, right?
+                const actual = self.peek();
+                var error_string = String.init_with_contents(self.allocator, "expected lesser indentation, got `") catch unreachable;
+                error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
+                error_string.concat("`") catch unreachable;
+                self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
+                return ParserErrorEnum.parserError;
+            }
+            if (end_token.data.len < start_token_len) {
+                std.debug.print("{s} {}\n", .{ "exited block, sir", end_token.data.len });
+                _ = self.accept(.WHITESPACE);
+            }
+        }
     }
 
-    fn braceBlockExpr(self: *Parser) void {
-        _ = self.expect(.L_BRACE);
+    fn braceBlockExpr(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.L_BRACE);
         if (self.nextIsStatement()) {
-            self.statement();
+            try self.statement();
             while (self.accept(.SEMICOLON)) |_| {
-                self.statement();
+                try self.statement();
             }
         }
 
@@ -500,118 +526,118 @@ pub const Parser = struct {
             //
         } else if (self.accept(.RETURN)) |_| {
             if (self.nextIsExpr()) {
-                self.expr();
+                try self.expr();
             }
         }
-        _ = self.expect(.R_BRACE);
+        _ = try self.expect(.R_BRACE);
     }
 
-    fn blockExpr(self: *Parser) void {
+    fn blockExpr(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .WHITESPACE) {
-            self.indentBlockExpr();
+            try self.indentBlockExpr();
         } else if (self.peek().kind == .L_BRACE) {
-            self.braceBlockExpr();
+            try self.braceBlockExpr();
         }
     }
 
-    fn ifExpr(self: *Parser) void {
-        _ = self.expect(.IF);
+    fn ifExpr(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.IF);
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            self.nonFnDeclaration();
-            _ = self.expect(.SEMICOLON);
+            try self.nonFnDeclaration();
+            _ = try self.expect(.SEMICOLON);
         }
-        self.expr();
-        self.blockExpr();
+        try self.expr();
+        try self.blockExpr();
         if (self.accept(.ELSE)) |_| {
-            self.blockExpr();
+            try self.blockExpr();
         }
     }
 
-    fn whileExpr(self: *Parser) void {
-        _ = self.expect(.WHILE);
+    fn whileExpr(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.WHILE);
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            self.nonFnDeclaration();
-            _ = self.expect(.SEMICOLON);
+            try self.nonFnDeclaration();
+            _ = try self.expect(.SEMICOLON);
         }
-        self.expr();
+        try self.expr();
         if (self.accept(.SEMICOLON)) |_| {
-            self.statement();
+            try self.statement();
         }
-        self.blockExpr();
+        try self.blockExpr();
         if (self.accept(.ELSE)) |_| {
-            self.blockExpr();
+            try self.blockExpr();
         }
     }
 
-    fn forExpr(self: *Parser) void {
-        _ = self.expect(.FOR);
+    fn forExpr(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.FOR);
         _ = self.accept(.MUT);
-        _ = self.expect(.IDENTIFIER);
-        _ = self.expect(.IN);
-        self.expr();
-        self.blockExpr();
+        _ = try self.expect(.IDENTIFIER);
+        _ = try self.expect(.IN);
+        try self.expr();
+        try self.blockExpr();
         if (self.accept(.ELSE)) |_| {
-            self.blockExpr();
+            try self.blockExpr();
         }
     }
 
-    fn barClause(self: *Parser) void {
-        self.productExpr();
+    fn barClause(self: *Parser) ParserErrorEnum!void {
+        try self.productExpr();
         if (self.accept(.FAT_ARROW)) |_| {
-            self.expr();
-            _ = self.expect(.SEMICOLON);
+            try self.expr();
+            _ = try self.expect(.SEMICOLON);
         }
     }
 
-    fn barElse(self: *Parser) void {
-        _ = self.expect(.ELSE);
-        _ = self.expect(.FAT_ARROW);
-        self.expr();
-        _ = self.expect(.SEMICOLON);
+    fn barElse(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.ELSE);
+        _ = try self.expect(.FAT_ARROW);
+        try self.expr();
+        _ = try self.expect(.SEMICOLON);
     }
 
-    fn barListMiddle(self: *Parser) void {
-        self.barClause();
+    fn barListMiddle(self: *Parser) ParserErrorEnum!void {
+        try self.barClause();
         if (self.accept(.BAR)) |_| {
             if (self.accept(.ELSE)) |_| {
-                self.barElse();
+                try self.barElse();
             } else if (self.nextIsExpr()) {
-                self.boolExpr();
+                try self.productExpr();
             } else {
                 self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
             }
         }
     }
 
-    fn barList(self: *Parser) void {
-        _ = self.expect(.BAR);
-        self.barListMiddle();
+    fn barList(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.BAR);
+        try self.barListMiddle();
     }
 
-    fn condExpr(self: *Parser) void {
+    fn condExpr(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            self.nonFnDeclaration();
-            _ = self.expect(.SEMICOLON);
+            try self.nonFnDeclaration();
+            _ = try self.expect(.SEMICOLON);
         }
-        self.barList();
+        try self.barList();
     }
 
-    fn caseExpr(self: *Parser) void {
+    fn caseExpr(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            self.nonFnDeclaration();
-            _ = self.expect(.SEMICOLON);
+            try self.nonFnDeclaration();
+            _ = try self.expect(.SEMICOLON);
         }
-        self.productExpr();
-        self.barList();
+        try self.productExpr();
+        try self.barList();
     }
 
-    fn parens(self: *Parser) void {
-        _ = self.expect(.L_PAREN);
+    fn parens(self: *Parser) ParserErrorEnum!void {
+        _ = try self.expect(.L_PAREN);
         while (self.accept(.WHITESPACE)) |_| {}
         if (self.nextIsExpr()) {
-            self.expr();
+            try self.expr();
         }
         while (self.accept(.WHITESPACE)) |_| {}
-        _ = self.expect(.R_PAREN);
+        _ = try self.expect(.R_PAREN);
     }
 };

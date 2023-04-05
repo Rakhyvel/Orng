@@ -3,6 +3,8 @@ const lexer = @import("lexer.zig");
 const Token = @import("token.zig").Token;
 const Parser = @import("parser.zig").Parser;
 
+pub const PRINT_TOKENS = true;
+
 pub fn main() !void {
     // Get second command line argument
     const allocator = std.heap.page_allocator;
@@ -29,8 +31,9 @@ pub fn main() !void {
     var contents = try contents_arraylist.toOwnedSlice();
 
     var parser = try Parser.create(contents, allocator);
-    parser.parse();
-    for (parser.errors.items) |err| {
-        std.debug.print("examples/test.orng:{}:{} error: {s}\n", .{ err.line, err.col, err.msg.str() });
-    }
+    parser.parse() catch {
+        for (parser.errors.items) |err| {
+            std.debug.print("examples/test.orng:{}:{} error: {s}\n", .{ err.line, err.col, err.msg.str() });
+        }
+    };
 }
