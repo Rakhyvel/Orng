@@ -63,15 +63,19 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
 
             .whitespace => {
                 if (!std.ascii.isWhitespace(next_char)) {
-                    while (contents[slice_start] != '\n' and slice_start < ix) {
-                        // skip any whitespace leading up to a possible newline
-                        slice_start += 1;
+                    // If token doesn't contain a newline, just ignore it
+                    // If it does, the data is from the newline all the way to the end
+                    var maybe_last_newline_ix: ?usize = null;
+                    var jx = slice_start;
+                    while (jx < ix) : (jx += 1) {
+                        if (contents[jx] == '\n') {
+                            maybe_last_newline_ix = jx;
+                        }
                     }
-                    if (slice_start < ix) {
-                        // if whitespace token did not contain a sequence of '\n', slice_start will == ix
-                        // do not add whitespace tokens if they did not contain '\n'
-                        try tokens.append(Token.create(contents[slice_start..ix], .WHITESPACE, line, col));
+                    if (maybe_last_newline_ix) |last_newline_ix| {
+                        try tokens.append(Token.create(contents[last_newline_ix..ix], .WHITESPACE, line, col));
                     }
+
                     slice_start = ix;
                     state = .none;
                 } else if (next_char == '\n') {

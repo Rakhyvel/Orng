@@ -1,7 +1,9 @@
 const std = @import("std");
+
+const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
-const _token = @import("token.zig");
 const main = @import("main.zig");
+const _token = @import("token.zig");
 
 const Token = _token.Token;
 const TokenKind = _token.TokenKind;
@@ -23,6 +25,8 @@ pub const Parser = struct {
 
     pub fn create(contents: []const u8, allocator: std.mem.Allocator) !Parser {
         var tokens = try lexer.getTokens(contents, allocator);
+        layout.preemptBinaryOperator(&tokens);
+        try layout.insertIndentDedents(&tokens);
         if (main.PRINT_TOKENS) {
             for (tokens.items) |*token| {
                 token.pprint();
@@ -45,6 +49,7 @@ pub const Parser = struct {
         or nextKind == .Q_MARK //
         or nextKind == .L_SQUARE //
         or nextKind == .CASE //
+        or nextKind == .WHITESPACE //
         or nextKind == .COND //
         or nextKind == .CONST //
         or nextKind == .PERIOD //
@@ -233,10 +238,8 @@ pub const Parser = struct {
             try self.caseExpr();
         } else if (self.accept(.BAR)) |_| {
             try self.adtType();
-            while (self.accept(.WHITESPACE)) |_| {}
             while (self.accept(.BAR)) |_| {
                 try self.adtType();
-                while (self.accept(.WHITESPACE)) |_| {}
             }
         } else {
             try self.productExpr();
@@ -471,14 +474,11 @@ pub const Parser = struct {
     }
 
     fn indentBlockExpr(self: *Parser) ParserErrorEnum!void {
-        var start_token_len = (try self.expect(.WHITESPACE)).data.len;
-        std.debug.print("{s} {}\n", .{ "entered block, sir", start_token_len });
-
-        while (self.nextIsStatement()) {
+        _ = try self.expect(.INDENT);
+        if (self.nextIsStatement()) {
             try self.statement();
-            if (self.peek().kind == .WHITESPACE and self.peek().data.len < start_token_len) {
-                // peek at whitespace, break if its indentation lesser
-                return;
+            while (self.accept(.SEMICOLON)) |_| {
+                try self.statement();
             }
         }
 
@@ -491,24 +491,7 @@ pub const Parser = struct {
                 try self.expr();
             }
         }
-
-        // expect a dedent whitespace with lesser indentation, consume if its equal?
-        if (self.peek().kind != .EOF) {
-            var end_token = self.peek();
-            if (end_token.kind != .WHITESPACE) {
-                // This is actually an error about unreachable code, right?
-                const actual = self.peek();
-                var error_string = String.init_with_contents(self.allocator, "expected lesser indentation, got `") catch unreachable;
-                error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
-                error_string.concat("`") catch unreachable;
-                self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
-                return ParserErrorEnum.parserError;
-            }
-            if (end_token.data.len < start_token_len) {
-                std.debug.print("{s} {}\n", .{ "exited block, sir", end_token.data.len });
-                _ = self.accept(.WHITESPACE);
-            }
-        }
+        _ = try self.expect(.DEDENT);
     }
 
     fn braceBlockExpr(self: *Parser) ParserErrorEnum!void {

@@ -94,6 +94,8 @@ pub const TokenKind = enum(u32) {
     R_BRACE,
     R_PAREN,
     R_SQUARE,
+    INDENT,
+    DEDENT,
 
     // Invented
     PERIOD_GTR,
@@ -104,6 +106,36 @@ pub const TokenKind = enum(u32) {
 
     // HACK: Used to count how many constructors are in the enum
     len,
+};
+
+pub const binaryOperators = [_]TokenKind{
+    .BAR,
+    .COMMA, //
+    .COLON,
+    .SKINNY_ARROW,
+    .AND,
+    .OR,
+    .NOT_EQUALS,
+    .D_EQUALS,
+    .GTR,
+    .GTE,
+    .LSR,
+    .LTE,
+    .ORELSE,
+    .CATCH,
+    .PLUS,
+    .MINUS,
+    .D_E_MARK,
+    .STAR,
+    .SLASH,
+    .PERCENT,
+    .DIAMOND,
+    .D_PLUS,
+    .D_MINUS,
+    .D_BAR,
+    .PERIOD_GTR,
+    .PERIOD,
+    .BACK_SKINNY_ARROW,
 };
 
 pub const Token = struct {
@@ -155,6 +187,8 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .REAL => "<real number>",
         .STRING => "<string literal>",
         .WHITESPACE => "<new-line>",
+        .INDENT => "<indent>",
+        .DEDENT => "<dedent>",
         .len => null,
 
         .AND => "and",

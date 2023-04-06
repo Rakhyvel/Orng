@@ -10,7 +10,9 @@
     - [ ] Print out in the file where the error was (may need a hashmap of a list of slices into the file contents for each line)
 - [x] Parse ADTs (and also go through parsing again)
 - [x] Parse function composition (`<>`)
-- [ ] Parse indent blocks
+- [x] Parse indent blocks
+    - [x] Figure out how to not consume newline after ADT expr
+- [ ] Parse delta (`|>`)
 - [ ] Write ASTs
 
 ### Symbol table

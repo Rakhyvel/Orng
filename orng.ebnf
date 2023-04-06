@@ -55,15 +55,17 @@ intExpr: termExpr {("+" | "-" | "!!") termExpr}.
 
 termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
 
-prefixExpr: "!" prependExpr                         # boolean not
-          | "-" prependExpr                         # negation
+prefixExpr: "!" deltaExpr                           # boolean not
+          | "-" deltaExpr                           # negation
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
-          | "?" prependExpr                         # optional
-          | "try" prependExpr                       # error coalesce orelese return
-          | "." ident ["<-" prefixExpr]            # infered member/named argument/named field
-          | prependExpr
+          | "?" deltaExpr                           # optional
+          | "try" deltaExpr                         # error coalesce orelese return
+          | "." ident ["<-" prefixExpr]             # infered member/named argument/named field
+          | deltaExpr
           .
+
+deltaExpr: prependExpr {"|>" prependExpr}.
 
 prependExpr: postfixExpr {".>" postfixExpr}.
 
@@ -86,7 +88,7 @@ factor: ident
       .
 
 
-indentBlockExpr: "\n" indent [statement {"\n" statement}] [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] dedent.
+indentBlockExpr: indent [statement {"\n" statement}] [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] dedent.
 braceBlockExpr: "{" [statement {";" statement}] [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] "}".
 blockExpr: indentBlockExpr | braceBlockExpr.
 
