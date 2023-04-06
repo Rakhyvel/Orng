@@ -1,3 +1,14 @@
 const TokenKind =
     | identifier
     | comma
+
+fn test: ()->T =
+    if test
+        test
+            terst
+            terst
+        test
+        return lol
+    else
+        return lmao
+    return 45

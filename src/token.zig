@@ -101,7 +101,7 @@ pub const TokenKind = enum(u32) {
     PERIOD_GTR,
 
     // Structure
-    WHITESPACE,
+    NEWLINE,
     EOF,
 
     // HACK: Used to count how many constructors are in the enum
@@ -186,7 +186,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .OCT_INTEGER => "<octal integer>",
         .REAL => "<real number>",
         .STRING => "<string literal>",
-        .WHITESPACE => "<new-line>",
+        .NEWLINE => "<new-line>",
         .INDENT => "<indent>",
         .DEDENT => "<dedent>",
         .len => null,

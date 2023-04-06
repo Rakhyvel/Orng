@@ -49,7 +49,7 @@ pub const Parser = struct {
         or nextKind == .Q_MARK //
         or nextKind == .L_SQUARE //
         or nextKind == .CASE //
-        or nextKind == .WHITESPACE //
+        or nextKind == .INDENT //
         or nextKind == .COND //
         or nextKind == .CONST //
         or nextKind == .PERIOD //
@@ -106,10 +106,10 @@ pub const Parser = struct {
     }
 
     fn program(self: *Parser) ParserErrorEnum!void {
-        while (self.accept(.WHITESPACE)) |_| {}
+        while (self.accept(.NEWLINE)) |_| {}
         while (self.peek().kind == .CONST or self.peek().kind == .FN) {
             try self.topLevelDeclaration();
-            while (self.accept(.WHITESPACE)) |_| {}
+            while (self.accept(.NEWLINE)) |_| {}
         }
     }
 
@@ -256,7 +256,6 @@ pub const Parser = struct {
     fn productExpr(self: *Parser) ParserErrorEnum!void {
         try self.annotExpr();
         while (self.accept(.COMMA)) |_| {
-            while (self.accept(.WHITESPACE)) |_| {}
             try self.annotExpr();
         }
     }
@@ -451,7 +450,7 @@ pub const Parser = struct {
             //
         } else if (self.accept(.STRING)) |_| {
             //
-        } else if (self.peek().kind == .WHITESPACE) {
+        } else if (self.peek().kind == .INDENT) {
             try self.indentBlockExpr();
         } else if (self.peek().kind == .L_BRACE) {
             try self.braceBlockExpr();
@@ -475,9 +474,10 @@ pub const Parser = struct {
 
     fn indentBlockExpr(self: *Parser) ParserErrorEnum!void {
         _ = try self.expect(.INDENT);
+
         if (self.nextIsStatement()) {
             try self.statement();
-            while (self.accept(.SEMICOLON)) |_| {
+            while (self.accept(.NEWLINE)) |_| {
                 try self.statement();
             }
         }
@@ -516,7 +516,7 @@ pub const Parser = struct {
     }
 
     fn blockExpr(self: *Parser) ParserErrorEnum!void {
-        if (self.peek().kind == .WHITESPACE) {
+        if (self.peek().kind == .INDENT) {
             try self.indentBlockExpr();
         } else if (self.peek().kind == .L_BRACE) {
             try self.braceBlockExpr();
@@ -616,11 +616,9 @@ pub const Parser = struct {
 
     fn parens(self: *Parser) ParserErrorEnum!void {
         _ = try self.expect(.L_PAREN);
-        while (self.accept(.WHITESPACE)) |_| {}
         if (self.nextIsExpr()) {
             try self.expr();
         }
-        while (self.accept(.WHITESPACE)) |_| {}
         _ = try self.expect(.R_PAREN);
     }
 };

@@ -73,7 +73,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                         }
                     }
                     if (maybe_last_newline_ix) |last_newline_ix| {
-                        try tokens.append(Token.create(contents[last_newline_ix..ix], .WHITESPACE, line, col));
+                        try tokens.append(Token.create(contents[last_newline_ix..ix], .NEWLINE, line, col));
                     }
 
                     slice_start = ix;
