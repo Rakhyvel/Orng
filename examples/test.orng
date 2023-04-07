@@ -54,10 +54,11 @@ fn lol: ()->() =
     | _ => fib(n-1) + fib(n-2);
 
 
-
     // "Records"
     // Define
-    const Vector = x:Float, y:Float
+    const Vector 
+        = x:Float
+        , y:Float
 
     // Create values
     const origin:   Vector = (0, 0)

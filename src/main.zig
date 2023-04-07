@@ -1,4 +1,5 @@
 const std = @import("std");
+const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Token = @import("token.zig").Token;
 const Parser = @import("parser.zig").Parser;
@@ -30,10 +31,32 @@ pub fn main() !void {
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
 
-    var parser = try Parser.create(contents, allocator);
+    // Tokenize
+    var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
+    defer tokenAllocator.deinit();
+    var tokens = try lexer.getTokens(contents, tokenAllocator.allocator());
+    defer tokens.deinit();
+
+    // Layout
+    layout.preemptBinaryOperator(&tokens);
+    try layout.insertIndentDedents(&tokens);
+    if (PRINT_TOKENS) {
+        for (tokens.items) |*token| {
+            token.pprint();
+        }
+    }
+
+    // Parse
+    var astAllocator = std.heap.ArenaAllocator.init(allocator);
+    defer astAllocator.deinit();
+    var errorAllocator = std.heap.ArenaAllocator.init(allocator);
+    defer errorAllocator.deinit();
+    var parser = try Parser.create(tokens, astAllocator.allocator(), errorAllocator.allocator());
+    defer parser.destroy();
     _ = parser.parse() catch {
         for (parser.errors.items) |err| {
             std.debug.print("examples/test.orng:{}:{} error: {s}\n", .{ err.line, err.col, err.msg.str() });
         }
+        return;
     };
 }

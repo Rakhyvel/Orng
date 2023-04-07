@@ -75,6 +75,7 @@ pub const ASTKind = enum(u32) {
 };
 
 pub const ASTData = union(enum) {
+    decl: struct { pattern: *AST, type: ?*AST, init: ?*AST },
     identifier,
     int: struct { data: i128 },
     _string,

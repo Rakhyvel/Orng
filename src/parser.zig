@@ -23,18 +23,21 @@ pub const Parser = struct {
     tokens: std.ArrayList(Token),
     errors: std.ArrayList(ParserError),
     cursor: usize,
-    allocator: std.mem.Allocator,
+    errorAllocator: std.mem.Allocator,
+    astAllocator: std.mem.Allocator,
 
-    pub fn create(contents: []const u8, allocator: std.mem.Allocator) !Parser {
-        var tokens = try lexer.getTokens(contents, allocator);
-        layout.preemptBinaryOperator(&tokens);
-        try layout.insertIndentDedents(&tokens);
-        if (main.PRINT_TOKENS) {
-            for (tokens.items) |*token| {
-                token.pprint();
-            }
-        }
-        return .{ .tokens = tokens, .errors = std.ArrayList(ParserError).init(allocator), .cursor = 0, .allocator = allocator };
+    pub fn create(tokens: std.ArrayList(Token), astAllocator: std.mem.Allocator, errorAllocator: std.mem.Allocator) !Parser {
+        return .{ //
+            .tokens = tokens,
+            .errors = std.ArrayList(ParserError).init(errorAllocator),
+            .cursor = 0,
+            .errorAllocator = errorAllocator,
+            .astAllocator = astAllocator,
+        };
+    }
+
+    pub fn destroy(self: *Parser) void {
+        self.errors.deinit();
     }
 
     fn peek(self: *Parser) Token {
@@ -91,7 +94,7 @@ pub const Parser = struct {
             return token;
         } else {
             const actual = self.peek();
-            var error_string = String.init_with_contents(self.allocator, "expected `") catch unreachable;
+            var error_string = String.init_with_contents(self.errorAllocator, "expected `") catch unreachable;
             error_string.concat(_token.reprFromTokenKind(kind) orelse "") catch unreachable;
             error_string.concat("`, got `") catch unreachable;
             error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
@@ -102,7 +105,7 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser) ParserErrorEnum!std.ArrayList(AST) {
-        var decls = std.ArrayList(AST).init(self.allocator);
+        var decls = std.ArrayList(AST).init(self.astAllocator);
         try program(self);
         _ = try self.expect(.EOF);
         return decls;
@@ -155,7 +158,7 @@ pub const Parser = struct {
         } else if (self.accept(.EQUALS)) |_| {
             try self.expr();
         } else {
-            self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "variable declarations require at least a type or a initial value") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+            self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "variable declarations require at least a type or a initial value") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
         }
     }
 
@@ -483,7 +486,7 @@ pub const Parser = struct {
         } else if (self.peek().kind == .L_PAREN) {
             try self.parens();
         } else {
-            var error_string = String.init_with_contents(self.allocator, "expected an expression, got `") catch unreachable;
+            var error_string = String.init_with_contents(self.errorAllocator, "expected an expression, got `") catch unreachable;
             error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
             error_string.concat("`") catch unreachable;
             self.errors.append(.{ .msg = error_string, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
@@ -607,7 +610,7 @@ pub const Parser = struct {
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle();
             } else {
-                self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+                self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
             }
         }
     }
