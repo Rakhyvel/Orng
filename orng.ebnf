@@ -21,7 +21,7 @@ param: ["mut" | "const"] ident ":" arrowExpr ["where" arrowExpr].
 statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
          | "defer" expr       # defer
          | "errdefer" expr    # error-defer
-         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=") expr]
+         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
          .
 
 
@@ -54,15 +54,17 @@ coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
 intExpr: termExpr {("+" | "-" | "!!") termExpr}.
 
-termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
+termExpr: exponentExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") exponentExpr}.
 
-prefixExpr: "!" prependExpr                           # boolean not
-          | "-" prependExpr                           # negation
+exponentExpr: prefixExpr {"**" prefixExpr}.
+
+prefixExpr: "!" prependExpr                         # boolean not
+          | "-" prependExpr                         # negation
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
-          | "?" prependExpr                           # optional
-          | "try" prependExpr                         # error coalesce orelese return
-          | "." ident ["<-" prefixExpr]             # infered member/named argument/named field
+          | "?" prependExpr                         # optional
+          | "try" prependExpr                       # error coalesce orelese return
+          | "." ident ["<-" prefixExpr | parens]    # infered member/named argument/named field
           | prependExpr
           .
 

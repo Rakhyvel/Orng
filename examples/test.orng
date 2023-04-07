@@ -1,14 +1,90 @@
-const TokenKind = 
-    identifier
-    | comma
+// a single comment
 
-fn test: ()->T =
-    if test
-        test
-        terst
-        terst
-        test
-        return lol
-    else
-        return lmao
-    return 45
+// There are no multiline comments in Orng (for good reason!)
+
+
+
+// Boolean literals
+fn lol: ()->() =
+    true: Bool
+    false: Bool
+
+    42: T' where (T' : Num) // Int or Float, depending on usage
+    3.14: Float
+
+    'a': Char
+    "abc": String
+
+    // Again, no multiline strings nor comments
+
+
+
+    // Typical manipulation of literals
+    true and !(true or false)
+    (2 + 4) * (4**2 - 9)
+    "abc" ++ "def"
+
+
+
+    // Tuples
+    // Following are all equivalent
+    1, 2, 3, 4
+    (1, 2, 3, 4)
+    (1, 2) ++ (3, 4)
+
+
+
+    // Conditionals
+    if powerLevel > 9000 {"lame ass meme"} else {"lol"}
+
+    cond
+    | key == 40 => n + 1;
+    | key == 38 => n - 1;
+    | else      => n;
+
+    case maybeInt
+    | ?x   => x;
+    | null => 0;
+
+    case n
+    | 0 => 1;
+    | 1 => 1;
+    | _ => fib(n-1) + fib(n-2);
+
+
+
+    // "Records"
+    // Define
+    const Vector = x:Float, y:Float
+
+    // Create values
+    const origin:   Vector = (0, 0)
+    const position: Vector = (.x <- 3, .y <- 4)
+    const velocity: Vector = -1.0, 2.3
+
+    // Access fields
+    origin.x == 0
+    position.x == 3
+
+    // Field access function
+    list.map(op.x, [](origin, point)) == [](0, 3)
+
+    // Update a field
+    point.x = 6
+
+    // Update many fields?
+    point = (.x <- point.x + 1, .y <- point.y + 1)
+
+
+
+    // Functions
+    fn square: (n: Float)->Float = n**2
+
+    fn hypotenuse: (a: Float, b: Float)->Float =
+        math.sqrt(square(a) + square(b))
+
+    fn distance: (a: Vector, b: Vector)->Float =
+        hypotenuse((a.x - b.x), (a.y - b.y))
+
+    // Anonymous functions
+    const square = (n: Float) -> n **2

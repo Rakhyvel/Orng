@@ -2,6 +2,7 @@ zig-cache/
 zig-out/
 orngdoc_old.md
 parser.py
+orng.out
 
 # Added by cargo
 

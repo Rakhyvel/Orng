@@ -31,7 +31,7 @@ pub fn main() !void {
     var contents = try contents_arraylist.toOwnedSlice();
 
     var parser = try Parser.create(contents, allocator);
-    parser.parse() catch {
+    _ = parser.parse() catch {
         for (parser.errors.items) |err| {
             std.debug.print("examples/test.orng:{}:{} error: {s}\n", .{ err.line, err.col, err.msg.str() });
         }

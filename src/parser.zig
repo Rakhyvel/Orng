@@ -1,13 +1,15 @@
 const std = @import("std");
 
+const ast = @import("ast.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const main = @import("main.zig");
 const _token = @import("token.zig");
 
+const AST = ast.AST;
+const String = @import("zig-string/zig-string.zig").String;
 const Token = _token.Token;
 const TokenKind = _token.TokenKind;
-const String = @import("zig-string/zig-string.zig").String;
 
 const ParserError = struct {
     msg: String,
@@ -99,9 +101,11 @@ pub const Parser = struct {
         }
     }
 
-    pub fn parse(self: *Parser) ParserErrorEnum!void {
+    pub fn parse(self: *Parser) ParserErrorEnum!std.ArrayList(AST) {
+        var decls = std.ArrayList(AST).init(self.allocator);
         try program(self);
         _ = try self.expect(.EOF);
+        return decls;
     }
 
     fn program(self: *Parser) ParserErrorEnum!void {
@@ -117,8 +121,6 @@ pub const Parser = struct {
             try self.fnDeclaration();
         } else if (self.peek().kind == .CONST) {
             try self.constDeclaration();
-        } else {
-            self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected a top-level declaration") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
         }
     }
 
@@ -127,8 +129,6 @@ pub const Parser = struct {
             try self.letDeclaration();
         } else if (self.peek().kind == .CONST) {
             try self.constDeclaration();
-        } else {
-            self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected a variable or constant declaration") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
         }
     }
 
@@ -220,7 +220,7 @@ pub const Parser = struct {
         if (self.peek().kind == .FN) {
             try self.fnDeclaration();
         } else {
-            try self.sumType();
+            try self.gaurdType();
         }
     }
 
@@ -354,25 +354,32 @@ pub const Parser = struct {
     }
 
     fn termExpr(self: *Parser) ParserErrorEnum!void {
-        try self.prefixExpr();
+        try self.exponentExpr();
         while (true) {
             if (self.accept(.STAR)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else if (self.accept(.SLASH)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else if (self.accept(.PERCENT)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else if (self.accept(.DIAMOND)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else if (self.accept(.D_PLUS)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else if (self.accept(.D_MINUS)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else if (self.accept(.D_BAR)) |_| {
-                try self.prefixExpr();
+                try self.exponentExpr();
             } else {
                 break;
             }
+        }
+    }
+
+    fn exponentExpr(self: *Parser) ParserErrorEnum!void {
+        try self.prefixExpr();
+        while (self.accept(.D_STAR)) |_| {
+            try self.prefixExpr();
         }
     }
 
@@ -389,7 +396,7 @@ pub const Parser = struct {
                 //
             } else if (self.accept(.STAR)) |_| {
                 //
-            } else {
+            } else if (self.nextIsExpr()) {
                 try self.expr();
             }
             _ = try self.expect(.R_SQUARE);
@@ -402,6 +409,8 @@ pub const Parser = struct {
             _ = try self.expect(.IDENTIFIER);
             if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
                 try self.prefixExpr();
+            } else if (self.peek().kind == .L_PAREN) {
+                try self.parens();
             }
         } else {
             try self.prependExpr();
@@ -483,10 +492,10 @@ pub const Parser = struct {
 
     fn indentBlockExpr(self: *Parser) ParserErrorEnum!void {
         _ = try self.expect(.INDENT);
-
         if (self.nextIsStatement()) {
             try self.statement();
             while (self.accept(.NEWLINE)) |_| {
+                while (self.accept(.NEWLINE)) |_| {}
                 try self.statement();
             }
         }
@@ -591,10 +600,10 @@ pub const Parser = struct {
     fn barListMiddle(self: *Parser) ParserErrorEnum!void {
         try self.barClause();
         if (self.accept(.BAR)) |_| {
-            if (self.accept(.ELSE)) |_| {
+            if (self.peek().kind == .ELSE) {
                 try self.barElse();
             } else if (self.nextIsExpr()) {
-                try self.productExpr();
+                try self.barListMiddle();
             } else {
                 self.errors.append(.{ .msg = String.init_with_contents(self.allocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
             }

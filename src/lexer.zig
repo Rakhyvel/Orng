@@ -323,6 +323,8 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                 or next_char == '}' //
                 or next_char == '&' //
                 or next_char == '?' //
+                or next_char == '"' //
+                or (next_char == '.' and contents[slice_start] != '.') // series of dots are permitted, tokens which begin with dot are permitted, but nothing else
                 or std.ascii.isWhitespace(next_char) or std.ascii.isAlphanumeric(next_char)) {
                     try tokens.append(Token.create(contents[slice_start..ix], null, line, col));
                     slice_start = ix;

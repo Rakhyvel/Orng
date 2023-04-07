@@ -50,6 +50,7 @@ pub const TokenKind = enum(u32) {
     PLUS_EQUALS,
     SLASH_EQUALS,
     STAR_EQUALS,
+    D_STAR_EQUALS,
 
     // Math
     BAR,
@@ -57,6 +58,7 @@ pub const TokenKind = enum(u32) {
     D_BAR,
     D_PLUS,
     D_MINUS,
+    D_STAR,
     RIGHT_FAT_ARROW,
     GTR,
     GTE,
@@ -106,8 +108,16 @@ pub const TokenKind = enum(u32) {
 };
 
 pub const binaryOperators = [_]TokenKind{
+    .R_PAREN,
+    .EQUALS,
+    .PLUS_EQUALS,
+    .MINUS_EQUALS,
+    .STAR_EQUALS,
+    .SLASH_EQUALS,
+    .PERCENT_EQUALS,
+    .D_STAR_EQUALS,
     .BAR,
-    .COMMA, //
+    .COMMA,
     .COLON,
     .RIGHT_SKINNY_ARROW,
     .AND,
@@ -130,6 +140,7 @@ pub const binaryOperators = [_]TokenKind{
     .D_PLUS,
     .D_MINUS,
     .D_BAR,
+    .D_STAR,
     .PERIOD_GTR,
     .PERIOD,
     .LEFT_SKINNY_ARROW,
@@ -152,7 +163,10 @@ pub const Token = struct {
     }
 
     pub fn pprint(self: *Token) void {
-        std.debug.print("Token {{kind: {s}, data: {s}}}\n", .{ self.repr(), self.data });
+        if (self.kind != .INDENT and self.kind != .DEDENT and self.kind != .FN) {
+            return;
+        }
+        std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.line, self.repr(), self.data });
     }
 };
 
@@ -222,6 +236,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .PLUS_EQUALS => "+=",
         .SLASH_EQUALS => "/=",
         .STAR_EQUALS => "*=",
+        .D_STAR_EQUALS => "**=",
 
         // Math
         .LEFT_SKINNY_ARROW => "<-",
@@ -230,6 +245,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .D_BAR => "||",
         .D_PLUS => "++",
         .D_MINUS => "--",
+        .D_STAR => "**",
         .RIGHT_FAT_ARROW => "=>",
         .GTR => ">",
         .GTE => ">=",
