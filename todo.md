@@ -12,7 +12,7 @@
 - [x] Parse function composition (`<>`)
 - [x] Parse indent blocks
     - [x] Figure out how to not consume newline after ADT expr
-- [ ] Parse delta (`|>`)
+- [x] Parse delta (`|>`)
 - [ ] Write ASTs
 
 ### Symbol table

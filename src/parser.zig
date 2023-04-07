@@ -298,17 +298,28 @@ pub const Parser = struct {
     }
 
     fn conditionalExpr(self: *Parser) ParserErrorEnum!void {
-        try self.coalesceExpr();
+        try self.deltaExpr();
         while (true) {
             if (self.accept(.D_EQUALS)) |_| {
-                try self.coalesceExpr();
+                try self.deltaExpr();
             } else if (self.accept(.GTR)) |_| {
-                try self.coalesceExpr();
+                try self.deltaExpr();
             } else if (self.accept(.LSR)) |_| {
-                try self.coalesceExpr();
+                try self.deltaExpr();
             } else if (self.accept(.GTE)) |_| {
-                try self.coalesceExpr();
+                try self.deltaExpr();
             } else if (self.accept(.LTE)) |_| {
+                try self.deltaExpr();
+            } else {
+                break;
+            }
+        }
+    }
+
+    fn deltaExpr(self: *Parser) ParserErrorEnum!void {
+        try self.coalesceExpr();
+        while (true) {
+            if (self.accept(.DELTA)) {
                 try self.coalesceExpr();
             } else {
                 break;

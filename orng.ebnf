@@ -47,7 +47,9 @@ boolExpr: neqExpr {("and" | "or") neqExpr}.
 
 neqExpr: conditionalExpr ["!=" conditionalExpr].
 
-conditionalExpr: coalesceExpr {("==" | "<" | "<=" | ">" | ">=") coalesceExpr}.
+conditionalExpr: deltaExpr {("==" | "<" | "<=" | ">" | ">=") deltaExpr}.
+
+deltaExpr: coalesceExpr {"|>" coalesceExpr}.
 
 coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
@@ -55,17 +57,15 @@ intExpr: termExpr {("+" | "-" | "!!") termExpr}.
 
 termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
 
-prefixExpr: "!" deltaExpr                           # boolean not
-          | "-" deltaExpr                           # negation
+prefixExpr: "!" prependExpr                           # boolean not
+          | "-" prependExpr                           # negation
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
-          | "?" deltaExpr                           # optional
-          | "try" deltaExpr                         # error coalesce orelese return
+          | "?" prependExpr                           # optional
+          | "try" prependExpr                         # error coalesce orelese return
           | "." ident ["<-" prefixExpr]             # infered member/named argument/named field
-          | deltaExpr
+          | prependExpr
           .
-
-deltaExpr: prependExpr {"|>" prependExpr}.
 
 prependExpr: postfixExpr {".>" postfixExpr}.
 
