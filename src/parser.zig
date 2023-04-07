@@ -139,7 +139,7 @@ pub const Parser = struct {
         _ = try self.expect(.CONST);
         _ = try self.expect(.IDENTIFIER);
         if (self.accept(.COLON)) |_| {
-            try self.expr();
+            try self.arrowExpr();
         }
         _ = try self.expect(.EQUALS);
         try self.expr();
@@ -150,7 +150,7 @@ pub const Parser = struct {
         _ = self.accept(.MUT);
         _ = try self.expect(.IDENTIFIER);
         if (self.accept(.COLON)) |_| {
-            try self.expr();
+            try self.arrowExpr();
             if (self.peek().kind == .EQUALS) {
                 _ = try self.expect(.EQUALS);
                 try self.expr();
@@ -171,10 +171,9 @@ pub const Parser = struct {
         _ = try self.expect(.RIGHT_SKINNY_ARROW);
         try self.arrowExpr();
         if (self.accept(.WHERE)) |_| {
-            try self.boolExpr();
+            try self.arrowExpr();
         }
         _ = try self.expect(.EQUALS);
-        std.debug.print("after `=` : {s}\n", .{self.peek().data});
         try self.expr();
     }
 
@@ -197,6 +196,9 @@ pub const Parser = struct {
         if (self.accept(.WHERE)) |_| {
             try self.arrowExpr();
         }
+        if (self.accept(.EQUALS)) |_| {
+            try self.arrowExpr();
+        }
     }
 
     fn statement(self: *Parser) ParserErrorEnum!void {
@@ -207,7 +209,7 @@ pub const Parser = struct {
         } else if (self.accept(.ERRDEFER)) |_| {
             try self.expr();
         } else {
-            try self.expr();
+            try self.arrowExpr();
             if (self.accept(.EQUALS) //
             orelse self.accept(.PLUS_EQUALS) //
             orelse self.accept(.MINUS_EQUALS) //
@@ -266,7 +268,10 @@ pub const Parser = struct {
         if (self.accept(.COLON)) |_| {
             try self.arrowExpr();
             if (self.accept(.WHERE)) |_| {
-                try self.boolExpr();
+                try self.arrowExpr();
+            }
+            if (self.accept(.EQUALS)) |_| {
+                try self.arrowExpr();
             }
         }
     }

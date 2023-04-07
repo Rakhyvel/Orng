@@ -10,18 +10,18 @@ top_level_declaration: fn_declaration
 
 non_fn_declaration: let_declaration | const_declaration.
 
-const_declaration: "const" ident [":" expr] "=" expr.
+const_declaration: "const" ident [":" arrowExpr] "=" expr.
 
-let_declaration: "let" ["mut"] ident (":" expr ["=" expr] | "=" expr).
+let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
-fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" expr] "=" expr.
+fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" arrowExpr ["where" arrowExpr].
+param: ["mut" | "const"] ident ":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]. # has to be `"=" arrowExpr` or else its ambiguous with parameter commas
 
 statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
          | "defer" expr       # defer
          | "errdefer" expr    # error-defer
-         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
+         | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
          .
 
 
@@ -38,7 +38,7 @@ sumExpr: productExpr ["|" ident [":" productExpr] {"|" ident [":" productExpr]}]
 
 productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr]].
+annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]].
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
