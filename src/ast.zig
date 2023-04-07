@@ -3,9 +3,14 @@ const std = @import("std");
 const tokens = @import("token.zig");
 
 const Token = tokens.Token;
+const TokenKind = tokens.TokenKind;
 
+// These need to map to ASTData
+// So many ASTKinds might use the same ASTData,
+// but each ASTKind has a unique ASTData
 pub const ASTKind = enum(u32) {
-    DECLARATION,
+    DECLARATION, // .decl
+    FN_DECLARATION, // .fnDecl
     DEFER,
     ERRDEFER,
     ASSIGN,
@@ -75,8 +80,9 @@ pub const ASTKind = enum(u32) {
 };
 
 pub const ASTData = union(enum) {
-    decl: struct { pattern: *AST, type: ?*AST, init: ?*AST },
-    identifier,
+    decl: struct { introducer: TokenKind, pattern: *AST, type: ?*AST, init: ?*AST },
+    fnDecl: struct { name: ?*AST, params: std.ArrayList(*AST), retType: *AST, init: *AST },
+    identifier: struct { data: []const u8 },
     int: struct { data: i128 },
     _string,
     char,
@@ -99,11 +105,50 @@ pub const AST = struct {
     token: Token,
     data: ASTData,
 
-    fn create(kind: ASTKind, token: Token, data: ASTData, allocator: std.mem.Allocator) *AST {
-        var retval: *AST = allocator.create(AST, 1) catch unreachable;
+    pub fn create(kind: ASTKind, token: Token, data: ASTData, allocator: std.mem.Allocator) *AST {
+        var retval: *AST = allocator.create(AST) catch unreachable;
         retval.kind = kind;
         retval.token = token;
         retval.data = data;
         return retval;
+    }
+
+    pub fn createDecl(token: Token, introducer: TokenKind, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .DECLARATION,
+            token,
+            ASTData{ .decl = .{
+                .introducer = introducer,
+                .pattern = pattern,
+                .type = _type,
+                .init = init,
+            } },
+            allocator,
+        );
+    }
+
+    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, init: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .FN_DECLARATION,
+            token,
+            ASTData{ .fnDecl = .{
+                .name = name,
+                .params = params,
+                .retType = retType,
+                .init = init,
+            } },
+            allocator,
+        );
+    }
+
+    pub fn createIdent(token: Token, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .IDENTIFIER,
+            token,
+            ASTData{ .identifier = .{
+                .data = token.data,
+            } },
+            allocator,
+        );
     }
 };

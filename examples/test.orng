@@ -2,8 +2,6 @@
 
 // There are no multiline comments in Orng (for good reason!)
 
-
-
 // Boolean literals
 fn lol: ()->() =
 
