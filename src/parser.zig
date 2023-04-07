@@ -104,27 +104,33 @@ pub const Parser = struct {
         }
     }
 
-    pub fn parse(self: *Parser) ParserErrorEnum!std.ArrayList(AST) {
-        var decls = std.ArrayList(AST).init(self.astAllocator);
-        try program(self);
+    pub fn parse(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
+        var decls = try program(self);
         _ = try self.expect(.EOF);
         return decls;
     }
 
-    fn program(self: *Parser) ParserErrorEnum!void {
+    fn program(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
+        var decls = std.ArrayList(*AST).init(self.astAllocator);
         while (self.accept(.NEWLINE)) |_| {}
         while (self.peek().kind == .CONST or self.peek().kind == .FN) {
-            try self.topLevelDeclaration();
+            decls.append(try self.topLevelDeclaration()) catch unreachable;
             while (self.accept(.NEWLINE)) |_| {}
         }
+        return decls;
     }
 
-    fn topLevelDeclaration(self: *Parser) ParserErrorEnum!void {
+    fn topLevelDeclaration(self: *Parser) ParserErrorEnum!*AST {
+        var decl = self.astAllocator.create(AST) catch unreachable; // Errors in Zig suck! `(ParserErrorEnum || std.mem.Allocator.Error)!*AST` didn't work, disgraceful!
+        errdefer self.astAllocator.destroy(decl);
+
         if (self.peek().kind == .FN) {
             try self.fnDeclaration();
         } else if (self.peek().kind == .CONST) {
             try self.constDeclaration();
         }
+
+        return decl;
     }
 
     fn nonFnDeclaration(self: *Parser) ParserErrorEnum!void {
@@ -196,7 +202,7 @@ pub const Parser = struct {
         if (self.accept(.WHERE)) |_| {
             try self.arrowExpr();
         }
-        if (self.accept(.EQUALS)) |_| {
+        if (self.accept(.BACK_SLASH)) |_| {
             try self.arrowExpr();
         }
     }
@@ -209,7 +215,7 @@ pub const Parser = struct {
         } else if (self.accept(.ERRDEFER)) |_| {
             try self.expr();
         } else {
-            try self.arrowExpr();
+            try self.expr();
             if (self.accept(.EQUALS) //
             orelse self.accept(.PLUS_EQUALS) //
             orelse self.accept(.MINUS_EQUALS) //
@@ -224,13 +230,7 @@ pub const Parser = struct {
     fn expr(self: *Parser) ParserErrorEnum!void {
         if (self.peek().kind == .FN) {
             try self.fnDeclaration();
-        } else {
-            try self.gaurdType();
-        }
-    }
-
-    fn gaurdType(self: *Parser) ParserErrorEnum!void {
-        if (self.accept(.COND)) |_| {
+        } else if (self.accept(.COND)) |_| {
             try self.condExpr();
         } else if (self.accept(.CASE)) |_| {
             try self.caseExpr();
@@ -270,7 +270,7 @@ pub const Parser = struct {
             if (self.accept(.WHERE)) |_| {
                 try self.arrowExpr();
             }
-            if (self.accept(.EQUALS)) |_| {
+            if (self.accept(.BACK_SLASH)) |_| {
                 try self.arrowExpr();
             }
         }
@@ -500,6 +500,8 @@ pub const Parser = struct {
 
     fn indentBlockExpr(self: *Parser) ParserErrorEnum!void {
         _ = try self.expect(.INDENT);
+
+        while (self.accept(.NEWLINE)) |_| {}
 
         if (self.nextIsStatement()) {
             try self.statement();

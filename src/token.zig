@@ -70,6 +70,7 @@ pub const TokenKind = enum(u32) {
     LEFT_SKINNY_ARROW,
     RIGHT_SKINNY_ARROW,
     SLASH,
+    BACK_SLASH,
     STAR,
 
     // Punctuation
@@ -144,6 +145,8 @@ pub const binaryOperators = [_]TokenKind{
     .PERIOD_GTR,
     .PERIOD,
     .LEFT_SKINNY_ARROW,
+    .WHERE,
+    .BACK_SLASH,
 };
 
 pub const Token = struct {
@@ -253,6 +256,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .PLUS => "+",
         .RIGHT_SKINNY_ARROW => "->",
         .SLASH => "/",
+        .BACK_SLASH => "\\",
         .STAR => "*",
 
         // Punctuation

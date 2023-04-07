@@ -16,29 +16,26 @@ let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
 fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]. # has to be `"=" arrowExpr` or else its ambiguous with parameter commas
+param: ["mut" | "const"] ident ":" arrowExpr ["where" arrowExpr] ["\\" arrowExpr]. # has to be `"\\" arrowExpr` or else its ambiguous with `,` with productExpr
 
 statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
          | "defer" expr       # defer
          | "errdefer" expr    # error-defer
-         | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
+         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr] # Must be able to do expr as a statement, for functions, cond, case, etc
          .
 
 
-expr: gaurdExpr
+expr: "cond" condExpr
+    | "case" caseExpr
     | fn_declaration
+    | sumExpr
     .
-
-gaurdExpr: "cond" condExpr
-         | "case" caseExpr
-         | sumExpr
-         .
 
 sumExpr: productExpr ["|" ident [":" productExpr] {"|" ident [":" productExpr]}].
 
 productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]].
+annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["\\" arrowExpr]].
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -64,7 +61,7 @@ prefixExpr: "!" prependExpr                         # boolean not
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" prependExpr                         # optional
           | "try" prependExpr                       # error coalesce orelese return
-          | "." ident ["<-" prefixExpr | parens]    # infered member/named argument/named field
+          | "." ident ["<-" prefixExpr | parens]     # infered member/named argument/named field
           | prependExpr
           .
 
