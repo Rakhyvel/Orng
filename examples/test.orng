@@ -42,9 +42,11 @@ fn lol: ()->() =
     | key == 38 => n - 1;
     | else      => n;
 
+
     case maybeInt
     | ?x   => x;
     | null => 0;
+
 
     case n
     | 0 => 1;

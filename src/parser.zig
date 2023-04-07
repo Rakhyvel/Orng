@@ -492,6 +492,7 @@ pub const Parser = struct {
 
     fn indentBlockExpr(self: *Parser) ParserErrorEnum!void {
         _ = try self.expect(.INDENT);
+
         if (self.nextIsStatement()) {
             try self.statement();
             while (self.accept(.NEWLINE)) |_| {
@@ -509,6 +510,7 @@ pub const Parser = struct {
                 try self.expr();
             }
         }
+        // TODO: Better error messages, if missing newline, hits this expect, which doesn't give much info
         _ = try self.expect(.DEDENT);
     }
 

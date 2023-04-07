@@ -163,9 +163,6 @@ pub const Token = struct {
     }
 
     pub fn pprint(self: *Token) void {
-        if (self.kind != .INDENT and self.kind != .DEDENT and self.kind != .FN) {
-            return;
-        }
         std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.line, self.repr(), self.data });
     }
 };
