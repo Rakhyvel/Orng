@@ -42,17 +42,17 @@ pub const Parser = struct {
     fn nextIsExpr(self: *Parser) bool {
         const nextKind = self.peek().kind;
         return nextKind == .E_MARK //
+        or nextKind == .Q_MARK //
+        or nextKind == .PERIOD //
         or nextKind == .AMPERSAND //
         or nextKind == .L_PAREN //
+        or nextKind == .L_SQUARE //
+        or nextKind == .L_BRACE //
+        or nextKind == .INDENT //
         or nextKind == .BAR //
         or nextKind == .MINUS //
-        or nextKind == .Q_MARK //
-        or nextKind == .L_SQUARE //
         or nextKind == .CASE //
-        or nextKind == .INDENT //
         or nextKind == .COND //
-        or nextKind == .CONST //
-        or nextKind == .PERIOD //
         or nextKind == .FN //
         or nextKind == .FOR //
         or nextKind == .IF //
@@ -60,7 +60,6 @@ pub const Parser = struct {
         or nextKind == .UNREACHABLE //
         or nextKind == .WHILE //
         or nextKind == .IDENTIFIER //
-        or nextKind == .L_BRACE //
         or nextKind == .BIN_INTEGER //
         or nextKind == .CHAR //
         or nextKind == .HEX_INTEGER //
@@ -166,10 +165,7 @@ pub const Parser = struct {
             _ = try self.expect(.COLON);
         }
         try self.paramlist();
-        if (self.accept(.INVALIDATES)) |_| {
-            try self.boolExpr();
-        }
-        _ = try self.expect(.SKINNY_ARROW);
+        _ = try self.expect(.RIGHT_SKINNY_ARROW);
         try self.arrowExpr();
         if (self.accept(.WHERE)) |_| {
             try self.boolExpr();
@@ -194,7 +190,10 @@ pub const Parser = struct {
         _ = self.accept(.MUT) orelse self.accept(.CONST);
         _ = try self.expect(.IDENTIFIER);
         _ = try self.expect(.COLON);
-        try self.annotExpr();
+        try self.arrowExpr();
+        if (self.accept(.WHERE)) |_| {
+            try self.arrowExpr();
+        }
     }
 
     fn statement(self: *Parser) ParserErrorEnum!void {
@@ -204,10 +203,6 @@ pub const Parser = struct {
             try self.expr();
         } else if (self.accept(.ERRDEFER)) |_| {
             try self.expr();
-        } else if (self.accept(.INVALIDATE)) |_| {
-            try self.expr();
-        } else if (self.accept(.VALIDATE)) |_| {
-            try self.expr();
         } else {
             try self.expr();
             if (self.accept(.EQUALS) //
@@ -215,9 +210,7 @@ pub const Parser = struct {
             orelse self.accept(.MINUS_EQUALS) //
             orelse self.accept(.STAR_EQUALS) //
             orelse self.accept(.SLASH_EQUALS) //
-            orelse self.accept(.PERCENT_EQUALS) //
-            orelse self.accept(.D_LSR_EQUALS) //
-            orelse self.accept(.D_GTR_EQUALS)) |_| {
+            orelse self.accept(.PERCENT_EQUALS)) |_| {
                 try self.expr();
             }
         }
@@ -231,18 +224,23 @@ pub const Parser = struct {
         }
     }
 
-    fn sumType(self: *Parser) ParserErrorEnum!void {
+    fn gaurdType(self: *Parser) ParserErrorEnum!void {
         if (self.accept(.COND)) |_| {
             try self.condExpr();
         } else if (self.accept(.CASE)) |_| {
             try self.caseExpr();
-        } else if (self.accept(.BAR)) |_| {
+        } else {
+            try self.sumType();
+        }
+    }
+
+    fn sumType(self: *Parser) ParserErrorEnum!void {
+        try self.productExpr();
+        if (self.accept(.BAR)) |_| {
             try self.adtType();
             while (self.accept(.BAR)) |_| {
                 try self.adtType();
             }
-        } else {
-            try self.productExpr();
         }
     }
 
@@ -272,7 +270,7 @@ pub const Parser = struct {
 
     fn arrowExpr(self: *Parser) ParserErrorEnum!void {
         try self.boolExpr();
-        while (self.accept(.SKINNY_ARROW)) |_| {
+        while (self.accept(.RIGHT_SKINNY_ARROW)) |_| {
             try self.boolExpr();
         }
     }
@@ -319,7 +317,7 @@ pub const Parser = struct {
     fn deltaExpr(self: *Parser) ParserErrorEnum!void {
         try self.coalesceExpr();
         while (true) {
-            if (self.accept(.DELTA)) {
+            if (self.accept(.DELTA)) |_| {
                 try self.coalesceExpr();
             } else {
                 break;
@@ -402,7 +400,7 @@ pub const Parser = struct {
             try self.prependExpr();
         } else if (self.accept(.PERIOD)) |_| {
             _ = try self.expect(.IDENTIFIER);
-            if (self.accept(.BACK_SKINNY_ARROW)) |_| {
+            if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
                 try self.prefixExpr();
             }
         } else {
@@ -577,7 +575,7 @@ pub const Parser = struct {
 
     fn barClause(self: *Parser) ParserErrorEnum!void {
         try self.productExpr();
-        if (self.accept(.FAT_ARROW)) |_| {
+        if (self.accept(.RIGHT_FAT_ARROW)) |_| {
             try self.expr();
             _ = try self.expect(.SEMICOLON);
         }
@@ -585,7 +583,7 @@ pub const Parser = struct {
 
     fn barElse(self: *Parser) ParserErrorEnum!void {
         _ = try self.expect(.ELSE);
-        _ = try self.expect(.FAT_ARROW);
+        _ = try self.expect(.RIGHT_FAT_ARROW);
         try self.expr();
         _ = try self.expect(.SEMICOLON);
     }

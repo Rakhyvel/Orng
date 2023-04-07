@@ -1,12 +1,12 @@
-const TokenKind =
-    | identifier
+const TokenKind = 
+    identifier
     | comma
 
 fn test: ()->T =
     if test
         test
-            terst
-            terst
+        terst
+        terst
         test
         return lol
     else

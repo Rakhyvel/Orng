@@ -16,26 +16,25 @@ let_declaration: "let" ["mut"] ident (":" expr ["=" expr] | "=" expr).
 
 fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" expr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" annotExpr.
+param: ["mut" | "const"] ident ":" arrowExpr ["where" arrowExpr].
 
 statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
          | "defer" expr       # defer
          | "errdefer" expr    # error-defer
-         | "invalidate" expr  # invalidate a symbol
-         | "validate" expr    # validate a symbol
-         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<<=" | ">>=") expr]
+         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=") expr]
          .
 
 
-expr: sumExpr
+expr: gaurdExpr
     | fn_declaration
     .
 
-sumExpr: "cond" condExpr
-       | "case" caseExpr
-       | "|" ident [":" productExpr] {"|" ident [":" productExpr]}
-       | productExpr
-       .
+gaurdExpr: "cond" condExpr
+         | "case" caseExpr
+         | sumExpr
+         .
+
+sumExpr: productExpr ["|" ident [":" productExpr] {"|" ident [":" productExpr]}].
 
 productExpr: annotExpr {"," annotExpr}.
 

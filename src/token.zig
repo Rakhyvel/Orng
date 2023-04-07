@@ -26,24 +26,22 @@ pub const TokenKind = enum(u32) {
     FOR,
     IF,
     IN,
-    INVALIDATE,
-    INVALIDATES,
     LET,
     MUT,
     OR,
     ORELSE,
     RETURN,
     THROW,
-    THROWS,
     TRY,
     UNREACHABLE,
-    VALIDATE,
     WHERE,
     WHILE,
 
+    // INVALIDATE,  // TODO: Reconsider
+    // INVALIDATES,
+    // VALIDATE,
+
     // Equals
-    D_GTR_EQUALS,
-    D_LSR_EQUALS,
     D_EQUALS,
     EQUALS,
     MINUS_EQUALS,
@@ -54,24 +52,21 @@ pub const TokenKind = enum(u32) {
     STAR_EQUALS,
 
     // Math
-    BACK_SKINNY_ARROW,
     BAR,
     CARET,
     D_BAR,
     D_PLUS,
     D_MINUS,
-    DIAMOND,
-    FAT_ARROW,
+    RIGHT_FAT_ARROW,
     GTR,
     GTE,
-    LEFT_SHIFT,
     LSR,
     LTE,
     MINUS,
     PERCENT,
     PLUS,
-    RIGHT_SHIFT,
-    SKINNY_ARROW,
+    LEFT_SKINNY_ARROW,
+    RIGHT_SKINNY_ARROW,
     SLASH,
     STAR,
 
@@ -97,10 +92,12 @@ pub const TokenKind = enum(u32) {
     INDENT,
     DEDENT,
 
-    // Invented
+    // Function stuff
+    DELTA,
+    DIAMOND,
     PERIOD_GTR,
 
-    // Structure
+    // Whitespace
     NEWLINE,
     EOF,
 
@@ -112,7 +109,7 @@ pub const binaryOperators = [_]TokenKind{
     .BAR,
     .COMMA, //
     .COLON,
-    .SKINNY_ARROW,
+    .RIGHT_SKINNY_ARROW,
     .AND,
     .OR,
     .NOT_EQUALS,
@@ -135,7 +132,7 @@ pub const binaryOperators = [_]TokenKind{
     .D_BAR,
     .PERIOD_GTR,
     .PERIOD,
-    .BACK_SKINNY_ARROW,
+    .LEFT_SKINNY_ARROW,
 };
 
 pub const Token = struct {
@@ -205,24 +202,18 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .FOR => "for",
         .IF => "if",
         .IN => "in",
-        .INVALIDATE => "invalidate",
-        .INVALIDATES => "invalidates",
         .LET => "let",
         .MUT => "mut",
         .OR => "or",
         .ORELSE => "orelse",
         .RETURN => "return",
         .THROW => "throw",
-        .THROWS => "throws",
         .TRY => "try",
         .UNREACHABLE => "unreachable",
-        .VALIDATE => "validate",
         .WHERE => "where",
         .WHILE => "while",
 
         // Equals
-        .D_GTR_EQUALS => ">>=",
-        .D_LSR_EQUALS => "<<=",
         .D_EQUALS => "==",
         .EQUALS => "=",
         .MINUS_EQUALS => "-=",
@@ -233,24 +224,21 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .STAR_EQUALS => "*=",
 
         // Math
-        .BACK_SKINNY_ARROW => "<-",
+        .LEFT_SKINNY_ARROW => "<-",
         .BAR => "|",
         .CARET => "^",
         .D_BAR => "||",
         .D_PLUS => "++",
         .D_MINUS => "--",
-        .DIAMOND => "<>",
-        .FAT_ARROW => "=>",
+        .RIGHT_FAT_ARROW => "=>",
         .GTR => ">",
         .GTE => ">=",
-        .LEFT_SHIFT => "<<",
         .LSR => "<",
         .LTE => "<=",
         .MINUS => "-",
         .PERCENT => "%",
         .PLUS => "+",
-        .RIGHT_SHIFT => ">>",
-        .SKINNY_ARROW => "->",
+        .RIGHT_SKINNY_ARROW => "->",
         .SLASH => "/",
         .STAR => "*",
 
@@ -274,7 +262,9 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .R_PAREN => ")",
         .R_SQUARE => "]",
 
-        // Invented
+        // Functional
+        .DELTA => "|>",
+        .DIAMOND => "<>",
         .PERIOD_GTR => ".>",
 
         // EOF

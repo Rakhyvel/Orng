@@ -3,6 +3,7 @@
 - [x] Go through grammar and find all Token kinds there could be, list them in TokenKind
 - [x] Be able to lex out any token type
 - [x] Tokens should have spans
+- [x] Remove unused token kinds
 
 ### Parser
 - [x] Write recursive descent parser
