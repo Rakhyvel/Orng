@@ -16,7 +16,7 @@ let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
 fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" annotExpr. # has to be annotExpr
+param: ["mut" | "const"] ident ":" annotExpr. # cannot be productExpr, otherwise ambiguous with ,
 
 statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
          | "defer" expr       # defer
@@ -31,11 +31,11 @@ expr: "cond" condExpr
     | sumExpr
     .
 
-sumExpr: productExpr ["|" ident [":" productExpr] {"|" ident [":" productExpr]}].
+sumExpr: productExpr ["|" ident [":" productExpr] {"|" ident [":" productExpr]}]. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
 
 productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["\\" arrowExpr]].
+annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["\\" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -45,7 +45,7 @@ neqExpr: conditionalExpr ["!=" conditionalExpr].
 
 conditionalExpr: deltaExpr {("==" | "<" | "<=" | ">" | ">=") deltaExpr}.
 
-deltaExpr: coalesceExpr {"|>" coalesceExpr}.
+deltaExpr: coalesceExpr {"|>" coalesceExpr}. # (rhs must be a call expr)
 
 coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
@@ -96,8 +96,7 @@ whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["el
 
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
 
-# Bar lists have one or more bar statements, followed by an optional else clause
-barClause: productExpr ["=>" expr ";"].
+barClause: productExpr ["=>" expr ";"]. # for barClauses in case statements, if the lhs of has a pattern, => must be present
 barElse: "else" "=>" expr ";".
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barListMiddle.

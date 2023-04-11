@@ -255,254 +255,279 @@ pub const Parser = struct {
         );
     }
 
-    fn statement(self: *Parser) ParserErrorEnum!void {
+    fn statement(self: *Parser) ParserErrorEnum!*AST {
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            _ = try self.nonFnDeclaration();
-        } else if (self.accept(.DEFER)) |_| {
-            try self.expr();
-        } else if (self.accept(.ERRDEFER)) |_| {
-            try self.expr();
+            return self.nonFnDeclaration();
+        } else if (self.accept(.DEFER)) |token| {
+            return AST.createDefer(token, try self.expr(), self.astAllocator);
+        } else if (self.accept(.ERRDEFER)) |token| {
+            return AST.createDefer(token, try self.expr(), self.astAllocator);
         } else {
-            try self.expr();
-            if (self.accept(.EQUALS) //
-            orelse self.accept(.PLUS_EQUALS) //
-            orelse self.accept(.MINUS_EQUALS) //
-            orelse self.accept(.STAR_EQUALS) //
-            orelse self.accept(.SLASH_EQUALS) //
-            orelse self.accept(.PERCENT_EQUALS)) |_| {
-                try self.expr();
+            var exp = try self.expr();
+            if (self.accept(.EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else {
+                return exp;
             }
         }
     }
 
-    fn expr(self: *Parser) ParserErrorEnum!void {
+    fn expr(self: *Parser) ParserErrorEnum!*AST {
         if (self.peek().kind == .FN) {
-            _ = try self.fnDeclaration();
-        } else if (self.accept(.COND)) |_| {
-            try self.condExpr();
-        } else if (self.accept(.CASE)) |_| {
-            try self.caseExpr();
+            return self.fnDeclaration();
+        } else if (self.peek().kind == .COND) |_| {
+            return self.condExpr();
+        } else if (self.peek().kind == .CASE) |_| {
+            return self.caseExpr();
         } else {
-            try self.sumType();
+            return self.sumType();
         }
     }
 
-    fn sumType(self: *Parser) ParserErrorEnum!void {
-        try self.productExpr();
-        if (self.accept(.BAR)) |_| {
-            try self.adtType();
-            while (self.accept(.BAR)) |_| {
-                try self.adtType();
-            }
+    fn sumType(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.productExpr();
+        while (self.accept(.BAR)) |token| {
+            exp = AST.createBinop(token, .SUM, exp, try self.annotExpr(), self.astAllocator);
         }
+        return exp;
     }
 
-    fn adtType(self: *Parser) ParserErrorEnum!void {
-        _ = self.accept(.IDENTIFIER);
-        if (self.accept(.COLON)) |_| {
-            try self.productExpr();
+    fn productExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.annotExpr();
+        while (self.accept(.COMMA)) |token| {
+            exp = AST.creatBinop(token, .PRODUCT, exp, try self.annotExpr(), self.astAllocator);
         }
+        return exp;
     }
 
-    fn productExpr(self: *Parser) ParserErrorEnum!void {
-        try self.annotExpr();
-        while (self.accept(.COMMA)) |_| {
-            try self.annotExpr();
-        }
-    }
-
-    fn annotExpr(self: *Parser) ParserErrorEnum!void {
-        try self.arrowExpr();
-        if (self.accept(.COLON)) |_| {
-            try self.arrowExpr();
+    fn annotExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.arrowExpr();
+        if (self.accept(.COLON)) |token| {
+            var _type = try self.arrowExpr();
+            var predicate: ?*AST = null;
+            var init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
-                try self.arrowExpr();
+                predicate = try self.arrowExpr();
             }
             if (self.accept(.BACK_SLASH)) |_| {
-                try self.arrowExpr();
+                init = try self.arrowExpr();
             }
+            return AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
+        } else {
+            return exp;
         }
     }
 
-    fn arrowExpr(self: *Parser) ParserErrorEnum!void {
-        try self.boolExpr();
-        while (self.accept(.RIGHT_SKINNY_ARROW)) |_| {
-            try self.boolExpr();
+    fn arrowExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.boolExpr();
+        while (self.accept(.RIGHT_SKINNY_ARROW)) |token| {
+            exp = AST.createBinop(token, .ARROW, exp, try self.boolExpr(), self.astAllocator);
         }
+        return exp;
     }
 
-    fn boolExpr(self: *Parser) ParserErrorEnum!void {
-        try self.neqExpr();
+    fn boolExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.neqExpr();
         while (true) {
-            if (self.accept(.AND)) |_| {
-                try self.neqExpr();
-            } else if (self.accept(.OR)) |_| {
-                try self.neqExpr();
+            if (self.accept(.AND)) |token| {
+                exp = AST.createBinop(token, .AND, exp, try self.neqExpr(), self.astAllocator);
+            } else if (self.accept(.OR)) |token| {
+                exp = AST.createBinop(token, .OR, exp, try self.neqExpr(), self.astAllocator);
             } else {
-                break;
+                return exp;
             }
         }
     }
 
-    fn neqExpr(self: *Parser) ParserErrorEnum!void {
-        try self.conditionalExpr();
-        if (self.accept(.NOT_EQUALS)) |_| {
-            try self.conditionalExpr();
+    fn neqExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.conditionalExpr();
+        if (self.accept(.NOT_EQUALS)) |token| {
+            return AST.createBinop(token, .NOT_EQUALS, exp, try self.conditionalExpr(), self.astAllocator);
+        } else {
+            return exp;
         }
     }
 
-    fn conditionalExpr(self: *Parser) ParserErrorEnum!void {
-        try self.deltaExpr();
+    fn conditionalExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.deltaExpr();
         while (true) {
-            if (self.accept(.D_EQUALS)) |_| {
+            if (self.accept(.D_EQUALS)) |token| {
+                exp = AST.createBinop(token, .EQUALS, exp, try self.deltaExpr(), self.astAllocator);
+            } else if (self.accept(.GTR)) |token| {
+                exp = AST.createBinop(token, .GREATER_THAN, exp, try self.deltaExpr(), self.astAllocator);
+            } else if (self.accept(.LSR)) |token| {
+                exp = AST.createBinop(token, .LESSER_THAN, exp, try self.deltaExpr(), self.astAllocator);
                 try self.deltaExpr();
-            } else if (self.accept(.GTR)) |_| {
+            } else if (self.accept(.GTE)) |token| {
+                exp = AST.createBinop(token, .GREATER_EQUALS, exp, try self.deltaExpr(), self.astAllocator);
                 try self.deltaExpr();
-            } else if (self.accept(.LSR)) |_| {
-                try self.deltaExpr();
-            } else if (self.accept(.GTE)) |_| {
-                try self.deltaExpr();
-            } else if (self.accept(.LTE)) |_| {
+            } else if (self.accept(.LTE)) |token| {
+                exp = AST.createBinop(token, .LESSER_EQUALS, exp, try self.deltaExpr(), self.astAllocator);
                 try self.deltaExpr();
             } else {
-                break;
+                return exp;
             }
         }
     }
 
-    fn deltaExpr(self: *Parser) ParserErrorEnum!void {
-        try self.coalesceExpr();
+    fn deltaExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.coalesceExpr();
         while (true) {
-            if (self.accept(.DELTA)) |_| {
-                try self.coalesceExpr();
+            if (self.accept(.DELTA)) |token| {
+                exp = AST.createBinop(token, .DELTA, exp, try self.coalesceExpr(), self.astAllocator);
             } else {
-                break;
+                return exp;
             }
         }
     }
 
-    fn coalesceExpr(self: *Parser) ParserErrorEnum!void {
-        try self.intExpr();
+    fn coalesceExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.intExpr();
         while (true) {
-            if (self.accept(.CATCH)) |_| {
-                try self.intExpr();
-            } else if (self.accept(.ORELSE)) |_| {
-                try self.intExpr();
+            if (self.accept(.CATCH)) |token| {
+                exp = AST.createBinop(token, .CATCH, exp, try self.intExpr(), self.astAllocator);
+            } else if (self.accept(.ORELSE)) |token| {
+                exp = AST.createBinop(token, .ORELSE, exp, try self.intExpr(), self.astAllocator);
             } else {
-                break;
+                return exp;
             }
         }
     }
 
-    fn intExpr(self: *Parser) ParserErrorEnum!void {
-        try self.termExpr();
+    fn intExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.termExpr();
         while (true) {
-            if (self.accept(.PLUS)) |_| {
-                try self.termExpr();
-            } else if (self.accept(.MINUS)) |_| {
-                try self.termExpr();
-            } else if (self.accept(.D_E_MARK)) |_| {
-                try self.termExpr();
+            if (self.accept(.PLUS)) |token| {
+                exp = AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
+            } else if (self.accept(.MINUS)) |token| {
+                exp = AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
+            } else if (self.accept(.D_E_MARK)) |token| {
+                exp = AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
             } else {
-                break;
+                return exp;
             }
         }
     }
 
-    fn termExpr(self: *Parser) ParserErrorEnum!void {
-        try self.exponentExpr();
+    fn termExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.exponentExpr();
         while (true) {
-            if (self.accept(.STAR)) |_| {
-                try self.exponentExpr();
-            } else if (self.accept(.SLASH)) |_| {
-                try self.exponentExpr();
-            } else if (self.accept(.PERCENT)) |_| {
-                try self.exponentExpr();
-            } else if (self.accept(.DIAMOND)) |_| {
-                try self.exponentExpr();
-            } else if (self.accept(.D_PLUS)) |_| {
-                try self.exponentExpr();
-            } else if (self.accept(.D_MINUS)) |_| {
-                try self.exponentExpr();
-            } else if (self.accept(.D_BAR)) |_| {
-                try self.exponentExpr();
+            if (self.accept(.STAR)) |token| {
+                exp = AST.createBinop(token, .MULT, exp, try self.exponentExpr(), self.astAllocator);
+            } else if (self.accept(.SLASH)) |token| {
+                exp = AST.createBinop(token, .DIV, exp, try self.exponentExpr(), self.astAllocator);
+            } else if (self.accept(.PERCENT)) |token| {
+                exp = AST.createBinop(token, .MOD, exp, try self.exponentExpr(), self.astAllocator);
+            } else if (self.accept(.DIAMOND)) |token| {
+                exp = AST.createBinop(token, .COMPOSITION, exp, try self.exponentExpr(), self.astAllocator);
+            } else if (self.accept(.D_PLUS)) |token| {
+                exp = AST.createBinop(token, .TUPLE_CONCAT, exp, try self.exponentExpr(), self.astAllocator);
+            } else if (self.accept(.D_MINUS)) |token| {
+                exp = AST.createBinop(token, .TUPLE_DIFF, exp, try self.exponentExpr(), self.astAllocator);
+            } else if (self.accept(.D_BAR)) |token| {
+                exp = AST.createBinop(token, .SUM_UNION, exp, try self.exponentExpr(), self.astAllocator);
             } else {
-                break;
+                return exp;
             }
         }
     }
 
-    fn exponentExpr(self: *Parser) ParserErrorEnum!void {
-        try self.prefixExpr();
-        while (self.accept(.D_STAR)) |_| {
-            try self.prefixExpr();
+    fn exponentExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.prefixExpr();
+        while (self.accept(.D_STAR)) |token| {
+            exp = AST.createBinop(token, .POW, exp, try self.prefixExpr(), self.astAllocator);
         }
+        return exp;
     }
 
-    fn prefixExpr(self: *Parser) ParserErrorEnum!void {
-        if (self.accept(.E_MARK)) |_| {
-            try self.prependExpr();
-        } else if (self.accept(.MINUS)) |_| {
-            try self.prependExpr();
-        } else if (self.accept(.AMPERSAND)) |_| {
-            _ = self.accept(.MUT);
-            try self.prefixExpr();
-        } else if (self.accept(.L_SQUARE)) |_| {
+    fn prefixExpr(self: *Parser) ParserErrorEnum!*AST {
+        if (self.accept(.E_MARK)) |token| {
+            return AST.createUnop(token, .NOT, try self.prependExpr(), self.astAllocator);
+        } else if (self.accept(.MINUS)) |token| {
+            return AST.createUnop(token, .NEG, try self.prependExpr(), self.astAllocator);
+        } else if (self.accept(.AMPERSAND)) |token| {
+            var mut = self.accept(.MUT);
+            return AST.createAddr(token, try self.prefixExpr(), mut != null, self.astAllocator);
+        } else if (self.accept(.L_SQUARE)) |token| {
+            var sliceKind: AST.SliceKind = undefined;
+            var len: ?*AST = null;
             if (self.accept(.MUT)) |_| {
-                //
+                sliceKind = .MUT;
             } else if (self.accept(.STAR)) |_| {
-                //
+                sliceKind = .MULTIPTR;
             } else if (self.nextIsExpr()) {
-                try self.expr();
+                sliceKind = .ARRAY;
+                len = try self.expr();
+            } else {
+                sliceKind = .SLICE;
             }
             _ = try self.expect(.R_SQUARE);
-            try self.prefixExpr();
-        } else if (self.accept(.Q_MARK)) |_| {
-            try self.prependExpr();
-        } else if (self.accept(.TRY)) |_| {
-            try self.prependExpr();
-        } else if (self.accept(.PERIOD)) |_| {
-            _ = try self.expect(.IDENTIFIER);
+            return AST.createSliceOf(token, try self.prefixExpr(), len, sliceKind, self.astAllocator);
+        } else if (self.accept(.Q_MARK)) |token| {
+            return AST.createUnop(token, .OPTIONAL, try self.prependExpr(), self.astAllocator);
+        } else if (self.accept(.TRY)) |token| {
+            return AST.createUnop(token, .TRY, try self.prependExpr(), self.astAllocator);
+        } else if (self.accept(.PERIOD)) |token| {
+            var ident = AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
             if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
-                try self.prefixExpr();
+                return AST.createNamedArg(token, ident, try self.prefixExpr(), self.astAllocator);
             } else if (self.peek().kind == .L_PAREN) {
                 try self.parens();
+                return AST.createInferredMember(token, ident, try self.prefixExpr(), self.astAllocator);
+            } else {
+                return AST.createInferredMember(token, ident, null, self.astAllocator);
             }
         } else {
-            try self.prependExpr();
+            return try self.prependExpr();
         }
     }
 
-    fn prependExpr(self: *Parser) ParserErrorEnum!void {
-        try self.postfixExpr();
-        while (self.accept(.PERIOD_GTR)) |_| {
-            try self.postfixExpr();
+    fn prependExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.postfixExpr();
+        while (self.accept(.PERIOD_GTR)) |token| {
+            exp = AST.createBinop(token, .UFCS, exp, try self.postfixExpr(), self.astAllocator);
         }
+        return exp;
     }
 
-    fn postfixExpr(self: *Parser) ParserErrorEnum!void {
-        try self.factor();
+    fn postfixExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.factor();
         while (true) {
             if (self.peek().kind == .L_PAREN) {
-                try self.parens();
-            } else if (self.accept(.L_SQUARE)) |_| {
+                exp = AST.createBinop(self.peek(), .CALL, exp, self.parens(), self.astAllocator);
+            } else if (self.accept(.L_SQUARE)) |token| {
+                var first: ?*AST = null;
                 if (self.nextIsExpr()) {
-                    try self.expr();
+                    first = try self.expr();
                 }
                 if (self.accept(.D_PERIOD)) |_| {
+                    var second: ?*AST = null;
                     if (self.nextIsExpr()) {
-                        try self.expr();
+                        second = try self.expr();
                     }
+                    expr = AST.createSubSlice(token, exp, first, second, self.astAllocator);
+                } else {
+                    // Simple index
+                    exp = AST.createBinop(token, .INDEX, exp, first.?, self.astAllocator);
                 }
                 _ = try self.expect(.R_SQUARE);
-            } else if (self.accept(.PERIOD)) |_| {
-                _ = try self.expect(.IDENTIFIER);
-            } else if (self.accept(.PERIOD_Q_MARK)) |_| {
-                //
-            } else if (self.accept(.CARET)) |_| {
-                //
+            } else if (self.accept(.PERIOD)) |token| {
+                exp = AST.createBinop(
+                    token,
+                    .SELECT,
+                    exp,
+                    AST.createIdent(
+                        try self.expect(.IDENTIFIER),
+                        self.astAllocator,
+                    ),
+                    self.astAllocator,
+                );
+            } else if (self.accept(.PERIOD_Q_MARK)) |token| {
+                exp = AST.createUnop(token, .FROM_OPTIONAL, exp, self.astAllocator);
+            } else if (self.accept(.CARET)) |token| {
+                exp = AST.createUnop(token, .DEREFERENCE, exp, self.astAllocator);
             } else {
-                break;
+                return exp;
             }
         }
     }
@@ -642,54 +667,74 @@ pub const Parser = struct {
         }
     }
 
-    fn barClause(self: *Parser) ParserErrorEnum!void {
-        try self.productExpr();
+    fn barClause(self: *Parser) ParserErrorEnum!*AST {
+        var token = self.expect(.BAR);
+        var lhs = try self.productExpr();
+        var rhs: ?*AST = null;
+
         if (self.accept(.RIGHT_FAT_ARROW)) |_| {
-            try self.expr();
+            rhs = try self.expr();
             _ = try self.expect(.SEMICOLON);
         }
+
+        return AST.createMapping(token, lhs, rhs, self.astAllocator);
     }
 
-    fn barElse(self: *Parser) ParserErrorEnum!void {
+    fn barElse(self: *Parser) ParserErrorEnum!*AST {
+        var token = self.expect(.BAR);
         _ = try self.expect(.ELSE);
         _ = try self.expect(.RIGHT_FAT_ARROW);
-        try self.expr();
+        var rhs = try self.expr();
         _ = try self.expect(.SEMICOLON);
+
+        return AST.createMapping(token, null, rhs, self.astAllocator);
     }
 
-    fn barListMiddle(self: *Parser) ParserErrorEnum!void {
-        try self.barClause();
-        if (self.accept(.BAR)) |_| {
+    fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST).init(self.astAllocator)) ParserErrorEnum!void {
+        try mappings.append(try self.barClause());
+        if (self.peek() == .BAR) {
             if (self.peek().kind == .ELSE) {
-                try self.barElse();
+                try mappings.append(try self.barElse());
             } else if (self.nextIsExpr()) {
-                try self.barListMiddle();
+                try self.barListMiddle(mappings);
             } else {
                 self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
             }
         }
     }
 
-    fn barList(self: *Parser) ParserErrorEnum!void {
-        _ = try self.expect(.BAR);
-        try self.barListMiddle();
+    fn barList(self: *Parser, mappings: *std.ArrayList(*AST).init(self.astAllocator)) ParserErrorEnum!void {
+        try self.expect(.BAR);
+        self.barListMiddle(mappings);
     }
 
-    fn condExpr(self: *Parser) ParserErrorEnum!void {
+    fn condExpr(self: *Parser) ParserErrorEnum!*AST {
+        var token = self.expect(.COND);
+        var mappings = std.ArrayList(*AST).init(self.astAllocator);
+        try self.barList(mappings);
+        var let: ?*AST = null;
+
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            _ = try self.nonFnDeclaration();
+            let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
-        try self.barList();
+
+        return AST.createCond(token, let, mappings, self.astAllocator);
     }
 
     fn caseExpr(self: *Parser) ParserErrorEnum!void {
+        var token = self.expect(.CASE);
+        var mappings = std.ArrayList(*AST).init(self.astAllocator);
+        var let: ?*AST = null;
+
         if (self.peek().kind == .CONST or self.peek().kind == .LET) {
-            _ = try self.nonFnDeclaration();
+            let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
-        try self.productExpr();
-        try self.barList();
+        var exp = try self.productExpr();
+        try self.barList(mappings);
+
+        return AST.createCase(token, let, exp, mappings, self.astAllocator);
     }
 
     fn parens(self: *Parser) ParserErrorEnum!void {

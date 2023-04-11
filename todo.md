@@ -8,6 +8,8 @@
     - [x] Add D_STAR to binaryOperators
     - [x] Add D_STAR to reprFromTokenKind()
     - [x] Add D_STAR_ASSIGN TokenKind, binaryOperators, reprFromTokenKind
+- [ ] Write tests
+- [ ] Add `not` keyword, remove !! operator
 
 ### Parser
 - [x] Write recursive descent parser
@@ -22,6 +24,13 @@
     - [x] Add parsing function
     - [x] Make sure to do an ASTKind too
 - [ ] Write ASTs
+    - [ ] Write a pretty print and do tests!
+- [ ] Abstract away a better peek() method
+- [ ] Parse `not` keyword, change !! to just !
+- [ ] Make Sum types a flat list rather than a tree
+    - [ ] Perhaps do this for all binops, might allow for optimizations later, simplifies associativity
+- [ ] Throw a parse error if there's a null index for an index binop
+- [ ] Parse +=, -=, *=, /=, %=, **=
 
 ### Symbol table
 - [ ] Create symbol tree from file AST

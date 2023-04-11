@@ -22,6 +22,7 @@ pub const ASTKind = enum(u32) {
     POW_ASSIGN,
     COND,
     CASE,
+    MAPPING,
     SUM,
     PRODUCT,
     ANNOTATION,
@@ -60,7 +61,7 @@ pub const ASTKind = enum(u32) {
     CALL,
     INDEX,
     TO_SLICE,
-    SELECTOR,
+    SELECT,
     FROM_OPTIONAL,
     DEREFERENCE,
     IDENTIFIER,
@@ -79,6 +80,13 @@ pub const ASTKind = enum(u32) {
     BREAK,
 };
 
+pub const SliceKind = union(enum) {
+    SLICE, // data ptr and len
+    MUT, // mutable data ptr and len
+    MULTIPTR, // c-style `*` pointer, no len
+    ARRAY, // static homogenous tuple, compile-time len
+};
+
 pub const ASTData = union(enum) {
     decl: struct { introducer: TokenKind, pattern: *AST, type: ?*AST, init: ?*AST },
     fnDecl: struct { name: ?*AST, params: std.ArrayList(*AST), retType: *AST, init: *AST },
@@ -88,16 +96,22 @@ pub const ASTData = union(enum) {
     char,
     float: struct { data: f64 },
     binop: struct { left: *AST, right: *AST },
+    annotation: struct { pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
     unop: struct { expr: *AST },
-    namedArg: struct { expr: *AST },
-    slice: struct { arrayExpr: *AST, lowerBound: ?*AST, upperBound: ?*AST },
+    addr: struct { expr: *AST, mut: bool },
+    sliceOf: struct { expr: *AST, len: ?*AST, kind: SliceKind },
+    namedArg: struct { ident: *AST, init: *AST },
+    inferredMember: struct { ident: *AST, init: ?*AST },
+    slice: struct { super: *AST, lower: ?*AST, upper: ?*AST },
     block: struct { children: std.ArrayList(*AST) },
-    _defer: struct { statement: *AST },
-    _if: struct { condition: *AST, bodyBlock: *AST, elseBlock: ?*AST },
-    _cond: struct { mappings: std.ArrayList(*AST) },
-    _while: struct { pre: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST },
-    _for: struct { elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST },
-    _case: struct { expr: *AST, mappings: std.ArrayList(*AST) },
+    _defer: struct { expr: *AST },
+    assign: struct { lhs: *AST, rhs: *AST },
+    _if: struct { let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST },
+    cond: struct { let: ?*AST, mappings: std.ArrayList(*AST) },
+    _case: struct { let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST) },
+    mapping: struct { lhs: ?*AST, rhs: ?*AST },
+    _while: struct { let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST },
+    _for: struct { let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST },
 };
 
 pub const AST = struct {
@@ -148,6 +162,132 @@ pub const AST = struct {
             ASTData{ .identifier = .{
                 .data = token.data,
             } },
+            allocator,
+        );
+    }
+
+    pub fn createDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .DEFER,
+            token,
+            ASTData{ ._defer = .{ .expr = expr } },
+            allocator,
+        );
+    }
+
+    pub fn createErrDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .ERRDEFER,
+            token,
+            ASTData{ ._defer = .{ .expr = expr } },
+            allocator,
+        );
+    }
+
+    pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .ASSIGN,
+            token,
+            ASTData{ .assign = .{ .lhs = lhs, .rhs = rhs } },
+            allocator,
+        );
+    }
+
+    pub fn createCond(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .COND,
+            token,
+            ASTData{ .cond = .{ .let = let, .mappings = mappings } },
+            allocator,
+        );
+    }
+
+    pub fn createCase(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .CASE,
+            token,
+            ASTData{ ._case = .{ .let = let, .expr = expr, .mappings = mappings } },
+            allocator,
+        );
+    }
+
+    pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .MAPPING,
+            token,
+            ASTData{ .mapping = .{ .lhs = lhs, .rhs = rhs } },
+            allocator,
+        );
+    }
+
+    pub fn createBinop(token: Token, kind: ASTKind, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            kind,
+            token,
+            ASTData{ .binop = .{ .lhs = lhs, .rhs = rhs } },
+            allocator,
+        );
+    }
+
+    pub fn createAnnotation(token: Token, pattern: ASTKind, _type: *AST, predicate: ?*AST, init: ?*AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .ANNOTATION,
+            token,
+            ASTData{ .annotation = .{ .pattern = pattern, .type = _type, .predicate = predicate, .init = init } },
+            allocator,
+        );
+    }
+
+    pub fn createUnop(token: Token, kind: ASTKind, expr: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            kind,
+            token,
+            ASTData{ .unop = .{ .expr = expr } },
+            allocator,
+        );
+    }
+
+    pub fn createAddr(token: Token, expr: *AST, mut: bool, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .ADDROF,
+            token,
+            ASTData{ .addr = .{ .expr = expr, .mut = mut } },
+            allocator,
+        );
+    }
+
+    pub fn createSliceOf(token: Token, expr: *AST, len: ?*AST, sliceKind: SliceKind, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .SLICEOF,
+            token,
+            ASTData{ .sliceOf = .{ .expr = expr, .len = len, .kind = sliceKind } },
+            allocator,
+        );
+    }
+
+    pub fn createNamedArg(token: Token, ident: *AST, init: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .NAMED_ARG,
+            token,
+            ASTData{ .namedArg = .{ .ident = ident, .init = init } },
+            allocator,
+        );
+    }
+
+    pub fn createInferredMember(token: Token, ident: *AST, init: ?*AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .INFERRED_MEMBER,
+            token,
+            ASTData{ .inferredMember = .{ .ident = ident, .init = init } },
+            allocator,
+        );
+    }
+
+    pub fn createSubSlice(token: Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) *AST {
+        return AST.create(
+            .SLICE,
+            token,
+            ASTData{ .slice = .{ .super = super, .lower = lower, .upper = upper } },
             allocator,
         );
     }
