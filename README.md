@@ -1,17 +1,38 @@
-# Orng
 ![Budi the Monkey!](https://github.com/Rakhyvel/Orng/blob/main/budi.png)
 ###### Budi the Orangutan, mascot of the Orng Programming Language
 
-Orng is a fast, expressive programming language that compiles to C!
+Orng is a fast, expressive general purpose programming language that compiles to C!
 
-Coming soon!:
-- A clean, indentation based syntax
-- Seamless bidirectional C ABI interop
-- Alegbraic Data Types
-- Blazingly fast compilation speeds!
+## Planned Features
+* A clean, indentation based syntax
+* Seamless bidirectional C ABI interop
+* Generic and Alegbraic Data Types
+    - ```rs
+      fn LinkedList: (const T: Type)->Type
+          = nil
+          | node: (data: T, next: &LinkedList)
+      ```
+* Blazingly fast compilation speeds!
+* Refinement types
+    - ```rs
+      // An int `n` is in the `Evens` type if n % 2 == 0
+      const Evens: Type = n: Int where n % 2 == 0
+      ```
+* Generic type constraints
+    - ```
+      // The type `T'` will be inferred based on the arguments
+      fn contains: (haystack: []T', needle: T')->Bool 
+      where T' impls Eq =
+          for hay in haystack
+              if hay == needle
+                  return true
+          false
+      ```
 
-## Building the Compiler
-```
+## Installation
+```sh
+# Orng requires Zig version 0.11.0
+
 git clone https://github.com/Rakhyvel/Orng.git
 cd Orng
 zig build run
