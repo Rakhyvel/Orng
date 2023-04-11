@@ -10,11 +10,11 @@ fn LinkedList: (const T: Type)->Type
     = nil
     | node: (data: T, next: &LinkedList)
     
-    // You can then pattern match on ADTs
-    fn length: (list: &LinkedList, acc: Int \ 0)->Int =
-        case list^
-        | nil            => acc
-        | node(_, next') => length(next', acc + 1)
+// You can then pattern match on ADTs
+fn length: (list: &LinkedList, acc: Int \ 0)->Int =
+    case list^
+    | nil            => acc
+    | node(_, next') => length(next', acc + 1)
 ```
 #### Refinement types
 ```rs
