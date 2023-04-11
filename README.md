@@ -4,10 +4,7 @@
 Orng is a fast, expressive general purpose programming language that compiles to C!
 
 ## Planned Features
-* A clean, indentation based syntax
-* Seamless bidirectional C ABI interop
-* Blazingly fast compilation speeds!
-### Generic and Alegbraic Data Types
+#### Generic and Alegbraic Data Types
 ```rs
 fn LinkedList: (const T: Type)->Type
     = nil
@@ -19,12 +16,12 @@ fn LinkedList: (const T: Type)->Type
         | nil            => acc
         | node(_, next') => length(next', acc + 1)
 ```
-### Refinement types
+#### Refinement types
 ```rs
 // An int `n` is in the `Evens` type if n % 2 == 0
 const Evens: Type = n: Int where n % 2 == 0
 ```
-### Generic type constraints
+#### Generic type constraints
 ```rs
 // The type `T'` will be inferred based on the arguments
 fn contains: (haystack: []T', needle: T')->Bool 
@@ -37,7 +34,7 @@ where T' impls Eq =
 contains([1, 2, 3], 5) // false
 contains(['a', 'b', 'c'], 'b') // true
 ```
-### Type-class based ad-hoc polymorphism
+#### Type-class based ad-hoc polymorphism
 ```rs
 // Define two types, Square and Circle
 const Square = width: Float, height: Float
@@ -68,7 +65,7 @@ fn function: ()->() =
     std.debug.println("{}", square.>area()) // 300
     std.debug.println("{}", circle.>perimeter()) // 125.66
 ```
-### Built-in support for error handling
+#### Built-in support for error handling
 ```rs
 const PossibleErrors
     = fileNotFound: (filename: String)
