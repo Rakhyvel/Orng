@@ -1,8 +1,9 @@
 # The Orng Programming Language
-<a href="#"><img src="budi.png" align="left" width="200" padding=0 margin=0></a>
+<a href="#"><img src="budi.png" align="left" width="90" padding=0 margin=0></a>
 <div><a href="#"><img src="bumper.png"></a></div>
 
 Orng is a versatile general purpose programming language that gives developers control while still being expressive. It is designed to be both lightweight and simple, making it a great choice for enthusiast programmers.
+
 
 ## Installation
 ```sh
