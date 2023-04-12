@@ -10,6 +10,7 @@
     - [x] Add D_STAR_ASSIGN TokenKind, binaryOperators, reprFromTokenKind
 - [ ] Write tests
 - [ ] Add `not` keyword, remove !! operator
+- [ ] For ambiguous infix/prefix operators, check if there's a space. Space means infix
 
 ### Parser
 - [x] Write recursive descent parser

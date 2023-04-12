@@ -40,9 +40,78 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 <!-- ## Standard Library -->
 
 <!-- ## Examples (do 3) -->
+## Examples
+### Factorial Function
+```rs
+// One-liner factorial function!
+fn factorial: (n: Int)->Int = if n < 2 {1} else {n * fact(n - 1)}
+```
+### Fizzbuzz
+```rs
+const FizzBuzzResult 
+    = string: String
+    | integer: Int
+
+fn fizzbuzz: (n: Int)->FizzBuzzResult =
+    cond
+    | n % 15 == 0 => FizzBuzzResult.string("fizzbuzz") 
+    //               ^^^^^^^^^^^^^^
+    // We can either be explicit with the ADT we use...
+    | n % 5 == 0  => .string("buzz") 
+    //              ^
+    // ... Or we can let it be inferred, if possible
+    | n % 3 == 0  => .string("fizz")
+    | else        => .integer(n)
+```
+### Interacting with C Files (SDL2)
+```rs
+// Orng will parse the SDL.h header file and allow us to use `sdl` as if it
+// were an Orng module
+const c = cImport("SDL.h")
+
+const std = import("std")
+
+const PossibleErrors 
+    = SDLInitializationFailed: (what: String, why: [*]Word8)
+    | _
+
+fn main: (sys: System)->PossibleErrors!() =
+    // Initialize SDL here, throw an error if it fails
+    if (c.SDL_Init(sdl.SDL_INIT_VIDEO) < 0)
+        throw PossibleErrors.SDLInitializationFailed("SDL_Init", c.SDL_GetError())
+    defer c.SDL_Quit() // Ran when this defer goes out of scope
+
+    // Initialize an SDL window here, throw error if it fails
+    let screen = c.SDL_CreateWindow
+        ( "My Window"
+        , c.SDL_WINDOWPOS_UNDEFINED
+        , c.SDL_WINDOWPOS_UNDEFINED
+        , 300
+        , 73
+        , c.SDL_WINDOW_OPENGL
+        ) orelse.
+            throw PossibleErrors.SDLInitializationFailed("SDL_CreateWindow", c.SDL_GetError())
+    defer c.SDL_DestroyWindow(screen)
+
+    // Initialize an SDL renderer here, throw error if it fails
+    let renderer = c.SDL_CreateRenderer(screen, -1, 0) orelse
+        throw PossibleErrors.SDLInitializationFailed("SDL_CreateRenderer", c.SDL_GetError())
+    
+    // Enter main game loop
+    while let mut quit = false; not quit
+        while let mut event: c.SDL_Event; c.SDL_PollEvent(&event) != 0
+            case event.type
+                c.SDL_QUIT => {quit = true}
+                else       => {}
+        _ = renderer |> c.SDL_RenderClear()
+        // do game stuff here
+        c.SDL_RenderPresent(renderer)
+        c.SDL_Delay(17)
+
+```
 
 ## Contributing
-We welcome contributions of all kinds! Bug reports, feature requests, code contributions and documentation updates are more than welcome.
+We welcome contributions of all kinds! Bug reports, feature requests, code contributions and documentation updates are always appreciated.
 
 ## License
 Orng is released under the MIT license. See LICENSE for details.
