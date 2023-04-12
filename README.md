@@ -90,7 +90,7 @@ fn main: (sys: System)->PossibleErrors!() =
         , 300
         , 73
         , c.SDL_WINDOW_OPENGL
-        ) orelse.
+        ) orelse
             throw PossibleErrors.sdlInitializationFailed("SDL_CreateWindow", c.SDL_GetError())
     defer c.SDL_DestroyWindow(screen)
 
