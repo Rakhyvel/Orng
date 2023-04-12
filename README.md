@@ -72,13 +72,14 @@ const c = cImport("SDL.h")
 const std = import("std")
 
 const PossibleErrors 
-    = SDLInitializationFailed: (what: String, why: [*]Word8)
-    | _
+    = sdlInitializationFailed: (what: String, why: [*]Word8)
+    | anotherPossibleError
+    | yetAnotherPossibleError
 
 fn main: (sys: System)->PossibleErrors!() =
     // Initialize SDL here, throw an error if it fails
     if (c.SDL_Init(sdl.SDL_INIT_VIDEO) < 0)
-        throw PossibleErrors.SDLInitializationFailed("SDL_Init", c.SDL_GetError())
+        throw PossibleErrors.sdlInitializationFailed("SDL_Init", c.SDL_GetError())
     defer c.SDL_Quit() // Ran when this defer goes out of scope
 
     // Initialize an SDL window here, throw error if it fails
@@ -90,12 +91,12 @@ fn main: (sys: System)->PossibleErrors!() =
         , 73
         , c.SDL_WINDOW_OPENGL
         ) orelse.
-            throw PossibleErrors.SDLInitializationFailed("SDL_CreateWindow", c.SDL_GetError())
+            throw PossibleErrors.sdlInitializationFailed("SDL_CreateWindow", c.SDL_GetError())
     defer c.SDL_DestroyWindow(screen)
 
     // Initialize an SDL renderer here, throw error if it fails
     let renderer = c.SDL_CreateRenderer(screen, -1, 0) orelse
-        throw PossibleErrors.SDLInitializationFailed("SDL_CreateRenderer", c.SDL_GetError())
+        throw PossibleErrors.sdlInitializationFailed("SDL_CreateRenderer", c.SDL_GetError())
     
     // Enter main game loop
     while let mut quit = false; not quit
