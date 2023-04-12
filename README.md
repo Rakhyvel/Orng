@@ -98,6 +98,7 @@ fn main: (sys: System)->PossibleErrors!() =
     // Initialize an SDL renderer here, throw error if it fails
     let renderer = c.SDL_CreateRenderer(screen, -1, 0) orelse
         throw PossibleErrors.sdlInitializationFailed("SDL_CreateRenderer", c.SDL_GetError())
+    defer c.SDL_DestroyRenderer(renderer)
     
     // Enter main game loop
     while let mut quit = false; not quit
