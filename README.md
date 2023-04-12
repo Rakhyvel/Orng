@@ -2,6 +2,8 @@
 <div align="right"><a href="#"><img src="budi.png" alt="Budi the Orangutan!" align="right" width="30%"></a></div>
 Orng is a versatile general purpose programming language that gives developers control while still being expressive. It is designed to be both lightweight and simple, making it a great choice for enthusiast programmers.
 
+> Warning!
+
 * Visit [the website (coming soon)](http://ornglang.org) to learn more about Orng.
 
 * Tutorials can be found [here (coming soon)](http://ornglang.orng/tutorials).
