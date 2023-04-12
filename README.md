@@ -1,8 +1,13 @@
 # The Orng Programming Language
-<a href="#"><img src="budi.png" align="left" width="90" padding=0 margin=0></a>
-<div><a href="#"><img src="bumper.png"></a></div>
-
+<a href="#"><img src="budi.png" align="right" width="30%"></a>
 Orng is a versatile general purpose programming language that gives developers control while still being expressive. It is designed to be both lightweight and simple, making it a great choice for enthusiast programmers.
+
+Visit [the website (coming soon)](http://ornglang.org) to learn more about Orng.
+
+Tutorials can be found [here (coming soon)](http://ornglang.orng/tutorials).
+
+Documentation can be found [here (coming soon)](http://ornglang.orng/docs).
+<div><a href="#"><img src="bumper.png"></a></div>
 
 
 ## Installation
@@ -10,7 +15,7 @@ Orng is a versatile general purpose programming language that gives developers c
 # Orng compiler requires Zig 0.11.0 at the moment
 git clone https://github.com/Rakhyvel/Orng.git
 cd Orng
-zig build run -- <path to your main .orng file>
+zig build
 ```
 
 ## Usage
@@ -32,6 +37,10 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 * **Refinement Types:** Orng has support for refinement types, which allows users to ergonomically put additional sanity checks on their types.
 * **Algebraic Data Types and Pattern Matching:** Orng has support for sum-of-product types, and pattern matching on their constructors.
 * **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions.
+
+<!-- ## Standard Library -->
+
+<!-- ## Examples (do 3) -->
 
 ## Contributing
 We welcome contributions of all kinds! Bug reports, feature requests, code contributions and documentation updates are more than welcome.
