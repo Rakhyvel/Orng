@@ -1,4 +1,4 @@
-<div><a href="#"><img src="budi.png"></a></div>
+<div align="center"><a href="#"><img src="budi.png"></a></div>
 
 Orng is a versatile general purpose programming language that gives developers control while still being expressive. It is designed to be both lightweight and simple, making it a great choice for enthusiast programmers.
 
