@@ -8,7 +8,6 @@ Orng is a versatile general purpose programming language that gives developers c
 * Visit [the website (coming soon)](http://ornglang.org) to learn more about Orng.
 * Tutorials can be found [here (coming soon)](http://ornglang.orng/tutorials).
 * Documentation can be found [here (coming soon)](http://ornglang.orng/docs).
-<div><a href="#"><img src="bumper.png"></a></div>
 
 ## Installation
 ```sh
