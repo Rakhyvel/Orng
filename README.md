@@ -8,9 +8,9 @@ Orng is a versatile general purpose programming language that gives developers c
 
 * Documentation can be found [here (coming soon)](http://ornglang.orng/docs).
 <div><a href="#"><img src="bumper.png"></a></div>
-<br>
-</br>
-<p align="right">Rangy the Orangutan</p>
+<div><a href="#"><img src="bumper.png"></a></div>
+<div><a href="#"><img src="bumper.png"></a></div>
+<div align="right">Rangy the Orangutan</div>
 
 ## Installation
 ```sh
