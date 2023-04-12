@@ -71,6 +71,7 @@ const c = cImport("SDL.h")
 
 const std = import("std")
 
+// An algebraic data type (basically an enum) of possible errors our function could throw
 const PossibleErrors 
     = sdlInitializationFailed: (what: String, why: [*]Word8)
     | anotherPossibleError
