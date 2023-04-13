@@ -28,6 +28,7 @@
     - [ ] Write a pretty print and do tests!
 - [ ] Abstract away a better peek() method
 - [ ] Parse `not` keyword, change !! to just !
+- [ ] Remove ASTKind, only have ASTData, it's okay to repeat some structs if needed
 - [ ] Make Sum types a flat list rather than a tree
     - [ ] Perhaps do this for all binops, might allow for optimizations later, simplifies associativity
 - [ ] Throw a parse error if there's a null index for an index binop

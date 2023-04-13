@@ -96,8 +96,8 @@ whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["el
 
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
 
-barClause: productExpr ["=>" expr ";"]. # for barClauses in case statements, if the lhs of has a pattern, => must be present
-barElse: "else" "=>" expr ";".
+barClause: productExpr ["=>" expr (";" | "\n")]. # for barClauses in case statements, if the lhs of has a pattern, => must be present
+barElse: "else" "=>" expr (";" | "\n").
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barListMiddle.
 
