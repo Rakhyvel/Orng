@@ -32,7 +32,7 @@ orng run hello.orng
 ## Features
 Orng comes with a wide range of features that make it a powerful and flexible programming language, including:
 * **Simple Syntax:** Orng has a clean and intuitive syntax that is easy to learn, and more importantly easy to read.
-* **Seamless C ABI Interoperability:** Orng compiles directly to C, which affords it birectional interop with C. You can call existing C functions from Orng, and C functions can call Orng functions.
+* **Seamless C ABI Interoperability:** Orng compiles directly to C, which affords it bidirectional interop with C. Orng code can interact with existing C code, and C code can interact with your Orng code.
 * **Refinement Types:** Orng has support for refinement types, which allows users to ergonomically put additional sanity checks on their types.
 * **Algebraic Data Types and Pattern Matching:** Orng has support for sum-of-product types, and pattern matching on their constructors.
 * **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions.
@@ -62,56 +62,25 @@ fn fizzbuzz: (n: Int)->FizzBuzzResult =
     // ... Or we can let it be inferred, if possible
     | n % 3 == 0  => .string("fizz")
     | else        => .integer(n)
+
+fn main: (sys: System)->!() =
+    while let i = 0; i < 100; i += 1
+        case fizzbuzz(i)
+        | .string(s')  => try sys.out.>println("{}", s')
+        | .integer(j') => try sys.out.>println("{}", j')
 ```
-### Interacting with C Files (SDL2)
+### Generic Type Unification
+Identifiers may end in a single apostrophe. When unification is done, apostrophe'd identifiers are considered to be free variables, and regular identifiers are terms.
 ```rs
-// Orng will parse the SDL.h header file and allow us to use `sdl` as if it
-// were an Orng module
-const c = cImport("SDL.h")
-
-const std = import("std")
-
-// An algebraic data type (basically an enum) of possible errors our function could throw
-const PossibleErrors 
-    = sdlInitializationFailed: (what: String, why: [*]Word8)
-    | anotherPossibleError
-    | yetAnotherPossibleError
-
-fn main: (sys: System)->PossibleErrors!() =
-    // Initialize SDL here, throw an error if it fails
-    if (c.SDL_Init(sdl.SDL_INIT_VIDEO) < 0)
-        throw PossibleErrors.sdlInitializationFailed("SDL_Init", c.SDL_GetError())
-    defer c.SDL_Quit() // Ran when this defer goes out of scope
-
-    // Initialize an SDL window here, throw error if it fails
-    let screen = c.SDL_CreateWindow
-        ( "My Window"
-        , c.SDL_WINDOWPOS_UNDEFINED
-        , c.SDL_WINDOWPOS_UNDEFINED
-        , 300
-        , 73
-        , c.SDL_WINDOW_OPENGL
-        ) orelse
-            throw PossibleErrors.sdlInitializationFailed("SDL_CreateWindow", c.SDL_GetError())
-    defer c.SDL_DestroyWindow(screen)
-
-    // Initialize an SDL renderer here, throw error if it fails
-    let renderer = c.SDL_CreateRenderer(screen, -1, 0) orelse
-        throw PossibleErrors.sdlInitializationFailed("SDL_CreateRenderer", c.SDL_GetError())
-    defer c.SDL_DestroyRenderer(renderer)
-    
-    // Enter main game loop
-    while let mut quit = false; not quit
-        while let mut event: c.SDL_Event; c.SDL_PollEvent(&event) != 0
-            case event.type
-                c.SDL_QUIT => {quit = true}
-                else       => {}
-        _ = renderer |> c.SDL_RenderClear()
-        // do game stuff here
-        c.SDL_RenderPresent(renderer)
-        c.SDL_Delay(17)
-
+// Function that works for any type `T'` in the `Eq` type-class
+fn contains: (haystack: []T', needle: T')->Bool
+where T' <: Eq =
+    cond 
+    | haystack.len == 0     => false
+    | haystack[0] == needle => true
+    | else                  => contains(haystack[1..], needle)
 ```
+
 
 ## Contributing
 We welcome contributions of all kinds! Bug reports, feature requests, code contributions and documentation updates are always appreciated.
