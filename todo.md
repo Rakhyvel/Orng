@@ -24,7 +24,7 @@
 - [x] Parse exponentiation
     - [x] Add parsing function
     - [x] Make sure to do an ASTKind too
-- [ ] Write ASTs
+- [x] Write ASTs
     - [ ] Write a pretty print and do tests!
 - [ ] Abstract away a better peek() method
 - [ ] Parse `not` keyword, change !! to just !
