@@ -30,12 +30,21 @@ orng run hello.orng
 ```
 
 ## Features
-Orng comes with a wide range of features that make it a powerful and flexible programming language, including:
-* **Simple Syntax:** Orng has a clean and intuitive syntax that is easy to learn, and more importantly easy to read.
-* **Seamless C ABI Interoperability:** Orng compiles directly to C, which affords it bidirectional interop with C. Orng code can interact with existing C code, and C code can interact with your Orng code.
-* **Refinement Types:** Orng has support for refinement types, which allows users to ergonomically put additional sanity checks on their types.
-* **Algebraic Data Types and Pattern Matching:** Orng has support for sum-of-product types, and pattern matching on their constructors.
-* **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions.
+Orng comes with a wide range of features that make it a powerful and flexible programming language, including: 
+* **Allocator Memory Model:** Allocators are baked into the core of how Orng operates with memory, which alleviates the sharp corners of manual memory management.
+* **Type-Classes:** Type-classes offer a simple, yet powerful way to express ad-hoc polymorphism.
+* **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions. This is how generics are done!
+* **Built-In Error Handling:** Orng has built-in support for handling runtime errors in a clean and ergonomic way.
+* **Refinement Types:** Orng has support for refinement types, which can add extra predicate-based safety checks to types. 
+* **Functional Programming Idioms:** Orng has many functional programming features, which include:
+    - Algebraic Data Types
+    - Optional types in place of `null` values
+    - Immutable-By-Default variables
+    - Pattern Matching
+    - Generic Type Unification
+    - Partially Applied Functions
+    - Type Inference
+* **Bidirectional C Interop:** Orng compiles to C and can parse C header files, which afford seamless interop with C. Orng code can interact with existing C code, and C code can interact with your Orng code.
 
 <!-- ## Standard Library -->
 
