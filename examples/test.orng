@@ -31,6 +31,6 @@ where T' < Eq =
     cond 
     | haystack.len == 0     => false;
     | haystack[0] == needle => true;
-    | else                  => contains(haystack[1 ..], needle);
+    | else                  => contains(haystack[1..], needle);
 
 

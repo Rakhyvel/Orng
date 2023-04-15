@@ -151,7 +151,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             },
 
             .integer => {
-                if (next_char == '.') {
+                if (next_char == '.' and std.ascii.isDigit(contents[ix + 1])) {
                     // real number
                     ix += 1;
                     col += 1;
