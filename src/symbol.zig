@@ -14,6 +14,16 @@ pub const Scope = struct {
         return retval;
     }
 
+    pub fn lookup(self: *Scope, name: []const u8) ?*Symbol {
+        if (self.symbols.get(name)) |symbol| {
+            return symbol;
+        } else if (self.parent) |non_null_parent| {
+            return non_null_parent.lookup(name);
+        } else {
+            return null;
+        }
+    }
+
     pub fn pprint(self: *Scope) void {
         for (self.symbols.keys()) |key| {
             std.debug.print("{s}\n", .{key});
