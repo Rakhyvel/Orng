@@ -409,7 +409,7 @@ pub const Parser = struct {
                 exp = AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
             } else if (self.accept(.MINUS)) |token| {
                 exp = AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
-            } else if (self.accept(.D_E_MARK)) |token| {
+            } else if (self.accept(.E_MARK)) |token| {
                 exp = AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
             } else {
                 return exp;
@@ -449,8 +449,10 @@ pub const Parser = struct {
     }
 
     fn prefixExpr(self: *Parser) ParserErrorEnum!*AST {
-        if (self.accept(.E_MARK)) |token| {
+        if (self.accept(.NOT)) |token| {
             return AST.createUnop(token, .NOT, try self.prependExpr(), self.astAllocator);
+        } else if (self.accept(.E_MARK)) |token| {
+            return AST.createUnop(token, .INFERRED_ERROR, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
             return AST.createUnop(token, .NEG, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {

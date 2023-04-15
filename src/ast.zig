@@ -50,6 +50,7 @@ pub const ASTKind = enum(u32) {
     SUM_UNION,
     POW,
     NOT,
+    INFERRED_ERROR,
     NEG,
     ADDROF,
     SLICEOF,

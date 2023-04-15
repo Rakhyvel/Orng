@@ -26,8 +26,8 @@
     - [x] Make sure to do an ASTKind too
 - [x] Write ASTs
     - [ ] Write a pretty print and do tests!
+- [x] Parse `not` keyword, change !! to just !
 - [ ] Parse +=, -=, *=, /=, %=, **=
-- [ ] Parse `not` keyword, change !! to just !
 - [ ] Abstract away a better peek() method
 - [ ] Remove ASTKind, only have ASTData, it's okay to repeat some structs if needed
 - [ ] Make Sum types a flat list rather than a tree
