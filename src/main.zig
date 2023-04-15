@@ -1,8 +1,9 @@
 const std = @import("std");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
-const Token = @import("token.zig").Token;
 const Parser = @import("parser.zig").Parser;
+const symbol = @import("symbol.zig");
+const Token = @import("token.zig").Token;
 
 pub const PRINT_TOKENS = true;
 
@@ -54,10 +55,18 @@ pub fn main() !void {
     defer errorAllocator.deinit();
     var parser = try Parser.create(tokens, astAllocator.allocator(), errorAllocator.allocator());
     defer parser.destroy();
-    _ = parser.parse() catch {
+    var program_ast = parser.parse() catch {
         for (parser.errors.items) |err| {
             std.debug.print("examples/test.orng:{}:{} error: {s}\n", .{ err.line, err.col, err.msg.str() });
         }
         return;
     };
+
+    // Symbol tree construction
+    var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
+    defer symbolAllocator.deinit();
+    for (program_ast.items) |definition| {
+        var symbol_table = try symbol.createSymbolTable(definition, symbolAllocator.allocator());
+        _ = symbol_table;
+    }
 }

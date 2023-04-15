@@ -10,6 +10,7 @@
     - [x] Add D_STAR_ASSIGN TokenKind, binaryOperators, reprFromTokenKind
 - [ ] Write tests
 - [x] Add `not` keyword, remove !! operator
+- [ ] Properly handle allocator errors
 
 ### Parser
 - [x] Write recursive descent parser
@@ -32,7 +33,8 @@
 - [ ] Make Sum types a flat list rather than a tree
     - [ ] Perhaps do this for all binops, might allow for optimizations later, simplifies associativity
 - [x] Throw a parse error if there's a null index for an index binop
-- [ ] Parse `slice[1..]` as a subslice and not a floating point literal
+- [x] Parse `slice[1..]` as a subslice and not a floating point literal
+- [ ] Properly handle allocator errors in {parser, ast}.zig
 
 ### Symbol table
 - [ ] Create symbol tree from file AST

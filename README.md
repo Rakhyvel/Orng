@@ -79,6 +79,7 @@ fn fizzbuzz: (n: Int)->FizzBuzzResult =
 
 fn main: (sys: System)->!() =
     while let i = 0; i < 100; i += 1
+        // Can pattern match on ADTs! Again, can let it be inferred if possible
         case fizzbuzz(i)
         | .string(s')  => try sys.out.>println("{}", s')
         | .integer(j') => try sys.out.>println("{}", j')
