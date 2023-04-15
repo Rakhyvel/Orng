@@ -1,5 +1,13 @@
 const std = @import("std");
 const ast = @import("ast.zig");
+const errors = @import("errors.zig");
+const _span = @import("span.zig");
+
+const Error = errors.Error;
+const Span = _span.Span;
+const String = @import("zig-string/zig-string.zig").String;
+
+pub const SymbolErrorEnum = error{symbolError};
 
 pub const Scope = struct {
     parent: ?*Scope,
@@ -34,13 +42,15 @@ pub const Scope = struct {
 pub const Symbol = struct {
     scope: *Scope,
     name: []const u8,
+    span: Span,
     _type: ?*ast.AST,
     init: ?*ast.AST,
 
-    pub fn init(scope: *Scope, name: []const u8, _type: ?*ast.AST, _init: ?*ast.AST, allocator: std.mem.Allocator) !*Symbol {
+    pub fn init(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
         retval.name = name;
+        retval.span = span;
         retval._type = _type;
         retval.init = _init;
         return retval;
@@ -59,17 +69,29 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, allocator
 
             .decl => {
                 var symbol = try createSymbol(definition, retval, allocator);
-                var put_res = try retval.symbols.getOrPutValue(symbol.name, symbol);
-                if (put_res.found_existing) {
-                    std.debug.print("{s} {s}\n", .{ "already an exisiting value for this, sugar:", symbol.name });
+                if (retval.lookup(symbol.name)) |first| {
+                    errors.addError(Error{ .redefinition = .{
+                        .first_defined_span = first.span,
+                        .redefined_span = symbol.span,
+                        .name = symbol.name,
+                    } });
+                    return error.symbolError;
+                } else {
+                    try retval.symbols.put(symbol.name, symbol);
                 }
             },
 
             .fnDecl => {
                 var symbol = try createFunctionSymbol(definition, retval, allocator);
-                var put_res = try retval.symbols.getOrPutValue(symbol.name, symbol);
-                if (put_res.found_existing) {
-                    std.debug.print("{s} {s}\n", .{ "already an exisiting value for this, sugar:", symbol.name });
+                if (retval.lookup(symbol.name)) |first| {
+                    errors.addError(Error{ .redefinition = .{
+                        .first_defined_span = first.span,
+                        .redefined_span = symbol.span,
+                        .name = symbol.name,
+                    } });
+                    return error.symbolError;
+                } else {
+                    try retval.symbols.put(symbol.name, symbol);
                 }
             },
 
@@ -84,6 +106,7 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
     return try Symbol.init(
         scope,
         definition.data.decl.pattern.data.identifier.data,
+        definition.data.decl.pattern.token.span,
         definition.data.decl.type,
         definition.data.decl.init,
         allocator,
@@ -94,6 +117,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.
     return try Symbol.init(
         scope,
         definition.data.fnDecl.name.?.data.identifier.data, // TODO: This currently doesn't support anonymous functions
+        definition.data.fnDecl.name.?.token.span,
         definition.data.fnDecl.retType,
         definition.data.fnDecl.init,
         allocator,

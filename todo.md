@@ -1,4 +1,4 @@
-### Scanner
+### Lexer
 - [x] Lex out comments
 - [x] Go through grammar and find all Token kinds there could be, list them in TokenKind
 - [x] Be able to lex out any token type
@@ -10,7 +10,8 @@
     - [x] Add D_STAR_ASSIGN TokenKind, binaryOperators, reprFromTokenKind
 - [ ] Write tests
 - [x] Add `not` keyword, remove !! operator
-- [ ] Properly handle allocator errors
+- [x] Properly handle allocator errors
+- [x] Implement Spans
 
 ### Parser
 - [x] Write recursive descent parser
@@ -38,10 +39,10 @@
 
 ### Symbol table
 - [x] Create symbol tree from file AST
-- [ ] Symbol table error on shadowing
-    - [ ] Implement lookup method for scopes
+- [x] Symbol table error on shadowing
+    - [x] Implement lookup method for scopes
 - [ ] Make function decls also have a type
-- [ ] If symbol init is block, create a scope for it
+- [x] If symbol init is block, create a scope for it
 - [ ] Create symbols for function parameters
 
 ### Typecheck
@@ -49,6 +50,9 @@
 
 ### Validate
 - [ ] Do other validations (?)
+
+### Errors
+- [ ] Add filename to Span
 
 ### IR
 - [ ] Write IR types

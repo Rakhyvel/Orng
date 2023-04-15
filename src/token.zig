@@ -1,4 +1,5 @@
 const std = @import("std");
+const Span = @import("span.zig").Span;
 
 pub const TokenKind = enum(u32) {
     // Literals
@@ -154,11 +155,10 @@ pub const Token = struct {
     kind: TokenKind,
     // Non-owning slice into the contents of the source file the text data for this token comes from
     data: []const u8,
-    line: i64,
-    col: i64,
+    span: Span,
 
     pub fn create(data: []const u8, kind: ?TokenKind, line: i64, col: i64) Token {
-        return .{ .data = data, .kind = kind orelse kindFromString(data), .line = line, .col = col };
+        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .line = line, .col = col } };
     }
 
     pub fn repr(self: *Token) []const u8 {
@@ -166,7 +166,7 @@ pub const Token = struct {
     }
 
     pub fn pprint(self: *Token) void {
-        std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.line, self.repr(), self.data });
+        std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line, self.repr(), self.data });
     }
 };
 

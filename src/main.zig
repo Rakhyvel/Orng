@@ -1,4 +1,5 @@
 const std = @import("std");
+const errors = @import("errors.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
@@ -8,8 +9,11 @@ const Token = @import("token.zig").Token;
 pub const PRINT_TOKENS = true;
 
 pub fn main() !void {
-    // Get second command line argument
     const allocator = std.heap.page_allocator;
+    errors.init(allocator);
+    defer errors.deinit();
+
+    // Get second command line argument
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
     var arg = args.next() orelse {
@@ -35,7 +39,10 @@ pub fn main() !void {
     // Tokenize
     var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
     defer tokenAllocator.deinit();
-    var tokens = try lexer.getTokens(contents, tokenAllocator.allocator());
+    var tokens = lexer.getTokens(contents, tokenAllocator.allocator()) catch {
+        errors.printErrors();
+        return;
+    };
     defer tokens.deinit();
 
     // Layout
@@ -54,11 +61,8 @@ pub fn main() !void {
     var errorAllocator = std.heap.ArenaAllocator.init(allocator);
     defer errorAllocator.deinit();
     var parser = try Parser.create(tokens, astAllocator.allocator(), errorAllocator.allocator());
-    defer parser.destroy();
     var program_ast = parser.parse() catch {
-        for (parser.errors.items) |err| {
-            std.debug.print("examples/test.orng:{}:{} error: {s}\n", .{ err.line, err.col, err.msg.str() });
-        }
+        errors.printErrors();
         return;
     };
 
@@ -66,6 +70,9 @@ pub fn main() !void {
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
     var fileRoot = try symbol.Scope.init(null, symbolAllocator.allocator());
-    var symbol_table = try symbol.createScope(program_ast, fileRoot, symbolAllocator.allocator());
+    var symbol_table = symbol.createScope(program_ast, fileRoot, symbolAllocator.allocator()) catch {
+        errors.printErrors();
+        return;
+    };
     symbol_table.pprint();
 }

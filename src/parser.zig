@@ -1,6 +1,7 @@
 const std = @import("std");
 
 const ast = @import("ast.zig");
+const errors = @import("errors.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const main = @import("main.zig");
@@ -8,21 +9,15 @@ const _token = @import("token.zig");
 
 const AST = ast.AST;
 const ASTData = ast.ASTData;
+const Error = errors.Error;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = _token.Token;
 const TokenKind = _token.TokenKind;
-
-const ParserError = struct {
-    msg: String,
-    line: i64,
-    col: i64,
-};
 
 const ParserErrorEnum = error{parserError};
 
 pub const Parser = struct {
     tokens: std.ArrayList(Token),
-    errors: std.ArrayList(ParserError),
     cursor: usize,
     errorAllocator: std.mem.Allocator,
     astAllocator: std.mem.Allocator,
@@ -30,15 +25,10 @@ pub const Parser = struct {
     pub fn create(tokens: std.ArrayList(Token), astAllocator: std.mem.Allocator, errorAllocator: std.mem.Allocator) !Parser {
         return .{ //
             .tokens = tokens,
-            .errors = std.ArrayList(ParserError).init(errorAllocator),
             .cursor = 0,
             .errorAllocator = errorAllocator,
             .astAllocator = astAllocator,
         };
-    }
-
-    pub fn destroy(self: *Parser) void {
-        self.errors.deinit();
     }
 
     fn peek(self: *Parser) Token {
@@ -98,13 +88,7 @@ pub const Parser = struct {
         if (self.accept(kind)) |token| {
             return token;
         } else {
-            const actual = self.peek();
-            var error_string = String.init_with_contents(self.errorAllocator, "expected `") catch unreachable;
-            error_string.concat(_token.reprFromTokenKind(kind) orelse "") catch unreachable;
-            error_string.concat("`, got `") catch unreachable;
-            error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
-            error_string.concat("`") catch unreachable;
-            self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
+            errors.addError(Error{ .expected2Token = .{ .span = self.peek().span, .expected = kind, .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
             // unreachable;
         }
@@ -127,11 +111,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
-            const actual = self.peek();
-            var error_string = String.init_with_contents(self.errorAllocator, "expected `fn` or `const`, got `") catch unreachable;
-            error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
-            error_string.concat("`") catch unreachable;
-            self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
+            errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "`fn` or `const`", .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -142,11 +122,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
-            const actual = self.peek();
-            var error_string = String.init_with_contents(self.errorAllocator, "expected `let` or `const`, got `") catch unreachable;
-            error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
-            error_string.concat("`") catch unreachable;
-            self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
+            errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "`let` or `const`", .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -188,7 +164,7 @@ pub const Parser = struct {
         } else if (self.accept(.EQUALS)) |_| {
             init = try self.expr();
         } else {
-            self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "variable declarations require at least a type or a initial value") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+            errors.addError(Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value" } });
         }
 
         return AST.createDecl(
@@ -532,10 +508,7 @@ pub const Parser = struct {
                 } else {
                     // Simple index
                     exp = AST.createBinop(token, .INDEX, exp, first orelse {
-                        var error_string = String.init_with_contents(self.errorAllocator, "expected an expression, got `") catch unreachable;
-                        error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
-                        error_string.concat("`") catch unreachable;
-                        self.errors.append(.{ .msg = error_string, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+                        errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "a block", .got = self.peek().kind } });
                         return ParserErrorEnum.parserError;
                     }, self.astAllocator);
                 }
@@ -593,10 +566,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.L_PAREN)) {
             return try self.parens();
         } else {
-            var error_string = String.init_with_contents(self.errorAllocator, "expected an expression, got `") catch unreachable;
-            error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
-            error_string.concat("`") catch unreachable;
-            self.errors.append(.{ .msg = error_string, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+            errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "an expression", .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -675,7 +645,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.L_BRACE)) {
             return try self.braceBlockExpr();
         } else {
-            self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "expected an block") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+            errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "a block", .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -769,7 +739,7 @@ pub const Parser = struct {
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle(mappings);
             } else {
-                self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "expected an expression after `=>`") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+                errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "an expression after `=>`", .got = self.peek().kind } });
             }
         }
     }

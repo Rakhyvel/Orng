@@ -1,6 +1,10 @@
 const token_ = @import("token.zig");
 const Token = token_.Token;
+const span = @import("span.zig");
+const Span = span.Span;
 const std = @import("std");
+const errors = @import("errors.zig");
+const Error = errors.Error;
 
 const LexerErrors = error{lexerError};
 
@@ -187,6 +191,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
 
             .integerDigit => {
                 if (!std.ascii.isDigit(next_char)) {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid integer literal" } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -211,6 +216,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             },
 
             .realDigit => if (!std.ascii.isDigit(next_char)) {
+                errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid floating point literal" } });
                 return error.lexerError;
             } else {
                 ix += 1;
@@ -242,6 +248,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     state = .hex;
                 },
                 else => {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid hexadecimal integer literal" } });
                     return error.lexerError;
                 },
             },
@@ -270,6 +277,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     state = .octal;
                 },
                 else => {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid octal integer literal" } });
                     return error.lexerError;
                 },
             },
@@ -298,6 +306,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     state = .binary;
                 },
                 else => {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid binary integer literal" } });
                     return error.lexerError;
                 },
             },
