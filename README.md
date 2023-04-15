@@ -1,6 +1,7 @@
 
 <div align="center">
-    <a href="#"><img src="budi.png" alt="Budi the Orangutan!" align="right" width="30%"></a>
+    <a href="#"><img src="budi.png" alt="Budi the Orangutan!" width="30%"></a>
+    <h1>Orng Programming Language</h1>
     <h6>When live gives you Orngs...</h6>
 </div>
 
