@@ -531,7 +531,13 @@ pub const Parser = struct {
                     exp = AST.createSubSlice(token, exp, first, second, self.astAllocator);
                 } else {
                     // Simple index
-                    exp = AST.createBinop(token, .INDEX, exp, first.?, self.astAllocator);
+                    exp = AST.createBinop(token, .INDEX, exp, first orelse {
+                        var error_string = String.init_with_contents(self.errorAllocator, "expected an expression, got `") catch unreachable;
+                        error_string.concat(_token.reprFromTokenKind(self.peek().kind) orelse "") catch unreachable;
+                        error_string.concat("`") catch unreachable;
+                        self.errors.append(.{ .msg = error_string, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+                        return ParserErrorEnum.parserError;
+                    }, self.astAllocator);
                 }
                 _ = try self.expect(.R_SQUARE);
             } else if (self.accept(.PERIOD)) |token| {
