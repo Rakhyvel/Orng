@@ -30,12 +30,9 @@
 - [x] Parse `not` keyword, change !! to just !
 - [x] Parse +=, -=, *=, /=, %=, **=
 - [x] Abstract away a better peek() method
-- [ ] Remove ASTKind, only have ASTData, it's okay to repeat some structs if needed. Use the token kind more often
-- [ ] Make Sum types a flat list rather than a tree
-    - [ ] Perhaps do this for all binops, might allow for optimizations later, simplifies associativity
 - [x] Throw a parse error if there's a null index for an index binop
 - [x] Parse `slice[1..]` as a subslice and not a floating point literal
-- [ ] Properly handle allocator errors in {parser, ast}.zig
+- [x] Properly handle allocator errors in {parser, ast}.zig
 
 ### Symbol table
 - [x] Create symbol tree from file AST

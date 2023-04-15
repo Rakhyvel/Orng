@@ -14,7 +14,13 @@ const String = @import("zig-string/zig-string.zig").String;
 const Token = _token.Token;
 const TokenKind = _token.TokenKind;
 
-const ParserErrorEnum = error{parserError};
+const ParserErrorEnum = error{
+    parserError, // For general parsing errors. Error is logged in errors.zig.errors. Likely
+    InvalidCharacter, // If parsing a float goes wrong. Likely
+    Overflow, // If parsing an integer goes wrong. Unlikely
+
+    OutOfMemory, // Often when appending to an ArrayList, unlikely
+};
 
 pub const Parser = struct {
     tokens: std.ArrayList(Token),
@@ -98,7 +104,7 @@ pub const Parser = struct {
         var decls = std.ArrayList(*AST).init(self.astAllocator);
         while (self.accept(.NEWLINE)) |_| {}
         while (!self.peekKind(.EOF)) {
-            decls.append(try self.topLevelDeclaration()) catch unreachable;
+            try decls.append(try self.topLevelDeclaration());
             while (self.accept(.NEWLINE)) |_| {}
         }
         _ = try self.expect(.EOF);
@@ -214,9 +220,9 @@ pub const Parser = struct {
 
         _ = try self.expect(.L_PAREN);
         if (self.peekKind(.CONST) or self.peekKind(.MUT) or self.peekKind(.IDENTIFIER)) {
-            params.append(try self.param()) catch unreachable;
+            try params.append(try self.param());
             if (self.accept(.COMMA)) |_| {
-                params.append(try self.param()) catch unreachable;
+                try params.append(try self.param());
             }
         }
         _ = try self.expect(.R_PAREN);
@@ -538,15 +544,15 @@ pub const Parser = struct {
         if (self.accept(.IDENTIFIER)) |token| {
             return AST.createIdent(token, self.astAllocator);
         } else if (self.accept(.DECIMAL_INTEGER)) |token| {
-            return AST.createInt(token, intFromToken(token, 10), self.astAllocator);
+            return AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.astAllocator);
         } else if (self.accept(.HEX_INTEGER)) |token| {
-            return AST.createInt(token, intFromToken(token, 16), self.astAllocator);
+            return AST.createInt(token, try std.fmt.parseInt(i128, token.data, 16), self.astAllocator);
         } else if (self.accept(.OCT_INTEGER)) |token| {
-            return AST.createInt(token, intFromToken(token, 8), self.astAllocator);
+            return AST.createInt(token, try std.fmt.parseInt(i128, token.data, 8), self.astAllocator);
         } else if (self.accept(.BIN_INTEGER)) |token| {
-            return AST.createInt(token, intFromToken(token, 2), self.astAllocator);
+            return AST.createInt(token, try std.fmt.parseInt(i128, token.data, 2), self.astAllocator);
         } else if (self.accept(.REAL)) |token| {
-            return AST.createReal(token, std.fmt.parseFloat(f64, token.data) catch 0, self.astAllocator);
+            return AST.createReal(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
             return AST.createInt(token, token.data[1], self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
@@ -579,10 +585,10 @@ pub const Parser = struct {
         var statements = std.ArrayList(*AST).init(self.astAllocator);
 
         if (self.nextIsStatement()) {
-            statements.append(try self.statement()) catch unreachable;
+            try statements.append(try self.statement());
             while (self.accept(.NEWLINE)) |_| {
                 while (self.accept(.NEWLINE)) |_| {}
-                statements.append(try self.statement()) catch unreachable;
+                try statements.append(try self.statement());
             }
         }
 
@@ -613,9 +619,9 @@ pub const Parser = struct {
         var statements = std.ArrayList(*AST).init(self.astAllocator);
 
         if (self.nextIsStatement()) {
-            statements.append(try self.statement()) catch unreachable;
+            try statements.append(try self.statement());
             while (self.accept(.SEMICOLON)) |_| {
-                statements.append(try self.statement()) catch unreachable;
+                try statements.append(try self.statement());
             }
         }
 
@@ -732,10 +738,10 @@ pub const Parser = struct {
     }
 
     fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST)) ParserErrorEnum!void {
-        mappings.append(try self.barClause()) catch unreachable;
+        try mappings.append(try self.barClause());
         if (self.accept(.BAR)) |_| {
             if (self.peekKind(.ELSE)) {
-                mappings.append(try self.barElse()) catch unreachable;
+                try mappings.append(try self.barElse());
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle(mappings);
             } else {
