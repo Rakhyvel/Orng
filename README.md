@@ -35,7 +35,7 @@ orng run hello.orng
 
 ## Features
 Orng comes with a wide range of features that make it a powerful and flexible programming language, including: 
-* **Allocator Memory Model:** Allocators are baked into the core of how Orng operates with memory, which alleviates the sharp corners of manual memory management.
+* **Allocator Memory Model:** Allocators are baked into the core of how Orng operates with memory, which rounds-off the sharp corners of manual memory management.
 * **Type-Classes:** Type-classes offer a simple, yet powerful way to express ad-hoc polymorphism.
 * **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions. This is how generics are done!
 * **Built-In Error Handling:** Orng has built-in support for handling runtime errors in a clean and ergonomic way.
@@ -61,6 +61,7 @@ fn factorial: (n: Int)->Int = if n < 2 {1} else {n * fact(n - 1)}
 ```
 ### Fizzbuzz
 ```rs
+// Define an Algebraic Data Type (ADT), similar tagged unions
 const FizzBuzzResult 
     = string: String
     | integer: Int

@@ -45,6 +45,10 @@ pub const Parser = struct {
         return self.tokens.items[self.cursor];
     }
 
+    fn peekKind(self: *Parser, kind: TokenKind) bool {
+        return self.peek().kind == kind;
+    }
+
     fn nextIsExpr(self: *Parser) bool {
         const nextKind = self.peek().kind;
         return nextKind == .E_MARK //
@@ -109,7 +113,7 @@ pub const Parser = struct {
     pub fn parse(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
         var decls = std.ArrayList(*AST).init(self.astAllocator);
         while (self.accept(.NEWLINE)) |_| {}
-        while (self.peek().kind != .EOF) {
+        while (!self.peekKind(.EOF)) {
             decls.append(try self.topLevelDeclaration()) catch unreachable;
             while (self.accept(.NEWLINE)) |_| {}
         }
@@ -118,9 +122,9 @@ pub const Parser = struct {
     }
 
     fn topLevelDeclaration(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peek().kind == .FN) {
+        if (self.peekKind(.FN)) {
             return try self.fnDeclaration();
-        } else if (self.peek().kind == .CONST) {
+        } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
             const actual = self.peek();
@@ -133,9 +137,9 @@ pub const Parser = struct {
     }
 
     fn nonFnDeclaration(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peek().kind == .LET) {
+        if (self.peekKind(.LET)) {
             return try self.letDeclaration();
-        } else if (self.peek().kind == .CONST) {
+        } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
             const actual = self.peek();
@@ -177,7 +181,7 @@ pub const Parser = struct {
 
         if (self.accept(.COLON)) |_| {
             _type = try self.arrowExpr();
-            if (self.peek().kind == .EQUALS) {
+            if (self.peekKind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
                 init = try self.expr();
             }
@@ -233,7 +237,7 @@ pub const Parser = struct {
         errdefer params.deinit();
 
         _ = try self.expect(.L_PAREN);
-        if (self.peek().kind == .CONST or self.peek().kind == .MUT or self.peek().kind == .IDENTIFIER) {
+        if (self.peekKind(.CONST) or self.peekKind(.MUT) or self.peekKind(.IDENTIFIER)) {
             params.append(try self.param()) catch unreachable;
             if (self.accept(.COMMA)) |_| {
                 params.append(try self.param()) catch unreachable;
@@ -265,7 +269,7 @@ pub const Parser = struct {
     }
 
     fn statement(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peek().kind == .CONST or self.peek().kind == .LET) {
+        if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             return self.nonFnDeclaration();
         } else if (self.accept(.DEFER)) |token| {
             return AST.createDefer(token, try self.expr(), self.astAllocator);
@@ -294,11 +298,11 @@ pub const Parser = struct {
     }
 
     fn expr(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peek().kind == .FN) {
+        if (self.peekKind(.FN)) {
             return self.fnDeclaration();
-        } else if (self.peek().kind == .COND) {
+        } else if (self.peekKind(.COND)) {
             return self.condExpr();
-        } else if (self.peek().kind == .CASE) {
+        } else if (self.peekKind(.CASE)) {
             return self.caseExpr();
         } else {
             return self.sumType();
@@ -491,7 +495,7 @@ pub const Parser = struct {
             var ident = AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
             if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
                 return AST.createNamedArg(token, ident, try self.prefixExpr(), self.astAllocator);
-            } else if (self.peek().kind == .L_PAREN) {
+            } else if (self.peekKind(.L_PAREN)) {
                 return AST.createInferredMember(token, ident, try self.parens(), self.astAllocator);
             } else {
                 return AST.createInferredMember(token, ident, null, self.astAllocator);
@@ -512,7 +516,7 @@ pub const Parser = struct {
     fn postfixExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.factor();
         while (true) {
-            if (self.peek().kind == .L_PAREN) {
+            if (self.peekKind(.L_PAREN)) {
                 exp = AST.createBinop(self.peek(), .CALL, exp, try self.parens(), self.astAllocator);
             } else if (self.accept(.L_SQUARE)) |token| {
                 var first: ?*AST = null;
@@ -568,19 +572,19 @@ pub const Parser = struct {
             return AST.createInt(token, token.data[1], self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
             return AST.createString(token, self.astAllocator);
-        } else if (self.peek().kind == .INDENT) {
+        } else if (self.peekKind(.INDENT)) {
             return try self.indentBlockExpr();
-        } else if (self.peek().kind == .L_BRACE) {
+        } else if (self.peekKind(.L_BRACE)) {
             return try self.braceBlockExpr();
-        } else if (self.peek().kind == .IF) {
+        } else if (self.peekKind(.IF)) {
             return try self.ifExpr();
-        } else if (self.peek().kind == .WHILE) {
+        } else if (self.peekKind(.WHILE)) {
             return try self.whileExpr();
-        } else if (self.peek().kind == .FOR) {
+        } else if (self.peekKind(.FOR)) {
             return try self.forExpr();
         } else if (self.accept(.UNREACHABLE)) |token| {
             return AST.createUnreachable(token, self.astAllocator);
-        } else if (self.peek().kind == .L_PAREN) {
+        } else if (self.peekKind(.L_PAREN)) {
             return try self.parens();
         } else {
             var error_string = String.init_with_contents(self.errorAllocator, "expected an expression, got `") catch unreachable;
@@ -660,9 +664,9 @@ pub const Parser = struct {
     }
 
     fn blockExpr(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peek().kind == .INDENT) {
+        if (self.peekKind(.INDENT)) {
             return try self.indentBlockExpr();
-        } else if (self.peek().kind == .L_BRACE) {
+        } else if (self.peekKind(.L_BRACE)) {
             return try self.braceBlockExpr();
         } else {
             self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "expected an block") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
@@ -673,7 +677,7 @@ pub const Parser = struct {
     fn ifExpr(self: *Parser) ParserErrorEnum!*AST {
         var token = try self.expect(.IF);
         var let: ?*AST = null;
-        if (self.peek().kind == .CONST or self.peek().kind == .LET) {
+        if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
@@ -690,7 +694,7 @@ pub const Parser = struct {
     fn whileExpr(self: *Parser) ParserErrorEnum!*AST {
         var token = try self.expect(.WHILE);
         var let: ?*AST = null;
-        if (self.peek().kind == .CONST or self.peek().kind == .LET) {
+        if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
@@ -712,7 +716,7 @@ pub const Parser = struct {
     fn forExpr(self: *Parser) ParserErrorEnum!*AST {
         var token = try self.expect(.FOR);
         var let: ?*AST = null;
-        if (self.peek().kind == .CONST or self.peek().kind == .LET) {
+        if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
@@ -754,7 +758,7 @@ pub const Parser = struct {
     fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST)) ParserErrorEnum!void {
         mappings.append(try self.barClause()) catch unreachable;
         if (self.accept(.BAR)) |_| {
-            if (self.peek().kind == .ELSE) {
+            if (self.peekKind(.ELSE)) {
                 mappings.append(try self.barElse()) catch unreachable;
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle(mappings);
@@ -775,7 +779,7 @@ pub const Parser = struct {
         try self.barList(&mappings);
         var let: ?*AST = null;
 
-        if (self.peek().kind == .CONST or self.peek().kind == .LET) {
+        if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
@@ -788,7 +792,7 @@ pub const Parser = struct {
         var mappings = std.ArrayList(*AST).init(self.astAllocator);
         var let: ?*AST = null;
 
-        if (self.peek().kind == .CONST or self.peek().kind == .LET) {
+        if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
             _ = try self.expect(.SEMICOLON);
         }
