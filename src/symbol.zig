@@ -3,9 +3,11 @@ const ast = @import("ast.zig");
 const errors = @import("errors.zig");
 const _span = @import("span.zig");
 
+const AST = ast.AST;
 const Error = errors.Error;
 const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
+const Token = @import("token.zig").Token;
 
 pub const SymbolErrorEnum = error{symbolError};
 
@@ -114,12 +116,37 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
 }
 
 fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) !*Symbol {
+    var domain = try extractDomain(
+        definition.data.fnDecl.params,
+        definition.data.fnDecl.retType.token,
+        allocator,
+    );
+    var _type = try AST.createBinop(
+        definition.data.fnDecl.retType.token,
+        .ARROW,
+        domain,
+        definition.data.fnDecl.retType,
+        allocator,
+    );
     return try Symbol.init(
         scope,
         definition.data.fnDecl.name.?.data.identifier.data, // TODO: This currently doesn't support anonymous functions
         definition.data.fnDecl.name.?.token.span,
-        definition.data.fnDecl.retType,
+        _type,
         definition.data.fnDecl.init,
         allocator,
     );
+}
+
+fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) !*AST {
+    if (params.items.len == 0) {
+        return try AST.createUnit(token, allocator);
+    } else {
+        var retval: *AST = params.items[0].data.decl.type.?;
+        var i: usize = 1;
+        while (i < params.items.len) : (i += 1) {
+            retval = try AST.createBinop(params.items[i].token, .PRODUCT, retval, params.items[i], allocator);
+        }
+        return retval;
+    }
 }

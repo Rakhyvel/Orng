@@ -38,7 +38,7 @@
 - [x] Create symbol tree from file AST
 - [x] Symbol table error on shadowing
     - [x] Implement lookup method for scopes
-- [ ] Make function decls also have a type
+- [x] Make function decls also have a type
 - [x] If symbol init is block, create a scope for it
 - [ ] Create symbols for function parameters
 
