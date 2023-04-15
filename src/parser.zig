@@ -277,6 +277,16 @@ pub const Parser = struct {
                 return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
             } else if (self.accept(.PLUS_EQUALS)) |token| {
                 return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else if (self.accept(.MINUS_EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else if (self.accept(.STAR_EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else if (self.accept(.SLASH_EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else if (self.accept(.PERCENT_EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else if (self.accept(.D_STAR_EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
             } else {
                 return exp;
             }

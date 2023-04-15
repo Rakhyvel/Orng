@@ -9,8 +9,7 @@
     - [x] Add D_STAR to reprFromTokenKind()
     - [x] Add D_STAR_ASSIGN TokenKind, binaryOperators, reprFromTokenKind
 - [ ] Write tests
-- [ ] Add `not` keyword, remove !! operator
-- [ ] For ambiguous infix/prefix operators, check if there's a space. Space means infix
+- [x] Add `not` keyword, remove !! operator
 
 ### Parser
 - [x] Write recursive descent parser
@@ -27,9 +26,9 @@
 - [x] Write ASTs
     - [ ] Write a pretty print and do tests!
 - [x] Parse `not` keyword, change !! to just !
-- [ ] Parse +=, -=, *=, /=, %=, **=
+- [x] Parse +=, -=, *=, /=, %=, **=
 - [ ] Abstract away a better peek() method
-- [ ] Remove ASTKind, only have ASTData, it's okay to repeat some structs if needed
+- [ ] Remove ASTKind, only have ASTData, it's okay to repeat some structs if needed. Use the token kind more often
 - [ ] Make Sum types a flat list rather than a tree
     - [ ] Perhaps do this for all binops, might allow for optimizations later, simplifies associativity
 - [ ] Throw a parse error if there's a null index for an index binop
