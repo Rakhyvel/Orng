@@ -40,6 +40,7 @@ pub fn main() !void {
     // Layout
     layout.preemptBinaryOperator(&tokens);
     try layout.insertIndentDedents(&tokens);
+    layout.condenseNewLines(&tokens);
     if (PRINT_TOKENS) {
         for (tokens.items) |*token| {
             token.pprint();

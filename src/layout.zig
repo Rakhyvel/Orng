@@ -2,7 +2,22 @@ const _token = @import("token.zig");
 const Token = _token.Token;
 const std = @import("std");
 
-// function where newlines are pre-empted by binary operators
+pub fn condenseNewLines(tokens: *std.ArrayList(Token)) void {
+    var i: usize = 0;
+    while (i < tokens.items.len - 1) : (i += 1) {
+        var token = tokens.items[i];
+        if (token.kind != .NEWLINE) {
+            continue;
+        }
+
+        while (tokens.items[i + 1].kind == .NEWLINE) {
+            _ = tokens.orderedRemove(i + 1);
+            i -= 1;
+        }
+    }
+}
+
+// function where newlines are pre-empted by binary operators and other newlines
 pub fn preemptBinaryOperator(tokens: *std.ArrayList(Token)) void {
     // Loop through list of tokens...
     var i: usize = 0;
@@ -19,6 +34,7 @@ pub fn preemptBinaryOperator(tokens: *std.ArrayList(Token)) void {
                 // But the next token is a binary operator, remove the newline.
                 _ = tokens.orderedRemove(i);
                 i -= 1;
+                break;
             }
         }
     }
@@ -47,7 +63,7 @@ pub fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
                     var slice: [1]Token = undefined;
                     slice[0] = Token.create("", .INDENT, token.line, token.col);
                     try tokens.replaceRange(i, 1, &slice);
-                } else while (token.data.len < stack.getLast()) {
+                } else if (token.data.len < stack.getLast()) {
                     // If token spaces <  peek spaces => while token spaces < peek spaces {pop, replace with dedent}
                     _ = stack.pop();
                     var slice: [2]Token = undefined;

@@ -101,8 +101,8 @@ pub const Parser = struct {
             error_string.concat(_token.reprFromTokenKind(actual.kind) orelse "") catch unreachable;
             error_string.concat("`") catch unreachable;
             self.errors.append(.{ .msg = error_string, .line = actual.line, .col = actual.col }) catch unreachable;
-            // return ParserErrorEnum.parserError;
-            unreachable;
+            return ParserErrorEnum.parserError;
+            // unreachable;
         }
     }
 
@@ -208,6 +208,12 @@ pub const Parser = struct {
         var params = try self.paramlist();
         _ = try self.expect(.RIGHT_SKINNY_ARROW);
         var retType = try self.arrowExpr();
+
+        var refinement: ?*AST = null;
+        if (self.accept(.WHERE)) |_| {
+            _ = try self.arrowExpr();
+        }
+
         _ = try self.expect(.EQUALS);
         var init = try self.expr();
 
@@ -216,6 +222,7 @@ pub const Parser = struct {
             maybeIdent,
             params,
             retType,
+            refinement,
             init,
             self.astAllocator,
         );
@@ -267,6 +274,8 @@ pub const Parser = struct {
         } else {
             var exp = try self.expr();
             if (self.accept(.EQUALS)) |token| {
+                return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
+            } else if (self.accept(.PLUS_EQUALS)) |token| {
                 return AST.createAssign(token, exp, try self.expr(), self.astAllocator);
             } else {
                 return exp;
@@ -644,7 +653,8 @@ pub const Parser = struct {
         } else if (self.peek().kind == .L_BRACE) {
             return try self.braceBlockExpr();
         } else {
-            unreachable;
+            self.errors.append(.{ .msg = String.init_with_contents(self.errorAllocator, "expected an block") catch unreachable, .line = self.peek().line, .col = self.peek().col }) catch unreachable;
+            return ParserErrorEnum.parserError;
         }
     }
 
@@ -677,6 +687,7 @@ pub const Parser = struct {
         if (self.accept(.SEMICOLON)) |_| {
             post = try self.statement();
         }
+        std.debug.print("{s}\n", .{self.peek().data});
         var bodyBlock = try self.blockExpr();
         var elseBlock: ?*AST = null;
         if (self.accept(.ELSE)) |_| {
@@ -707,7 +718,6 @@ pub const Parser = struct {
     }
 
     fn barClause(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.BAR);
         var lhs = try self.productExpr();
         var rhs: ?*AST = null;
 
@@ -716,14 +726,14 @@ pub const Parser = struct {
             _ = try self.expect(.SEMICOLON);
         }
 
-        return AST.createMapping(token, lhs, rhs, self.astAllocator);
+        return AST.createMapping(lhs.token, lhs, rhs, self.astAllocator);
     }
 
     fn barElse(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.BAR);
-        _ = try self.expect(.ELSE);
+        var token = try self.expect(.ELSE);
         _ = try self.expect(.RIGHT_FAT_ARROW);
         var rhs = try self.expr();
+
         _ = try self.expect(.SEMICOLON);
 
         return AST.createMapping(token, null, rhs, self.astAllocator);

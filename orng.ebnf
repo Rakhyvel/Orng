@@ -14,7 +14,7 @@ const_declaration: "const" ident [":" arrowExpr] "=" expr.
 
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
-fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr "=" expr.
+fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
 param: ["mut" | "const"] ident ":" annotExpr. # cannot be productExpr, otherwise ambiguous with ,
 

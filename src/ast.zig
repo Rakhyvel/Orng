@@ -90,7 +90,7 @@ pub const SliceKind = union(enum) {
 
 pub const ASTData = union(enum) {
     decl: struct { introducer: TokenKind, pattern: *AST, type: ?*AST, init: ?*AST },
-    fnDecl: struct { name: ?*AST, params: std.ArrayList(*AST), retType: *AST, init: *AST },
+    fnDecl: struct { name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
     identifier: struct { data: []const u8 },
     int: struct { data: i128 },
     _string: struct { data: []const u8 },
@@ -145,7 +145,7 @@ pub const AST = struct {
         );
     }
 
-    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, init: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, allocator: std.mem.Allocator) *AST {
         return AST.create(
             .FN_DECLARATION,
             token,
@@ -153,6 +153,7 @@ pub const AST = struct {
                 .name = name,
                 .params = params,
                 .retType = retType,
+                .refinement = refinement,
                 .init = init,
             } },
             allocator,

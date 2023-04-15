@@ -1,4 +1,5 @@
-const Token = @import("token.zig").Token;
+const token_ = @import("token.zig");
+const Token = token_.Token;
 const std = @import("std");
 
 const LexerErrors = error{lexerError};
@@ -307,25 +308,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     state = .comment;
                     ix += 1;
                     col += 1;
-                } else if (contents[slice_start] == '(' //
-                or contents[slice_start] == ')' //
-                or contents[slice_start] == '[' //
-                or contents[slice_start] == ']' //
-                or contents[slice_start] == '{' //
-                or contents[slice_start] == '}' //
-                or contents[slice_start] == '&' //
-                or contents[slice_start] == '?' //
-                or next_char == '(' //
-                or next_char == ')' //
-                or next_char == '[' //
-                or next_char == ']' //
-                or next_char == '{' //
-                or next_char == '}' //
-                or next_char == '&' //
-                or next_char == '?' //
-                or next_char == '"' //
-                or (next_char == '.' and contents[slice_start] != '.') // series of dots are permitted, tokens which begin with dot are permitted, but nothing else
-                or std.ascii.isWhitespace(next_char) or std.ascii.isAlphanumeric(next_char)) {
+                } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
                     try tokens.append(Token.create(contents[slice_start..ix], null, line, col));
                     slice_start = ix;
                     state = .none;

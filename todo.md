@@ -26,13 +26,14 @@
     - [x] Make sure to do an ASTKind too
 - [x] Write ASTs
     - [ ] Write a pretty print and do tests!
-- [ ] Abstract away a better peek() method
+- [ ] Parse +=, -=, *=, /=, %=, **=
 - [ ] Parse `not` keyword, change !! to just !
+- [ ] Abstract away a better peek() method
 - [ ] Remove ASTKind, only have ASTData, it's okay to repeat some structs if needed
 - [ ] Make Sum types a flat list rather than a tree
     - [ ] Perhaps do this for all binops, might allow for optimizations later, simplifies associativity
 - [ ] Throw a parse error if there's a null index for an index binop
-- [ ] Parse +=, -=, *=, /=, %=, **=
+- [ ] Parse `slice[1..]` as a subslice and not a floating point literal
 
 ### Symbol table
 - [ ] Create symbol tree from file AST
@@ -54,3 +55,28 @@
 
 ### Backend
 - [ ] Call gcc on the .c file
+- [ ] Execute the output file
+
+### Type inferrence
+
+### Partially Applied Functions
+
+### ADTs
+
+### Optionals
+
+### Error handling
+
+### First-class types
+
+### Refinement types
+
+### Generic Type Unification
+
+### Type classes
+
+### Allocators
+
+## Build System
+
+### Runtime 'System' type

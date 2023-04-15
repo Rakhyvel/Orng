@@ -1,78 +1,34 @@
-// a single comment
+fn main: (sys: System)->!() =
+    sys.out.>println("Hello, World!")
 
-// There are no multiline comments in Orng (for good reason!)
+// One-liner factorial function!
+fn factorial: (n: Int)->Int = if n < 2 {1} else {n * fact(n - 1)}
 
-// Boolean literals
-fn lol: ()->() =
+const FizzBuzzResult 
+    = string: String
+    | integer: Int
 
-    // Typical manipulation of literals
-    true and !(true or false)
-    (2 + 4) * (4**2 - 9)
-    "abc" ++ "def"
-
-
-
-    // Tuples
-    // Following are all equivalent
-    (1, 2, 3, 4)
-    (1, 2) ++ (3, 4)
-
-
-
-    // Conditionals
-    if powerLevel > 9000 {"lame ass meme"} else {"lol"}
-
+fn fizzbuzz: (n: Int)->FizzBuzzResult =
     cond
-    | key == 40 => n + 1;
-    | key == 38 => n - 1;
-    | else      => n;
+    | n % 15 == 0 => FizzBuzzResult.string("fizzbuzz");
+    //               ^^^^^^^^^^^^^^
+    // We can either be explicit with the ADT we use...
+    | n % 5 == 0  => .string("buzz");
+    //              ^
+    // ... Or we can let it be inferred, if possible
+    | n % 3 == 0  => .string("fizz");
+    | else        => .integer(n);
 
+fn main: (sys: System)->!() =
+    while let i = 0; i < 100; i += 1
+        case fizzbuzz(i)
+        | .string(s')  => try sys.out.>println("{}", s');
+        | .integer(j') => try sys.out.>println("{}", j');
 
-    case maybeInt
-    | ?x   => x;
-    | null => 0;
-
-
-    case n
-    | 0 => 1;
-    | 1 => 1;
-    | _ => fib(n-1) + fib(n-2);
-
-
-    // "Records"
-    // Define
-    const Vector 
-        = x:Float \ 3.4
-        , y:Float \ 5.6
-
-    // Create values
-    const origin:   Vector = (0, 0)
-    const position: Vector = (.x <- 3, .y <- 4)
-    const velocity: Vector = -1.0, 2.3
-
-    // Access fields
-    origin.x == 0
-    position.x == 3
-
-    // Field access function
-    list.map(op.x, [](origin, point)) == [](0, 3)
-
-    // Update a field
-    point.x = 6
-
-    // Update many fields?
-    point = (.x <- point.x + 1, .y <- point.y + 1)
-
-
-
-    // Functions
-    fn square: (n: Float)->Float = n**2
-
-    fn hypotenuse: (a: Float \ 0, b: Float \ 0)->Float =
-        math.sqrt(square(a) + square(b))
-
-    fn distance: (a: Vector, b: Vector)->Float =
-        hypotenuse((a.x - b.x), (a.y - b.y))
-
-    // Anonymous functions
-    const square = (n: Float) -> n **2
+// Function that works for any type `T'` in the `Eq` type-class
+fn contains: (haystack: []T', needle: T')->Bool
+where T' < Eq =
+    cond 
+    | haystack.len == 0     => false;
+    | haystack[0] == needle => true;
+    | else                  => contains(haystack[1 ..], needle);

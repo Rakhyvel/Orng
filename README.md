@@ -81,7 +81,7 @@ fn main: (sys: System)->!() =
 ### Generic Type Unification
 Identifiers may end in a single apostrophe. When unification is done, apostrophe'd identifiers are considered to be free variables, and regular identifiers are terms.
 ```rs
-// Function that works for any type `T'` in the `Eq` type-class
+// Function that works for values of any type `T'` in the `Eq` type-class
 fn contains: (haystack: []T', needle: T')->Bool
 where T' <: Eq =
     cond 

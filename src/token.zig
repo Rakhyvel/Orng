@@ -170,7 +170,7 @@ pub const Token = struct {
     }
 };
 
-fn kindFromString(data: []const u8) TokenKind {
+pub fn kindFromString(data: []const u8) TokenKind {
     var ix: usize = 0;
     const num_ctors = @enumToInt(TokenKind.len);
 
@@ -189,7 +189,7 @@ fn kindFromString(data: []const u8) TokenKind {
 
 pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
     return switch (kind) {
-        .BIN_INTEGER => "<binary integer>", //
+        .BIN_INTEGER => "<binary integer>",
         .CHAR => "<character literal>",
         .DECIMAL_INTEGER => "<decimal integer>",
         .HEX_INTEGER => "<hexadecimal integer>",
