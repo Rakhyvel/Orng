@@ -49,13 +49,14 @@ deltaExpr: coalesceExpr {"|>" coalesceExpr}. # (rhs must be a call expr)
 
 coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
-intExpr: termExpr {("+" | "-" | "!!") termExpr}.
+intExpr: termExpr {("+" | "-" | "!") termExpr}.
 
 termExpr: exponentExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") exponentExpr}.
 
 exponentExpr: prefixExpr {"**" prefixExpr}.
 
-prefixExpr: "!" prependExpr                         # boolean not
+prefixExpr: "!" prependExpr                         # inferred error union
+          | "not" prependExpr                       # boolean not
           | "-" prependExpr                         # negation
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer

@@ -1,5 +1,8 @@
-# The Orng Programming Language
-<div align="right"><a href="#"><img src="budi.png" alt="Budi the Orangutan!" align="right" width="30%"></a></div>
+
+<div align="center">
+    <a href="#"><img src="budi.png" alt="Budi the Orangutan!" align="right" width="30%"></a>
+    <h6>When live gives you Orngs...</h6>
+</div>
 
 > **WARNING**! Orng is still a work in progress!
 
