@@ -1,8 +1,8 @@
 
 <div align="center">
     <a href="#"><img src="budi.png" alt="Budi the Orangutan!" width="30%"></a>
-    <h1>Orng Programming Language</h1>
     <h6>When live gives you Orngs...</h6>
+    <h1>Orng Programming Language</h1>
 </div>
 
 > **WARNING**! Orng is still a work in progress!
