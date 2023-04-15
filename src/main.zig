@@ -65,8 +65,7 @@ pub fn main() !void {
     // Symbol tree construction
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
-    for (program_ast.items) |definition| {
-        var symbol_table = try symbol.createSymbolTable(definition, symbolAllocator.allocator());
-        _ = symbol_table;
-    }
+    var fileRoot = try symbol.Scope.init(null, symbolAllocator.allocator());
+    var symbol_table = try symbol.createScope(program_ast, fileRoot, symbolAllocator.allocator());
+    symbol_table.pprint();
 }

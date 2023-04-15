@@ -37,7 +37,12 @@
 - [ ] Properly handle allocator errors in {parser, ast}.zig
 
 ### Symbol table
-- [ ] Create symbol tree from file AST
+- [x] Create symbol tree from file AST
+- [ ] Symbol table error on shadowing
+    - [ ] Implement lookup method for scopes
+- [ ] Make function decls also have a type
+- [ ] If symbol init is block, create a scope for it
+- [ ] Create symbols for function parameters
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
