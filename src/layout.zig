@@ -2,6 +2,7 @@ const _token = @import("token.zig");
 const Token = _token.Token;
 const std = @import("std");
 
+// Removes any newlines after the first newline in a series of newline tokens
 pub fn condenseNewLines(tokens: *std.ArrayList(Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
@@ -10,7 +11,7 @@ pub fn condenseNewLines(tokens: *std.ArrayList(Token)) void {
             continue;
         }
 
-        while (tokens.items[i + 1].kind == .NEWLINE) {
+        while (i > 0 and tokens.items[i + 1].kind == .NEWLINE) {
             _ = tokens.orderedRemove(i + 1);
             i -= 1;
         }
@@ -40,7 +41,8 @@ pub fn preemptBinaryOperator(tokens: *std.ArrayList(Token)) void {
     }
 }
 
-// indent - dedent token insertion
+// converts newlines to indent/dedent tokens
+// a newline follows a sequence of one or more dedents
 pub fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
     // Setup a stack of indentation sizes
     // This is like a precedence stack for infix => postfix transformation
@@ -88,4 +90,57 @@ pub fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
             try tokens.insert(tokens.items.len - 1, Token.create("", .DEDENT, lastToken.span.line, lastToken.span.col));
         }
     }
+}
+
+//////////////////////
+// TESTS BEGIN HERE //
+//////////////////////
+
+test "condenseNewLines" {
+    const lexer = @import("lexer.zig");
+    var tokens = try lexer.getTokens("{\n //comment\n  \n   }", std.testing.allocator);
+    defer tokens.deinit();
+    condenseNewLines(&tokens);
+
+    try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
+    try std.testing.expectEqual(@as(_token.TokenKind, .L_BRACE), tokens.items[0].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .NEWLINE), tokens.items[1].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .R_BRACE), tokens.items[2].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .EOF), tokens.items[3].kind);
+}
+
+test "preemptBinaryOperator" {
+    const lexer = @import("lexer.zig");
+    var tokens = try lexer.getTokens("x \n + y \n (y)", std.testing.allocator);
+    defer tokens.deinit();
+    preemptBinaryOperator(&tokens);
+
+    try std.testing.expectEqual(@as(usize, 8), tokens.items.len);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[0].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .PLUS), tokens.items[1].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[2].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .NEWLINE), tokens.items[3].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .L_PAREN), tokens.items[4].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[5].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .R_PAREN), tokens.items[6].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .EOF), tokens.items[7].kind);
+}
+
+test "indentation" {
+    const lexer = @import("lexer.zig");
+    var tokens = try lexer.getTokens("x\n    y\n        z\na", std.testing.allocator);
+    defer tokens.deinit();
+    try insertIndentDedents(&tokens);
+
+    try std.testing.expectEqual(@as(usize, 10), tokens.items.len);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[0].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .INDENT), tokens.items[1].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[2].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .INDENT), tokens.items[3].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[4].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .DEDENT), tokens.items[5].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .DEDENT), tokens.items[6].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .NEWLINE), tokens.items[7].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[8].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .EOF), tokens.items[9].kind);
 }

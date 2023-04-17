@@ -55,6 +55,7 @@ pub fn build(b: *std.Build) void {
     // Creates a step for unit testing.
     const all_test_step = b.step("test", "Run all tests");
     all_test_step.dependOn(&testStep(b, optimize, target, "src/lexer.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/layout.zig").step);
 }
 
 fn testStep(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, path: []const u8) *std.build.RunStep {

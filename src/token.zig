@@ -168,6 +168,13 @@ pub const Token = struct {
     pub fn pprint(self: *Token) void {
         std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line, self.repr(), self.data });
     }
+
+    pub fn expectToken(self: *Token, kind: TokenKind, data: []const u8, col: i64, line: i64) !void {
+        try std.testing.expectEqual(kind, self.kind);
+        try std.testing.expectEqualStrings(data, self.data);
+        try std.testing.expectEqual(col, self.span.col);
+        try std.testing.expectEqual(line, self.span.line);
+    }
 };
 
 pub fn kindFromString(data: []const u8) TokenKind {

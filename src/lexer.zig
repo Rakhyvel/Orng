@@ -344,14 +344,9 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
     return tokens;
 }
 
-// TESTS BEGIN HERE (its *literally impossible* to put them in separate files... thanks Andrew!)
-
-fn expectToken(token: *Token, kind: token_.TokenKind, data: []const u8, col: i64, line: i64) !void {
-    try std.testing.expectEqual(kind, token.kind);
-    try std.testing.expectEqualStrings(data, token.data);
-    try std.testing.expectEqual(col, token.span.col);
-    try std.testing.expectEqual(line, token.span.line);
-}
+//////////////////////
+// TESTS BEGIN HERE //
+//////////////////////
 
 test "whitespace" {
     const contents = "\n  \n    ";
@@ -360,8 +355,8 @@ test "whitespace" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
-    try expectToken(&tokens.items[0], .NEWLINE, "\n    ", 4, 3);
-    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 4);
+    try tokens.items[0].expectToken(.NEWLINE, "\n    ", 4, 3);
+    try tokens.items[1].expectToken(.EOF, "EOF", 1, 4);
 }
 
 test "identifier" {
@@ -370,10 +365,10 @@ test "identifier" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 4);
-    try expectToken(&tokens.items[0], .IDENTIFIER, "one", 3, 1);
-    try expectToken(&tokens.items[1], .IDENTIFIER, "_two", 8, 1);
-    try expectToken(&tokens.items[2], .IDENTIFIER, "three'", 15, 1);
-    try expectToken(&tokens.items[3], .EOF, "EOF", 1, 2);
+    try tokens.items[0].expectToken(.IDENTIFIER, "one", 3, 1);
+    try tokens.items[1].expectToken(.IDENTIFIER, "_two", 8, 1);
+    try tokens.items[2].expectToken(.IDENTIFIER, "three'", 15, 1);
+    try tokens.items[3].expectToken(.EOF, "EOF", 1, 2);
 }
 
 test "numbers" {
@@ -382,12 +377,12 @@ test "numbers" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 6);
-    try expectToken(&tokens.items[0], .REAL, "10.0'0", 6, 1);
-    try expectToken(&tokens.items[1], .HEX_INTEGER, "0xAB'C", 13, 1);
-    try expectToken(&tokens.items[2], .OCT_INTEGER, "0o77'7", 20, 1);
-    try expectToken(&tokens.items[3], .BIN_INTEGER, "0b11'1", 27, 1);
-    try expectToken(&tokens.items[4], .DECIMAL_INTEGER, "10'0", 32, 1);
-    try expectToken(&tokens.items[5], .EOF, "EOF", 1, 2);
+    try tokens.items[0].expectToken(.REAL, "10.0'0", 6, 1);
+    try tokens.items[1].expectToken(.HEX_INTEGER, "0xAB'C", 13, 1);
+    try tokens.items[2].expectToken(.OCT_INTEGER, "0o77'7", 20, 1);
+    try tokens.items[3].expectToken(.BIN_INTEGER, "0b11'1", 27, 1);
+    try tokens.items[4].expectToken(.DECIMAL_INTEGER, "10'0", 32, 1);
+    try tokens.items[5].expectToken(.EOF, "EOF", 1, 2);
 }
 
 test "string" {
@@ -396,8 +391,8 @@ test "string" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);
-    try expectToken(&tokens.items[0], .STRING, "\"a \\\"string\\\"\"", 14, 1);
-    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 2);
+    try tokens.items[0].expectToken(.STRING, "\"a \\\"string\\\"\"", 14, 1);
+    try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
 }
 
 test "char" {
@@ -406,8 +401,8 @@ test "char" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);
-    try expectToken(&tokens.items[0], .CHAR, "\'a \\\'string\\\'\'", 14, 1);
-    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 2);
+    try tokens.items[0].expectToken(.CHAR, "\'a \\\'string\\\'\'", 14, 1);
+    try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
 }
 
 test "symbol" {
@@ -416,16 +411,16 @@ test "symbol" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 10);
-    try expectToken(&tokens.items[0], .L_PAREN, "(", 1, 1);
-    try expectToken(&tokens.items[1], .L_SQUARE, "[", 2, 1);
-    try expectToken(&tokens.items[2], .L_BRACE, "{", 3, 1);
-    try expectToken(&tokens.items[3], .D_EQUALS, "==", 5, 1);
-    try expectToken(&tokens.items[4], .LSR, "<", 6, 1);
-    try expectToken(&tokens.items[5], .PLUS, "+", 7, 1);
-    try expectToken(&tokens.items[6], .R_BRACE, "}", 8, 1);
-    try expectToken(&tokens.items[7], .R_SQUARE, "]", 9, 1);
-    try expectToken(&tokens.items[8], .R_PAREN, ")", 10, 1);
-    try expectToken(&tokens.items[9], .EOF, "EOF", 1, 2);
+    try tokens.items[0].expectToken(.L_PAREN, "(", 1, 1);
+    try tokens.items[1].expectToken(.L_SQUARE, "[", 2, 1);
+    try tokens.items[2].expectToken(.L_BRACE, "{", 3, 1);
+    try tokens.items[3].expectToken(.D_EQUALS, "==", 5, 1);
+    try tokens.items[4].expectToken(.LSR, "<", 6, 1);
+    try tokens.items[5].expectToken(.PLUS, "+", 7, 1);
+    try tokens.items[6].expectToken(.R_BRACE, "}", 8, 1);
+    try tokens.items[7].expectToken(.R_SQUARE, "]", 9, 1);
+    try tokens.items[8].expectToken(.R_PAREN, ")", 10, 1);
+    try tokens.items[9].expectToken(.EOF, "EOF", 1, 2);
 }
 
 test "comment" {
@@ -434,6 +429,6 @@ test "comment" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);
-    try expectToken(&tokens.items[0], .D_EQUALS, "==", 2, 1);
-    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 2);
+    try tokens.items[0].expectToken(.D_EQUALS, "==", 2, 1);
+    try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
 }
