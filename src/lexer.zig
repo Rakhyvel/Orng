@@ -342,3 +342,27 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
     try tokens.append(Token.create("EOF", .EOF, line, col));
     return tokens;
 }
+
+// TESTS BEGIN HERE (its *literally impossible* to put them in separate files... thanks Andrew!)
+
+test "whitespace" {}
+
+test "identifier" {
+    const contents = "one two three";
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
+
+    try std.testing.expectEqual(tokens.items.len, 4);
+    try std.testing.expectEqual(tokens.items[0].kind, .IDENTIFIER);
+    try std.testing.expectEqual(tokens.items[1].kind, .IDENTIFIER);
+    try std.testing.expectEqual(tokens.items[2].kind, .IDENTIFIER);
+    try std.testing.expectEqual(tokens.items[3].kind, .EOF);
+}
+
+test "integer" {}
+
+test "string" {}
+
+test "char" {}
+
+test "symbol" {}

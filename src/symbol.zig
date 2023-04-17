@@ -9,7 +9,7 @@ const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = @import("token.zig").Token;
 
-pub const SymbolErrorEnum = error{symbolError};
+pub const SymbolErrorEnum = error{ symbolError, OutOfMemory };
 
 pub const Scope = struct {
     parent: ?*Scope,
@@ -60,7 +60,7 @@ pub const Symbol = struct {
 };
 
 // Walk AST, if come across a block, create new scope on it, if def, create new symbol entry
-pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, allocator: std.mem.Allocator) !*Scope {
+pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Scope {
     var retval = try Scope.init(root, allocator);
     retval.parent = root;
     for (definitions.items) |definition| {
@@ -104,7 +104,7 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, allocator
     return retval;
 }
 
-fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) !*Symbol {
+fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     return try Symbol.init(
         scope,
         definition.data.decl.pattern.data.identifier.data,
@@ -115,7 +115,7 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
     );
 }
 
-fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) !*Symbol {
+fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     var domain = try extractDomain(
         definition.data.fnDecl.params,
         definition.data.fnDecl.retType.token,
@@ -128,8 +128,10 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.
         definition.data.fnDecl.retType,
         allocator,
     );
+    var fnScope = try createScope(definition.data.fnDecl.params, scope, allocator);
+
     return try Symbol.init(
-        scope,
+        fnScope,
         definition.data.fnDecl.name.?.data.identifier.data, // TODO: This currently doesn't support anonymous functions
         definition.data.fnDecl.name.?.token.span,
         _type,
@@ -138,7 +140,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.
     );
 }
 
-fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) !*AST {
+fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) SymbolErrorEnum!*AST {
     if (params.items.len == 0) {
         return try AST.createUnit(token, allocator);
     } else {

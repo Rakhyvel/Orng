@@ -40,7 +40,8 @@
     - [x] Implement lookup method for scopes
 - [x] Make function decls also have a type
 - [x] If symbol init is block, create a scope for it
-- [ ] Create symbols for function parameters
+- [x] Create symbols for function parameters
+- [ ] WRITE TESTS!
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table

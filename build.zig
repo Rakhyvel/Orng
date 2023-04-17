@@ -53,15 +53,18 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     // Creates a step for unit testing.
-    const exe_tests = b.addTest(.{
-        .root_source_file = .{ .path = "src/main.zig" },
+    const all_test_step = b.step("testlol", "Run all tests");
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/lexer.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/test/test.zig").step);
+}
+
+fn testStep(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, path: []const u8) *std.build.RunStep {
+    const main_tests = b.addTest(.{
+        .name = "orng-tests",
+        .root_source_file = .{ .path = path },
         .target = target,
         .optimize = optimize,
     });
-
-    // Similar to creating the run step earlier, this exposes a `test` step to
-    // the `zig build --help` menu, providing a way for the user to request
-    // running the unit tests.
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&exe_tests.step);
+    _ = b.installArtifact(main_tests);
+    return b.addRunArtifact(main_tests);
 }
