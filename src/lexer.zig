@@ -8,6 +8,7 @@ const Error = errors.Error;
 
 const LexerErrors = error{lexerError};
 
+/// Will always end in an EOF on the first column of the next line
 pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayList(Token) {
     const LexState = enum { //
         none,
@@ -67,7 +68,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             },
 
             .whitespace => {
-                if (!std.ascii.isWhitespace(next_char)) {
+                if (ix == contents.len or !std.ascii.isWhitespace(next_char)) {
                     // If token doesn't contain a newline, just ignore it
                     // If it does, the data is from the newline all the way to the end
                     var maybe_last_newline_ix: ?usize = null;
@@ -94,7 +95,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             },
 
             .ident => {
-                if (!std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
+                if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
                     try tokens.append(Token.create(contents[slice_start..ix], null, line, col));
                     slice_start = ix;
                     state = .none;
@@ -123,13 +124,13 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                 },
             },
 
-            .escapedString => {
+            .escapedString => { // TODO: If reach EOF, error
                 ix += 1;
                 col += 1;
                 state = .string;
             },
 
-            .char => switch (next_char) {
+            .char => switch (next_char) { // TODO: If reach EOF, error
                 '\'' => {
                     ix += 1;
                     col += 1;
@@ -148,7 +149,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                 },
             },
 
-            .escapedChar => {
+            .escapedChar => { // TODO: If reach EOF, error
                 ix += 1;
                 col += 1;
                 state = .char;
@@ -179,7 +180,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                     col += 1;
                     state = .integerDigit;
-                } else if (!std.ascii.isDigit(next_char)) {
+                } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                     try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, line, col));
                     slice_start = ix;
                     state = .none;
@@ -190,7 +191,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
             },
 
             .integerDigit => {
-                if (!std.ascii.isDigit(next_char)) {
+                if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                     errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid integer literal" } });
                     return error.lexerError;
                 } else {
@@ -205,7 +206,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                     ix += 1;
                     col += 1;
                     state = .realDigit;
-                } else if (!std.ascii.isDigit(next_char)) {
+                } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                     try tokens.append(Token.create(contents[slice_start..ix], .REAL, line, col));
                     slice_start = ix;
                     state = .none;
@@ -215,7 +216,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
                 }
             },
 
-            .realDigit => if (!std.ascii.isDigit(next_char)) {
+            .realDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                 errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid floating point literal" } });
                 return error.lexerError;
             } else {
@@ -313,7 +314,7 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
 
             .symbol => {
                 if (ix - slice_start > 0 and contents[slice_start] == '/' and next_char == '/') {
-                    // comment
+                    // comment (because of the maximal munch thing I think this isnt even needed...)
                     state = .comment;
                     ix += 1;
                     col += 1;
@@ -345,24 +346,94 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
 
 // TESTS BEGIN HERE (its *literally impossible* to put them in separate files... thanks Andrew!)
 
-test "whitespace" {}
+fn expectToken(token: *Token, kind: token_.TokenKind, data: []const u8, col: i64, line: i64) !void {
+    try std.testing.expectEqual(kind, token.kind);
+    try std.testing.expectEqualStrings(data, token.data);
+    try std.testing.expectEqual(col, token.span.col);
+    try std.testing.expectEqual(line, token.span.line);
+}
+
+test "whitespace" {
+    const contents = "\n  \n    ";
+
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
+
+    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
+    try expectToken(&tokens.items[0], .NEWLINE, "\n    ", 4, 3);
+    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 4);
+}
 
 test "identifier" {
-    const contents = "one two three";
+    const contents = "one _two three'";
     var tokens = try getTokens(contents, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 4);
-    try std.testing.expectEqual(tokens.items[0].kind, .IDENTIFIER);
-    try std.testing.expectEqual(tokens.items[1].kind, .IDENTIFIER);
-    try std.testing.expectEqual(tokens.items[2].kind, .IDENTIFIER);
-    try std.testing.expectEqual(tokens.items[3].kind, .EOF);
+    try expectToken(&tokens.items[0], .IDENTIFIER, "one", 3, 1);
+    try expectToken(&tokens.items[1], .IDENTIFIER, "_two", 8, 1);
+    try expectToken(&tokens.items[2], .IDENTIFIER, "three'", 15, 1);
+    try expectToken(&tokens.items[3], .EOF, "EOF", 1, 2);
 }
 
-test "integer" {}
+test "numbers" {
+    const contents = "10.0'0 0xAB'C 0o77'7 0b11'1 10'0";
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
 
-test "string" {}
+    try std.testing.expectEqual(tokens.items.len, 6);
+    try expectToken(&tokens.items[0], .REAL, "10.0'0", 6, 1);
+    try expectToken(&tokens.items[1], .HEX_INTEGER, "0xAB'C", 13, 1);
+    try expectToken(&tokens.items[2], .OCT_INTEGER, "0o77'7", 20, 1);
+    try expectToken(&tokens.items[3], .BIN_INTEGER, "0b11'1", 27, 1);
+    try expectToken(&tokens.items[4], .DECIMAL_INTEGER, "10'0", 32, 1);
+    try expectToken(&tokens.items[5], .EOF, "EOF", 1, 2);
+}
 
-test "char" {}
+test "string" {
+    const contents = "\"a \\\"string\\\"\"";
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
 
-test "symbol" {}
+    try std.testing.expectEqual(tokens.items.len, 2);
+    try expectToken(&tokens.items[0], .STRING, "\"a \\\"string\\\"\"", 14, 1);
+    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 2);
+}
+
+test "char" {
+    const contents = "\'a \\\'string\\\'\'";
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
+
+    try std.testing.expectEqual(tokens.items.len, 2);
+    try expectToken(&tokens.items[0], .CHAR, "\'a \\\'string\\\'\'", 14, 1);
+    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 2);
+}
+
+test "symbol" {
+    const contents = "([{==<+}])";
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
+
+    try std.testing.expectEqual(tokens.items.len, 10);
+    try expectToken(&tokens.items[0], .L_PAREN, "(", 1, 1);
+    try expectToken(&tokens.items[1], .L_SQUARE, "[", 2, 1);
+    try expectToken(&tokens.items[2], .L_BRACE, "{", 3, 1);
+    try expectToken(&tokens.items[3], .D_EQUALS, "==", 5, 1);
+    try expectToken(&tokens.items[4], .LSR, "<", 6, 1);
+    try expectToken(&tokens.items[5], .PLUS, "+", 7, 1);
+    try expectToken(&tokens.items[6], .R_BRACE, "}", 8, 1);
+    try expectToken(&tokens.items[7], .R_SQUARE, "]", 9, 1);
+    try expectToken(&tokens.items[8], .R_PAREN, ")", 10, 1);
+    try expectToken(&tokens.items[9], .EOF, "EOF", 1, 2);
+}
+
+test "comment" {
+    const contents = "==// This is a comment! haha";
+    var tokens = try getTokens(contents, std.testing.allocator);
+    defer tokens.deinit();
+
+    try std.testing.expectEqual(tokens.items.len, 2);
+    try expectToken(&tokens.items[0], .D_EQUALS, "==", 2, 1);
+    try expectToken(&tokens.items[1], .EOF, "EOF", 1, 2);
+}

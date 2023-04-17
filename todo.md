@@ -12,6 +12,7 @@
 - [x] Add `not` keyword, remove !! operator
 - [x] Properly handle allocator errors
 - [x] Implement Spans
+- [ ] Error if string (resp. character) reaches EOF before " (resp. ')
 
 ### Parser
 - [x] Write recursive descent parser
