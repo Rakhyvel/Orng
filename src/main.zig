@@ -58,9 +58,7 @@ pub fn main() !void {
     // Parse
     var astAllocator = std.heap.ArenaAllocator.init(allocator);
     defer astAllocator.deinit();
-    var errorAllocator = std.heap.ArenaAllocator.init(allocator);
-    defer errorAllocator.deinit();
-    var parser = try Parser.create(tokens, astAllocator.allocator(), errorAllocator.allocator());
+    var parser = try Parser.create(tokens, astAllocator.allocator());
     var program_ast = parser.parse() catch {
         errors.printErrors();
         return;

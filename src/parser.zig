@@ -25,14 +25,12 @@ const ParserErrorEnum = error{
 pub const Parser = struct {
     tokens: std.ArrayList(Token),
     cursor: usize,
-    errorAllocator: std.mem.Allocator,
     astAllocator: std.mem.Allocator,
 
-    pub fn create(tokens: std.ArrayList(Token), astAllocator: std.mem.Allocator, errorAllocator: std.mem.Allocator) !Parser {
+    pub fn create(tokens: std.ArrayList(Token), astAllocator: std.mem.Allocator) !Parser {
         return .{ //
             .tokens = tokens,
             .cursor = 0,
-            .errorAllocator = errorAllocator,
             .astAllocator = astAllocator,
         };
     }
