@@ -112,14 +112,17 @@ pub const Parser = struct {
     }
 
     fn topLevelDeclaration(self: *Parser) ParserErrorEnum!*AST {
+        var decl: ?*AST = null;
         if (self.peekKind(.FN)) {
-            return try self.fnDeclaration();
+            decl = try self.fnDeclaration();
         } else if (self.peekKind(.CONST)) {
-            return try self.constDeclaration();
+            decl = try self.constDeclaration();
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "`fn` or `const`", .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
         }
+        _ = try self.expect(.NEWLINE);
+        return decl;
     }
 
     fn nonFnDeclaration(self: *Parser) ParserErrorEnum!*AST {

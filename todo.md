@@ -38,7 +38,7 @@
 - [x] Parse `slice[1..]` as a subslice and not a floating point literal
 - [x] Properly handle allocator errors in {parser, ast}.zig
 - [ ] Write a pretty print and do tests! (positive and negative)
-- [ ] Top level declarations should require a newline
+- [x] Top level declarations should require a newline
 
 ### Symbol table
 - [x] Create symbol tree from file AST

@@ -4,9 +4,7 @@
 
 program: top_level_declaration {top_level_declaration}.
 
-top_level_declaration: fn_declaration
-                     | const_declaration
-                     .
+top_level_declaration: (fn_declaration | const_declaration) "\n".
 
 non_fn_declaration: let_declaration | const_declaration.
 

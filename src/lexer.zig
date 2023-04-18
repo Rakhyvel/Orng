@@ -133,7 +133,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                 if (ix == contents.len) {
                     errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
                     return LexerErrors.lexerError;
-                } else { // TODO: If reach EOF, error
+                } else {
                     ix += 1;
                     col += 1;
                     state = .string;
@@ -144,7 +144,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                 if (ix == contents.len) {
                     errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a `'`, got end-of-file" } });
                     return LexerErrors.lexerError;
-                } else switch (next_char) { // TODO: If reach EOF, error
+                } else switch (next_char) {
                     '\'' => {
                         ix += 1;
                         col += 1;
