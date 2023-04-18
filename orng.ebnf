@@ -4,11 +4,11 @@
 
 program: top_level_declaration {top_level_declaration}.
 
-top_level_declaration: (fn_declaration | const_declaration) "\n".
+top_level_declaration: (fn_declaration | const_declaration).
 
 non_fn_declaration: let_declaration | const_declaration.
 
-const_declaration: "const" ident [":" arrowExpr] "=" expr.
+const_declaration: "const" ident [":" arrowExpr] "=" expr "\n". # Note: For practicality, newline can be omitted if EOF matches the next token
 
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 

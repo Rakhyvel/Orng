@@ -1,86 +1,10 @@
 const std = @import("std");
 
 const tokens = @import("token.zig");
+const String = @import("zig-string/zig-string.zig").String;
 
 const Token = tokens.Token;
 const TokenKind = tokens.TokenKind;
-
-// These need to map to ASTData
-// So many ASTKinds might use the same ASTData,
-// but each ASTKind has a unique ASTData
-pub const ASTKind = enum(u32) {
-    DECLARATION, // .decl
-    FN_DECLARATION, // .fnDecl
-    DEFER,
-    ERRDEFER,
-    ASSIGN,
-    ADD_ASSIGN,
-    SUB_ASSIGN,
-    MULT_ASSIGN,
-    DIV_ASSIGN,
-    MOD_ASSIGN,
-    POW_ASSIGN,
-    COND,
-    CASE,
-    MAPPING,
-    SUM,
-    PRODUCT,
-    ANNOTATION,
-    ARROW,
-    AND,
-    OR,
-    NOT_EQUALS,
-    EQUALS,
-    GREATER_THAN,
-    GREATER_EQUALS,
-    LESSER_THAN,
-    LESSER_EQUALS,
-    DELTA,
-    ORELSE,
-    CATCH,
-    ADD,
-    SUB,
-    ERROR_UNION,
-    MULT,
-    DIV,
-    MOD,
-    COMPOSITION,
-    TUPLE_CONCAT,
-    TUPLE_DIFF,
-    SUM_UNION,
-    POW,
-    NOT,
-    INFERRED_ERROR,
-    NEG,
-    ADDROF,
-    SLICEOF,
-    OPTIONAL,
-    TRY,
-    INFERRED_MEMBER,
-    NAMED_ARG,
-    UFCS,
-    CALL,
-    INDEX,
-    SUB_SLICE,
-    SELECT,
-    FROM_OPTIONAL,
-    DEREFERENCE,
-    IDENTIFIER,
-    INTEGER,
-    FLOAT,
-    CHARACTER,
-    STRING,
-    BLOCK,
-    IF,
-    WHILE,
-    FOR,
-    UNREACHABLE,
-    THROW,
-    RETURN,
-    CONTINUE,
-    BREAK,
-    UNIT,
-};
 
 pub const SliceKind = union(enum) {
     SLICE, // data ptr and len
@@ -89,336 +13,212 @@ pub const SliceKind = union(enum) {
     ARRAY, // static homogenous tuple, compile-time len
 };
 
-pub const ASTData = union(enum) {
-    decl: struct { introducer: TokenKind, pattern: *AST, type: ?*AST, init: ?*AST },
-    fnDecl: struct { name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
-    identifier: struct { data: []const u8 },
-    int: struct { data: i128 },
-    _string: struct { data: []const u8 },
-    char: struct { rune: u32 },
-    float: struct { data: f64 },
-    binop: struct { lhs: *AST, rhs: *AST },
-    annotation: struct { pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
-    unop: struct { expr: *AST },
-    addr: struct { expr: *AST, mut: bool },
-    sliceOf: struct { expr: *AST, len: ?*AST, kind: SliceKind },
-    namedArg: struct { ident: *AST, init: *AST },
-    inferredMember: struct { ident: *AST, init: ?*AST },
-    slice: struct { super: *AST, lower: ?*AST, upper: ?*AST },
-    block: struct { statements: std.ArrayList(*AST), final: ?*AST },
-    _return: struct { expr: ?*AST },
-    throw: struct { expr: *AST },
-    _defer: struct { expr: *AST },
-    assign: struct { lhs: *AST, rhs: *AST },
-    _if: struct { let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST },
-    cond: struct { let: ?*AST, mappings: std.ArrayList(*AST) },
-    _case: struct { let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST) },
-    mapping: struct { lhs: ?*AST, rhs: ?*AST },
-    _while: struct { let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST },
-    _for: struct { let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST },
-    none,
-};
+pub const AST = union(enum) {
+    unit: struct { token: Token },
+    int: struct { token: Token, data: i128 },
+    char: struct { token: Token, data: u32 },
+    float: struct { token: Token, data: f64 },
+    _string: struct { token: Token },
+    identifier: struct { token: Token },
+    _unreachable: struct { token: Token },
 
-pub const AST = struct {
-    kind: ASTKind,
-    token: Token,
-    data: ASTData,
+    unop: struct { token: Token, expr: *AST },
+    binop: struct { token: Token, lhs: *AST, rhs: *AST },
+    call: struct { token: Token, lhs: *AST, rhs: *AST },
+    addrOf: struct { token: Token, expr: *AST, mut: bool },
+    sliceOf: struct { token: Token, expr: *AST, len: ?*AST, kind: SliceKind },
+    namedArg: struct { token: Token, ident: *AST, init: *AST },
+    subSlice: struct { token: Token, super: *AST, lower: ?*AST, upper: ?*AST },
+    annotation: struct { token: Token, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
+    inferredMember: struct { token: Token, ident: *AST, init: ?*AST },
 
-    pub fn create(kind: ASTKind, token: Token, data: ASTData, allocator: std.mem.Allocator) !*AST {
-        var retval: *AST = try allocator.create(AST);
-        retval.kind = kind;
-        retval.token = token;
-        retval.data = data;
+    _if: struct { token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST },
+    cond: struct { token: Token, let: ?*AST, mappings: std.ArrayList(*AST) },
+    case: struct { token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST) },
+    mapping: struct { token: Token, lhs: ?*AST, rhs: ?*AST },
+    _while: struct { token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST },
+    _for: struct { token: Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST },
+
+    block: struct { token: Token, statements: std.ArrayList(*AST), final: ?*AST },
+    _break: struct { token: Token },
+    _continue: struct { token: Token },
+    throw: struct { token: Token, expr: *AST },
+    _return: struct { token: Token, expr: ?*AST },
+    decl: struct { token: Token, introducer: TokenKind, pattern: *AST, type: ?*AST, init: ?*AST },
+    fnDecl: struct { token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
+    _defer: struct { token: Token, expr: *AST },
+    assign: struct { token: Token, lhs: *AST, rhs: *AST },
+
+    fn box(ast: AST, alloc: std.mem.Allocator) !*AST {
+        var retval = try alloc.create(AST);
+        retval.* = ast;
         return retval;
     }
 
-    pub fn createDecl(token: Token, introducer: TokenKind, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .DECLARATION,
-            token,
-            ASTData{ .decl = .{
-                .introducer = introducer,
-                .pattern = pattern,
-                .type = _type,
-                .init = init,
-            } },
-            allocator,
-        );
-    }
+    pub fn getToken(self: AST) Token {
+        switch (self) {
+            .unit => return self.unit.token,
+            .int => return self.int.token,
+            .char => return self.char.token,
+            .float => return self.float.token,
+            ._string => return self._string.token,
+            .identifier => return self.identifier.token,
+            ._unreachable => return self._unreachable.token,
 
-    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .FN_DECLARATION,
-            token,
-            ASTData{ .fnDecl = .{
-                .name = name,
-                .params = params,
-                .retType = retType,
-                .refinement = refinement,
-                .init = init,
-            } },
-            allocator,
-        );
-    }
+            .unop => return self.unop.token,
+            .binop => return self.binop.token,
+            .call => return self.call.token,
+            .addrOf => return self.addrOf.token,
+            .sliceOf => return self.sliceOf.token,
+            .namedArg => return self.namedArg.token,
+            .subSlice => return self.subSlice.token,
+            .annotation => return self.annotation.token,
+            .inferredMember => return self.inferredMember.token,
 
-    pub fn createIdent(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .IDENTIFIER,
-            token,
-            ASTData{ .identifier = .{ .data = token.data } },
-            allocator,
-        );
-    }
-
-    pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .INTEGER,
-            token,
-            ASTData{ .int = .{ .data = data } },
-            allocator,
-        );
-    }
-
-    pub fn createReal(token: Token, data: f64, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .FLOAT,
-            token,
-            ASTData{ .float = .{ .data = data } },
-            allocator,
-        );
-    }
-
-    pub fn createChar(token: Token, rune: u32, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .CHARACTER,
-            token,
-            ASTData{ .char = .{ .rune = rune } },
-            allocator,
-        );
-    }
-
-    pub fn createString(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .STRING,
-            token,
-            ASTData{ ._string = .{ .data = token.data } },
-            allocator,
-        );
-    }
-
-    pub fn createUnreachable(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .UNREACHABLE,
-            token,
-            ASTData.none,
-            allocator,
-        );
-    }
-
-    pub fn createBreak(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .BREAK,
-            token,
-            ASTData.none,
-            allocator,
-        );
-    }
-
-    pub fn createContinue(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .CONTINUE,
-            token,
-            ASTData.none,
-            allocator,
-        );
-    }
-
-    pub fn createReturn(token: Token, expr: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .RETURN,
-            token,
-            ASTData{ ._return = .{ .expr = expr } },
-            allocator,
-        );
-    }
-
-    pub fn createThrow(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .THROW,
-            token,
-            ASTData{ .throw = .{ .expr = expr } },
-            allocator,
-        );
-    }
-
-    pub fn createBlock(token: Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .BLOCK,
-            token,
-            ASTData{ .block = .{ .statements = statements, .final = final } },
-            allocator,
-        );
-    }
-
-    pub fn createIf(token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .IF,
-            token,
-            ASTData{ ._if = .{ .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } },
-            allocator,
-        );
-    }
-
-    pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .WHILE,
-            token,
-            ASTData{ ._while = .{ .let = let, .condition = condition, .post = post, .bodyBlock = bodyBlock, .elseBlock = elseBlock } },
-            allocator,
-        );
-    }
-
-    pub fn createFor(token: Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .FOR,
-            token,
-            ASTData{ ._for = .{ .let = let, .elem = elem, .iterable = iterable, .bodyBlock = bodyBlock, .elseBlock = elseBlock } },
-            allocator,
-        );
-    }
-
-    pub fn createDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .DEFER,
-            token,
-            ASTData{ ._defer = .{ .expr = expr } },
-            allocator,
-        );
-    }
-
-    pub fn createErrDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .ERRDEFER,
-            token,
-            ASTData{ ._defer = .{ .expr = expr } },
-            allocator,
-        );
-    }
-
-    pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .ASSIGN,
-            token,
-            ASTData{ .assign = .{ .lhs = lhs, .rhs = rhs } },
-            allocator,
-        );
-    }
-
-    pub fn createCond(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .COND,
-            token,
-            ASTData{ .cond = .{ .let = let, .mappings = mappings } },
-            allocator,
-        );
-    }
-
-    pub fn createCase(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .CASE,
-            token,
-            ASTData{ ._case = .{ .let = let, .expr = expr, .mappings = mappings } },
-            allocator,
-        );
-    }
-
-    pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .MAPPING,
-            token,
-            ASTData{ .mapping = .{ .lhs = lhs, .rhs = rhs } },
-            allocator,
-        );
-    }
-
-    pub fn createBinop(token: Token, kind: ASTKind, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            kind,
-            token,
-            ASTData{ .binop = .{ .lhs = lhs, .rhs = rhs } },
-            allocator,
-        );
-    }
-
-    pub fn createAnnotation(token: Token, pattern: *AST, _type: *AST, predicate: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .ANNOTATION,
-            token,
-            ASTData{ .annotation = .{ .pattern = pattern, .type = _type, .predicate = predicate, .init = init } },
-            allocator,
-        );
-    }
-
-    pub fn createUnop(token: Token, kind: ASTKind, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            kind,
-            token,
-            ASTData{ .unop = .{ .expr = expr } },
-            allocator,
-        );
-    }
-
-    pub fn createAddr(token: Token, expr: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .ADDROF,
-            token,
-            ASTData{ .addr = .{ .expr = expr, .mut = mut } },
-            allocator,
-        );
-    }
-
-    pub fn createSliceOf(token: Token, expr: *AST, len: ?*AST, sliceKind: SliceKind, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .SLICEOF,
-            token,
-            ASTData{ .sliceOf = .{ .expr = expr, .len = len, .kind = sliceKind } },
-            allocator,
-        );
-    }
-
-    pub fn createNamedArg(token: Token, ident: *AST, init: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .NAMED_ARG,
-            token,
-            ASTData{ .namedArg = .{ .ident = ident, .init = init } },
-            allocator,
-        );
-    }
-
-    pub fn createInferredMember(token: Token, ident: *AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .INFERRED_MEMBER,
-            token,
-            ASTData{ .inferredMember = .{ .ident = ident, .init = init } },
-            allocator,
-        );
-    }
-
-    pub fn createSubSlice(token: Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .SUB_SLICE,
-            token,
-            ASTData{ .slice = .{ .super = super, .lower = lower, .upper = upper } },
-            allocator,
-        );
+            ._if => return self._if.token,
+            .cond => return self.cond.token,
+            .case => return self.case.token,
+            .mapping => return self.mapping.token,
+            ._while => return self._while.token,
+            ._for => return self._for.token,
+            .block => return self.block.token,
+            ._break => return self._break.token,
+            ._continue => return self._continue.token,
+            .throw => return self.throw.token,
+            ._return => return self._return.token,
+            .decl => return self.decl.token,
+            .fnDecl => return self.fnDecl.token,
+            ._defer => return self._defer.token,
+            .assign => return self.assign.token,
+        }
     }
 
     pub fn createUnit(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.create(
-            .UNIT,
-            token,
-            ASTData.none,
-            allocator,
-        );
+        return try AST.box(AST{ .unit = .{ .token = token } }, allocator);
+    }
+
+    pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .int = .{ .token = token, .data = data } }, allocator);
+    }
+
+    pub fn createChar(token: Token, data: u32, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .char = .{ .token = token, .data = data } }, allocator);
+    }
+
+    pub fn createFloat(token: Token, data: f64, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .float = .{ .token = token, .data = data } }, allocator);
+    }
+
+    pub fn createString(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._string = .{ .token = token } }, allocator);
+    }
+
+    pub fn createIdentifier(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .identifier = .{ .token = token } }, allocator);
+    }
+
+    pub fn createUnreachable(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._unreachable = .{ .token = token } }, allocator);
+    }
+
+    pub fn createUnop(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .unop = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createBinop(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .binop = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createCall(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .call = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createAddrOf(token: Token, expr: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .addrOf = .{ .token = token, .expr = expr, .mut = mut } }, allocator);
+    }
+
+    pub fn createSliceOf(token: Token, expr: *AST, len: ?*AST, kind: SliceKind, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .sliceOf = .{ .token = token, .expr = expr, .len = len, .kind = kind } }, allocator);
+    }
+
+    pub fn createNamedArg(token: Token, ident: *AST, init: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .namedArg = .{ .token = token, .ident = ident, .init = init } }, allocator);
+    }
+
+    pub fn createSubSlice(token: Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .subSlice = .{ .token = token, .super = super, .lower = lower, .upper = upper } }, allocator);
+    }
+
+    pub fn createAnnotation(token: Token, pattern: *AST, _type: *AST, predicate: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .annotation = .{ .token = token, .pattern = pattern, .type = _type, .predicate = predicate, .init = init } }, allocator);
+    }
+
+    pub fn createInferredMember(token: Token, ident: *AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .inferredMember = .{ .token = token, .ident = ident, .init = init } }, allocator);
+    }
+
+    pub fn createIf(token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._if = .{ .token = token, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
+    }
+
+    pub fn createCond(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .cond = .{ .token = token, .let = let, .mappings = mappings } }, allocator);
+    }
+
+    pub fn createCase(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .case = .{ .token = token, .let = let, .expr = expr, .mappings = mappings } }, allocator);
+    }
+
+    pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .mapping = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._while = .{ .token = token, .let = let, .condition = condition, .post = post, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
+    }
+
+    pub fn createFor(token: Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._for = .{ .token = token, .let = let, .elem = elem, .iterable = iterable, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
+    }
+
+    pub fn createBlock(token: Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .block = .{ .token = token, .statements = statements, .final = final } }, allocator);
+    }
+
+    pub fn createBreak(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._break = .{ .token = token } }, allocator);
+    }
+
+    pub fn createContinue(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._break = .{ .token = token } }, allocator);
+    }
+
+    pub fn createThrow(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .throw = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createReturn(token: Token, expr: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._return = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createDecl(token: Token, introducer: TokenKind, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .decl = .{ .token = token, .introducer = introducer, .pattern = pattern, .type = _type, .init = init } }, allocator);
+    }
+
+    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .fnDecl = .{ .token = token, .name = name, .params = params, .retType = retType, .refinement = refinement, .init = init } }, allocator);
+    }
+
+    pub fn createDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._defer = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .assign = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn serialize(self: *AST, out: *String) void {
+        _ = out;
+        _ = self;
     }
 };

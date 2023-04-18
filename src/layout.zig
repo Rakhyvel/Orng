@@ -93,6 +93,12 @@ pub fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
     }
 }
 
+pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
+    condenseNewLines(tokens);
+    preemptBinaryOperator(tokens);
+    try insertIndentDedents(tokens);
+}
+
 //////////////////////
 // TESTS BEGIN HERE //
 //////////////////////
@@ -103,6 +109,7 @@ test "condenseNewLines" {
     defer errors.deinit();
     var tokens = try lexer.getTokens("{\n //comment\n  \n   }", &errors, std.testing.allocator);
     defer tokens.deinit();
+
     condenseNewLines(&tokens);
 
     try std.testing.expectEqual(@as(usize, 4), tokens.items.len);
@@ -118,6 +125,7 @@ test "preemptBinaryOperator" {
     defer errors.deinit();
     var tokens = try lexer.getTokens("x \n + y \n (y)", &errors, std.testing.allocator);
     defer tokens.deinit();
+
     preemptBinaryOperator(&tokens);
 
     try std.testing.expectEqual(@as(usize, 8), tokens.items.len);
@@ -137,6 +145,7 @@ test "indentation" {
     defer errors.deinit();
     var tokens = try lexer.getTokens("x\n    y\n        z\na", &errors, std.testing.allocator);
     defer tokens.deinit();
+
     try insertIndentDedents(&tokens);
 
     try std.testing.expectEqual(@as(usize, 10), tokens.items.len);

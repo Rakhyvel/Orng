@@ -2,13 +2,10 @@ const std = @import("std");
 
 const ast = @import("ast.zig");
 const errs = @import("errors.zig");
-const layout = @import("layout.zig");
-const lexer = @import("lexer.zig");
 const main = @import("main.zig");
 const _token = @import("token.zig");
 
 const AST = ast.AST;
-const ASTData = ast.ASTData;
 const Error = errs.Error;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = _token.Token;
@@ -23,12 +20,12 @@ const ParserErrorEnum = error{
 };
 
 pub const Parser = struct {
-    tokens: std.ArrayList(Token),
+    tokens: *std.ArrayList(Token),
     cursor: usize,
     astAllocator: std.mem.Allocator,
     errors: *errs.Errors,
 
-    pub fn create(tokens: std.ArrayList(Token), errors: *errs.Errors, astAllocator: std.mem.Allocator) !Parser {
+    pub fn create(tokens: *std.ArrayList(Token), errors: *errs.Errors, astAllocator: std.mem.Allocator) !Parser {
         return .{ //
             .tokens = tokens,
             .cursor = 0,
@@ -112,17 +109,14 @@ pub const Parser = struct {
     }
 
     fn topLevelDeclaration(self: *Parser) ParserErrorEnum!*AST {
-        var decl: ?*AST = null;
         if (self.peekKind(.FN)) {
-            decl = try self.fnDeclaration();
+            return try self.fnDeclaration();
         } else if (self.peekKind(.CONST)) {
-            decl = try self.constDeclaration();
+            return try self.constDeclaration();
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "`fn` or `const`", .got = self.peek().kind } });
             return ParserErrorEnum.parserError;
         }
-        _ = try self.expect(.NEWLINE);
-        return decl;
     }
 
     fn nonFnDeclaration(self: *Parser) ParserErrorEnum!*AST {
@@ -138,7 +132,7 @@ pub const Parser = struct {
 
     fn constDeclaration(self: *Parser) ParserErrorEnum!*AST {
         _ = try self.expect(.CONST);
-        var ident = try AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
+        var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         var _type: ?*AST = null;
 
         if (self.accept(.COLON)) |_| {
@@ -146,9 +140,12 @@ pub const Parser = struct {
         }
         _ = try self.expect(.EQUALS);
         var init = try self.expr();
+        if (!self.peekKind(.EOF)) {
+            _ = try self.expect(.NEWLINE);
+        }
 
         return try AST.createDecl(
-            ident.token,
+            ident.getToken(),
             .CONST,
             ident,
             _type,
@@ -160,7 +157,7 @@ pub const Parser = struct {
     fn letDeclaration(self: *Parser) ParserErrorEnum!*AST {
         _ = try self.expect(.LET);
         var maybeMut = self.accept(.MUT);
-        var ident = try AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
+        var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         var _type: ?*AST = null;
         var init: ?*AST = null;
 
@@ -177,7 +174,7 @@ pub const Parser = struct {
         }
 
         return try AST.createDecl(
-            ident.token,
+            ident.getToken(),
             if (maybeMut) |_| .MUT else .LET,
             ident,
             _type,
@@ -191,7 +188,7 @@ pub const Parser = struct {
         var maybeIdent: ?*AST = null;
 
         if (self.accept(.IDENTIFIER)) |token| {
-            maybeIdent = try AST.createIdent(token, self.astAllocator);
+            maybeIdent = try AST.createIdentifier(token, self.astAllocator);
             _ = try self.expect(.COLON);
         }
         var params = try self.paramlist();
@@ -235,7 +232,7 @@ pub const Parser = struct {
 
     fn param(self: *Parser) ParserErrorEnum!*AST {
         var introducer: ?Token = self.accept(.MUT) orelse self.accept(.CONST);
-        var ident = try AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
+        var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         _ = try self.expect(.COLON);
         var paramType = try self.annotExpr();
         var init: ?*AST = null;
@@ -244,7 +241,7 @@ pub const Parser = struct {
         }
 
         return try AST.createDecl(
-            ident.token,
+            ident.getToken(),
             if (introducer) |i| i.kind else .LET,
             ident,
             paramType,
@@ -297,7 +294,7 @@ pub const Parser = struct {
     fn sumType(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.productExpr();
         while (self.accept(.BAR)) |token| {
-            exp = try AST.createBinop(token, .SUM, exp, try self.annotExpr(), self.astAllocator);
+            exp = try AST.createBinop(token, exp, try self.annotExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -305,7 +302,7 @@ pub const Parser = struct {
     fn productExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.annotExpr();
         while (self.accept(.COMMA)) |token| {
-            exp = try AST.createBinop(token, .PRODUCT, exp, try self.annotExpr(), self.astAllocator);
+            exp = try AST.createBinop(token, exp, try self.annotExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -331,7 +328,7 @@ pub const Parser = struct {
     fn arrowExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.boolExpr();
         while (self.accept(.RIGHT_SKINNY_ARROW)) |token| {
-            exp = try AST.createBinop(token, .ARROW, exp, try self.boolExpr(), self.astAllocator);
+            exp = try AST.createBinop(token, exp, try self.boolExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -340,9 +337,9 @@ pub const Parser = struct {
         var exp = try self.neqExpr();
         while (true) {
             if (self.accept(.AND)) |token| {
-                exp = try AST.createBinop(token, .AND, exp, try self.neqExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.neqExpr(), self.astAllocator);
             } else if (self.accept(.OR)) |token| {
-                exp = try AST.createBinop(token, .OR, exp, try self.neqExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.neqExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -352,7 +349,7 @@ pub const Parser = struct {
     fn neqExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.conditionalExpr();
         if (self.accept(.NOT_EQUALS)) |token| {
-            return try AST.createBinop(token, .NOT_EQUALS, exp, try self.conditionalExpr(), self.astAllocator);
+            return try AST.createBinop(token, exp, try self.conditionalExpr(), self.astAllocator);
         } else {
             return exp;
         }
@@ -362,15 +359,15 @@ pub const Parser = struct {
         var exp = try self.deltaExpr();
         while (true) {
             if (self.accept(.D_EQUALS)) |token| {
-                exp = try AST.createBinop(token, .EQUALS, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.GTR)) |token| {
-                exp = try AST.createBinop(token, .GREATER_THAN, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.LSR)) |token| {
-                exp = try AST.createBinop(token, .LESSER_THAN, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.GTE)) |token| {
-                exp = try AST.createBinop(token, .GREATER_EQUALS, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.LTE)) |token| {
-                exp = try AST.createBinop(token, .LESSER_EQUALS, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -381,7 +378,7 @@ pub const Parser = struct {
         var exp = try self.coalesceExpr();
         while (true) {
             if (self.accept(.DELTA)) |token| {
-                exp = try AST.createBinop(token, .DELTA, exp, try self.coalesceExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.coalesceExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -392,9 +389,9 @@ pub const Parser = struct {
         var exp = try self.intExpr();
         while (true) {
             if (self.accept(.CATCH)) |token| {
-                exp = try AST.createBinop(token, .CATCH, exp, try self.intExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.intExpr(), self.astAllocator);
             } else if (self.accept(.ORELSE)) |token| {
-                exp = try AST.createBinop(token, .ORELSE, exp, try self.intExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.intExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -405,11 +402,11 @@ pub const Parser = struct {
         var exp = try self.termExpr();
         while (true) {
             if (self.accept(.PLUS)) |token| {
-                exp = try AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.termExpr(), self.astAllocator);
             } else if (self.accept(.MINUS)) |token| {
-                exp = try AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.termExpr(), self.astAllocator);
             } else if (self.accept(.E_MARK)) |token| {
-                exp = try AST.createBinop(token, .ADD, exp, try self.termExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.termExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -420,19 +417,19 @@ pub const Parser = struct {
         var exp = try self.exponentExpr();
         while (true) {
             if (self.accept(.STAR)) |token| {
-                exp = try AST.createBinop(token, .MULT, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.SLASH)) |token| {
-                exp = try AST.createBinop(token, .DIV, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.PERCENT)) |token| {
-                exp = try AST.createBinop(token, .MOD, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.DIAMOND)) |token| {
-                exp = try AST.createBinop(token, .COMPOSITION, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.D_PLUS)) |token| {
-                exp = try AST.createBinop(token, .TUPLE_CONCAT, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.D_MINUS)) |token| {
-                exp = try AST.createBinop(token, .TUPLE_DIFF, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.D_BAR)) |token| {
-                exp = try AST.createBinop(token, .SUM_UNION, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -442,21 +439,21 @@ pub const Parser = struct {
     fn exponentExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.prefixExpr();
         while (self.accept(.D_STAR)) |token| {
-            exp = try AST.createBinop(token, .POW, exp, try self.prefixExpr(), self.astAllocator);
+            exp = try AST.createBinop(token, exp, try self.prefixExpr(), self.astAllocator);
         }
         return exp;
     }
 
     fn prefixExpr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.NOT)) |token| {
-            return try AST.createUnop(token, .NOT, try self.prependExpr(), self.astAllocator);
+            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.E_MARK)) |token| {
-            return try AST.createUnop(token, .INFERRED_ERROR, try self.prependExpr(), self.astAllocator);
+            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
-            return try AST.createUnop(token, .NEG, try self.prependExpr(), self.astAllocator);
+            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
             var mut = self.accept(.MUT);
-            return try AST.createAddr(token, try self.prefixExpr(), mut != null, self.astAllocator);
+            return try AST.createAddrOf(token, try self.prefixExpr(), mut != null, self.astAllocator);
         } else if (self.accept(.L_SQUARE)) |token| {
             var sliceKind: ast.SliceKind = undefined;
             var len: ?*AST = null;
@@ -473,11 +470,11 @@ pub const Parser = struct {
             _ = try self.expect(.R_SQUARE);
             return try AST.createSliceOf(token, try self.prefixExpr(), len, sliceKind, self.astAllocator);
         } else if (self.accept(.Q_MARK)) |token| {
-            return try AST.createUnop(token, .OPTIONAL, try self.prependExpr(), self.astAllocator);
+            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.TRY)) |token| {
-            return try AST.createUnop(token, .TRY, try self.prependExpr(), self.astAllocator);
+            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.PERIOD)) |token| {
-            var ident = try AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
+            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
             if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
                 return try AST.createNamedArg(token, ident, try self.prefixExpr(), self.astAllocator);
             } else if (self.peekKind(.L_PAREN)) {
@@ -493,7 +490,7 @@ pub const Parser = struct {
     fn prependExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.postfixExpr();
         while (self.accept(.PERIOD_GTR)) |token| {
-            exp = try AST.createBinop(token, .UFCS, exp, try self.postfixExpr(), self.astAllocator);
+            exp = try AST.createBinop(token, exp, try self.postfixExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -502,7 +499,7 @@ pub const Parser = struct {
         var exp = try self.factor();
         while (true) {
             if (self.peekKind(.L_PAREN)) {
-                exp = try AST.createBinop(self.peek(), .CALL, exp, try self.parens(), self.astAllocator);
+                exp = try AST.createCall(self.peek(), exp, try self.parens(), self.astAllocator);
             } else if (self.accept(.L_SQUARE)) |token| {
                 var first: ?*AST = null;
                 if (self.nextIsExpr()) {
@@ -516,7 +513,7 @@ pub const Parser = struct {
                     exp = try AST.createSubSlice(token, exp, first, second, self.astAllocator);
                 } else {
                     // Simple index
-                    exp = try AST.createBinop(token, .INDEX, exp, first orelse {
+                    exp = try AST.createBinop(token, exp, first orelse {
                         self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "a block", .got = self.peek().kind } });
                         return ParserErrorEnum.parserError;
                     }, self.astAllocator);
@@ -525,18 +522,17 @@ pub const Parser = struct {
             } else if (self.accept(.PERIOD)) |token| {
                 exp = try AST.createBinop(
                     token,
-                    .SELECT,
                     exp,
-                    try AST.createIdent(
+                    try AST.createIdentifier(
                         try self.expect(.IDENTIFIER),
                         self.astAllocator,
                     ),
                     self.astAllocator,
                 );
             } else if (self.accept(.PERIOD_Q_MARK)) |token| {
-                exp = try AST.createUnop(token, .FROM_OPTIONAL, exp, self.astAllocator);
+                exp = try AST.createUnop(token, exp, self.astAllocator);
             } else if (self.accept(.CARET)) |token| {
-                exp = try AST.createUnop(token, .DEREFERENCE, exp, self.astAllocator);
+                exp = try AST.createUnop(token, exp, self.astAllocator);
             } else {
                 return exp;
             }
@@ -545,7 +541,7 @@ pub const Parser = struct {
 
     fn factor(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.IDENTIFIER)) |token| {
-            return try AST.createIdent(token, self.astAllocator);
+            return try AST.createIdentifier(token, self.astAllocator);
         } else if (self.accept(.DECIMAL_INTEGER)) |token| {
             return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.astAllocator);
         } else if (self.accept(.HEX_INTEGER)) |token| {
@@ -555,7 +551,7 @@ pub const Parser = struct {
         } else if (self.accept(.BIN_INTEGER)) |token| {
             return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 2), self.astAllocator);
         } else if (self.accept(.REAL)) |token| {
-            return try AST.createReal(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
+            return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
             return try AST.createInt(token, token.data[1], self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
@@ -706,7 +702,7 @@ pub const Parser = struct {
             _ = try self.expect(.SEMICOLON);
         }
         _ = self.accept(.MUT);
-        var elem = try AST.createIdent(try self.expect(.IDENTIFIER), self.astAllocator);
+        var elem = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         _ = try self.expect(.IN);
         var iterable = try self.expr();
         var bodyBlock = try self.blockExpr();
@@ -727,7 +723,7 @@ pub const Parser = struct {
             _ = try self.expect(.SEMICOLON);
         }
 
-        return try AST.createMapping(lhs.token, lhs, rhs, self.astAllocator);
+        return try AST.createMapping(lhs.getToken(), lhs, rhs, self.astAllocator);
     }
 
     fn barElse(self: *Parser) ParserErrorEnum!*AST {
@@ -799,20 +795,60 @@ pub const Parser = struct {
     }
 };
 
-fn intFromToken(token: Token, radix: i128) i128 {
-    var retval: i128 = 0;
-    var i: usize = 0;
-    while (i < token.data.len) : (i += 1) {
-        if (std.ascii.isDigit(token.data[i])) {
-            retval *= radix;
-            retval += token.data[i] - '0';
-        } else if (token.data[i] >= 'A' and token.data[i] <= 'F') {
-            retval *= radix;
-            retval += token.data[i] - 'A' + 10;
-        } else if (token.data[i] >= 'a' and token.data[i] <= 'f') {
-            retval *= radix;
-            retval += token.data[i] - 'a' + 10;
-        }
-    }
-    return retval;
+//////////////////////
+// TESTS BEGIN HERE //
+//////////////////////
+
+test "parse-const" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+    const contents = "//comment\n//comment\nconst x: Int = 4";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var outString = String.init(std.testing.allocator);
+    program_ast.items[0].serialize(&outString);
+}
+
+test "parse-fn" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+    const contents = "fn x: (y: T, z: T)->T =\n    y\n//comment\n//comment";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var outString = String.init(std.testing.allocator);
+    program_ast.items[0].serialize(&outString);
+}
+
+test "parse-lets" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+    const contents = "const x = \n  let mut y: Int = 4";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var outString = String.init(std.testing.allocator);
+    program_ast.items[0].serialize(&outString);
 }
