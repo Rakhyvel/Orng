@@ -105,54 +105,74 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                 }
             },
 
-            .string => switch (next_char) {
-                '"' => {
-                    ix += 1;
-                    col += 1;
-                    try tokens.append(Token.create(contents[slice_start..ix], .STRING, line, col));
-                    slice_start = ix;
-                    state = .none;
-                },
-                '\\' => {
-                    ix += 1;
-                    col += 1;
-                    state = .escapedString;
-                },
-                else => {
-                    ix += 1;
-                    col += 1;
-                },
+            .string => {
+                if (ix == contents.len) {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected `\"`, got end-of-file" } });
+                    return LexerErrors.lexerError;
+                } else switch (next_char) {
+                    '"' => {
+                        ix += 1;
+                        col += 1;
+                        try tokens.append(Token.create(contents[slice_start..ix], .STRING, line, col));
+                        slice_start = ix;
+                        state = .none;
+                    },
+                    '\\' => {
+                        ix += 1;
+                        col += 1;
+                        state = .escapedString;
+                    },
+                    else => {
+                        ix += 1;
+                        col += 1;
+                    },
+                }
             },
 
-            .escapedString => { // TODO: If reach EOF, error
-                ix += 1;
-                col += 1;
-                state = .string;
+            .escapedString => {
+                if (ix == contents.len) {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
+                    return LexerErrors.lexerError;
+                } else { // TODO: If reach EOF, error
+                    ix += 1;
+                    col += 1;
+                    state = .string;
+                }
             },
 
-            .char => switch (next_char) { // TODO: If reach EOF, error
-                '\'' => {
-                    ix += 1;
-                    col += 1;
-                    try tokens.append(Token.create(contents[slice_start..ix], .CHAR, line, col));
-                    slice_start = ix;
-                    state = .none;
-                },
-                '\\' => {
-                    ix += 1;
-                    col += 1;
-                    state = .escapedChar;
-                },
-                else => {
-                    ix += 1;
-                    col += 1;
-                },
+            .char => {
+                if (ix == contents.len) {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a `'`, got end-of-file" } });
+                    return LexerErrors.lexerError;
+                } else switch (next_char) { // TODO: If reach EOF, error
+                    '\'' => {
+                        ix += 1;
+                        col += 1;
+                        try tokens.append(Token.create(contents[slice_start..ix], .CHAR, line, col));
+                        slice_start = ix;
+                        state = .none;
+                    },
+                    '\\' => {
+                        ix += 1;
+                        col += 1;
+                        state = .escapedChar;
+                    },
+                    else => {
+                        ix += 1;
+                        col += 1;
+                    },
+                }
             },
 
-            .escapedChar => { // TODO: If reach EOF, error
-                ix += 1;
-                col += 1;
-                state = .char;
+            .escapedChar => {
+                if (ix == contents.len) {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
+                    return LexerErrors.lexerError;
+                } else {
+                    ix += 1;
+                    col += 1;
+                    state = .char;
+                }
             },
 
             .integer => {
@@ -409,18 +429,49 @@ test "string-eof" {
     var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
 
     try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
+    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
+}
+
+test "string-escape eof" {
+    const contents = "\"this isn't a string- it's an error! \\";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
+    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
 }
 
 test "char" {
-    const contents = "\'a \\\'string\\\'\'";
+    const contents = "\'a \\\'character\\\'\'";
     var errors = errs.Errors.init(std.testing.allocator);
     defer errors.deinit();
     var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);
-    try tokens.items[0].expectToken(.CHAR, "\'a \\\'string\\\'\'", 14, 1);
+    try tokens.items[0].expectToken(.CHAR, "\'a \\\'character\\\'\'", 17, 1);
     try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
+}
+
+test "char-eof" {
+    const contents = "\'a \\\'character\\\'";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
+    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
+}
+
+test "char-escaped eof" {
+    const contents = "\'a \\\'character\\";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
+    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
 }
 
 test "symbol" {

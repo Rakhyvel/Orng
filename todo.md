@@ -12,7 +12,7 @@
 - [x] Add `not` keyword, remove !! operator
 - [x] Properly handle allocator errors
 - [x] Implement Spans
-- [ ] Error if string (resp. character) reaches EOF before " (resp. ')
+- [x] Error if string (resp. character) reaches EOF before " (resp. ')
 - [ ] Write negetive tests for errors
 
 ### Layout
