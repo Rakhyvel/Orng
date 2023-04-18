@@ -1,5 +1,5 @@
 const std = @import("std");
-const errors = @import("errors.zig");
+const errs = @import("errors.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
@@ -10,7 +10,7 @@ pub const PRINT_TOKENS = true;
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    errors.init(allocator);
+    var errors = errs.Errors.init(allocator);
     defer errors.deinit();
 
     // Get second command line argument
@@ -39,7 +39,7 @@ pub fn main() !void {
     // Tokenize
     var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
     defer tokenAllocator.deinit();
-    var tokens = lexer.getTokens(contents, tokenAllocator.allocator()) catch {
+    var tokens = lexer.getTokens(contents, &errors, tokenAllocator.allocator()) catch {
         errors.printErrors();
         return;
     };
@@ -58,7 +58,7 @@ pub fn main() !void {
     // Parse
     var astAllocator = std.heap.ArenaAllocator.init(allocator);
     defer astAllocator.deinit();
-    var parser = try Parser.create(tokens, astAllocator.allocator());
+    var parser = try Parser.create(tokens, &errors, astAllocator.allocator());
     var program_ast = parser.parse() catch {
         errors.printErrors();
         return;
@@ -68,7 +68,7 @@ pub fn main() !void {
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
     var fileRoot = try symbol.Scope.init(null, symbolAllocator.allocator());
-    var symbol_table = symbol.createScope(program_ast, fileRoot, symbolAllocator.allocator()) catch {
+    var symbol_table = symbol.createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch {
         errors.printErrors();
         return;
     };

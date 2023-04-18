@@ -3,13 +3,13 @@ const Token = token_.Token;
 const span = @import("span.zig");
 const Span = span.Span;
 const std = @import("std");
-const errors = @import("errors.zig");
-const Error = errors.Error;
+const errs = @import("errors.zig");
+const Error = errs.Error;
 
 const LexerErrors = error{lexerError};
 
 /// Will always end in an EOF on the first column of the next line
-pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayList(Token) {
+pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(Token) {
     const LexState = enum { //
         none,
         whitespace,
@@ -350,8 +350,9 @@ pub fn getTokens(contents: []const u8, allocator: std.mem.Allocator) !std.ArrayL
 
 test "whitespace" {
     const contents = "\n  \n    ";
-
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
@@ -361,7 +362,9 @@ test "whitespace" {
 
 test "identifier" {
     const contents = "one _two three'";
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 4);
@@ -373,7 +376,9 @@ test "identifier" {
 
 test "numbers" {
     const contents = "10.0'0 0xAB'C 0o77'7 0b11'1 10'0";
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 6);
@@ -387,7 +392,9 @@ test "numbers" {
 
 test "string" {
     const contents = "\"a \\\"string\\\"\"";
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);
@@ -395,9 +402,20 @@ test "string" {
     try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
 }
 
+test "string-eof" {
+    const contents = "\"this isn't a string- it's an error!";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
+}
+
 test "char" {
     const contents = "\'a \\\'string\\\'\'";
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);
@@ -407,7 +425,9 @@ test "char" {
 
 test "symbol" {
     const contents = "([{==<+}])";
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 10);
@@ -425,7 +445,9 @@ test "symbol" {
 
 test "comment" {
     const contents = "==// This is a comment! haha";
-    var tokens = try getTokens(contents, std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 2);

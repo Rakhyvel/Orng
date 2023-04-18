@@ -8,11 +8,15 @@
     - [x] Add D_STAR to binaryOperators
     - [x] Add D_STAR to reprFromTokenKind()
     - [x] Add D_STAR_ASSIGN TokenKind, binaryOperators, reprFromTokenKind
-- [ ] Write tests
+- [x] Write tests
 - [x] Add `not` keyword, remove !! operator
 - [x] Properly handle allocator errors
 - [x] Implement Spans
 - [ ] Error if string (resp. character) reaches EOF before " (resp. ')
+- [ ] Write negetive tests for errors
+
+### Layout
+- [x] Write tests
 
 ### Parser
 - [x] Write recursive descent parser
@@ -27,13 +31,14 @@
     - [x] Add parsing function
     - [x] Make sure to do an ASTKind too
 - [x] Write ASTs
-    - [ ] Write a pretty print and do tests!
 - [x] Parse `not` keyword, change !! to just !
 - [x] Parse +=, -=, *=, /=, %=, **=
 - [x] Abstract away a better peek() method
 - [x] Throw a parse error if there's a null index for an index binop
 - [x] Parse `slice[1..]` as a subslice and not a floating point literal
 - [x] Properly handle allocator errors in {parser, ast}.zig
+- [ ] Write a pretty print and do tests! (positive and negative)
+- [ ] Top level declarations should require a newline
 
 ### Symbol table
 - [x] Create symbol tree from file AST
@@ -42,7 +47,7 @@
 - [x] Make function decls also have a type
 - [x] If symbol init is block, create a scope for it
 - [x] Create symbols for function parameters
-- [ ] WRITE TESTS!
+- [ ] WRITE TESTS! (positive and negative)
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
@@ -51,7 +56,7 @@
 - [ ] Do other validations (?)
 
 ### Errors
-- [ ] Add filename to Span
+- [ ] Add filename to Span, add file map
 
 ### IR
 - [ ] Write IR types

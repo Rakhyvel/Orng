@@ -1,3 +1,4 @@
+const errs = @import("errors.zig");
 const _token = @import("token.zig");
 const Token = _token.Token;
 const std = @import("std");
@@ -98,7 +99,9 @@ pub fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
 
 test "condenseNewLines" {
     const lexer = @import("lexer.zig");
-    var tokens = try lexer.getTokens("{\n //comment\n  \n   }", std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try lexer.getTokens("{\n //comment\n  \n   }", &errors, std.testing.allocator);
     defer tokens.deinit();
     condenseNewLines(&tokens);
 
@@ -111,7 +114,9 @@ test "condenseNewLines" {
 
 test "preemptBinaryOperator" {
     const lexer = @import("lexer.zig");
-    var tokens = try lexer.getTokens("x \n + y \n (y)", std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try lexer.getTokens("x \n + y \n (y)", &errors, std.testing.allocator);
     defer tokens.deinit();
     preemptBinaryOperator(&tokens);
 
@@ -128,7 +133,9 @@ test "preemptBinaryOperator" {
 
 test "indentation" {
     const lexer = @import("lexer.zig");
-    var tokens = try lexer.getTokens("x\n    y\n        z\na", std.testing.allocator);
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = try lexer.getTokens("x\n    y\n        z\na", &errors, std.testing.allocator);
     defer tokens.deinit();
     try insertIndentDedents(&tokens);
 

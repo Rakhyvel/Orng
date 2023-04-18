@@ -1,10 +1,10 @@
 const std = @import("std");
 const ast = @import("ast.zig");
-const errors = @import("errors.zig");
+const errs = @import("errors.zig");
 const _span = @import("span.zig");
 
 const AST = ast.AST;
-const Error = errors.Error;
+const Error = errs.Error;
 const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = @import("token.zig").Token;
@@ -60,13 +60,13 @@ pub const Symbol = struct {
 };
 
 // Walk AST, if come across a block, create new scope on it, if def, create new symbol entry
-pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Scope {
+pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Scope {
     var retval = try Scope.init(root, allocator);
     retval.parent = root;
     for (definitions.items) |definition| {
         switch (definition.data) {
             .block => {
-                try retval.children.append(try createScope(definition.data.block.statements, retval, allocator));
+                try retval.children.append(try createScope(definition.data.block.statements, retval, errors, allocator));
             },
 
             .decl => {
@@ -84,7 +84,7 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, allocator
             },
 
             .fnDecl => {
-                var symbol = try createFunctionSymbol(definition, retval, allocator);
+                var symbol = try createFunctionSymbol(definition, retval, errors, allocator);
                 if (retval.lookup(symbol.name)) |first| {
                     errors.addError(Error{ .redefinition = .{
                         .first_defined_span = first.span,
@@ -115,7 +115,7 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
     );
 }
 
-fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
+fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     var domain = try extractDomain(
         definition.data.fnDecl.params,
         definition.data.fnDecl.retType.token,
@@ -128,7 +128,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.
         definition.data.fnDecl.retType,
         allocator,
     );
-    var fnScope = try createScope(definition.data.fnDecl.params, scope, allocator);
+    var fnScope = try createScope(definition.data.fnDecl.params, scope, errors, allocator);
 
     return try Symbol.init(
         fnScope,
