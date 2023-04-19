@@ -1,5 +1,6 @@
 const std = @import("std");
 const Span = @import("span.zig").Span;
+const String = @import("zig-string/zig-string.zig").String;
 
 pub const TokenKind = enum(u32) {
     // Literals
@@ -174,6 +175,12 @@ pub const Token = struct {
         try std.testing.expectEqualStrings(data, self.data);
         try std.testing.expectEqual(col, self.span.col);
         try std.testing.expectEqual(line, self.span.line);
+    }
+
+    pub fn serialize(self: Token, out: *String) !void {
+        try out.insert("Token{data: '", out.len());
+        try out.insert(self.data, out.len());
+        try out.insert("'}", out.len());
     }
 };
 

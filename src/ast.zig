@@ -13,6 +13,8 @@ pub const SliceKind = union(enum) {
     ARRAY, // static homogenous tuple, compile-time len
 };
 
+const Errors = error{ InvalidRange, OutOfMemory };
+
 pub const AST = union(enum) {
     unit: struct { token: Token },
     int: struct { token: Token, data: i128 },
@@ -44,7 +46,7 @@ pub const AST = union(enum) {
     _continue: struct { token: Token },
     throw: struct { token: Token, expr: *AST },
     _return: struct { token: Token, expr: ?*AST },
-    decl: struct { token: Token, introducer: TokenKind, pattern: *AST, type: ?*AST, init: ?*AST },
+    decl: struct { token: Token, pattern: *AST, type: ?*AST, init: ?*AST },
     fnDecl: struct { token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
     _defer: struct { token: Token, expr: *AST },
     assign: struct { token: Token, lhs: *AST, rhs: *AST },
@@ -201,8 +203,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._return = .{ .token = token, .expr = expr } }, allocator);
     }
 
-    pub fn createDecl(token: Token, introducer: TokenKind, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .decl = .{ .token = token, .introducer = introducer, .pattern = pattern, .type = _type, .init = init } }, allocator);
+    pub fn createDecl(token: Token, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .decl = .{ .token = token, .pattern = pattern, .type = _type, .init = init } }, allocator);
     }
 
     pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, allocator: std.mem.Allocator) !*AST {
@@ -217,8 +219,137 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .assign = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn serialize(self: *AST, out: *String) void {
-        _ = out;
-        _ = self;
+    pub fn serializeOptional(self: ?*AST, out: *String) Errors!void {
+        if (self) |s| {
+            try s.serialize(out);
+        } else {
+            try out.insert("null", out.len());
+        }
+    }
+
+    pub fn serializeList(list: *const std.ArrayList(*AST), out: *String) Errors!void {
+        try out.insert("[", out.len());
+        var i: usize = 0;
+        while (i < list.items.len) : (i += 1) {
+            var ast = list.items[i];
+            try ast.serialize(out);
+            if (i < list.items.len - 1) {
+                try out.insert(", ", out.len());
+            }
+        }
+        try out.insert("]", out.len());
+    }
+
+    pub fn serialize(self: AST, out: *String) !void {
+        switch (self) {
+            .unit => {}, //
+
+            .int => {
+                try out.insert("AST.int{token: ", out.len());
+                try self.int.token.serialize(out);
+                try out.insert(", data: ", out.len());
+                try std.fmt.format(out.writer(), "{}", .{self.int.data});
+                try out.insert("}", out.len());
+            },
+
+            .char,
+            .float,
+            ._string,
+            => {},
+
+            .identifier => {
+                try out.insert("AST.identifier{token: ", out.len());
+                try self.identifier.token.serialize(out);
+                try out.insert("}", out.len());
+            },
+
+            ._unreachable,
+            .unop,
+            .binop,
+            .call,
+            .addrOf,
+            .sliceOf,
+            .namedArg,
+            .subSlice,
+            .annotation,
+            .inferredMember,
+            ._if,
+            => {},
+
+            .cond => {
+                try out.insert("AST.cond{token: ", out.len());
+                try self.cond.token.serialize(out);
+
+                try out.insert(", let: ", out.len());
+                try serializeOptional(self.cond.let, out);
+
+                try out.insert(", mappings: ", out.len());
+                try serializeList(&self.cond.mappings, out);
+
+                try out.insert("}", out.len());
+            },
+
+            .case => {},
+
+            .mapping => {
+                try out.insert("AST.mapping{token: ", out.len());
+                try self.mapping.token.serialize(out);
+
+                try out.insert(", lhs: ", out.len());
+                try serializeOptional(self.mapping.lhs, out);
+
+                try out.insert(", rhs: ", out.len());
+                try serializeOptional(self.mapping.rhs, out);
+
+                try out.insert("}", out.len());
+            },
+
+            ._while,
+            ._for,
+            .block,
+            ._break,
+            ._continue,
+            .throw,
+            ._return,
+            => {},
+
+            .decl => {
+                try out.insert("AST.decl{token: ", out.len());
+                try self.decl.token.serialize(out);
+                try out.insert(", pattern: ", out.len());
+                try self.decl.pattern.serialize(out);
+                try out.insert(", type: ", out.len());
+                try serializeOptional(self.decl.type, out);
+                try out.insert(", init: ", out.len());
+                try serializeOptional(self.decl.init, out);
+                try out.insert("}", out.len());
+            },
+
+            .fnDecl => {
+                try out.insert("AST.fnDecl{token: ", out.len());
+                try self.fnDecl.token.serialize(out);
+
+                try out.insert(", name: ", out.len());
+                try serializeOptional(self.fnDecl.name, out);
+
+                try out.insert(", params: ", out.len());
+                try serializeList(&self.fnDecl.params, out);
+
+                try out.insert(", retType: ", out.len());
+                try self.fnDecl.retType.serialize(out);
+
+                try out.insert(", refinement: ", out.len());
+                try serializeOptional(self.fnDecl.refinement, out);
+
+                try out.insert(", init: ", out.len());
+                try self.fnDecl.init.serialize(out);
+
+                try out.insert("}", out.len());
+            },
+
+            ._defer,
+            .assign,
+            => {},
+        }
     }
 };

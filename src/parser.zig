@@ -131,7 +131,7 @@ pub const Parser = struct {
     }
 
     fn constDeclaration(self: *Parser) ParserErrorEnum!*AST {
-        _ = try self.expect(.CONST);
+        var token = try self.expect(.CONST);
         var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         var _type: ?*AST = null;
 
@@ -145,8 +145,7 @@ pub const Parser = struct {
         }
 
         return try AST.createDecl(
-            ident.getToken(),
-            .CONST,
+            token,
             ident,
             _type,
             init,
@@ -155,7 +154,7 @@ pub const Parser = struct {
     }
 
     fn letDeclaration(self: *Parser) ParserErrorEnum!*AST {
-        _ = try self.expect(.LET);
+        var definitelyLet = try self.expect(.LET);
         var maybeMut = self.accept(.MUT);
         var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         var _type: ?*AST = null;
@@ -174,8 +173,7 @@ pub const Parser = struct {
         }
 
         return try AST.createDecl(
-            ident.getToken(),
-            if (maybeMut) |_| .MUT else .LET,
+            if (maybeMut) |mut| mut else definitelyLet,
             ident,
             _type,
             init,
@@ -241,8 +239,7 @@ pub const Parser = struct {
         }
 
         return try AST.createDecl(
-            ident.getToken(),
-            if (introducer) |i| i.kind else .LET,
+            if (introducer) |i| i else .{ .kind = .LET, .data = "let", .span = ident.getToken().span },
             ident,
             paramType,
             init,
@@ -802,9 +799,11 @@ pub const Parser = struct {
 test "parse-const" {
     const layout = @import("layout.zig");
     const lexer = @import("lexer.zig");
-    const contents = "//comment\n//comment\nconst x: Int = 4";
+
     var errors = errs.Errors.init(std.testing.allocator);
     defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "//comment\n//comment\nconst x: Int = 4";
     var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
     try layout.doLayout(&tokens);
@@ -813,16 +812,25 @@ test "parse-const" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
-    var outString = String.init(std.testing.allocator);
-    program_ast.items[0].serialize(&outString);
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].serialize(&out_string);
+
+    try std.testing.expectEqualStrings( //
+        "AST.decl{token: Token{data: 'const'}, " //
+    ++ "pattern: AST.identifier{token: Token{data: 'x'}}, " //
+    ++ "type: AST.identifier{token: Token{data: 'Int'}}, " //
+    ++ "init: AST.int{token: Token{data: '4'}, data: 4}}", out_string.str());
 }
 
 test "parse-fn" {
     const layout = @import("layout.zig");
     const lexer = @import("lexer.zig");
-    const contents = "fn x: (y: T, z: T)->T =\n    y\n//comment\n//comment";
+
     var errors = errs.Errors.init(std.testing.allocator);
     defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "fn f: (x: Int)->Int = 4";
     var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
     try layout.doLayout(&tokens);
@@ -831,16 +839,28 @@ test "parse-fn" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
-    var outString = String.init(std.testing.allocator);
-    program_ast.items[0].serialize(&outString);
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].serialize(&out_string);
+
+    try std.testing.expectEqualStrings( //
+        "AST.fnDecl{" //
+    ++ "token: Token{data: 'fn'}, " //
+    ++ "name: AST.identifier{token: Token{data: 'f'}}, " //
+    ++ "params: [AST.decl{token: Token{data: 'let'}, pattern: AST.identifier{token: Token{data: 'x'}}, type: AST.identifier{token: Token{data: 'Int'}}, init: null}], " //
+    ++ "retType: AST.identifier{token: Token{data: 'Int'}}, " //
+    ++ "refinement: null, " //
+    ++ "init: AST.int{token: Token{data: '4'}, data: 4}}", out_string.str());
 }
 
-test "parse-lets" {
+test "parse-anon-fn" {
     const layout = @import("layout.zig");
     const lexer = @import("lexer.zig");
-    const contents = "const x = \n  let mut y: Int = 4";
+
     var errors = errs.Errors.init(std.testing.allocator);
     defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = fn ()-> Int = 4";
     var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
     defer tokens.deinit();
     try layout.doLayout(&tokens);
@@ -849,6 +869,50 @@ test "parse-lets" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
-    var outString = String.init(std.testing.allocator);
-    program_ast.items[0].serialize(&outString);
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    try std.testing.expectEqualStrings( //
+        "AST.fnDecl{" //
+    ++ "token: Token{data: 'fn'}, " //
+    ++ "name: null, " //
+    ++ "params: [], " //
+    ++ "retType: AST.identifier{token: Token{data: 'Int'}}, " //
+    ++ "refinement: null, " //
+    ++ "init: AST.int{token: Token{data: '4'}, data: 4}}", out_string.str());
+}
+
+test "parse-cond" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = cond | y | x => 4; | else => 4;";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.cond{"
+    ++ "token: Token{data: 'cond'}, "
+    ++ "let: null, "
+    ++ "mappings: ["
+        ++ "AST.mapping{token: Token{data: 'y'}, lhs: AST.identifier{token: Token{data: 'y'}}, rhs: null}, "
+        ++ "AST.mapping{token: Token{data: 'x'}, lhs: AST.identifier{token: Token{data: 'x'}}, rhs: AST.int{token: Token{data: '4'}, data: 4}}, "
+        ++ "AST.mapping{token: Token{data: 'else'}, lhs: null, rhs: AST.int{token: Token{data: '4'}, data: 4}}" 
+        ++ "]" 
+    ++ "}",out_string.str());
+    // zig fmt: on
 }

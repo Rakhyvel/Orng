@@ -1,5 +1,6 @@
 zig-cache/
 zig-out/
+kcov-out/
 orngdoc_old.md
 parser.py
 orng.out

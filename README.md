@@ -61,7 +61,7 @@ fn factorial: (n: Int)->Int = if n < 2 {1} else {n * fact(n - 1)}
 ```
 ### Fizzbuzz
 ```rs
-// Define an Algebraic Data Type (ADT), similar tagged unions
+// Define an Algebraic Data Type (ADT), similar to tagged unions
 const FizzBuzzResult 
     = string: String
     | integer: Int
