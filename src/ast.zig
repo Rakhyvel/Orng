@@ -11,6 +11,23 @@ pub const SliceKind = union(enum) {
     MUT, // mutable data ptr and len
     MULTIPTR, // c-style `*` pointer, no len
     ARRAY, // static homogenous tuple, compile-time len
+
+    pub fn serialize(self: SliceKind, out: *String) !void {
+        switch (self) {
+            .SLICE => {
+                try out.insert("SLICE", out.len());
+            },
+            .MUT => {
+                try out.insert("MUT", out.len());
+            },
+            .MULTIPTR => {
+                try out.insert("MULTIPTR", out.len());
+            },
+            .ARRAY => {
+                try out.insert("ARRAY", out.len());
+            },
+        }
+    }
 };
 
 const Errors = error{ InvalidRange, OutOfMemory };
@@ -34,12 +51,25 @@ pub const AST = union(enum) {
     annotation: struct { token: Token, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
     inferredMember: struct { token: Token, ident: *AST, init: ?*AST },
 
-    _if: struct { token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST },
+    _if: struct {
+        token: Token,
+        let: ?*AST,
+        condition: *AST,
+        bodyBlock: *AST,
+        elseBlock: ?*AST,
+    },
     cond: struct { token: Token, let: ?*AST, mappings: std.ArrayList(*AST) },
     case: struct { token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST) },
     mapping: struct { token: Token, lhs: ?*AST, rhs: ?*AST },
     _while: struct { token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST },
-    _for: struct { token: Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST },
+    _for: struct {
+        token: Token,
+        let: ?*AST,
+        elem: *AST,
+        iterable: *AST,
+        bodyBlock: *AST,
+        elseBlock: ?*AST,
+    },
 
     block: struct { token: Token, statements: std.ArrayList(*AST), final: ?*AST },
     _break: struct { token: Token },
@@ -252,10 +282,23 @@ pub const AST = union(enum) {
                 try out.insert("}", out.len());
             },
 
-            .char,
-            .float,
-            ._string,
-            => {},
+            .char => {
+                try out.insert("AST.char{token: ", out.len());
+                try self.char.token.serialize(out);
+                try out.insert(", data: ", out.len());
+                try std.fmt.format(out.writer(), "{}", .{self.char.data});
+                try out.insert("}", out.len());
+            },
+
+            .float => {
+                try out.insert("AST.float{token: ", out.len());
+                try self.float.token.serialize(out);
+                try out.insert(", data: ", out.len());
+                try std.fmt.format(out.writer(), "{d}", .{self.float.data});
+                try out.insert("}", out.len());
+            },
+
+            ._string => {},
 
             .identifier => {
                 try out.insert("AST.identifier{token: ", out.len());
@@ -263,18 +306,96 @@ pub const AST = union(enum) {
                 try out.insert("}", out.len());
             },
 
-            ._unreachable,
-            .unop,
-            .binop,
-            .call,
-            .addrOf,
-            .sliceOf,
-            .namedArg,
-            .subSlice,
-            .annotation,
-            .inferredMember,
-            ._if,
-            => {},
+            ._unreachable, .unop => {},
+
+            .binop => {
+                try out.insert("AST.binop{token: ", out.len());
+                try self.binop.token.serialize(out);
+
+                try out.insert(", lhs: ", out.len());
+                try self.binop.lhs.serialize(out);
+
+                try out.insert(", rhs: ", out.len());
+                try self.binop.rhs.serialize(out);
+
+                try out.insert("}", out.len());
+            },
+
+            .call, .addrOf => {},
+
+            .sliceOf => {
+                try out.insert("AST.sliceOf{token: ", out.len());
+                try self.sliceOf.token.serialize(out);
+
+                try out.insert(", expr: ", out.len());
+                try self.sliceOf.expr.serialize(out);
+
+                try out.insert(", len: ", out.len());
+                try serializeOptional(self.sliceOf.len, out);
+
+                try out.insert(", kind: ", out.len());
+                try self.sliceOf.kind.serialize(out);
+
+                try out.insert("}", out.len());
+            },
+
+            .namedArg => {},
+
+            .subSlice => {
+                try out.insert("AST.subSlice{token: ", out.len());
+                try self.subSlice.token.serialize(out);
+
+                try out.insert(", super: ", out.len());
+                try self.subSlice.super.serialize(out);
+
+                try out.insert(", lower: ", out.len());
+                try serializeOptional(self.subSlice.lower, out);
+
+                try out.insert(", upper: ", out.len());
+                try serializeOptional(self.subSlice.upper, out);
+
+                try out.insert("}", out.len());
+            },
+
+            .annotation => {
+                try out.insert("AST.annotation{token: ", out.len());
+                try self.annotation.token.serialize(out);
+
+                try out.insert(", pattern: ", out.len());
+                try self.annotation.pattern.serialize(out);
+
+                try out.insert(", type: ", out.len());
+                try self.annotation.type.serialize(out);
+
+                try out.insert(", predicate: ", out.len());
+                try serializeOptional(self.annotation.predicate, out);
+
+                try out.insert(", init: ", out.len());
+                try serializeOptional(self.annotation.init, out);
+
+                try out.insert("}", out.len());
+            },
+
+            .inferredMember => {},
+
+            ._if => {
+                try out.insert("AST.if{token: ", out.len());
+                try self._if.token.serialize(out);
+
+                try out.insert(", let: ", out.len());
+                try serializeOptional(self._if.let, out);
+
+                try out.insert(", condition: ", out.len());
+                try self._if.condition.serialize(out);
+
+                try out.insert(", bodyBlock: ", out.len());
+                try self._if.bodyBlock.serialize(out);
+
+                try out.insert(", elseBlock: ", out.len());
+                try serializeOptional(self._if.elseBlock, out);
+
+                try out.insert("}", out.len());
+            },
 
             .cond => {
                 try out.insert("AST.cond{token: ", out.len());
@@ -289,7 +410,21 @@ pub const AST = union(enum) {
                 try out.insert("}", out.len());
             },
 
-            .case => {},
+            .case => {
+                try out.insert("AST.case{token: ", out.len());
+                try self.case.token.serialize(out);
+
+                try out.insert(", let: ", out.len());
+                try serializeOptional(self.case.let, out);
+
+                try out.insert(", expr: ", out.len());
+                try self.case.expr.serialize(out);
+
+                try out.insert(", mappings: ", out.len());
+                try serializeList(&self.case.mappings, out);
+
+                try out.insert("}", out.len());
+            },
 
             .mapping => {
                 try out.insert("AST.mapping{token: ", out.len());
@@ -304,9 +439,63 @@ pub const AST = union(enum) {
                 try out.insert("}", out.len());
             },
 
-            ._while,
-            ._for,
-            .block,
+            ._while => {
+                try out.insert("AST.while{token: ", out.len());
+                try self._while.token.serialize(out);
+
+                try out.insert(", let: ", out.len());
+                try serializeOptional(self._while.let, out);
+
+                try out.insert(", condition: ", out.len());
+                try self._while.condition.serialize(out);
+
+                try out.insert(", post: ", out.len());
+                try serializeOptional(self._while.post, out);
+
+                try out.insert(", bodyBlock: ", out.len());
+                try self._while.bodyBlock.serialize(out);
+
+                try out.insert(", elseBlock: ", out.len());
+                try serializeOptional(self._while.elseBlock, out);
+
+                try out.insert("}", out.len());
+            },
+
+            ._for => {
+                try out.insert("AST.for{token: ", out.len());
+                try self._for.token.serialize(out);
+
+                try out.insert(", let: ", out.len());
+                try serializeOptional(self._for.let, out);
+
+                try out.insert(", elem: ", out.len());
+                try self._for.elem.serialize(out);
+
+                try out.insert(", iterable: ", out.len());
+                try self._for.iterable.serialize(out);
+
+                try out.insert(", bodyBlock: ", out.len());
+                try self._for.bodyBlock.serialize(out);
+
+                try out.insert(", elseBlock: ", out.len());
+                try serializeOptional(self._for.elseBlock, out);
+
+                try out.insert("}", out.len());
+            },
+
+            .block => {
+                try out.insert("AST.block{token: ", out.len());
+                try self.block.token.serialize(out);
+
+                try out.insert(", statements: ", out.len());
+                try serializeList(&self.block.statements, out);
+
+                try out.insert(", final: ", out.len());
+                try serializeOptional(self.block.final, out);
+
+                try out.insert("}", out.len());
+            },
+
             ._break,
             ._continue,
             .throw,

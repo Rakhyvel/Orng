@@ -39,6 +39,7 @@
 - [x] Properly handle allocator errors in {parser, ast}.zig
 - [ ] Write a pretty print and do tests! (positive and negative)
 - [x] Top level declarations should require a newline
+- [ ] Make exponentiation right-associative, higher precedence than -
 
 ### Symbol table
 - [x] Create symbol tree from file AST

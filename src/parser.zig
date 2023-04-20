@@ -542,11 +542,11 @@ pub const Parser = struct {
         } else if (self.accept(.DECIMAL_INTEGER)) |token| {
             return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.astAllocator);
         } else if (self.accept(.HEX_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 16), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 16), self.astAllocator);
         } else if (self.accept(.OCT_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 8), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.astAllocator);
         } else if (self.accept(.BIN_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 2), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.astAllocator);
         } else if (self.accept(.REAL)) |token| {
             return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
@@ -681,7 +681,6 @@ pub const Parser = struct {
         if (self.accept(.SEMICOLON)) |_| {
             post = try self.statement();
         }
-        std.debug.print("{s}\n", .{self.peek().data});
         var bodyBlock = try self.blockExpr();
         var elseBlock: ?*AST = null;
         if (self.accept(.ELSE)) |_| {
@@ -914,5 +913,692 @@ test "parse-cond" {
         ++ "AST.mapping{token: Token{data: 'else'}, lhs: null, rhs: AST.int{token: Token{data: '4'}, data: 4}}" 
         ++ "]" 
     ++ "}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-case" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = case x | y | x => 4; | else => 4;";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.case{"
+    ++ "token: Token{data: 'case'}, "
+    ++ "let: null, "
+    ++ "expr: AST.identifier{token: Token{data: 'x'}}, "
+    ++ "mappings: ["
+        ++ "AST.mapping{token: Token{data: 'y'}, lhs: AST.identifier{token: Token{data: 'y'}}, rhs: null}, "
+        ++ "AST.mapping{token: Token{data: 'x'}, lhs: AST.identifier{token: Token{data: 'x'}}, rhs: AST.int{token: Token{data: '4'}, data: 4}}, "
+        ++ "AST.mapping{token: Token{data: 'else'}, lhs: null, rhs: AST.int{token: Token{data: '4'}, data: 4}}" 
+        ++ "]" 
+    ++ "}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-sum" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = x | y | z";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{"
+    ++ "token: Token{data: '|'}, "
+    ++ "lhs: AST.binop{"
+        ++ "token: Token{data: '|'}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'x'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'y'}}"
+    ++ "}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'z'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-product" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = x, y, z";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{"
+    ++ "token: Token{data: ','}, "
+    ++ "lhs: AST.binop{"
+        ++ "token: Token{data: ','}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'x'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'y'}}"
+    ++ "}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'z'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-annotation" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = x: Int where true \\ 0";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.annotation{"
+    ++ "token: Token{data: ':'}, "
+    ++ "pattern: AST.identifier{token: Token{data: 'x'}}, "
+    ++ "type: AST.identifier{token: Token{data: 'Int'}}, "
+    ++ "predicate: AST.identifier{token: Token{data: 'true'}}, "
+    ++ "init: AST.int{token: Token{data: '0'}, data: 0}"
+    ++ "}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-arrow" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = T -> S";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{"
+    ++ "token: Token{data: '->'}, "
+    ++ "lhs: AST.identifier{token: Token{data: 'T'}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'S'}}"
+    ++ "}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-bool" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = x and y or z";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{"
+    ++ "token: Token{data: 'or'}, "
+    ++ "lhs: AST.binop{"
+        ++ "token: Token{data: 'and'}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'x'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'y'}}"
+    ++ "}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'z'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-neq" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = x != y";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{"
+    ++ "token: Token{data: '!='}, "
+    ++ "lhs: AST.identifier{token: Token{data: 'x'}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'y'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-conditional" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a < b > c <= d >= e";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: '>='}, "
+    ++ "lhs: AST.binop{token: Token{data: '<='}, "
+        ++ "lhs: AST.binop{token: Token{data: '>'}, "
+            ++ "lhs: AST.binop{token: Token{data: '<'}, "
+                ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+                ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+            ++ "rhs: AST.identifier{token: Token{data: 'c'}}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'd'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'e'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-delta" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a |> b |> c";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: '|>'}, "
+    ++ "lhs: AST.binop{token: Token{data: '|>'}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'c'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-coalesce" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a orelse b catch c";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: 'catch'}, "
+    ++ "lhs: AST.binop{token: Token{data: 'orelse'}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'c'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-additive" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a + b - c ! d";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: '!'}, "
+    ++ "lhs: AST.binop{token: Token{data: '-'}, "
+        ++ "lhs: AST.binop{token: Token{data: '+'}, "
+            ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+            ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'c'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'd'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-multiplicative" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a * b / c % d ++ e -- f <> g";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: '<>'}, "
+    ++ "lhs: AST.binop{token: Token{data: '--'}, "
+        ++ "lhs: AST.binop{token: Token{data: '++'}, "
+            ++ "lhs: AST.binop{token: Token{data: '%'}, "
+                ++ "lhs: AST.binop{token: Token{data: '/'}, "
+                    ++ "lhs: AST.binop{token: Token{data: '*'}, "
+                        ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+                        ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+                    ++ "rhs: AST.identifier{token: Token{data: 'c'}}}, "
+                ++ "rhs: AST.identifier{token: Token{data: 'd'}}}, "
+            ++ "rhs: AST.identifier{token: Token{data: 'e'}}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'f'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'g'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-exponent" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a ** b ** c";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: '**'}, "
+    ++ "lhs: AST.binop{token: Token{data: '**'}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'c'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-sliceof" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = [mut]a";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.sliceOf{token: Token{data: '['}, "
+    ++ "expr: AST.identifier{token: Token{data: 'a'}}, "
+    ++ "len: null, "
+    ++ "kind: MUT}", out_string.str());
+    // zig fmt: on
+}
+
+test "parse-prepend" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a.>b.>c";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.binop{token: Token{data: '.>'}, "
+    ++ "lhs: AST.binop{token: Token{data: '.>'}, "
+        ++ "lhs: AST.identifier{token: Token{data: 'a'}}, "
+        ++ "rhs: AST.identifier{token: Token{data: 'b'}}}, "
+    ++ "rhs: AST.identifier{token: Token{data: 'c'}}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-subslice" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = a[1..2]";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.subSlice{token: Token{data: '['}, "
+    ++ "super: AST.identifier{token: Token{data: 'a'}}, "
+    ++ "lower: AST.int{token: Token{data: '1'}, data: 1}, "
+    ++ "upper: AST.int{token: Token{data: '2'}, data: 2}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-factors" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = cond | 10 | 0x10 | 0o10 | 0b10 | 10.10 ";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    var list = program_ast.items[0].decl.init.?.cond.mappings;
+    try AST.serializeList(&list, &out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "[AST.mapping{token: Token{data: '10'}, lhs: AST.int{token: Token{data: '10'}, data: 10}, rhs: null}, "
+    ++ "AST.mapping{token: Token{data: '0x10'}, lhs: AST.int{token: Token{data: '0x10'}, data: 16}, rhs: null}, "
+    ++ "AST.mapping{token: Token{data: '0o10'}, lhs: AST.int{token: Token{data: '0o10'}, data: 8}, rhs: null}, "
+    ++ "AST.mapping{token: Token{data: '0b10'}, lhs: AST.int{token: Token{data: '0b10'}, data: 2}, rhs: null}, "
+    ++ "AST.mapping{token: Token{data: '10.10'}, lhs: AST.float{token: Token{data: '10.10'}, data: 10.1}, rhs: null}]"
+    , out_string.str() );
+    // zig fmt: on
+}
+
+test "parse-brace-block" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = {x; y; z}";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.block{token: Token{data: '{'}, "
+    ++ "statements: [AST.identifier{token: Token{data: 'x'}}, AST.identifier{token: Token{data: 'y'}}, AST.identifier{token: Token{data: 'z'}}], "
+    ++ "final: null}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-indent-block" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = \n    x\n    y\n    z\n";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.block{token: Token{data: ''}, "
+    ++ "statements: [AST.identifier{token: Token{data: 'x'}}, AST.identifier{token: Token{data: 'y'}}, AST.identifier{token: Token{data: 'z'}}], "
+    ++ "final: null}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-if" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = if c {x} else {y}";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.if{token: Token{data: 'if'}, "
+    ++ "let: null, "
+    ++ "condition: AST.identifier{token: Token{data: 'c'}}, "
+    ++ "bodyBlock: AST.block{token: Token{data: '{'}, statements: [AST.identifier{token: Token{data: 'x'}}], final: null}, "
+    ++ "elseBlock: AST.block{token: Token{data: '{'}, statements: [AST.identifier{token: Token{data: 'y'}}], final: null}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-if" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = while c {x} else {y}";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.while{token: Token{data: 'while'}, "
+    ++ "let: null, "
+    ++ "condition: AST.identifier{token: Token{data: 'c'}}, "
+    ++ "post: null, "
+    ++ "bodyBlock: AST.block{token: Token{data: '{'}, statements: [AST.identifier{token: Token{data: 'x'}}], final: null}, "
+    ++ "elseBlock: AST.block{token: Token{data: '{'}, statements: [AST.identifier{token: Token{data: 'y'}}], final: null}}",out_string.str());
+    // zig fmt: on
+}
+
+test "parse-for" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const test = for e in l {x} else {y}";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try program_ast.items[0].decl.init.?.serialize(&out_string);
+
+    // zig fmt: off
+    try std.testing.expectEqualStrings(
+    "AST.for{token: Token{data: 'for'}, "
+    ++ "let: null, "
+    ++ "elem: AST.identifier{token: Token{data: 'e'}}, "
+    ++ "iterable: AST.identifier{token: Token{data: 'l'}}, "
+    ++ "bodyBlock: AST.block{token: Token{data: '{'}, statements: [AST.identifier{token: Token{data: 'x'}}], final: null}, "
+    ++ "elseBlock: AST.block{token: Token{data: '{'}, statements: [AST.identifier{token: Token{data: 'y'}}], final: null}}",out_string.str());
     // zig fmt: on
 }
