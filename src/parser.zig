@@ -811,6 +811,7 @@ test "parse-const" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].serialize(&out_string);
@@ -838,6 +839,7 @@ test "parse-fn" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].serialize(&out_string);
@@ -868,6 +870,7 @@ test "parse-anon-fn" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -898,6 +901,7 @@ test "parse-cond" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -932,6 +936,7 @@ test "parse-case" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -967,6 +972,7 @@ test "parse-sum" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1000,6 +1006,7 @@ test "parse-product" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1033,6 +1040,7 @@ test "parse-annotation" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1065,6 +1073,7 @@ test "parse-arrow" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1095,6 +1104,7 @@ test "parse-bool" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1128,6 +1138,7 @@ test "parse-neq" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1157,6 +1168,7 @@ test "parse-conditional" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1191,6 +1203,7 @@ test "parse-delta" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1221,6 +1234,7 @@ test "parse-coalesce" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1251,6 +1265,7 @@ test "parse-additive" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1283,6 +1298,7 @@ test "parse-multiplicative" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1321,6 +1337,7 @@ test "parse-exponent" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1351,6 +1368,7 @@ test "parse-sliceof" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1380,6 +1398,7 @@ test "parse-prepend" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1410,6 +1429,7 @@ test "parse-subslice" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1439,6 +1459,7 @@ test "parse-factors" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     var list = program_ast.items[0].decl.init.?.cond.mappings;
@@ -1471,6 +1492,7 @@ test "parse-brace-block" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1499,6 +1521,7 @@ test "parse-indent-block" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1527,6 +1550,7 @@ test "parse-if" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1557,6 +1581,7 @@ test "parse-if" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);
@@ -1588,6 +1613,7 @@ test "parse-for" {
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
 
     var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
     var out_string = String.init(std.testing.allocator);
     defer out_string.deinit();
     try program_ast.items[0].decl.init.?.serialize(&out_string);

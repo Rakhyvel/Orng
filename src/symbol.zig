@@ -39,6 +39,20 @@ pub const Scope = struct {
             std.debug.print("{s}\n", .{key});
         }
     }
+
+    pub fn serialize(self: *Scope, out: *String) !void {
+        try out.insert("{", out.len());
+        var keySet = self.symbols.keys();
+        var i: usize = 0;
+        while (i < keySet.len) : (i += 1) {
+            var key = keySet[i];
+            try out.insert(self.symbols.get(key).?.name, out.len());
+            if (i < keySet.len - 1) {
+                try out.insert(", ", out.len());
+            }
+        }
+        try out.insert("}", out.len());
+    }
 };
 
 pub const Symbol = struct {
@@ -64,9 +78,9 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *
     var retval = try Scope.init(root, allocator);
     retval.parent = root;
     for (definitions.items) |definition| {
-        switch (definition.data) {
+        switch (definition.*) {
             .block => {
-                try retval.children.append(try createScope(definition.data.block.statements, retval, errors, allocator));
+                try retval.children.append(try createScope(definition.block.statements, retval, errors, allocator));
             },
 
             .decl => {
@@ -107,35 +121,34 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     return try Symbol.init(
         scope,
-        definition.data.decl.pattern.data.identifier.data,
-        definition.data.decl.pattern.token.span,
-        definition.data.decl.type,
-        definition.data.decl.init,
+        definition.decl.pattern.identifier.token.data,
+        definition.decl.pattern.getToken().span,
+        definition.decl.type,
+        definition.decl.init,
         allocator,
     );
 }
 
 fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     var domain = try extractDomain(
-        definition.data.fnDecl.params,
-        definition.data.fnDecl.retType.token,
+        definition.fnDecl.params,
+        definition.fnDecl.retType.getToken(),
         allocator,
     );
     var _type = try AST.createBinop(
-        definition.data.fnDecl.retType.token,
-        .ARROW,
+        definition.fnDecl.retType.getToken(),
         domain,
-        definition.data.fnDecl.retType,
+        definition.fnDecl.retType,
         allocator,
     );
-    var fnScope = try createScope(definition.data.fnDecl.params, scope, errors, allocator);
+    var fnScope = try createScope(definition.fnDecl.params, scope, errors, allocator);
 
     return try Symbol.init(
         fnScope,
-        definition.data.fnDecl.name.?.data.identifier.data, // TODO: This currently doesn't support anonymous functions
-        definition.data.fnDecl.name.?.token.span,
+        definition.fnDecl.name.?.identifier.token.data, // TODO: This currently doesn't support anonymous functions
+        definition.fnDecl.name.?.getToken().span,
         _type,
-        definition.data.fnDecl.init,
+        definition.fnDecl.init,
         allocator,
     );
 }
@@ -144,11 +157,44 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
     if (params.items.len == 0) {
         return try AST.createUnit(token, allocator);
     } else {
-        var retval: *AST = params.items[0].data.decl.type.?;
+        var retval: *AST = params.items[0].decl.type.?;
         var i: usize = 1;
         while (i < params.items.len) : (i += 1) {
-            retval = try AST.createBinop(params.items[i].token, .PRODUCT, retval, params.items[i], allocator);
+            retval = try AST.createBinop(params.items[i].getToken(), retval, params.items[i], allocator);
         }
         return retval;
     }
+}
+
+test "consts" {
+    const layout = @import("layout.zig");
+    const lexer = @import("lexer.zig");
+    const Parser = @import("parser.zig").Parser;
+
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    // contents |> lexer |> layout |> parser
+    const contents = "const x: Int = 4";
+    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
+    defer tokens.deinit();
+    try layout.doLayout(&tokens);
+    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer astAllocator.deinit();
+    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+
+    var program_ast = try parser.parse();
+    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
+    var symbolAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
+    defer symbolAllocator.deinit();
+    var fileRoot = try Scope.init(null, symbolAllocator.allocator());
+    var symbol_table = createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch {
+        errors.printErrors();
+        return;
+    };
+
+    var out_string = String.init(std.testing.allocator);
+    defer out_string.deinit();
+    try symbol_table.serialize(&out_string);
+
+    try std.testing.expectEqualStrings("{x}", out_string.str());
 }

@@ -37,7 +37,10 @@
 - [x] Throw a parse error if there's a null index for an index binop
 - [x] Parse `slice[1..]` as a subslice and not a floating point literal
 - [x] Properly handle allocator errors in {parser, ast}.zig
-- [ ] Write a pretty print and do tests! (positive and negative)
+- [ ] Write a pretty print and do tests!
+    - [x] Basic tests
+    - [ ] Test all AST serializations
+    - [ ] Test all error points
 - [x] Top level declarations should require a newline
 - [ ] Make exponentiation right-associative, higher precedence than -
 

@@ -57,6 +57,7 @@ pub fn build(b: *std.Build) void {
     all_test_step.dependOn(&testStep(b, optimize, target, "src/lexer.zig").step);
     all_test_step.dependOn(&testStep(b, optimize, target, "src/layout.zig").step);
     all_test_step.dependOn(&testStep(b, optimize, target, "src/parser.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/symbol.zig").step);
 }
 
 fn testStep(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, path: []const u8) *std.build.RunStep {
