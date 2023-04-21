@@ -249,6 +249,12 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .assign = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
+    pub fn typeEqual(self: *AST, other: *AST) bool {
+        // Assert self and other are type (likely are)
+        switch (self.*) {
+            .unit => other == AST.unit,
+        }
+    }
     pub fn serializeOptional(self: ?*AST, out: *String) Errors!void {
         if (self) |s| {
             try s.serialize(out);

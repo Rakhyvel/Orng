@@ -13,9 +13,10 @@
 - [x] Properly handle allocator errors
 - [x] Implement Spans
 - [x] Error if string (resp. character) reaches EOF before " (resp. ')
+- [ ] Write negetive tests for errors
 
 ### Layout
-
+- [x] Write tests
 
 ### Parser
 - [x] Write recursive descent parser
@@ -37,7 +38,7 @@
 - [x] Parse `slice[1..]` as a subslice and not a floating point literal
 - [x] Properly handle allocator errors in {parser, ast}.zig
 - [x] Top level declarations should require a newline
-- [ ] Make exponentiation right-associative, higher precedence than -
+- [ ] Make exponentiation right-associative, higher precedence than `-`
 
 ### Symbol table
 - [x] Create symbol tree from file AST
@@ -46,7 +47,11 @@
 - [x] Make function decls also have a type
 - [x] If symbol init is block, create a scope for it
 - [x] Create symbols for function parameters
+- [ ] WRITE TESTS! (positive and negative)
+    - [ ] Positive, normal flow-through tests
+    - [ ] Negative, error tests
 - [ ] Symbols should likely know if they're immutable, constant, mutable, or a function (quadchotomy)
+- [ ] Find the main function somehow
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
@@ -69,6 +74,9 @@
 ### Backend
 - [ ] Call gcc on the .c file
 - [ ] Execute the output file
+
+### Integration Testing
+- [ ] Write *integration* tests
 
 ### Type inferrence
 

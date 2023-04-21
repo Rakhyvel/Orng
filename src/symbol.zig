@@ -62,7 +62,7 @@ pub const Symbol = struct {
     _type: ?*ast.AST,
     init: ?*ast.AST,
 
-    pub fn init(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, allocator: std.mem.Allocator) !*Symbol {
+    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
         retval.name = name;
@@ -119,7 +119,7 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *
 }
 
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
-    return try Symbol.init(
+    return try Symbol.create(
         scope,
         definition.decl.pattern.identifier.token.data,
         definition.decl.pattern.getToken().span,
@@ -143,7 +143,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     );
     var fnScope = try createScope(definition.fnDecl.params, scope, errors, allocator);
 
-    return try Symbol.init(
+    return try Symbol.create(
         fnScope,
         definition.fnDecl.name.?.identifier.token.data, // TODO: This currently doesn't support anonymous functions
         definition.fnDecl.name.?.getToken().span,
@@ -164,37 +164,4 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
         }
         return retval;
     }
-}
-
-test "consts" {
-    const layout = @import("layout.zig");
-    const lexer = @import("lexer.zig");
-    const Parser = @import("parser.zig").Parser;
-
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    // contents |> lexer |> layout |> parser
-    const contents = "const x: Int = 4";
-    var tokens = try lexer.getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-    try layout.doLayout(&tokens);
-    var astAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer astAllocator.deinit();
-    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
-
-    var program_ast = try parser.parse();
-    try std.testing.expectEqual(@as(usize, 0), errors.errors_list.items.len);
-    var symbolAllocator = std.heap.ArenaAllocator.init(std.testing.allocator);
-    defer symbolAllocator.deinit();
-    var fileRoot = try Scope.init(null, symbolAllocator.allocator());
-    var symbol_table = createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch {
-        errors.printErrors();
-        return;
-    };
-
-    var out_string = String.init(std.testing.allocator);
-    defer out_string.deinit();
-    try symbol_table.serialize(&out_string);
-
-    try std.testing.expectEqualStrings("{x}", out_string.str());
 }

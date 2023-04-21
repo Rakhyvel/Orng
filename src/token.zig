@@ -176,12 +176,6 @@ pub const Token = struct {
         try std.testing.expectEqual(col, self.span.col);
         try std.testing.expectEqual(line, self.span.line);
     }
-
-    pub fn serialize(self: Token, out: *String) !void {
-        try out.insert("Token{data: '", out.len());
-        try out.insert(self.data, out.len());
-        try out.insert("'}", out.len());
-    }
 };
 
 pub fn kindFromString(data: []const u8) TokenKind {

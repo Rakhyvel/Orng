@@ -1,5 +1,6 @@
 const std = @import("std");
 const errs = @import("errors.zig");
+const ir = @import("ir.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
@@ -17,7 +18,7 @@ pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
     var arg = args.next() orelse {
-        std.debug.print("{s}\n", .{"Usage: zig build run -- <markdown-filename>"});
+        std.debug.print("{s}\n", .{"Usage: zig build run -- <orng-filename>"});
         return;
     };
 
@@ -73,4 +74,16 @@ pub fn main() !void {
         return;
     };
     symbol_table.pprint();
+
+    // Typecheck
+    // TODO
+
+    // IR translation
+    var irAllocator = std.heap.ArenaAllocator.init(allocator);
+    defer irAllocator.deinit();
+    var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, allocator);
+    _ = cfg;
+
+    // Code generation
+    // TODO
 }
