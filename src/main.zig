@@ -1,9 +1,11 @@
 const std = @import("std");
+const codegen = @import("codegen.zig");
 const errs = @import("errors.zig");
 const ir = @import("ir.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
+const Program = @import("program.zig").Program;
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
 
@@ -82,8 +84,15 @@ pub fn main() !void {
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
     var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, allocator);
-    _ = cfg;
 
     // Code generation
-    // TODO
+    var program = try Program.init(cfg, allocator);
+    var outputFile = try std.fs.cwd().createFile(
+        "examples/out.c",
+        .{
+            .read = false,
+        },
+    );
+    defer outputFile.close();
+    try codegen.generate(program, &outputFile);
 }

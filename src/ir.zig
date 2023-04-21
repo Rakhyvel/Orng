@@ -24,6 +24,64 @@ const SymbolVersion = struct {
 
 const IR = struct {
     uid: u64,
+    kind: enum {
+        // nullary instructions
+        loadSymbol,
+        loadExtern,
+        loadInt,
+        loadReal,
+        loadArglist, // TODO: ?
+        loadArrayLiteral, // TODO: ?
+        loadDefaultArray, // TODO: ?
+        loadString, // TODO: ?
+
+        // Monadic instructions
+        copy,
+
+        // Diadic instruction
+        bitOr,
+        bitXor,
+        bitAnd,
+        equal,
+        notEqual,
+        greater,
+        lesser,
+        greaterEqual,
+        lesserEqual,
+        leftShift,
+        rightShift,
+        add,
+        subtract,
+        multiply,
+        divide,
+        modulus,
+        exponent,
+        not,
+        neg,
+        bitNot,
+        addrOf,
+        sizeOf, //< For extern types that Orng can't do automatically
+        deref,
+        derefCopy,
+        index,
+        indexCopy,
+        subSlice,
+        select,
+        selectCopy,
+        cast,
+        phony,
+
+        // Control-flow
+        label,
+        jump,
+        branchIfFalse,
+        call,
+
+        // Errors
+        pushStackTrace,
+        clearStackTrace,
+        throw,
+    },
     dest: *SymbolVersion,
     src1: *SymbolVersion,
     src2: *SymbolVersion,
@@ -60,6 +118,7 @@ pub const CFG = struct {
         retval.instruction_list = std.ArrayList(*IR).init(allocator);
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
         retval.leaves = std.ArrayList(*CFG).init(allocator);
+        retval.symbol = symbol;
 
         var eval = try retval.flattenAST(symbol.scope, symbol.init.?, allocator);
         _ = eval;
