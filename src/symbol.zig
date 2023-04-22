@@ -61,6 +61,7 @@ pub const Symbol = struct {
     span: Span,
     _type: ?*ast.AST,
     init: ?*ast.AST,
+    versions: u64,
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
@@ -69,6 +70,7 @@ pub const Symbol = struct {
         retval.span = span;
         retval._type = _type;
         retval.init = _init;
+        retval.versions = 0;
         return retval;
     }
 };

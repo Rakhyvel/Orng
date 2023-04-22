@@ -1,11 +1,12 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682102445
-#define ORNG_1682102445
+#ifndef ORNG_1682138362
+#define ORNG_1682138362
 
 /* Function Definitions */
 int main();
 
-int main() {}
+int main() {
+}
 
 int main()
 {

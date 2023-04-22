@@ -1,5 +1,9 @@
 const std = @import("std");
-const CFG = @import("ir.zig").CFG;
+const _ir = @import("ir.zig");
+
+const BasicBlock = _ir.BasicBlock;
+const CFG = _ir.CFG;
+const IR = _ir.IR;
 const Program = @import("program.zig").Program;
 
 /// Takes in a file handler and a program structure
@@ -26,8 +30,28 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 }
 
 fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    try out.writer().print("int {s}() {{}}\n", .{callGraph.symbol.name});
+    if (callGraph.visited) {
+        return;
+    }
+    callGraph.visited = true;
+    defer callGraph.visited = false;
 
+    // Print function return type, name, parameter list
+    try out.writer().print("int {s}() {{\n", .{callGraph.symbol.name});
+
+    // TODO: If the function return type isn't void, create a `retval` variable
+
+    // TODO: Declare all (registers) used by the function
+
+    // Generate the basic-block graph, starting at the init basic block
+    if (callGraph.block_graph_head) |block_graph_head| {
+        try generateBasicBlock(block_graph_head, out);
+    }
+
+    // Generate the `end` basic block
+    try out.writer().print("}}\n", .{});
+
+    // Generate leaf functions
     for (callGraph.leaves.items) |leaf| {
         try generateFowardFunctions(leaf, out);
     }
@@ -44,4 +68,35 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
         \\
         \\
     , .{});
+}
+
+fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
+    if (bb.visited) {
+        return;
+    }
+    bb.visited = true;
+    defer bb.visited = false;
+
+    try out.writer().print("BB{}:;\n", .{bb.uid});
+    var maybe_ir = bb.instructions;
+    while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+        try generateIR(ir, out);
+    }
+
+    if (bb.has_branch) {
+        // Generate the if
+        // Generate the `branch` BB
+        // Generate the `next` BB
+    } else if (bb.next) |_| {
+        // generatePhi
+        // \tgoto BB{};\n
+        // Generate the `next` BB
+    } else {
+        // \tgoto end;\n
+    }
+}
+
+fn generateIR(ir: *IR, out: *std.fs.File) !void {
+    _ = ir;
+    _ = out;
 }
