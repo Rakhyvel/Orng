@@ -5,6 +5,7 @@ const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
 const Program = @import("program.zig").Program;
+const SymbolVersion = _ir.SymbolVersion;
 
 /// Takes in a file handler and a program structure
 pub fn generate(program: *Program, file: *std.fs.File) !void {
@@ -42,6 +43,14 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // TODO: If the function return type isn't void, create a `retval` variable
 
     // TODO: Declare all (registers) used by the function
+    for (callGraph.basic_blocks.items) |bb| {
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest) |dest| {
+                try printVarDef(dest, out);
+            }
+        }
+    }
 
     // Generate the basic-block graph, starting at the init basic block
     if (callGraph.block_graph_head) |block_graph_head| {
@@ -78,7 +87,7 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
     defer bb.visited = false;
 
     try out.writer().print("BB{}:;\n", .{bb.uid});
-    var maybe_ir = bb.instructions;
+    var maybe_ir = bb.ir_head;
     while (maybe_ir) |ir| : (maybe_ir = ir.next) {
         try generateIR(ir, out);
     }
@@ -97,6 +106,27 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 }
 
 fn generateIR(ir: *IR, out: *std.fs.File) !void {
-    _ = ir;
-    _ = out;
+    switch (ir.kind) {
+        .loadInt => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("{};\n", .{ir.data.int});
+        },
+        else => {},
+    }
+}
+
+fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    try out.writer().print("\t", .{});
+    if (symbver.symbol.name[0] != '$') {
+        // printPath(version.symbol, out)
+    }
+    try out.writer().print("_{} = ", .{symbver.version.?});
+}
+
+fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    try out.writer().print("\tint ", .{});
+    if (symbver.symbol.name[0] != '$') {
+        // printPath(out, symbver.symbol)
+    }
+    try out.writer().print("_{};\n", .{symbver.version.?});
 }

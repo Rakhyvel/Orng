@@ -1,1 +1,1 @@
-fn main: (sys: System)->!() = sys
+fn main: (sys: System)->!() = 4

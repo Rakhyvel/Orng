@@ -1,3 +1,4 @@
+const span = @import("span.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 
@@ -22,90 +23,115 @@ pub const SymbolVersion = struct {
     }
 
     fn makeUnique(self: *SymbolVersion) void {
-        if (self.version != null) {
+        if (self.version == null) {
             self.version = self.symbol.versions;
             self.symbol.versions += 1;
         }
     }
 };
 
+var ir_uid: u64 = 0;
+pub const IRKind = enum {
+    // nullary instructions
+    loadSymbol,
+    loadExtern,
+    loadInt,
+    loadReal,
+    loadArglist, // TODO: ?
+    loadArrayLiteral, // TODO: ?
+    loadDefaultArray, // TODO: ?
+    loadString, // TODO: ?
+
+    // Monadic instructions
+    copy,
+
+    // Diadic instruction
+    bitOr,
+    bitXor,
+    bitAnd,
+    equal,
+    notEqual,
+    greater,
+    lesser,
+    greaterEqual,
+    lesserEqual,
+    leftShift,
+    rightShift,
+    add,
+    subtract,
+    multiply,
+    divide,
+    modulus,
+    exponent,
+    not,
+    neg,
+    bitNot,
+    addrOf,
+    sizeOf, //< For extern types that Orng can't do automatically
+    deref,
+    derefCopy,
+    index,
+    indexCopy,
+    subSlice,
+    select,
+    selectCopy,
+    cast,
+    phony,
+
+    // Control-flow
+    label,
+    jump,
+    branchIfFalse,
+    call,
+
+    // Errors
+    pushStackTrace,
+    clearStackTrace,
+    throw,
+};
+
+const IRData = union(enum) {
+    branch: *IR,
+    int: i128,
+};
+
 pub const IR = struct {
     uid: u64,
-    kind: enum {
-        // nullary instructions
-        loadSymbol,
-        loadExtern,
-        loadInt,
-        loadReal,
-        loadArglist, // TODO: ?
-        loadArrayLiteral, // TODO: ?
-        loadDefaultArray, // TODO: ?
-        loadString, // TODO: ?
-
-        // Monadic instructions
-        copy,
-
-        // Diadic instruction
-        bitOr,
-        bitXor,
-        bitAnd,
-        equal,
-        notEqual,
-        greater,
-        lesser,
-        greaterEqual,
-        lesserEqual,
-        leftShift,
-        rightShift,
-        add,
-        subtract,
-        multiply,
-        divide,
-        modulus,
-        exponent,
-        not,
-        neg,
-        bitNot,
-        addrOf,
-        sizeOf, //< For extern types that Orng can't do automatically
-        deref,
-        derefCopy,
-        index,
-        indexCopy,
-        subSlice,
-        select,
-        selectCopy,
-        cast,
-        phony,
-
-        // Control-flow
-        label,
-        jump,
-        branchIfFalse,
-        call,
-
-        // Errors
-        pushStackTrace,
-        clearStackTrace,
-        throw,
-    },
+    kind: IRKind,
     dest: ?*SymbolVersion,
     src1: ?*SymbolVersion,
     src2: ?*SymbolVersion,
 
-    data: union(enum) {
-        branch: *IR,
-    },
-
+    data: IRData,
     next: ?*IR,
     prev: ?*IR,
 
     in_block: ?*BasicBlock,
+
+    fn create(kind: IRKind, dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try allocator.create(IR);
+        retval.kind = kind;
+        retval.dest = dest;
+        retval.src1 = src1;
+        retval.src2 = src2;
+        retval.uid = ir_uid;
+        retval.in_block = null;
+        retval.prev = null;
+        retval.next = null;
+        ir_uid += 1;
+        return retval;
+    }
+
+    fn createInt(dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, int: i128, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadInt, dest, src1, src2, allocator);
+        retval.data = IRData{ .int = int };
+        return retval;
+    }
 };
 
 pub const BasicBlock = struct {
     uid: u64,
-    instructions: ?*IR,
+    ir_head: ?*IR,
     has_branch: bool,
 
     /// If null, jump to function end label
@@ -119,7 +145,8 @@ pub const BasicBlock = struct {
 
 pub const CFG = struct {
     /// Temporary, flat instruction list before the BBs are created
-    instructions: ?*IR,
+    ir_head: ?*IR,
+    ir_tail: ?*IR,
 
     /// Initial basic block in the basic block graph
     block_graph_head: ?*BasicBlock,
@@ -140,17 +167,19 @@ pub const CFG = struct {
 
     pub fn create(symbol: *Symbol, allocator: std.mem.Allocator) !*CFG {
         var retval = try allocator.create(CFG);
-        retval.instructions = null;
+        retval.ir_head = null;
+        retval.ir_tail = null;
         retval.block_graph_head = null;
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
         retval.leaves = std.ArrayList(*CFG).init(allocator);
         retval.symbol = symbol;
+        retval.temp_symbol = try Symbol.create(symbol.scope, "$temp", span.Span{ .col = 0, .line = 0 }, null, null, allocator);
         retval.visited = false;
 
         var eval = try retval.flattenAST(symbol.scope, symbol.init.?, allocator);
         _ = eval;
 
-        retval.block_graph_head = try retval.basicBlockFromIR(retval.instructions, allocator);
+        retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
 
         return retval;
     }
@@ -162,13 +191,39 @@ pub const CFG = struct {
         return retval;
     }
 
+    fn createTempSymbolVersion(self: *CFG, _type: *AST, allocator: std.mem.Allocator) !*SymbolVersion {
+        var retval = try SymbolVersion.createUnversioned(self.temp_symbol, _type, allocator);
+        retval.makeUnique();
+        return retval;
+    }
+
+    fn appendInstruction(self: *CFG, ir: *IR) void {
+        if (self.ir_head == null) {
+            self.ir_head = ir;
+        } else if (self.ir_tail == null) {
+            self.ir_head.?.next = ir;
+            self.ir_tail = ir;
+            self.ir_tail.?.prev = self.ir_head;
+        } else {
+            self.ir_tail.?.next = ir;
+            ir.prev = self.ir_tail;
+            self.ir_tail = ir;
+        }
+    }
+
     fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, allocator: std.mem.Allocator) !*SymbolVersion {
-        _ = self;
         switch (ast.*) {
             .identifier => {
                 var symbol = scope.lookup(ast.identifier.token.data).?;
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                 return symbver;
+            },
+            .int => {
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var ir = try IR.createInt(temp, null, null, ast.int.data, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
@@ -179,12 +234,14 @@ pub const CFG = struct {
 
     fn basicBlockFromIR(self: *CFG, maybe_ir: ?*IR, allocator: std.mem.Allocator) !?*BasicBlock {
         if (maybe_ir == null) {
+            std.debug.print("Took the null ir route\n", .{});
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
+            std.debug.print("Took the in block route\n", .{});
             return in_block;
         } else {
             var retval: *BasicBlock = try self.createBasicBlock(allocator);
-            retval.instructions = maybe_ir;
+            retval.ir_head = maybe_ir;
             var _maybe_ir = maybe_ir;
             while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
                 ir.in_block = retval;

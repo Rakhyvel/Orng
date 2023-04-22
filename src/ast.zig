@@ -255,6 +255,11 @@ pub const AST = union(enum) {
             .unit => other == AST.unit,
         }
     }
+
+    pub fn typeof(self: *AST) *AST {
+        return self; // TODO: Lol, lmao
+    }
+
     pub fn serializeOptional(self: ?*AST, out: *String) Errors!void {
         if (self) |s| {
             try s.serialize(out);
