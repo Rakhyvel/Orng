@@ -57,10 +57,12 @@
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
+- [ ] Symbols are properly type-inferrenced if their type is null
 - [ ] Collect a dependency graph of product and sum types
 
-### Validate
-- [ ] Do other validations (?)
+### Misc. tree-walks
+- [ ] Rewrite [op]= assignments
+- [ ] Identifiers refer to valid, defined symbols
 
 ### Errors
 - [ ] Add filename to Span, add file map
@@ -76,6 +78,11 @@
     - [x] blocks
     - [x] declarations
     - [ ] assignment
+        - [ ] ident-assign
+        - [ ] deref-assign
+        - [ ] paren-assign
+        - [ ] index-assign (defer to after arrays)
+        - [ ] dot-assign (defer to after tuples)
     - [ ] unary operators
         - [ ] not
         - [ ] !

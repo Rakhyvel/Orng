@@ -11,6 +11,8 @@ pub const SymbolVersion = struct {
     version: ?u64,
     def: *IR,
 
+    lvalue: bool,
+
     /// Type of the SymbolVersion. Temps use the same symbol, so can't use that for type info
     type: *AST,
 
@@ -19,6 +21,7 @@ pub const SymbolVersion = struct {
         retval.symbol = symbol;
         retval.version = null;
         retval.type = _type;
+        retval.lvalue = false;
         return retval;
     }
 
@@ -287,6 +290,20 @@ pub const CFG = struct {
                 symbver.def = ir;
                 self.appendInstruction(ir);
                 return symbver;
+            },
+            .assign => {
+                if (ast.assign.lhs.* == .identifier) {
+                    var symbol = scope.lookup(ast.assign.lhs.identifier.token.data).?;
+                    var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    symbver.lvalue = true;
+                    var rhs = try self.flattenAST(scope, ast.assign.rhs, allocator);
+                    var ir = try IR.create(.copy, symbver, rhs, null, allocator);
+                    symbver.def = ir;
+                    self.appendInstruction(ir);
+                    return null;
+                } else {
+                    return error.NotAnLValue;
+                }
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
