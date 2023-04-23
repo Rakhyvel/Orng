@@ -119,7 +119,7 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *
 }
 
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
-    return try Symbol.create(
+    var retval = try Symbol.create(
         scope,
         definition.decl.pattern.identifier.token.data,
         definition.decl.pattern.getToken().span,
@@ -127,6 +127,8 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
         definition.decl.init,
         allocator,
     );
+    definition.decl.symbol = retval;
+    return retval;
 }
 
 fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {

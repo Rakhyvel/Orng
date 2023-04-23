@@ -74,7 +74,7 @@
     - [x] float
     - [x] string
     - [x] blocks
-    - [ ] declarations
+    - [x] declarations
     - [ ] assignment
     - [ ] unary operators
         - [ ] not
@@ -127,8 +127,9 @@
     - [ ] fnDecl
     - [ ] defer
     - [ ] throw (defer to after errors)
-- [ ] Convert IR lists to control-flow graph with symbol versions
+- [ ] Write a defaultValue function which generates a default value IR for a given type
 - [ ] Do optimizations on the control-flow graph
+- [ ] Version symbols
 
 ### Codegen
 - [ ] Handle all types of IR

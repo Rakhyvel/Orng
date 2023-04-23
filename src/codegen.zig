@@ -121,6 +121,11 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("{s};\n", .{ir.data.string});
         },
+        .copy => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(";\n", .{});
+        },
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;
@@ -133,7 +138,7 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
     }
-    try out.writer().print("_{} = ", .{symbver.version.?});
+    try out.writer().print("_{} = ", .{symbver.version orelse 0}); // TODO: Assert versioned
 }
 
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
@@ -141,9 +146,16 @@ fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
     }
-    try out.writer().print("_{};\n", .{symbver.version.?});
+    try out.writer().print("_{};\n", .{symbver.version orelse 0}); // TODO: Assert versioned
 }
 
 fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
     try out.writer().print("{s}", .{symbol.name});
+}
+
+fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    if (symbver.symbol.name[0] != '$') {
+        try printPath(symbver.symbol, out);
+    }
+    try out.writer().print("_{}", .{symbver.version orelse 0}); // TODO: Assert versioned
 }

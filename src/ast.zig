@@ -4,6 +4,7 @@ const tokens = @import("token.zig");
 
 const Scope = _symbol.Scope;
 const String = @import("zig-string/zig-string.zig").String;
+const Symbol = _symbol.Symbol;
 const Token = tokens.Token;
 const TokenKind = tokens.TokenKind;
 
@@ -77,7 +78,7 @@ pub const AST = union(enum) {
     _continue: struct { token: Token },
     throw: struct { token: Token, expr: *AST },
     _return: struct { token: Token, expr: ?*AST },
-    decl: struct { token: Token, pattern: *AST, type: ?*AST, init: ?*AST },
+    decl: struct { token: Token, symbol: ?*Symbol, pattern: *AST, type: ?*AST, init: ?*AST },
     fnDecl: struct { token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
     _defer: struct { token: Token, expr: *AST },
     assign: struct { token: Token, lhs: *AST, rhs: *AST },
@@ -235,7 +236,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createDecl(token: Token, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .decl = .{ .token = token, .pattern = pattern, .type = _type, .init = init } }, allocator);
+        return try AST.box(AST{ .decl = .{ .token = token, .symbol = null, .pattern = pattern, .type = _type, .init = init } }, allocator);
     }
 
     pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, allocator: std.mem.Allocator) !*AST {

@@ -275,6 +275,19 @@ pub const CFG = struct {
                     }
                 }
             },
+            .decl => {
+                var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.type.?, allocator);
+                var def: ?*SymbolVersion = null;
+                if (ast.decl.symbol.?.init) |init| {
+                    def = try self.flattenAST(ast.decl.symbol.?.scope, init, allocator);
+                } else {
+                    // self.defaultValue(ast.decl.symbol.type)
+                }
+                var ir = try IR.create(.copy, symbver, def, null, allocator);
+                symbver.def = ir;
+                self.appendInstruction(ir);
+                return symbver;
+            },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
                 return error.Unimplemented;
