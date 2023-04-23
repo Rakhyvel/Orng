@@ -1,8 +1,9 @@
 const std = @import("std");
-
+const _symbol = @import("symbol.zig");
 const tokens = @import("token.zig");
-const String = @import("zig-string/zig-string.zig").String;
 
+const Scope = _symbol.Scope;
+const String = @import("zig-string/zig-string.zig").String;
 const Token = tokens.Token;
 const TokenKind = tokens.TokenKind;
 
@@ -71,7 +72,7 @@ pub const AST = union(enum) {
         elseBlock: ?*AST,
     },
 
-    block: struct { token: Token, statements: std.ArrayList(*AST), final: ?*AST },
+    block: struct { token: Token, scope: ?*Scope, statements: std.ArrayList(*AST), final: ?*AST },
     _break: struct { token: Token },
     _continue: struct { token: Token },
     throw: struct { token: Token, expr: *AST },
@@ -214,7 +215,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createBlock(token: Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .block = .{ .token = token, .statements = statements, .final = final } }, allocator);
+        return try AST.box(AST{ .block = .{ .token = token, .scope = null, .statements = statements, .final = final } }, allocator);
     }
 
     pub fn createBreak(token: Token, allocator: std.mem.Allocator) !*AST {

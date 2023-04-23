@@ -72,8 +72,8 @@
     - [x] int
     - [x] char
     - [x] float
-    - [ ] string
-    - [ ] blocks
+    - [x] string
+    - [x] blocks
     - [ ] declarations
     - [ ] assignment
     - [ ] unary operators

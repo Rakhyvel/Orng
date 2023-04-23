@@ -1,1 +1,5 @@
-fn main: (sys: System)->!() = "Hello, World!"
+fn main: (sys: System)->!() = 
+    "Hello, World!"
+    10
+    10.0
+    '10'

@@ -79,12 +79,10 @@ pub const Symbol = struct {
 pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Scope {
     var retval = try Scope.init(root, allocator);
     retval.parent = root;
-    for (definitions.items) |definition| {
+    var i: usize = 0;
+    while (i < definitions.items.len) : (i += 1) {
+        var definition = definitions.items[i];
         switch (definition.*) {
-            .block => {
-                try retval.children.append(try createScope(definition.block.statements, retval, errors, allocator));
-            },
-
             .decl => {
                 var symbol = try createSymbol(definition, retval, allocator);
                 if (retval.lookup(symbol.name)) |first| {
@@ -144,6 +142,11 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         allocator,
     );
     var fnScope = try createScope(definition.fnDecl.params, scope, errors, allocator);
+    if (definition.fnDecl.init.* == .block) {
+        var new_scope = try createScope(definition.fnDecl.init.block.statements, fnScope, errors, allocator);
+        definition.fnDecl.init.block.scope = new_scope;
+        try fnScope.children.append(new_scope);
+    }
 
     return try Symbol.create(
         fnScope,

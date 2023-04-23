@@ -225,7 +225,7 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, allocator: std.mem.Allocator) !*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, allocator: std.mem.Allocator) !?*SymbolVersion {
         switch (ast.*) {
             .identifier => {
                 var symbol = scope.lookup(ast.identifier.token.data).?;
@@ -259,6 +259,21 @@ pub const CFG = struct {
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
+            },
+            .block => {
+                if (ast.block.statements.items.len == 0 and ast.block.final == null) {
+                    return null;
+                } else {
+                    var temp: ?*SymbolVersion = null;
+                    for (ast.block.statements.items) |child| {
+                        temp = try self.flattenAST(ast.block.scope.?, child, allocator);
+                    }
+                    if (ast.block.final) |final| {
+                        return self.flattenAST(ast.block.scope.?, final, allocator);
+                    } else {
+                        return temp;
+                    }
+                }
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
