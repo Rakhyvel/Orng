@@ -36,7 +36,7 @@ pub const IRKind = enum {
     loadSymbol,
     loadExtern,
     loadInt,
-    loadReal,
+    loadFloat,
     loadArglist, // TODO: ?
     loadArrayLiteral, // TODO: ?
     loadDefaultArray, // TODO: ?
@@ -93,6 +93,7 @@ pub const IRKind = enum {
 const IRData = union(enum) {
     branch: *IR,
     int: i128,
+    float: f64,
 };
 
 pub const IR = struct {
@@ -122,9 +123,15 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createInt(dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, int: i128, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.loadInt, dest, src1, src2, allocator);
+    fn createInt(dest: ?*SymbolVersion, int: i128, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadInt, dest, null, null, allocator);
         retval.data = IRData{ .int = int };
+        return retval;
+    }
+
+    fn createFloat(dest: ?*SymbolVersion, float: f64, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadFloat, dest, null, null, allocator);
+        retval.data = IRData{ .float = float };
         return retval;
     }
 };
@@ -220,21 +227,28 @@ pub const CFG = struct {
             },
             .int => {
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
-                var ir = try IR.createInt(temp, null, null, ast.int.data, allocator);
+                var ir = try IR.createInt(temp, ast.int.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
             },
             .char => {
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
-                var ir = try IR.createInt(temp, null, null, ast.char.data, allocator);
+                var ir = try IR.createInt(temp, ast.char.data, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .float => {
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var ir = try IR.createFloat(temp, ast.float.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
-                return error.OutOfMemory;
+                return error.Unimplemented;
             },
         }
     }

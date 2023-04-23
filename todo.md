@@ -14,6 +14,7 @@
 - [x] Implement Spans
 - [x] Error if string (resp. character) reaches EOF before " (resp. ')
 - [ ] Write negetive tests for errors
+- [ ] Reject invalid character literals
 
 ### Layout
 - [x] Write tests
@@ -39,7 +40,7 @@
 - [x] Properly handle allocator errors in {parser, ast}.zig
 - [x] Top level declarations should require a newline
 - [ ] Make exponentiation right-associative, higher precedence than `-`
-- [ ] Support unicode characters somehow, escapes with \
+- [ ] Support unicode characters somehow, and escapes with \
 
 ### Symbol table
 - [x] Create symbol tree from file AST
@@ -56,6 +57,7 @@
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
+- [ ] Collect a dependency graph of product and sum types
 
 ### Validate
 - [ ] Do other validations (?)
@@ -64,13 +66,73 @@
 - [ ] Add filename to Span, add file map
 
 ### IR
-- [ ] Write IR types
+- [x] Write IR types
 - [ ] Convert function symbol defintitions to IR lists
+    - [x] identifier
+    - [x] int
+    - [x] char
+    - [x] float
+    - [ ] string
+    - [ ] blocks
+    - [ ] declarations
+    - [ ] assignment
+    - [ ] unary operators
+        - [ ] not
+        - [ ] !
+        - [ ] -
+        - [ ] ^
+        - [ ] ? (defer to after optionals)
+        - [ ] try (defer to after errors)
+        - [ ] .? (defer to after optionals)
+    - [ ] binary operators
+        - [ ] and
+        - [ ] or
+        - [ ] !=
+        - [ ] ==
+        - [ ] >
+        - [ ] <
+        - [ ] >=
+        - [ ] <=
+        - [ ] +
+        - [ ] -
+        - [ ] *
+        - [ ] /
+        - [ ] %
+        - [ ] **
+        - [ ] orelse (defer to after optionals)
+        - [ ] catch (defer to after errors)
+        - [ ] ! (defer to after errors)
+        - [ ] <> (fancy call in disguise, rewrite pass?)
+        - [ ] ++ (defer to after tuples)
+        - [ ] -- (defer to after tuples)
+        - [ ] || (defer to after sum types)
+        - [ ] .> (fancy call in disguise, rewrite pass?)
+        - [ ] index (defer to after arrays)
+        - [ ] . (defer to after tuples)
+    - [ ] call
+    - [ ] addrOf
+    - [ ] sliceOf (defer to after arrays)
+    - [ ] namedArg (maybe this is subsumed by a tree-walk on a call)
+    - [ ] subSlice (defer to after arrays)
+    - [ ] annotation (this is just a type)
+    - [ ] inferred members (again, likely subsumed by a tree-walk on a product expression)
+    - [ ] if
+    - [ ] cond
+    - [ ] case
+    - [ ] while
+    - [ ] for
+    - [ ] break
+    - [ ] continue
+    - [ ] return
+    - [ ] fnDecl
+    - [ ] defer
+    - [ ] throw (defer to after errors)
 - [ ] Convert IR lists to control-flow graph with symbol versions
 - [ ] Do optimizations on the control-flow graph
 
 ### Codegen
-- [ ] Write the IR out to an output .c file
+- [ ] Handle all types of IR
+- [ ] Be able to print types (requires a type depen graph)
 
 ### Backend
 - [ ] Call gcc on the .c file

@@ -10,7 +10,7 @@ pub const TokenKind = enum(u32) {
     HEX_INTEGER,
     IDENTIFIER,
     OCT_INTEGER,
-    REAL,
+    FLOAT,
     STRING,
 
     // Keywords
@@ -110,6 +110,18 @@ pub const TokenKind = enum(u32) {
     len,
 };
 
+pub const unaryOperators = [_]TokenKind{
+    .NOT,
+    .E_MARK,
+    .MINUS,
+    .AMPERSAND,
+    .L_SQUARE,
+    .Q_MARK,
+    .TRY,
+    .PERIOD_Q_MARK,
+    .CARET,
+};
+
 pub const binaryOperators = [_]TokenKind{
     .R_PAREN,
     .EQUALS,
@@ -203,7 +215,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .HEX_INTEGER => "<hexadecimal integer>",
         .IDENTIFIER => "<an identifier>",
         .OCT_INTEGER => "<octal integer>",
-        .REAL => "<real number>",
+        .FLOAT => "<floating-point number>",
         .STRING => "<string literal>",
         .NEWLINE => "<new-line>",
         .INDENT => "<indent>",

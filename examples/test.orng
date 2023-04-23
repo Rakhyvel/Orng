@@ -1,1 +1,1 @@
-fn main: (sys: System)->!() = '\\'
+fn main: (sys: System)->!() = 3.14159

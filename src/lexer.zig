@@ -20,8 +20,8 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
         escapedChar,
         integer,
         integerDigit,
-        real,
-        realDigit,
+        float,
+        floatDigit,
         hex,
         hexDigit,
         octal,
@@ -177,10 +177,10 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .integer => {
                 if (next_char == '.' and std.ascii.isDigit(contents[ix + 1])) {
-                    // real number
+                    // floating-point
                     ix += 1;
                     col += 1;
-                    state = .real;
+                    state = .float;
                 } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'x') {
                     // hexadecimal
                     ix += 1;
@@ -221,13 +221,13 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                 }
             },
 
-            .real => {
+            .float => {
                 if (next_char == '\'') {
                     ix += 1;
                     col += 1;
-                    state = .realDigit;
+                    state = .floatDigit;
                 } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], .REAL, line, col));
+                    try tokens.append(Token.create(contents[slice_start..ix], .FLOAT, line, col));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -236,13 +236,13 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                 }
             },
 
-            .realDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
+            .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                 errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid floating point literal" } });
                 return error.lexerError;
             } else {
                 ix += 1;
                 col += 1;
-                state = .real;
+                state = .float;
             },
 
             .hex => switch (next_char) {
@@ -402,7 +402,7 @@ test "numbers" {
     defer tokens.deinit();
 
     try std.testing.expectEqual(tokens.items.len, 6);
-    try tokens.items[0].expectToken(.REAL, "10.0'0", 6, 1);
+    try tokens.items[0].expectToken(.FLOAT, "10.0'0", 6, 1);
     try tokens.items[1].expectToken(.HEX_INTEGER, "0xAB'C", 13, 1);
     try tokens.items[2].expectToken(.OCT_INTEGER, "0o77'7", 20, 1);
     try tokens.items[3].expectToken(.BIN_INTEGER, "0b11'1", 27, 1);

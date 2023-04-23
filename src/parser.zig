@@ -68,7 +68,7 @@ pub const Parser = struct {
         or nextKind == .HEX_INTEGER //
         or nextKind == .DECIMAL_INTEGER //
         or nextKind == .OCT_INTEGER //
-        or nextKind == .REAL //
+        or nextKind == .FLOAT //
         or nextKind == .STRING;
     }
 
@@ -547,7 +547,7 @@ pub const Parser = struct {
             return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.astAllocator);
         } else if (self.accept(.BIN_INTEGER)) |token| {
             return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.astAllocator);
-        } else if (self.accept(.REAL)) |token| {
+        } else if (self.accept(.FLOAT)) |token| {
             return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
             // TODO: Support unicode, escapes

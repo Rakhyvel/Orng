@@ -40,7 +40,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     defer callGraph.visited = false;
 
     // Print function return type, name, parameter list
-    try out.writer().print("int {s}() {{\n", .{callGraph.symbol.name});
+    try out.writer().print("int test_{s}() {{\n", .{callGraph.symbol.name});
 
     // TODO: If the function return type isn't void, create a `retval` variable
 
@@ -113,7 +113,14 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("{};\n", .{ir.data.int});
         },
-        else => {},
+        .loadFloat => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("{};\n", .{ir.data.float});
+        },
+        else => {
+            std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
+            return error.Unimplemented;
+        },
     }
 }
 
