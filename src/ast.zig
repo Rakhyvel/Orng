@@ -37,7 +37,7 @@ pub const AST = union(enum) {
     int: struct { token: Token, data: i128 },
     char: struct { token: Token, data: u8 }, // TODO: Represent a UTF-8 codepoint AKA a rune
     float: struct { token: Token, data: f64 },
-    _string: struct { token: Token },
+    string: struct { token: Token },
     identifier: struct { token: Token },
     _unreachable: struct { token: Token },
 
@@ -93,7 +93,7 @@ pub const AST = union(enum) {
             .int => return self.int.token,
             .char => return self.char.token,
             .float => return self.float.token,
-            ._string => return self._string.token,
+            .string => return self.string.token,
             .identifier => return self.identifier.token,
             ._unreachable => return self._unreachable.token,
 
@@ -142,7 +142,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createString(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._string = .{ .token = token } }, allocator);
+        return try AST.box(AST{ .string = .{ .token = token } }, allocator);
     }
 
     pub fn createIdentifier(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -309,7 +309,7 @@ pub const AST = union(enum) {
                 try out.insert("}", out.len());
             },
 
-            ._string => {},
+            .string => {},
 
             .identifier => {
                 try out.insert("AST.identifier{token: ", out.len());

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682276985
-#define ORNG_1682276985
+#ifndef ORNG_1682278497
+#define ORNG_1682278497
 
 /* Function Definitions */
 int main();
@@ -8,12 +8,12 @@ int main();
 int test_main() {
 	int _0;
 BB0:;
-	_0 = 3.14159e+00;
+	_0 = "Hello, World!";
 }
 
 int main()
 {
-  printf("Hello, World! %f", 3.14159e+00);
+  printf("Hello, World!");
   return 0;
 }
 

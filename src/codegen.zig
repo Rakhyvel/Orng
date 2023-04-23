@@ -117,6 +117,10 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("{};\n", .{ir.data.float});
         },
+        .loadString => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("{s};\n", .{ir.data.string});
+        },
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;

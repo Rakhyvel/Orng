@@ -94,6 +94,7 @@ const IRData = union(enum) {
     branch: *IR,
     int: i128,
     float: f64,
+    string: []const u8,
 };
 
 pub const IR = struct {
@@ -123,15 +124,21 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createInt(dest: ?*SymbolVersion, int: i128, allocator: std.mem.Allocator) !*IR {
+    fn createInt(dest: *SymbolVersion, int: i128, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadInt, dest, null, null, allocator);
         retval.data = IRData{ .int = int };
         return retval;
     }
 
-    fn createFloat(dest: ?*SymbolVersion, float: f64, allocator: std.mem.Allocator) !*IR {
+    fn createFloat(dest: *SymbolVersion, float: f64, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadFloat, dest, null, null, allocator);
         retval.data = IRData{ .float = float };
+        return retval;
+    }
+
+    fn createString(dest: ?*SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadString, dest, null, null, allocator);
+        retval.data = IRData{ .string = string };
         return retval;
     }
 };
@@ -242,6 +249,13 @@ pub const CFG = struct {
             .float => {
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
                 var ir = try IR.createFloat(temp, ast.float.data, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .string => {
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var ir = try IR.createString(temp, ast.string.token.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;

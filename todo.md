@@ -132,6 +132,8 @@
 
 ### Codegen
 - [ ] Handle all types of IR
+- [ ] Print the retval of a function
+    - [ ] (when types are intoduced): if the return type of a function is void, don't do this ^
 - [ ] Be able to print types (requires a type depen graph)
 
 ### Backend

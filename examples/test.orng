@@ -1,1 +1,1 @@
-fn main: (sys: System)->!() = 3.14159
+fn main: (sys: System)->!() = "Hello, World!"
