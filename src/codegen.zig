@@ -12,7 +12,7 @@ const SymbolVersion = _ir.SymbolVersion;
 /// Takes in a file handler and a program structure
 pub fn generate(program: *Program, file: *std.fs.File) !void {
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
-    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n", .{ program.uid, program.uid });
+    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n\n", .{ program.uid, program.uid });
 
     try file.writer().print("/* Function Definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
@@ -60,7 +60,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     }
 
     // Generate the `end` basic block
-    try out.writer().print("}}\n", .{});
+    try out.writer().print("end:\n}}\n", .{});
 
     // Generate leaf functions
     for (callGraph.leaves.items) |leaf| {
@@ -96,14 +96,33 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 
     if (bb.has_branch) {
         // Generate the if
-        // Generate the `branch` BB
+        try out.writer().print("\tif (!", .{});
+        try printVar(bb.condition.?, out);
+        try out.writer().print(") {{\n", .{});
+        if (bb.branch) |branch| {
+            try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
+        } else {
+            try out.writer().print("\t\tgoto end;\n\t}} else {{\n", .{});
+        }
+
         // Generate the `next` BB
+        if (bb.next) |next| {
+            try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
+            try generateBasicBlock(next, out);
+        } else {
+            try out.writer().print("\t\tgoto end;\n\t}}\n", .{});
+        }
+
+        // Generate the `branch` fallthrough BB
+        if (bb.branch) |branch| {
+            try generateBasicBlock(branch, out);
+        }
     } else if (bb.next) |_| {
         // generatePhi
         // \tgoto BB{};\n
         // Generate the `next` BB
     } else {
-        // \tgoto end;\n
+        try out.writer().print("\tgoto end;\n", .{});
     }
 }
 
@@ -155,6 +174,11 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
+        .phony,
+        .label,
+        .jump,
+        .branchIfFalse,
+        => {},
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;

@@ -101,6 +101,7 @@ const IRData = union(enum) {
     float: f64,
     string: []const u8,
     symbol: *Symbol,
+    list: std.ArrayList(*IR),
 };
 
 pub const IR = struct {
@@ -142,9 +143,32 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createString(dest: ?*SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
+    fn createString(dest: *SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadString, dest, null, null, allocator);
         retval.data = IRData{ .string = string };
+        return retval;
+    }
+
+    fn createPhony(dest: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.phony, dest, null, null, allocator);
+        retval.data = IRData{ .list = std.ArrayList(*IR).init(allocator) };
+        return retval;
+    }
+
+    fn createLabel(allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.label, null, null, null, allocator);
+        return retval;
+    }
+
+    fn createBranch(condition: *SymbolVersion, label: *IR, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.branchIfFalse, null, condition, null, allocator);
+        retval.data = IRData{ .branch = label };
+        return retval;
+    }
+
+    fn createJump(label: *IR, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.jump, null, null, null, allocator);
+        retval.data = IRData{ .branch = label };
         return retval;
     }
 };
@@ -319,6 +343,33 @@ pub const CFG = struct {
                 } else {
                     return error.NotAnLValue;
                 }
+            },
+            ._or => {
+                var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var phony = try IR.createPhony(symbver, allocator);
+                self.appendInstruction(phony);
+
+                var else_label = try IR.createLabel(allocator);
+                var end_label = try IR.createLabel(allocator);
+
+                var lhs = (try self.flattenAST(scope, ast._or.lhs, false, allocator)).?;
+                var branch = try IR.createBranch(lhs, else_label, allocator);
+                self.appendInstruction(branch);
+                var load_true = try IR.createInt(symbver, 1, allocator);
+                try phony.data.list.append(load_true);
+                self.appendInstruction(load_true);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+                self.appendInstruction(else_label);
+                var rhs = try self.flattenAST(scope, ast._or.rhs, false, allocator);
+                var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
+                try phony.data.list.append(copy_right);
+                self.appendInstruction(copy_right);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+                self.appendInstruction(end_label);
+                return symbver;
+            },
+            ._and => {
+                return null;
             },
 
             // Fancy Operators

@@ -78,14 +78,14 @@
     - [x] string
     - [x] blocks
     - [x] declarations
-    - [x] assignment
+    - [ ] assignment
         - [x] ident-assign
         - [x] deref-assign
         - [ ] dot-assign (defer to after tuples)
         - [ ] index-assign (defer to after arrays)
     - [ ] unary operators
         - [x] not
-        - [ ] -
+        - [x] -
         - [x] ^
         - [ ] ? (defer to after optionals)
         - [ ] .? (defer to after optionals)
