@@ -112,9 +112,9 @@ pub const AST = union(enum) {
         bodyBlock: *AST,
         elseBlock: ?*AST,
     },
+    block: struct { token: Token, scope: ?*Scope, statements: std.ArrayList(*AST), final: ?*AST },
 
     // Control-flow statements
-    block: struct { token: Token, scope: ?*Scope, statements: std.ArrayList(*AST), final: ?*AST },
     _break: struct { token: Token },
     _continue: struct { token: Token },
     _unreachable: struct { token: Token },

@@ -80,18 +80,17 @@
     - [x] declarations
     - [x] assignment
         - [x] ident-assign
-        - [ ] deref-assign
-        - [ ] paren-assign
-        - [ ] index-assign (defer to after arrays)
+        - [x] deref-assign
         - [ ] dot-assign (defer to after tuples)
+        - [ ] index-assign (defer to after arrays)
     - [ ] unary operators
-        - [ ] not
-        - [ ] !
+        - [x] not
         - [ ] -
-        - [ ] ^
+        - [x] ^
         - [ ] ? (defer to after optionals)
-        - [ ] try (defer to after errors)
         - [ ] .? (defer to after optionals)
+        - [ ] try (defer to after errors)
+        - [ ] ! (defer to after errors)
     - [ ] binary operators
         - [ ] and
         - [ ] or
@@ -107,16 +106,16 @@
         - [ ] /
         - [ ] %
         - [ ] **
+        - [ ] <> (fancy call in disguise, rewrite pass?)
+        - [ ] .> (fancy call in disguise, rewrite pass?)
+        - [ ] . (defer to after tuples)
+        - [ ] ++ (defer to after tuples)
+        - [ ] -- (defer to after tuples)
+        - [ ] index (defer to after arrays)
+        - [ ] || (defer to after sum types)
         - [ ] orelse (defer to after optionals)
         - [ ] catch (defer to after errors)
         - [ ] ! (defer to after errors)
-        - [ ] <> (fancy call in disguise, rewrite pass?)
-        - [ ] ++ (defer to after tuples)
-        - [ ] -- (defer to after tuples)
-        - [ ] || (defer to after sum types)
-        - [ ] .> (fancy call in disguise, rewrite pass?)
-        - [ ] index (defer to after arrays)
-        - [ ] . (defer to after tuples)
     - [ ] call
     - [ ] addrOf
     - [ ] sliceOf (defer to after arrays)

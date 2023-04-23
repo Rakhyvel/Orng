@@ -69,7 +69,8 @@ pub const Parser = struct {
         or nextKind == .DECIMAL_INTEGER //
         or nextKind == .OCT_INTEGER //
         or nextKind == .FLOAT //
-        or nextKind == .STRING;
+        or nextKind == .STRING //
+        or nextKind == .NOT;
     }
 
     fn nextIsStatement(self: *Parser) bool {

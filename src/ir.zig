@@ -49,7 +49,7 @@ pub const IRKind = enum {
     // Monadic instructions
     copy,
     not,
-    neg,
+    negate,
     bitNot,
     addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
@@ -233,12 +233,7 @@ pub const CFG = struct {
 
     fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, lvalue: bool, allocator: std.mem.Allocator) !?*SymbolVersion {
         switch (ast.*) {
-            .identifier => {
-                var symbol = scope.lookup(ast.identifier.token.data).?;
-                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                symbver.lvalue = lvalue;
-                return symbver;
-            },
+            // Literals
             .int => {
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
                 var ir = try IR.createInt(temp, ast.int.data, allocator);
@@ -267,9 +262,34 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .identifier => {
+                var symbol = scope.lookup(ast.identifier.token.data).?;
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                symbver.lvalue = lvalue;
+                return symbver;
+            },
+
+            // Unary operators
+            .not => {
+                var expr = try self.flattenAST(scope, ast.not.expr, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.not, temp, expr, null, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .negate => {
+                var expr = try self.flattenAST(scope, ast.negate.expr, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.negate, temp, expr, null, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
             .dereference => {
                 var expr = try self.flattenAST(scope, ast.dereference.expr, lvalue, allocator);
-
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.dereference, temp, expr, null, allocator);
@@ -277,6 +297,8 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+
+            // Binary operators
             .assign => {
                 if (ast.assign.lhs.* == .identifier) {
                     var symbol = scope.lookup(ast.assign.lhs.identifier.token.data).?;
@@ -298,6 +320,10 @@ pub const CFG = struct {
                     return error.NotAnLValue;
                 }
             },
+
+            // Fancy Operators
+
+            // Control-flow expressions
             .block => {
                 if (ast.block.statements.items.len == 0 and ast.block.final == null) {
                     return null;
@@ -313,6 +339,8 @@ pub const CFG = struct {
                     }
                 }
             },
+
+            // Control-flow statements
             .decl => {
                 var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.type.?, allocator);
                 var def: ?*SymbolVersion = null;

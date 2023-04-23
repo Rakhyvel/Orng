@@ -130,6 +130,18 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
+        .not => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("!", .{});
+            try printVar(ir.src1.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .negate => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("-", .{});
+            try printVar(ir.src1.?, out);
+            try out.writer().print(";\n", .{});
+        },
         .dereference => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("*", .{});
