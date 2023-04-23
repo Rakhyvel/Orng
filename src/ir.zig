@@ -225,6 +225,13 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .char => {
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var ir = try IR.createInt(temp, null, null, ast.char.data, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
                 return error.OutOfMemory;

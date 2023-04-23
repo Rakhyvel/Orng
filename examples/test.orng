@@ -1,1 +1,1 @@
-fn main: (sys: System)->!() = 4
+fn main: (sys: System)->!() = '\\'

@@ -39,6 +39,7 @@
 - [x] Properly handle allocator errors in {parser, ast}.zig
 - [x] Top level declarations should require a newline
 - [ ] Make exponentiation right-associative, higher precedence than `-`
+- [ ] Support unicode characters somehow, escapes with \
 
 ### Symbol table
 - [x] Create symbol tree from file AST

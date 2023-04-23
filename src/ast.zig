@@ -35,7 +35,7 @@ const Errors = error{ InvalidRange, OutOfMemory };
 pub const AST = union(enum) {
     unit: struct { token: Token },
     int: struct { token: Token, data: i128 },
-    char: struct { token: Token, data: u32 },
+    char: struct { token: Token, data: u8 }, // TODO: Represent a UTF-8 codepoint AKA a rune
     float: struct { token: Token, data: f64 },
     _string: struct { token: Token },
     identifier: struct { token: Token },
@@ -133,7 +133,7 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .int = .{ .token = token, .data = data } }, allocator);
     }
 
-    pub fn createChar(token: Token, data: u32, allocator: std.mem.Allocator) !*AST {
+    pub fn createChar(token: Token, data: u8, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .char = .{ .token = token, .data = data } }, allocator);
     }
 

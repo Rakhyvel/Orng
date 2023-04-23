@@ -550,7 +550,8 @@ pub const Parser = struct {
         } else if (self.accept(.REAL)) |token| {
             return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
-            return try AST.createInt(token, token.data[1], self.astAllocator);
+            // TODO: Support unicode, escapes
+            return try AST.createChar(token, token.data[1], self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
             return try AST.createString(token, self.astAllocator);
         } else if (self.peekKind(.INDENT)) {

@@ -1,10 +1,12 @@
-const std = @import("std");
 const _ir = @import("ir.zig");
+const std = @import("std");
+const _symbol = @import("symbol.zig");
 
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
 const Program = @import("program.zig").Program;
+const Symbol = _symbol.Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
 /// Takes in a file handler and a program structure
@@ -118,7 +120,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\t", .{});
     if (symbver.symbol.name[0] != '$') {
-        // printPath(version.symbol, out)
+        try printPath(symbver.symbol, out);
     }
     try out.writer().print("_{} = ", .{symbver.version.?});
 }
@@ -126,7 +128,11 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\tint ", .{});
     if (symbver.symbol.name[0] != '$') {
-        // printPath(out, symbver.symbol)
+        try printPath(symbver.symbol, out);
     }
     try out.writer().print("_{};\n", .{symbver.version.?});
+}
+
+fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
+    try out.writer().print("{s}", .{symbol.name});
 }
