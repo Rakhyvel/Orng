@@ -59,15 +59,24 @@ pub fn main() !void {
     }
 
     // Parse
+    std.debug.print("Parse:\n", .{});
     var astAllocator = std.heap.ArenaAllocator.init(allocator);
     defer astAllocator.deinit();
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
-    var program_ast = parser.parse() catch {
-        errors.printErrors();
-        return;
+    var program_ast = parser.parse() catch |err| {
+        switch (err) {
+            error.parserError => {
+                errors.printErrors();
+                return;
+            },
+            else => {
+                return err;
+            },
+        }
     };
 
     // Symbol tree construction
+    std.debug.print("Symbols:\n", .{});
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
     var fileRoot = try symbol.Scope.init(null, symbolAllocator.allocator());
@@ -81,11 +90,13 @@ pub fn main() !void {
     // TODO
 
     // IR translation
+    std.debug.print("IR:\n", .{});
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
     var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, allocator);
 
     // Code generation
+    std.debug.print("Codegen:\n", .{});
     var program = try Program.init(cfg, allocator);
     var outputFile = try std.fs.cwd().createFile(
         "examples/out.c",

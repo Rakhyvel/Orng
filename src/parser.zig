@@ -291,7 +291,7 @@ pub const Parser = struct {
     fn sumType(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.productExpr();
         while (self.accept(.BAR)) |token| {
-            exp = try AST.createBinop(token, exp, try self.annotExpr(), self.astAllocator);
+            exp = try AST.createSum(token, exp, try self.annotExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -299,7 +299,7 @@ pub const Parser = struct {
     fn productExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.annotExpr();
         while (self.accept(.COMMA)) |token| {
-            exp = try AST.createBinop(token, exp, try self.annotExpr(), self.astAllocator);
+            exp = try AST.createProduct(token, exp, try self.annotExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -325,7 +325,7 @@ pub const Parser = struct {
     fn arrowExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.boolExpr();
         while (self.accept(.RIGHT_SKINNY_ARROW)) |token| {
-            exp = try AST.createBinop(token, exp, try self.boolExpr(), self.astAllocator);
+            exp = try AST.createFunction(token, exp, try self.boolExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -334,9 +334,9 @@ pub const Parser = struct {
         var exp = try self.neqExpr();
         while (true) {
             if (self.accept(.AND)) |token| {
-                exp = try AST.createBinop(token, exp, try self.neqExpr(), self.astAllocator);
+                exp = try AST.createAnd(token, exp, try self.neqExpr(), self.astAllocator);
             } else if (self.accept(.OR)) |token| {
-                exp = try AST.createBinop(token, exp, try self.neqExpr(), self.astAllocator);
+                exp = try AST.createOr(token, exp, try self.neqExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -346,7 +346,7 @@ pub const Parser = struct {
     fn neqExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.conditionalExpr();
         if (self.accept(.NOT_EQUALS)) |token| {
-            return try AST.createBinop(token, exp, try self.conditionalExpr(), self.astAllocator);
+            return try AST.createNotEqual(token, exp, try self.conditionalExpr(), self.astAllocator);
         } else {
             return exp;
         }
@@ -356,15 +356,15 @@ pub const Parser = struct {
         var exp = try self.deltaExpr();
         while (true) {
             if (self.accept(.D_EQUALS)) |token| {
-                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createEquals(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.GTR)) |token| {
-                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createGreater(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.LSR)) |token| {
-                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createLesser(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.GTE)) |token| {
-                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createGreaterEquals(token, exp, try self.deltaExpr(), self.astAllocator);
             } else if (self.accept(.LTE)) |token| {
-                exp = try AST.createBinop(token, exp, try self.deltaExpr(), self.astAllocator);
+                exp = try AST.createLesserEquals(token, exp, try self.deltaExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -375,7 +375,7 @@ pub const Parser = struct {
         var exp = try self.coalesceExpr();
         while (true) {
             if (self.accept(.DELTA)) |token| {
-                exp = try AST.createBinop(token, exp, try self.coalesceExpr(), self.astAllocator);
+                exp = try AST.createDelta(token, exp, try self.coalesceExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -386,9 +386,9 @@ pub const Parser = struct {
         var exp = try self.intExpr();
         while (true) {
             if (self.accept(.CATCH)) |token| {
-                exp = try AST.createBinop(token, exp, try self.intExpr(), self.astAllocator);
+                exp = try AST.createCatch(token, exp, try self.intExpr(), self.astAllocator);
             } else if (self.accept(.ORELSE)) |token| {
-                exp = try AST.createBinop(token, exp, try self.intExpr(), self.astAllocator);
+                exp = try AST.createOrelse(token, exp, try self.intExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -399,11 +399,11 @@ pub const Parser = struct {
         var exp = try self.termExpr();
         while (true) {
             if (self.accept(.PLUS)) |token| {
-                exp = try AST.createBinop(token, exp, try self.termExpr(), self.astAllocator);
+                exp = try AST.createAdd(token, exp, try self.termExpr(), self.astAllocator);
             } else if (self.accept(.MINUS)) |token| {
-                exp = try AST.createBinop(token, exp, try self.termExpr(), self.astAllocator);
+                exp = try AST.createSub(token, exp, try self.termExpr(), self.astAllocator);
             } else if (self.accept(.E_MARK)) |token| {
-                exp = try AST.createBinop(token, exp, try self.termExpr(), self.astAllocator);
+                exp = try AST.createError(token, exp, try self.termExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -414,19 +414,19 @@ pub const Parser = struct {
         var exp = try self.exponentExpr();
         while (true) {
             if (self.accept(.STAR)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createMult(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.SLASH)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createDiv(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.PERCENT)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createMod(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.DIAMOND)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createComposition(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.D_PLUS)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createConcat(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.D_MINUS)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createDiff(token, exp, try self.exponentExpr(), self.astAllocator);
             } else if (self.accept(.D_BAR)) |token| {
-                exp = try AST.createBinop(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createUnion(token, exp, try self.exponentExpr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -436,18 +436,18 @@ pub const Parser = struct {
     fn exponentExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.prefixExpr();
         while (self.accept(.D_STAR)) |token| {
-            exp = try AST.createBinop(token, exp, try self.prefixExpr(), self.astAllocator);
+            exp = try AST.createExponent(token, exp, try self.prefixExpr(), self.astAllocator);
         }
         return exp;
     }
 
     fn prefixExpr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.NOT)) |token| {
-            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
+            return try AST.createNot(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.E_MARK)) |token| {
-            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
+            return try AST.createInferredError(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
-            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
+            return try AST.createNegate(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
             var mut = self.accept(.MUT);
             return try AST.createAddrOf(token, try self.prefixExpr(), mut != null, self.astAllocator);
@@ -467,9 +467,9 @@ pub const Parser = struct {
             _ = try self.expect(.R_SQUARE);
             return try AST.createSliceOf(token, try self.prefixExpr(), len, sliceKind, self.astAllocator);
         } else if (self.accept(.Q_MARK)) |token| {
-            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
+            return try AST.createOptional(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.TRY)) |token| {
-            return try AST.createUnop(token, try self.prependExpr(), self.astAllocator);
+            return try AST.createTry(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.PERIOD)) |token| {
             var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
             if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
@@ -487,7 +487,7 @@ pub const Parser = struct {
     fn prependExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.postfixExpr();
         while (self.accept(.PERIOD_GTR)) |token| {
-            exp = try AST.createBinop(token, exp, try self.postfixExpr(), self.astAllocator);
+            exp = try AST.createPrepend(token, exp, try self.postfixExpr(), self.astAllocator);
         }
         return exp;
     }
@@ -510,14 +510,14 @@ pub const Parser = struct {
                     exp = try AST.createSubSlice(token, exp, first, second, self.astAllocator);
                 } else {
                     // Simple index
-                    exp = try AST.createBinop(token, exp, first orelse {
+                    exp = try AST.createIndex(token, exp, first orelse {
                         self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "a block", .got = self.peek().kind } });
                         return ParserErrorEnum.parserError;
                     }, self.astAllocator);
                 }
                 _ = try self.expect(.R_SQUARE);
             } else if (self.accept(.PERIOD)) |token| {
-                exp = try AST.createBinop(
+                exp = try AST.createSelect(
                     token,
                     exp,
                     try AST.createIdentifier(
@@ -527,9 +527,9 @@ pub const Parser = struct {
                     self.astAllocator,
                 );
             } else if (self.accept(.PERIOD_Q_MARK)) |token| {
-                exp = try AST.createUnop(token, exp, self.astAllocator);
+                exp = try AST.createFromOptional(token, exp, self.astAllocator);
             } else if (self.accept(.CARET)) |token| {
-                exp = try AST.createUnop(token, exp, self.astAllocator);
+                exp = try AST.createDereference(token, exp, self.astAllocator);
             } else {
                 return exp;
             }

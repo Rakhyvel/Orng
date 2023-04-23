@@ -108,6 +108,10 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 }
 
 fn generateIR(ir: *IR, out: *std.fs.File) !void {
+    if (ir.dest != null and ir.dest.?.lvalue and ir.kind == .copy) {
+        return;
+    }
+
     switch (ir.kind) {
         .loadInt => {
             try printVarAssign(ir.dest.?, out);
@@ -126,10 +130,55 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
+        .dereference => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("*", .{});
+            try printVar(ir.src1.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .derefCopy => {
+            try out.writer().print("\t*", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print(" = ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;
         },
+    }
+}
+
+fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    if (symbver.lvalue and symbver.def != null) {
+        var def = symbver.def.?;
+        switch (def.kind) {
+            .loadSymbol => {
+                try printPath(def.data.symbol, out);
+            },
+            .addrOf => {
+                try out.writer().print("(&", .{});
+                try generateLValueIR(def.src1.?, out);
+                try out.writer().print(")", .{});
+            },
+            .dereference => {
+                try out.writer().print("(*", .{});
+                try generateLValueIR(def.src1.?, out);
+                try out.writer().print(")", .{});
+            },
+            .index => {
+                // TODO: defer to arrays
+            },
+            .select => {
+                // TODO: defer to products
+            },
+            else => {
+                unreachable;
+            },
+        }
+    } else {
+        try printVar(symbver, out);
     }
 }
 

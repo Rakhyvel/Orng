@@ -137,7 +137,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         definition.fnDecl.retType.getToken(),
         allocator,
     );
-    var _type = try AST.createBinop(
+    var _type = try AST.createFunction(
         definition.fnDecl.retType.getToken(),
         domain,
         definition.fnDecl.retType,
@@ -167,7 +167,7 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
         var retval: *AST = params.items[0].decl.type.?;
         var i: usize = 1;
         while (i < params.items.len) : (i += 1) {
-            retval = try AST.createBinop(params.items[i].getToken(), retval, params.items[i], allocator);
+            retval = try AST.createProduct(params.items[i].getToken(), retval, params.items[i], allocator);
         }
         return retval;
     }

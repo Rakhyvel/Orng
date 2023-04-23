@@ -35,17 +35,56 @@ pub const SliceKind = union(enum) {
 const Errors = error{ InvalidRange, OutOfMemory };
 
 pub const AST = union(enum) {
+    // Literals
     unit: struct { token: Token },
     int: struct { token: Token, data: i128 },
     char: struct { token: Token, data: u8 }, // TODO: Represent a UTF-8 codepoint AKA a rune
     float: struct { token: Token, data: f64 },
     string: struct { token: Token },
     identifier: struct { token: Token },
-    _unreachable: struct { token: Token },
 
-    unop: struct { token: Token, expr: *AST },
-    binop: struct { token: Token, lhs: *AST, rhs: *AST },
+    // Unary operators
+    not: struct { token: Token, expr: *AST },
+    negate: struct { token: Token, expr: *AST },
+    dereference: struct { token: Token, expr: *AST },
+    _try: struct { token: Token, expr: *AST },
+    optional: struct { token: Token, expr: *AST },
+    fromOptional: struct { token: Token, expr: *AST },
+    inferredError: struct { token: Token, expr: *AST },
+
+    // Binary operators
+    assign: struct { token: Token, lhs: *AST, rhs: *AST },
+    _or: struct { token: Token, lhs: *AST, rhs: *AST },
+    _and: struct { token: Token, lhs: *AST, rhs: *AST },
+    equals: struct { token: Token, lhs: *AST, rhs: *AST },
+    notEqual: struct { token: Token, lhs: *AST, rhs: *AST },
+    greater: struct { token: Token, lhs: *AST, rhs: *AST },
+    greaterEquals: struct { token: Token, lhs: *AST, rhs: *AST },
+    lesser: struct { token: Token, lhs: *AST, rhs: *AST },
+    lesserEquals: struct { token: Token, lhs: *AST, rhs: *AST },
+    add: struct { token: Token, lhs: *AST, rhs: *AST },
+    sub: struct { token: Token, lhs: *AST, rhs: *AST },
+    mult: struct { token: Token, lhs: *AST, rhs: *AST },
+    div: struct { token: Token, lhs: *AST, rhs: *AST },
+    mod: struct { token: Token, lhs: *AST, rhs: *AST },
+    exponent: struct { token: Token, lhs: *AST, rhs: *AST },
+    _catch: struct { token: Token, lhs: *AST, rhs: *AST },
+    _orelse: struct { token: Token, lhs: *AST, rhs: *AST },
     call: struct { token: Token, lhs: *AST, rhs: *AST },
+    index: struct { token: Token, lhs: *AST, rhs: *AST },
+    select: struct { token: Token, lhs: *AST, rhs: *AST },
+    function: struct { token: Token, lhs: *AST, rhs: *AST },
+    delta: struct { token: Token, lhs: *AST, rhs: *AST },
+    composition: struct { token: Token, lhs: *AST, rhs: *AST },
+    prepend: struct { token: Token, lhs: *AST, rhs: *AST },
+    sum: struct { token: Token, lhs: *AST, rhs: *AST },
+    _error: struct { token: Token, lhs: *AST, rhs: *AST },
+    product: struct { token: Token, lhs: *AST, rhs: *AST },
+    diff: struct { token: Token, lhs: *AST, rhs: *AST },
+    concat: struct { token: Token, lhs: *AST, rhs: *AST },
+    _union: struct { token: Token, lhs: *AST, rhs: *AST },
+
+    // Fancy operators
     addrOf: struct { token: Token, expr: *AST, mut: bool },
     sliceOf: struct { token: Token, expr: *AST, len: ?*AST, kind: SliceKind },
     namedArg: struct { token: Token, ident: *AST, init: *AST },
@@ -53,6 +92,7 @@ pub const AST = union(enum) {
     annotation: struct { token: Token, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
     inferredMember: struct { token: Token, ident: *AST, init: ?*AST },
 
+    // Control-flow expressions
     _if: struct {
         token: Token,
         let: ?*AST,
@@ -73,15 +113,16 @@ pub const AST = union(enum) {
         elseBlock: ?*AST,
     },
 
+    // Control-flow statements
     block: struct { token: Token, scope: ?*Scope, statements: std.ArrayList(*AST), final: ?*AST },
     _break: struct { token: Token },
     _continue: struct { token: Token },
+    _unreachable: struct { token: Token },
     throw: struct { token: Token, expr: *AST },
     _return: struct { token: Token, expr: ?*AST },
     decl: struct { token: Token, symbol: ?*Symbol, pattern: *AST, type: ?*AST, init: ?*AST },
     fnDecl: struct { token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
     _defer: struct { token: Token, expr: *AST },
-    assign: struct { token: Token, lhs: *AST, rhs: *AST },
 
     fn box(ast: AST, alloc: std.mem.Allocator) !*AST {
         var retval = try alloc.create(AST);
@@ -99,9 +140,45 @@ pub const AST = union(enum) {
             .identifier => return self.identifier.token,
             ._unreachable => return self._unreachable.token,
 
-            .unop => return self.unop.token,
-            .binop => return self.binop.token,
+            .not => return self.not.token,
+            .negate => return self.negate.token,
+            .dereference => return self.dereference.token,
+            ._try => return self._try.token,
+            .optional => return self.optional.token,
+            .fromOptional => return self.fromOptional.token,
+            .inferredError => return self.inferredError.token,
+
+            .assign => return self.assign.token,
+            ._or => return self._or.token,
+            ._and => return self._and.token,
+            .equals => return self.equals.token,
+            .notEqual => return self.notEqual.token,
+            .greater => return self.greater.token,
+            .greaterEquals => return self.greaterEquals.token,
+            .lesser => return self.lesser.token,
+            .lesserEquals => return self.lesserEquals.token,
+            .add => return self.add.token,
+            .sub => return self.sub.token,
+            .mult => return self.mult.token,
+            .div => return self.div.token,
+            .mod => return self.mod.token,
+            .exponent => return self.exponent.token,
+            ._catch => return self._catch.token,
+            ._orelse => return self._orelse.token,
             .call => return self.call.token,
+            .index => return self.index.token,
+            .select => return self.select.token,
+            .function => return self.function.token,
+            .delta => return self.delta.token,
+            .composition => return self.composition.token,
+            .prepend => return self.prepend.token,
+            .sum => return self.sum.token,
+            ._error => return self._error.token,
+            .product => return self.product.token,
+            .diff => return self.diff.token,
+            .concat => return self.concat.token,
+            ._union => return self._union.token,
+
             .addrOf => return self.addrOf.token,
             .sliceOf => return self.sliceOf.token,
             .namedArg => return self.namedArg.token,
@@ -123,7 +200,6 @@ pub const AST = union(enum) {
             .decl => return self.decl.token,
             .fnDecl => return self.fnDecl.token,
             ._defer => return self._defer.token,
-            .assign => return self.assign.token,
         }
     }
 
@@ -155,16 +231,152 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._unreachable = .{ .token = token } }, allocator);
     }
 
-    pub fn createUnop(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .unop = .{ .token = token, .expr = expr } }, allocator);
+    pub fn createNot(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .not = .{ .token = token, .expr = expr } }, allocator);
     }
 
-    pub fn createBinop(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .binop = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createNegate(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .negate = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createDereference(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .dereference = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createTry(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._try = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .optional = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createFromOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .fromOptional = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createInferredError(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .inferredError = .{ .token = token, .expr = expr } }, allocator);
+    }
+
+    pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .assign = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createOr(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._or = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createAnd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._and = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createEquals(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .equals = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createNotEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .notEqual = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createGreater(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .greater = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createGreaterEquals(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .greaterEquals = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createLesser(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .lesser = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createLesserEquals(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .lesserEquals = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createAdd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .add = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createSub(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .sub = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createMult(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .mult = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createDiv(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .div = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createMod(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .mod = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createExponent(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .exponent = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createCatch(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._catch = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createOrelse(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._orelse = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createCall(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .call = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createIndex(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .index = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createSelect(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .select = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createSum(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .sum = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createFunction(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .function = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createDelta(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .delta = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createComposition(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .composition = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createPrepend(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .prepend = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createError(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._error = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createProduct(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .product = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createDiff(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .diff = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createConcat(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .concat = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createUnion(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._union = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createAddrOf(token: Token, expr: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
@@ -245,10 +457,6 @@ pub const AST = union(enum) {
 
     pub fn createDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._defer = .{ .token = token, .expr = expr } }, allocator);
-    }
-
-    pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .assign = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn typeEqual(self: *AST, other: *AST) bool {

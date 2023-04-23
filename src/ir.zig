@@ -9,7 +9,7 @@ const Symbol = _symbol.Symbol;
 pub const SymbolVersion = struct {
     symbol: *Symbol,
     version: ?u64,
-    def: *IR,
+    def: ?*IR,
 
     lvalue: bool,
 
@@ -22,6 +22,7 @@ pub const SymbolVersion = struct {
         retval.version = null;
         retval.type = _type;
         retval.lvalue = false;
+        retval.def = null;
         return retval;
     }
 
@@ -47,6 +48,12 @@ pub const IRKind = enum {
 
     // Monadic instructions
     copy,
+    not,
+    neg,
+    bitNot,
+    addrOf,
+    sizeOf, //< For extern types that Orng can't do automatically
+    dereference,
 
     // Diadic instruction
     bitOr,
@@ -66,11 +73,6 @@ pub const IRKind = enum {
     divide,
     modulus,
     exponent,
-    not,
-    neg,
-    bitNot,
-    addrOf,
-    sizeOf, //< For extern types that Orng can't do automatically
     deref,
     derefCopy,
     index,
@@ -98,6 +100,7 @@ const IRData = union(enum) {
     int: i128,
     float: f64,
     string: []const u8,
+    symbol: *Symbol,
 };
 
 pub const IR = struct {
@@ -193,7 +196,7 @@ pub const CFG = struct {
         retval.temp_symbol = try Symbol.create(symbol.scope, "$temp", span.Span{ .col = 0, .line = 0 }, null, null, allocator);
         retval.visited = false;
 
-        var eval = try retval.flattenAST(symbol.scope, symbol.init.?, allocator);
+        var eval = try retval.flattenAST(symbol.scope, symbol.init.?, false, allocator);
         _ = eval;
 
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
@@ -228,11 +231,12 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, allocator: std.mem.Allocator) !?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, lvalue: bool, allocator: std.mem.Allocator) !?*SymbolVersion {
         switch (ast.*) {
             .identifier => {
                 var symbol = scope.lookup(ast.identifier.token.data).?;
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                symbver.lvalue = lvalue;
                 return symbver;
             },
             .int => {
@@ -263,16 +267,47 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .dereference => {
+                var expr = try self.flattenAST(scope, ast.dereference.expr, lvalue, allocator);
+
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.dereference, temp, expr, null, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .assign => {
+                if (ast.assign.lhs.* == .identifier) {
+                    var symbol = scope.lookup(ast.assign.lhs.identifier.token.data).?;
+                    var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    symbver.lvalue = true;
+                    var rhs = try self.flattenAST(scope, ast.assign.rhs, false, allocator);
+                    var ir = try IR.create(.copy, symbver, rhs, null, allocator);
+                    symbver.def = ir;
+                    self.appendInstruction(ir);
+                    return null;
+                } else if (ast.assign.lhs.* == .dereference) {
+                    var lhs = try self.flattenAST(scope, ast.assign.lhs.dereference.expr, true, allocator);
+                    lhs.?.lvalue = true;
+                    var rhs = try self.flattenAST(scope, ast.assign.rhs, false, allocator);
+                    var ir = try IR.create(.derefCopy, null, lhs, rhs, allocator);
+                    self.appendInstruction(ir);
+                    return null;
+                } else {
+                    return error.NotAnLValue;
+                }
+            },
             .block => {
                 if (ast.block.statements.items.len == 0 and ast.block.final == null) {
                     return null;
                 } else {
                     var temp: ?*SymbolVersion = null;
                     for (ast.block.statements.items) |child| {
-                        temp = try self.flattenAST(ast.block.scope.?, child, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, child, lvalue, allocator);
                     }
                     if (ast.block.final) |final| {
-                        return self.flattenAST(ast.block.scope.?, final, allocator);
+                        return self.flattenAST(ast.block.scope.?, final, lvalue, allocator);
                     } else {
                         return temp;
                     }
@@ -282,7 +317,7 @@ pub const CFG = struct {
                 var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.type.?, allocator);
                 var def: ?*SymbolVersion = null;
                 if (ast.decl.symbol.?.init) |init| {
-                    def = try self.flattenAST(ast.decl.symbol.?.scope, init, allocator);
+                    def = try self.flattenAST(ast.decl.symbol.?.scope, init, false, allocator);
                 } else {
                     // self.defaultValue(ast.decl.symbol.type)
                 }
@@ -290,20 +325,6 @@ pub const CFG = struct {
                 symbver.def = ir;
                 self.appendInstruction(ir);
                 return symbver;
-            },
-            .assign => {
-                if (ast.assign.lhs.* == .identifier) {
-                    var symbol = scope.lookup(ast.assign.lhs.identifier.token.data).?;
-                    var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                    symbver.lvalue = true;
-                    var rhs = try self.flattenAST(scope, ast.assign.rhs, allocator);
-                    var ir = try IR.create(.copy, symbver, rhs, null, allocator);
-                    symbver.def = ir;
-                    self.appendInstruction(ir);
-                    return null;
-                } else {
-                    return error.NotAnLValue;
-                }
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});

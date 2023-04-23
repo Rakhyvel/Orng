@@ -41,6 +41,7 @@
 - [x] Top level declarations should require a newline
 - [ ] Make exponentiation right-associative, higher precedence than `-`
 - [ ] Support unicode characters somehow, and escapes with \
+- [ ] Somehow parse hexadecimals with apostrophes
 
 ### Symbol table
 - [x] Create symbol tree from file AST
@@ -77,8 +78,8 @@
     - [x] string
     - [x] blocks
     - [x] declarations
-    - [ ] assignment
-        - [ ] ident-assign
+    - [x] assignment
+        - [x] ident-assign
         - [ ] deref-assign
         - [ ] paren-assign
         - [ ] index-assign (defer to after arrays)

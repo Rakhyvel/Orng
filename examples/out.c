@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682282426
-#define ORNG_1682282426
+#ifndef ORNG_1682289731
+#define ORNG_1682289731
 
 /* Function Definitions */
 int main();
@@ -8,13 +8,12 @@ int main();
 int test_main() {
 	int _0;
 	int x_0;
-	int y_0;
-	int x_1;
+	int _1;
 BB0:;
-	_0 = 5;
+	_0 = 4293984240;
 	x_0 = _0;
-	y_0 = x_0;
-	x_1 = y_0;
+	_1 = 6;
+	*x_0 = _1;
 }
 
 int main()
