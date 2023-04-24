@@ -355,19 +355,21 @@ pub const Parser = struct {
 
     fn conditionalExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.deltaExpr();
-        while (true) {
-            if (self.accept(.D_EQUALS)) |token| {
-                exp = try AST.createEquals(token, exp, try self.deltaExpr(), self.astAllocator);
-            } else if (self.accept(.GTR)) |token| {
-                exp = try AST.createGreater(token, exp, try self.deltaExpr(), self.astAllocator);
-            } else if (self.accept(.LSR)) |token| {
-                exp = try AST.createLesser(token, exp, try self.deltaExpr(), self.astAllocator);
-            } else if (self.accept(.GTE)) |token| {
-                exp = try AST.createGreaterEquals(token, exp, try self.deltaExpr(), self.astAllocator);
-            } else if (self.accept(.LTE)) |token| {
-                exp = try AST.createLesserEquals(token, exp, try self.deltaExpr(), self.astAllocator);
-            } else {
+        var tokens: ?std.ArrayList(Token) = null;
+        var exprs: ?std.ArrayList(*AST) = null;
+        while (self.accept(.D_EQUALS) orelse self.accept(.GTR) orelse self.accept(.LSR) orelse self.accept(.GTE) orelse self.accept(.LTE)) |token| {
+            if (tokens == null) {
+                tokens = std.ArrayList(Token).init(self.astAllocator);
+                exprs = std.ArrayList(*AST).init(self.astAllocator);
+                try exprs.?.append(exp);
+            }
+            try tokens.?.append(token);
+            try exprs.?.append(try self.deltaExpr());
+        } else {
+            if (tokens == null) {
                 return exp;
+            } else {
+                return try AST.createConditional(tokens.?, exprs.?, self.astAllocator);
             }
         }
     }

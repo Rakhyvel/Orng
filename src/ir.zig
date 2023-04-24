@@ -62,8 +62,9 @@ pub const IRKind = enum {
     addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
     dereference,
+    derefCopy,
 
-    // Diadic instruction
+    // Diadic instructions
     bitOr,
     bitXor,
     bitAnd,
@@ -81,8 +82,6 @@ pub const IRKind = enum {
     divide,
     modulus,
     exponent,
-    deref,
-    derefCopy,
     index,
     indexCopy,
     subSlice,
@@ -499,8 +498,77 @@ pub const CFG = struct {
                 self.appendInstruction(end_label);
                 return symbver;
             },
+            .notEqual => {
+                var lhs = try self.flattenAST(scope, ast.notEqual.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.notEqual.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.notEqual, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
 
             // Fancy Operators
+            .conditional => {
+                std.debug.assert(ast.conditional.exprs.items.len == ast.conditional.tokens.items.len + 1);
+
+                // Create the result symbol and IR
+                var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var phony = try IR.createPhony(symbver, allocator);
+                symbver.def = phony;
+                self.appendInstruction(phony);
+
+                var end_label = try IR.createLabel(allocator);
+                var else_label = try IR.createLabel(allocator);
+
+                var i: usize = 0;
+                var lhs = (try self.flattenAST(scope, ast.conditional.exprs.items[0], false, allocator));
+                while (i < ast.conditional.tokens.items.len) : (i += 1) {
+                    // Test lhs, branch
+                    var rhs = try self.flattenAST(scope, ast.conditional.exprs.items[i + 1], false, allocator);
+                    var token = ast.conditional.tokens.items[i];
+                    var ir_kind: IRKind = undefined;
+                    switch (token.kind) {
+                        .D_EQUALS => {
+                            ir_kind = .equal;
+                        },
+                        .GTR => {
+                            ir_kind = .greater;
+                        },
+                        .GTE => {
+                            ir_kind = .greaterEqual;
+                        },
+                        .LSR => {
+                            ir_kind = .lesser;
+                        },
+                        .LTE => {
+                            ir_kind = .lesserEqual;
+                        },
+                        else => unreachable,
+                    }
+                    var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                    var ir = try IR.create(ir_kind, temp, lhs, rhs, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    var branch = try IR.createBranch(temp, else_label, allocator);
+                    self.appendInstruction(branch);
+                    lhs = rhs;
+                }
+                // all tests passed, store `true` in symbver
+                var load_true = try IR.createInt(symbver, 1, allocator);
+                try phony.data.list.append(load_true);
+                self.appendInstruction(load_true);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+                // at least one test failed, store `false` in symbver
+                self.appendInstruction(else_label);
+                var load_false = try IR.createInt(symbver, 0, allocator);
+                try phony.data.list.append(load_false);
+                self.appendInstruction(load_false);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+                self.appendInstruction(end_label);
+                return symbver;
+            },
 
             // Control-flow expressions
             .block => {

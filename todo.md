@@ -92,9 +92,9 @@
         - [ ] try (defer to after errors)
         - [ ] ! (defer to after errors)
     - [ ] binary operators
-        - [ ] and
-        - [ ] or
-        - [ ] !=
+        - [x] and
+        - [x] or
+        - [x] !=
         - [ ] ==
         - [ ] >
         - [ ] <

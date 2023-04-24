@@ -12,7 +12,7 @@ const SymbolVersion = _ir.SymbolVersion;
 /// Takes in a file handler and a program structure
 pub fn generate(program: *Program, file: *std.fs.File) !void {
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
-    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n\n", .{ program.uid, program.uid });
+    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n\n", .{ program.uid, program.uid });
 
     try file.writer().print("/* Function Definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
@@ -75,7 +75,7 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(
         \\int main()
         \\{{
-        \\  printf("Result: %d", test_main());
+        \\  printf("Result: %d\n", test_main());
         \\  return 0;
         \\}}
         \\
@@ -153,6 +153,8 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("{s};\n", .{ir.data.string});
         },
+
+        // Monadic instructions
         .copy => {
             try printVarAssign(ir.dest.?, out);
             try printVar(ir.src1.?, out);
@@ -183,7 +185,53 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
-        .phony,
+
+        // Diadic instructions
+        .notEqual => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" != ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .equal => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" == ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .greater => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" > ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .greaterEqual => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" >= ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .lesser => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" < ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .lesserEqual => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" <= ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .phony => {},
+
+        // Control-flow
         .label,
         .jump,
         .branchIfFalse,
@@ -192,6 +240,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;
         },
+        .call => {},
+
+        // Errors
     }
 }
 

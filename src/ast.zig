@@ -56,12 +56,7 @@ pub const AST = union(enum) {
     assign: struct { token: Token, lhs: *AST, rhs: *AST },
     _or: struct { token: Token, lhs: *AST, rhs: *AST },
     _and: struct { token: Token, lhs: *AST, rhs: *AST },
-    equals: struct { token: Token, lhs: *AST, rhs: *AST },
     notEqual: struct { token: Token, lhs: *AST, rhs: *AST },
-    greater: struct { token: Token, lhs: *AST, rhs: *AST },
-    greaterEquals: struct { token: Token, lhs: *AST, rhs: *AST },
-    lesser: struct { token: Token, lhs: *AST, rhs: *AST },
-    lesserEquals: struct { token: Token, lhs: *AST, rhs: *AST },
     add: struct { token: Token, lhs: *AST, rhs: *AST },
     sub: struct { token: Token, lhs: *AST, rhs: *AST },
     mult: struct { token: Token, lhs: *AST, rhs: *AST },
@@ -85,6 +80,7 @@ pub const AST = union(enum) {
     _union: struct { token: Token, lhs: *AST, rhs: *AST },
 
     // Fancy operators
+    conditional: struct { tokens: std.ArrayList(Token), exprs: std.ArrayList(*AST) },
     addrOf: struct { token: Token, expr: *AST, mut: bool },
     sliceOf: struct { token: Token, expr: *AST, len: ?*AST, kind: SliceKind },
     namedArg: struct { token: Token, ident: *AST, init: *AST },
@@ -151,12 +147,8 @@ pub const AST = union(enum) {
             .assign => return self.assign.token,
             ._or => return self._or.token,
             ._and => return self._and.token,
-            .equals => return self.equals.token,
             .notEqual => return self.notEqual.token,
-            .greater => return self.greater.token,
-            .greaterEquals => return self.greaterEquals.token,
-            .lesser => return self.lesser.token,
-            .lesserEquals => return self.lesserEquals.token,
+            .conditional => return self.conditional.tokens.items[0],
             .add => return self.add.token,
             .sub => return self.sub.token,
             .mult => return self.mult.token,
@@ -271,28 +263,12 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._and = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createEquals(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .equals = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
     pub fn createNotEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .notEqual = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createGreater(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .greater = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createGreaterEquals(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .greaterEquals = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createLesser(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .lesser = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createLesserEquals(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .lesserEquals = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createConditional(_tokens: std.ArrayList(Token), exprs: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .conditional = .{ .tokens = _tokens, .exprs = exprs } }, allocator);
     }
 
     pub fn createAdd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
