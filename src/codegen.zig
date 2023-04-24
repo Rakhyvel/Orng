@@ -40,15 +40,17 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     defer callGraph.visited = false;
 
     // Print function return type, name, parameter list
-    try out.writer().print("int test_{s}() {{\n", .{callGraph.symbol.name});
-
     // TODO: If the function return type isn't void, create a `retval` variable
+    try out.writer().print("int test_{s}() {{\n\tint retval;\n", .{callGraph.symbol.name});
 
     // TODO: Declare all (registers) used by the function
     for (callGraph.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
+                if (dest.def != ir) {
+                    continue;
+                }
                 try printVarDef(dest, out);
             }
         }
@@ -60,7 +62,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     }
 
     // Generate the `end` basic block
-    try out.writer().print("end:\n}}\n", .{});
+    try out.writer().print("end:\n\treturn retval;\n}}\n", .{});
 
     // Generate leaf functions
     for (callGraph.leaves.items) |leaf| {
@@ -73,7 +75,7 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(
         \\int main()
         \\{{
-        \\  printf("Hello, World!");
+        \\  printf("Result: %d", test_main());
         \\  return 0;
         \\}}
         \\
@@ -86,7 +88,6 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
         return;
     }
     bb.visited = true;
-    defer bb.visited = false;
 
     try out.writer().print("BB{}:;\n", .{bb.uid});
     var maybe_ir = bb.ir_head;
@@ -99,30 +100,38 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
         try out.writer().print("\tif (!", .{});
         try printVar(bb.condition.?, out);
         try out.writer().print(") {{\n", .{});
+
+        // Generate branch `if-else`
         if (bb.branch) |branch| {
+            // TODO: generatePhi
             try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
         } else {
+            // TODO: generatePhi
             try out.writer().print("\t\tgoto end;\n\t}} else {{\n", .{});
         }
 
         // Generate the `next` BB
         if (bb.next) |next| {
+            // TODO: generatePhi
             try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
             try generateBasicBlock(next, out);
         } else {
             try out.writer().print("\t\tgoto end;\n\t}}\n", .{});
         }
 
-        // Generate the `branch` fallthrough BB
+        // Generate the `branch` BB
         if (bb.branch) |branch| {
+            // TODO: generatePhi
             try generateBasicBlock(branch, out);
         }
-    } else if (bb.next) |_| {
-        // generatePhi
-        // \tgoto BB{};\n
-        // Generate the `next` BB
     } else {
-        try out.writer().print("\tgoto end;\n", .{});
+        if (bb.next) |next| {
+            // TODO: generatePhi
+            try out.writer().print("\tgoto BB{};\n", .{next.uid});
+            try generateBasicBlock(next, out);
+        } else {
+            try out.writer().print("\tgoto end;\n", .{});
+        }
     }
 }
 
@@ -220,10 +229,14 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\t", .{});
-    if (symbver.symbol.name[0] != '$') {
-        try printPath(symbver.symbol, out);
+    if (std.mem.eql(u8, symbver.symbol.name, "$retval")) {
+        try out.writer().print("retval = ", .{});
+    } else {
+        if (symbver.symbol.name[0] != '$') {
+            try printPath(symbver.symbol, out);
+        }
+        try out.writer().print("_{} = ", .{symbver.version orelse 0}); // TODO: Assert versioned
     }
-    try out.writer().print("_{} = ", .{symbver.version orelse 0}); // TODO: Assert versioned
 }
 
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {

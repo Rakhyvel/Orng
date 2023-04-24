@@ -32,6 +32,14 @@ pub const SymbolVersion = struct {
             self.symbol.versions += 1;
         }
     }
+
+    fn pprint(self: ?*SymbolVersion) void {
+        if (self) |symbver| {
+            std.debug.print("{s}_{?}\t", .{ symbver.symbol.name, symbver.version });
+        } else {
+            std.debug.print("<null>\t", .{});
+        }
+    }
 };
 
 var ir_uid: u64 = 0;
@@ -96,12 +104,13 @@ pub const IRKind = enum {
 };
 
 const IRData = union(enum) {
-    branch: *IR,
+    branch: ?*IR,
     int: i128,
     float: f64,
     string: []const u8,
     symbol: *Symbol,
     list: std.ArrayList(*IR),
+    none,
 };
 
 pub const IR = struct {
@@ -127,6 +136,7 @@ pub const IR = struct {
         retval.in_block = null;
         retval.prev = null;
         retval.next = null;
+        retval.data = IRData.none;
         ir_uid += 1;
         return retval;
     }
@@ -166,10 +176,47 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createJump(label: *IR, allocator: std.mem.Allocator) !*IR {
+    fn createJump(label: ?*IR, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.jump, null, null, null, allocator);
         retval.data = IRData{ .branch = label };
         return retval;
+    }
+
+    fn pprint(self: *IR) void {
+        if (self.kind == .label) {
+            std.debug.print("BB{}:\n", .{self.uid});
+        } else {
+            const kind_name = @tagName(self.kind);
+            std.debug.print("{}\t{s}", .{ self.uid, kind_name });
+            var i: u64 = 17 - kind_name.len;
+            while (i > 0) : (i -= 1) {
+                std.debug.print(" ", .{});
+            }
+            SymbolVersion.pprint(self.dest);
+            SymbolVersion.pprint(self.src1);
+            SymbolVersion.pprint(self.src2);
+            switch (self.data) {
+                .branch => {
+                    if (self.data.branch) |branch| {
+                        std.debug.print("\tBB{}", .{branch.uid});
+                    }
+                },
+                .int => {
+                    std.debug.print("\tint:{}", .{self.data.int});
+                },
+                .float => {
+                    std.debug.print("\tfloat:{}", .{self.data.float});
+                },
+                .string => {
+                    std.debug.print("\tstring:{s}", .{self.data.string});
+                },
+                .symbol => {
+                    std.debug.print("\tsymbol:{s}", .{self.data.symbol.name});
+                },
+                else => {},
+            }
+            std.debug.print("\n", .{});
+        }
     }
 };
 
@@ -185,6 +232,37 @@ pub const BasicBlock = struct {
     condition: ?*SymbolVersion,
 
     visited: bool,
+
+    fn pprint(self: *BasicBlock) void {
+        if (self.visited) {
+            return;
+        }
+        self.visited = true;
+        std.debug.print("Basic Block BB{}\n", .{self.uid});
+        var maybe_ir = self.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            ir.pprint();
+        }
+        if (self.has_branch) {
+            if (self.branch) |branch| {
+                std.debug.print("if (!{s}_{?}) goto {}\n", .{ self.condition.?.symbol.name, self.condition.?.version, branch.uid });
+            } else {
+                std.debug.print("if (!{s}_{?}) goto <END>\n", .{ self.condition.?.symbol.name, self.condition.?.version });
+            }
+        }
+        if (self.next) |next| {
+            std.debug.print("goto {}\n", .{next.uid});
+        } else {
+            std.debug.print("goto <END>\n", .{});
+        }
+        if (self.branch) |branch| {
+            branch.pprint();
+        }
+        if (self.next) |next| {
+            next.pprint();
+        }
+        self.visited = false;
+    }
 };
 
 pub const CFG = struct {
@@ -206,6 +284,8 @@ pub const CFG = struct {
 
     temp_symbol: *Symbol,
 
+    return_symbol: *Symbol,
+
     /// Whether or not this CFG is visited
     visited: bool,
 
@@ -218,18 +298,29 @@ pub const CFG = struct {
         retval.leaves = std.ArrayList(*CFG).init(allocator);
         retval.symbol = symbol;
         retval.temp_symbol = try Symbol.create(symbol.scope, "$temp", span.Span{ .col = 0, .line = 0 }, null, null, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, null, null, allocator);
         retval.visited = false;
 
         var eval = try retval.flattenAST(symbol.scope, symbol.init.?, false, allocator);
-        _ = eval;
+        var return_version = try SymbolVersion.createUnversioned(retval.return_symbol, symbol._type.?.function.rhs, allocator);
+        retval.appendInstruction(try IR.create(.copy, return_version, eval, null, allocator));
+        retval.appendInstruction(try IR.createJump(null, allocator));
 
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
+
+        if (retval.block_graph_head) |graph| {
+            graph.pprint();
+        }
 
         return retval;
     }
 
     fn createBasicBlock(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
         var retval = try allocator.create(BasicBlock);
+        retval.ir_head = null;
+        retval.condition = null;
+        retval.next = null;
+        retval.branch = null;
         retval.uid = self.basic_blocks.items.len;
         try self.basic_blocks.append(retval);
         return retval;
@@ -345,20 +436,28 @@ pub const CFG = struct {
                 }
             },
             ._or => {
+                // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
                 var phony = try IR.createPhony(symbver, allocator);
+                symbver.def = phony;
                 self.appendInstruction(phony);
 
+                // Labels used
                 var else_label = try IR.createLabel(allocator);
                 var end_label = try IR.createLabel(allocator);
 
+                // Test lhs, branch
                 var lhs = (try self.flattenAST(scope, ast._or.lhs, false, allocator)).?;
                 var branch = try IR.createBranch(lhs, else_label, allocator);
                 self.appendInstruction(branch);
+
+                // lhs was true, store `true` in symbver
                 var load_true = try IR.createInt(symbver, 1, allocator);
                 try phony.data.list.append(load_true);
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
+
+                // lhs was false, recurse to rhs, store in symbver
                 self.appendInstruction(else_label);
                 var rhs = try self.flattenAST(scope, ast._or.rhs, false, allocator);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
@@ -369,7 +468,36 @@ pub const CFG = struct {
                 return symbver;
             },
             ._and => {
-                return null;
+                // Create the result symbol and IR
+                var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var phony = try IR.createPhony(symbver, allocator);
+                symbver.def = phony;
+                self.appendInstruction(phony);
+
+                // Labels used
+                var else_label = try IR.createLabel(allocator);
+                var end_label = try IR.createLabel(allocator);
+
+                // Test lhs, branch
+                var lhs = (try self.flattenAST(scope, ast._and.lhs, false, allocator)).?;
+                var branch = try IR.createBranch(lhs, else_label, allocator);
+                self.appendInstruction(branch);
+
+                // lhs was true, recurse to rhs, store in symbver
+                var rhs = try self.flattenAST(scope, ast._and.rhs, false, allocator);
+                var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
+                try phony.data.list.append(copy_right);
+                self.appendInstruction(copy_right);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+
+                // lhs was false, store `false` in symbver
+                self.appendInstruction(else_label);
+                var load_false = try IR.createInt(symbver, 0, allocator);
+                try phony.data.list.append(load_false);
+                self.appendInstruction(load_false);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+                self.appendInstruction(end_label);
+                return symbver;
             },
 
             // Fancy Operators
@@ -414,10 +542,8 @@ pub const CFG = struct {
 
     fn basicBlockFromIR(self: *CFG, maybe_ir: ?*IR, allocator: std.mem.Allocator) !?*BasicBlock {
         if (maybe_ir == null) {
-            std.debug.print("Took the null ir route\n", .{});
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
-            std.debug.print("Took the in block route\n", .{});
             return in_block;
         } else {
             var retval: *BasicBlock = try self.createBasicBlock(allocator);
@@ -445,7 +571,11 @@ pub const CFG = struct {
                     // If you find a jump, end this block and start new block
                     retval.has_branch = false;
                     if (ir.data == .branch) {
-                        retval.next = try self.basicBlockFromIR(ir.data.branch.next, allocator);
+                        if (ir.data.branch) |branch| {
+                            retval.next = try self.basicBlockFromIR(branch.next, allocator);
+                        } else {
+                            retval.next = try self.basicBlockFromIR(null, allocator);
+                        }
                     } else {
                         retval.next = null;
                     }
@@ -457,7 +587,12 @@ pub const CFG = struct {
                 } else if (ir.kind == .branchIfFalse) {
                     // If you find a branch, end this block, start both blocks
                     retval.has_branch = true;
-                    var branchNext = ir.data.branch.next; // Since ir->branch->next may get nullifued by calling this function on ir->next
+                    var branchNext: ?*IR = null; // = ir.data.branch.next; // Since ir->branch->next may get nullifued by calling this function on ir->next
+                    if (ir.data.branch) |branch| {
+                        branchNext = branch.next;
+                    } else {
+                        branchNext = null;
+                    }
                     retval.next = try self.basicBlockFromIR(ir.next, allocator);
                     retval.branch = try self.basicBlockFromIR(branchNext, allocator);
                     retval.condition = ir.src1;

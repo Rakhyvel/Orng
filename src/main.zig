@@ -9,7 +9,7 @@ const Program = @import("program.zig").Program;
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
 
-pub const PRINT_TOKENS = true;
+pub const PRINT_TOKENS = false;
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
@@ -42,9 +42,16 @@ pub fn main() !void {
     // Tokenize
     var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
     defer tokenAllocator.deinit();
-    var tokens = lexer.getTokens(contents, &errors, tokenAllocator.allocator()) catch {
-        errors.printErrors();
-        return;
+    var tokens = lexer.getTokens(contents, &errors, tokenAllocator.allocator()) catch |err| {
+        switch (err) {
+            error.lexerError => {
+                errors.printErrors();
+                return;
+            },
+            else => {
+                return err;
+            },
+        }
     };
     defer tokens.deinit();
 
@@ -59,7 +66,6 @@ pub fn main() !void {
     }
 
     // Parse
-    std.debug.print("Parse:\n", .{});
     var astAllocator = std.heap.ArenaAllocator.init(allocator);
     defer astAllocator.deinit();
     var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
@@ -76,13 +82,19 @@ pub fn main() !void {
     };
 
     // Symbol tree construction
-    std.debug.print("Symbols:\n", .{});
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
     var fileRoot = try symbol.Scope.init(null, symbolAllocator.allocator());
-    var symbol_table = symbol.createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch {
-        errors.printErrors();
-        return;
+    var symbol_table = symbol.createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch |err| {
+        switch (err) {
+            error.symbolError => {
+                errors.printErrors();
+                return;
+            },
+            else => {
+                return err;
+            },
+        }
     };
     symbol_table.pprint();
 
@@ -90,13 +102,11 @@ pub fn main() !void {
     // TODO
 
     // IR translation
-    std.debug.print("IR:\n", .{});
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
     var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, allocator);
 
     // Code generation
-    std.debug.print("Codegen:\n", .{});
     var program = try Program.init(cfg, allocator);
     var outputFile = try std.fs.cwd().createFile(
         "examples/out.c",

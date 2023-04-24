@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682293395
-#define ORNG_1682293395
+#ifndef ORNG_1682302859
+#define ORNG_1682302859
 
 #include <math.h>
 
@@ -8,31 +8,49 @@
 int main();
 
 int test_main() {
+	int retval;
 	int _0;
 	int _1;
-	int _0;
 	int _2;
-	int _0;
+	int _3;
+	int _4;
 BB0:;
-	_1 = 0;
-	if (!_1) {
-		goto BB2;
+	_2 = 0;
+	if (!_2) {
+		goto BB6;
 	} else {
 		goto BB1;
 	}
 BB1:;
-	_0 = 1;
-	goto end;
+	_3 = 354;
+	_1 = _3;
+	goto BB2;
 BB2:;
-	_2 = 354;
-	_0 = _2;
+	if (!_1) {
+		goto BB5;
+	} else {
+		goto BB3;
+	}
+BB3:;
+	_0 = 1;
+	goto BB4;
+BB4:;
+	retval = _0;
 	goto end;
+BB5:;
+	_4 = 0;
+	_0 = _4;
+	goto BB4;
+BB6:;
+	_1 = 0;
+	goto BB2;
 end:
+	return retval;
 }
 
 int main()
 {
-  printf("Hello, World!");
+  printf("Result: %d", test_main());
   return 0;
 }
 
