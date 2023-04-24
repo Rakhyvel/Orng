@@ -229,6 +229,49 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
+        .add => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" + ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .sub => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" - ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .mult => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" * ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .div => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" / ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .mod => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print(" % ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
+        .exponent => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("powf(", .{});
+            try printVar(ir.src1.?, out);
+            try out.writer().print(", ", .{});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(");\n", .{});
+        },
         .phony => {},
 
         // Control-flow

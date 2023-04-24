@@ -77,10 +77,10 @@ pub const IRKind = enum {
     leftShift,
     rightShift,
     add,
-    subtract,
-    multiply,
-    divide,
-    modulus,
+    sub,
+    mult,
+    div,
+    mod,
     exponent,
     index,
     indexCopy,
@@ -504,6 +504,66 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.notEqual, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .add => {
+                var lhs = try self.flattenAST(scope, ast.add.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.add.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.add, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .sub => {
+                var lhs = try self.flattenAST(scope, ast.sub.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.sub.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.sub, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .mult => {
+                var lhs = try self.flattenAST(scope, ast.mult.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.mult.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.mult, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .div => {
+                var lhs = try self.flattenAST(scope, ast.div.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.div.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.div, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .mod => {
+                var lhs = try self.flattenAST(scope, ast.mod.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.mod.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.mod, temp, lhs, rhs, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .exponent => {
+                var lhs = try self.flattenAST(scope, ast.exponent.lhs, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.exponent.rhs, lvalue, allocator);
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.create(.exponent, temp, lhs, rhs, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;

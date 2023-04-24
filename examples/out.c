@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682307602
-#define ORNG_1682307602
+#ifndef ORNG_1682308033
+#define ORNG_1682308033
 
 #include <math.h>
 #include <stdio.h>
@@ -17,8 +17,10 @@ int test_main() {
 	int _3;
 	int _4;
 	int _5;
+	int _6;
+	int _7;
 BB0:;
-	_0 = 6;
+	_0 = 26;
 	x_0 = _0;
 	_2 = 0;
 	_3 = _2 < x_0;
@@ -29,8 +31,10 @@ BB0:;
 	}
 BB1:;
 	_4 = 5;
-	_5 = x_0 < _4;
-	if (!_5) {
+	_5 = 2;
+	_6 = powf(_4, _5);
+	_7 = x_0 <= _6;
+	if (!_7) {
 		goto BB4;
 	} else {
 		goto BB2;
