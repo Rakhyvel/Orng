@@ -65,6 +65,7 @@
 ### Misc. tree-walks
 - [ ] Rewrite [op]= assignments
 - [ ] Identifiers refer to valid, defined symbols
+- [ ] Make sure non-mut symbols aren't mut'd
 
 ### Errors
 - [ ] Add filename to Span, add file map
@@ -119,11 +120,6 @@
         - [ ] ! (defer to after errors)
     - [x] call
     - [ ] addrOf
-    - [ ] sliceOf (defer to after arrays)
-    - [ ] namedArg (maybe this is subsumed by a tree-walk on a call)
-    - [ ] subSlice (defer to after arrays)
-    - [ ] annotation (this is just a type)
-    - [ ] inferred members (again, likely subsumed by a tree-walk on a product expression)
     - [ ] if
     - [ ] cond
     - [ ] case
@@ -134,6 +130,11 @@
     - [ ] return
     - [ ] fnDecl
     - [ ] defer
+    - [ ] namedArg (maybe this is subsumed by a tree-walk on a call)
+    - [ ] inferred members (again, likely subsumed by a tree-walk on a product expression)
+    - [ ] annotation (this is just a type)
+    - [ ] sliceOf (defer to after arrays)
+    - [ ] subSlice (defer to after arrays)
     - [ ] throw (defer to after errors)
 - [ ] Write a defaultValue function which generates a default value IR for a given type
 - [ ] Do optimizations on the control-flow graph

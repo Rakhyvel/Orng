@@ -178,6 +178,12 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
+        .addrOf => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("&", .{});
+            try printVar(ir.src1.?, out);
+            try out.writer().print(";\n", .{});
+        },
         .dereference => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("*", .{});
