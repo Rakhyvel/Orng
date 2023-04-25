@@ -299,10 +299,21 @@ pub const Parser = struct {
 
     fn productExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.annotExpr();
+        var terms: ?std.ArrayList(*AST) = null;
+        var first_token: ?Token = null;
         while (self.accept(.COMMA)) |token| {
-            exp = try AST.createProduct(token, exp, try self.annotExpr(), self.astAllocator);
+            if (terms == null) {
+                terms = std.ArrayList(*AST).init(self.astAllocator);
+                first_token = token;
+                try terms.?.append(exp);
+            }
+            try terms.?.append(try self.annotExpr());
         }
-        return exp;
+        if (terms) |terms_list| {
+            return AST.createProduct(first_token.?, terms_list, self.astAllocator);
+        } else {
+            return exp;
+        }
     }
 
     fn annotExpr(self: *Parser) ParserErrorEnum!*AST {

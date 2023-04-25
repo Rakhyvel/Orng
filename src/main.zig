@@ -84,7 +84,7 @@ pub fn main() !void {
     // Symbol tree construction
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
-    var fileRoot = try symbol.Scope.init(null, symbolAllocator.allocator());
+    var fileRoot = try symbol.Scope.init(null, "test", symbolAllocator.allocator()); // TODO: replace "test" with the filename, obvi
     var symbol_table = symbol.createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch |err| {
         switch (err) {
             error.symbolError => {
@@ -104,7 +104,7 @@ pub fn main() !void {
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
-    var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, allocator);
+    var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, null, allocator);
 
     // Code generation
     var program = try Program.init(cfg, allocator);

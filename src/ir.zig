@@ -108,7 +108,8 @@ const IRData = union(enum) {
     float: f64,
     string: []const u8,
     symbol: *Symbol,
-    list: std.ArrayList(*IR),
+    irList: std.ArrayList(*IR),
+    symbverList: std.ArrayList(*SymbolVersion),
     none,
 };
 
@@ -160,7 +161,7 @@ pub const IR = struct {
 
     fn createPhony(dest: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.phony, dest, null, null, allocator);
-        retval.data = IRData{ .list = std.ArrayList(*IR).init(allocator) };
+        retval.data = IRData{ .irList = std.ArrayList(*IR).init(allocator) };
         return retval;
     }
 
@@ -178,6 +179,12 @@ pub const IR = struct {
     fn createJump(label: ?*IR, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.jump, null, null, null, allocator);
         retval.data = IRData{ .branch = label };
+        return retval;
+    }
+
+    fn createCall(dest: *SymbolVersion, src1: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.call, dest, src1, null, allocator);
+        retval.data = IRData{ .symbverList = std.ArrayList(*SymbolVersion).init(allocator) };
         return retval;
     }
 
@@ -288,7 +295,7 @@ pub const CFG = struct {
     /// Whether or not this CFG is visited
     visited: bool,
 
-    pub fn create(symbol: *Symbol, allocator: std.mem.Allocator) !*CFG {
+    pub fn create(symbol: *Symbol, caller: ?*CFG, allocator: std.mem.Allocator) !*CFG {
         var retval = try allocator.create(CFG);
         retval.ir_head = null;
         retval.ir_tail = null;
@@ -296,9 +303,13 @@ pub const CFG = struct {
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
         retval.leaves = std.ArrayList(*CFG).init(allocator);
         retval.symbol = symbol;
-        retval.temp_symbol = try Symbol.create(symbol.scope, "$temp", span.Span{ .col = 0, .line = 0 }, null, null, allocator);
-        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, null, null, allocator);
+        retval.temp_symbol = try Symbol.create(symbol.scope, "$temp", span.Span{ .col = 0, .line = 0 }, null, null, .mut, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, null, null, .mut, allocator);
         retval.visited = false;
+
+        if (caller) |caller_node| {
+            try caller_node.leaves.append(retval);
+        }
 
         var eval = try retval.flattenAST(symbol.scope, symbol.init.?, false, allocator);
         var return_version = try SymbolVersion.createUnversioned(retval.return_symbol, symbol._type.?.function.rhs, allocator);
@@ -345,9 +356,10 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, lvalue: bool, allocator: std.mem.Allocator) !?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, lvalue: bool, allocator: std.mem.Allocator) error{ OutOfMemory, NotAnLValue, Unimplemented }!?*SymbolVersion {
         switch (ast.*) {
             // Literals
+            .unit => return null,
             .int => {
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
                 var ir = try IR.createInt(temp, ast.int.data, allocator);
@@ -378,9 +390,20 @@ pub const CFG = struct {
             },
             .identifier => {
                 var symbol = scope.lookup(ast.identifier.token.data).?;
-                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                symbver.lvalue = lvalue;
-                return symbver;
+                if (symbol.kind == ._fn) {
+                    _ = try create(symbol, self, allocator);
+                    var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
+
+                    var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
+                    ir.data = IRData{ .symbol = symbol };
+                    symbver.def = ir;
+                    self.appendInstruction(ir);
+                    return symbver;
+                } else {
+                    var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    symbver.lvalue = lvalue;
+                    return symbver;
+                }
             },
 
             // Unary operators
@@ -452,7 +475,7 @@ pub const CFG = struct {
 
                 // lhs was true, store `true` in symbver
                 var load_true = try IR.createInt(symbver, 1, allocator);
-                try phony.data.list.append(load_true);
+                try phony.data.irList.append(load_true);
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
@@ -460,7 +483,7 @@ pub const CFG = struct {
                 self.appendInstruction(else_label);
                 var rhs = try self.flattenAST(scope, ast._or.rhs, false, allocator);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
-                try phony.data.list.append(copy_right);
+                try phony.data.irList.append(copy_right);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -485,14 +508,14 @@ pub const CFG = struct {
                 // lhs was true, recurse to rhs, store in symbver
                 var rhs = try self.flattenAST(scope, ast._and.rhs, false, allocator);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
-                try phony.data.list.append(copy_right);
+                try phony.data.irList.append(copy_right);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 var load_false = try IR.createInt(symbver, 0, allocator);
-                try phony.data.list.append(load_false);
+                try phony.data.irList.append(load_false);
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -568,6 +591,22 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .call => {
+                var lhs = (try self.flattenAST(scope, ast.call.lhs, false, allocator)).?;
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                var ir = try IR.createCall(temp, lhs, allocator);
+                switch (ast.call.rhs.*) {
+                    .unit => {},
+                    .product => for (ast.call.rhs.product.terms.items) |term| {
+                        try ir.data.symbverList.append((try self.flattenAST(scope, term, false, allocator)).?);
+                    },
+                    else => try ir.data.symbverList.append((try self.flattenAST(scope, ast.call.rhs, false, allocator)).?),
+                }
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
 
             // Fancy Operators
             .conditional => {
@@ -617,13 +656,13 @@ pub const CFG = struct {
                 }
                 // all tests passed, store `true` in symbver
                 var load_true = try IR.createInt(symbver, 1, allocator);
-                try phony.data.list.append(load_true);
+                try phony.data.irList.append(load_true);
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 // at least one test failed, store `false` in symbver
                 self.appendInstruction(else_label);
                 var load_false = try IR.createInt(symbver, 0, allocator);
-                try phony.data.list.append(load_false);
+                try phony.data.irList.append(load_false);
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);

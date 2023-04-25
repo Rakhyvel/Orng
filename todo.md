@@ -55,6 +55,7 @@
     - [ ] Negative, error tests
 - [ ] Symbols should likely know if they're immutable, constant, mutable, or a function (quadchotomy)
 - [ ] Find the main function somehow
+- [ ] Implement rust-style shadow rules
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
@@ -100,12 +101,12 @@
         - [x] <
         - [x] >=
         - [x] <=
-        - [ ] +
-        - [ ] -
-        - [ ] *
-        - [ ] /
-        - [ ] %
-        - [ ] **
+        - [x] +
+        - [x] -
+        - [x] *
+        - [x] /
+        - [x] %
+        - [x] **
         - [ ] <> (fancy call in disguise, rewrite pass?)
         - [ ] .> (fancy call in disguise, rewrite pass?)
         - [ ] . (defer to after tuples)
@@ -116,7 +117,7 @@
         - [ ] orelse (defer to after optionals)
         - [ ] catch (defer to after errors)
         - [ ] ! (defer to after errors)
-    - [ ] call
+    - [x] call
     - [ ] addrOf
     - [ ] sliceOf (defer to after arrays)
     - [ ] namedArg (maybe this is subsumed by a tree-walk on a call)
@@ -149,28 +150,28 @@
 - [ ] Execute the output file
 
 ### Integration Testing
-- [ ] Write *integration* tests
+- [ ] Write small integration tests for each "feature" of the language
+- [ ] Fuzz tests
+    - Generate random (syntactically correct) Orng programs; attempt to compile
+        | compiles, no C err => generate new program
+        | compiler err       => generate new program
+        | compiles, C err    => either bug in compiler, or need a validation check
+        | panic              => bug in compiler
 
-### Type inferrence
 
-### Partially Applied Functions
+### Yakhyvel
+- [ ] Standardize token, ast, ir kind nameing convention
+- [ ] Alphabetize type imports by the module, then by the type.
 
-### ADTs
-
-### Optionals
-
-### Error handling
-
-### First-class types
-
-### Refinement types
-
-### Generic Type Unification
-
-### Type classes
-
-### Allocators
-
-## Build System
-
-### Runtime 'System' type
+### Fancy features
+- [ ] Partially Applied Functions
+- [ ] ADTs
+- [ ] Optionals
+- [ ] Error handling
+- [ ] First-class types
+- [ ] Refinement types
+- [ ] Generic Type Unification
+- [ ] Type classes
+- [ ] Allocators
+- [ ] Build System
+- [ ] Runtime 'System' type

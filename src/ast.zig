@@ -74,7 +74,7 @@ pub const AST = union(enum) {
     prepend: struct { token: Token, lhs: *AST, rhs: *AST },
     sum: struct { token: Token, lhs: *AST, rhs: *AST },
     _error: struct { token: Token, lhs: *AST, rhs: *AST },
-    product: struct { token: Token, lhs: *AST, rhs: *AST },
+    product: struct { token: Token, terms: std.ArrayList(*AST) },
     diff: struct { token: Token, lhs: *AST, rhs: *AST },
     concat: struct { token: Token, lhs: *AST, rhs: *AST },
     _union: struct { token: Token, lhs: *AST, rhs: *AST },
@@ -339,8 +339,9 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._error = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createProduct(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .product = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createProduct(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        std.debug.assert(terms.items.len >= 2);
+        return try AST.box(AST{ .product = .{ .token = token, .terms = terms } }, allocator);
     }
 
     pub fn createDiff(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

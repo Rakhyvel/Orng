@@ -15,12 +15,14 @@ pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
+    name: []const u8,
 
-    pub fn init(parent: ?*Scope, allocator: std.mem.Allocator) !*Scope {
+    pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
         var retval = try allocator.create(Scope);
         retval.parent = parent;
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
+        retval.name = name;
         return retval;
     }
 
@@ -55,6 +57,8 @@ pub const Scope = struct {
     }
 };
 
+pub const SymbolKind = enum { _fn, _const, let, mut };
+
 pub const Symbol = struct {
     scope: *Scope,
     name: []const u8,
@@ -62,8 +66,9 @@ pub const Symbol = struct {
     _type: ?*ast.AST,
     init: ?*ast.AST,
     versions: u64,
+    kind: SymbolKind,
 
-    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, allocator: std.mem.Allocator) !*Symbol {
+    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
         retval.name = name;
@@ -71,13 +76,14 @@ pub const Symbol = struct {
         retval._type = _type;
         retval.init = _init;
         retval.versions = 0;
+        retval.kind = kind;
         return retval;
     }
 };
 
 // Walk AST, if come across a block, create new scope on it, if def, create new symbol entry
 pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Scope {
-    var retval = try Scope.init(root, allocator);
+    var retval = try Scope.init(root, "", allocator);
     retval.parent = root;
     var i: usize = 0;
     while (i < definitions.items.len) : (i += 1) {
@@ -119,12 +125,21 @@ pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *
 }
 
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
+    var kind: SymbolKind = undefined;
+    switch (definition.decl.token.kind) {
+        .CONST => kind = ._const,
+        .LET => kind = .let,
+        .MUT => kind = .mut,
+        else => unreachable,
+    }
+
     var retval = try Symbol.create(
         scope,
         definition.decl.pattern.identifier.token.data,
         definition.decl.pattern.getToken().span,
         definition.decl.type,
         definition.decl.init,
+        kind,
         allocator,
     );
     definition.decl.symbol = retval;
@@ -156,6 +171,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         definition.fnDecl.name.?.getToken().span,
         _type,
         definition.fnDecl.init,
+        ._fn,
         allocator,
     );
 }
@@ -163,12 +179,14 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
 fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) SymbolErrorEnum!*AST {
     if (params.items.len == 0) {
         return try AST.createUnit(token, allocator);
+    } else if (params.items.len == 1) {
+        return params.items[0].decl.type.?;
     } else {
-        var retval: *AST = params.items[0].decl.type.?;
+        var param_types = std.ArrayList(*AST).init(allocator);
         var i: usize = 1;
         while (i < params.items.len) : (i += 1) {
-            retval = try AST.createProduct(params.items[i].getToken(), retval, params.items[i], allocator);
+            try param_types.append(params.items[i]);
         }
-        return retval;
+        return try AST.createProduct(params.items[0].getToken(), param_types, allocator);
     }
 }

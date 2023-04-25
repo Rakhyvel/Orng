@@ -6,6 +6,7 @@ const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
 const Program = @import("program.zig").Program;
+const Scope = _symbol.Scope;
 const Symbol = _symbol.Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
@@ -25,7 +26,7 @@ pub fn generate(program: *Program, file: *std.fs.File) !void {
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    try out.writer().print("int {s}();\n", .{callGraph.symbol.name});
+    try out.writer().print("int test_{s}();\n", .{callGraph.symbol.name});
 
     for (callGraph.leaves.items) |leaf| {
         try generateFowardFunctions(leaf, out);
@@ -62,11 +63,11 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     }
 
     // Generate the `end` basic block
-    try out.writer().print("end:\n\treturn retval;\n}}\n", .{});
+    try out.writer().print("end:\n\treturn retval;\n}}\n\n", .{});
 
     // Generate leaf functions
     for (callGraph.leaves.items) |leaf| {
-        try generateFowardFunctions(leaf, out);
+        try generateFunctions(leaf, out);
     }
 }
 
@@ -141,6 +142,11 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
     }
 
     switch (ir.kind) {
+        .loadSymbol => {
+            try printVarAssign(ir.dest.?, out);
+            try printPath(ir.data.symbol, out);
+            try out.writer().print(";\n", .{});
+        },
         .loadInt => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("{};\n", .{ir.data.int});
@@ -283,7 +289,15 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;
         },
-        .call => {},
+        .call => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print("(", .{});
+            for (ir.data.symbverList.items) |symbver| {
+                try printVar(symbver, out);
+            }
+            try out.writer().print(");\n", .{});
+        },
 
         // Errors
     }
@@ -342,7 +356,18 @@ fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
 }
 
 fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
+    try printPathScope(symbol.scope, out);
     try out.writer().print("{s}", .{symbol.name});
+}
+
+fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
+    if (scope.parent) |parent| {
+        try printPathScope(parent, out);
+    }
+    try out.writer().print("{s}", .{scope.name});
+    if (scope.name.len > 0) {
+        try out.writer().print("_", .{});
+    }
 }
 
 fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
