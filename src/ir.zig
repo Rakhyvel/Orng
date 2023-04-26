@@ -269,18 +269,6 @@ pub const BasicBlock = struct {
             next.pprint();
         }
     }
-
-    // BBs aren't trees, so `defer self.visited = false` won't work
-    // Use this function instead
-    pub fn clearVisited(self: *BasicBlock) void {
-        self.visited = false;
-        if (self.branch) |branch| {
-            branch.clearVisited();
-        }
-        if (self.next) |next| {
-            next.clearVisited();
-        }
-    }
 };
 
 pub const CFG = struct {
@@ -332,10 +320,18 @@ pub const CFG = struct {
 
         if (retval.block_graph_head) |graph| {
             graph.pprint();
-            graph.clearVisited();
+            retval.clearVisitedBBs();
         }
 
         return retval;
+    }
+
+    // BBs aren't trees, so `defer self.visited = false` won't work
+    // Use this function instead
+    pub fn clearVisitedBBs(self: *CFG) void {
+        for (self.basic_blocks.items) |bb| {
+            bb.visited = false;
+        }
     }
 
     fn createBasicBlock(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
@@ -725,6 +721,64 @@ pub const CFG = struct {
                     self.appendInstruction(try IR.createJump(end_label, allocator));
                 }
                 self.appendInstruction(end_label);
+                return symbver;
+            },
+            .cond => {
+                // Create the result symbol and IR
+                var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var phony = try IR.createPhony(symbver, allocator);
+                symbver.def = phony;
+                self.appendInstruction(phony);
+
+                // Exit label of cond
+                var end_label = try IR.createLabel(allocator);
+                // List of labels to branch to on an unsuccessful test ("next test")
+                var lhs_label_list = std.ArrayList(*IR).init(allocator);
+                defer lhs_label_list.deinit();
+                // List of labels to branch to on a successful test
+                var rhs_label_list = std.ArrayList(*IR).init(allocator);
+                defer rhs_label_list.deinit();
+                for (ast.cond.mappings.items) |mapping| {
+                    try lhs_label_list.append(try IR.createLabel(allocator));
+                    if (mapping.mapping.rhs != null) {
+                        try rhs_label_list.append(try IR.createLabel(allocator));
+                    }
+                }
+                std.debug.assert(lhs_label_list.items.len == ast.cond.mappings.items.len);
+
+                var lhs_label_index: usize = 0;
+                var rhs_label_index: usize = 0;
+                for (ast.cond.mappings.items) |mapping| {
+                    var lhs_label = lhs_label_list.items[lhs_label_index];
+                    self.appendInstruction(lhs_label);
+                    if (mapping.mapping.lhs) |lhs| {
+                        var condition = (try self.flattenAST(scope, lhs, false, allocator)).?;
+                        var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
+                        self.appendInstruction(branch);
+                    }
+                    var rhs_label = rhs_label_list.items[rhs_label_index];
+                    self.appendInstruction(try IR.createJump(rhs_label, allocator));
+                    if (mapping.mapping.rhs != null) {
+                        rhs_label_index += 1;
+                    }
+                    lhs_label_index += 1;
+                }
+
+                // Write the labels and the mappings exprs
+                rhs_label_index = 0;
+                for (ast.cond.mappings.items) |mapping| {
+                    if (mapping.mapping.rhs) |rhs| {
+                        self.appendInstruction(rhs_label_list.items[rhs_label_index]);
+                        var rhsSymbver = (try self.flattenAST(scope, rhs, false, allocator)).?;
+                        var rhsCopy = try IR.create(.copy, symbver, rhsSymbver, null, allocator);
+                        try phony.data.irList.append(rhsCopy);
+                        self.appendInstruction(rhsCopy);
+                        self.appendInstruction(try IR.createJump(end_label, allocator));
+                        rhs_label_index += 1;
+                    }
+                }
+                self.appendInstruction(end_label);
+
                 return symbver;
             },
             .block => {

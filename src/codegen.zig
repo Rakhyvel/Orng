@@ -60,7 +60,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // Generate the basic-block graph, starting at the init basic block
     if (callGraph.block_graph_head) |block_graph_head| {
         try generateBasicBlock(block_graph_head, out);
-        block_graph_head.clearVisited();
+        callGraph.clearVisitedBBs();
     }
 
     // Generate the `end` basic block
