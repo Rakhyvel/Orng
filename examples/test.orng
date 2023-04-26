@@ -1,3 +1,1 @@
-fn main: ()->!() = 
-    let x: Int = 4
-    let y: &Int = &x
+fn main: ()->!() = if 1 {100} else {200}

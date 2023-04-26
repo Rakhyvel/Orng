@@ -84,8 +84,8 @@ pub fn main() !void {
     // Symbol tree construction
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
-    var fileRoot = try symbol.Scope.init(null, "test", symbolAllocator.allocator()); // TODO: replace "test" with the filename, obvi
-    var symbol_table = symbol.createScope(program_ast, fileRoot, &errors, symbolAllocator.allocator()) catch |err| {
+    var file_root = try symbol.Scope.init(null, "test", symbolAllocator.allocator()); // TODO: replace "test" with the filename, obvi
+    symbol.symbolTableFromASTList(program_ast, file_root, &errors, symbolAllocator.allocator()) catch |err| {
         switch (err) {
             error.symbolError => {
                 errors.printErrors();
@@ -96,7 +96,7 @@ pub fn main() !void {
             },
         }
     };
-    symbol_table.pprint();
+    file_root.pprint();
 
     // Typecheck
     // TODO
@@ -104,7 +104,7 @@ pub fn main() !void {
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
-    var cfg = try ir.CFG.create(symbol_table.symbols.get("main").?, null, allocator);
+    var cfg = try ir.CFG.create(file_root.symbols.get("main").?, null, allocator);
 
     // Code generation
     var program = try Program.init(cfg, allocator);

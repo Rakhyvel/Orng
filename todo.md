@@ -119,8 +119,8 @@
         - [ ] catch (defer to after errors)
         - [ ] ! (defer to after errors)
     - [x] call
-    - [ ] addrOf
-    - [ ] if
+    - [x] addrOf
+    - [x] if
     - [ ] cond
     - [ ] case
     - [ ] while
@@ -160,9 +160,16 @@
         | panic              => bug in compiler
 
 
-### Yakhyvel
-- [ ] Standardize token, ast, ir kind nameing convention
+### Time wasting
+- [ ] Standardize token, ast, ir *kind* naming convention
 - [ ] Alphabetize type imports by the module, then by the type.
+- [ ] Standardize the names of parameters, ie:
+    - `token` for a Token
+    - `ast` for an AST node
+    - `def` for the def IR node of a SymbolVersion
+    - `ir` for an arbitrary IR node
+    - `symbver` for an arbitrary SymbolVersion
+    - `maybe_x` for an optional variant of a type
 
 ### Fancy features
 - [ ] Partially Applied Functions

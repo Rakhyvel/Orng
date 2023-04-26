@@ -96,10 +96,30 @@ pub const AST = union(enum) {
         bodyBlock: *AST,
         elseBlock: ?*AST,
     },
-    cond: struct { token: Token, let: ?*AST, mappings: std.ArrayList(*AST) },
-    case: struct { token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST) },
-    mapping: struct { token: Token, lhs: ?*AST, rhs: ?*AST },
-    _while: struct { token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST },
+    cond: struct {
+        token: Token,
+        let: ?*AST,
+        mappings: std.ArrayList(*AST),
+    },
+    case: struct {
+        token: Token,
+        let: ?*AST,
+        expr: *AST,
+        mappings: std.ArrayList(*AST),
+    },
+    mapping: struct {
+        token: Token,
+        lhs: ?*AST,
+        rhs: ?*AST,
+    },
+    _while: struct {
+        token: Token,
+        let: ?*AST,
+        condition: *AST,
+        post: ?*AST,
+        bodyBlock: *AST,
+        elseBlock: ?*AST,
+    },
     _for: struct {
         token: Token,
         let: ?*AST,
@@ -108,7 +128,12 @@ pub const AST = union(enum) {
         bodyBlock: *AST,
         elseBlock: ?*AST,
     },
-    block: struct { token: Token, scope: ?*Scope, statements: std.ArrayList(*AST), final: ?*AST },
+    block: struct {
+        token: Token,
+        scope: ?*Scope,
+        statements: std.ArrayList(*AST),
+        final: ?*AST,
+    },
 
     // Control-flow statements
     _break: struct { token: Token },
@@ -116,8 +141,21 @@ pub const AST = union(enum) {
     _unreachable: struct { token: Token },
     throw: struct { token: Token, expr: *AST },
     _return: struct { token: Token, expr: ?*AST },
-    decl: struct { token: Token, symbol: ?*Symbol, pattern: *AST, type: ?*AST, init: ?*AST },
-    fnDecl: struct { token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST },
+    decl: struct {
+        token: Token,
+        symbol: ?*Symbol,
+        pattern: *AST,
+        type: ?*AST,
+        init: ?*AST,
+    },
+    fnDecl: struct {
+        token: Token,
+        name: ?*AST,
+        params: std.ArrayList(*AST),
+        retType: *AST,
+        refinement: ?*AST,
+        init: *AST,
+    },
     _defer: struct { token: Token, expr: *AST },
 
     fn box(ast: AST, alloc: std.mem.Allocator) !*AST {

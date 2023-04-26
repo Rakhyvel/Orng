@@ -4,6 +4,8 @@ kcov-out/
 orngdoc_old.md
 parser.py
 orng.out
+examples/out
+examples/out.c
 
 # Added by cargo
 

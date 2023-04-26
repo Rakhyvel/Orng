@@ -239,11 +239,12 @@ pub const BasicBlock = struct {
 
     visited: bool,
 
-    fn pprint(self: *BasicBlock) void {
+    pub fn pprint(self: *BasicBlock) void {
         if (self.visited) {
             return;
         }
         self.visited = true;
+
         std.debug.print("Basic Block BB{}\n", .{self.uid});
         var maybe_ir = self.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
@@ -267,7 +268,18 @@ pub const BasicBlock = struct {
         if (self.next) |next| {
             next.pprint();
         }
+    }
+
+    // BBs aren't trees, so `defer self.visited = false` won't work
+    // Use this function instead
+    pub fn clearVisited(self: *BasicBlock) void {
         self.visited = false;
+        if (self.branch) |branch| {
+            branch.clearVisited();
+        }
+        if (self.next) |next| {
+            next.clearVisited();
+        }
     }
 };
 
@@ -320,6 +332,7 @@ pub const CFG = struct {
 
         if (retval.block_graph_head) |graph| {
             graph.pprint();
+            graph.clearVisited();
         }
 
         return retval;
@@ -679,6 +692,41 @@ pub const CFG = struct {
             },
 
             // Control-flow expressions
+            ._if => {
+                // Create the result symbol and IR
+                var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var phony = try IR.createPhony(symbver, allocator);
+                symbver.def = phony;
+                self.appendInstruction(phony);
+
+                // Labels used
+                var else_label = try IR.createLabel(allocator);
+                var end_label = try IR.createLabel(allocator);
+
+                // Test lhs, branch
+                var condition = (try self.flattenAST(scope, ast._if.condition, false, allocator)).?;
+                var branch = try IR.createBranch(condition, else_label, allocator);
+                self.appendInstruction(branch);
+
+                // lhs was true, recurse to rhs, store in symbver
+                var blockSymbver = (try self.flattenAST(scope, ast._if.bodyBlock, false, allocator)).?;
+                var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
+                try phony.data.irList.append(blockCopy);
+                self.appendInstruction(blockCopy);
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+
+                // lhs was false, store `false` in symbver
+                self.appendInstruction(else_label);
+                if (ast._if.elseBlock) |elseBlock| {
+                    var elseSymbver = (try self.flattenAST(scope, elseBlock, false, allocator)).?;
+                    var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
+                    try phony.data.irList.append(elseCopy);
+                    self.appendInstruction(elseCopy);
+                    self.appendInstruction(try IR.createJump(end_label, allocator));
+                }
+                self.appendInstruction(end_label);
+                return symbver;
+            },
             .block => {
                 if (ast.block.statements.items.len == 0 and ast.block.final == null) {
                     return null;

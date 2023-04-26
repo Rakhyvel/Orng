@@ -81,47 +81,238 @@ pub const Symbol = struct {
     }
 };
 
-// Walk AST, if come across a block, create new scope on it, if def, create new symbol entry
-pub fn createScope(definitions: std.ArrayList(*ast.AST), root: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Scope {
-    var retval = try Scope.init(root, "", allocator);
-    retval.parent = root;
-    var i: usize = 0;
-    while (i < definitions.items.len) : (i += 1) {
-        var definition = definitions.items[i];
-        switch (definition.*) {
-            .decl => {
-                var symbol = try createSymbol(definition, retval, allocator);
-                if (retval.lookup(symbol.name)) |first| {
-                    errors.addError(Error{ .redefinition = .{
-                        .first_defined_span = first.span,
-                        .redefined_span = symbol.span,
-                        .name = symbol.name,
-                    } });
-                    return error.symbolError;
-                } else {
-                    try retval.symbols.put(symbol.name, symbol);
-                }
-            },
-
-            .fnDecl => {
-                var symbol = try createFunctionSymbol(definition, retval, errors, allocator);
-                if (retval.lookup(symbol.name)) |first| {
-                    errors.addError(Error{ .redefinition = .{
-                        .first_defined_span = first.span,
-                        .redefined_span = symbol.span,
-                        .name = symbol.name,
-                    } });
-                    return error.symbolError;
-                } else {
-                    try retval.symbols.put(symbol.name, symbol);
-                }
-            },
-
-            else => {},
-        }
+pub fn symbolTableFromASTList(definitions: std.ArrayList(*ast.AST), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+    for (definitions.items) |definition| {
+        try symbolTableFromAST(definition, scope, errors, allocator);
     }
+}
 
-    return retval;
+// Takes in an ast, returns the scope constructed from that AST node
+// Most AST nodes don't do anything, except blocks and decls, which can be buried deep in an AST
+pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+    if (maybe_definition == null) {
+        return;
+    }
+    var definition = maybe_definition.?;
+    switch (definition.*) {
+        .unit,
+        .int,
+        .char,
+        .float,
+        .string,
+        .identifier,
+        ._unreachable,
+        ._break,
+        ._continue,
+        => {},
+
+        .not => try symbolTableFromAST(definition.not.expr, scope, errors, allocator),
+        .negate => try symbolTableFromAST(definition.negate.expr, scope, errors, allocator),
+        .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
+        ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
+        .optional => try symbolTableFromAST(definition.optional.expr, scope, errors, allocator),
+        .fromOptional => try symbolTableFromAST(definition.fromOptional.expr, scope, errors, allocator),
+        .inferredError => try symbolTableFromAST(definition.inferredError.expr, scope, errors, allocator),
+
+        .assign => {
+            try symbolTableFromAST(definition.assign.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.assign.rhs, scope, errors, allocator);
+        },
+        ._or => {
+            try symbolTableFromAST(definition._or.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition._or.rhs, scope, errors, allocator);
+        },
+        ._and => {
+            try symbolTableFromAST(definition._and.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition._and.rhs, scope, errors, allocator);
+        },
+        .notEqual => {
+            try symbolTableFromAST(definition.notEqual.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.notEqual.rhs, scope, errors, allocator);
+        },
+        .add => {
+            try symbolTableFromAST(definition.add.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.add.rhs, scope, errors, allocator);
+        },
+        .sub => {
+            try symbolTableFromAST(definition.sub.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.sub.rhs, scope, errors, allocator);
+        },
+        .mult => {
+            try symbolTableFromAST(definition.mult.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.mult.rhs, scope, errors, allocator);
+        },
+        .div => {
+            try symbolTableFromAST(definition.div.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.div.rhs, scope, errors, allocator);
+        },
+        .mod => {
+            try symbolTableFromAST(definition.mod.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.mod.rhs, scope, errors, allocator);
+        },
+        .exponent => {
+            try symbolTableFromAST(definition.exponent.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.exponent.rhs, scope, errors, allocator);
+        },
+        ._catch => {
+            try symbolTableFromAST(definition._catch.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition._catch.rhs, scope, errors, allocator);
+        },
+        ._orelse => {
+            try symbolTableFromAST(definition._orelse.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition._orelse.rhs, scope, errors, allocator);
+        },
+        .call => {
+            try symbolTableFromAST(definition.call.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.call.rhs, scope, errors, allocator);
+        },
+        .index => {
+            try symbolTableFromAST(definition.index.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.index.rhs, scope, errors, allocator);
+        },
+        .select => {
+            try symbolTableFromAST(definition.select.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.select.rhs, scope, errors, allocator);
+        },
+        .function => {
+            try symbolTableFromAST(definition.function.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.function.rhs, scope, errors, allocator);
+        },
+        .delta => {
+            try symbolTableFromAST(definition.delta.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.delta.rhs, scope, errors, allocator);
+        },
+        .composition => {
+            try symbolTableFromAST(definition.composition.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.composition.rhs, scope, errors, allocator);
+        },
+        .prepend => {
+            try symbolTableFromAST(definition.prepend.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.prepend.rhs, scope, errors, allocator);
+        },
+        .sum => {
+            try symbolTableFromAST(definition.sum.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.sum.rhs, scope, errors, allocator);
+        },
+        ._error => {
+            try symbolTableFromAST(definition._error.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition._error.rhs, scope, errors, allocator);
+        },
+        .diff => {
+            try symbolTableFromAST(definition.diff.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.diff.rhs, scope, errors, allocator);
+        },
+        .concat => {
+            try symbolTableFromAST(definition.concat.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.concat.rhs, scope, errors, allocator);
+        },
+        ._union => {
+            try symbolTableFromAST(definition._union.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition._union.rhs, scope, errors, allocator);
+        },
+
+        .product => {
+            try symbolTableFromASTList(definition.product.terms, scope, errors, allocator);
+        },
+        .conditional => {
+            try symbolTableFromASTList(definition.conditional.exprs, scope, errors, allocator);
+        },
+        .addrOf => try symbolTableFromAST(definition.addrOf.expr, scope, errors, allocator),
+        .sliceOf => {
+            try symbolTableFromAST(definition.sliceOf.expr, scope, errors, allocator);
+            try symbolTableFromAST(definition.sliceOf.len, scope, errors, allocator);
+        },
+        .namedArg => {
+            try symbolTableFromAST(definition.namedArg.ident, scope, errors, allocator);
+            try symbolTableFromAST(definition.namedArg.init, scope, errors, allocator);
+        },
+        .subSlice => {
+            try symbolTableFromAST(definition.subSlice.super, scope, errors, allocator);
+            try symbolTableFromAST(definition.subSlice.lower, scope, errors, allocator);
+            try symbolTableFromAST(definition.subSlice.upper, scope, errors, allocator);
+        },
+        .annotation => {
+            try symbolTableFromAST(definition.annotation.type, scope, errors, allocator);
+            try symbolTableFromAST(definition.annotation.predicate, scope, errors, allocator);
+            try symbolTableFromAST(definition.annotation.init, scope, errors, allocator);
+        },
+        .inferredMember => {
+            try symbolTableFromAST(definition.inferredMember.ident, scope, errors, allocator);
+            try symbolTableFromAST(definition.inferredMember.init, scope, errors, allocator);
+        },
+
+        ._if => {
+            try symbolTableFromAST(definition._if.let, scope, errors, allocator);
+            try symbolTableFromAST(definition._if.condition, scope, errors, allocator);
+            try symbolTableFromAST(definition._if.bodyBlock, scope, errors, allocator);
+            try symbolTableFromAST(definition._if.elseBlock, scope, errors, allocator);
+        },
+        .cond => {
+            try symbolTableFromAST(definition.cond.let, scope, errors, allocator);
+            try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
+        },
+        .case => {
+            try symbolTableFromAST(definition.case.let, scope, errors, allocator);
+            try symbolTableFromAST(definition.case.expr, scope, errors, allocator);
+            try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
+        },
+        .mapping => {
+            try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.mapping.rhs, scope, errors, allocator);
+        },
+        ._while => {
+            try symbolTableFromAST(definition._while.let, scope, errors, allocator);
+            try symbolTableFromAST(definition._while.condition, scope, errors, allocator);
+            try symbolTableFromAST(definition._while.post, scope, errors, allocator);
+            try symbolTableFromAST(definition._while.bodyBlock, scope, errors, allocator);
+            try symbolTableFromAST(definition._while.elseBlock, scope, errors, allocator);
+        },
+        ._for => {
+            try symbolTableFromAST(definition._for.let, scope, errors, allocator);
+            try symbolTableFromAST(definition._for.elem, scope, errors, allocator);
+            try symbolTableFromAST(definition._for.iterable, scope, errors, allocator);
+            try symbolTableFromAST(definition._while.bodyBlock, scope, errors, allocator);
+            try symbolTableFromAST(definition._while.elseBlock, scope, errors, allocator);
+        },
+        .block => {
+            var new_scope = try Scope.init(scope, "", allocator);
+            definition.block.scope = new_scope;
+            try symbolTableFromASTList(definition.block.statements, new_scope, errors, allocator);
+        },
+
+        .throw => try symbolTableFromAST(definition.throw.expr, scope, errors, allocator),
+        ._return => try symbolTableFromAST(definition._return.expr, scope, errors, allocator),
+        .decl => {
+            // Both put a Symbol in the current scope, and recurse
+            var symbol = try createSymbol(definition, scope, allocator);
+            if (scope.lookup(symbol.name)) |first| {
+                errors.addError(Error{ .redefinition = .{
+                    .first_defined_span = first.span,
+                    .redefined_span = symbol.span,
+                    .name = symbol.name,
+                } });
+                return error.symbolError;
+            } else {
+                try scope.symbols.put(symbol.name, symbol);
+            }
+            try symbolTableFromAST(definition.decl.type, scope, errors, allocator);
+            try symbolTableFromAST(definition.decl.init, scope, errors, allocator);
+        },
+        .fnDecl => {
+            var symbol = try createFunctionSymbol(definition, scope, errors, allocator);
+            if (scope.lookup(symbol.name)) |first| {
+                errors.addError(Error{ .redefinition = .{
+                    .first_defined_span = first.span,
+                    .redefined_span = symbol.span,
+                    .name = symbol.name,
+                } });
+                return error.symbolError;
+            } else {
+                try scope.symbols.put(symbol.name, symbol);
+            }
+        },
+        ._defer => try symbolTableFromAST(definition._defer.expr, scope, errors, allocator),
+    }
 }
 
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
@@ -158,12 +349,9 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         definition.fnDecl.retType,
         allocator,
     );
-    var fnScope = try createScope(definition.fnDecl.params, scope, errors, allocator);
-    if (definition.fnDecl.init.* == .block) {
-        var new_scope = try createScope(definition.fnDecl.init.block.statements, fnScope, errors, allocator);
-        definition.fnDecl.init.block.scope = new_scope;
-        try fnScope.children.append(new_scope);
-    }
+    var fnScope = try Scope.init(scope, "", allocator);
+    try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);
+    try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
 
     return try Symbol.create(
         fnScope,
