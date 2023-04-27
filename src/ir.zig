@@ -35,6 +35,9 @@ pub const SymbolVersion = struct {
 
     fn pprint(self: ?*SymbolVersion) void {
         if (self) |symbver| {
+            if (symbver.lvalue) {
+                std.debug.print("L", .{});
+            }
             std.debug.print("{s}_{?}\t", .{ symbver.symbol.name, symbver.version });
         } else {
             std.debug.print("<null>\t", .{});
@@ -188,7 +191,7 @@ pub const IR = struct {
         return retval;
     }
 
-    fn pprint(self: *IR) void {
+    pub fn pprint(self: *IR) void {
         if (self.kind == .label) {
             std.debug.print("BB{}:\n", .{self.uid});
         } else {
@@ -316,12 +319,17 @@ pub const CFG = struct {
         retval.appendInstruction(try IR.create(.copy, return_version, eval, null, allocator));
         retval.appendInstruction(try IR.createJump(null, allocator));
 
+        // var maybe_ir = retval.ir_head;
+        // while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+        //     ir.pprint();
+        // }
+
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
 
-        if (retval.block_graph_head) |graph| {
-            graph.pprint();
-            retval.clearVisitedBBs();
-        }
+        // if (retval.block_graph_head) |graph| {
+        //     graph.pprint();
+        //     retval.clearVisitedBBs();
+        // }
 
         return retval;
     }
@@ -454,7 +462,7 @@ pub const CFG = struct {
                     var ir = try IR.create(.copy, symbver, rhs, null, allocator);
                     symbver.def = ir;
                     self.appendInstruction(ir);
-                    return null;
+                    return symbver;
                 } else if (ast.assign.lhs.* == .dereference) {
                     var lhs = try self.flattenAST(scope, ast.assign.lhs.dereference.expr, true, allocator);
                     lhs.?.lvalue = true;
@@ -779,6 +787,54 @@ pub const CFG = struct {
                 }
                 self.appendInstruction(end_label);
 
+                return symbver;
+            },
+            ._while => {
+                // Create the result symbol and IR
+                var symbver = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var phony = try IR.createPhony(symbver, allocator);
+                symbver.def = phony;
+                self.appendInstruction(phony);
+
+                // Labels used
+                var cond_label = try IR.createLabel(allocator);
+                var else_label = try IR.createLabel(allocator);
+                var end_label = try IR.createLabel(allocator);
+
+                // If there's a let, then do it, dumby!
+                if (ast._while.let) |let| {
+                    _ = try self.flattenAST(ast._while.scope.?, let, false, allocator);
+                }
+
+                // Test lhs, branch
+                self.appendInstruction(cond_label);
+                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, false, allocator)).?;
+                var branch = try IR.createBranch(condition, else_label, allocator);
+                self.appendInstruction(branch);
+
+                // lhs was true, recurse to rhs, store in symbver
+                var blockSymbver = (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, false, allocator)).?;
+                var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
+                try phony.data.irList.append(blockCopy);
+                self.appendInstruction(blockCopy);
+
+                // Post-condition
+                if (ast._while.post) |post| {
+                    _ = try self.flattenAST(ast._while.scope.?, post, false, allocator);
+                }
+
+                self.appendInstruction(try IR.createJump(cond_label, allocator));
+
+                // lhs was false, store `false` in symbver
+                self.appendInstruction(else_label);
+                if (ast._while.elseBlock) |elseBlock| {
+                    var elseSymbver = (try self.flattenAST(ast._while.scope.?, elseBlock, false, allocator)).?;
+                    var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
+                    try phony.data.irList.append(elseCopy);
+                    self.appendInstruction(elseCopy);
+                    self.appendInstruction(try IR.createJump(end_label, allocator));
+                }
+                self.appendInstruction(end_label);
                 return symbver;
             },
             .block => {

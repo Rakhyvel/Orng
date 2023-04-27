@@ -121,21 +121,21 @@
     - [x] call
     - [x] addrOf
     - [x] if
-    - [ ] cond
-    - [ ] case
+    - [x] cond
     - [ ] while
-    - [ ] for
+    - [ ] fnDecl
+    - [ ] defer
     - [ ] break
     - [ ] continue
     - [ ] return
-    - [ ] fnDecl
-    - [ ] defer
     - [ ] namedArg (maybe this is subsumed by a tree-walk on a call)
     - [ ] inferred members (again, likely subsumed by a tree-walk on a product expression)
     - [ ] annotation (this is just a type)
     - [ ] sliceOf (defer to after arrays)
     - [ ] subSlice (defer to after arrays)
+    - [ ] for (defer to after arrays)
     - [ ] throw (defer to after errors)
+    - [ ] case (defer to after pattern matching)
 - [ ] Write a defaultValue function which generates a default value IR for a given type
 - [ ] Do optimizations on the control-flow graph
 - [ ] Version symbols
@@ -158,6 +158,7 @@
         | compiler err       => generate new program
         | compiles, C err    => either bug in compiler, or need a validation check
         | panic              => bug in compiler
+    - Do literally a billion fuzz tests
 
 
 ### Time wasting

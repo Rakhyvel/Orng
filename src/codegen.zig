@@ -95,6 +95,7 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
     var maybe_ir = bb.ir_head;
     while (maybe_ir) |ir| : (maybe_ir = ir.next) {
         try generateIR(ir, out);
+        ir.pprint();
     }
 
     if (bb.has_branch) {
@@ -138,7 +139,7 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 }
 
 fn generateIR(ir: *IR, out: *std.fs.File) !void {
-    if (ir.dest != null and ir.dest.?.lvalue and ir.kind == .copy) {
+    if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
         return;
     }
 

@@ -698,6 +698,7 @@ pub const Parser = struct {
         }
         var bodyBlock = try self.blockExpr();
         var elseBlock: ?*AST = null;
+        while (self.accept(.NEWLINE)) |_| {}
         if (self.accept(.ELSE)) |_| {
             elseBlock = try self.blockExpr();
         }

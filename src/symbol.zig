@@ -23,6 +23,9 @@ pub const Scope = struct {
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
         retval.name = name;
+        if (parent) |_parent| {
+            try _parent.children.append(retval);
+        }
         return retval;
     }
 
@@ -261,11 +264,13 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.mapping.rhs, scope, errors, allocator);
         },
         ._while => {
-            try symbolTableFromAST(definition._while.let, scope, errors, allocator);
-            try symbolTableFromAST(definition._while.condition, scope, errors, allocator);
-            try symbolTableFromAST(definition._while.post, scope, errors, allocator);
-            try symbolTableFromAST(definition._while.bodyBlock, scope, errors, allocator);
-            try symbolTableFromAST(definition._while.elseBlock, scope, errors, allocator);
+            var new_scope = try Scope.init(scope, "", allocator);
+            definition._while.scope = new_scope;
+            try symbolTableFromAST(definition._while.let, new_scope, errors, allocator);
+            try symbolTableFromAST(definition._while.condition, new_scope, errors, allocator);
+            try symbolTableFromAST(definition._while.post, new_scope, errors, allocator);
+            try symbolTableFromAST(definition._while.bodyBlock, new_scope, errors, allocator);
+            try symbolTableFromAST(definition._while.elseBlock, new_scope, errors, allocator);
         },
         ._for => {
             try symbolTableFromAST(definition._for.let, scope, errors, allocator);

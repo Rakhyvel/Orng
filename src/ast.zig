@@ -91,6 +91,7 @@ pub const AST = union(enum) {
     // Control-flow expressions
     _if: struct {
         token: Token,
+        scope: ?*Scope,
         let: ?*AST,
         condition: *AST,
         bodyBlock: *AST,
@@ -98,11 +99,13 @@ pub const AST = union(enum) {
     },
     cond: struct {
         token: Token,
+        scope: ?*Scope,
         let: ?*AST,
         mappings: std.ArrayList(*AST),
     },
     case: struct {
         token: Token,
+        scope: ?*Scope,
         let: ?*AST,
         expr: *AST,
         mappings: std.ArrayList(*AST),
@@ -114,6 +117,7 @@ pub const AST = union(enum) {
     },
     _while: struct {
         token: Token,
+        scope: ?*Scope,
         let: ?*AST,
         condition: *AST,
         post: ?*AST,
@@ -122,6 +126,7 @@ pub const AST = union(enum) {
     },
     _for: struct {
         token: Token,
+        scope: ?*Scope,
         let: ?*AST,
         elem: *AST,
         iterable: *AST,
@@ -419,15 +424,15 @@ pub const AST = union(enum) {
     }
 
     pub fn createIf(token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._if = .{ .token = token, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
+        return try AST.box(AST{ ._if = .{ .token = token, .scope = null, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
     pub fn createCond(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .cond = .{ .token = token, .let = let, .mappings = mappings } }, allocator);
+        return try AST.box(AST{ .cond = .{ .token = token, .scope = null, .let = let, .mappings = mappings } }, allocator);
     }
 
     pub fn createCase(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .case = .{ .token = token, .let = let, .expr = expr, .mappings = mappings } }, allocator);
+        return try AST.box(AST{ .case = .{ .token = token, .scope = null, .let = let, .expr = expr, .mappings = mappings } }, allocator);
     }
 
     pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
@@ -435,11 +440,11 @@ pub const AST = union(enum) {
     }
 
     pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._while = .{ .token = token, .let = let, .condition = condition, .post = post, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
+        return try AST.box(AST{ ._while = .{ .token = token, .scope = null, .let = let, .condition = condition, .post = post, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
     pub fn createFor(token: Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._for = .{ .token = token, .let = let, .elem = elem, .iterable = iterable, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
+        return try AST.box(AST{ ._for = .{ .token = token, .scope = null, .let = let, .elem = elem, .iterable = iterable, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
     pub fn createBlock(token: Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
