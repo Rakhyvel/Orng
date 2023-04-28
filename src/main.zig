@@ -13,8 +13,6 @@ pub const PRINT_TOKENS = false;
 
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
-    var errors = errs.Errors.init(allocator);
-    defer errors.deinit();
 
     // Get second command line argument
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -28,8 +26,15 @@ pub fn main() !void {
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
     const path: []u8 = try std.fs.realpath(arg, &path_buffer);
 
+    var errors = errs.Errors.init(allocator);
+    defer errors.deinit();
+
+    try compile(errors, path, "examples/out.c", allocator);
+}
+
+pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, allocator: std.mem.Allocator) !void {
     // Open the file
-    var file = try std.fs.cwd().openFile(path, .{});
+    var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
 
     // Read in the contents of the file
@@ -42,7 +47,7 @@ pub fn main() !void {
     // Tokenize
     var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
     defer tokenAllocator.deinit();
-    var tokens = lexer.getTokens(contents, &errors, tokenAllocator.allocator()) catch |err| {
+    var tokens = lexer.getTokens(contents, errors, tokenAllocator.allocator()) catch |err| {
         switch (err) {
             error.lexerError => {
                 errors.printErrors();
@@ -68,7 +73,7 @@ pub fn main() !void {
     // Parse
     var astAllocator = std.heap.ArenaAllocator.init(allocator);
     defer astAllocator.deinit();
-    var parser = try Parser.create(&tokens, &errors, astAllocator.allocator());
+    var parser = try Parser.create(&tokens, errors, astAllocator.allocator());
     var program_ast = parser.parse() catch |err| {
         switch (err) {
             error.parserError => {
@@ -85,7 +90,7 @@ pub fn main() !void {
     var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
     defer symbolAllocator.deinit();
     var file_root = try symbol.Scope.init(null, "test", symbolAllocator.allocator()); // TODO: replace "test" with the filename, obvi
-    symbol.symbolTableFromASTList(program_ast, file_root, &errors, symbolAllocator.allocator()) catch |err| {
+    symbol.symbolTableFromASTList(program_ast, file_root, errors, symbolAllocator.allocator()) catch |err| {
         switch (err) {
             error.symbolError => {
                 errors.printErrors();
@@ -109,7 +114,7 @@ pub fn main() !void {
     // Code generation
     var program = try Program.init(cfg, allocator);
     var outputFile = try std.fs.cwd().createFile(
-        "examples/out.c",
+        out_name,
         .{
             .read = false,
         },

@@ -1,5 +1,5 @@
 fn main: ()->!() = 
-    while let x: Int = 10; x; x = x - 1
-        1
-    else
-        (x + 10) ** 2
+    let x: Int = 4
+    defer x + 4
+    let y: Int = 5
+    y + 4

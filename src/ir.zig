@@ -314,7 +314,7 @@ pub const CFG = struct {
             try caller_node.leaves.append(retval);
         }
 
-        var eval = try retval.flattenAST(symbol.scope, symbol.init.?, false, allocator);
+        var eval = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, false, allocator);
         var return_version = try SymbolVersion.createUnversioned(retval.return_symbol, symbol._type.?.function.rhs, allocator);
         retval.appendInstruction(try IR.create(.copy, return_version, eval, null, allocator));
         retval.appendInstruction(try IR.createJump(null, allocator));
@@ -373,7 +373,7 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, lvalue: bool, allocator: std.mem.Allocator) error{ OutOfMemory, NotAnLValue, Unimplemented }!?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, lvalue: bool, allocator: std.mem.Allocator) error{ OutOfMemory, NotAnLValue, Unimplemented }!?*SymbolVersion {
         switch (ast.*) {
             // Literals
             .unit => return null,
@@ -425,7 +425,7 @@ pub const CFG = struct {
 
             // Unary operators
             .not => {
-                var expr = try self.flattenAST(scope, ast.not.expr, lvalue, allocator);
+                var expr = try self.flattenAST(scope, ast.not.expr, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.not, temp, expr, null, allocator);
@@ -434,7 +434,7 @@ pub const CFG = struct {
                 return temp;
             },
             .negate => {
-                var expr = try self.flattenAST(scope, ast.negate.expr, lvalue, allocator);
+                var expr = try self.flattenAST(scope, ast.negate.expr, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.negate, temp, expr, null, allocator);
@@ -443,7 +443,7 @@ pub const CFG = struct {
                 return temp;
             },
             .dereference => {
-                var expr = try self.flattenAST(scope, ast.dereference.expr, lvalue, allocator);
+                var expr = try self.flattenAST(scope, ast.dereference.expr, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.dereference, temp, expr, null, allocator);
@@ -458,15 +458,15 @@ pub const CFG = struct {
                     var symbol = scope.lookup(ast.assign.lhs.identifier.token.data).?;
                     var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                     symbver.lvalue = true;
-                    var rhs = try self.flattenAST(scope, ast.assign.rhs, false, allocator);
+                    var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, allocator);
                     var ir = try IR.create(.copy, symbver, rhs, null, allocator);
                     symbver.def = ir;
                     self.appendInstruction(ir);
                     return symbver;
                 } else if (ast.assign.lhs.* == .dereference) {
-                    var lhs = try self.flattenAST(scope, ast.assign.lhs.dereference.expr, true, allocator);
+                    var lhs = try self.flattenAST(scope, ast.assign.lhs.dereference.expr, return_label, break_label, continue_label, true, allocator);
                     lhs.?.lvalue = true;
-                    var rhs = try self.flattenAST(scope, ast.assign.rhs, false, allocator);
+                    var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, allocator);
                     var ir = try IR.create(.derefCopy, null, lhs, rhs, allocator);
                     self.appendInstruction(ir);
                     return null;
@@ -486,7 +486,7 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(allocator);
 
                 // Test lhs, branch
-                var lhs = (try self.flattenAST(scope, ast._or.lhs, false, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast._or.lhs, return_label, break_label, continue_label, false, allocator)).?;
                 var branch = try IR.createBranch(lhs, else_label, allocator);
                 self.appendInstruction(branch);
 
@@ -498,7 +498,7 @@ pub const CFG = struct {
 
                 // lhs was false, recurse to rhs, store in symbver
                 self.appendInstruction(else_label);
-                var rhs = try self.flattenAST(scope, ast._or.rhs, false, allocator);
+                var rhs = try self.flattenAST(scope, ast._or.rhs, return_label, break_label, continue_label, false, allocator);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
                 try phony.data.irList.append(copy_right);
                 self.appendInstruction(copy_right);
@@ -518,12 +518,12 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(allocator);
 
                 // Test lhs, branch
-                var lhs = (try self.flattenAST(scope, ast._and.lhs, false, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast._and.lhs, return_label, break_label, continue_label, false, allocator)).?;
                 var branch = try IR.createBranch(lhs, else_label, allocator);
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                var rhs = try self.flattenAST(scope, ast._and.rhs, false, allocator);
+                var rhs = try self.flattenAST(scope, ast._and.rhs, return_label, break_label, continue_label, false, allocator);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
                 try phony.data.irList.append(copy_right);
                 self.appendInstruction(copy_right);
@@ -539,8 +539,8 @@ pub const CFG = struct {
                 return symbver;
             },
             .notEqual => {
-                var lhs = try self.flattenAST(scope, ast.notEqual.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.notEqual.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.notEqual.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.notEqual.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.notEqual, temp, lhs, rhs, allocator);
@@ -549,8 +549,8 @@ pub const CFG = struct {
                 return temp;
             },
             .add => {
-                var lhs = try self.flattenAST(scope, ast.add.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.add.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.add.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.add.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.add, temp, lhs, rhs, allocator);
@@ -559,8 +559,8 @@ pub const CFG = struct {
                 return temp;
             },
             .sub => {
-                var lhs = try self.flattenAST(scope, ast.sub.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.sub.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.sub.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.sub.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.sub, temp, lhs, rhs, allocator);
@@ -569,8 +569,8 @@ pub const CFG = struct {
                 return temp;
             },
             .mult => {
-                var lhs = try self.flattenAST(scope, ast.mult.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.mult.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.mult.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.mult.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.mult, temp, lhs, rhs, allocator);
@@ -579,8 +579,8 @@ pub const CFG = struct {
                 return temp;
             },
             .div => {
-                var lhs = try self.flattenAST(scope, ast.div.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.div.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.div.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.div.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.div, temp, lhs, rhs, allocator);
@@ -589,8 +589,8 @@ pub const CFG = struct {
                 return temp;
             },
             .mod => {
-                var lhs = try self.flattenAST(scope, ast.mod.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.mod.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.mod.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.mod.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.mod, temp, lhs, rhs, allocator);
@@ -599,8 +599,8 @@ pub const CFG = struct {
                 return temp;
             },
             .exponent => {
-                var lhs = try self.flattenAST(scope, ast.exponent.lhs, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.exponent.rhs, lvalue, allocator);
+                var lhs = try self.flattenAST(scope, ast.exponent.lhs, return_label, break_label, continue_label, lvalue, allocator);
+                var rhs = try self.flattenAST(scope, ast.exponent.rhs, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.exponent, temp, lhs, rhs, allocator);
@@ -609,16 +609,16 @@ pub const CFG = struct {
                 return temp;
             },
             .call => {
-                var lhs = (try self.flattenAST(scope, ast.call.lhs, false, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast.call.lhs, return_label, break_label, continue_label, false, allocator)).?;
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.createCall(temp, lhs, allocator);
                 switch (ast.call.rhs.*) {
                     .unit => {},
                     .product => for (ast.call.rhs.product.terms.items) |term| {
-                        try ir.data.symbverList.append((try self.flattenAST(scope, term, false, allocator)).?);
+                        try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, false, allocator)).?);
                     },
-                    else => try ir.data.symbverList.append((try self.flattenAST(scope, ast.call.rhs, false, allocator)).?),
+                    else => try ir.data.symbverList.append((try self.flattenAST(scope, ast.call.rhs, return_label, break_label, continue_label, false, allocator)).?),
                 }
                 temp.def = ir;
                 self.appendInstruction(ir);
@@ -627,7 +627,7 @@ pub const CFG = struct {
 
             // Fancy Operators
             .addrOf => {
-                var expr = try self.flattenAST(scope, ast.addrOf.expr, lvalue, allocator);
+                var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, lvalue, allocator);
                 var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
 
                 var ir = try IR.create(.addrOf, temp, expr, null, allocator);
@@ -648,10 +648,10 @@ pub const CFG = struct {
                 var else_label = try IR.createLabel(allocator);
 
                 var i: usize = 0;
-                var lhs = (try self.flattenAST(scope, ast.conditional.exprs.items[0], false, allocator));
+                var lhs = (try self.flattenAST(scope, ast.conditional.exprs.items[0], return_label, break_label, continue_label, false, allocator));
                 while (i < ast.conditional.tokens.items.len) : (i += 1) {
                     // Test lhs, branch
-                    var rhs = try self.flattenAST(scope, ast.conditional.exprs.items[i + 1], false, allocator);
+                    var rhs = try self.flattenAST(scope, ast.conditional.exprs.items[i + 1], return_label, break_label, continue_label, false, allocator);
                     var token = ast.conditional.tokens.items[i];
                     var ir_kind: IRKind = undefined;
                     switch (token.kind) {
@@ -703,17 +703,22 @@ pub const CFG = struct {
                 symbver.def = phony;
                 self.appendInstruction(phony);
 
+                // If there's a let, then do it, dumby!
+                if (ast._if.let) |let| {
+                    _ = try self.flattenAST(ast._if.scope.?, let, return_label, break_label, continue_label, false, allocator);
+                }
+
                 // Labels used
                 var else_label = try IR.createLabel(allocator);
                 var end_label = try IR.createLabel(allocator);
 
                 // Test lhs, branch
-                var condition = (try self.flattenAST(scope, ast._if.condition, false, allocator)).?;
+                var condition = (try self.flattenAST(ast._if.scope.?, ast._if.condition, return_label, break_label, continue_label, false, allocator)).?;
                 var branch = try IR.createBranch(condition, else_label, allocator);
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                var blockSymbver = (try self.flattenAST(scope, ast._if.bodyBlock, false, allocator)).?;
+                var blockSymbver = (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, allocator)).?;
                 var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
                 try phony.data.irList.append(blockCopy);
                 self.appendInstruction(blockCopy);
@@ -722,7 +727,7 @@ pub const CFG = struct {
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 if (ast._if.elseBlock) |elseBlock| {
-                    var elseSymbver = (try self.flattenAST(scope, elseBlock, false, allocator)).?;
+                    var elseSymbver = (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, false, allocator)).?;
                     var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
                     try phony.data.irList.append(elseCopy);
                     self.appendInstruction(elseCopy);
@@ -737,6 +742,11 @@ pub const CFG = struct {
                 var phony = try IR.createPhony(symbver, allocator);
                 symbver.def = phony;
                 self.appendInstruction(phony);
+
+                // If there's a let, then do it, dumby!
+                if (ast.cond.let) |let| {
+                    _ = try self.flattenAST(ast.cond.scope.?, let, return_label, break_label, continue_label, false, allocator);
+                }
 
                 // Exit label of cond
                 var end_label = try IR.createLabel(allocator);
@@ -760,7 +770,7 @@ pub const CFG = struct {
                     var lhs_label = lhs_label_list.items[lhs_label_index];
                     self.appendInstruction(lhs_label);
                     if (mapping.mapping.lhs) |lhs| {
-                        var condition = (try self.flattenAST(scope, lhs, false, allocator)).?;
+                        var condition = (try self.flattenAST(ast.cond.scope.?, lhs, return_label, break_label, continue_label, false, allocator)).?;
                         var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
                         self.appendInstruction(branch);
                     }
@@ -777,7 +787,7 @@ pub const CFG = struct {
                 for (ast.cond.mappings.items) |mapping| {
                     if (mapping.mapping.rhs) |rhs| {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
-                        var rhsSymbver = (try self.flattenAST(scope, rhs, false, allocator)).?;
+                        var rhsSymbver = (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, allocator)).?;
                         var rhsCopy = try IR.create(.copy, symbver, rhsSymbver, null, allocator);
                         try phony.data.irList.append(rhsCopy);
                         self.appendInstruction(rhsCopy);
@@ -803,24 +813,24 @@ pub const CFG = struct {
 
                 // If there's a let, then do it, dumby!
                 if (ast._while.let) |let| {
-                    _ = try self.flattenAST(ast._while.scope.?, let, false, allocator);
+                    _ = try self.flattenAST(ast._while.scope.?, let, return_label, break_label, continue_label, false, allocator);
                 }
 
                 // Test lhs, branch
                 self.appendInstruction(cond_label);
-                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, false, allocator)).?;
+                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, break_label, continue_label, false, allocator)).?;
                 var branch = try IR.createBranch(condition, else_label, allocator);
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                var blockSymbver = (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, false, allocator)).?;
+                var blockSymbver = (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, continue_label, false, allocator)).?;
                 var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
                 try phony.data.irList.append(blockCopy);
                 self.appendInstruction(blockCopy);
 
                 // Post-condition
                 if (ast._while.post) |post| {
-                    _ = try self.flattenAST(ast._while.scope.?, post, false, allocator);
+                    _ = try self.flattenAST(ast._while.scope.?, post, return_label, break_label, continue_label, false, allocator);
                 }
 
                 self.appendInstruction(try IR.createJump(cond_label, allocator));
@@ -828,7 +838,7 @@ pub const CFG = struct {
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 if (ast._while.elseBlock) |elseBlock| {
-                    var elseSymbver = (try self.flattenAST(ast._while.scope.?, elseBlock, false, allocator)).?;
+                    var elseSymbver = (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, false, allocator)).?;
                     var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
                     try phony.data.irList.append(elseCopy);
                     self.appendInstruction(elseCopy);
@@ -843,10 +853,10 @@ pub const CFG = struct {
                 } else {
                     var temp: ?*SymbolVersion = null;
                     for (ast.block.statements.items) |child| {
-                        temp = try self.flattenAST(ast.block.scope.?, child, lvalue, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, child, return_label, break_label, continue_label, lvalue, allocator);
                     }
                     if (ast.block.final) |final| {
-                        return self.flattenAST(ast.block.scope.?, final, lvalue, allocator);
+                        return self.flattenAST(ast.block.scope.?, final, return_label, break_label, continue_label, lvalue, allocator);
                     } else {
                         return temp;
                     }
@@ -858,7 +868,7 @@ pub const CFG = struct {
                 var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.type.?, allocator);
                 var def: ?*SymbolVersion = null;
                 if (ast.decl.symbol.?.init) |init| {
-                    def = try self.flattenAST(ast.decl.symbol.?.scope, init, false, allocator);
+                    def = try self.flattenAST(ast.decl.symbol.?.scope, init, return_label, break_label, continue_label, false, allocator);
                 } else {
                     // self.defaultValue(ast.decl.symbol.type)
                 }
@@ -866,6 +876,9 @@ pub const CFG = struct {
                 symbver.def = ir;
                 self.appendInstruction(ir);
                 return symbver;
+            },
+            ._defer => {
+                return null;
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});

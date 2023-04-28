@@ -122,19 +122,20 @@
     - [x] addrOf
     - [x] if
     - [x] cond
-    - [ ] while
-    - [ ] fnDecl
-    - [ ] defer
-    - [ ] break
-    - [ ] continue
-    - [ ] return
+    - [x] while
+    - [ ] defer (defer (lol) to after tree-walk)
+    - [ ] return (defer to after defers)
+    - [ ] break (defer to after defers)
+    - [ ] continue (defer to after defers)
     - [ ] namedArg (maybe this is subsumed by a tree-walk on a call)
     - [ ] inferred members (again, likely subsumed by a tree-walk on a product expression)
     - [ ] annotation (this is just a type)
     - [ ] sliceOf (defer to after arrays)
     - [ ] subSlice (defer to after arrays)
     - [ ] for (defer to after arrays)
+    - [ ] fnDecl (defer to partially applied functions)
     - [ ] throw (defer to after errors)
+    - [ ] errdefer (defer to after errors)
     - [ ] case (defer to after pattern matching)
 - [ ] Write a defaultValue function which generates a default value IR for a given type
 - [ ] Do optimizations on the control-flow graph
@@ -142,9 +143,9 @@
 
 ### Codegen
 - [ ] Handle all types of IR
+- [ ] Be able to print types (requires a type depen graph)
 - [ ] Print the retval of a function
     - [ ] (when types are intoduced): if the return type of a function is void, don't do this ^
-- [ ] Be able to print types (requires a type depen graph)
 
 ### Backend
 - [ ] Call gcc on the .c file
@@ -180,7 +181,7 @@
 - [ ] First-class types
 - [ ] Refinement types
 - [ ] Generic Type Unification
-- [ ] Type classes
+- [ ] Type `class`es
 - [ ] Allocators
 - [ ] Build System
 - [ ] Runtime 'System' type

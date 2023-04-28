@@ -15,11 +15,35 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    executable(b, optimize, target, "orng", "src/main.zig", "run", "Runs the compiler");
+    executable(b, optimize, target, "integration-test", "src/test.zig", "inttest", "Runs the integration tests");
+
+    // Creates a step for unit testing.
+    const all_test_step = b.step("test", "Run all tests");
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/lexer.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/layout.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/parser.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/symbol.zig").step);
+    all_test_step.dependOn(&testStep(b, optimize, target, "src/test.zig").step);
+}
+
+fn testStep(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, path: []const u8) *std.build.RunStep {
+    const main_tests = b.addTest(.{
+        .name = "orng-tests",
+        .root_source_file = .{ .path = path },
+        .target = target,
+        .optimize = optimize,
+    });
+    _ = b.installArtifact(main_tests);
+    return b.addRunArtifact(main_tests);
+}
+
+fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, name: []const u8, path: []const u8, run: []const u8, run_desc: []const u8) void {
     const exe = b.addExecutable(.{
-        .name = "orng",
+        .name = name,
         // In this case the main source file is merely a path, however, in more
         // complicated build scripts, this could be a generated file.
-        .root_source_file = .{ .path = "src/main.zig" },
+        .root_source_file = .{ .path = path },
         .target = target,
         .optimize = optimize,
     });
@@ -49,24 +73,6 @@ pub fn build(b: *std.Build) void {
     // This creates a build step. It will be visible in the `zig build --help` menu,
     // and can be selected like this: `zig build run`
     // This will evaluate the `run` step rather than the default, which is "install".
-    const run_step = b.step("run", "Run the app");
+    const run_step = b.step(run, run_desc);
     run_step.dependOn(&run_cmd.step);
-
-    // Creates a step for unit testing.
-    const all_test_step = b.step("test", "Run all tests");
-    all_test_step.dependOn(&testStep(b, optimize, target, "src/lexer.zig").step);
-    all_test_step.dependOn(&testStep(b, optimize, target, "src/layout.zig").step);
-    all_test_step.dependOn(&testStep(b, optimize, target, "src/parser.zig").step);
-    all_test_step.dependOn(&testStep(b, optimize, target, "src/symbol.zig").step);
-}
-
-fn testStep(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, path: []const u8) *std.build.RunStep {
-    const main_tests = b.addTest(.{
-        .name = "orng-tests",
-        .root_source_file = .{ .path = path },
-        .target = target,
-        .optimize = optimize,
-    });
-    _ = b.installArtifact(main_tests);
-    return b.addRunArtifact(main_tests);
 }
