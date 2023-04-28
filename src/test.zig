@@ -113,6 +113,8 @@ pub fn main() !void {
 
     var passed: i64 = 0;
     var failed: i64 = 0;
+    _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }, allocator) catch {};
+    _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }, allocator) catch {};
 
     // Add all files names in the src folder to `files`
     var dir = try std.fs.cwd().openIterableDir("tests/integration/", .{});
@@ -121,9 +123,19 @@ pub fn main() !void {
         if (file.kind != .File) {
             continue;
         }
+        var dot_index = indexOf(file.name, '.');
+        var test_name = file.name[0..dot_index];
+
+        // Input .orng file
         var in_name: String = try String.init_with_contents(allocator, "tests/integration/");
         defer in_name.deinit();
         try in_name.insert(file.name, in_name.len());
+
+        // Output .c file
+        var out_name: String = try String.init_with_contents(allocator, "tests/integration/build/");
+        defer out_name.deinit();
+        try out_name.insert(test_name, out_name.len());
+        try out_name.insert(".c", out_name.len());
 
         try succeed_color.dump(out);
         try out.print("[ RUN    ... ] ", .{});
@@ -135,26 +147,50 @@ pub fn main() !void {
         // Try to compile Orng (make sure no errors)
         var errors = errs.Errors.init(allocator);
         defer errors.deinit();
-        compiler.compile(&errors, in_name.str(), "out.c", allocator) catch {
+        compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch {
             try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ]\n", .{});
+            std.debug.print("[ ... FAILED ] ", .{});
             try revert.dump(out);
+            try out.print("Orng Compiler crashed!\n", .{});
             failed += 1;
             std.debug.dumpCurrentStackTrace(128);
             continue;
         };
         if (errors.errors_list.items.len > 0) {
             try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ]\n", .{});
+            std.debug.print("[ ... FAILED ] ", .{});
             try revert.dump(out);
+            try out.print("Orng -> C.\n", .{});
             failed += 1;
             continue;
         }
 
-        // defer rm out.c
-
         // compile C (make sure no errors)
+        var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str() }, allocator) catch {
+            continue;
+        };
+        if (gcc_res.retcode != 0) {
+            try fail_color.dump(out);
+            std.debug.print("[ ... FAILED ] ", .{});
+            try revert.dump(out);
+            try out.print("C -> Executable.\n", .{});
+            failed += 1;
+            continue;
+        }
+        defer _ = exec(&[_][]const u8{ "/bin/rm", "-f", "a.out" }, allocator) catch {};
+
         // execute (make sure no signals)
+        var res = exec(&[_][]const u8{"./a.out"}, allocator) catch |e| {
+            std.debug.print("{?}\n", .{e});
+            try fail_color.dump(out);
+            std.debug.print("[ ... FAILED ] ", .{});
+            try revert.dump(out);
+            try out.print("Execution interrupted!\n", .{});
+            failed += 1;
+            continue;
+        };
+        std.debug.print("return code: {}\nstdout: {s}\n", .{ res.retcode, res.stdout });
+
         // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
 
         try succeed_color.dump(out);
@@ -168,4 +204,40 @@ pub fn main() !void {
     try revert.dump(out);
     try out.print("Passed tests: {}\n", .{passed});
     try out.print("Failed tests: {}\n", .{failed});
+}
+
+fn exec(argv: []const []const u8, allocator: std.mem.Allocator) !struct { stdout: []u8, retcode: i64 } {
+    const max_output_size = 100 * 1024 * 1024;
+    var child_process = std.ChildProcess.init(argv, allocator);
+
+    child_process.stdout_behavior = .Pipe;
+    child_process.spawn() catch |err| {
+        return err;
+    };
+
+    const stdout = try child_process.stdout.?.reader().readAllAlloc(allocator, max_output_size);
+    var retcode: i64 = 0;
+    errdefer allocator.free(stdout);
+
+    const term = try child_process.wait();
+    switch (term) {
+        .Exited => |c| {
+            retcode = c;
+        },
+        .Signal => |c| switch (c) {
+            11 => return error.SegmentationFault,
+            else => return error.UnknownSignal,
+        },
+        else => {
+            return error.CommandFailed;
+        },
+    }
+    return .{ .stdout = stdout, .retcode = retcode };
+}
+
+// Great std lib function candidate! Holy hell...
+fn indexOf(str: []const u8, c: u8) usize {
+    var retval: usize = 0;
+    while (str[retval] != c) : (retval += 1) {}
+    return retval;
 }

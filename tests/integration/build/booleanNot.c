@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682654423
-#define ORNG_1682654423
+#ifndef ORNG_1682658591
+#define ORNG_1682658591
 
 #include <math.h>
 #include <stdio.h>
@@ -24,8 +24,7 @@ end:
 
 int main()
 {
-  printf("Result: %d\n", test_main());
-  return 0;
+  return test_main();
 }
 
 #endif

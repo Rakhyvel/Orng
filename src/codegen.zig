@@ -77,8 +77,7 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(
         \\int main()
         \\{{
-        \\  printf("Result: %d\n", test_main());
-        \\  return 0;
+        \\  return test_main();
         \\}}
         \\
         \\
