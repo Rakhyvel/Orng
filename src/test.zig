@@ -143,6 +143,14 @@ pub fn main() !void {
         try out.print("{s}\n", .{file.name});
 
         // Read in the expected value and stdout
+        var f = try std.fs.cwd().openFile(in_name.str(), .{});
+        defer f.close();
+        var buf_reader = std.io.bufferedReader(f.reader());
+        var in_stream = buf_reader.reader();
+        var contents_arraylist = std.ArrayList(u8).init(allocator);
+        try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
+        var contents = try contents_arraylist.toOwnedSlice();
+        var expectedOut = contents[3..untilNewline(contents)];
 
         // Try to compile Orng (make sure no errors)
         var errors = errs.Errors.init(allocator);
@@ -189,7 +197,14 @@ pub fn main() !void {
             failed += 1;
             continue;
         };
-        std.debug.print("return code: {}\nstdout: {s}\n", .{ res.retcode, res.stdout });
+        if (!std.mem.eql(u8, res.stdout, expectedOut)) {
+            try fail_color.dump(out);
+            std.debug.print("[ ... FAILED ] ", .{});
+            try revert.dump(out);
+            try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
+            failed += 1;
+            continue;
+        }
 
         // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
 
@@ -240,4 +255,10 @@ fn indexOf(str: []const u8, c: u8) usize {
     var retval: usize = 0;
     while (str[retval] != c) : (retval += 1) {}
     return retval;
+}
+
+fn untilNewline(str: []const u8) usize {
+    var i: usize = 0;
+    while (i < str.len and str[i] != '\n') : (i += 1) {}
+    return i;
 }

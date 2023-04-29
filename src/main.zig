@@ -101,8 +101,6 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
             },
         }
     };
-    file_root.pprint();
-
     // Typecheck
     // TODO
 

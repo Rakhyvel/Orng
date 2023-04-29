@@ -77,7 +77,8 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(
         \\int main()
         \\{{
-        \\  return test_main();
+        \\  printf("%d", test_main());
+        \\  return 0;
         \\}}
         \\
         \\
@@ -94,7 +95,6 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
     var maybe_ir = bb.ir_head;
     while (maybe_ir) |ir| : (maybe_ir = ir.next) {
         try generateIR(ir, out);
-        ir.pprint();
     }
 
     if (bb.has_branch) {

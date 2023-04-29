@@ -319,17 +319,7 @@ pub const CFG = struct {
         retval.appendInstruction(try IR.create(.copy, return_version, eval, null, allocator));
         retval.appendInstruction(try IR.createJump(null, allocator));
 
-        // var maybe_ir = retval.ir_head;
-        // while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-        //     ir.pprint();
-        // }
-
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
-
-        // if (retval.block_graph_head) |graph| {
-        //     graph.pprint();
-        //     retval.clearVisitedBBs();
-        // }
 
         return retval;
     }

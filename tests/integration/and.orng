@@ -1,0 +1,2 @@
+// 1
+fn main: ()->Int = 1 and 1 and 1

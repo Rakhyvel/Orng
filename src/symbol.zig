@@ -245,16 +245,22 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         },
 
         ._if => {
+            var new_scope = try Scope.init(scope, "", allocator);
+            definition._if.scope = new_scope;
             try symbolTableFromAST(definition._if.let, scope, errors, allocator);
             try symbolTableFromAST(definition._if.condition, scope, errors, allocator);
             try symbolTableFromAST(definition._if.bodyBlock, scope, errors, allocator);
             try symbolTableFromAST(definition._if.elseBlock, scope, errors, allocator);
         },
         .cond => {
+            var new_scope = try Scope.init(scope, "", allocator);
+            definition.cond.scope = new_scope;
             try symbolTableFromAST(definition.cond.let, scope, errors, allocator);
             try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
         },
         .case => {
+            var new_scope = try Scope.init(scope, "", allocator);
+            definition.case.scope = new_scope;
             try symbolTableFromAST(definition.case.let, scope, errors, allocator);
             try symbolTableFromAST(definition.case.expr, scope, errors, allocator);
             try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
@@ -273,6 +279,8 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition._while.elseBlock, new_scope, errors, allocator);
         },
         ._for => {
+            var new_scope = try Scope.init(scope, "", allocator);
+            definition._for.scope = new_scope;
             try symbolTableFromAST(definition._for.let, scope, errors, allocator);
             try symbolTableFromAST(definition._for.elem, scope, errors, allocator);
             try symbolTableFromAST(definition._for.iterable, scope, errors, allocator);

@@ -1,0 +1,4 @@
+// 0
+fn main: ()->Int =
+    let x: Int = 4
+    0 < x <= 3
