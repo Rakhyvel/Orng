@@ -209,18 +209,20 @@ pub fn kindFromString(data: []const u8) TokenKind {
 
 pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
     return switch (kind) {
-        .BIN_INTEGER => "<binary integer>",
-        .CHAR => "<character literal>",
-        .DECIMAL_INTEGER => "<decimal integer>",
-        .HEX_INTEGER => "<hexadecimal integer>",
-        .IDENTIFIER => "<an identifier>",
-        .OCT_INTEGER => "<octal integer>",
-        .FLOAT => "<floating-point number>",
-        .STRING => "<string literal>",
-        .NEWLINE => "<new-line>",
-        .INDENT => "<indent>",
-        .DEDENT => "<dedent>",
-        .len => null,
+        .BIN_INTEGER,
+        .CHAR,
+        .DECIMAL_INTEGER,
+        .HEX_INTEGER,
+        .IDENTIFIER,
+        .OCT_INTEGER,
+        .FLOAT,
+        .STRING,
+        .len,
+        => null,
+
+        .NEWLINE => "<a newline>",
+        .INDENT => "<indentation>",
+        .DEDENT => "<dedentation>",
 
         .AND => "and",
         .BREAK => "break",

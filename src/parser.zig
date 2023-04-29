@@ -92,7 +92,7 @@ pub const Parser = struct {
         if (self.accept(kind)) |token| {
             return token;
         } else {
-            self.errors.addError(Error{ .expected2Token = .{ .span = self.peek().span, .expected = kind, .got = self.peek().kind } });
+            self.errors.addError(Error{ .expected2Token = .{ .expected = kind, .got = self.peek() } });
             return ParserErrorEnum.parserError;
             // unreachable;
         }
@@ -115,7 +115,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "`fn` or `const`", .got = self.peek().kind } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `const`", .got = self.peek() } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -126,7 +126,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "`let` or `const`", .got = self.peek().kind } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`let` or `const`", .got = self.peek() } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -525,7 +525,7 @@ pub const Parser = struct {
                 } else {
                     // Simple index
                     exp = try AST.createIndex(token, exp, first orelse {
-                        self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "a block", .got = self.peek().kind } });
+                        self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek() } });
                         return ParserErrorEnum.parserError;
                     }, self.astAllocator);
                 }
@@ -583,7 +583,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.L_PAREN)) {
             return try self.parens();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "an expression", .got = self.peek().kind } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression", .got = self.peek() } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -595,12 +595,9 @@ pub const Parser = struct {
 
         var statements = std.ArrayList(*AST).init(self.astAllocator);
 
-        if (self.nextIsStatement()) {
+        while (self.nextIsStatement()) {
             try statements.append(try self.statement());
-            while (self.accept(.NEWLINE)) |_| {
-                while (self.accept(.NEWLINE)) |_| {}
-                try statements.append(try self.statement());
-            }
+            while (self.accept(.NEWLINE)) |_| {}
         }
 
         var final: ?*AST = null;
@@ -662,7 +659,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.L_BRACE)) {
             return try self.braceBlockExpr();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "a block", .got = self.peek().kind } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek() } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -698,7 +695,6 @@ pub const Parser = struct {
         }
         var bodyBlock = try self.blockExpr();
         var elseBlock: ?*AST = null;
-        while (self.accept(.NEWLINE)) |_| {}
         if (self.accept(.ELSE)) |_| {
             elseBlock = try self.blockExpr();
         }
@@ -727,12 +723,11 @@ pub const Parser = struct {
     }
 
     fn barClause(self: *Parser) ParserErrorEnum!*AST {
-        var lhs = try self.productExpr();
+        var lhs = try self.annotExpr();
         var rhs: ?*AST = null;
 
         if (self.accept(.RIGHT_FAT_ARROW)) |_| {
-            rhs = try self.expr();
-            _ = try self.expect(.SEMICOLON);
+            rhs = try self.annotExpr();
         }
 
         return try AST.createMapping(lhs.getToken(), lhs, rhs, self.astAllocator);
@@ -741,9 +736,7 @@ pub const Parser = struct {
     fn barElse(self: *Parser) ParserErrorEnum!*AST {
         var token = try self.expect(.ELSE);
         _ = try self.expect(.RIGHT_FAT_ARROW);
-        var rhs = try self.expr();
-
-        _ = try self.expect(.SEMICOLON);
+        var rhs = try self.annotExpr();
 
         return try AST.createMapping(token, null, rhs, self.astAllocator);
     }
@@ -756,7 +749,7 @@ pub const Parser = struct {
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle(mappings);
             } else {
-                self.errors.addError(Error{ .expectedBasicToken = .{ .span = self.peek().span, .expected = "an expression after `=>`", .got = self.peek().kind } });
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `=>`", .got = self.peek() } });
             }
         }
     }

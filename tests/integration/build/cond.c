@@ -12,39 +12,62 @@ int test_main() {
 	int retval;
 	int _0;
 	int _1;
-	int _2;
-	int _3;
 	int _4;
+	int _2;
+	int _5;
+	int _3;
+	int _6;
+	int _7;
 BB0:;
-	_2 = 1;
-	if (!_2) {
-		goto BB6;
-	} else {
-		goto BB1;
-	}
+	goto BB1;
 BB1:;
-	_3 = 1;
-	_1 = _3;
-	goto BB2;
-BB2:;
+	_1 = 0;
 	if (!_1) {
 		goto BB5;
 	} else {
-		goto BB3;
+		goto BB2;
 	}
+BB2:;
+	goto BB3;
 BB3:;
-	_4 = 1;
+	_4 = 5;
 	_0 = _4;
 	goto BB4;
 BB4:;
 	retval = _0;
 	goto end;
 BB5:;
-	_0 = 0;
-	goto BB4;
+	_2 = 0;
+	if (!_2) {
+		goto BB8;
+	} else {
+		goto BB6;
+	}
 BB6:;
-	_1 = 0;
-	goto BB2;
+	goto BB7;
+BB7:;
+	_5 = 10;
+	_0 = _5;
+	goto BB4;
+BB8:;
+	_3 = 0;
+	if (!_3) {
+		goto BB11;
+	} else {
+		goto BB9;
+	}
+BB9:;
+	goto BB10;
+BB10:;
+	_6 = 25;
+	_0 = _6;
+	goto BB4;
+BB11:;
+	goto BB12;
+BB12:;
+	_7 = 10;
+	_0 = _7;
+	goto BB4;
 end:
 	return retval;
 }

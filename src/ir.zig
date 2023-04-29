@@ -761,8 +761,10 @@ pub const CFG = struct {
                     self.appendInstruction(lhs_label);
                     if (mapping.mapping.lhs) |lhs| {
                         var condition = (try self.flattenAST(ast.cond.scope.?, lhs, return_label, break_label, continue_label, false, allocator)).?;
-                        var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
-                        self.appendInstruction(branch);
+                        if (lhs_label_index < lhs_label_list.items.len - 1) {
+                            var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
+                            self.appendInstruction(branch);
+                        }
                     }
                     var rhs_label = rhs_label_list.items[rhs_label_index];
                     self.appendInstruction(try IR.createJump(rhs_label, allocator));

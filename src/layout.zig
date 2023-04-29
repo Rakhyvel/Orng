@@ -70,8 +70,8 @@ pub fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
                     // If token spaces <  peek spaces => while token spaces < peek spaces {pop, replace with dedent}
                     _ = stack.pop();
                     var slice: [2]Token = undefined;
-                    slice[0] = Token.create("", .DEDENT, token.span.line, token.span.col);
-                    slice[1] = token;
+                    slice[0] = token;
+                    slice[1] = Token.create("", .DEDENT, token.span.line, token.span.col);
                     try tokens.replaceRange(i, 1, &slice);
                 }
             },
