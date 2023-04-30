@@ -425,34 +425,26 @@ pub const Parser = struct {
     }
 
     fn termExpr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.exponentExpr();
+        var exp = try self.prefixExpr();
         while (true) {
             if (self.accept(.STAR)) |token| {
-                exp = try AST.createMult(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createMult(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.SLASH)) |token| {
-                exp = try AST.createDiv(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createDiv(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.PERCENT)) |token| {
-                exp = try AST.createMod(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createMod(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.DIAMOND)) |token| {
-                exp = try AST.createComposition(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createComposition(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.D_PLUS)) |token| {
-                exp = try AST.createConcat(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createConcat(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.D_MINUS)) |token| {
-                exp = try AST.createDiff(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createDiff(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.D_BAR)) |token| {
-                exp = try AST.createUnion(token, exp, try self.exponentExpr(), self.astAllocator);
+                exp = try AST.createUnion(token, exp, try self.prefixExpr(), self.astAllocator);
             } else {
                 return exp;
             }
         }
-    }
-
-    fn exponentExpr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.prefixExpr();
-        while (self.accept(.D_STAR)) |token| {
-            exp = try AST.createExponent(token, exp, try self.prefixExpr(), self.astAllocator);
-        }
-        return exp;
     }
 
     fn prefixExpr(self: *Parser) ParserErrorEnum!*AST {
@@ -499,11 +491,30 @@ pub const Parser = struct {
     }
 
     fn prependExpr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.postfixExpr();
+        var exp = try self.exponentExpr();
         while (self.accept(.PERIOD_GTR)) |token| {
-            exp = try AST.createPrepend(token, exp, try self.postfixExpr(), self.astAllocator);
+            exp = try AST.createPrepend(token, exp, try self.exponentExpr(), self.astAllocator);
         }
         return exp;
+    }
+
+    fn exponentExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.postfixExpr();
+        var terms: ?std.ArrayList(*AST) = null;
+        var first_token: ?Token = null;
+        while (self.accept(.D_STAR)) |token| {
+            if (terms == null) {
+                terms = std.ArrayList(*AST).init(self.astAllocator);
+                first_token = token;
+                try terms.?.append(exp);
+            }
+            try terms.?.append(try self.postfixExpr());
+        }
+        if (terms) |terms_list| {
+            return AST.createExponent(first_token.?, terms_list, self.astAllocator);
+        } else {
+            return exp;
+        }
     }
 
     fn postfixExpr(self: *Parser) ParserErrorEnum!*AST {

@@ -62,7 +62,7 @@ pub const AST = union(enum) {
     mult: struct { token: Token, lhs: *AST, rhs: *AST },
     div: struct { token: Token, lhs: *AST, rhs: *AST },
     mod: struct { token: Token, lhs: *AST, rhs: *AST },
-    exponent: struct { token: Token, lhs: *AST, rhs: *AST },
+    exponent: struct { token: Token, terms: std.ArrayList(*AST) },
     _catch: struct { token: Token, lhs: *AST, rhs: *AST },
     _orelse: struct { token: Token, lhs: *AST, rhs: *AST },
     call: struct { token: Token, lhs: *AST, rhs: *AST },
@@ -334,8 +334,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .mod = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createExponent(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .exponent = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createExponent(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .exponent = .{ .token = token, .terms = terms } }, allocator);
     }
 
     pub fn createCatch(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

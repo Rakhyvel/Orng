@@ -154,8 +154,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.mod.rhs, scope, errors, allocator);
         },
         .exponent => {
-            try symbolTableFromAST(definition.exponent.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.exponent.rhs, scope, errors, allocator);
+            try symbolTableFromASTList(definition.exponent.terms, scope, errors, allocator);
         },
         ._catch => {
             try symbolTableFromAST(definition._catch.lhs, scope, errors, allocator);

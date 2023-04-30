@@ -589,13 +589,23 @@ pub const CFG = struct {
                 return temp;
             },
             .exponent => {
-                var lhs = try self.flattenAST(scope, ast.exponent.lhs, return_label, break_label, continue_label, lvalue, allocator);
-                var rhs = try self.flattenAST(scope, ast.exponent.rhs, return_label, break_label, continue_label, lvalue, allocator);
-                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                std.debug.assert(ast.exponent.terms.items.len >= 2);
+                var lhs: *SymbolVersion = undefined;
+                var rhs: *SymbolVersion = undefined;
+                var temp: *SymbolVersion = undefined;
+                var terms_len = ast.exponent.terms.items.len;
 
-                var ir = try IR.create(.exponent, temp, lhs, rhs, allocator);
-                temp.def = ir;
-                self.appendInstruction(ir);
+                rhs = (try self.flattenAST(scope, ast.exponent.terms.items[terms_len - 1], return_label, break_label, continue_label, lvalue, allocator)).?;
+                var i: usize = ast.exponent.terms.items.len - 1;
+                while (i > 0) : (i -= 1) {
+                    lhs = (try self.flattenAST(scope, ast.exponent.terms.items[i - 1], return_label, break_label, continue_label, lvalue, allocator)).?;
+                    temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+
+                    var ir = try IR.create(.exponent, temp, lhs, rhs, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    rhs = temp;
+                }
                 return temp;
             },
             .call => {

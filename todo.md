@@ -40,7 +40,7 @@
 - [x] Parse `slice[1..]` as a subslice and not a floating point literal
 - [x] Properly handle allocator errors in {parser, ast}.zig
 - [x] Top level declarations should require a newline
-- [ ] Make exponentiation right-associative, higher precedence than `-`
+- [x] Make exponentiation right-associative, higher precedence than `-`
 - [ ] Support unicode characters somehow, and escapes with \
 - [ ] Somehow parse hexadecimals with apostrophes
 
@@ -60,7 +60,8 @@
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
-    - [ ] Addresses should work
+    - [ ] Boolean types should work
+    - [ ] Addresses types should work
     - [ ] Function types should work
 - [ ] Symbols are properly type-inferrenced if their type is null
 - [ ] Collect a dependency graph of product and sum types

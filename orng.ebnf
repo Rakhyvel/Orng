@@ -49,22 +49,20 @@ coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
 intExpr: termExpr {("+" | "-" | "!") termExpr}.
 
-termExpr: exponentExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") exponentExpr}.
+termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
 
-exponentExpr: prefixExpr {"**" prefixExpr}.
-
-prefixExpr: "!" prependExpr                         # inferred error union
-          | "not" prependExpr                       # boolean not
-          | "-" prependExpr                         # negation
+prefixExpr: "!" hyperExpr                           # inferred error union
+          | "not" hyperExpr                         # boolean not
+          | "-" hyperExpr                           # negation
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
-          | "?" prependExpr                         # optional
-          | "try" prependExpr                       # error coalesce orelese return
-          | "." ident ["<-" prefixExpr | parens]     # infered member/named argument/named field
-          | prependExpr
+          | "?" hyperExpr                           # optional
+          | "try" hyperExpr                         # error coalesce orelese return
+          | "." ident ["<-" prefixExpr | parens]    # infered member/named argument/named field
+          | hyperExpr
           .
 
-prependExpr: postfixExpr {".>" postfixExpr}.
+hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 
 postfixExpr: factor {parens | ("[" [expr] [".." [expr]] "]") | ("." ident) | (".?") | ("^")}.
 

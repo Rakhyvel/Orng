@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1682815338
-#define ORNG_1682815338
+#ifndef ORNG_1682818350
+#define ORNG_1682818350
 
 #include <math.h>
 #include <stdio.h>
@@ -33,7 +33,7 @@ BB0:;
 	_6 = _2 * _5;
 	_7 = 3;
 	_8 = 3;
-	_9 = powf(_7, _8);
+	_9 = powf(_8, _7);
 	_10 = 4;
 	_11 = _9 % _10;
 	_12 = _6 - _11;
