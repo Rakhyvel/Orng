@@ -15,6 +15,7 @@
 - [x] Error if string (resp. character) reaches EOF before " (resp. ')
 - [ ] Write negetive tests for errors
 - [ ] Reject invalid character literals
+- [ ] Lex out scientific notation floats
 
 ### Layout
 - [x] Write tests
@@ -59,6 +60,8 @@
 
 ### Typecheck
 - [ ] Typecheck AST and symbol table
+    - [ ] Addresses should work
+    - [ ] Function types should work
 - [ ] Symbols are properly type-inferrenced if their type is null
 - [ ] Collect a dependency graph of product and sum types
 
@@ -138,8 +141,8 @@
     - [ ] errdefer (defer to after errors)
     - [ ] case (defer to after pattern matching)
 - [ ] Write a defaultValue function which generates a default value IR for a given type
+- [ ] Version symbols (test: assignment)
 - [ ] Do optimizations on the control-flow graph
-- [ ] Version symbols
 
 ### Codegen
 - [ ] Handle all types of IR

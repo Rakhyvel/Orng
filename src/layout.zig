@@ -154,9 +154,9 @@ test "indentation" {
     try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[2].kind);
     try std.testing.expectEqual(@as(_token.TokenKind, .INDENT), tokens.items[3].kind);
     try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[4].kind);
-    try std.testing.expectEqual(@as(_token.TokenKind, .DEDENT), tokens.items[5].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .NEWLINE), tokens.items[5].kind);
     try std.testing.expectEqual(@as(_token.TokenKind, .DEDENT), tokens.items[6].kind);
-    try std.testing.expectEqual(@as(_token.TokenKind, .NEWLINE), tokens.items[7].kind);
-    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[8].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .IDENTIFIER), tokens.items[7].kind);
+    try std.testing.expectEqual(@as(_token.TokenKind, .DEDENT), tokens.items[8].kind);
     try std.testing.expectEqual(@as(_token.TokenKind, .EOF), tokens.items[9].kind);
 }

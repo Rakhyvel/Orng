@@ -100,21 +100,35 @@ pub const Attr = struct {
 };
 
 pub fn main() !void {
-    // For each file in tests/integration/...
     const allocator = std.heap.page_allocator;
+
     const out = std.io.getStdOut().writer();
     var revert = Attr{};
     var succeed_color = Attr{ .fg = .green, .bold = true };
     var fail_color = Attr{ .fg = .red, .bold = true };
 
-    try succeed_color.dump(out);
-    try out.print("\n[============]\n", .{});
-    try revert.dump(out);
+    // Do stupid shit for stupid FUCKING reasons
+    // I HATE KCOV I HATE KCOV I HATE KCOV I HATE KCOV
+    var args = try std.process.ArgIterator.initWithAllocator(allocator);
+    _ = args.next() orelse unreachable;
+    var coverage = false;
+    if (args.next()) |_| {
+        coverage = true;
+        std.debug.print("Outputing coverage...\n", .{});
+    }
+
+    if (!coverage) {
+        try succeed_color.dump(out);
+        try out.print("\n[============]\n", .{});
+        try revert.dump(out);
+    }
 
     var passed: i64 = 0;
     var failed: i64 = 0;
-    _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }, allocator) catch {};
-    _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }, allocator) catch {};
+    if (!coverage) {
+        _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }, allocator) catch {};
+        _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }, allocator) catch {};
+    }
 
     // Add all files names in the src folder to `files`
     var dir = try std.fs.cwd().openIterableDir("tests/integration/", .{});
@@ -137,10 +151,12 @@ pub fn main() !void {
         try out_name.insert(test_name, out_name.len());
         try out_name.insert(".c", out_name.len());
 
-        try succeed_color.dump(out);
-        try out.print("[ RUN    ... ] ", .{});
-        try revert.dump(out);
-        try out.print("{s}\n", .{file.name});
+        if (!coverage) {
+            try succeed_color.dump(out);
+            try out.print("[ RUN    ... ] ", .{});
+            try revert.dump(out);
+            try out.print("{s}\n", .{file.name});
+        }
 
         // Read in the expected value and stdout
         var f = try std.fs.cwd().openFile(in_name.str(), .{});
@@ -156,14 +172,19 @@ pub fn main() !void {
         var errors = errs.Errors.init(allocator);
         defer errors.deinit();
         compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch {
-            try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ] ", .{});
-            try revert.dump(out);
-            try out.print("Orng Compiler crashed!\n", .{});
-            failed += 1;
-            std.debug.dumpCurrentStackTrace(128);
+            if (!coverage) {
+                try fail_color.dump(out);
+                std.debug.print("[ ... FAILED ] ", .{});
+                try revert.dump(out);
+                try out.print("Orng Compiler crashed!\n", .{});
+                failed += 1;
+                std.debug.dumpCurrentStackTrace(128);
+            }
             continue;
         };
+        if (coverage) {
+            continue;
+        }
         if (errors.errors_list.items.len > 0) {
             try fail_color.dump(out);
             std.debug.print("[ ... FAILED ] ", .{});
@@ -174,7 +195,7 @@ pub fn main() !void {
         }
 
         // compile C (make sure no errors)
-        var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str() }, allocator) catch {
+        var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }, allocator) catch {
             continue;
         };
         if (gcc_res.retcode != 0) {
@@ -214,16 +235,24 @@ pub fn main() !void {
         passed += 1;
     }
 
-    try succeed_color.dump(out);
-    try out.print("[============]\n", .{});
-    try revert.dump(out);
-    try out.print("Passed tests: {}\n", .{passed});
-    try out.print("Failed tests: {}\n", .{failed});
+    if (!coverage) {
+        try succeed_color.dump(out);
+        try out.print("[============]\n", .{});
+        try revert.dump(out);
+        try out.print("Passed tests: {}\n", .{passed});
+        try out.print("Failed tests: {}\n", .{failed});
+        if (failed > 0) {
+            return error.TestsFailed;
+        }
+    } else {
+        std.debug.print("Coverage output to kcov-out/index.html\n", .{});
+    }
 }
 
 fn exec(argv: []const []const u8, allocator: std.mem.Allocator) !struct { stdout: []u8, retcode: i64 } {
     const max_output_size = 100 * 1024 * 1024;
     var child_process = std.ChildProcess.init(argv, allocator);
+    defer _ = child_process.kill() catch unreachable;
 
     child_process.stdout_behavior = .Pipe;
     child_process.spawn() catch |err| {

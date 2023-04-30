@@ -1,0 +1,7 @@
+// 10
+fn main: ()->Int =
+    // These are
+    // Many line
+    // Comments
+    10
+    // But they shouldn't affect the program!

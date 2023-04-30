@@ -762,13 +762,14 @@ pub const Parser = struct {
     fn condExpr(self: *Parser) ParserErrorEnum!*AST {
         var token = try self.expect(.COND);
         var mappings = std.ArrayList(*AST).init(self.astAllocator);
-        try self.barList(&mappings);
-        var let: ?*AST = null;
 
+        var let: ?*AST = null;
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
-            _ = try self.expect(.SEMICOLON);
+            _ = try self.expect(.SEMICOLON); // Has to be here, otherwise the init expr of the let confuses the cond's |'s with a sum expr
         }
+
+        try self.barList(&mappings);
 
         return try AST.createCond(token, let, mappings, self.astAllocator);
     }
