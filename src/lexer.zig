@@ -9,7 +9,7 @@ const Error = errs.Error;
 const LexerErrors = error{lexerError};
 
 /// Will always end in an EOF on the first column of the next line
-pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(Token) {
+pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
     const LexState = enum { //
         none,
         whitespace,
@@ -96,7 +96,19 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .ident => {
                 if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    try tokens.append(Token.create(contents[slice_start..ix], null, line, col));
+                    var token = Token.create(contents[slice_start..ix], null, line, col);
+                    if (fuzz_tokens) {
+                        if (std.mem.eql(u8, token.data, "indent")) {
+                            token.kind = .INDENT;
+                        } else if (std.mem.eql(u8, token.data, "dedent")) {
+                            token.kind = .DEDENT;
+                        } else if (std.mem.eql(u8, token.data, "newline")) {
+                            token.kind = .NEWLINE;
+                        } else if (std.mem.eql(u8, token.data, "back_slash")) {
+                            token.kind = .BACK_SLASH;
+                        }
+                    }
+                    try tokens.append(token);
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -107,7 +119,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .string => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected `\"`, got end-of-file" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected `\"`, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else switch (next_char) {
                     '"' => {
@@ -131,7 +143,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .escapedString => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else {
                     ix += 1;
@@ -142,7 +154,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .char => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a `'`, got end-of-file" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a `'`, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else switch (next_char) {
                     '\'' => {
@@ -166,7 +178,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .escapedChar => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else {
                     ix += 1;
@@ -216,7 +228,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
 
             .integerDigit => {
                 if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid integer literal" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid integer literal", .stage = .tokenization } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -241,7 +253,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
             },
 
             .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid floating point literal" } });
+                errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid floating point literal", .stage = .tokenization } });
                 return error.lexerError;
             } else {
                 ix += 1;
@@ -273,7 +285,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                     state = .hex;
                 },
                 else => {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid hexadecimal integer literal" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid hexadecimal integer literal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -302,7 +314,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                     state = .octal;
                 },
                 else => {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid octal integer literal" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid octal integer literal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -331,7 +343,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                     state = .binary;
                 },
                 else => {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid binary integer literal" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid binary integer literal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -343,7 +355,8 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
                     ix += 1;
                     col += 1;
                 } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                    try tokens.append(Token.create(contents[slice_start..ix], null, line, col));
+                    var token = Token.create(contents[slice_start..ix], null, line, col);
+                    try tokens.append(token);
                     slice_start = ix;
                     state = .none;
                 } else {

@@ -99,24 +99,38 @@ pub const Attr = struct {
     }
 };
 
+const allocator = std.heap.page_allocator;
+const revert = Attr{};
+const out = std.io.getStdOut().writer();
+const succeed_color = Attr{ .fg = .green, .bold = true };
+const fail_color = Attr{ .fg = .red, .bold = true };
+
 pub fn main() !void {
-    const allocator = std.heap.page_allocator;
-
-    const out = std.io.getStdOut().writer();
-    var revert = Attr{};
-    var succeed_color = Attr{ .fg = .green, .bold = true };
-    var fail_color = Attr{ .fg = .red, .bold = true };
-
-    // Do stupid shit for stupid FUCKING reasons
-    // I HATE KCOV I HATE KCOV I HATE KCOV I HATE KCOV
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
-    var coverage = false;
-    if (args.next()) |_| {
-        coverage = true;
-        std.debug.print("Outputing coverage...\n", .{});
+    var arg: []const u8 = undefined;
+    if (args.next()) |_arg| {
+        arg = _arg;
+        while (std.mem.eql(u8, arg, "--")) {
+            arg = args.next().?;
+        }
+        if (std.mem.eql(u8, "integration", arg)) {
+            try integrationTests(false);
+        } else if (std.mem.eql(u8, "coverage", arg)) {
+            try integrationTests(true);
+        } else if (std.mem.eql(u8, "fuzz", arg)) {
+            try fuzzTests();
+        } else {
+            std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{arg});
+            return error.InvalidCliArgument;
+        }
     }
+}
 
+/// kcov can't handle child processes for some reason and freezes.
+/// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
+/// When `coverage` is true, no child processes are spawned, and no output is given.
+fn integrationTests(coverage: bool) !void {
     if (!coverage) {
         try succeed_color.dump(out);
         try out.print("\n[============]\n", .{});
@@ -126,8 +140,8 @@ pub fn main() !void {
     var passed: i64 = 0;
     var failed: i64 = 0;
     if (!coverage) {
-        _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }, allocator) catch {};
-        _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }, allocator) catch {};
+        _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }) catch {};
+        _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }) catch {};
     }
 
     // Add all files names in the src folder to `files`
@@ -174,7 +188,7 @@ pub fn main() !void {
         compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch {
             if (!coverage) {
                 try fail_color.dump(out);
-                std.debug.print("[ ... FAILED ] ", .{});
+                try out.print("[ ... FAILED ] ", .{});
                 try revert.dump(out);
                 try out.print("Orng Compiler crashed!\n", .{});
                 failed += 1;
@@ -187,7 +201,7 @@ pub fn main() !void {
         }
         if (errors.errors_list.items.len > 0) {
             try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ] ", .{});
+            try out.print("[ ... FAILED ] ", .{});
             try revert.dump(out);
             try out.print("Orng -> C.\n", .{});
             failed += 1;
@@ -195,24 +209,24 @@ pub fn main() !void {
         }
 
         // compile C (make sure no errors)
-        var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }, allocator) catch {
+        var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }) catch {
             continue;
         };
         if (gcc_res.retcode != 0) {
             try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ] ", .{});
+            try out.print("[ ... FAILED ] ", .{});
             try revert.dump(out);
             try out.print("C -> Executable.\n", .{});
             failed += 1;
             continue;
         }
-        defer _ = exec(&[_][]const u8{ "/bin/rm", "-f", "a.out" }, allocator) catch {};
+        defer _ = exec(&[_][]const u8{ "/bin/rm", "-f", "a.out" }) catch {};
 
         // execute (make sure no signals)
-        var res = exec(&[_][]const u8{"./a.out"}, allocator) catch |e| {
-            std.debug.print("{?}\n", .{e});
+        var res = exec(&[_][]const u8{"./a.out"}) catch |e| {
+            try out.print("{?}\n", .{e});
             try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ] ", .{});
+            try out.print("[ ... FAILED ] ", .{});
             try revert.dump(out);
             try out.print("Execution interrupted!\n", .{});
             failed += 1;
@@ -220,7 +234,7 @@ pub fn main() !void {
         };
         if (!std.mem.eql(u8, res.stdout, expectedOut)) {
             try fail_color.dump(out);
-            std.debug.print("[ ... FAILED ] ", .{});
+            try out.print("[ ... FAILED ] ", .{});
             try revert.dump(out);
             try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
             failed += 1;
@@ -249,7 +263,75 @@ pub fn main() !void {
     }
 }
 
-fn exec(argv: []const []const u8, allocator: std.mem.Allocator) !struct { stdout: []u8, retcode: i64 } {
+/// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
+fn fuzzTests() !void {
+    // Open and read tests/fuzz/fuzz.txt
+    var file = try std.fs.cwd().openFile("tests/fuzz/fuzz.txt", .{});
+    defer file.close();
+
+    // Read in the contents of the file
+    var buf_reader = std.io.bufferedReader(file.reader());
+    var in_stream = buf_reader.reader();
+    var contents_arraylist = std.ArrayList(u8).init(allocator);
+    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
+    var contents = try contents_arraylist.toOwnedSlice();
+
+    var passed: usize = 0;
+    var failed: usize = 0;
+
+    // Add lines to arraylist
+    var start: usize = indexOf(contents, '"') + 1;
+    var end: usize = start + 1;
+    while (end < contents.len) : (end += 1) {
+        if (contents[end] == '"') {
+            // Found end of string
+            var program_text: []const u8 = contents[start..end];
+
+            // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
+            var errors = errs.Errors.init(allocator);
+            defer errors.deinit();
+            compiler.compileContents(&errors, program_text, "tests/fuzz/fuzz-out.c", true, allocator) catch {
+                std.debug.print("{s}\n", .{program_text});
+                try fail_color.dump(out);
+                try out.print("[ ... FAILED ] ", .{});
+                try revert.dump(out);
+                try out.print("Orng Compiler crashed!\n", .{});
+                failed += 1;
+                continue;
+            };
+
+            for (errors.errors_list.items) |err| {
+                if (err.getStage() == .parsing) {
+                    std.debug.print("{s}\n", .{program_text});
+                    try fail_color.dump(out);
+                    try out.print("[ ... FAILED ] ", .{});
+                    try revert.dump(out);
+                    try out.print("Orng failed to parse correctly!\n", .{});
+                    failed += 1;
+                    continue;
+                }
+            }
+
+            try succeed_color.dump(out);
+            try out.print("[ ... PASSED ]\n", .{});
+            try revert.dump(out);
+            passed += 1;
+
+            if (end < contents.len - 4) {
+                start = indexOf(contents[end + 1 ..], '"') + end + 2;
+                end = start;
+            } else {
+                break;
+            }
+        }
+    }
+
+    if (passed + failed != 0) {
+        std.debug.print("Fuzz test percentage: {d}%\n", .{100.0 * std.math.lossyCast(f64, passed) / std.math.lossyCast(f64, passed + failed)});
+    }
+}
+
+fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {
     const max_output_size = 100 * 1024 * 1024;
     var child_process = std.ChildProcess.init(argv, allocator);
     defer _ = child_process.kill() catch unreachable;

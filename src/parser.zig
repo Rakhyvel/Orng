@@ -92,7 +92,7 @@ pub const Parser = struct {
         if (self.accept(kind)) |token| {
             return token;
         } else {
-            self.errors.addError(Error{ .expected2Token = .{ .expected = kind, .got = self.peek() } });
+            self.errors.addError(Error{ .expected2Token = .{ .expected = kind, .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
             // unreachable;
         }
@@ -115,7 +115,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `const`", .got = self.peek() } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `const`", .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -126,7 +126,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.CONST)) {
             return try self.constDeclaration();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`let` or `const`", .got = self.peek() } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`let` or `const`", .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -170,7 +170,7 @@ pub const Parser = struct {
         } else if (self.accept(.EQUALS)) |_| {
             init = try self.expr();
         } else {
-            self.errors.addError(Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value" } });
+            self.errors.addError(Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value", .stage = .parsing } });
         }
 
         return try AST.createDecl(
@@ -536,7 +536,7 @@ pub const Parser = struct {
                 } else {
                     // Simple index
                     exp = try AST.createIndex(token, exp, first orelse {
-                        self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek() } });
+                        self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression within index", .got = self.peek(), .stage = .parsing } });
                         return ParserErrorEnum.parserError;
                     }, self.astAllocator);
                 }
@@ -594,7 +594,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.L_PAREN)) {
             return try self.parens();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression", .got = self.peek() } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression", .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -670,7 +670,7 @@ pub const Parser = struct {
         } else if (self.peekKind(.L_BRACE)) {
             return try self.braceBlockExpr();
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek() } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -760,7 +760,7 @@ pub const Parser = struct {
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle(mappings);
             } else {
-                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `=>`", .got = self.peek() } });
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `=>`", .got = self.peek(), .stage = .parsing } });
             }
         }
     }

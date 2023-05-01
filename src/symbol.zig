@@ -9,7 +9,7 @@ const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = @import("token.zig").Token;
 
-pub const SymbolErrorEnum = error{ symbolError, OutOfMemory };
+pub const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft };
 
 pub const Scope = struct {
     parent: ?*Scope,
@@ -262,7 +262,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             definition.case.scope = new_scope;
             try symbolTableFromAST(definition.case.let, scope, errors, allocator);
             try symbolTableFromAST(definition.case.expr, scope, errors, allocator);
-            try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
+            try symbolTableFromASTList(definition.case.mappings, scope, errors, allocator);
         },
         .mapping => {
             try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
@@ -283,8 +283,8 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition._for.let, scope, errors, allocator);
             try symbolTableFromAST(definition._for.elem, scope, errors, allocator);
             try symbolTableFromAST(definition._for.iterable, scope, errors, allocator);
-            try symbolTableFromAST(definition._while.bodyBlock, scope, errors, allocator);
-            try symbolTableFromAST(definition._while.elseBlock, scope, errors, allocator);
+            try symbolTableFromAST(definition._for.bodyBlock, scope, errors, allocator);
+            try symbolTableFromAST(definition._for.elseBlock, scope, errors, allocator);
         },
         .block => {
             var new_scope = try Scope.init(scope, "", allocator);
@@ -302,6 +302,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
                     .first_defined_span = first.span,
                     .redefined_span = symbol.span,
                     .name = symbol.name,
+                    .stage = .symbolTree,
                 } });
                 return error.symbolError;
             } else {
@@ -317,6 +318,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
                     .first_defined_span = first.span,
                     .redefined_span = symbol.span,
                     .name = symbol.name,
+                    .stage = .symbolTree,
                 } });
                 return error.symbolError;
             } else {
@@ -365,15 +367,29 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);
     try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
 
+    var buf: []const u8 = undefined;
+    if (definition.fnDecl.name) |name| {
+        buf = name.identifier.token.data;
+    } else {
+        buf = try nextAnonFunctionName();
+    }
     return try Symbol.create(
         fnScope,
-        definition.fnDecl.name.?.identifier.token.data, // TODO: This currently doesn't support anonymous functions
-        definition.fnDecl.name.?.getToken().span,
+        buf, // TODO: This currently doesn't support anonymous functions
+        definition.getToken().span,
         _type,
         definition.fnDecl.init,
         ._fn,
         allocator,
     );
+}
+
+var numAnonFunctions: usize = 0;
+fn nextAnonFunctionName() SymbolErrorEnum![]const u8 {
+    defer numAnonFunctions += 1;
+    var buf: [64]u8 = undefined;
+    _ = try std.fmt.bufPrint(&buf, "_anon{}", .{numAnonFunctions});
+    return &buf;
 }
 
 fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) SymbolErrorEnum!*AST {

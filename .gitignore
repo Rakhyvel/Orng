@@ -1,6 +1,9 @@
 zig-cache/
 zig-out/
 kcov-out/
+tests/fuzz/fuzz.txt
+tests/fuzz/*.c
+tests/fuzz/*.out
 orngdoc_old.md
 parser.py
 orng.out

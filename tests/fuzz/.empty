@@ -1,0 +1,11 @@
+I use Dr. Proebsting's rdgen to create random Orng programs.
+```sh
+# Example of creating random programs, and then running tests over those program
+./create-fuzz.sh
+./run-fuzz.sh
+```
+But the fuzz.txt and the output files are huge and change often, so are gitignored so as not to clutter each commit with noise.
+
+Git doesn't track empty files, so this file is here to let people know that fuzz tests are indeed done here in tests/fuzz/
+
+The testing philosophy is that integration tests ensure that the Orng compiler works with expected input, and the fuzz tests ensure that the compiler properly handles unexpected input.

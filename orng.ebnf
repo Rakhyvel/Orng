@@ -8,7 +8,7 @@ top_level_declaration: (fn_declaration | const_declaration).
 
 non_fn_declaration: let_declaration | const_declaration.
 
-const_declaration: "const" ident [":" arrowExpr] "=" expr "\n". # Note: For practicality, newline can be omitted if EOF matches the next token
+const_declaration: "const" ident [":" arrowExpr] "=" expr "newline". # Note: For practicality, newline can be omitted if EOF matches the next token
 
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
@@ -33,7 +33,7 @@ sumExpr: productExpr {"|" ident [":" productExpr]}. # (lhs of | must be ident or
 
 productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["\\" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["back_slash" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -83,8 +83,8 @@ factor: ident
       .
 
 
-indentBlockExpr: indent [statement {"\n" statement}] [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] dedent.
-braceBlockExpr: "{" [statement {";" statement}] [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] "}".
+indentBlockExpr: indent {statement "newline" } [("throw" expr "newline") | ("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
+braceBlockExpr: "{" {statement ";"} [("throw" expr ";") | ("return" [expr] ";") | ("continue" ";") | ("break" ";")] "}".
 blockExpr: indentBlockExpr | braceBlockExpr.
 
 ifExpr: "if" [non_fn_declaration ";"] expr blockExpr ["else" blockExpr].

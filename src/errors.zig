@@ -5,24 +5,52 @@ const TokenKind = token.TokenKind;
 const Token = token.Token;
 const Span = @import("span.zig").Span;
 
+pub const Stage = enum {
+    tokenization,
+    layout,
+    parsing,
+    symbolTree,
+    typecheck,
+    ir,
+    codegen,
+};
+
 pub const Error = union(enum) {
     basic: struct {
         span: Span,
         msg: []const u8,
+        stage: Stage,
+    },
+    basicNoSpan: struct {
+        msg: []const u8,
+        stage: Stage,
     },
     expectedBasicToken: struct {
         expected: []const u8,
         got: Token,
+        stage: Stage,
     },
     expected2Token: struct {
         expected: TokenKind,
         got: Token,
+        stage: Stage,
     },
     redefinition: struct {
         first_defined_span: Span,
         redefined_span: Span,
         name: []const u8,
+        stage: Stage,
     },
+
+    pub fn getStage(self: *const Error) Stage {
+        switch (self.*) {
+            .basic => return self.basic.stage,
+            .basicNoSpan => return self.basicNoSpan.stage,
+            .expectedBasicToken => return self.expectedBasicToken.stage,
+            .expected2Token => return self.expected2Token.stage,
+            .redefinition => return self.redefinition.stage,
+        }
+    }
 };
 
 pub const Errors = struct {
@@ -44,6 +72,7 @@ pub const Errors = struct {
             // TODO: When the line map is implemented, print out line where span occurs. Do this for all spans.
             switch (err) {
                 .basic => std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: {s}\n", .{ err.basic.span.line, err.basic.span.col, err.basic.msg }),
+                .basicNoSpan => std.debug.print("error: {s}\n", .{err.basicNoSpan.msg}),
                 .expectedBasicToken => std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected {s}, got `{s}`\n", .{
                     err.expectedBasicToken.got.span.line,
                     err.expectedBasicToken.got.span.col,

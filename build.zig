@@ -15,7 +15,7 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    executable(b, optimize, target, "integration-test", "src/test.zig", "inttest", "Runs the integration tests");
+    executable(b, optimize, target, "orng-test", "src/test.zig", "orng-test", "Runs the integration tests");
     executable(b, optimize, target, "orng", "src/main.zig", "run", "Runs the compiler");
 }
 

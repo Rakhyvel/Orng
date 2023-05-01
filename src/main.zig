@@ -44,10 +44,14 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
 
+    try compileContents(errors, contents, out_name, false, allocator);
+}
+
+pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !void {
     // Tokenize
     var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
     defer tokenAllocator.deinit();
-    var tokens = lexer.getTokens(contents, errors, tokenAllocator.allocator()) catch |err| {
+    var tokens = lexer.getTokens(contents, errors, fuzz_tokens, tokenAllocator.allocator()) catch |err| {
         switch (err) {
             error.lexerError => {
                 errors.printErrors();
@@ -107,16 +111,23 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
-    var cfg = try ir.CFG.create(file_root.symbols.get("main").?, null, allocator);
+    var main_symbol = file_root.symbols.get("main");
+    if (main_symbol) |msymb| {
+        var cfg = try ir.CFG.create(msymb, null, allocator);
 
-    // Code generation
-    var program = try Program.init(cfg, allocator);
-    var outputFile = try std.fs.cwd().createFile(
-        out_name,
-        .{
-            .read = false,
-        },
-    );
-    defer outputFile.close();
-    try codegen.generate(program, &outputFile);
+        // Code generation
+        var program = try Program.init(cfg, allocator);
+        var outputFile = try std.fs.cwd().createFile(
+            out_name,
+            .{
+                .read = false,
+            },
+        );
+        defer outputFile.close();
+        try codegen.generate(program, &outputFile);
+    } else {
+        errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "no `main` function specified", .stage = .symbolTree } });
+        errors.printErrors();
+        return;
+    }
 }
