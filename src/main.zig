@@ -127,6 +127,7 @@ pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []c
         );
         defer outputFile.close();
         try codegen.generate(program, &outputFile);
+        // return error.Lol;
     } else {
         errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "no `main` function specified", .stage = .symbolTree } });
         errors.printErrors();

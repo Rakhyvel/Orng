@@ -395,11 +395,12 @@ fn nextAnonFunctionName() SymbolErrorEnum![]const u8 {
 fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) SymbolErrorEnum!*AST {
     if (params.items.len == 0) {
         return try AST.createUnit(token, allocator);
-    } else if (params.items.len == 1) {
+    } else if (params.items.len < 2) {
         return params.items[0].decl.type.?;
     } else {
+        std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*AST).init(allocator);
-        var i: usize = 1;
+        var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
             try param_types.append(params.items[i]);
         }

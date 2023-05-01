@@ -282,47 +282,54 @@ fn fuzzTests() !void {
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"') + 1;
     var end: usize = start + 1;
-    while (end < contents.len) : (end += 1) {
+    var broken: bool = false;
+    while (end < contents.len and !broken) : (end += 1) {
         if (contents[end] == '"') {
+            defer {
+                if (end < contents.len - 4) {
+                    start = indexOf(contents[end + 1 ..], '"') + end + 2;
+                    end = start;
+                } else {
+                    broken = true;
+                }
+            }
+
             // Found end of string
             var program_text: []const u8 = contents[start..end];
 
+            std.debug.print("{s}\n", .{program_text});
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
             var errors = errs.Errors.init(allocator);
             defer errors.deinit();
             compiler.compileContents(&errors, program_text, "tests/fuzz/fuzz-out.c", true, allocator) catch {
-                std.debug.print("{s}\n", .{program_text});
                 try fail_color.dump(out);
                 try out.print("[ ... FAILED ] ", .{});
                 try revert.dump(out);
-                try out.print("Orng Compiler crashed!\n", .{});
+                try out.print("Orng Compiler crashed with input above!\n", .{});
                 failed += 1;
                 continue;
             };
 
+            var should_continue: bool = false;
             for (errors.errors_list.items) |err| {
                 if (err.getStage() == .parsing) {
-                    std.debug.print("{s}\n", .{program_text});
                     try fail_color.dump(out);
                     try out.print("[ ... FAILED ] ", .{});
                     try revert.dump(out);
-                    try out.print("Orng failed to parse correctly!\n", .{});
+                    try out.print("Orng failed to parse the above correctly!\n", .{});
                     failed += 1;
-                    continue;
+                    should_continue = true;
+                    break;
                 }
+            }
+            if (should_continue) {
+                continue;
             }
 
             try succeed_color.dump(out);
             try out.print("[ ... PASSED ]\n", .{});
             try revert.dump(out);
             passed += 1;
-
-            if (end < contents.len - 4) {
-                start = indexOf(contents[end + 1 ..], '"') + end + 2;
-                end = start;
-            } else {
-                break;
-            }
         }
     }
 
