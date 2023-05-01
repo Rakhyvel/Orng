@@ -155,7 +155,7 @@
 - [ ] Execute the output file
 
 ### Integration Testing
-- [ ] Write small integration tests for each "feature" of the language
+- [x] Write small integration tests for each "feature" of the language
 - [ ] Fuzz tests
     - Generate random (syntactically correct) Orng programs; attempt to compile
         | compiles, no C err => generate new program
