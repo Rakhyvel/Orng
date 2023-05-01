@@ -614,16 +614,20 @@ pub const Parser = struct {
         var final: ?*AST = null;
         if (self.accept(.BREAK)) |token| {
             final = try AST.createBreak(token, self.astAllocator);
+            while (self.accept(.NEWLINE)) |_| {}
         } else if (self.accept(.CONTINUE)) |token| {
             final = try AST.createContinue(token, self.astAllocator);
+            while (self.accept(.NEWLINE)) |_| {}
         } else if (self.accept(.RETURN)) |token| {
             var exp: ?*AST = null;
             if (self.nextIsExpr()) {
                 exp = try self.expr();
             }
             final = try AST.createReturn(token, exp, self.astAllocator);
+            while (self.accept(.NEWLINE)) |_| {}
         } else if (self.accept(.THROW)) |token| {
             final = try AST.createThrow(token, try self.expr(), self.astAllocator);
+            while (self.accept(.NEWLINE)) |_| {}
         }
 
         // TODO: Better error messages, if missing newline, hits this expect, which doesn't give much info
@@ -637,26 +641,28 @@ pub const Parser = struct {
 
         var statements = std.ArrayList(*AST).init(self.astAllocator);
 
-        if (self.nextIsStatement()) {
+        while (self.nextIsStatement()) {
             try statements.append(try self.statement());
-            while (self.accept(.SEMICOLON)) |_| {
-                try statements.append(try self.statement());
-            }
+            while (self.accept(.SEMICOLON)) |_| {}
         }
 
         var final: ?*AST = null;
         if (self.accept(.BREAK)) |token| {
             final = try AST.createBreak(token, self.astAllocator);
+            while (self.accept(.SEMICOLON)) |_| {}
         } else if (self.accept(.CONTINUE)) |token| {
             final = try AST.createContinue(token, self.astAllocator);
+            while (self.accept(.SEMICOLON)) |_| {}
         } else if (self.accept(.RETURN)) |token| {
             var exp: ?*AST = null;
             if (self.nextIsExpr()) {
                 exp = try self.expr();
             }
             final = try AST.createReturn(token, exp, self.astAllocator);
+            while (self.accept(.SEMICOLON)) |_| {}
         } else if (self.accept(.THROW)) |token| {
             final = try AST.createThrow(token, try self.expr(), self.astAllocator);
+            while (self.accept(.SEMICOLON)) |_| {}
         }
 
         _ = try self.expect(.R_BRACE);

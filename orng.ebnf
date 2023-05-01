@@ -64,14 +64,20 @@ prefixExpr: "!" hyperExpr                           # inferred error union
 
 hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 
-postfixExpr: factor {parens | ("[" [expr] [".." [expr]] "]") | ("." ident) | (".?") | ("^")}.
+# [..]
+# [..expr]
+
+# [expr]
+# [expr..]
+# [expr..expr]
+postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | ("^")}.
 
 factor: ident
       | int
       | hex
       | octal
       | bin
-      | real
+      | float
       | char
       | string
       | blockExpr

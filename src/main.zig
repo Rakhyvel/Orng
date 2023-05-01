@@ -65,12 +65,14 @@ pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []c
     defer tokens.deinit();
 
     // Layout
-    layout.preemptBinaryOperator(&tokens);
-    try layout.insertIndentDedents(&tokens);
-    layout.condenseNewLines(&tokens);
-    if (PRINT_TOKENS) {
-        for (tokens.items) |*token| {
-            token.pprint();
+    if (!fuzz_tokens) {
+        layout.preemptBinaryOperator(&tokens);
+        try layout.insertIndentDedents(&tokens);
+        layout.condenseNewLines(&tokens);
+        if (PRINT_TOKENS) {
+            for (tokens.items) |*token| {
+                token.pprint();
+            }
         }
     }
 
