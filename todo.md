@@ -13,9 +13,8 @@
 - [x] Properly handle allocator errors
 - [x] Implement Spans
 - [x] Error if string (resp. character) reaches EOF before " (resp. ')
-- [ ] Write negetive tests for errors
+- [x] Write negetive tests for errors
 - [ ] Reject invalid character literals
-- [ ] Lex out scientific notation floats
 
 ### Layout
 - [x] Write tests

@@ -176,26 +176,30 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, allocator: std.mem.
             },
 
             .integer => {
-                if (next_char == '.' and std.ascii.isDigit(contents[ix + 1])) {
-                    // floating-point
-                    ix += 1;
-                    col += 1;
-                    state = .float;
+                if (next_char == '.') {
+                    if (ix + 1 < contents.len and std.ascii.isDigit(contents[ix + 1])) {
+                        // floating-point
+                        ix += 1;
+                        col += 1;
+                        state = .float;
+                    } else {
+                        return error.lexerError;
+                    }
                 } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'x') {
                     // hexadecimal
                     ix += 1;
                     col += 1;
-                    state = .hex;
+                    state = .hexDigit;
                 } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'o') {
                     // octal
                     ix += 1;
                     col += 1;
-                    state = .octal;
+                    state = .octalDigit;
                 } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'b') {
                     // binary
                     ix += 1;
                     col += 1;
-                    state = .binary;
+                    state = .binaryDigit;
                 } else if (next_char == '\'') {
                     ix += 1;
                     col += 1;
@@ -504,4 +508,58 @@ test "comment" {
     try std.testing.expectEqual(tokens.items.len, 2);
     try tokens.items[0].expectToken(.D_EQUALS, "==", 2, 1);
     try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
+}
+
+test "integer-error" {
+    const contents = "100'abc";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(error.lexerError, tokens);
+}
+
+test "float-eof" {
+    const contents = "1.";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(error.lexerError, tokens);
+}
+
+test "float-error" {
+    const contents = "1.a";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(error.lexerError, tokens);
+}
+
+test "hex-error" {
+    const contents = "0xG";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(error.lexerError, tokens);
+}
+
+test "octal-error" {
+    const contents = "0o9";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(error.lexerError, tokens);
+}
+
+test "binary-error" {
+    const contents = "0b2";
+    var errors = errs.Errors.init(std.testing.allocator);
+    defer errors.deinit();
+    var tokens = getTokens(contents, &errors, std.testing.allocator);
+
+    try std.testing.expectError(error.lexerError, tokens);
 }
