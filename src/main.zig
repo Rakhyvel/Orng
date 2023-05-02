@@ -1,4 +1,5 @@
 const std = @import("std");
+const ast = @import("ast.zig");
 const codegen = @import("codegen.zig");
 const errs = @import("errors.zig");
 const ir = @import("ir.zig");
@@ -8,6 +9,7 @@ const Parser = @import("parser.zig").Parser;
 const Program = @import("program.zig").Program;
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
+const typecheck = @import("typecheck.zig");
 
 pub const PRINT_TOKENS = false;
 
@@ -79,6 +81,7 @@ pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []c
     // Parse
     var astAllocator = std.heap.ArenaAllocator.init(allocator);
     defer astAllocator.deinit();
+    try ast.initTypes();
     var parser = try Parser.create(&tokens, errors, astAllocator.allocator());
     var program_ast = parser.parse() catch |err| {
         switch (err) {
@@ -107,8 +110,19 @@ pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []c
             },
         }
     };
+
     // Typecheck
-    // TODO
+    typecheck.typecheckScope(file_root, errors) catch |err| {
+        switch (err) {
+            error.typeError => {
+                errors.printErrors();
+                return;
+            },
+            // else => {
+            //     return err;
+            // },
+        }
+    };
 
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);

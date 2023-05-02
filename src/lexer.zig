@@ -107,7 +107,15 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                         } else if (std.mem.eql(u8, token.data, "back_slash")) {
                             token.kind = .BACK_SLASH;
                         } else if (std.mem.eql(u8, token.data, "ident")) {
-                            token.data = "main";
+                            const RndGen = std.rand.DefaultPrng;
+                            var rnd = RndGen.init(0);
+                            var some_random_num = rnd.random().int(i32);
+                            switch (@rem(some_random_num, 3)) {
+                                0 => token.data = "main",
+                                1 => token.data = "a",
+                                2 => token.data = "b",
+                                else => unreachable,
+                            }
                         }
                         // TODO: Replace `ident`, `int`, `hex`, `octal`, `bin`, `float`, `char`, `string` with random values
                     }

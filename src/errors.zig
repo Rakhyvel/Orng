@@ -1,6 +1,8 @@
+const ast = @import("ast.zig");
 const std = @import("std");
 const token = @import("token.zig");
 
+const AST = ast.AST;
 const TokenKind = token.TokenKind;
 const Token = token.Token;
 const Span = @import("span.zig").Span;
@@ -41,6 +43,12 @@ pub const Error = union(enum) {
         name: []const u8,
         stage: Stage,
     },
+    expected2Type: struct {
+        span: Span,
+        expected: *AST,
+        got: *AST,
+        stage: Stage,
+    },
 
     pub fn getStage(self: *const Error) Stage {
         switch (self.*) {
@@ -49,6 +57,7 @@ pub const Error = union(enum) {
             .expectedBasicToken => return self.expectedBasicToken.stage,
             .expected2Token => return self.expected2Token.stage,
             .redefinition => return self.redefinition.stage,
+            .expected2Type => return self.expected2Type.stage,
         }
     }
 };
@@ -90,6 +99,16 @@ pub const Errors = struct {
                     err.redefinition.redefined_span.col,
                     err.redefinition.name,
                 }),
+                .expected2Type => {
+                    std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected `", .{
+                        err.expected2Type.span.line,
+                        err.expected2Type.span.col,
+                    });
+                    err.expected2Type.expected.printType();
+                    std.debug.print("`, got `", .{});
+                    err.expected2Type.got.printType();
+                    std.debug.print("`\n", .{});
+                },
             }
         }
     }

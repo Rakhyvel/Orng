@@ -1,5 +1,5 @@
 // 11
 fn main: ()->Int = 
-    if let x: Int = 4; 0 
+    if let x: Bool = 4; 0 
         x + 3
     11

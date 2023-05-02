@@ -51,7 +51,7 @@
 - [x] If symbol init is block, create a scope for it
 - [x] Create symbols for function parameters
 - [ ] WRITE TESTS! (positive and negative)
-    - [ ] Positive, normal flow-through tests
+    - [x] Positive, normal flow-through tests
     - [ ] Negative, error tests
 - [ ] Symbols should likely know if they're immutable, constant, mutable, or a function (quadchotomy)
 - [ ] Find the main function somehow
@@ -72,6 +72,7 @@
 
 ### Errors
 - [ ] Add filename to Span, add file map
+- [ ] Print out the line of the error, with a line number, and a caret pointing to it with ~ for the arrow shaft
 
 ### IR
 - [x] Write IR types
