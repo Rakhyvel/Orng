@@ -1,2 +1,2 @@
 // 1
-fn main: ()->Int = 1 and 1 and 1
+fn main: ()->Int = true and true and true

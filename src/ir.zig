@@ -412,6 +412,20 @@ pub const CFG = struct {
                     return symbver;
                 }
             },
+            ._true => {
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var ir = try IR.createInt(temp, 1, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            ._false => {
+                var temp = try self.createTempSymbolVersion(ast.typeof(), allocator);
+                var ir = try IR.createInt(temp, 0, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
 
             // Unary operators
             .not => {

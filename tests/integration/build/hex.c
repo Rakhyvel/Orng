@@ -12,7 +12,7 @@ int test_main() {
 	int retval;
 	int _0;
 BB0:;
-	_0 = 10;
+	_0 = 2748;
 	retval = _0;
 	goto end;
 end:

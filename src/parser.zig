@@ -15,6 +15,7 @@ const ParserErrorEnum = error{
     parserError, // For general parsing errors. Error is logged in errors.zig.errors. Likely
     InvalidCharacter, // If parsing a float goes wrong. Likely
     Overflow, // If parsing an integer goes wrong. Unlikely
+    InvalidRange, // When inserting into a string, possible if bug
 
     OutOfMemory, // Often when appending to an ArrayList, unlikely
 };
@@ -564,14 +565,30 @@ pub const Parser = struct {
     fn factor(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.IDENTIFIER)) |token| {
             return try AST.createIdentifier(token, self.astAllocator);
+        } else if (self.accept(.TRUE)) |token| {
+            return try AST.createTrue(token, self.astAllocator);
+        } else if (self.accept(.FALSE)) |token| {
+            return try AST.createFalse(token, self.astAllocator);
         } else if (self.accept(.DECIMAL_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.astAllocator);
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped, 10), self.astAllocator);
         } else if (self.accept(.HEX_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 16), self.astAllocator);
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 16), self.astAllocator);
         } else if (self.accept(.OCT_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.astAllocator);
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 8), self.astAllocator);
         } else if (self.accept(.BIN_INTEGER)) |token| {
-            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.astAllocator);
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 2), self.astAllocator);
         } else if (self.accept(.FLOAT)) |token| {
             return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
@@ -817,3 +834,16 @@ pub const Parser = struct {
         return exp orelse try AST.createUnit(token, self.astAllocator);
     }
 };
+
+fn stripApostrophes(input: []const u8, allocator: std.mem.Allocator) ![]const u8 {
+    var retval = String.init(allocator);
+    defer retval.deinit();
+    for (input) |c| {
+        if (c != '\'') {
+            var c1: [1]u8 = undefined;
+            c1[0] = c;
+            try retval.insert(&c1, retval.size);
+        }
+    }
+    return (try retval.toOwned()).?;
+}

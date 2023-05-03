@@ -185,8 +185,9 @@ fn integrationTests(coverage: bool) !void {
         // Try to compile Orng (make sure no errors)
         var errors = errs.Errors.init(allocator);
         defer errors.deinit();
-        compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch {
+        compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch |err| {
             if (!coverage) {
+                std.debug.print("{}\n", .{err});
                 try fail_color.dump(out);
                 try out.print("[ ... FAILED ] ", .{});
                 try revert.dump(out);

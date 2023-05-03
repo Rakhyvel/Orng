@@ -73,6 +73,8 @@ hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | ("^")}.
 
 factor: ident
+      | "true"
+      | "false"
       | int
       | hex
       | octal

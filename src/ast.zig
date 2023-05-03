@@ -11,12 +11,18 @@ const TokenKind = tokens.TokenKind;
 
 pub var typesInited = false;
 pub var boolType: *AST = undefined;
+pub var charType: *AST = undefined;
+pub var floatType: *AST = undefined;
 pub var intType: *AST = undefined;
+pub var voidType: *AST = undefined;
 
 pub fn initTypes() !void {
     if (!typesInited) {
         boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        charType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        voidType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         typesInited = true;
     }
 }
@@ -55,6 +61,8 @@ pub const AST = union(enum) {
     float: struct { token: Token, data: f64 },
     string: struct { token: Token },
     identifier: struct { token: Token },
+    _true: struct { token: Token },
+    _false: struct { token: Token },
 
     // Unary operators
     not: struct { token: Token, expr: *AST },
@@ -191,6 +199,8 @@ pub const AST = union(enum) {
             .string => return self.string.token,
             .identifier => return self.identifier.token,
             ._unreachable => return self._unreachable.token,
+            ._true => return self._true.token,
+            ._false => return self._false.token,
 
             .not => return self.not.token,
             .negate => return self.negate.token,
@@ -277,6 +287,14 @@ pub const AST = union(enum) {
 
     pub fn createUnreachable(token: Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._unreachable = .{ .token = token } }, allocator);
+    }
+
+    pub fn createTrue(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._true = .{ .token = token } }, allocator);
+    }
+
+    pub fn createFalse(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._false = .{ .token = token } }, allocator);
     }
 
     pub fn createNot(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {

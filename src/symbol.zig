@@ -105,6 +105,8 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .string,
         .identifier,
         ._unreachable,
+        ._true,
+        ._false,
         ._break,
         ._continue,
         => {},
