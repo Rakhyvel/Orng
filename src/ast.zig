@@ -14,6 +14,7 @@ pub var boolType: *AST = undefined;
 pub var charType: *AST = undefined;
 pub var floatType: *AST = undefined;
 pub var intType: *AST = undefined;
+pub var typeType: *AST = undefined;
 pub var voidType: *AST = undefined;
 
 pub fn initTypes() !void {
@@ -22,6 +23,7 @@ pub fn initTypes() !void {
         charType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         voidType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         typesInited = true;
     }
@@ -49,6 +51,11 @@ pub const SliceKind = union(enum) {
             },
         }
     }
+};
+
+pub const MappingKind = enum {
+    case,
+    cond,
 };
 
 const Errors = error{ InvalidRange, OutOfMemory };
@@ -133,6 +140,7 @@ pub const AST = union(enum) {
     },
     mapping: struct {
         token: Token,
+        kind: MappingKind,
         lhs: ?*AST,
         rhs: ?*AST,
     },
@@ -466,8 +474,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .case = .{ .token = token, .scope = null, .let = let, .expr = expr, .mappings = mappings } }, allocator);
     }
 
-    pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .mapping = .{ .token = token, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createMapping(token: Token, kind: MappingKind, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .mapping = .{ .token = token, .kind = kind, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {

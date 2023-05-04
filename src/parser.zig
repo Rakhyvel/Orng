@@ -756,7 +756,7 @@ pub const Parser = struct {
         return try AST.createFor(token, let, elem, iterable, bodyBlock, elseBlock, self.astAllocator);
     }
 
-    fn barClause(self: *Parser) ParserErrorEnum!*AST {
+    fn barClause(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
         var lhs = try self.annotExpr();
         var rhs: ?*AST = null;
 
@@ -764,33 +764,33 @@ pub const Parser = struct {
             rhs = try self.annotExpr();
         }
 
-        return try AST.createMapping(lhs.getToken(), lhs, rhs, self.astAllocator);
+        return try AST.createMapping(lhs.getToken(), kind, lhs, rhs, self.astAllocator);
     }
 
-    fn barElse(self: *Parser) ParserErrorEnum!*AST {
+    fn barElse(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
         var token = try self.expect(.ELSE);
         _ = try self.expect(.RIGHT_FAT_ARROW);
         var rhs = try self.annotExpr();
 
-        return try AST.createMapping(token, null, rhs, self.astAllocator);
+        return try AST.createMapping(token, kind, null, rhs, self.astAllocator);
     }
 
-    fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST)) ParserErrorEnum!void {
-        try mappings.append(try self.barClause());
+    fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!void {
+        try mappings.append(try self.barClause(kind));
         if (self.accept(.BAR)) |_| {
             if (self.peekKind(.ELSE)) {
-                try mappings.append(try self.barElse());
+                try mappings.append(try self.barElse(kind));
             } else if (self.nextIsExpr()) {
-                try self.barListMiddle(mappings);
+                try self.barListMiddle(mappings, kind);
             } else {
                 self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `=>`", .got = self.peek(), .stage = .parsing } });
             }
         }
     }
 
-    fn barList(self: *Parser, mappings: *std.ArrayList(*AST)) ParserErrorEnum!void {
+    fn barList(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!void {
         _ = try self.expect(.BAR);
-        try self.barListMiddle(mappings);
+        try self.barListMiddle(mappings, kind);
     }
 
     fn condExpr(self: *Parser) ParserErrorEnum!*AST {
@@ -803,7 +803,7 @@ pub const Parser = struct {
             _ = try self.expect(.SEMICOLON); // Has to be here, otherwise the init expr of the let confuses the cond's |'s with a sum expr
         }
 
-        try self.barList(&mappings);
+        try self.barList(&mappings, .cond);
 
         return try AST.createCond(token, let, mappings, self.astAllocator);
     }
@@ -818,7 +818,7 @@ pub const Parser = struct {
             _ = try self.expect(.SEMICOLON);
         }
         var exp = try self.productExpr();
-        try self.barList(&mappings);
+        try self.barList(&mappings, .case);
 
         return try AST.createCase(token, let, exp, mappings, self.astAllocator);
     }

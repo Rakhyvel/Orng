@@ -49,6 +49,11 @@ pub const Error = union(enum) {
         got: *AST,
         stage: Stage,
     },
+    expectedType: struct {
+        span: Span,
+        expected: *AST,
+        stage: Stage,
+    },
 
     pub fn getStage(self: *const Error) Stage {
         switch (self.*) {
@@ -58,6 +63,7 @@ pub const Error = union(enum) {
             .expected2Token => return self.expected2Token.stage,
             .redefinition => return self.redefinition.stage,
             .expected2Type => return self.expected2Type.stage,
+            .expectedType => return self.expectedType.stage,
         }
     }
 };
@@ -108,6 +114,14 @@ pub const Errors = struct {
                     std.debug.print("`, got `", .{});
                     err.expected2Type.got.printType();
                     std.debug.print("`\n", .{});
+                },
+                .expectedType => {
+                    std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected `", .{
+                        err.expectedType.span.line,
+                        err.expectedType.span.col,
+                    });
+                    err.expectedType.expected.printType();
+                    std.debug.print("`, got a type-less statement\n", .{});
                 },
             }
         }

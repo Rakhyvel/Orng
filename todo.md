@@ -143,7 +143,6 @@
     - [ ] case (defer to after pattern matching)
 - [ ] Write a defaultValue function which generates a default value IR for a given type
 - [ ] Version symbols (test: assignment)
-- [ ] Do optimizations on the control-flow graph
 
 ### Codegen
 - [ ] Handle all types of IR
@@ -151,13 +150,23 @@
 - [ ] Print the retval of a function
     - [ ] (when types are intoduced): if the return type of a function is void, don't do this ^
 
+### Optimizations
+- [ ] Common sub expression elimination (AST)
+- [ ] Code motion (AST)
+- [ ] Unrolling (AST -> IR)
+- [ ] Constant fold (AST & IR)
+- [ ] Dead code elimination (IR)
+    - [ ] Use-def analysis
+- [ ] Inlining (CFG)
+- [ ] Peephole (LIR/asm/C)
+
 ### Backend
 - [ ] Call gcc on the .c file
 - [ ] Execute the output file
 
 ### Integration Testing
 - [x] Write small integration tests for each "feature" of the language
-- [ ] Fuzz tests
+- [x] Fuzz tests
     - Generate random (syntactically correct) Orng programs; attempt to compile
         | compiles, no C err => generate new program
         | compiler err       => generate new program
