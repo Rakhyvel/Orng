@@ -10,6 +10,7 @@
     - `symbver` for an arbitrary SymbolVersion
     - `maybe_x` for an optional variant of a type
 - [ ] Errors should be capitalized, I guess
+- [ ] Variables should be snake_case, functions should be snakeCase
 
 
 ### Pipeline
@@ -18,7 +19,7 @@
     - [x] Lexer fills lines array
     - [x] Errors print line, caret
     - [x] AST `printType` prints to stderr instead of debug
-- [ ] Symbols def before use tree-walk
+- [x] Symbols def before use tree-walk
 - [ ] lhs of assignment is lvalue validation tree-walk
 - [ ] type inferrence, typeof, type checking
     - [ ] `typeof` prefix operator which returns type expression of expression

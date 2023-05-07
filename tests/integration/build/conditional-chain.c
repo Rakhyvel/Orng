@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1683492839
-#define ORNG_1683492839
+#ifndef ORNG_1683494789
+#define ORNG_1683494789
 
 #include <math.h>
 #include <stdio.h>
@@ -50,7 +50,7 @@ BB2:;
 		goto BB3;
 	}
 BB3:;
-	_8 = 2;
+	_8 = 2.0e+00;
 	_9 = _6 > _8;
 	if (!_9) {
 		goto BB7;
@@ -58,7 +58,7 @@ BB3:;
 		goto BB4;
 	}
 BB4:;
-	_10 = 1;
+	_10 = 1.0e+00;
 	_11 = _8 >= _10;
 	if (!_11) {
 		goto BB7;

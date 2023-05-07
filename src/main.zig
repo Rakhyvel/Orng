@@ -9,7 +9,7 @@ const Parser = @import("parser.zig").Parser;
 const Program = @import("program.zig").Program;
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
-const typecheck = @import("typecheck.zig");
+const validate = @import("validate.zig");
 
 pub const PRINT_TOKENS = false;
 
@@ -128,7 +128,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
 
     // Typecheck
-    try typecheck.typecheckScope(file_root, errors);
+    try validate.validateScope(file_root, errors);
 
     return file_root;
 }

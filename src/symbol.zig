@@ -71,6 +71,8 @@ pub const Symbol = struct {
     versions: u64,
     kind: SymbolKind,
 
+    defined: bool,
+
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
@@ -80,6 +82,11 @@ pub const Symbol = struct {
         retval.init = _init;
         retval.versions = 0;
         retval.kind = kind;
+        if (kind == ._fn or kind == ._const) {
+            retval.defined = true;
+        } else {
+            retval.defined = false;
+        }
         return retval;
     }
 };

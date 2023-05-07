@@ -1,5 +1,6 @@
 const ast = @import("ast.zig");
 const std = @import("std");
+const _symbol = @import("symbol.zig");
 const term = @import("zig-term/term.zig");
 const token = @import("token.zig");
 
@@ -55,6 +56,15 @@ pub const Error = union(enum) {
         expected: *AST,
         stage: Stage,
     },
+    undeclaredIdentifier: struct {
+        identifier: Token,
+        stage: Stage,
+    },
+    useBeforeDef: struct {
+        identifier: Token,
+        symbol: *_symbol.Symbol,
+        stage: Stage,
+    },
 
     pub fn getStage(self: *const Error) Stage {
         switch (self.*) {
@@ -65,6 +75,8 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.stage,
             .expected2Type => return self.expected2Type.stage,
             .expectedType => return self.expectedType.stage,
+            .undeclaredIdentifier => return self.undeclaredIdentifier.stage,
+            .useBeforeDef => return self.useBeforeDef.stage,
         }
     }
 
@@ -77,6 +89,8 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.redefined_span,
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
+            .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
+            .useBeforeDef => return self.useBeforeDef.identifier.span,
         }
     }
 };
@@ -126,6 +140,12 @@ pub const Errors = struct {
                     try out.print("expected `", .{});
                     try err.expectedType.expected.printType(out);
                     try out.print("`, got a type-less statement\n", .{});
+                },
+                .undeclaredIdentifier => {
+                    try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data});
+                },
+                .useBeforeDef => {
+                    try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);

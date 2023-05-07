@@ -121,6 +121,17 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                             token.kind = .NEWLINE;
                         } else if (std.mem.eql(u8, token.data, "back_slash")) {
                             token.kind = .BACK_SLASH;
+                        } else if (std.mem.eql(u8, token.data, "int")) {
+                            const RndGen = std.rand.DefaultPrng;
+                            var rnd = RndGen.init(0);
+                            var some_random_num = rnd.random().int(i32);
+                            token.kind = .DECIMAL_INTEGER;
+                            switch (@rem(some_random_num, 3)) {
+                                0 => token.data = "0",
+                                1 => token.data = "1",
+                                2 => token.data = "2",
+                                else => unreachable,
+                            }
                         } else if (std.mem.eql(u8, token.data, "ident")) {
                             const RndGen = std.rand.DefaultPrng;
                             var rnd = RndGen.init(0);
