@@ -15,56 +15,26 @@ int test_main() {
 	int test_x_0;
 	int _2;
 	int _3;
-	int _8;
 	int _4;
-	int _5;
-	int _9;
-	int _6;
-	int _7;
-	int _10;
 BB0:;
 	_1 = 4;
 	test_x_0 = _1;
-	goto BB1;
-BB1:;
-	_2 = 4;
-	_3 = test_x_0 - _2;
-	if (!_3) {
-		goto BB5;
+	_2 = 1;
+	if (!_2) {
+		goto BB3;
 	} else {
-		goto BB2;
+		goto BB1;
 	}
+BB1:;
+	_3 = 7;
+	_4 = test_x_0 + _3;
+	_0 = _4;
+	goto BB2;
 BB2:;
-	goto BB3;
-BB3:;
-	_8 = 10;
-	_0 = _8;
-	goto BB4;
-BB4:;
 	retval = _0;
 	goto end;
-BB5:;
-	_4 = 3;
-	_5 = test_x_0 - _4;
-	if (!_5) {
-		goto BB8;
-	} else {
-		goto BB6;
-	}
-BB6:;
-	goto BB7;
-BB7:;
-	_9 = 23;
-	_0 = _9;
-	goto BB4;
-BB8:;
-	_6 = 2;
-	_7 = test_x_0 - _6;
-	goto BB9;
-BB9:;
-	_10 = 10;
-	_0 = _10;
-	goto BB4;
+BB3:;
+	goto BB2;
 end:
 	return retval;
 }
