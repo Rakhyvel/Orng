@@ -80,6 +80,11 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
     defer irAllocator.deinit();
     var main_symbol = file_root.symbols.get("main");
     if (main_symbol) |msymb| {
+        if (msymb._type.?.* != .function) {
+            errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "entry point `main` is not a function", .stage = .symbolTree } });
+            try errors.printErrors(lines, "");
+            return error.symbolError;
+        }
         var cfg = try ir.CFG.create(msymb, null, allocator);
 
         // Code generation

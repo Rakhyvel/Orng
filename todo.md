@@ -20,6 +20,7 @@
     - [x] Errors print line, caret
     - [x] AST `printType` prints to stderr instead of debug
 - [x] Symbols def before use tree-walk
+- [x] `cond` has at least one mapping with a rhs
 - [ ] lhs of assignment is lvalue validation tree-walk
 - [ ] type inferrence, typeof, type checking
     - [ ] `typeof` prefix operator which returns type expression of expression

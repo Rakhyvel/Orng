@@ -299,8 +299,16 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             if (ast.cond.let) |let| {
                 try validateAST(let, null, scope, errors);
             }
+            var num_rhs: usize = 0;
             for (ast.cond.mappings.items) |mapping| {
                 try validateAST(mapping, expected, ast.cond.scope.?, errors);
+                if (mapping.mapping.rhs) |_| {
+                    num_rhs += 1;
+                }
+            }
+            if (num_rhs == 0) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected at least one non-null rhs prong", .stage = .typecheck } });
+                return error.typeError;
             }
         },
         .case => {
