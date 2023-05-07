@@ -8,9 +8,23 @@ const Error = errs.Error;
 
 const LexerErrors = error{lexerError};
 
+// Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
+// However, we couldn't print out the line for the error if we did tokens and lines at the same time
+// It's desirable to print the line, therefore lines must be done before tokens
+pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8)) !void {
+    var start: usize = 0;
+    var end: usize = 1;
+    while (end < contents.len) : (end += 1) {
+        if (contents[end] == '\n') {
+            try lines.append(contents[start..end]);
+            start = end + 1;
+        }
+    }
+    try lines.append(contents[start..end]);
+}
+
 /// Will always end in an EOF on the first column of the next line
-pub fn getTokens(contents: []const u8, errors: *errs.Errors, lines: *std.ArrayList([]const u8), fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
-    _ = lines;
+pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
     const LexState = enum {
         none,
         whitespace,
@@ -37,8 +51,8 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, lines: *std.ArrayLi
     var slice_start: usize = 0;
     var ix: usize = 0;
     var state: LexState = .none;
-    var line: i64 = 1;
-    var col: i64 = 0;
+    var line: usize = 1;
+    var col: usize = 0;
 
     while (ix < contents.len + 1) {
         // It should be ok to not have a newline at the end of a file

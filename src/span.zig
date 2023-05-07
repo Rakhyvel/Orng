@@ -1,4 +1,4 @@
 pub const Span = struct {
-    line: i64,
-    col: i64,
+    line: usize,
+    col: usize,
 };

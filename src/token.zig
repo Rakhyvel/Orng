@@ -172,7 +172,7 @@ pub const Token = struct {
     data: []const u8,
     span: Span,
 
-    pub fn create(data: []const u8, kind: ?TokenKind, line: i64, col: i64) Token {
+    pub fn create(data: []const u8, kind: ?TokenKind, line: usize, col: usize) Token {
         return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .line = line, .col = col } };
     }
 
@@ -184,7 +184,7 @@ pub const Token = struct {
         std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line, self.repr(), self.data });
     }
 
-    pub fn expectToken(self: *Token, kind: TokenKind, data: []const u8, col: i64, line: i64) !void {
+    pub fn expectToken(self: *Token, kind: TokenKind, data: []const u8, col: usize, line: usize) !void {
         try std.testing.expectEqual(kind, self.kind);
         try std.testing.expectEqualStrings(data, self.data);
         try std.testing.expectEqual(col, self.span.col);

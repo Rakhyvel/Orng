@@ -206,7 +206,7 @@ fn fuzzTests() !void {
                 std.debug.dumpCurrentStackTrace(128);
                 continue;
             };
-            compiler.output(&errors, file_root, "tests/fuzz/fuzz-out.c", allocator) catch {
+            compiler.output(&errors, &lines, file_root, "tests/fuzz/fuzz-out.c", allocator) catch {
                 try term.outputColor(fail_color, "[ ... FAILED ] ", out);
                 try out.print("Orng Compiler crashed with input above!\n", .{});
                 failed += 1;

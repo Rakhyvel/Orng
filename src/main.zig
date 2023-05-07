@@ -64,17 +64,17 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
             error.symbolError,
             error.typeError,
             => {
-                try errors.printErrors(in_name);
+                try errors.printErrors(&lines, in_name);
                 return err;
             },
             else => return err,
         }
     };
-    try output(errors, file_root, out_name, allocator);
+    try output(errors, &lines, file_root, out_name, allocator);
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
-pub fn output(errors: *errs.Errors, file_root: *symbol.Scope, out_name: []const u8, allocator: std.mem.Allocator) !void {
+pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, out_name: []const u8, allocator: std.mem.Allocator) !void {
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
@@ -94,7 +94,7 @@ pub fn output(errors: *errs.Errors, file_root: *symbol.Scope, out_name: []const 
         try codegen.generate(program, &outputFile);
     } else {
         errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "no `main` function specified", .stage = .symbolTree } });
-        try errors.printErrors("");
+        try errors.printErrors(lines, "");
         return error.symbolError;
     }
 }
@@ -102,7 +102,8 @@ pub fn output(errors: *errs.Errors, file_root: *symbol.Scope, out_name: []const 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree
 pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
     // Tokenize, and also append lines to the list of lines
-    var tokens = try lexer.getTokens(contents, errors, lines, fuzz_tokens, allocator);
+    try lexer.getLines(contents, lines);
+    var tokens = try lexer.getTokens(contents, errors, fuzz_tokens, allocator);
     defer tokens.deinit(); // Make copies of tokens, never take their address
 
     // Layout

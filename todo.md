@@ -15,8 +15,8 @@
 ### Pipeline
 - [ ] Errors should print lines
     - [x] Errors print to stderr instead of debug
-    - [ ] Lexer fills lines array
-    - [ ] Errors print line, caret
+    - [x] Lexer fills lines array
+    - [x] Errors print line, caret
     - [ ] AST `printType` prints to stderr instead of debug
 - [ ] `use backticks to make any text an identifier`
 - [ ] Symbols def before use tree-walk

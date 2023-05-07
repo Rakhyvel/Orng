@@ -96,7 +96,7 @@ pub const Errors = struct {
         self.errors_list.append(err) catch unreachable; // TODO: Should this try?
     }
 
-    pub fn printErrors(self: *Errors, filename: []const u8) !void {
+    pub fn printErrors(self: *Errors, lines: *std.ArrayList([]const u8), filename: []const u8) !void {
         for (self.errors_list.items) |err| {
             try (term.Attr{ .bold = true }).dump(out);
             try printPrelude(err.getSpan(), filename);
@@ -129,6 +129,7 @@ pub const Errors = struct {
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);
+            try printEpilude(err.getSpan(), lines);
         }
     }
 
@@ -137,5 +138,16 @@ pub const Errors = struct {
             try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
         }
         try term.outputColor(term.Attr{ .fg = .red, .bold = true }, "error: ", out);
+    }
+
+    fn printEpilude(maybe_span: ?Span, lines: *std.ArrayList([]const u8)) !void {
+        if (maybe_span) |span| {
+            try out.print("{s}\n", .{lines.items[span.line - 1]});
+            var i: usize = 2;
+            while (i < span.col) : (i += 1) {
+                try out.print(" ", .{});
+            }
+            try term.outputColor(term.Attr{ .fg = .green, .bold = true }, "^\n", out);
+        }
     }
 };
