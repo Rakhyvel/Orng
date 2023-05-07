@@ -117,14 +117,14 @@ pub const Errors = struct {
                 }),
                 .expected2Type => {
                     try out.print("expected `", .{});
-                    err.expected2Type.expected.printType();
+                    try err.expected2Type.expected.printType(out);
                     try out.print("`, got `", .{});
-                    err.expected2Type.got.printType();
+                    try err.expected2Type.got.printType(out);
                     try out.print("`\n", .{});
                 },
                 .expectedType => {
                     try out.print("expected `", .{});
-                    err.expectedType.expected.printType();
+                    try err.expectedType.expected.printType(out);
                     try out.print("`, got a type-less statement\n", .{});
                 },
             }

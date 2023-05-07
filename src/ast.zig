@@ -518,33 +518,33 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._defer = .{ .token = token, .expr = expr } }, allocator);
     }
 
-    pub fn printType(self: *AST) void {
+    pub fn printType(self: *AST, out: anytype) !void {
         switch (self.*) {
             .unit => {
-                std.debug.print("()", .{});
+                try out.print("()", .{});
             },
             .identifier => {
-                std.debug.print("{s}", .{self.identifier.token.data});
+                try out.print("{s}", .{self.identifier.token.data});
             },
             .dereference => {
-                self.dereference.expr.printType();
-                std.debug.print("^", .{});
+                try self.dereference.expr.printType(out);
+                try out.print("^", .{});
             },
             .optional => {
-                std.debug.print("?", .{});
-                self.optional.expr.printType();
+                try out.print("?", .{});
+                try self.optional.expr.printType(out);
             },
             .inferredError => {
-                std.debug.print("!", .{});
-                self.inferredError.expr.printType();
+                try out.print("!", .{});
+                try self.inferredError.expr.printType(out);
             },
             .function => {
-                self.function.lhs.printType();
-                std.debug.print("->", .{});
-                self.function.lhs.printType();
+                try self.function.lhs.printType(out);
+                try out.print("->", .{});
+                try self.function.lhs.printType(out);
             },
             else => {
-                std.debug.print("Unimplemented or not a type: {?}\n", .{self.*});
+                try out.print("Unimplemented or not a type: {?}\n", .{self.*});
                 unreachable;
             },
         }
