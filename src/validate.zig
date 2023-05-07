@@ -6,6 +6,7 @@ const symbols = @import("symbol.zig");
 const AST = _ast.AST;
 const Error = errs.Error;
 const Scope = symbols.Scope;
+const Symbol = symbols.Symbol;
 
 pub fn validateScope(scope: *Scope, errors: *errs.Errors) !void {
     for (scope.symbols.keys()) |key| {
@@ -65,14 +66,8 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
 
         .identifier => {
             // look up symbol, that's the type
-            var symbol = scope.lookup(ast.identifier.token.data) orelse {
-                errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.token, .stage = .typecheck } });
-                return error.typeError;
-            };
-            if (!symbol.defined) {
-                errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.identifier.token, .symbol = symbol, .stage = .typecheck } });
-                return error.typeError;
-            }
+            var symbol = try findSymbol(ast, scope, errors);
+
             var _type = symbol._type.?;
             if (expected != null and !expected.?.typesMatch(_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _type, .stage = .typecheck } });
@@ -126,6 +121,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
 
         .assign => {
             std.debug.print("assign\n", .{});
+            try validateLValue(ast.assign.lhs, scope, errors);
         },
         ._or => {
             try validateAST(ast._or.lhs, _ast.boolType, scope, errors);
@@ -384,6 +380,43 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .stage = .typecheck } });
                 return error.typeError;
             }
+        },
+    }
+}
+
+fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
+    var symbol = scope.lookup(ast.identifier.token.data) orelse {
+        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.token, .stage = .typecheck } });
+        return error.typeError;
+    };
+    if (!symbol.defined) {
+        errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.identifier.token, .symbol = symbol, .stage = .typecheck } });
+        return error.typeError;
+    }
+    return symbol;
+}
+
+fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
+    switch (ast.*) {
+        .identifier => {
+            var symbol = try findSymbol(ast, scope, errors);
+            if (symbol.kind != .mut) {
+                errors.addError(Error{ .modifyImmutable = .{
+                    .identifier = ast.identifier.token,
+                    .symbol = symbol,
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+
+        else => {
+            errors.addError(Error{ .basic = .{
+                .span = ast.getToken().span,
+                .msg = "not an l-value",
+                .stage = .typecheck,
+            } });
+            return error.typeError;
         },
     }
 }

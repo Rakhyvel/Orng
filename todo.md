@@ -21,7 +21,7 @@
     - [x] AST `printType` prints to stderr instead of debug
 - [x] Symbols def before use tree-walk
 - [x] `cond` has at least one mapping with a rhs
-- [ ] lhs of assignment is lvalue validation tree-walk
+- [x] lhs of assignment is lvalue validation tree-walk
 - [ ] type inferrence, typeof, type checking
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at runtime
@@ -62,17 +62,20 @@
     - [ ] default parameters
     - [ ] nested functions/anon functions
 - [ ] addresses
+    - [ ] validate deref lvalue
 - [ ] tuples
     - [ ] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
         > Then, when you generate them, just do `struct struct_1 {int _1, int _2}`, which would match `(x: Int, y: Int)` and `(Int, Int)`
     - [ ] `.` select
     - [ ] dot-assign
+        - [ ] validate dot lvalue
     - [ ] `++` for concat
     - [ ] `--` for diff (?)
 - [ ] arrays
     - [ ] index
     - [ ] index-assign
+        - [ ] validate index lvalue
 - [ ] slices
     - [ ] `[]` slice from array operator, with variants
     - [ ] subslices

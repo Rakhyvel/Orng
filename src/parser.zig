@@ -114,7 +114,11 @@ pub const Parser = struct {
         if (self.peekKind(.FN)) {
             return try self.fnDeclaration();
         } else if (self.peekKind(.CONST)) {
-            return try self.constDeclaration();
+            var decl = try self.constDeclaration();
+            if (!self.peekKind(.EOF)) {
+                _ = try self.expect(.NEWLINE);
+            }
+            return decl;
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `const`", .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
@@ -142,9 +146,6 @@ pub const Parser = struct {
         }
         _ = try self.expect(.EQUALS);
         var init = try self.expr();
-        if (!self.peekKind(.EOF)) {
-            _ = try self.expect(.NEWLINE);
-        }
 
         return try AST.createDecl(
             token,

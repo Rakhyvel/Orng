@@ -65,6 +65,11 @@ pub const Error = union(enum) {
         symbol: *_symbol.Symbol,
         stage: Stage,
     },
+    modifyImmutable: struct {
+        identifier: Token,
+        symbol: *_symbol.Symbol,
+        stage: Stage,
+    },
 
     pub fn getStage(self: *const Error) Stage {
         switch (self.*) {
@@ -77,6 +82,7 @@ pub const Error = union(enum) {
             .expectedType => return self.expectedType.stage,
             .undeclaredIdentifier => return self.undeclaredIdentifier.stage,
             .useBeforeDef => return self.useBeforeDef.stage,
+            .modifyImmutable => return self.modifyImmutable.stage,
         }
     }
 
@@ -91,6 +97,7 @@ pub const Error = union(enum) {
             .expectedType => return self.expectedType.span,
             .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
             .useBeforeDef => return self.useBeforeDef.identifier.span,
+            .modifyImmutable => return self.modifyImmutable.identifier.span,
         }
     }
 };
@@ -146,6 +153,9 @@ pub const Errors = struct {
                 },
                 .useBeforeDef => {
                     try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});
+                },
+                .modifyImmutable => {
+                    try out.print("attempty to modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);
