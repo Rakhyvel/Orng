@@ -9,12 +9,16 @@
     - `ir` for an arbitrary IR node
     - `symbver` for an arbitrary SymbolVersion
     - `maybe_x` for an optional variant of a type
+- [ ] Errors should be capitalized, I guess
 
 
 ### Pipeline
-- [ ] Filename -> List of lines map
-    - [ ] Add filename field to span
+- [ ] Errors should print lines
+    - [x] Errors print to stderr instead of debug
+    - [ ] Lexer fills lines array
     - [ ] Errors print line, caret
+    - [ ] AST `printType` prints to stderr instead of debug
+- [ ] `use backticks to make any text an identifier`
 - [ ] Symbols def before use tree-walk
 - [ ] lhs of assignment is lvalue validation tree-walk
 - [ ] type inferrence, typeof, type checking
@@ -30,6 +34,13 @@
 - [ ] build system
     > Should be stateless, gosh dangit!
     > Read about philosophy of other build systems, what do users want/need to build Orng programs?
+        > Maybe Orng programs don't require a build script, they can just do `import` and it's all good
+            > Packages may need to include c-files/libraries. This should be documented somewhere. A *simple* build file is acceptable.
+        > `import:(const path:String)`
+        > `package:(const path:String)`
+        > `extern:(const name: String, const T: Type)->T`
+        > `externType:(const name: String, const backing: Type = ())->Type`
+        > `cInclude:(const path: String)->(a tuple of the definitions)`
     - [ ] Specifies the entry function somehow
     - [ ] entry function takes a record of IO function pointers
     - [ ] run a C compiler on the output

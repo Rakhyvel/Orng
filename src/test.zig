@@ -1,109 +1,14 @@
 const std = @import("std");
 const errs = @import("errors.zig");
 const compiler = @import("main.zig");
+const term = @import("zig-term/term.zig");
 const String = @import("zig-string/zig-string.zig").String;
 
-const Colour = enum {
-    none,
-    black,
-    red,
-    green,
-    yellow,
-    blue,
-    magenta,
-    cyan,
-    white,
-    bright_black,
-    bright_red,
-    bright_green,
-    bright_yellow,
-    bright_blue,
-    bright_magenta,
-    bright_cyan,
-    bright_white,
-};
-
-pub const Attr = struct {
-    fg: Colour = .white,
-    bg: Colour = .none,
-
-    // Pretty much all style escape codes I could find, minus a few that are
-    // not widely supported.
-    bold: bool = false,
-    dimmed: bool = false,
-    italic: bool = false,
-    underline: bool = false,
-    blinking: bool = false,
-    reverse: bool = false,
-    hidden: bool = false,
-    overline: bool = false,
-    strikethrough: bool = false,
-
-    fn eql(self: Attr, other: Attr) bool {
-        inline for (@typeInfo(Attr).Struct.fields) |field| {
-            if (@field(self, field.name) != @field(other, field.name)) return false;
-        }
-        return true;
-    }
-
-    fn dump(self: Attr, writer: anytype) !void {
-        try writer.writeAll("\x1B[0");
-        if (self.bold) try writer.writeAll(";1");
-        if (self.dimmed) try writer.writeAll(";2");
-        if (self.italic) try writer.writeAll(";3");
-        if (self.underline) try writer.writeAll(";4");
-        if (self.blinking) try writer.writeAll(";5");
-        if (self.reverse) try writer.writeAll(";7");
-        if (self.hidden) try writer.writeAll(";8");
-        if (self.overline) try writer.writeAll(";53");
-        if (self.strikethrough) try writer.writeAll(";9");
-        switch (self.fg) {
-            .none => {},
-            .black => try writer.writeAll(";30"),
-            .red => try writer.writeAll(";31"),
-            .green => try writer.writeAll(";32"),
-            .yellow => try writer.writeAll(";33"),
-            .blue => try writer.writeAll(";34"),
-            .magenta => try writer.writeAll(";35"),
-            .cyan => try writer.writeAll(";36"),
-            .white => try writer.writeAll(";37"),
-            .bright_black => try writer.writeAll(";90"),
-            .bright_red => try writer.writeAll(";91"),
-            .bright_green => try writer.writeAll(";92"),
-            .bright_yellow => try writer.writeAll(";93"),
-            .bright_blue => try writer.writeAll(";94"),
-            .bright_magenta => try writer.writeAll(";95"),
-            .bright_cyan => try writer.writeAll(";96"),
-            .bright_white => try writer.writeAll(";97"),
-        }
-        switch (self.bg) {
-            .none => {},
-            .black => try writer.writeAll(";40"),
-            .red => try writer.writeAll(";41"),
-            .green => try writer.writeAll(";42"),
-            .yellow => try writer.writeAll(";43"),
-            .blue => try writer.writeAll(";44"),
-            .magenta => try writer.writeAll(";45"),
-            .cyan => try writer.writeAll(";46"),
-            .white => try writer.writeAll(";74"),
-            .bright_black => try writer.writeAll(";100"),
-            .bright_red => try writer.writeAll(";101"),
-            .bright_green => try writer.writeAll(";102"),
-            .bright_yellow => try writer.writeAll(";103"),
-            .bright_blue => try writer.writeAll(";104"),
-            .bright_magenta => try writer.writeAll(";105"),
-            .bright_cyan => try writer.writeAll(";106"),
-            .bright_white => try writer.writeAll(";107"),
-        }
-        try writer.writeAll("m");
-    }
-};
-
 const allocator = std.heap.page_allocator;
-const revert = Attr{};
+const revert = term.Attr{};
 const out = std.io.getStdOut().writer();
-const succeed_color = Attr{ .fg = .green, .bold = true };
-const fail_color = Attr{ .fg = .red, .bold = true };
+const succeed_color = term.Attr{ .fg = .green, .bold = true };
+const fail_color = term.Attr{ .fg = .red, .bold = true };
 
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -132,9 +37,7 @@ pub fn main() !void {
 /// When `coverage` is true, no child processes are spawned, and no output is given.
 fn integrationTests(coverage: bool) !void {
     if (!coverage) {
-        try succeed_color.dump(out);
-        try out.print("\n[============]\n", .{});
-        try revert.dump(out);
+        try term.outputColor(succeed_color, "[============]\n", out);
     }
 
     var passed: i64 = 0;
@@ -166,9 +69,7 @@ fn integrationTests(coverage: bool) !void {
         try out_name.insert(".c", out_name.len());
 
         if (!coverage) {
-            try succeed_color.dump(out);
-            try out.print("[ RUN    ... ] ", .{});
-            try revert.dump(out);
+            try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
             try out.print("{s}\n", .{file.name});
         }
 
@@ -188,10 +89,15 @@ fn integrationTests(coverage: bool) !void {
         compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch |err| {
             if (!coverage) {
                 std.debug.print("{}\n", .{err});
-                try fail_color.dump(out);
-                try out.print("[ ... FAILED ] ", .{});
-                try revert.dump(out);
-                try out.print("Orng Compiler crashed!\n", .{});
+                try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                switch (err) {
+                    error.lexerError,
+                    error.parserError,
+                    error.symbolError,
+                    error.typeError,
+                    => try out.print("Orng -> C.\n", .{}),
+                    else => try out.print("Orng Compiler crashed!\n", .{}),
+                }
                 failed += 1;
                 std.debug.dumpCurrentStackTrace(128);
             }
@@ -200,23 +106,13 @@ fn integrationTests(coverage: bool) !void {
         if (coverage) {
             continue;
         }
-        if (errors.errors_list.items.len > 0) {
-            try fail_color.dump(out);
-            try out.print("[ ... FAILED ] ", .{});
-            try revert.dump(out);
-            try out.print("Orng -> C.\n", .{});
-            failed += 1;
-            continue;
-        }
 
         // compile C (make sure no errors)
         var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }) catch {
             continue;
         };
         if (gcc_res.retcode != 0) {
-            try fail_color.dump(out);
-            try out.print("[ ... FAILED ] ", .{});
-            try revert.dump(out);
+            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
             try out.print("C -> Executable.\n", .{});
             failed += 1;
             continue;
@@ -226,17 +122,13 @@ fn integrationTests(coverage: bool) !void {
         // execute (make sure no signals)
         var res = exec(&[_][]const u8{"./a.out"}) catch |e| {
             try out.print("{?}\n", .{e});
-            try fail_color.dump(out);
-            try out.print("[ ... FAILED ] ", .{});
-            try revert.dump(out);
+            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
             try out.print("Execution interrupted!\n", .{});
             failed += 1;
             continue;
         };
         if (!std.mem.eql(u8, res.stdout, expectedOut)) {
-            try fail_color.dump(out);
-            try out.print("[ ... FAILED ] ", .{});
-            try revert.dump(out);
+            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
             try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
             failed += 1;
             continue;
@@ -244,16 +136,12 @@ fn integrationTests(coverage: bool) !void {
 
         // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
 
-        try succeed_color.dump(out);
-        try out.print("[ ... PASSED ]\n", .{});
-        try revert.dump(out);
+        try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
         passed += 1;
     }
 
     if (!coverage) {
-        try succeed_color.dump(out);
-        try out.print("[============]\n", .{});
-        try revert.dump(out);
+        try term.outputColor(succeed_color, "[============]\n", out);
         try out.print("Passed tests: {}\n", .{passed});
         try out.print("Failed tests: {}\n", .{failed});
         if (failed > 0) {
@@ -302,10 +190,24 @@ fn fuzzTests() !void {
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
             var errors = errs.Errors.init(allocator);
             defer errors.deinit();
-            compiler.compileContents(&errors, program_text, "tests/fuzz/fuzz-out.c", true, allocator) catch {
-                try fail_color.dump(out);
-                try out.print("[ ... FAILED ] ", .{});
-                try revert.dump(out);
+            var lines = std.ArrayList([]const u8).init(allocator);
+            defer lines.deinit();
+            var file_root = compiler.compileContents(&errors, &lines, program_text, true, allocator) catch |err| {
+                try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                switch (err) {
+                    error.lexerError,
+                    error.parserError,
+                    error.symbolError,
+                    error.typeError,
+                    => try out.print("Orng -> C.\n", .{}),
+                    else => try out.print("Orng Compiler crashed!\n", .{}),
+                }
+                failed += 1;
+                std.debug.dumpCurrentStackTrace(128);
+                continue;
+            };
+            compiler.output(&errors, file_root, "tests/fuzz/fuzz-out.c", allocator) catch {
+                try term.outputColor(fail_color, "[ ... FAILED ] ", out);
                 try out.print("Orng Compiler crashed with input above!\n", .{});
                 failed += 1;
                 continue;
@@ -314,9 +216,7 @@ fn fuzzTests() !void {
             var should_continue: bool = false;
             for (errors.errors_list.items) |err| {
                 if (err.getStage() == .parsing) {
-                    try fail_color.dump(out);
-                    try out.print("[ ... FAILED ] ", .{});
-                    try revert.dump(out);
+                    try term.outputColor(fail_color, "[ ... FAILED ] ", out);
                     try out.print("Orng failed to parse the above correctly!\n", .{});
                     failed += 1;
                     should_continue = true;
@@ -326,10 +226,7 @@ fn fuzzTests() !void {
             if (should_continue) {
                 continue;
             }
-
-            try succeed_color.dump(out);
-            try out.print("[ ... PASSED ]\n", .{});
-            try revert.dump(out);
+            try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
         }
     }
@@ -353,8 +250,8 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {
     var retcode: i64 = 0;
     errdefer allocator.free(stdout);
 
-    const term = try child_process.wait();
-    switch (term) {
+    const child = try child_process.wait();
+    switch (child) {
         .Exited => |c| {
             retcode = c;
         },

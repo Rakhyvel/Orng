@@ -1,5 +1,6 @@
 const ast = @import("ast.zig");
 const std = @import("std");
+const term = @import("zig-term/term.zig");
 const token = @import("token.zig");
 
 const AST = ast.AST;
@@ -66,8 +67,21 @@ pub const Error = union(enum) {
             .expectedType => return self.expectedType.stage,
         }
     }
+
+    pub fn getSpan(self: *const Error) ?Span {
+        switch (self.*) {
+            .basic => return self.basic.span,
+            .basicNoSpan => return null,
+            .expectedBasicToken => return self.expectedBasicToken.got.span,
+            .expected2Token => return self.expected2Token.got.span,
+            .redefinition => return self.redefinition.redefined_span,
+            .expected2Type => return self.expected2Type.span,
+            .expectedType => return self.expectedType.span,
+        }
+    }
 };
 
+const out = std.io.getStdOut().writer();
 pub const Errors = struct {
     errors_list: std.ArrayList(Error),
 
@@ -82,48 +96,46 @@ pub const Errors = struct {
         self.errors_list.append(err) catch unreachable; // TODO: Should this try?
     }
 
-    pub fn printErrors(self: *Errors) void {
+    pub fn printErrors(self: *Errors, filename: []const u8) !void {
         for (self.errors_list.items) |err| {
-            // TODO: When the line map is implemented, print out line where span occurs. Do this for all spans.
+            try (term.Attr{ .bold = true }).dump(out);
+            try printPrelude(err.getSpan(), filename);
+            try (term.Attr{ .bold = true }).dump(out);
             switch (err) {
-                .basic => std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: {s}\n", .{ err.basic.span.line, err.basic.span.col, err.basic.msg }),
-                .basicNoSpan => std.debug.print("error: {s}\n", .{err.basicNoSpan.msg}),
-                .expectedBasicToken => std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected {s}, got `{s}`\n", .{
-                    err.expectedBasicToken.got.span.line,
-                    err.expectedBasicToken.got.span.col,
+                .basic => try out.print("{s}\n", .{err.basic.msg}),
+                .basicNoSpan => try out.print("{s}\n", .{err.basicNoSpan.msg}),
+                .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
                     err.expectedBasicToken.expected,
                     token.reprFromTokenKind(err.expectedBasicToken.got.kind) orelse err.expectedBasicToken.got.data,
                 }),
-                .expected2Token => std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected `{s}`, got `{s}`\n", .{
-                    err.expected2Token.got.span.line,
-                    err.expected2Token.got.span.col,
+                .expected2Token => try out.print("expected `{s}`, got `{s}`\n", .{
                     token.reprFromTokenKind(err.expected2Token.expected) orelse "identifier",
                     token.reprFromTokenKind(err.expected2Token.got.kind) orelse err.expected2Token.got.data,
                 }),
-                .redefinition => std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: redefinition of symbol `{s}`\n", .{
-                    err.redefinition.redefined_span.line,
-                    err.redefinition.redefined_span.col,
+                .redefinition => try out.print("redefinition of symbol `{s}`\n", .{
                     err.redefinition.name,
                 }),
                 .expected2Type => {
-                    std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected `", .{
-                        err.expected2Type.span.line,
-                        err.expected2Type.span.col,
-                    });
+                    try out.print("expected `", .{});
                     err.expected2Type.expected.printType();
-                    std.debug.print("`, got `", .{});
+                    try out.print("`, got `", .{});
                     err.expected2Type.got.printType();
-                    std.debug.print("`\n", .{});
+                    try out.print("`\n", .{});
                 },
                 .expectedType => {
-                    std.debug.print("{{TODO: ADD FILENAMES}}:{}:{} error: expected `", .{
-                        err.expectedType.span.line,
-                        err.expectedType.span.col,
-                    });
+                    try out.print("expected `", .{});
                     err.expectedType.expected.printType();
-                    std.debug.print("`, got a type-less statement\n", .{});
+                    try out.print("`, got a type-less statement\n", .{});
                 },
             }
+            try (term.Attr{ .bold = false }).dump(out);
         }
+    }
+
+    fn printPrelude(maybe_span: ?Span, filename: []const u8) !void {
+        if (maybe_span) |span| {
+            try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
+        }
+        try term.outputColor(term.Attr{ .fg = .red, .bold = true }, "error: ", out);
     }
 };

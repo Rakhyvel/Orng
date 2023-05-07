@@ -13,6 +13,13 @@ const typecheck = @import("typecheck.zig");
 
 pub const PRINT_TOKENS = false;
 
+// - compile = outputCFG <> compileFile
+// - compileFile: (contents: String)->(output: &AST)
+// - outputCFG: (output: &AST, outputFilename: String)->!()
+
+// Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
+// Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
+// Afterwards, the program is collated to a CFG and written to a .c file. A C compiler may be called, and a
 pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
@@ -31,9 +38,10 @@ pub fn main() !void {
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
 
-    try compile(errors, path, "examples/out.c", allocator);
+    try compile(&errors, path, "examples/out.c", allocator);
 }
 
+/// Compiles and outputs a file
 pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, allocator: std.mem.Allocator) !void {
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
@@ -46,84 +54,27 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
 
-    try compileContents(errors, contents, out_name, false, allocator);
+    var lines = std.ArrayList([]const u8).init(allocator);
+    defer lines.deinit();
+
+    var file_root = compileContents(errors, &lines, contents, false, allocator) catch |err| {
+        switch (err) {
+            error.lexerError,
+            error.parserError,
+            error.symbolError,
+            error.typeError,
+            => {
+                try errors.printErrors(in_name);
+                return err;
+            },
+            else => return err,
+        }
+    };
+    try output(errors, file_root, out_name, allocator);
 }
 
-pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !void {
-    // Tokenize
-    var tokenAllocator = std.heap.ArenaAllocator.init(allocator);
-    defer tokenAllocator.deinit();
-    var tokens = lexer.getTokens(contents, errors, fuzz_tokens, tokenAllocator.allocator()) catch |err| {
-        switch (err) {
-            error.lexerError => {
-                errors.printErrors();
-                return;
-            },
-            else => {
-                return err;
-            },
-        }
-    };
-    defer tokens.deinit();
-
-    // Layout
-    if (!fuzz_tokens) {
-        layout.preemptBinaryOperator(&tokens);
-        try layout.insertIndentDedents(&tokens);
-        layout.condenseNewLines(&tokens);
-        if (PRINT_TOKENS) {
-            for (tokens.items) |*token| {
-                token.pprint();
-            }
-        }
-    }
-
-    // Parse
-    var astAllocator = std.heap.ArenaAllocator.init(allocator);
-    defer astAllocator.deinit();
-    try ast.initTypes();
-    var parser = try Parser.create(&tokens, errors, astAllocator.allocator());
-    var program_ast = parser.parse() catch |err| {
-        switch (err) {
-            error.parserError => {
-                errors.printErrors();
-                return;
-            },
-            else => {
-                return err;
-            },
-        }
-    };
-
-    // Symbol tree construction
-    var symbolAllocator = std.heap.ArenaAllocator.init(allocator);
-    defer symbolAllocator.deinit();
-    var file_root = try symbol.Scope.init(null, "test", symbolAllocator.allocator()); // TODO: replace "test" with the filename, obvi
-    symbol.symbolTableFromASTList(program_ast, file_root, errors, symbolAllocator.allocator()) catch |err| {
-        switch (err) {
-            error.symbolError => {
-                errors.printErrors();
-                return;
-            },
-            else => {
-                return err;
-            },
-        }
-    };
-
-    // Typecheck
-    typecheck.typecheckScope(file_root, errors) catch |err| {
-        switch (err) {
-            error.typeError => {
-                errors.printErrors();
-                return;
-            },
-            // else => {
-            //     return err;
-            // },
-        }
-    };
-
+/// Takes in a statically correct symbol tree, writes it out to a file
+pub fn output(errors: *errs.Errors, file_root: *symbol.Scope, out_name: []const u8, allocator: std.mem.Allocator) !void {
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
@@ -141,10 +92,42 @@ pub fn compileContents(errors: *errs.Errors, contents: []const u8, out_name: []c
         );
         defer outputFile.close();
         try codegen.generate(program, &outputFile);
-        // return error.Lol;
     } else {
         errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "no `main` function specified", .stage = .symbolTree } });
-        errors.printErrors();
-        return;
+        try errors.printErrors("");
+        return error.symbolError;
     }
+}
+
+/// Takes in a string of contents, compiles it to a statically correct symbol-tree
+pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
+    // Tokenize, and also append lines to the list of lines
+    var tokens = try lexer.getTokens(contents, errors, lines, fuzz_tokens, allocator);
+    defer tokens.deinit(); // Make copies of tokens, never take their address
+
+    // Layout
+    if (!fuzz_tokens) {
+        layout.preemptBinaryOperator(&tokens);
+        try layout.insertIndentDedents(&tokens);
+        layout.condenseNewLines(&tokens);
+        if (PRINT_TOKENS) {
+            for (tokens.items) |*token| {
+                token.pprint();
+            }
+        }
+    }
+
+    // Parse
+    try ast.initTypes();
+    var parser = try Parser.create(&tokens, errors, allocator);
+    var program_ast = try parser.parse();
+
+    // Symbol tree construction
+    var file_root = try symbol.Scope.init(null, "test", allocator); // TODO: replace "test" with the filename, obvi
+    try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
+
+    // Typecheck
+    try typecheck.typecheckScope(file_root, errors);
+
+    return file_root;
 }

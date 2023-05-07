@@ -9,8 +9,9 @@ const Error = errs.Error;
 const LexerErrors = error{lexerError};
 
 /// Will always end in an EOF on the first column of the next line
-pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
-    const LexState = enum { //
+pub fn getTokens(contents: []const u8, errors: *errs.Errors, lines: *std.ArrayList([]const u8), fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
+    _ = lines;
+    const LexState = enum {
         none,
         whitespace,
         ident,
