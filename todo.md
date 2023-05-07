@@ -13,12 +13,11 @@
 
 
 ### Pipeline
-- [ ] Errors should print lines
+- [x] Errors should print lines
     - [x] Errors print to stderr instead of debug
     - [x] Lexer fills lines array
     - [x] Errors print line, caret
-    - [ ] AST `printType` prints to stderr instead of debug
-- [ ] `use backticks to make any text an identifier`
+    - [x] AST `printType` prints to stderr instead of debug
 - [ ] Symbols def before use tree-walk
 - [ ] lhs of assignment is lvalue validation tree-walk
 - [ ] type inferrence, typeof, type checking
@@ -135,3 +134,6 @@
     - [ ] iterators & for loops
     - [ ] Eq, Ord, Num, Bits
     - [ ] derive
+
+### Rationales
+- Can't do `backtick identifiers`, because it's difficult to generate them out to C. You could have a map in each scope from the backtick name to a generated name. I just don't think its worth it at the moment.

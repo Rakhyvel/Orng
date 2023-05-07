@@ -1,0 +1,4 @@
+// 10
+fn main: ()->Int =
+    let `this is indeed a single identifier`: Int = 10
+    `this is indeed a single identifier`

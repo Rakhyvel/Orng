@@ -377,7 +377,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     }
     return try Symbol.create(
         fnScope,
-        buf, // TODO: This currently doesn't support anonymous functions
+        buf,
         definition.getToken().span,
         _type,
         definition.fnDecl.init,

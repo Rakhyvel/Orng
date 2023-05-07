@@ -100,6 +100,7 @@ fn integrationTests(coverage: bool) !void {
                 }
                 failed += 1;
                 std.debug.dumpCurrentStackTrace(128);
+                return err;
             }
             continue;
         };

@@ -65,7 +65,8 @@ pub fn typecheckAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Err
 
         .identifier => {
             // look up symbol, that's the type
-            var symbol = scope.lookup(ast.identifier.token.data) orelse {
+            scope.pprint();
+            var symbol = scope.lookup(ast.identifier.token.data) orelse { // TODO: Subsume with tree-walk, assert not null here
                 return error.typeError;
             };
             var _type = symbol._type.?;
@@ -320,10 +321,10 @@ pub fn typecheckAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Err
         },
         .block => {
             for (ast.block.statements.items) |term| {
-                try typecheckAST(term, null, scope, errors);
+                try typecheckAST(term, null, ast.block.scope.?, errors);
             }
             if (ast.block.final) |final| {
-                try typecheckAST(final, null, scope, errors);
+                try typecheckAST(final, null, ast.block.scope.?, errors);
             } else if (ast.block.statements.items.len > 0) {
                 var last_type = ast.block.statements.items[ast.block.statements.items.len - 1].typeof();
                 if (expected != null and !expected.?.typesMatch(last_type)) {
