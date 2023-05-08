@@ -193,7 +193,7 @@ fn fuzzTests() !void {
             defer errors.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
-            var file_root = compiler.compileContents(&errors, &lines, program_text, true, allocator) catch |err| {
+            var file_root = compiler.compileContents(&errors, &lines, "fuzz", program_text, true, allocator) catch |err| {
                 try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
                 switch (err) {
                     error.lexerError,

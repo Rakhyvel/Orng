@@ -15,6 +15,7 @@ pub fn validateScope(scope: *Scope, errors: *errs.Errors) !void {
             return error.typeError;
         };
         if (symbol.init != null and symbol._type != null) {
+            try validateAST(symbol._type.?, _ast.typeType, scope, errors);
             try validateAST(symbol.init.?, symbol._type, scope, errors);
         } else if (symbol.init == null) {
             // Default value (probably done at the IR side?)
@@ -315,7 +316,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             switch (ast.mapping.kind) {
                 .cond => {
                     if (ast.mapping.lhs) |lhs| {
-                        var lhs_type = lhs.typeof();
+                        var lhs_type = lhs.typeof(scope);
                         if (!lhs_type.typesMatch(_ast.boolType)) {
                             errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.intType, .stage = .typecheck } });
                             return error.typeError;
@@ -344,7 +345,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             if (ast.block.final) |final| {
                 try validateAST(final, null, ast.block.scope.?, errors);
             } else if (ast.block.statements.items.len > 0) {
-                var last_type = ast.block.statements.items[ast.block.statements.items.len - 1].typeof();
+                var last_type = ast.block.statements.items[ast.block.statements.items.len - 1].typeof(ast.block.scope.?);
                 if (expected != null and !expected.?.typesMatch(last_type)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.intType, .stage = .typecheck } });
                     return error.typeError;
@@ -385,12 +386,12 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
 }
 
 fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
-    var symbol = scope.lookup(ast.identifier.token.data) orelse {
-        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.token, .stage = .typecheck } });
+    var symbol = scope.lookup(ast.identifier.common.token.data) orelse {
+        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.common.token, .stage = .typecheck } });
         return error.typeError;
     };
     if (!symbol.defined) {
-        errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.identifier.token, .symbol = symbol, .stage = .typecheck } });
+        errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.identifier.common.token, .symbol = symbol, .stage = .typecheck } });
         return error.typeError;
     }
     return symbol;
@@ -402,7 +403,7 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
             var symbol = try findSymbol(ast, scope, errors);
             if (symbol.kind != .mut) {
                 errors.addError(Error{ .modifyImmutable = .{
-                    .identifier = ast.identifier.token,
+                    .identifier = ast.identifier.common.token,
                     .symbol = symbol,
                     .stage = .typecheck,
                 } });

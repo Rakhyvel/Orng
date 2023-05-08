@@ -43,6 +43,14 @@ pub fn main() !void {
 
 /// Compiles and outputs a file
 pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, allocator: std.mem.Allocator) !void {
+    // (Done for testing, where more than program is compiled one after another)
+    symbol.resetPrelude();
+
+    // Construct the name
+    var i: usize = 0;
+    while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
+    var name: []const u8 = in_name[0..i];
+
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -57,7 +65,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     var lines = std.ArrayList([]const u8).init(allocator);
     defer lines.deinit();
 
-    var file_root = compileContents(errors, &lines, contents, false, allocator) catch |err| {
+    var file_root = compileContents(errors, &lines, name, contents, false, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parserError,
@@ -71,6 +79,40 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
         }
     };
     try output(errors, &lines, file_root, out_name, allocator);
+}
+
+/// Takes in a string of contents, compiles it to a statically correct symbol-tree
+pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), name: []const u8, contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
+    // Tokenize, and also append lines to the list of lines
+    try lexer.getLines(contents, lines);
+    var tokens = try lexer.getTokens(contents, errors, fuzz_tokens, allocator);
+    defer tokens.deinit(); // Make copies of tokens, never take their address
+
+    // Layout
+    if (!fuzz_tokens) {
+        layout.preemptBinaryOperator(&tokens);
+        try layout.insertIndentDedents(&tokens);
+        layout.condenseNewLines(&tokens);
+        if (PRINT_TOKENS) {
+            for (tokens.items) |*token| {
+                token.pprint();
+            }
+        }
+    }
+
+    // Parse
+    try ast.initTypes();
+    var parser = try Parser.create(&tokens, errors, allocator);
+    var program_ast = try parser.parse();
+
+    // Symbol tree construction
+    var file_root = try symbol.Scope.init(try symbol.getPrelude(), name, allocator); // TODO: replace "test" with the filename, obvi
+    try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
+
+    // Typecheck
+    try validate.validateScope(file_root, errors);
+
+    return file_root;
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
@@ -102,38 +144,4 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         try errors.printErrors(lines, "");
         return error.symbolError;
     }
-}
-
-/// Takes in a string of contents, compiles it to a statically correct symbol-tree
-pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
-    // Tokenize, and also append lines to the list of lines
-    try lexer.getLines(contents, lines);
-    var tokens = try lexer.getTokens(contents, errors, fuzz_tokens, allocator);
-    defer tokens.deinit(); // Make copies of tokens, never take their address
-
-    // Layout
-    if (!fuzz_tokens) {
-        layout.preemptBinaryOperator(&tokens);
-        try layout.insertIndentDedents(&tokens);
-        layout.condenseNewLines(&tokens);
-        if (PRINT_TOKENS) {
-            for (tokens.items) |*token| {
-                token.pprint();
-            }
-        }
-    }
-
-    // Parse
-    try ast.initTypes();
-    var parser = try Parser.create(&tokens, errors, allocator);
-    var program_ast = try parser.parse();
-
-    // Symbol tree construction
-    var file_root = try symbol.Scope.init(null, "test", allocator); // TODO: replace "test" with the filename, obvi
-    try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
-
-    // Typecheck
-    try validate.validateScope(file_root, errors);
-
-    return file_root;
 }

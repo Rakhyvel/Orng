@@ -11,7 +11,9 @@
     - `maybe_x` for an optional variant of a type
 - [ ] Errors should be capitalized, I guess
 - [ ] Variables should be snake_case, functions should be snakeCase
-
+- [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
+- [ ] Organize functions declarations in prefix order
+- [ ] Comments on each function and struct field
 
 ### Pipeline
 - [x] Errors should print lines
@@ -22,12 +24,16 @@
 - [x] Symbols def before use tree-walk
 - [x] `cond` has at least one mapping with a rhs
 - [x] lhs of assignment is lvalue validation tree-walk
+- [ ] expect types to be `Type` type
 - [ ] type inferrence, typeof, type checking
+    - [ ] typeOf function
+        - [ ] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field
     - [ ] `typeof` prefix operator which returns type expression of expression
-    - [ ] define `==` and `!=` operators for types, do at runtime
+    - [ ] define `==` and `!=` operators for types, do at comptime
+    - [ ] implement `printType` for ALL ASTs, since error messages when types aren't Type typed are expected-error messages, which print the expected and the got
+        > Alternatively, could just detect this and print `expected a type`
 - [ ] default value to definitions without
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
-- [ ] expect types to be `Type` type
 - [ ] count defers in block tree-walk
 - [ ] rewrite [op]= assignments
 - [ ] symbol versioning/phi nodes

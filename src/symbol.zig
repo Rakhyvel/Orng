@@ -9,7 +9,7 @@ const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = @import("token.zig").Token;
 
-pub const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft };
+pub const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
 
 pub const Scope = struct {
     parent: ?*Scope,
@@ -39,24 +39,52 @@ pub const Scope = struct {
         }
     }
 
-    pub fn pprint(self: *Scope) void {
-        for (self.symbols.keys()) |key| {
-            std.debug.print("{s}\n", .{key});
-        }
+    pub fn pprint(self: *Scope) !void {
+        var out = String.init(std.heap.page_allocator);
+        defer out.deinit();
+        try self.serialize(&out, 0);
+        std.debug.print("{s}\n", .{out.str()});
     }
 
-    pub fn serialize(self: *Scope, out: *String) !void {
-        try out.insert("{", out.len());
+    fn serialize(self: *Scope, out: *String, spaces: usize) !void {
+        var j: usize = 0;
+        while (j < spaces) : (j += 1) {
+            try out.insert(" ", out.len());
+        }
+        try out.insert(self.name, out.len());
+        try out.insert(": {\n", out.len());
         var keySet = self.symbols.keys();
         var i: usize = 0;
         while (i < keySet.len) : (i += 1) {
             var key = keySet[i];
+            j = 0;
+            while (j < spaces + 4) : (j += 1) {
+                try out.insert(" ", out.len());
+            }
             try out.insert(self.symbols.get(key).?.name, out.len());
             if (i < keySet.len - 1) {
-                try out.insert(", ", out.len());
+                try out.insert(",", out.len());
+            } else {
+                try out.insert(",\n", out.len());
             }
+            try out.insert("\n", out.len());
         }
-        try out.insert("}", out.len());
+        for (self.children.items) |child| {
+            try child.serialize(out, spaces + 4);
+        }
+        j = 0;
+        while (j < spaces) : (j += 1) {
+            try out.insert(" ", out.len());
+        }
+        try out.insert("}\n", out.len());
+    }
+
+    pub fn root(self: *Scope) ?*Scope {
+        if (self.parent) |_parent| {
+            return root(_parent);
+        } else {
+            return self;
+        }
     }
 };
 
@@ -340,7 +368,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
 
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     var kind: SymbolKind = undefined;
-    switch (definition.decl.token.kind) {
+    switch (definition.decl.common.token.kind) {
         .CONST => kind = ._const,
         .LET => kind = .let,
         .MUT => kind = .mut,
@@ -349,7 +377,7 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
 
     var retval = try Symbol.create(
         scope,
-        definition.decl.pattern.identifier.token.data,
+        definition.decl.pattern.identifier.common.token.data,
         definition.decl.pattern.getToken().span,
         definition.decl.type,
         definition.decl.init,
@@ -378,7 +406,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
 
     var buf: []const u8 = undefined;
     if (definition.fnDecl.name) |name| {
-        buf = name.identifier.token.data;
+        buf = name.identifier.common.token.data;
     } else {
         buf = try nextAnonFunctionName();
     }
@@ -415,4 +443,61 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
         }
         return try AST.createProduct(params.items[0].getToken(), param_types, allocator);
     }
+}
+
+var prelude: ?*Scope = null;
+pub fn getPrelude() !*Scope {
+    if (prelude) |_prelude| {
+        return _prelude;
+    }
+    prelude = try Scope.init(null, "", std.heap.page_allocator);
+    try prelude.?.symbols.put("Bool", try Symbol.create(
+        prelude.?,
+        "Bool",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    try prelude.?.symbols.put("Char", try Symbol.create(
+        prelude.?,
+        "Char",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    try prelude.?.symbols.put("Float", try Symbol.create(
+        prelude.?,
+        "Float",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    try prelude.?.symbols.put("Int", try Symbol.create(
+        prelude.?,
+        "Int",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    try prelude.?.symbols.put("Type", try Symbol.create(
+        prelude.?,
+        "Type",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    return prelude.?;
+}
+pub fn resetPrelude() void {
+    prelude = null;
 }

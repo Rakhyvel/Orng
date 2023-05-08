@@ -371,7 +371,14 @@ fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
     if (scope.parent) |parent| {
         try printPathScope(parent, out);
     }
-    try out.writer().print("{s}", .{scope.name});
+    var i: usize = 0;
+    while (i < scope.name.len) : (i += 1) {
+        if (scope.name[i] == '/' or scope.name[i] == '-') {
+            try out.writer().print("_", .{});
+        } else {
+            try out.writer().print("{c}", .{scope.name[i]});
+        }
+    }
     if (scope.name.len > 0) {
         try out.writer().print("_", .{});
     }
