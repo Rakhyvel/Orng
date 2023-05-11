@@ -1,7 +1,9 @@
+const errs = @import("errors.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 const tokens = @import("token.zig");
 
+const Error = errs.Error;
 const Scope = _symbol.Scope;
 const Span = @import("span.zig").Span;
 const String = @import("zig-string/zig-string.zig").String;
@@ -560,17 +562,22 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn typeof(self: *AST, scope: *Scope) *AST {
-        _ = scope;
+    pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors) !*AST {
         if (self.getCommon()._type) |_type| {
             return _type;
         }
-        // switch (self.*) {
-        //     .identifier => {
-
-        //     }
-        // }
-        return self;
+        switch (self.*) {
+            .identifier => {
+                var symbol = scope.lookup(self.identifier.common.token.data) orelse {
+                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
+                    return error.typeError;
+                };
+                return symbol._type.?;
+            },
+            else => {
+                return self;
+            },
+        }
     }
 
     pub fn typesMatch(self: *AST, other: *AST) bool {

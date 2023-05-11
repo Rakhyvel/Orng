@@ -12,38 +12,33 @@ int test_main() {
 	int retval;
 	int _0;
 	int _1;
+	int tests_integration_if_else_x_0;
 	int _2;
-	int _4;
 	int _3;
+	int _4;
+	int _5;
+	int _6;
 BB0:;
+	_1 = 4;
+	tests_integration_if_else_x_0 = _1;
 	_2 = 0;
 	if (!_2) {
-		goto BB6;
+		goto BB3;
 	} else {
 		goto BB1;
 	}
 BB1:;
-	_1 = 1;
+	_3 = 3;
+	_4 = tests_integration_if_else_x_0 + _3;
+	_0 = _4;
 	goto BB2;
 BB2:;
-	if (!_1) {
-		goto BB5;
-	} else {
-		goto BB3;
-	}
-BB3:;
-	_0 = 1;
-	goto BB4;
-BB4:;
 	retval = _0;
 	goto end;
-BB5:;
-	_4 = 1;
-	_0 = _4;
-	goto BB4;
-BB6:;
-	_3 = 0;
-	_1 = _3;
+BB3:;
+	_5 = 7;
+	_6 = tests_integration_if_else_x_0 + _5;
+	_0 = _6;
 	goto BB2;
 end:
 	return retval;

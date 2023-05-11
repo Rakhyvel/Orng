@@ -316,7 +316,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             switch (ast.mapping.kind) {
                 .cond => {
                     if (ast.mapping.lhs) |lhs| {
-                        var lhs_type = lhs.typeof(scope);
+                        var lhs_type = try lhs.typeof(scope, errors);
                         if (!lhs_type.typesMatch(_ast.boolType)) {
                             errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.intType, .stage = .typecheck } });
                             return error.typeError;
@@ -345,7 +345,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             if (ast.block.final) |final| {
                 try validateAST(final, null, ast.block.scope.?, errors);
             } else if (ast.block.statements.items.len > 0) {
-                var last_type = ast.block.statements.items[ast.block.statements.items.len - 1].typeof(ast.block.scope.?);
+                var last_type = try ast.block.statements.items[ast.block.statements.items.len - 1].typeof(ast.block.scope.?, errors);
                 if (expected != null and !expected.?.typesMatch(last_type)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.intType, .stage = .typecheck } });
                     return error.typeError;

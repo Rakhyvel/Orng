@@ -24,7 +24,7 @@
 - [x] Symbols def before use tree-walk
 - [x] `cond` has at least one mapping with a rhs
 - [x] lhs of assignment is lvalue validation tree-walk
-- [ ] expect types to be `Type` type
+- [x] expect types to be `Type` type
 - [ ] type inferrence, typeof, type checking
     - [ ] typeOf function
         - [ ] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field

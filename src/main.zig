@@ -127,7 +127,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
             try errors.printErrors(lines, "");
             return error.symbolError;
         }
-        var cfg = try ir.CFG.create(msymb, null, allocator);
+        var cfg = try ir.CFG.create(msymb, null, errors, allocator);
 
         // Code generation
         var program = try Program.init(cfg, allocator);
