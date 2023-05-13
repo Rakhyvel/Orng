@@ -32,6 +32,8 @@
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] implement `printType` for ALL ASTs, since error messages when types aren't Type typed are expected-error messages, which print the expected and the got
         > Alternatively, could just detect this and print `expected a type`
+    - [ ] `if` should validate that body and else match, there is an else
+    - [ ] `cond` should validate that all mapping types match, unless expected is null
 - [ ] default value to definitions without
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
 - [ ] count defers in block tree-walk
@@ -98,10 +100,11 @@
 - [ ] Sum types
     - [ ] `||` for union
 - [ ] optionals
-    - `?` constructor
-    - `.?` (or `some`?) value from optional
+    - [ ] `?` constructor
+    - [ ] `.?` (or `some`?) value from optional
         > It's useful to have the error unwrap and optional unwrap be the same fixity
-    - `orelse` coalesce
+    - [ ] `orelse` coalesce
+    - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
     - `catch`
     - `try`

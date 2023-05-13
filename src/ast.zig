@@ -567,6 +567,31 @@ pub const AST = union(enum) {
             return _type;
         }
         switch (self.*) {
+            // Bool type
+            ._true,
+            ._false,
+            .not,
+            ._or,
+            ._and,
+            .notEqual,
+            .conditional,
+            => return boolType,
+
+            // Char type
+            .char => return charType,
+
+            // Float64 type
+            .float => return floatType,
+
+            // Int64 type
+            .int => return intType,
+
+            // Type type
+
+            // Void type
+            .unit => return voidType,
+
+            // Identifier
             .identifier => {
                 var symbol = scope.lookup(self.identifier.common.token.data) orelse {
                     errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
@@ -574,8 +599,37 @@ pub const AST = union(enum) {
                 };
                 return symbol._type.?;
             },
+
+            // Unary Operators (TODO: Make polymorphic)
+            .negate => return self.negate.expr.typeof(scope, errors),
+
+            // Binary operators (TODO: Make polymorphic)
+            .add => return self.add.lhs.typeof(scope, errors),
+            .sub => return self.sub.lhs.typeof(scope, errors),
+            .mult => return self.mult.lhs.typeof(scope, errors),
+            .div => return self.div.lhs.typeof(scope, errors),
+            .mod => return self.mod.lhs.typeof(scope, errors),
+            .exponent => return self.exponent.terms.items[0].typeof(scope, errors),
+
+            // Control-flow expressions
+            ._if => return self._if.bodyBlock.typeof(scope, errors),
+            .cond => return self.cond.mappings.items[0].typeof(scope, errors),
+            .mapping => if (self.mapping.lhs) |lhs| {
+                return lhs.typeof(scope, errors);
+            } else {
+                return voidType;
+            },
+            .block => if (self.block.final) |_| {
+                return voidType;
+            } else if (self.block.statements.items.len == 0) {
+                return voidType;
+            } else {
+                return self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors);
+            },
+
             else => {
-                return self;
+                std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
+                return error.Unimplemented;
             },
         }
     }
@@ -585,6 +639,8 @@ pub const AST = union(enum) {
             .identifier => {
                 if (other.* != .identifier) {
                     return false;
+                } else if (std.mem.eql(u8, "Float", self.identifier.common.token.data) and std.mem.eql(u8, "Int", other.identifier.common.token.data)) {
+                    return true;
                 } else {
                     return std.mem.eql(u8, self.identifier.common.token.data, other.identifier.common.token.data);
                 }
