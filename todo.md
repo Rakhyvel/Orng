@@ -26,20 +26,11 @@
 - [x] lhs of assignment is lvalue validation tree-walk
 - [x] expect types to be `Type` type
 - [ ] type inferrence, typeof, type checking
-    - [ ] typeOf function
-        - [ ] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field
-    - [ ] `typeof` prefix operator which returns type expression of expression
-    - [ ] define `==` and `!=` operators for types, do at comptime
-    - [ ] implement `printType` for ALL ASTs, since error messages when types aren't Type typed are expected-error messages, which print the expected and the got
-        > Alternatively, could just detect this and print `expected a type`
-    - [ ] `if` should validate that body and else match, there is an else
-    - [ ] `cond` should validate that all mapping types match, unless expected is null
-- [ ] default value to definitions without
-    - [ ] `default` prefix operator, which takes a type and returns the default value for that type
-- [ ] count defers in block tree-walk
-- [ ] rewrite [op]= assignments
+    - [x] typeOf function
+        - [x] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field
+- [x] immutability checking
 - [ ] symbol versioning/phi nodes
-- [ ] immutability checking
+- [ ] rewrite [op]= assignments
 - [ ] build system
     > Should be stateless, gosh dangit!
     > Read about philosophy of other build systems, what do users want/need to build Orng programs?
@@ -64,6 +55,7 @@
 
 ### Features
 - [ ] `defer`
+    - [ ] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`
 - [ ] function calls
     - [ ] named arguments/fields
@@ -139,6 +131,9 @@
 - [ ] compile-time evaluation
     - [ ] first-class types based generics
     - [ ] if a function has all `const` arguments, evaluate at compile-time
+    - [ ] `typeof` prefix operator which returns type expression of expression
+    - [ ] define `==` and `!=` operators for types, do at comptime
+    - [ ] `default` prefix operator, which takes a type and returns the default value for that type
 - [ ] refinement types
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free

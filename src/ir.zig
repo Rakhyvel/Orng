@@ -45,6 +45,19 @@ pub const SymbolVersion = struct {
             std.debug.print("<null>\t", .{});
         }
     }
+
+    fn makeSymbolVersionUnique(self: *SymbolVersion) void {
+        _ = self;
+    }
+
+    fn findSymbolVersionSet(self: *SymbolVersion, set: *std.ArrayList(*SymbolVersion)) ?*SymbolVersion {
+        for (set.items) |symbver| {
+            if (symbver.symbol == self.symbol) {
+                return symbver;
+            }
+        }
+        return null;
+    }
 };
 
 var ir_uid: u64 = 0;
@@ -235,12 +248,15 @@ pub const BasicBlock = struct {
     uid: u64,
     ir_head: ?*IR,
     has_branch: bool,
+    parameters: std.ArrayList(*SymbolVersion),
 
     /// If null, jump to function end label
     next: ?*BasicBlock,
+    next_arguments: std.ArrayList(*SymbolVersion),
 
     branch: ?*BasicBlock,
     condition: ?*SymbolVersion,
+    branch_arguments: std.ArrayList(*SymbolVersion),
 
     visited: bool,
 
@@ -323,6 +339,32 @@ pub const CFG = struct {
 
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
 
+        for (retval.basic_blocks.items) |bb| {
+            for (bb.parameters.items) |symbver| {
+                symbver.makeSymbolVersionUnique();
+            }
+            for (bb.next_arguments.items) |symbver| {
+                symbver.makeSymbolVersionUnique();
+            }
+            for (bb.branch_arguments.items) |symbver| {
+                symbver.makeSymbolVersionUnique();
+            }
+        }
+
+        for (retval.basic_blocks.items) |bb| {
+            var maybe_ir: ?*IR = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.src1 != null and ir.src1.?.version == null) {
+                    ir.src1 = ir.src1.?.findSymbolVersionSet(&bb.parameters);
+                    std.debug.assert(ir.src1 != null and ir.src1.?.version != null);
+                }
+                if (ir.src2 != null and ir.src2.?.version == null) {
+                    ir.src2 = ir.src2.?.findSymbolVersionSet(&bb.parameters);
+                    std.debug.assert(ir.src2 != null and ir.src2.?.version != null);
+                }
+            }
+        }
+
         return retval;
     }
 
@@ -338,8 +380,11 @@ pub const CFG = struct {
         var retval = try allocator.create(BasicBlock);
         retval.ir_head = null;
         retval.condition = null;
+        retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
         retval.next = null;
+        retval.next_arguments = std.ArrayList(*SymbolVersion).init(allocator);
         retval.branch = null;
+        retval.branch_arguments = std.ArrayList(*SymbolVersion).init(allocator);
         retval.uid = self.basic_blocks.items.len;
         try self.basic_blocks.append(retval);
         return retval;
