@@ -55,6 +55,9 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
                 try printVarDef(dest, out);
             }
         }
+        for (bb.parameters.items) |symbver| {
+            try printVarDef(symbver, out);
+        }
     }
 
     // Generate the basic-block graph, starting at the init basic block
@@ -71,6 +74,8 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         try generateFunctions(leaf, out);
     }
 }
+// generatePhiFunction
+// generatePhi
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     _ = callGraph;
@@ -105,16 +110,15 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 
         // Generate branch `if-else`
         if (bb.branch) |branch| {
-            // TODO: generatePhi
+            try generatePhi(&bb.branch_arguments, branch, true, out);
             try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
         } else {
-            // TODO: generatePhi
             try out.writer().print("\t\tgoto end;\n\t}} else {{\n", .{});
         }
 
         // Generate the `next` BB
         if (bb.next) |next| {
-            // TODO: generatePhi
+            try generatePhi(&bb.next_arguments, next, true, out);
             try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
             try generateBasicBlock(next, out);
         } else {
@@ -123,16 +127,35 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 
         // Generate the `branch` BB
         if (bb.branch) |branch| {
-            // TODO: generatePhi
             try generateBasicBlock(branch, out);
         }
     } else {
         if (bb.next) |next| {
-            // TODO: generatePhi
+            try generatePhi(&bb.next_arguments, next, false, out);
             try out.writer().print("\tgoto BB{};\n", .{next.uid});
             try generateBasicBlock(next, out);
         } else {
             try out.writer().print("\tgoto end;\n", .{});
+        }
+    }
+}
+
+fn generatePhi(arglist: *std.ArrayList(*SymbolVersion), to: *BasicBlock, extra_tab: bool, out: *std.fs.File) !void {
+    for (arglist.items) |argument| {
+        var maybe_parameter: ?*SymbolVersion = null;
+        for (to.parameters.items) |symbver| {
+            if (symbver.symbol == argument.symbol) {
+                maybe_parameter = symbver;
+                break;
+            }
+        }
+        if (maybe_parameter) |parameter| {
+            if (extra_tab) {
+                try out.writer().print("\t", .{});
+            }
+            try printVarAssign(parameter, out);
+            try printVar(argument, out);
+            try out.writer().print(";\n", .{});
         }
     }
 }

@@ -46,8 +46,15 @@ pub const SymbolVersion = struct {
         }
     }
 
-    fn makeSymbolVersionUnique(self: *SymbolVersion) void {
-        _ = self;
+    fn findVersion(self: *SymbolVersion, ir: ?*IR, stop: ?*IR) *SymbolVersion {
+        var retval: *SymbolVersion = self;
+        var maybe_ir = ir;
+        while (maybe_ir != null and maybe_ir != stop) : (maybe_ir = maybe_ir.?.next) {
+            if (maybe_ir.?.dest != null and maybe_ir.?.dest.?.symbol == self.symbol) {
+                retval = maybe_ir.?.dest.?;
+            }
+        }
+        return retval;
     }
 
     fn findSymbolVersionSet(self: *SymbolVersion, set: *std.ArrayList(*SymbolVersion)) ?*SymbolVersion {
@@ -57,6 +64,16 @@ pub const SymbolVersion = struct {
             }
         }
         return null;
+    }
+
+    fn putSymbolVersionSet(self: *SymbolVersion, set: *std.ArrayList(*SymbolVersion)) !bool {
+        for (set.items) |v| {
+            if (v.symbol == self.symbol) {
+                return false;
+            }
+        }
+        try set.append(self);
+        return true;
     }
 };
 
@@ -266,22 +283,27 @@ pub const BasicBlock = struct {
         }
         self.visited = true;
 
-        std.debug.print("Basic Block BB{}\n", .{self.uid});
+        std.debug.print("Basic Block BB{}", .{self.uid});
+        BasicBlock.printSymbverList(&self.parameters);
         var maybe_ir = self.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.pprint();
         }
         if (self.has_branch) {
             if (self.branch) |branch| {
-                std.debug.print("if (!{s}_{?}) goto {}\n", .{ self.condition.?.symbol.name, self.condition.?.version, branch.uid });
+                std.debug.print("if (!{s}_{?}) goto {}", .{ self.condition.?.symbol.name, self.condition.?.version, branch.uid });
+                BasicBlock.printSymbverList(&self.branch_arguments);
             } else {
-                std.debug.print("if (!{s}_{?}) goto <END>\n", .{ self.condition.?.symbol.name, self.condition.?.version });
+                std.debug.print("if (!{s}_{?}) goto <END>", .{ self.condition.?.symbol.name, self.condition.?.version });
+                BasicBlock.printSymbverList(&self.branch_arguments);
             }
         }
         if (self.next) |next| {
-            std.debug.print("goto {}\n", .{next.uid});
+            std.debug.print("goto {}", .{next.uid});
+            BasicBlock.printSymbverList(&self.next_arguments);
         } else {
-            std.debug.print("goto <END>\n", .{});
+            std.debug.print("goto <END>", .{});
+            BasicBlock.printSymbverList(&self.next_arguments);
         }
         if (self.branch) |branch| {
             branch.pprint();
@@ -289,6 +311,19 @@ pub const BasicBlock = struct {
         if (self.next) |next| {
             next.pprint();
         }
+    }
+
+    fn printSymbverList(list: *std.ArrayList(*SymbolVersion)) void {
+        std.debug.print("(", .{});
+        var i: usize = 0;
+        while (i < list.items.len) : (i += 1) {
+            var symbver = list.items[i];
+            std.debug.print("{s}_{?}", .{ symbver.symbol.name, symbver.version });
+            if (i < list.items.len - 1) {
+                std.debug.print(", ", .{});
+            }
+        }
+        std.debug.print(")\n", .{});
     }
 };
 
@@ -339,28 +374,39 @@ pub const CFG = struct {
 
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
 
+        try retval.calculatePhiParamsAndArgs(allocator);
+
+        // Phi parameters and arguments are un-versioned by design up to this point. Version them now.
         for (retval.basic_blocks.items) |bb| {
             for (bb.parameters.items) |symbver| {
-                symbver.makeSymbolVersionUnique();
+                symbver.makeUnique();
             }
             for (bb.next_arguments.items) |symbver| {
-                symbver.makeSymbolVersionUnique();
+                symbver.makeUnique();
             }
             for (bb.branch_arguments.items) |symbver| {
-                symbver.makeSymbolVersionUnique();
+                symbver.makeUnique();
             }
         }
 
+        // for (retval.basic_blocks.items) |bb| {
+        //     bb.pprint();
+        // }
+        // retval.clearVisitedBBs();
+
+        // Symbol versions dependent on phi parameters will have null versions. Assign the versions here.
         for (retval.basic_blocks.items) |bb| {
             var maybe_ir: ?*IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.src1 != null and ir.src1.?.version == null) {
                     ir.src1 = ir.src1.?.findSymbolVersionSet(&bb.parameters);
-                    std.debug.assert(ir.src1 != null and ir.src1.?.version != null);
+                    std.debug.assert(ir.src1 != null);
+                    std.debug.assert(ir.src1.?.version != null);
                 }
                 if (ir.src2 != null and ir.src2.?.version == null) {
                     ir.src2 = ir.src2.?.findSymbolVersionSet(&bb.parameters);
-                    std.debug.assert(ir.src2 != null and ir.src2.?.version != null);
+                    std.debug.assert(ir.src2 != null);
+                    std.debug.assert(ir.src2.?.version != null);
                 }
             }
         }
@@ -1038,5 +1084,98 @@ pub const CFG = struct {
             }
             return retval;
         }
+    }
+
+    // Determines which symbol versions need to be requested as phi parameters, and which need to be passed to children basic-blocks as phi arguments
+    fn calculatePhiParamsAndArgs(self: *CFG, allocator: std.mem.Allocator) !void {
+        // clear arguments
+        for (self.basic_blocks.items) |bb| {
+            bb.parameters.clearRetainingCapacity();
+            bb.next_arguments.clearRetainingCapacity();
+            bb.branch_arguments.clearRetainingCapacity();
+
+            // Parameters are symbols used by IR without a definition for the symbol before the IR
+            var maybe_ir: ?*IR = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                // If src1 version is null, and is not defined in this BB, request it as a parameter
+                if (ir.src1 != null and ir.src1.?.symbol != self.temp_symbol and ir.src1.?.version == null) {
+                    ir.src1 = ir.src1.?.findVersion(bb.ir_head, ir);
+                    if (ir.src1.?.version == null) {
+                        _ = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
+                    }
+                }
+                // If src2 version is null, and is not defined in this BB, request it as a parameter
+                if (ir.src2 != null and ir.src2.?.symbol != self.temp_symbol and ir.src2.?.version == null) {
+                    ir.src2 = ir.src2.?.findVersion(bb.ir_head, ir);
+                    if (ir.src2.?.version == null) {
+                        _ = try ir.src2.?.putSymbolVersionSet(&bb.parameters);
+                    }
+                }
+            }
+            // Do the same for the condition of a branch, if there is one
+            if (bb.has_branch and bb.condition != null and bb.condition.?.symbol != self.temp_symbol and bb.condition.?.version == null) {
+                bb.condition = bb.condition.?.findVersion(bb.ir_head, null);
+                if (bb.condition.?.version == null) {
+                    _ = try bb.condition.?.putSymbolVersionSet(&bb.parameters);
+                }
+            }
+        }
+        // Add function parameters as basic block symbol version parameters
+        // TODO: When functions
+
+        // Find phi arguments
+        self.clearVisitedBBs();
+        var i: usize = 0;
+        while (try self.childrenArgPropagation(self.block_graph_head.?, allocator)) {
+            self.clearVisitedBBs();
+            i += 1;
+        }
+        self.clearVisitedBBs();
+    }
+
+    fn childrenArgPropagation(self: *CFG, bb: *BasicBlock, allocator: std.mem.Allocator) !bool {
+        var retval: bool = false;
+        if (bb.visited) {
+            return false;
+        }
+        bb.visited = true;
+
+        if (bb.next) |next| {
+            retval = try self.childrenArgPropagation(next, allocator) or retval;
+            for (next.parameters.items) |param| {
+                var symbver = param.findVersion(bb.ir_head, null);
+                if (symbver == param) { // Could not find param def in this block, require it as a parameter for this own block
+                    var myParam = param.findSymbolVersionSet(&bb.parameters);
+                    if (myParam) |_myParam| {
+                        symbver = _myParam;
+                    } else {
+                        symbver = try SymbolVersion.createUnversioned(param.symbol, param.type, allocator);
+                        _ = try symbver.putSymbolVersionSet(&bb.parameters);
+                    }
+                } // else found in this block already, add it to the arguments
+                retval = try symbver.putSymbolVersionSet(&bb.next_arguments) or retval;
+            }
+        }
+
+        if (bb.has_branch) {
+            if (bb.branch) |branch| {
+                retval = try self.childrenArgPropagation(branch, allocator) or retval;
+                for (branch.parameters.items) |param| {
+                    var symbver = param.findVersion(bb.ir_head, null);
+                    if (symbver == param) { // Could not find param def in this block, require it as a parameter for this own block
+                        var myParam = param.findSymbolVersionSet(&bb.parameters);
+                        if (myParam) |_myParam| {
+                            symbver = _myParam;
+                        } else {
+                            symbver = try SymbolVersion.createUnversioned(param.symbol, param.type, allocator);
+                            _ = try symbver.putSymbolVersionSet(&bb.parameters);
+                        }
+                    } // else found in this block already, add it to the arguments
+                    retval = try symbver.putSymbolVersionSet(&bb.branch_arguments) or retval;
+                }
+            }
+        }
+
+        return retval;
     }
 };

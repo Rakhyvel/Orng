@@ -29,7 +29,7 @@
     - [x] typeOf function
         - [x] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field
 - [x] immutability checking
-- [ ] symbol versioning/phi nodes
+- [x] symbol versioning/phi nodes
 - [ ] rewrite [op]= assignments
 - [ ] build system
     > Should be stateless, gosh dangit!
@@ -61,6 +61,7 @@
     - [ ] named arguments/fields
     - [ ] default parameters
     - [ ] nested functions/anon functions
+    - [ ] Add function parameters as basic-block symbol-version parameters, generate copies in codegen
 - [ ] addresses
     - [ ] validate deref lvalue
 - [ ] tuples

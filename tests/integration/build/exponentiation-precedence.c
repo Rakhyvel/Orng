@@ -13,38 +13,18 @@ int test_main() {
 	int _0;
 	int _1;
 	int _2;
-	int _4;
 	int _3;
+	int _4;
+	int _5;
 BB0:;
-	_2 = 0;
-	if (!_2) {
-		goto BB6;
-	} else {
-		goto BB1;
-	}
-BB1:;
-	_1 = 1;
-	goto BB2;
-BB2:;
-	if (!_1) {
-		goto BB5;
-	} else {
-		goto BB3;
-	}
-BB3:;
-	_0 = 1;
-	goto BB4;
-BB4:;
-	retval = _0;
+	_0 = 3;
+	_1 = 2;
+	_2 = powf(_1, _0);
+	_3 = 2;
+	_4 = powf(_3, _2);
+	_5 = -_4;
+	retval = _5;
 	goto end;
-BB5:;
-	_4 = 1;
-	_0 = _4;
-	goto BB4;
-BB6:;
-	_3 = 0;
-	_1 = _3;
-	goto BB2;
 end:
 	return retval;
 }
