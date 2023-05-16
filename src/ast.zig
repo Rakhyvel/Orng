@@ -199,7 +199,7 @@ pub const AST = union(enum) {
     },
     _defer: struct { common: ASTCommon, expr: *AST },
 
-    fn box(ast: AST, alloc: std.mem.Allocator) !*AST {
+    fn box(ast: AST, alloc: std.mem.Allocator) error{OutOfMemory}!*AST {
         var retval = try alloc.create(AST);
         retval.* = ast;
         return retval;
@@ -365,27 +365,27 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .conditional = .{ .common = ASTCommon{ .token = _tokens.items[0], ._type = null }, .tokens = _tokens, .exprs = exprs } }, allocator);
     }
 
-    pub fn createAdd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createAdd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .add = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createSub(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createSub(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .sub = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createMult(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createMult(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .mult = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createDiv(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDiv(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .div = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createMod(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createMod(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .mod = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createExponent(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+    pub fn createExponent(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .exponent = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
@@ -530,6 +530,26 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
+    pub fn createBinop(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+        switch (token.kind) {
+            .PLUS_EQUALS => return createAdd(token, lhs, rhs, allocator),
+            .MINUS_EQUALS => return createSub(token, lhs, rhs, allocator),
+            .STAR_EQUALS => return createMult(token, lhs, rhs, allocator),
+            .SLASH_EQUALS => return createDiv(token, lhs, rhs, allocator),
+            .PERCENT_EQUALS => return createMod(token, lhs, rhs, allocator),
+            .D_STAR_EQUALS => {
+                var terms = std.ArrayList(*AST).init(allocator);
+                try terms.append(lhs);
+                try terms.append(rhs);
+                return createExponent(token, terms, allocator);
+            },
+            else => {
+                std.debug.print("not a operator-assign token\n", .{});
+                unreachable;
+            },
+        }
+    }
+
     pub fn printType(self: *AST, out: anytype) !void {
         switch (self.*) {
             .unit => {
@@ -589,7 +609,9 @@ pub const AST = union(enum) {
             // Type type
 
             // Void type
-            .unit => return voidType,
+            .unit,
+            .assign,
+            => return voidType,
 
             // Identifier
             .identifier => {
@@ -619,6 +641,7 @@ pub const AST = union(enum) {
             } else {
                 return voidType;
             },
+            ._while => return self._while.bodyBlock.typeof(scope, errors),
             .block => if (self.block.final) |_| {
                 return voidType;
             } else if (self.block.statements.items.len == 0) {

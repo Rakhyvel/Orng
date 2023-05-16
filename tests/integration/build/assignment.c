@@ -11,40 +11,18 @@ int test_main();
 int test_main() {
 	int retval;
 	int _0;
+	int tests_integration_assignment_x_0;
 	int _1;
 	int _2;
-	int _3;
-	int _4;
+	int tests_integration_assignment_x_1;
 BB0:;
-	_2 = 1;
-	if (!_2) {
-		goto BB6;
-	} else {
-		goto BB1;
-	}
-BB1:;
-	_3 = 1;
-	_1 = _3;
-	goto BB2;
-BB2:;
-	if (!_1) {
-		goto BB5;
-	} else {
-		goto BB3;
-	}
-BB3:;
-	_4 = 1;
-	_0 = _4;
-	goto BB4;
-BB4:;
-	retval = _0;
+	_0 = 4;
+	tests_integration_assignment_x_0 = _0;
+	_1 = 6;
+	_2 = tests_integration_assignment_x_0 + _1;
+	tests_integration_assignment_x_1 = _2;
+	retval = tests_integration_assignment_x_1;
 	goto end;
-BB5:;
-	_0 = 0;
-	goto BB4;
-BB6:;
-	_1 = 0;
-	goto BB2;
 end:
 	return retval;
 }

@@ -1,0 +1,6 @@
+// 10
+fn main: ()->Int =
+    while let mut x: Int = 0; x < 10; x += 1
+        x += 1
+    else 
+        x

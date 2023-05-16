@@ -121,8 +121,8 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         },
 
         .assign => {
-            std.debug.print("assign\n", .{});
             try validateLValue(ast.assign.lhs, scope, errors);
+            try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors), scope, errors);
         },
         ._or => {
             try validateAST(ast._or.lhs, _ast.boolType, scope, errors);
@@ -150,7 +150,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .add => {
             try validateAST(ast.add.lhs, _ast.floatType, scope, errors);
             try validateAST(ast.add.rhs, _ast.floatType, scope, errors);
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }
@@ -158,7 +158,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .sub => {
             try validateAST(ast.sub.lhs, _ast.floatType, scope, errors);
             try validateAST(ast.sub.rhs, _ast.floatType, scope, errors);
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }
@@ -166,7 +166,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .mult => {
             try validateAST(ast.mult.lhs, _ast.floatType, scope, errors);
             try validateAST(ast.mult.rhs, _ast.floatType, scope, errors);
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }
@@ -174,7 +174,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .div => {
             try validateAST(ast.div.lhs, _ast.floatType, scope, errors);
             try validateAST(ast.div.rhs, _ast.floatType, scope, errors);
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }
@@ -182,7 +182,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .mod => {
             try validateAST(ast.mod.lhs, _ast.floatType, scope, errors);
             try validateAST(ast.mod.rhs, _ast.floatType, scope, errors);
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }
@@ -191,7 +191,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             for (ast.exponent.terms.items) |term| {
                 try validateAST(term, _ast.floatType, scope, errors);
             }
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }

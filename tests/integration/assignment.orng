@@ -1,0 +1,5 @@
+// 10
+fn main: ()->Int = 
+    let mut x: Int = 4
+    x = x + 6
+    x
