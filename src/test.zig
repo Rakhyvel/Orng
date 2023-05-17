@@ -20,9 +20,13 @@ pub fn main() !void {
             arg = args.next().?;
         }
         if (std.mem.eql(u8, "integration", arg)) {
-            try integrationTests(false);
+            if (args.next()) |next| {
+                _ = try integrateTestFile(next, false);
+            } else {
+                try integrateTestAll(false);
+            }
         } else if (std.mem.eql(u8, "coverage", arg)) {
-            try integrationTests(true);
+            try integrateTestAll(true);
         } else if (std.mem.eql(u8, "fuzz", arg)) {
             try fuzzTests();
         } else {
@@ -35,7 +39,7 @@ pub fn main() !void {
 /// kcov can't handle child processes for some reason and freezes.
 /// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
 /// When `coverage` is true, no child processes are spawned, and no output is given.
-fn integrationTests(coverage: bool) !void {
+fn integrateTestAll(coverage: bool) !void {
     if (!coverage) {
         try term.outputColor(succeed_color, "[============]\n", out);
     }
@@ -54,91 +58,12 @@ fn integrationTests(coverage: bool) !void {
         if (file.kind != .File) {
             continue;
         }
-        var dot_index = indexOf(file.name, '.');
-        var test_name = file.name[0..dot_index];
-
-        // Input .orng file
-        var in_name: String = try String.init_with_contents(allocator, "tests/integration/");
-        defer in_name.deinit();
-        try in_name.insert(file.name, in_name.len());
-
-        // Output .c file
-        var out_name: String = try String.init_with_contents(allocator, "tests/integration/build/");
-        defer out_name.deinit();
-        try out_name.insert(test_name, out_name.len());
-        try out_name.insert(".c", out_name.len());
-
-        if (!coverage) {
-            try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
-            try out.print("{s}\n", .{file.name});
-        }
-
-        // Read in the expected value and stdout
-        var f = try std.fs.cwd().openFile(in_name.str(), .{});
-        defer f.close();
-        var buf_reader = std.io.bufferedReader(f.reader());
-        var in_stream = buf_reader.reader();
-        var contents_arraylist = std.ArrayList(u8).init(allocator);
-        try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-        var contents = try contents_arraylist.toOwnedSlice();
-        var expectedOut = contents[3..untilNewline(contents)];
-
-        // Try to compile Orng (make sure no errors)
-        var errors = errs.Errors.init(allocator);
-        defer errors.deinit();
-        compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch |err| {
-            if (!coverage) {
-                std.debug.print("{}\n", .{err});
-                try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-                switch (err) {
-                    error.lexerError,
-                    error.parserError,
-                    error.symbolError,
-                    error.typeError,
-                    => try out.print("Orng -> C.\n", .{}),
-                    else => try out.print("Orng Compiler crashed!\n", .{}),
-                }
-                failed += 1;
-                std.debug.dumpCurrentStackTrace(128);
-                return err;
-            }
-            continue;
-        };
-        if (coverage) {
-            continue;
-        }
-
-        // compile C (make sure no errors)
-        var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }) catch {
-            continue;
-        };
-        if (gcc_res.retcode != 0) {
-            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-            try out.print("C -> Executable.\n", .{});
+        var res = try integrateTestFile(file.name, coverage);
+        if (res) {
+            passed += 1;
+        } else {
             failed += 1;
-            continue;
         }
-        defer _ = exec(&[_][]const u8{ "/bin/rm", "-f", "a.out" }) catch {};
-
-        // execute (make sure no signals)
-        var res = exec(&[_][]const u8{"./a.out"}) catch |e| {
-            try out.print("{?}\n", .{e});
-            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-            try out.print("Execution interrupted!\n", .{});
-            failed += 1;
-            continue;
-        };
-        if (!std.mem.eql(u8, res.stdout, expectedOut)) {
-            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-            try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
-            failed += 1;
-            continue;
-        }
-
-        // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
-
-        try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
-        passed += 1;
     }
 
     if (!coverage) {
@@ -151,6 +76,89 @@ fn integrationTests(coverage: bool) !void {
     } else {
         std.debug.print("Coverage output to kcov-out/index.html\n", .{});
     }
+}
+
+fn integrateTestFile(filename: []const u8, coverage: bool) !bool {
+    var dot_index = indexOf(filename, '.');
+    var test_name = filename[0..dot_index];
+
+    // Input .orng file
+    var in_name: String = try String.init_with_contents(allocator, "tests/integration/");
+    defer in_name.deinit();
+    try in_name.insert(filename, in_name.len());
+
+    // Output .c file
+    var out_name: String = try String.init_with_contents(allocator, "tests/integration/build/");
+    defer out_name.deinit();
+    try out_name.insert(test_name, out_name.len());
+    try out_name.insert(".c", out_name.len());
+
+    if (!coverage) {
+        try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
+        try out.print("{s}\n", .{filename});
+    }
+
+    // Read in the expected value and stdout
+    var f = try std.fs.cwd().openFile(in_name.str(), .{});
+    defer f.close();
+    var buf_reader = std.io.bufferedReader(f.reader());
+    var in_stream = buf_reader.reader();
+    var contents_arraylist = std.ArrayList(u8).init(allocator);
+    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
+    var contents = try contents_arraylist.toOwnedSlice();
+    var expectedOut = contents[3..untilNewline(contents)];
+
+    // Try to compile Orng (make sure no errors)
+    var errors = errs.Errors.init(allocator);
+    defer errors.deinit();
+    compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch |err| {
+        if (!coverage) {
+            std.debug.print("{}\n", .{err});
+            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+            switch (err) {
+                error.lexerError,
+                error.parserError,
+                error.symbolError,
+                error.typeError,
+                => try out.print("Orng -> C.\n", .{}),
+                else => try out.print("Orng Compiler crashed!\n", .{}),
+            }
+            std.debug.dumpCurrentStackTrace(128);
+            return err;
+        }
+        return false;
+    };
+    if (coverage) {
+        return false;
+    }
+
+    // compile C (make sure no errors)
+    var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }) catch {
+        return false;
+    };
+    if (gcc_res.retcode != 0) {
+        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try out.print("C -> Executable.\n", .{});
+        return false;
+    }
+    defer _ = exec(&[_][]const u8{ "/bin/rm", "-f", "a.out" }) catch {};
+
+    // execute (make sure no signals)
+    var res = exec(&[_][]const u8{"./a.out"}) catch |e| {
+        try out.print("{?}\n", .{e});
+        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try out.print("Execution interrupted!\n", .{});
+        return false;
+    };
+    if (!std.mem.eql(u8, res.stdout, expectedOut)) {
+        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
+        return false;
+    }
+
+    // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
+    try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+    return true;
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler

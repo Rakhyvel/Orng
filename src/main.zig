@@ -13,10 +13,6 @@ const validate = @import("validate.zig");
 
 pub const PRINT_TOKENS = false;
 
-// - compile = outputCFG <> compileFile
-// - compileFile: (contents: String)->(output: &AST)
-// - outputCFG: (output: &AST, outputFilename: String)->!()
-
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
 // Afterwards, the program is collated to a CFG and written to a .c file. A C compiler may be called, and a
