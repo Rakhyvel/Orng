@@ -1,0 +1,4 @@
+// 24
+fn main: ()->Int =
+    if true {} else {}
+    24

@@ -46,6 +46,8 @@ pub const Parser = struct {
     fn nextIsExpr(self: *Parser) bool {
         const nextKind = self.peek().kind;
         return nextKind == .E_MARK //
+        or nextKind == .TRUE //
+        or nextKind == .FALSE //
         or nextKind == .Q_MARK //
         or nextKind == .PERIOD //
         or nextKind == .AMPERSAND //
@@ -95,7 +97,6 @@ pub const Parser = struct {
         } else {
             self.errors.addError(Error{ .expected2Token = .{ .expected = kind, .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
-            // unreachable;
         }
     }
 
@@ -626,6 +627,10 @@ pub const Parser = struct {
 
         while (self.nextIsStatement()) {
             try statements.append(try self.statement());
+            if (self.accept(.DEDENT)) |_| {
+                break;
+            }
+            _ = try self.expect(.NEWLINE);
             while (self.accept(.NEWLINE)) |_| {}
         }
 
@@ -661,7 +666,7 @@ pub const Parser = struct {
 
         while (self.nextIsStatement()) {
             try statements.append(try self.statement());
-            while (self.accept(.SEMICOLON)) |_| {}
+            _ = try self.expect(.SEMICOLON);
         }
 
         var final: ?*AST = null;

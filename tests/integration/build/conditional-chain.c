@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684291386
-#define ORNG_1684291386
+#ifndef ORNG_1684711326
+#define ORNG_1684711326
 
 #include <math.h>
 #include <stdio.h>
@@ -9,15 +9,15 @@
 int test_main();
 
 int test_main() {
+	// Bookkeeping
 	int retval;
 	int _0;
-	int tests_integration_conditional_chain_x_0;
+	int _9_x;
 	int _1;
 	int _2;
 	int _3;
 	int _4;
 	int _5;
-	int tests_integration_conditional_chain_x_1;
 	int _6;
 	int _7;
 	int _8;
@@ -26,18 +26,17 @@ int test_main() {
 	int _11;
 BB0:;
 	_0 = 4.5e+00;
-	tests_integration_conditional_chain_x_0 = _0;
+	_9_x = _0;
 	_2 = 0.0e+00;
-	_3 = _2 < tests_integration_conditional_chain_x_0;
+	_3 = _2 < _9_x;
 	if (!_3) {
 		goto BB7;
 	} else {
-		tests_integration_conditional_chain_x_1 = tests_integration_conditional_chain_x_0;
 		goto BB1;
 	}
 BB1:;
 	_4 = 3.0e+00;
-	_5 = tests_integration_conditional_chain_x_1 <= _4;
+	_5 = _9_x <= _4;
 	if (!_5) {
 		goto BB7;
 	} else {

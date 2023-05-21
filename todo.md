@@ -14,6 +14,7 @@
 - [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
 - [ ] Comments on each function and struct field
+- [~] Find some code not covered and write an integration test for it
 
 ### Pipeline
 - [x] Errors should print lines
@@ -29,31 +30,12 @@
     - [x] typeOf function
         - [x] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field
 - [x] immutability checking
-- [x] symbol versioning/phi nodes
-- [ ] rewrite [op]= assignments
-- [ ] build system
-    > Should be stateless, gosh dangit!
-    > Read about philosophy of other build systems, what do users want/need to build Orng programs?
-        > Maybe Orng programs don't require a build script, they can just do `import` and it's all good
-            > Packages may need to include c-files/libraries. This should be documented somewhere. A *simple* build file is acceptable.
-        > `import:(const path:String)`
-        > `package:(const path:String)`
-        > `extern:(const name: String, const T: Type)->T`
-        > `externType:(const name: String, const backing: Type = ())->Type`
-        > `cInclude:(const path: String)->(a tuple of the definitions)`
-    - [ ] Specifies the entry function somehow
-    - [ ] entry function takes a record of IO function pointers
-    - [ ] run a C compiler on the output
-    - [ ] be able to parse C headers
-    - [ ] be able to include C source files before generated C file
-    - [ ] be able to link static and dynamic libraries
-    > How do 'packages' work? How **SHOULD** they work?
-    - [ ] Optionally execute output executable after compiling
-    - [ ] Externs
-        > 'Primitive types' are just extern types defined in prelude
-    > How to do exponentiation without libc?
+- [x] Redo symbol versions, should probably just be symbols
+- [x] rewrite [op]= assignments
 
 ### Features
+- [ ] addresses
+    - [ ] validate deref lvalue
 - [ ] `defer`
     - [ ] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`
@@ -62,8 +44,6 @@
     - [ ] default parameters
     - [ ] nested functions/anon functions
     - [ ] Add function parameters as basic-block symbol-version parameters, generate copies in codegen
-- [ ] addresses
-    - [ ] validate deref lvalue
 - [ ] tuples
     - [ ] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
@@ -135,6 +115,27 @@
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
+- [ ] build system (built upon compile-time evaluation)
+    > Should be stateless, gosh dangit!
+    > Read about philosophy of other build systems, what do users want/need to build Orng programs?
+        > Maybe Orng programs don't require a build script, they can just do `import` and it's all good
+            > Packages may need to include c-files/libraries. This should be documented somewhere. A *simple* build file is acceptable.
+        > `import:(const path:String)`
+        > `package:(const path:String)`
+        > `extern:(const name: String, const T: Type)->T`
+        > `externType:(const name: String, const backing: Type = ())->Type`
+        > `cInclude:(const path: String)->(a tuple of the definitions)`
+    - [ ] Specifies the entry function somehow
+    - [ ] entry function takes a record of IO function pointers
+    - [ ] run a C compiler on the output
+    - [ ] be able to parse C headers
+    - [ ] be able to include C source files before generated C file
+    - [ ] be able to link static and dynamic libraries
+    > How do 'packages' work? How **SHOULD** they work?
+    - [ ] Optionally execute output executable after compiling
+    - [ ] Externs
+        > 'Primitive types' are just extern types defined in prelude
+    > How to do exponentiation without libc?
 - [ ] refinement types
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free

@@ -11,11 +11,13 @@ const Token = @import("token.zig").Token;
 
 pub const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
 
+var scopeUID: usize = 0;
 pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
     name: []const u8,
+    uid: usize,
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
         var retval = try allocator.create(Scope);
@@ -23,6 +25,8 @@ pub const Scope = struct {
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
         retval.name = name;
+        retval.uid = scopeUID;
+        scopeUID += 1;
         if (parent) |_parent| {
             try _parent.children.append(retval);
         }
@@ -100,6 +104,8 @@ pub const Symbol = struct {
     kind: SymbolKind,
 
     defined: bool,
+    /// When a local variable, whether or not the variable has been printed out or not
+    decld: bool,
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
@@ -115,6 +121,7 @@ pub const Symbol = struct {
         } else {
             retval.defined = false;
         }
+        retval.decld = false;
         return retval;
     }
 };

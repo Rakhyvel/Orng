@@ -847,19 +847,21 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                var blockSymbver = (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)).?;
-                var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
-                try phony.data.irList.append(blockCopy);
-                self.appendInstruction(blockCopy);
+                if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |blockSymbver| {
+                    var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
+                    try phony.data.irList.append(blockCopy);
+                    self.appendInstruction(blockCopy);
+                }
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 if (ast._if.elseBlock) |elseBlock| {
-                    var elseSymbver = (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)).?;
-                    var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
-                    try phony.data.irList.append(elseCopy);
-                    self.appendInstruction(elseCopy);
+                    if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
+                        var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
+                        try phony.data.irList.append(elseCopy);
+                        self.appendInstruction(elseCopy);
+                    }
                     self.appendInstruction(try IR.createJump(end_label, allocator));
                 }
                 self.appendInstruction(end_label);
@@ -918,10 +920,11 @@ pub const CFG = struct {
                 for (ast.cond.mappings.items) |mapping| {
                     if (mapping.mapping.rhs) |rhs| {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
-                        var rhsSymbver = (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)).?;
-                        var rhsCopy = try IR.create(.copy, symbver, rhsSymbver, null, allocator);
-                        try phony.data.irList.append(rhsCopy);
-                        self.appendInstruction(rhsCopy);
+                        if (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)) |rhsSymbver| {
+                            var rhsCopy = try IR.create(.copy, symbver, rhsSymbver, null, allocator);
+                            try phony.data.irList.append(rhsCopy);
+                            self.appendInstruction(rhsCopy);
+                        }
                         self.appendInstruction(try IR.createJump(end_label, allocator));
                         rhs_label_index += 1;
                     }
@@ -954,10 +957,11 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                var blockSymbver = (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)).?;
-                var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
-                try phony.data.irList.append(blockCopy);
-                self.appendInstruction(blockCopy);
+                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |blockSymbver| {
+                    var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
+                    try phony.data.irList.append(blockCopy);
+                    self.appendInstruction(blockCopy);
+                }
 
                 // Post-condition
                 if (ast._while.post) |post| {
@@ -969,10 +973,11 @@ pub const CFG = struct {
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 if (ast._while.elseBlock) |elseBlock| {
-                    var elseSymbver = (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)).?;
-                    var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
-                    try phony.data.irList.append(elseCopy);
-                    self.appendInstruction(elseCopy);
+                    if (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
+                        var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
+                        try phony.data.irList.append(elseCopy);
+                        self.appendInstruction(elseCopy);
+                    }
                     self.appendInstruction(try IR.createJump(end_label, allocator));
                 }
                 self.appendInstruction(end_label);

@@ -1,0 +1,8 @@
+// 25
+fn main: ()->Int =
+    cond
+    | false => {}
+    | false => {}
+    | true  => {}
+    | else  => {}
+    25

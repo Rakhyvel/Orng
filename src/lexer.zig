@@ -404,6 +404,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .comment => {
                 if (next_char == '\n') {
+                    try tokens.append(Token.create("", .COMMENT, line, col));
                     slice_start = ix;
                     state = .none;
                 } else {

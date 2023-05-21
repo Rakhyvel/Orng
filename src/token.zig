@@ -42,10 +42,6 @@ pub const TokenKind = enum(u32) {
     WHERE,
     WHILE,
 
-    // INVALIDATE,  // TODO: Reconsider
-    // INVALIDATES,
-    // VALIDATE,
-
     // Equals
     D_EQUALS,
     EQUALS,
@@ -105,6 +101,7 @@ pub const TokenKind = enum(u32) {
     PERIOD_GTR,
 
     // Whitespace
+    COMMENT,
     NEWLINE,
     EOF,
 
@@ -222,6 +219,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .len,
         => null,
 
+        .COMMENT => "<a comment>",
         .NEWLINE => "<a newline>",
         .INDENT => "<indentation>",
         .DEDENT => "<dedentation>",

@@ -86,9 +86,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 
     // Layout
     if (!fuzz_tokens) {
-        layout.preemptBinaryOperator(&tokens);
-        try layout.insertIndentDedents(&tokens);
-        layout.condenseNewLines(&tokens);
+        try layout.doLayout(&tokens);
         if (PRINT_TOKENS) {
             for (tokens.items) |*token| {
                 token.pprint();

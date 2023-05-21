@@ -42,23 +42,23 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
-    try out.writer().print("int test_{s}() {{\n\tint retval;\n", .{callGraph.symbol.name});
+    try out.writer().print("int test_{s}() {{\n\t// Bookkeeping\n\tint retval;\n", .{callGraph.symbol.name});
 
-    // TODO: Declare all (registers) used by the function
+    // Collect and then declare all local variables
     for (callGraph.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
-                if (dest.def != ir) {
+                if (dest.def != ir or (dest.symbol.name[0] != '$' and dest.symbol.decld)) {
                     continue;
                 }
                 try printVarDef(dest, out);
+                dest.symbol.decld = true;
             }
         }
-        for (bb.parameters.items) |symbver| {
-            try printVarDef(symbver, out);
-        }
     }
+
+    // Declare all temporaries used by function
 
     // Generate the basic-block graph, starting at the init basic block
     if (callGraph.block_graph_head) |block_graph_head| {
@@ -74,8 +74,6 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         try generateFunctions(leaf, out);
     }
 }
-// generatePhiFunction
-// generatePhi
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     _ = callGraph;
@@ -110,7 +108,6 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 
         // Generate branch `if-else`
         if (bb.branch) |branch| {
-            try generatePhi(&bb.branch_arguments, branch, true, out);
             try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
         } else {
             try out.writer().print("\t\tgoto end;\n\t}} else {{\n", .{});
@@ -118,7 +115,6 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 
         // Generate the `next` BB
         if (bb.next) |next| {
-            try generatePhi(&bb.next_arguments, next, true, out);
             try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
             try generateBasicBlock(next, out);
         } else {
@@ -131,31 +127,10 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
         }
     } else {
         if (bb.next) |next| {
-            try generatePhi(&bb.next_arguments, next, false, out);
             try out.writer().print("\tgoto BB{};\n", .{next.uid});
             try generateBasicBlock(next, out);
         } else {
             try out.writer().print("\tgoto end;\n", .{});
-        }
-    }
-}
-
-fn generatePhi(arglist: *std.ArrayList(*SymbolVersion), to: *BasicBlock, extra_tab: bool, out: *std.fs.File) !void {
-    for (arglist.items) |argument| {
-        var maybe_parameter: ?*SymbolVersion = null;
-        for (to.parameters.items) |symbver| {
-            if (symbver.symbol == argument.symbol) {
-                maybe_parameter = symbver;
-                break;
-            }
-        }
-        if (maybe_parameter) |parameter| {
-            if (extra_tab) {
-                try out.writer().print("\t", .{});
-            }
-            try printVarAssign(parameter, out);
-            try printVar(argument, out);
-            try out.writer().print(";\n", .{});
         }
     }
 }
@@ -372,8 +347,10 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     } else {
         if (symbver.symbol.name[0] != '$') {
             try printPath(symbver.symbol, out);
+        } else {
+            try out.writer().print("_{}", .{symbver.version.?});
         }
-        try out.writer().print("_{} = ", .{symbver.version orelse 0}); // TODO: Assert versioned
+        try out.writer().print(" = ", .{});
     }
 }
 
@@ -381,8 +358,10 @@ fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\tint ", .{});
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
+    } else {
+        try out.writer().print("_{}", .{symbver.version.?});
     }
-    try out.writer().print("_{};\n", .{symbver.version orelse 0}); // TODO: Assert versioned
+    try out.writer().print(";\n", .{});
 }
 
 fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
@@ -391,25 +370,28 @@ fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
 }
 
 fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
-    if (scope.parent) |parent| {
-        try printPathScope(parent, out);
-    }
-    var i: usize = 0;
-    while (i < scope.name.len) : (i += 1) {
-        if (scope.name[i] == '/' or scope.name[i] == '-') {
-            try out.writer().print("_", .{});
-        } else {
-            try out.writer().print("{c}", .{scope.name[i]});
-        }
-    }
     if (scope.name.len > 0) {
+        if (scope.parent) |parent| {
+            try printPathScope(parent, out);
+        }
+        var i: usize = 0;
+        while (i < scope.name.len) : (i += 1) {
+            if (scope.name[i] == '/' or scope.name[i] == '-') {
+                try out.writer().print("_", .{});
+            } else {
+                try out.writer().print("{c}", .{scope.name[i]});
+            }
+        }
         try out.writer().print("_", .{});
+    } else {
+        try out.writer().print("_{}_", .{scope.uid});
     }
 }
 
 fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
+    } else {
+        try out.writer().print("_{}", .{symbver.version.?});
     }
-    try out.writer().print("_{}", .{symbver.version orelse 0}); // TODO: Assert versioned
 }

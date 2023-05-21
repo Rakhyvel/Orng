@@ -66,12 +66,6 @@ prefixExpr: "!" hyperExpr                           # inferred error union
 
 hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 
-# [..]
-# [..expr]
-
-# [expr]
-# [expr..]
-# [expr..expr]
 postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | ("^")}.
 
 factor: ident
@@ -93,7 +87,7 @@ factor: ident
       .
 
 
-indentBlockExpr: indent {statement "newline" } [("throw" expr "newline") | ("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
+indentBlockExpr: indent [statement {"newline" statement }] [("throw" expr "newline") | ("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
 braceBlockExpr: "{" {statement ";"} [("throw" expr ";") | ("return" [expr] ";") | ("continue" ";") | ("break" ";")] "}".
 blockExpr: indentBlockExpr | braceBlockExpr.
 

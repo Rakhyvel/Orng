@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684291386
-#define ORNG_1684291386
+#ifndef ORNG_1684711326
+#define ORNG_1684711326
 
 #include <math.h>
 #include <stdio.h>
@@ -9,6 +9,7 @@
 int test_main();
 
 int test_main() {
+	// Bookkeeping
 	int retval;
 	int _0;
 	int _1;
