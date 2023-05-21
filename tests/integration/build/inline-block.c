@@ -12,16 +12,16 @@ int test_main() {
 	// Bookkeeping
 	int retval;
 	int _0;
-	int _49_x;
+	int _72_x;
 	int _1;
 	int _2;
 BB0:;
-	_0 = 4;
-	_49_x = _0;
-	_1 = 6;
-	_2 = _49_x + _1;
-	_49_x = _2;
-	retval = _49_x;
+	_0 = 13;
+	_72_x = _0;
+	_1 = 2;
+	_2 = _72_x * _1;
+	_72_x = _2;
+	retval = _72_x;
 	goto end;
 end:
 	return retval;

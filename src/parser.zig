@@ -627,9 +627,6 @@ pub const Parser = struct {
 
         while (self.nextIsStatement()) {
             try statements.append(try self.statement());
-            if (self.accept(.DEDENT)) |_| {
-                break;
-            }
             _ = try self.expect(.NEWLINE);
             while (self.accept(.NEWLINE)) |_| {}
         }
@@ -664,9 +661,11 @@ pub const Parser = struct {
 
         var statements = std.ArrayList(*AST).init(self.astAllocator);
 
-        while (self.nextIsStatement()) {
+        if (self.nextIsStatement()) {
             try statements.append(try self.statement());
-            _ = try self.expect(.SEMICOLON);
+            while (self.accept(.SEMICOLON)) |_| {
+                try statements.append(try self.statement());
+            }
         }
 
         var final: ?*AST = null;
