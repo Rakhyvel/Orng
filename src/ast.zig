@@ -558,9 +558,12 @@ pub const AST = union(enum) {
             .identifier => {
                 try out.print("{s}", .{self.identifier.common.token.data});
             },
-            .dereference => {
-                try self.dereference.expr.printType(out);
-                try out.print("^", .{});
+            .addrOf => {
+                try out.print("&", .{});
+                if (self.addrOf.mut) {
+                    try out.print("mut ", .{});
+                }
+                try self.addrOf.expr.printType(out);
             },
             .optional => {
                 try out.print("?", .{});
@@ -587,6 +590,7 @@ pub const AST = union(enum) {
         if (self.getCommon()._type) |_type| {
             return _type;
         }
+        var retval: *AST = undefined;
         switch (self.*) {
             // Bool type
             ._true,
@@ -596,23 +600,23 @@ pub const AST = union(enum) {
             ._and,
             .notEqual,
             .conditional,
-            => return boolType,
+            => retval = boolType,
 
             // Char type
-            .char => return charType,
+            .char => retval = charType,
 
             // Float64 type
-            .float => return floatType,
+            .float => retval = floatType,
 
             // Int64 type
-            .int => return intType,
+            .int => retval = intType,
 
             // Type type
 
             // Void type
             .unit,
             .assign,
-            => return voidType,
+            => retval = voidType,
 
             // Identifier
             .identifier => {
@@ -620,44 +624,44 @@ pub const AST = union(enum) {
                     errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
                     return error.typeError;
                 };
-                return symbol._type.?;
+                retval = symbol._type.?;
             },
 
             // Unary Operators (TODO: Make polymorphic)
-            .negate => return self.negate.expr.typeof(scope, errors),
-            .dereference => return (try self.dereference.expr.typeof(scope, errors)).addrOf.expr,
+            .negate => retval = try self.negate.expr.typeof(scope, errors),
+            .dereference => retval = (try self.dereference.expr.typeof(scope, errors)).addrOf.expr,
             .addrOf => {
                 var child_type = try self.addrOf.expr.typeof(scope, errors);
                 if (child_type.typesMatch(typeType)) {
-                    return typeType;
+                    retval = typeType;
                 } else {
-                    return createAddrOf(self.addrOf.common.token, child_type, self.addrOf.mut, std.heap.page_allocator);
+                    retval = try createAddrOf(self.addrOf.common.token, child_type, self.addrOf.mut, std.heap.page_allocator);
                 }
             },
 
             // Binary operators (TODO: Make polymorphic)
-            .add => return self.add.lhs.typeof(scope, errors),
-            .sub => return self.sub.lhs.typeof(scope, errors),
-            .mult => return self.mult.lhs.typeof(scope, errors),
-            .div => return self.div.lhs.typeof(scope, errors),
-            .mod => return self.mod.lhs.typeof(scope, errors),
-            .exponent => return self.exponent.terms.items[0].typeof(scope, errors),
+            .add => retval = try self.add.lhs.typeof(scope, errors),
+            .sub => retval = try self.sub.lhs.typeof(scope, errors),
+            .mult => retval = try self.mult.lhs.typeof(scope, errors),
+            .div => retval = try self.div.lhs.typeof(scope, errors),
+            .mod => retval = try self.mod.lhs.typeof(scope, errors),
+            .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors),
 
             // Control-flow expressions
-            ._if => return self._if.bodyBlock.typeof(scope, errors),
-            .cond => return self.cond.mappings.items[0].typeof(scope, errors),
+            ._if => retval = try self._if.bodyBlock.typeof(scope, errors),
+            .cond => retval = try self.cond.mappings.items[0].typeof(scope, errors),
             .mapping => if (self.mapping.rhs) |rhs| {
-                return rhs.typeof(scope, errors);
+                retval = try rhs.typeof(scope, errors);
             } else {
-                return voidType;
+                retval = voidType;
             },
-            ._while => return self._while.bodyBlock.typeof(scope, errors),
+            ._while => retval = try self._while.bodyBlock.typeof(scope, errors),
             .block => if (self.block.final) |_| {
-                return voidType;
+                retval = voidType;
             } else if (self.block.statements.items.len == 0) {
-                return voidType;
+                retval = voidType;
             } else {
-                return self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors);
+                retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors);
             },
 
             else => {
@@ -665,6 +669,8 @@ pub const AST = union(enum) {
                 return error.Unimplemented;
             },
         }
+        self.getCommon()._type = retval;
+        return retval;
     }
 
     pub fn typesMatch(self: *AST, other: *AST) bool {
@@ -682,7 +688,7 @@ pub const AST = union(enum) {
                 if (other.* != .addrOf) {
                     return false;
                 } else {
-                    return typesMatch(self.addrOf.expr, other.addrOf.expr);
+                    return (self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
             else => {

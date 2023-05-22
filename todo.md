@@ -34,14 +34,14 @@
 - [x] rewrite [op]= assignments
 
 ### Features
-- [ ] addresses
+- [x] addresses
     - [x] addr-of operator
-    - [ ] dereference operator
-        - [ ] validate address type
-        - [ ] lvalue
-    - [ ] codegen pointer types
-    - [ ] deref copy
-    - [ ] `&mut` and validation
+    - [x] dereference operator
+        - [x] validate address type
+        - [x] lvalue
+    - [x] codegen pointer types
+    - [x] deref copy
+    - [x] `&mut` and validation (also find a way to validate assigning to mut symbols, though that's technically different)
 - [ ] `defer`
     - [ ] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`

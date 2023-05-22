@@ -123,7 +123,16 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             }
         },
         .dereference => {
-            // TODO: Type check that deref is an addr type
+            if (expected != null) {
+                var ast_type = try ast.typeof(scope, errors);
+                if (expected != null and !expected.?.typesMatch(ast_type)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                    return error.typeError;
+                }
+                try validateAST(ast.dereference.expr, expected.?.addrOf.expr, scope, errors);
+            } else {
+                try validateAST(ast.dereference.expr, null, scope, errors);
+            }
         },
         ._try => {
             std.debug.print("try\n", .{});
@@ -140,6 +149,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
 
         .assign => {
             try validateLValue(ast.assign.lhs, scope, errors);
+            try assertMutable(ast.assign.lhs, scope, errors);
             try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors), scope, errors);
         },
         ._or => {
@@ -282,29 +292,32 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             }
         },
         .addrOf => {
-            var ast_type: *AST = try ast.addrOf.expr.typeof(scope, errors);
-            if (expected != null) {
-                if (expected.?.typesMatch(_ast.typeType)) {
-                    // Address type, type of this ast must be a type, inner must be a type
-                    if (!ast_type.typesMatch(expected.?)) {
-                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors), .stage = .typecheck } });
-                        return error.typeError;
-                    } else {
-                        try validateAST(ast.addrOf.expr, _ast.typeType, scope, errors);
-                    }
+            if (expected != null and expected.?.typesMatch(_ast.typeType)) {
+                // Address type, type of this ast must be a type, inner must be a type
+                var ast_type: *AST = try ast.addrOf.expr.typeof(scope, errors);
+                if (!ast_type.typesMatch(expected.?)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors), .stage = .typecheck } });
+                    return error.typeError;
                 } else {
-                    // Address value, expected must be an address, inner must match with expected's inner
-                    if (expected.?.* != .addrOf) {
-                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected an address", .stage = .typecheck } });
-                        return error.typeError;
-                    } else {
-                        try validateAST(ast.addrOf.expr, expected.?.addrOf.expr, scope, errors);
-                    }
-                    try validateLValue(ast.addrOf.expr, scope, errors);
+                    try validateAST(ast.addrOf.expr, _ast.typeType, scope, errors);
                 }
-            } else {
+            } else if (expected != null and expected.?.* == .addrOf) {
+                // Address value, expected must be an address, inner must match with expected's inner
+                if (!expected.?.typesMatch(try ast.typeof(scope, errors))) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors), .stage = .typecheck } });
+                    return error.typeError;
+                }
+                try validateAST(ast.addrOf.expr, expected.?.addrOf.expr, scope, errors);
+                try validateLValue(ast.addrOf.expr, scope, errors);
+                if (ast.addrOf.mut) {
+                    try assertMutable(ast.addrOf.expr, scope, errors);
+                }
+            } else if (expected == null) {
                 try validateAST(ast.addrOf.expr, null, scope, errors);
                 try validateLValue(ast.addrOf.expr, scope, errors);
+            } else {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors), .stage = .typecheck } });
+                return error.typeError;
             }
         },
         .sliceOf => {
@@ -441,6 +454,30 @@ fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
 fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
     switch (ast.*) {
         .identifier => {
+            _ = try findSymbol(ast, scope, errors);
+        },
+
+        .dereference => {
+            var child = ast.dereference.expr;
+            if (child.* != .addrOf) {
+                try validateLValue(child, scope, errors);
+            }
+        },
+
+        else => {
+            errors.addError(Error{ .basic = .{
+                .span = ast.getToken().span,
+                .msg = "not an l-value",
+                .stage = .typecheck,
+            } });
+            return error.typeError;
+        },
+    }
+}
+
+fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
+    switch (ast.*) {
+        .identifier => {
             var symbol = try findSymbol(ast, scope, errors);
             if (symbol.kind != .mut) {
                 errors.addError(Error{ .modifyImmutable = .{
@@ -454,9 +491,6 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
 
         .dereference => {
             var child = ast.dereference.expr;
-            if (child.* == .addrOf) {
-                try validateLValue(child, scope, errors);
-            }
             var child_type = try child.typeof(scope, errors);
             if (!child_type.addrOf.mut) {
                 errors.addError(Error{ .basic = .{
@@ -471,7 +505,7 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
         else => {
             errors.addError(Error{ .basic = .{
                 .span = ast.getToken().span,
-                .msg = "not an l-value",
+                .msg = "not modifiable",
                 .stage = .typecheck,
             } });
             return error.typeError;

@@ -44,7 +44,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
-    try out.writer().print("int test_{s}() {{\n\t// Bookkeeping\n\tint retval;\n", .{callGraph.symbol.name});
+    try out.writer().print("int test_{s}() {{\n\tint retval;\n", .{callGraph.symbol.name});
 
     // Collect and then declare all local variables
     for (callGraph.basic_blocks.items) |bb| {
