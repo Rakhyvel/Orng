@@ -25,18 +25,23 @@ fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimp
     if (symbol.valid) {
         return;
     }
-    if (symbol.init != null and symbol._type != null) {
-        try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors);
-        try validateAST(symbol.init.?, symbol._type, symbol.scope, errors);
-    } else if (symbol.init == null) {
-        // Default value (probably done at the IR side?)
-    } else if (symbol._type == null) {
-        // Infer type
-        var _type = try symbol.init.?.typeof(symbol.scope, errors);
-        symbol._type = _type;
-        try validateAST(symbol.init.?, symbol._type, symbol.scope, errors);
+    if (symbol.kind == ._fn) {
+        var codomain = symbol._type.?.function.rhs;
+        try validateAST(symbol.init.?, codomain, symbol.scope, errors);
     } else {
-        unreachable;
+        if (symbol.init != null and symbol._type != null) {
+            try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors);
+            try validateAST(symbol.init.?, symbol._type, symbol.scope, errors);
+        } else if (symbol.init == null) {
+            // Default value (probably done at the IR side?)
+        } else if (symbol._type == null) {
+            // Infer type
+            var _type = try symbol.init.?.typeof(symbol.scope, errors);
+            symbol._type = _type;
+            try validateAST(symbol.init.?, symbol._type, symbol.scope, errors);
+        } else {
+            unreachable;
+        }
     }
     symbol.valid = true;
 }
@@ -112,7 +117,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         },
         .negate => {
             try validateAST(ast.negate.expr, _ast.floatType, scope, errors);
-            if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.intType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                 return error.typeError;
             }
@@ -141,7 +146,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             try validateAST(ast._or.lhs, _ast.boolType, scope, errors);
             try validateAST(ast._or.rhs, _ast.boolType, scope, errors);
             if (expected != null and !expected.?.typesMatch(_ast.boolType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType, .stage = .typecheck } });
                 return error.typeError;
             }
         },
@@ -149,14 +154,14 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             try validateAST(ast._and.lhs, _ast.boolType, scope, errors);
             try validateAST(ast._and.rhs, _ast.boolType, scope, errors);
             if (expected != null and !expected.?.typesMatch(_ast.boolType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType, .stage = .typecheck } });
                 return error.typeError;
             }
         },
         .notEqual => {
             // TODO: typeof lhs and typeof rhs match
             if (expected != null and !expected.?.typesMatch(_ast.boolType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType, .stage = .typecheck } });
                 return error.typeError;
             }
         },

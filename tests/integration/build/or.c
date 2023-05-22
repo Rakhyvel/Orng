@@ -12,22 +12,41 @@ int test_main();
 int test_main() {
 	// Bookkeeping
 	int retval;
-	int64_t _0;
-	int64_t _25_x;
-	int64_t* _1;
-	int64_t* _25_y;
-	int64_t _2;
-	int64_t _3;
+	uint8_t _0;
+	uint8_t _1;
+	uint8_t _2;
+	uint8_t _4;
+	uint8_t _3;
 BB0:;
-	_0 = 4;
-	_25_x = _0;
-	_1 = &_25_x;
-	_25_y = _1;
-	_2 = 28;
-	*_25_y = _2;
-	_3 = *_25_y;
-	retval = _3;
+	_2 = 0;
+	if (!_2) {
+		goto BB6;
+	} else {
+		goto BB1;
+	}
+BB1:;
+	_1 = 1;
+	goto BB2;
+BB2:;
+	if (!_1) {
+		goto BB5;
+	} else {
+		goto BB3;
+	}
+BB3:;
+	_0 = 1;
+	goto BB4;
+BB4:;
+	retval = _0;
 	goto end;
+BB5:;
+	_4 = 1;
+	_0 = _4;
+	goto BB4;
+BB6:;
+	_3 = 0;
+	_1 = _3;
+	goto BB2;
 end:
 	return retval;
 }

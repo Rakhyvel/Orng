@@ -646,8 +646,8 @@ pub const AST = union(enum) {
             // Control-flow expressions
             ._if => return self._if.bodyBlock.typeof(scope, errors),
             .cond => return self.cond.mappings.items[0].typeof(scope, errors),
-            .mapping => if (self.mapping.lhs) |lhs| {
-                return lhs.typeof(scope, errors);
+            .mapping => if (self.mapping.rhs) |rhs| {
+                return rhs.typeof(scope, errors);
             } else {
                 return voidType;
             },

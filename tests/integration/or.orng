@@ -1,2 +1,2 @@
 // 1
-fn main: ()->Int = false or false or true
+fn main: ()->Bool = false or false or true

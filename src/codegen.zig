@@ -345,7 +345,9 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
 fn printType(_type: *AST, out: *std.fs.File) !void {
     switch (_type.*) {
         .identifier => {
-            if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
+            if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
+                try out.writer().print("uint8_t", .{});
+            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
                 try out.writer().print("int64_t", .{});
             } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
                 try out.writer().print("double", .{});
@@ -357,11 +359,16 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             try printType(_type.addrOf.expr, out);
             try out.writer().print("*", .{});
         },
-        else => {},
+        else => {
+            std.debug.print("{?}", .{_type.*});
+        },
     }
 }
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    if (symbver.type.* == .unit) {
+        return;
+    }
     try out.writer().print("\t", .{});
     if (std.mem.eql(u8, symbver.symbol.name, "$retval")) {
         try out.writer().print("retval = ", .{});
@@ -376,6 +383,9 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
 }
 
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    if (symbver.type.* == .unit) {
+        return;
+    }
     try out.writer().print("\t", .{});
     try printType(symbver.type, out);
     try out.writer().print(" ", .{});
@@ -412,6 +422,9 @@ fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
 }
 
 fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    if (symbver.type.* == .unit) {
+        return;
+    }
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
     } else {
