@@ -104,6 +104,7 @@ pub const Symbol = struct {
     kind: SymbolKind,
 
     defined: bool,
+    valid: bool,
     /// When a local variable, whether or not the variable has been printed out or not
     decld: bool,
 
@@ -121,6 +122,7 @@ pub const Symbol = struct {
         } else {
             retval.defined = false;
         }
+        retval.valid = false;
         retval.decld = false;
         return retval;
     }

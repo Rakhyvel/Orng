@@ -14,23 +14,36 @@ pub fn validateScope(scope: *Scope, errors: *errs.Errors) !void {
             std.debug.print("{s} doesn't exist in this scope\n", .{key});
             return error.typeError;
         };
-        if (symbol.init != null and symbol._type != null) {
-            try validateAST(symbol._type.?, _ast.typeType, scope, errors);
-            try validateAST(symbol.init.?, symbol._type, scope, errors);
-        } else if (symbol.init == null) {
-            // Default value (probably done at the IR side?)
-        } else if (symbol._type == null) {
-            // Infer type
-        }
+        try validateSymbol(symbol, errors);
     }
     for (scope.children.items) |child| {
         try validateScope(child, errors);
     }
 }
 
+fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimplemented }!void {
+    if (symbol.valid) {
+        return;
+    }
+    if (symbol.init != null and symbol._type != null) {
+        try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors);
+        try validateAST(symbol.init.?, symbol._type, symbol.scope, errors);
+    } else if (symbol.init == null) {
+        // Default value (probably done at the IR side?)
+    } else if (symbol._type == null) {
+        // Infer type
+        var _type = try symbol.init.?.typeof(symbol.scope, errors);
+        symbol._type = _type;
+        try validateAST(symbol.init.?, symbol._type, symbol.scope, errors);
+    } else {
+        unreachable;
+    }
+    symbol.valid = true;
+}
+
 /// Errors out if `ast` is not the expected type
 /// @param expected Should be null if `ast` can be any type
-pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) !void {
+pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) error{ typeError, Unimplemented }!void {
     switch (ast.*) {
         .unit => {
             if (expected != null and !expected.?.typesMatch(_ast.voidType)) {
@@ -68,7 +81,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .identifier => {
             // look up symbol, that's the type
             var symbol = try findSymbol(ast, scope, errors);
-
+            try validateSymbol(symbol, errors);
             var _type = symbol._type.?;
             if (expected != null and !expected.?.typesMatch(_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _type, .stage = .typecheck } });

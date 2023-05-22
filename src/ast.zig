@@ -582,6 +582,7 @@ pub const AST = union(enum) {
         }
     }
 
+    // Must always return a valid type!
     pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors) !*AST {
         if (self.getCommon()._type) |_type| {
             return _type;

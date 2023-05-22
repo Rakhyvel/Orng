@@ -14,11 +14,13 @@ int test_main() {
 	int _0;
 	int _1;
 	int _2;
+	int _3_x;
 BB0:;
-	_0 = 4;
-	_1 = 4;
-	_2 = _0 != _1;
-	retval = _2;
+	_0 = 20;
+	_1 = 7;
+	_2 = _0 + _1;
+	_3_x = _2;
+	retval = _3_x;
 	goto end;
 end:
 	return retval;

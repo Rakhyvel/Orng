@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684712155
-#define ORNG_1684712155
+#ifndef ORNG_1684713966
+#define ORNG_1684713966
 
 #include <math.h>
 #include <stdio.h>
@@ -12,10 +12,10 @@ int test_main() {
 	// Bookkeeping
 	int retval;
 	int _0;
-	int _84_found;
+	int _87_found;
 	int _1;
 	int _2;
-	int _85_n;
+	int _88_n;
 	int _3;
 	int _4;
 	int _5;
@@ -33,13 +33,13 @@ int test_main() {
 	int _17;
 BB0:;
 	_0 = 0;
-	_84_found = _0;
+	_87_found = _0;
 	_2 = 0;
-	_85_n = _2;
+	_88_n = _2;
 	goto BB1;
 BB1:;
 	_4 = 10;
-	_5 = _85_n < _4;
+	_5 = _88_n < _4;
 	if (!_5) {
 		goto BB19;
 	} else {
@@ -55,19 +55,19 @@ BB3:;
 		goto BB4;
 	}
 BB4:;
-	if (!_84_found) {
+	if (!_87_found) {
 		goto BB13;
 	} else {
 		goto BB5;
 	}
 BB5:;
 	_7 = 10;
-	_85_n = _7;
-	_6 = _85_n;
+	_88_n = _7;
+	_6 = _88_n;
 	goto BB6;
 BB6:;
 	_10 = 6;
-	_11 = _85_n == _10;
+	_11 = _88_n == _10;
 	if (!_11) {
 		goto BB12;
 	} else {
@@ -84,14 +84,14 @@ BB8:;
 	}
 BB9:;
 	_12 = 1;
-	_84_found = _12;
-	_8 = _84_found;
+	_87_found = _12;
+	_8 = _87_found;
 	goto BB10;
 BB10:;
 	_1 = _8;
 	_13 = 1;
-	_14 = _85_n + _13;
-	_85_n = _14;
+	_14 = _88_n + _13;
+	_88_n = _14;
 	goto BB1;
 BB11:;
 	goto BB10;
@@ -103,7 +103,7 @@ BB13:;
 BB14:;
 	goto BB15;
 BB15:;
-	if (!_84_found) {
+	if (!_87_found) {
 		goto BB18;
 	} else {
 		goto BB16;

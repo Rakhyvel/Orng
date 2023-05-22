@@ -1001,7 +1001,7 @@ pub const CFG = struct {
 
             // Control-flow statements
             .decl => {
-                var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.type.?, allocator);
+                var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.symbol.?._type.?, allocator);
                 var def: ?*SymbolVersion = null;
                 if (ast.decl.symbol.?.init) |init| {
                     def = try self.flattenAST(ast.decl.symbol.?.scope, init, return_label, break_label, continue_label, false, errors, allocator);
@@ -1012,7 +1012,7 @@ pub const CFG = struct {
                 var ir = try IR.create(.copy, symbver, def, null, allocator);
                 symbver.def = ir;
                 self.appendInstruction(ir);
-                return symbver;
+                return null;
             },
             ._defer => {
                 return null;
