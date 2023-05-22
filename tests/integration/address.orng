@@ -1,0 +1,6 @@
+// 28
+fn main: ()->Int =
+    let mut x: Int = 4
+    let y: &mut Int = &x
+    y^ = 28
+    y^

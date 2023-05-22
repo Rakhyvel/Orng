@@ -155,7 +155,7 @@ pub const Errors = struct {
                     try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});
                 },
                 .modifyImmutable => {
-                    try out.print("attempty to modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
+                    try out.print("attempt to modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);

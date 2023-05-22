@@ -21,7 +21,7 @@ pub fn validateScope(scope: *Scope, errors: *errs.Errors) !void {
     }
 }
 
-fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimplemented }!void {
+fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimplemented, OutOfMemory }!void {
     if (symbol.valid) {
         return;
     }
@@ -43,7 +43,7 @@ fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimp
 
 /// Errors out if `ast` is not the expected type
 /// @param expected Should be null if `ast` can be any type
-pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) error{ typeError, Unimplemented }!void {
+pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) error{ typeError, Unimplemented, OutOfMemory }!void {
     switch (ast.*) {
         .unit => {
             if (expected != null and !expected.?.typesMatch(_ast.voidType)) {
@@ -118,7 +118,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             }
         },
         .dereference => {
-            std.debug.print("deref\n", .{});
+            // TODO: Type check that deref is an addr type
         },
         ._try => {
             std.debug.print("try\n", .{});
@@ -277,7 +277,30 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             }
         },
         .addrOf => {
-            std.debug.print("addr of\n", .{});
+            var ast_type: *AST = try ast.addrOf.expr.typeof(scope, errors);
+            if (expected != null) {
+                if (expected.?.typesMatch(_ast.typeType)) {
+                    // Address type, type of this ast must be a type, inner must be a type
+                    if (!ast_type.typesMatch(expected.?)) {
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors), .stage = .typecheck } });
+                        return error.typeError;
+                    } else {
+                        try validateAST(ast.addrOf.expr, _ast.typeType, scope, errors);
+                    }
+                } else {
+                    // Address value, expected must be an address, inner must match with expected's inner
+                    if (expected.?.* != .addrOf) {
+                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected an address", .stage = .typecheck } });
+                        return error.typeError;
+                    } else {
+                        try validateAST(ast.addrOf.expr, expected.?.addrOf.expr, scope, errors);
+                    }
+                    try validateLValue(ast.addrOf.expr, scope, errors);
+                }
+            } else {
+                try validateAST(ast.addrOf.expr, null, scope, errors);
+                try validateLValue(ast.addrOf.expr, scope, errors);
+            }
         },
         .sliceOf => {
             std.debug.print("slice of\n", .{});
@@ -418,6 +441,22 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
                 errors.addError(Error{ .modifyImmutable = .{
                     .identifier = ast.identifier.common.token,
                     .symbol = symbol,
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+
+        .dereference => {
+            var child = ast.dereference.expr;
+            if (child.* == .addrOf) {
+                try validateLValue(child, scope, errors);
+            }
+            var child_type = try child.typeof(scope, errors);
+            if (!child_type.addrOf.mut) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "attempt to modify non-mutable address",
                     .stage = .typecheck,
                 } });
                 return error.typeError;

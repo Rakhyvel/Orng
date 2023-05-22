@@ -625,6 +625,15 @@ pub const AST = union(enum) {
 
             // Unary Operators (TODO: Make polymorphic)
             .negate => return self.negate.expr.typeof(scope, errors),
+            .dereference => return (try self.dereference.expr.typeof(scope, errors)).addrOf.expr,
+            .addrOf => {
+                var child_type = try self.addrOf.expr.typeof(scope, errors);
+                if (child_type.typesMatch(typeType)) {
+                    return typeType;
+                } else {
+                    return createAddrOf(self.addrOf.common.token, child_type, self.addrOf.mut, std.heap.page_allocator);
+                }
+            },
 
             // Binary operators (TODO: Make polymorphic)
             .add => return self.add.lhs.typeof(scope, errors),
@@ -667,6 +676,13 @@ pub const AST = union(enum) {
                     return true;
                 } else {
                     return std.mem.eql(u8, self.identifier.common.token.data, other.identifier.common.token.data);
+                }
+            },
+            .addrOf => {
+                if (other.* != .addrOf) {
+                    return false;
+                } else {
+                    return typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
             else => {

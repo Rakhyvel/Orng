@@ -1,7 +1,9 @@
+const _ast = @import("ast.zig");
 const _ir = @import("ir.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 
+const AST = _ast.AST;
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
@@ -13,7 +15,7 @@ const SymbolVersion = _ir.SymbolVersion;
 /// Takes in a file handler and a program structure
 pub fn generate(program: *Program, file: *std.fs.File) !void {
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
-    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n\n", .{ program.uid, program.uid });
+    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n\n", .{ program.uid, program.uid });
 
     try file.writer().print("/* Function Definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
@@ -340,6 +342,25 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
     }
 }
 
+fn printType(_type: *AST, out: *std.fs.File) !void {
+    switch (_type.*) {
+        .identifier => {
+            if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
+                try out.writer().print("int64_t", .{});
+            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
+                try out.writer().print("double", .{});
+            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
+                try out.writer().print("int32_t", .{});
+            }
+        },
+        .addrOf => {
+            try printType(_type.addrOf.expr, out);
+            try out.writer().print("*", .{});
+        },
+        else => {},
+    }
+}
+
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\t", .{});
     if (std.mem.eql(u8, symbver.symbol.name, "$retval")) {
@@ -355,7 +376,9 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
 }
 
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    try out.writer().print("\tint ", .{});
+    try out.writer().print("\t", .{});
+    try printType(symbver.type, out);
+    try out.writer().print(" ", .{});
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
     } else {

@@ -26,7 +26,7 @@
 - [x] `cond` has at least one mapping with a rhs
 - [x] lhs of assignment is lvalue validation tree-walk
 - [x] expect types to be `Type` type
-- [ ] type inferrence, typeof, type checking
+- [x] type inferrence, typeof, type checking
     - [x] typeOf function
         - [x] generic `_type` field for ASTs, typeOf checks if it is null, if it is, constructs the type, sets the field. otherwise returns field
 - [x] immutability checking
@@ -35,7 +35,13 @@
 
 ### Features
 - [ ] addresses
-    - [ ] validate deref lvalue
+    - [x] addr-of operator
+    - [ ] dereference operator
+        - [ ] validate address type
+        - [ ] lvalue
+    - [ ] codegen pointer types
+    - [ ] deref copy
+    - [ ] `&mut` and validation
 - [ ] `defer`
     - [ ] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`
