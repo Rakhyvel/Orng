@@ -10,6 +10,7 @@ const Program = @import("program.zig").Program;
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
 const validate = @import("validate.zig");
+const optimizations = @import("optimizations.zig");
 
 pub const PRINT_TOKENS = false;
 
@@ -122,6 +123,9 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
             return error.symbolError;
         }
         var cfg = try ir.CFG.create(msymb, null, errors, allocator);
+
+        // Optimize
+        try optimizations.optimize(cfg);
 
         // Code generation
         var program = try Program.init(cfg, allocator);

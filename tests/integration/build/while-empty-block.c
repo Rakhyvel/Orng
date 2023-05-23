@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684807658
-#define ORNG_1684807658
+#ifndef ORNG_1684812568
+#define ORNG_1684812568
 
 #include <math.h>
 #include <stdio.h>
@@ -18,14 +18,10 @@ BB0:;
 BB1:;
 	_1 = 0;
 	if (!_1) {
-		goto BB3;
+		goto BB4;
 	} else {
-		goto BB2;
+		goto BB1;
 	}
-BB2:;
-	goto BB1;
-BB3:;
-	goto BB4;
 BB4:;
 	_2 = 25;
 	retval = _2;

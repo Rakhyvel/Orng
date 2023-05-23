@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684807658
-#define ORNG_1684807658
+#ifndef ORNG_1684812568
+#define ORNG_1684812568
 
 #include <math.h>
 #include <stdio.h>
@@ -40,7 +40,7 @@ BB2:;
 	goto BB3;
 BB3:;
 	if (!_3) {
-		goto BB5;
+		goto BB6;
 	} else {
 		goto BB4;
 	}
@@ -52,8 +52,6 @@ _137_x;
 	_8 = _138_i + _7;
 	_138_i = _8;
 	goto BB1;
-BB5:;
-	goto BB6;
 BB6:;
 	retval = _137_x;
 	goto end;
