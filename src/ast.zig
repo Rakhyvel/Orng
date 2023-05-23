@@ -688,7 +688,7 @@ pub const AST = union(enum) {
                 if (other.* != .addrOf) {
                     return false;
                 } else {
-                    return (self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
+                    return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
             else => {

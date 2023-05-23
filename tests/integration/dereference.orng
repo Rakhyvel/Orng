@@ -1,5 +1,7 @@
 // 29
 fn main: ()->Int =
-    let x: Int = 29
+    let mut x: Int = 29
     let y: &Int = &x
+    &x // eliminated
+    y^ // eliminated
     y^

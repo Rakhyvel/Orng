@@ -129,7 +129,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
                     return error.typeError;
                 }
-                try validateAST(ast.dereference.expr, expected.?.addrOf.expr, scope, errors);
+                try validateAST(ast.dereference.expr, try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator), scope, errors);
             } else {
                 try validateAST(ast.dereference.expr, null, scope, errors);
             }
@@ -396,11 +396,19 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             // TODO: After type-classes and iterators
         },
         .block => {
-            for (ast.block.statements.items) |term| {
-                try validateAST(term, null, ast.block.scope.?, errors);
+            var i: usize = 0;
+            if (ast.block.statements.items.len > 1) {
+                while (i < ast.block.statements.items.len - 1) : (i += 1) {
+                    var term = ast.block.statements.items[i];
+                    try validateAST(term, null, ast.block.scope.?, errors);
+                }
             }
             if (ast.block.final) |final| {
                 try validateAST(final, null, ast.block.scope.?, errors);
+            } else if (ast.block.statements.items.len > 1) {
+                try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], expected, ast.block.scope.?, errors);
+            } else if (ast.block.statements.items.len == 1) {
+                try validateAST(ast.block.statements.items[0], null, ast.block.scope.?, errors);
             }
 
             var block_type = try ast.typeof(scope, errors);
