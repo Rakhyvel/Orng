@@ -2,6 +2,7 @@ const errs = @import("errors.zig");
 const span = @import("span.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
+const _string = @import("zig-string/zig-string.zig");
 
 const AST = @import("ast.zig").AST;
 const Error = errs.Error;
@@ -343,7 +344,7 @@ pub const CFG = struct {
     /// The function that this CFG represents
     symbol: *Symbol,
 
-    temp_symbol: *Symbol,
+    number_temps: usize,
 
     return_symbol: *Symbol,
 
@@ -358,7 +359,7 @@ pub const CFG = struct {
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
         retval.leaves = std.ArrayList(*CFG).init(allocator);
         retval.symbol = symbol;
-        retval.temp_symbol = try Symbol.create(symbol.scope, "$temp", span.Span{ .col = 0, .line = 0 }, null, null, .mut, allocator);
+        retval.number_temps = 0;
         retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, null, null, .mut, allocator);
         retval.visited = false;
 
@@ -401,9 +402,17 @@ pub const CFG = struct {
         return retval;
     }
 
+    fn createTempSymbol(self: *CFG, _type: *AST, allocator: std.mem.Allocator) !*Symbol {
+        var buf = try _string.String.init_with_contents(allocator, "t");
+        try buf.writer().print("{}", .{self.number_temps});
+        self.number_temps += 1;
+        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, span.Span{ .line = 0, .col = 0 }, _type, null, .mut, allocator);
+        return temp_symbol;
+    }
+
     fn createTempSymbolVersion(self: *CFG, _type: *AST, allocator: std.mem.Allocator) !*SymbolVersion {
-        var retval = try SymbolVersion.createUnversioned(self.temp_symbol, _type, allocator);
-        retval.makeUnique();
+        var temp_symbol = try self.createTempSymbol(_type, allocator);
+        var retval = try SymbolVersion.createUnversioned(temp_symbol, _type, allocator);
         return retval;
     }
 
@@ -421,7 +430,7 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, OutOfMemory, NotAnLValue, Unimplemented }!?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, OutOfMemory, NotAnLValue, Unimplemented, InvalidRange }!?*SymbolVersion {
         switch (ast.*) {
             // Literals
             .unit => return null,
@@ -1002,9 +1011,7 @@ pub const CFG = struct {
                 ir.in_block = retval;
 
                 if (ir.dest) |dest| {
-                    if (dest.symbol != self.temp_symbol) {
-                        dest.makeUnique();
-                    }
+                    dest.makeUnique();
                 }
 
                 if (ir.kind == .label) {

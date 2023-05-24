@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684812568
-#define ORNG_1684812568
+#ifndef ORNG_1684895194
+#define ORNG_1684895194
 
 #include <math.h>
 #include <stdio.h>
@@ -11,107 +11,107 @@ int test_main();
 
 int test_main() {
 	int retval;
-	uint8_t _0;
+	uint8_t _94_t0;
 	uint8_t _95_found;
-	int64_t _2;
+	int64_t _94_t2;
 	int64_t _96_n;
-	uint8_t _3;
-	int64_t _4;
-	uint8_t _5;
-	int64_t _7;
-	uint8_t _9;
-	int64_t _10;
-	uint8_t _11;
-	uint8_t _12;
-	int64_t _13;
-	int64_t _14;
-	int64_t _15;
-	int64_t _16;
-	int64_t _17;
-BB0:;
-	_0 = 0;
-	_95_found = _0;
-	_2 = 0;
-	_96_n = _2;
+	uint8_t _94_t3;
+	int64_t _94_t4;
+	uint8_t _94_t5;
+	int64_t _94_t7;
+	uint8_t _94_t9;
+	int64_t _94_t10;
+	uint8_t _94_t11;
+	uint8_t _94_t12;
+	int64_t _94_t13;
+	int64_t _94_t14;
+	int64_t _94_t15;
+	int64_t _94_t16;
+	int64_t _94_t17;
+BB0: // 1
+	_94_t0 = 0;
+	_95_found = _94_t0;
+	_94_t2 = 0;
+	_96_n = _94_t2;
 	goto BB1;
-BB1:;
-	_4 = 10;
-	_5 = _96_n < _4;
-	if (!_5) {
+BB1: // 2
+	_94_t4 = 10;
+	_94_t5 = _96_n < _94_t4;
+	if (!_94_t5) {
 		goto BB19;
 	} else {
 		goto BB2;
 	}
-BB2:;
-	_3 = 1;
+BB2: // 1
+	_94_t3 = 1;
 	goto BB3;
-BB3:;
-	if (!_3) {
+BB3: // 2
+	if (!_94_t3) {
 		goto BB15;
 	} else {
 		goto BB4;
 	}
-BB4:;
+BB4: // 1
 	if (!_95_found) {
 		goto BB6;
 	} else {
 		goto BB5;
 	}
-BB5:;
-	_7 = 10;
-	_96_n = _7;
+BB5: // 1
+	_94_t7 = 10;
+	_96_n = _94_t7;
 _96_n;
 	goto BB6;
-BB6:;
-	_10 = 6;
-	_11 = _96_n == _10;
-	if (!_11) {
+BB6: // 2
+	_94_t10 = 6;
+	_94_t11 = _96_n == _94_t10;
+	if (!_94_t11) {
 		goto BB12;
 	} else {
 		goto BB7;
 	}
-BB7:;
-	_9 = 1;
+BB7: // 1
+	_94_t9 = 1;
 	goto BB8;
-BB8:;
-	if (!_9) {
+BB8: // 2
+	if (!_94_t9) {
 		goto BB10;
 	} else {
 		goto BB9;
 	}
-BB9:;
-	_12 = 1;
-	_95_found = _12;
+BB9: // 1
+	_94_t12 = 1;
+	_95_found = _94_t12;
 _95_found;
 	goto BB10;
-BB10:;
+BB10: // 2
 ;
-	_13 = 1;
-	_14 = _96_n + _13;
-	_96_n = _14;
+	_94_t13 = 1;
+	_94_t14 = _96_n + _94_t13;
+	_96_n = _94_t14;
 	goto BB1;
-BB12:;
-	_9 = 0;
+BB12: // 1
+	_94_t9 = 0;
 	goto BB8;
-BB15:;
+BB15: // 1
 	if (!_95_found) {
 		goto BB18;
 	} else {
 		goto BB16;
 	}
-BB16:;
-	_16 = 15;
-	_15 = _16;
+BB16: // 1
+	_94_t16 = 15;
+	_94_t15 = _94_t16;
 	goto BB17;
-BB17:;
-	retval = _15;
+BB17: // 2
+	retval = _94_t15;
 	goto end;
-BB18:;
-	_17 = 4;
-	_15 = _17;
+BB18: // 1
+	_94_t17 = 4;
+	_94_t15 = _94_t17;
 	goto BB17;
-BB19:;
-	_3 = 0;
+BB19: // 1
+	_94_t3 = 0;
 	goto BB3;
 end:
 	return retval;

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684812568
-#define ORNG_1684812568
+#ifndef ORNG_1684895194
+#define ORNG_1684895194
 
 #include <math.h>
 #include <stdio.h>
@@ -11,40 +11,40 @@ int test_main();
 
 int test_main() {
 	int retval;
-	uint8_t _0;
-	uint8_t _1;
-	uint8_t _2;
-	uint8_t _4;
-	uint8_t _3;
-BB0:;
-	_2 = 0;
-	if (!_2) {
+	uint8_t _6_t0;
+	uint8_t _6_t1;
+	uint8_t _6_t2;
+	uint8_t _6_t4;
+	uint8_t _6_t3;
+BB0: // 1
+	_6_t2 = 0;
+	if (!_6_t2) {
 		goto BB6;
 	} else {
 		goto BB1;
 	}
-BB1:;
-	_1 = 1;
+BB1: // 1
+	_6_t1 = 1;
 	goto BB2;
-BB2:;
-	if (!_1) {
+BB2: // 2
+	if (!_6_t1) {
 		goto BB5;
 	} else {
 		goto BB3;
 	}
-BB3:;
-	_0 = 1;
+BB3: // 1
+	_6_t0 = 1;
 	goto BB4;
-BB4:;
-	retval = _0;
+BB4: // 2
+	retval = _6_t0;
 	goto end;
-BB5:;
-	_4 = 1;
-	_0 = _4;
+BB5: // 1
+	_6_t4 = 1;
+	_6_t0 = _6_t4;
 	goto BB4;
-BB6:;
-	_3 = 0;
-	_1 = _3;
+BB6: // 1
+	_6_t3 = 0;
+	_6_t1 = _6_t3;
 	goto BB2;
 end:
 	return retval;

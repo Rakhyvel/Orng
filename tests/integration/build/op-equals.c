@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684812568
-#define ORNG_1684812568
+#ifndef ORNG_1684895194
+#define ORNG_1684895194
 
 #include <math.h>
 #include <stdio.h>
@@ -11,41 +11,41 @@ int test_main();
 
 int test_main() {
 	int retval;
-	int64_t _0;
+	int64_t _45_t0;
 	int64_t _46_x;
-	int64_t _1;
-	int64_t _2;
-	int64_t _3;
-	int64_t _4;
-	int64_t _5;
-	int64_t _6;
-	int64_t _7;
-	int64_t _8;
-	int64_t _9;
-	int64_t _10;
-	int64_t _11;
-	int64_t _12;
-BB0:;
-	_0 = 8;
-	_46_x = _0;
-	_1 = 2;
-	_2 = _46_x + _1;
-	_46_x = _2;
-	_3 = 2;
-	_4 = _46_x - _3;
-	_46_x = _4;
-	_5 = 2;
-	_6 = _46_x * _5;
-	_46_x = _6;
-	_7 = 2;
-	_8 = _46_x / _7;
-	_46_x = _8;
-	_9 = 15;
-	_10 = _46_x % _9;
-	_46_x = _10;
-	_11 = 2;
-	_12 = powf(_46_x, _11);
-	_46_x = _12;
+	int64_t _45_t1;
+	int64_t _45_t2;
+	int64_t _45_t3;
+	int64_t _45_t4;
+	int64_t _45_t5;
+	int64_t _45_t6;
+	int64_t _45_t7;
+	int64_t _45_t8;
+	int64_t _45_t9;
+	int64_t _45_t10;
+	int64_t _45_t11;
+	int64_t _45_t12;
+BB0: // 1
+	_45_t0 = 8;
+	_46_x = _45_t0;
+	_45_t1 = 2;
+	_45_t2 = _46_x + _45_t1;
+	_46_x = _45_t2;
+	_45_t3 = 2;
+	_45_t4 = _46_x - _45_t3;
+	_46_x = _45_t4;
+	_45_t5 = 2;
+	_45_t6 = _46_x * _45_t5;
+	_46_x = _45_t6;
+	_45_t7 = 2;
+	_45_t8 = _46_x / _45_t7;
+	_46_x = _45_t8;
+	_45_t9 = 15;
+	_45_t10 = _46_x % _45_t9;
+	_46_x = _45_t10;
+	_45_t11 = 2;
+	_45_t12 = powf(_46_x, _45_t11);
+	_46_x = _45_t12;
 	retval = _46_x;
 	goto end;
 end:

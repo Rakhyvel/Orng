@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684812568
-#define ORNG_1684812568
+#ifndef ORNG_1684895194
+#define ORNG_1684895194
 
 #include <math.h>
 #include <stdio.h>
@@ -11,52 +11,52 @@ int test_main();
 
 int test_main() {
 	int retval;
-	int64_t _0;
+	int64_t _136_t0;
 	int64_t _137_x;
-	int64_t _2;
+	int64_t _136_t2;
 	int64_t _138_i;
-	uint8_t _3;
-	int64_t _4;
-	uint8_t _5;
-	int64_t _6;
-	int64_t _7;
-	int64_t _8;
-BB0:;
-	_0 = 0;
-	_137_x = _0;
-	_2 = 0;
-	_138_i = _2;
+	uint8_t _136_t3;
+	int64_t _136_t4;
+	uint8_t _136_t5;
+	int64_t _136_t6;
+	int64_t _136_t7;
+	int64_t _136_t8;
+BB0: // 1
+	_136_t0 = 0;
+	_137_x = _136_t0;
+	_136_t2 = 0;
+	_138_i = _136_t2;
 	goto BB1;
-BB1:;
-	_4 = 10;
-	_5 = _138_i <= _4;
-	if (!_5) {
+BB1: // 2
+	_136_t4 = 10;
+	_136_t5 = _138_i <= _136_t4;
+	if (!_136_t5) {
 		goto BB7;
 	} else {
 		goto BB2;
 	}
-BB2:;
-	_3 = 1;
+BB2: // 1
+	_136_t3 = 1;
 	goto BB3;
-BB3:;
-	if (!_3) {
+BB3: // 2
+	if (!_136_t3) {
 		goto BB6;
 	} else {
 		goto BB4;
 	}
-BB4:;
-	_6 = _137_x + _138_i;
-	_137_x = _6;
+BB4: // 1
+	_136_t6 = _137_x + _138_i;
+	_137_x = _136_t6;
 _137_x;
-	_7 = 1;
-	_8 = _138_i + _7;
-	_138_i = _8;
+	_136_t7 = 1;
+	_136_t8 = _138_i + _136_t7;
+	_138_i = _136_t8;
 	goto BB1;
-BB6:;
+BB6: // 1
 	retval = _137_x;
 	goto end;
-BB7:;
-	_3 = 0;
+BB7: // 1
+	_136_t3 = 0;
 	goto BB3;
 end:
 	return retval;

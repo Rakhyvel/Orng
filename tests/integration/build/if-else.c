@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684812568
-#define ORNG_1684812568
+#ifndef ORNG_1684895194
+#define ORNG_1684895194
 
 #include <math.h>
 #include <stdio.h>
@@ -11,35 +11,35 @@ int test_main();
 
 int test_main() {
 	int retval;
-	int64_t _0;
-	int64_t _1;
+	int64_t _60_t0;
+	int64_t _60_t1;
 	int64_t _61_x;
-	uint8_t _2;
-	int64_t _3;
-	int64_t _4;
-	int64_t _5;
-	int64_t _6;
-BB0:;
-	_1 = 4;
-	_61_x = _1;
-	_2 = 0;
-	if (!_2) {
+	uint8_t _60_t2;
+	int64_t _60_t3;
+	int64_t _60_t4;
+	int64_t _60_t5;
+	int64_t _60_t6;
+BB0: // 1
+	_60_t1 = 4;
+	_61_x = _60_t1;
+	_60_t2 = 0;
+	if (!_60_t2) {
 		goto BB3;
 	} else {
 		goto BB1;
 	}
-BB1:;
-	_3 = 3;
-	_4 = _61_x + _3;
-	_0 = _4;
+BB1: // 1
+	_60_t3 = 3;
+	_60_t4 = _61_x + _60_t3;
+	_60_t0 = _60_t4;
 	goto BB2;
-BB2:;
-	retval = _0;
+BB2: // 2
+	retval = _60_t0;
 	goto end;
-BB3:;
-	_5 = 7;
-	_6 = _61_x + _5;
-	_0 = _6;
+BB3: // 1
+	_60_t5 = 7;
+	_60_t6 = _61_x + _60_t5;
+	_60_t0 = _60_t6;
 	goto BB2;
 end:
 	return retval;

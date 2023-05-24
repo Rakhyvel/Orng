@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684812568
-#define ORNG_1684812568
+#ifndef ORNG_1684895194
+#define ORNG_1684895194
 
 #include <math.h>
 #include <stdio.h>
@@ -11,105 +11,105 @@ int test_main();
 
 int test_main() {
 	int retval;
-	int64_t _0;
-	int64_t _1;
+	int64_t _20_t0;
+	int64_t _20_t1;
 	int64_t _21_x;
-	uint8_t _2;
-	int64_t _3;
-	int64_t _4;
-	int64_t _5;
-	uint8_t _6;
-	int64_t _17;
-	uint8_t _7;
-	int64_t _8;
-	int64_t _9;
-	int64_t _10;
-	uint8_t _11;
-	int64_t _18;
-	uint8_t _12;
-	int64_t _13;
-	int64_t _14;
-	int64_t _15;
-	uint8_t _16;
-	int64_t _19;
-BB0:;
-	_1 = 4;
-	_21_x = _1;
+	uint8_t _20_t2;
+	int64_t _20_t3;
+	int64_t _20_t4;
+	int64_t _20_t5;
+	uint8_t _20_t6;
+	int64_t _20_t17;
+	uint8_t _20_t7;
+	int64_t _20_t8;
+	int64_t _20_t9;
+	int64_t _20_t10;
+	uint8_t _20_t11;
+	int64_t _20_t18;
+	uint8_t _20_t12;
+	int64_t _20_t13;
+	int64_t _20_t14;
+	int64_t _20_t15;
+	uint8_t _20_t16;
+	int64_t _20_t19;
+BB0: // 1
+	_20_t1 = 4;
+	_21_x = _20_t1;
 	goto BB1;
-BB1:;
-	_3 = 4;
-	_4 = _21_x - _3;
-	_5 = 1;
-	_6 = _4 == _5;
-	if (!_6) {
+BB1: // 1
+	_20_t3 = 4;
+	_20_t4 = _21_x - _20_t3;
+	_20_t5 = 1;
+	_20_t6 = _20_t4 == _20_t5;
+	if (!_20_t6) {
 		goto BB18;
 	} else {
 		goto BB2;
 	}
-BB2:;
-	_2 = 1;
+BB2: // 1
+	_20_t2 = 1;
 	goto BB3;
-BB3:;
-	if (!_2) {
+BB3: // 2
+	if (!_20_t2) {
 		goto BB7;
 	} else {
 		goto BB5;
 	}
-BB5:;
-	_17 = 10;
-	_0 = _17;
+BB5: // 1
+	_20_t17 = 10;
+	_20_t0 = _20_t17;
 	goto BB6;
-BB6:;
-	retval = _0;
+BB6: // 3
+	retval = _20_t0;
 	goto end;
-BB7:;
-	_8 = 3;
-	_9 = _21_x - _8;
-	_10 = 1;
-	_11 = _9 == _10;
-	if (!_11) {
+BB7: // 1
+	_20_t8 = 3;
+	_20_t9 = _21_x - _20_t8;
+	_20_t10 = 1;
+	_20_t11 = _20_t9 == _20_t10;
+	if (!_20_t11) {
 		goto BB17;
 	} else {
 		goto BB8;
 	}
-BB8:;
-	_7 = 1;
+BB8: // 1
+	_20_t7 = 1;
 	goto BB9;
-BB9:;
-	if (!_7) {
+BB9: // 2
+	if (!_20_t7) {
 		goto BB12;
 	} else {
 		goto BB11;
 	}
-BB11:;
-	_18 = 23;
-	_0 = _18;
+BB11: // 1
+	_20_t18 = 23;
+	_20_t0 = _20_t18;
 	goto BB6;
-BB12:;
-	_13 = 2;
-	_14 = _21_x - _13;
-	_15 = 1;
-	_16 = _14 == _15;
-	if (!_16) {
+BB12: // 1
+	_20_t13 = 2;
+	_20_t14 = _21_x - _20_t13;
+	_20_t15 = 1;
+	_20_t16 = _20_t14 == _20_t15;
+	if (!_20_t16) {
 		goto BB16;
 	} else {
 		goto BB13;
 	}
-BB13:;
-	_12 = 1;
+BB13: // 1
+	_20_t12 = 1;
 	goto BB15;
-BB15:;
-	_19 = 10;
-	_0 = _19;
+BB15: // 2
+	_20_t19 = 10;
+	_20_t0 = _20_t19;
 	goto BB6;
-BB16:;
-	_12 = 0;
+BB16: // 1
+	_20_t12 = 0;
 	goto BB15;
-BB17:;
-	_7 = 0;
+BB17: // 1
+	_20_t7 = 0;
 	goto BB9;
-BB18:;
-	_2 = 0;
+BB18: // 1
+	_20_t2 = 0;
 	goto BB3;
 end:
 	return retval;

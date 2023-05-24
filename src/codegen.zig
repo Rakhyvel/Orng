@@ -96,7 +96,7 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
     }
     bb.visited = true;
 
-    try out.writer().print("BB{}:;\n", .{bb.uid});
+    try out.writer().print("BB{}: // {}\n", .{ bb.uid, bb.number_predecessors });
     var maybe_ir = bb.ir_head;
     while (maybe_ir) |ir| : (maybe_ir = ir.next) {
         try generateIR(ir, out);
