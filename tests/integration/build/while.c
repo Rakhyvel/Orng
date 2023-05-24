@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684895194
-#define ORNG_1684895194
+#ifndef ORNG_1684895482
+#define ORNG_1684895482
 
 #include <math.h>
 #include <stdio.h>
@@ -15,12 +15,13 @@ int test_main() {
 	int64_t _137_x;
 	int64_t _136_t2;
 	int64_t _138_i;
-	uint8_t _136_t3;
 	int64_t _136_t4;
 	uint8_t _136_t5;
+	uint8_t _136_t3;
 	int64_t _136_t6;
 	int64_t _136_t7;
 	int64_t _136_t8;
+	int64_t _0;
 BB0: // 1
 	_136_t0 = 0;
 	_137_x = _136_t0;

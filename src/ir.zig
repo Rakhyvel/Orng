@@ -124,7 +124,6 @@ pub const IRKind = enum {
     select,
     selectCopy,
     cast,
-    phony,
 
     // Control-flow
     label,
@@ -192,12 +191,6 @@ pub const IR = struct {
     fn createString(dest: *SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadString, dest, null, null, allocator);
         retval.data = IRData{ .string = string };
-        return retval;
-    }
-
-    fn createPhony(dest: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.phony, dest, null, null, allocator);
-        retval.data = IRData{ .irList = std.ArrayList(*IR).init(allocator) };
         return retval;
     }
 
@@ -554,9 +547,6 @@ pub const CFG = struct {
             ._or => {
                 // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
-                var phony = try IR.createPhony(symbver, allocator);
-                symbver.def = phony;
-                self.appendInstruction(phony);
 
                 // Labels used
                 var else_label = try IR.createLabel(allocator);
@@ -569,7 +559,6 @@ pub const CFG = struct {
 
                 // lhs was true, store `true` in symbver
                 var load_true = try IR.createInt(symbver, 1, allocator);
-                try phony.data.irList.append(load_true);
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
@@ -578,7 +567,6 @@ pub const CFG = struct {
                 var rhs = try self.flattenAST(scope, ast._or.rhs, return_label, break_label, continue_label, false, errors, allocator);
                 std.debug.assert(rhs != null);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
-                try phony.data.irList.append(copy_right);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -587,9 +575,6 @@ pub const CFG = struct {
             ._and => {
                 // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
-                var phony = try IR.createPhony(symbver, allocator);
-                symbver.def = phony;
-                self.appendInstruction(phony);
 
                 // Labels used
                 var else_label = try IR.createLabel(allocator);
@@ -604,14 +589,12 @@ pub const CFG = struct {
                 var rhs = try self.flattenAST(scope, ast._and.rhs, return_label, break_label, continue_label, false, errors, allocator);
                 std.debug.assert(rhs != null);
                 var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
-                try phony.data.irList.append(copy_right);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 var load_false = try IR.createInt(symbver, 0, allocator);
-                try phony.data.irList.append(load_false);
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -742,9 +725,6 @@ pub const CFG = struct {
 
                 // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
-                var phony = try IR.createPhony(symbver, allocator);
-                symbver.def = phony;
-                self.appendInstruction(phony);
 
                 var end_label = try IR.createLabel(allocator);
                 var else_label = try IR.createLabel(allocator);
@@ -785,13 +765,11 @@ pub const CFG = struct {
                 }
                 // all tests passed, store `true` in symbver
                 var load_true = try IR.createInt(symbver, 1, allocator);
-                try phony.data.irList.append(load_true);
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 // at least one test failed, store `false` in symbver
                 self.appendInstruction(else_label);
                 var load_false = try IR.createInt(symbver, 0, allocator);
-                try phony.data.irList.append(load_false);
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -802,9 +780,6 @@ pub const CFG = struct {
             ._if => {
                 // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
-                var phony = try IR.createPhony(symbver, allocator);
-                symbver.def = phony;
-                self.appendInstruction(phony);
 
                 // If there's a let, then do it, dumby!
                 if (ast._if.let) |let| {
@@ -823,7 +798,6 @@ pub const CFG = struct {
                 // lhs was true, recurse to rhs, store in symbver
                 if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |blockSymbver| {
                     var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
-                    try phony.data.irList.append(blockCopy);
                     self.appendInstruction(blockCopy);
                 }
                 self.appendInstruction(try IR.createJump(end_label, allocator));
@@ -833,7 +807,6 @@ pub const CFG = struct {
                 if (ast._if.elseBlock) |elseBlock| {
                     if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
                         var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
-                        try phony.data.irList.append(elseCopy);
                         self.appendInstruction(elseCopy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, allocator));
@@ -844,9 +817,6 @@ pub const CFG = struct {
             .cond => {
                 // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
-                var phony = try IR.createPhony(symbver, allocator);
-                symbver.def = phony;
-                self.appendInstruction(phony);
 
                 // If there's a let, then do it, dumby!
                 if (ast.cond.let) |let| {
@@ -896,7 +866,6 @@ pub const CFG = struct {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
                         if (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)) |rhsSymbver| {
                             var rhsCopy = try IR.create(.copy, symbver, rhsSymbver, null, allocator);
-                            try phony.data.irList.append(rhsCopy);
                             self.appendInstruction(rhsCopy);
                         }
                         self.appendInstruction(try IR.createJump(end_label, allocator));
@@ -910,9 +879,6 @@ pub const CFG = struct {
             ._while => {
                 // Create the result symbol and IR
                 var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
-                var phony = try IR.createPhony(symbver, allocator);
-                symbver.def = phony;
-                self.appendInstruction(phony);
 
                 // Labels used
                 var cond_label = try IR.createLabel(allocator);
@@ -933,7 +899,6 @@ pub const CFG = struct {
                 // lhs was true, recurse to rhs, store in symbver
                 if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |blockSymbver| {
                     var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
-                    try phony.data.irList.append(blockCopy);
                     self.appendInstruction(blockCopy);
                 }
 
@@ -949,7 +914,6 @@ pub const CFG = struct {
                 if (ast._while.elseBlock) |elseBlock| {
                     if (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
                         var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
-                        try phony.data.irList.append(elseCopy);
                         self.appendInstruction(elseCopy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, allocator));

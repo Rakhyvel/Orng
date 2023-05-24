@@ -51,7 +51,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
-                if (dest.def != ir or (dest.symbol.name[0] != '$' and dest.symbol.decld)) {
+                if (dest.symbol.name[0] != '$' and dest.symbol.decld) {
                     continue;
                 }
                 try printVarDef(dest, out);
@@ -285,7 +285,6 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src2.?, out);
             try out.writer().print(");\n", .{});
         },
-        .phony => {},
 
         // Control-flow
         .label,
