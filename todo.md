@@ -14,6 +14,7 @@
 - [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
 - [ ] Comments on each function and struct field
+- [ ] Change some while loops to enhanced for dyadic loops
 - [~] Find some code not covered and write an integration test for it
 
 ### Pipeline
@@ -42,6 +43,14 @@
     - [x] codegen pointer types
     - [x] deref copy
     - [x] `&mut` and validation (also find a way to validate assigning to mut symbols, though that's technically different)
+- [ ] optimization
+    - [x] version symbols
+    - [ ] dataflow analysis, register allocation
+    - [ ] Constant fold (AST & IR)
+    - [ ] Dead code elimination (IR)
+    - [ ] Peephole (LIR/asm/C)
+    - [ ] Partial redundancy elimination
+    - [ ] Unrolling (AST -> IR)
 - [ ] `defer`
     - [ ] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`
@@ -91,15 +100,6 @@
     - `errdefer`
     - inferred errors, error coerce
 - [ ] unreachable
-- [ ] optimization
-    - [ ] Common sub expression elimination (AST)
-    - [ ] Code motion (AST)
-    - [ ] Unrolling (AST -> IR)
-    - [ ] Constant fold (AST & IR)
-    - [ ] Dead code elimination (IR)
-        - [ ] Use-def analysis
-    - [ ] Inlining (CFG)
-    - [ ] Peephole (LIR/asm/C)
 - [ ] pattern matching
     - [ ] product destructuring
     - [ ] sum-type destructuring
@@ -110,6 +110,8 @@
         > `let x', x' = (3, 4) // maybe this causes a panic, like an assert`
         > should likely be shallow equality, otherwise that gets tricky...
     - [ ] `match` statement (rename from case)
+- [ ] new optimizations
+    - [ ] Inlining (CFG)
 - [ ] function programming stuff
     - [ ] composition
     - [ ] `|>` operator

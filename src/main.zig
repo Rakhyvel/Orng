@@ -125,7 +125,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         var cfg = try ir.CFG.create(msymb, null, errors, allocator);
 
         // Optimize
-        try optimizations.optimize(cfg);
+        try optimizations.optimize(cfg, allocator);
 
         // Code generation
         var program = try Program.init(cfg, allocator);

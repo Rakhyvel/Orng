@@ -5,15 +5,16 @@ const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
 
-pub fn optimize(cfg: *CFG) !void {
-    while (bbOptimizations(cfg)) {}
+pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
+    while (try bbOptimizations(cfg, allocator)) {}
     cfg.clearVisitedBBs();
 }
 
-fn bbOptimizations(cfg: *CFG) bool {
+fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
     var retval: bool = false;
 
     countPredecessors(cfg);
+    try cfg.calculatePhiParamsAndArgs(allocator);
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
