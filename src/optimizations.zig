@@ -27,14 +27,40 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         // Adopt basic blocks with only one incoming block
         if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
             var end: *IR = bb.ir_head.?.getTail();
-            _ = end;
 
             // Join next block at the end of this block
+            for (bb.next_arguments.items) |argument| {
+                if (argument.findSymbolVersionSet(&bb.next.?.parameters)) |parameter| {
+                    if (parameter.version != argument.version) {
+                        end = bb.appendInstruction(try IR.create(.copy, parameter, argument, null, allocator));
+                        parameter.def = end;
+                        parameter.makeUnique();
+                    }
+                }
+            }
+            // Join next block at the end of this block
+            end.next = bb.next.?.ir_head;
+            if (bb.next.?.ir_head != null) {
+                bb.next.?.ir_head.?.prev = end;
+            }
 
             // Copy basic block end conditions
+            bb.has_branch = bb.next.?.has_branch;
+            bb.branch = bb.next.?.branch;
+            bb.condition = bb.next.?.condition;
+            bb.next_arguments = bb.next.?.next_arguments;
+            bb.branch_arguments = bb.next.?.branch_arguments;
+
+            var maybe_child: ?*IR = bb.next.?.ir_head;
+            while (maybe_child) |child| : (maybe_child = child.next) {
+                child.in_block = bb;
+            }
 
             // Remove the next block
-            std.debug.print("viable!\n", .{});
+            removeBasicBlock(cfg, bb.next.?, false);
+            bb.next = bb.next.?.next;
+            retval = true;
+            break;
         }
 
         // Remove jump chains

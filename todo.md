@@ -45,9 +45,9 @@
     - [x] `&mut` and validation (also find a way to validate assigning to mut symbols, though that's technically different)
 - [ ] optimization
     - [x] version symbols
-    - [ ] dataflow analysis, register allocation
     - [ ] Constant fold (AST & IR)
     - [ ] Dead code elimination (IR)
+    - [ ] dataflow analysis, register allocation
     - [ ] Peephole (LIR/asm/C)
     - [ ] Partial redundancy elimination
     - [ ] Unrolling (AST -> IR)

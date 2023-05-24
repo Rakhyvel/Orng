@@ -29,7 +29,7 @@ pub const SymbolVersion = struct {
         return retval;
     }
 
-    fn makeUnique(self: *SymbolVersion) void {
+    pub fn makeUnique(self: *SymbolVersion) void {
         if (self.version == null) {
             self.version = self.symbol.versions;
             self.symbol.versions += 1;
@@ -58,7 +58,7 @@ pub const SymbolVersion = struct {
         return retval;
     }
 
-    fn findSymbolVersionSet(self: *SymbolVersion, set: *std.ArrayList(*SymbolVersion)) ?*SymbolVersion {
+    pub fn findSymbolVersionSet(self: *SymbolVersion, set: *std.ArrayList(*SymbolVersion)) ?*SymbolVersion {
         for (set.items) |symbver| {
             if (symbver.symbol == self.symbol) {
                 return symbver;
@@ -161,7 +161,7 @@ pub const IR = struct {
 
     in_block: ?*BasicBlock,
 
-    fn create(kind: IRKind, dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, allocator: std.mem.Allocator) !*IR {
+    pub fn create(kind: IRKind, dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, allocator: std.mem.Allocator) !*IR {
         var retval = try allocator.create(IR);
         retval.kind = kind;
         retval.dest = dest;
@@ -320,6 +320,18 @@ pub const BasicBlock = struct {
             }
         }
         std.debug.print(")\n", .{});
+    }
+
+    pub fn appendInstruction(self: *BasicBlock, ir: *IR) *IR {
+        if (self.ir_head == null) {
+            self.ir_head = ir;
+        } else {
+            ir.in_block = self;
+            var elem = self.ir_head.?.getTail();
+            elem.next = ir;
+            ir.prev = elem;
+        }
+        return ir;
     }
 };
 
@@ -1125,7 +1137,7 @@ pub const CFG = struct {
         self.clearVisitedBBs();
     }
 
-    pub fn childrenArgPropagation(self: *CFG, bb: *BasicBlock, allocator: std.mem.Allocator) !bool {
+    fn childrenArgPropagation(self: *CFG, bb: *BasicBlock, allocator: std.mem.Allocator) !bool {
         var retval: bool = false;
         if (bb.visited) {
             return false;
