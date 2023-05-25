@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684898822
-#define ORNG_1684898822
+#ifndef ORNG_1684986347
+#define ORNG_1684986347
 
 #include <math.h>
 #include <stdio.h>
@@ -15,7 +15,7 @@ int test_main() {
 	int64_t _0;
 BB0: // 1
 	_38_t0 = 2748;
-	retval = _38_t0;
+	retval = 2748;
 	goto end;
 end:
 	return retval;

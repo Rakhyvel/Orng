@@ -6,7 +6,10 @@ const CFG = _ir.CFG;
 const IR = _ir.IR;
 
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
-    while (try bbOptimizations(cfg, allocator)) {}
+    while (try propagate(cfg) or try bbOptimizations(cfg, allocator)) {
+        cfg.block_graph_head.?.pprint();
+        std.debug.print("\n", .{});
+    }
     cfg.clearVisitedBBs();
 }
 
@@ -61,6 +64,20 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             bb.next = bb.next.?.next;
             retval = true;
             break;
+        }
+
+        // Remove constant true/false branches
+        if (bb.has_branch and bb.condition.?.def == null) {
+            std.debug.print("BB{}\n", .{bb.uid});
+        }
+        if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .loadInt) {
+            bb.has_branch = false;
+            if (bb.condition.?.def.?.data.int == 0) {
+                bb.next = bb.branch; // TODO: Swap block args?
+                bb.next_arguments = bb.branch_arguments;
+            }
+            std.debug.print("constant branch\n", .{});
+            retval = true;
         }
 
         // Remove jump chains
@@ -128,4 +145,99 @@ fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
         }
     }
     _ = cfg.basic_blocks.orderedRemove(i);
+}
+
+fn propagate(cfg: *CFG) !bool {
+    var retval = false;
+    for (cfg.basic_blocks.items) |bb| {
+        var maybe_def = bb.ir_head;
+        while (maybe_def) |def| : (maybe_def = def.next) {
+            switch (def.kind) {
+                .copy => {
+                    // Self-copy elimination
+                    if (def.dest.?.symbol == def.src1.?.symbol) {
+                        std.debug.print("SELF COPY!\n", .{});
+                        break;
+                    }
+                    // Integer constant propagation
+                    else if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = def.src1.?.def.?.data;
+                        def.src1 = null;
+                        def.src2 = null;
+                        def.dest.?.lvalue = false;
+                        retval = true;
+                    }
+                    // Float constant propagation
+                    else if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadFloat;
+                        def.data = def.src1.?.def.?.data;
+                        def.src1 = null;
+                        def.src2 = null;
+                        def.dest.?.lvalue = false;
+                        retval = true;
+                    }
+                    // Copy propagation
+                    else if (def.src1.?.def != null and def.src1.?.def.?.kind == .copy and def.src1 != def.src1.?.def.?.src1.?) {
+                        def.src1 = def.src1.?.def.?.src1;
+                        retval = true;
+                    }
+                },
+
+                .not => {
+                    // Known int value
+                    if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int == 0) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
+                .negate => {
+                    // Known int value
+                    if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = -def.src1.?.def.?.data.int };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                    // Known float value
+                    else if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadFloat;
+                        def.data = _ir.IRData{ .float = -def.src1.?.def.?.data.float };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
+                .equal => {
+                    // Known int, int value
+                    if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadInt and def.src2.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int == def.src2.?.def.?.data.int) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                        std.debug.print("SELF COPY!\n", .{});
+                    }
+                    // Known float, float value
+                    else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.float == def.src2.?.def.?.data.float) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                        std.debug.print("SELF COPY!\n", .{});
+                    }
+                },
+
+                else => {},
+            }
+        }
+    }
+    return retval;
 }

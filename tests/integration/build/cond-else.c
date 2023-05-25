@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684898822
-#define ORNG_1684898822
+#ifndef ORNG_1684986347
+#define ORNG_1684986347
 
 #include <math.h>
 #include <stdio.h>
@@ -32,16 +32,8 @@ int test_main() {
 BB1: // 1
 	_107_t2 = 0;
 	_107_t3 = 1;
-	_107_t4 = _107_t2 == _107_t3;
-	if (!_107_t4) {
-		goto BB21;
-	} else {
-		goto BB2;
-	}
-BB2: // 1
-	_107_t1 = 1;
-	goto BB3;
-BB3: // 2
+	_107_t4 = 0;
+	_107_t1 = 0;
 	if (!_107_t1) {
 		goto BB7;
 	} else {
@@ -49,7 +41,7 @@ BB3: // 2
 	}
 BB5: // 1
 	_107_t13 = 5;
-	_107_t0 = _107_t13;
+	_107_t0 = 5;
 	goto BB6;
 BB6: // 4
 	retval = _107_t0;
@@ -57,16 +49,8 @@ BB6: // 4
 BB7: // 1
 	_107_t6 = 0;
 	_107_t7 = 1;
-	_107_t8 = _107_t6 == _107_t7;
-	if (!_107_t8) {
-		goto BB20;
-	} else {
-		goto BB8;
-	}
-BB8: // 1
-	_107_t5 = 1;
-	goto BB9;
-BB9: // 2
+	_107_t8 = 0;
+	_107_t5 = 0;
 	if (!_107_t5) {
 		goto BB12;
 	} else {
@@ -74,21 +58,13 @@ BB9: // 2
 	}
 BB11: // 1
 	_107_t14 = 10;
-	_107_t0 = _107_t14;
+	_107_t0 = 10;
 	goto BB6;
 BB12: // 1
 	_107_t10 = 0;
 	_107_t11 = 1;
-	_107_t12 = _107_t10 == _107_t11;
-	if (!_107_t12) {
-		goto BB19;
-	} else {
-		goto BB13;
-	}
-BB13: // 1
-	_107_t9 = 1;
-	goto BB14;
-BB14: // 2
+	_107_t12 = 0;
+	_107_t9 = 0;
 	if (!_107_t9) {
 		goto BB18;
 	} else {
@@ -96,21 +72,12 @@ BB14: // 2
 	}
 BB16: // 1
 	_107_t15 = 25;
-	_107_t0 = _107_t15;
+	_107_t0 = 25;
 	goto BB6;
 BB18: // 1
 	_107_t16 = 10;
-	_107_t0 = _107_t16;
+	_107_t0 = 10;
 	goto BB6;
-BB19: // 1
-	_107_t9 = 0;
-	goto BB14;
-BB20: // 1
-	_107_t5 = 0;
-	goto BB9;
-BB21: // 1
-	_107_t1 = 0;
-	goto BB3;
 end:
 	return retval;
 }

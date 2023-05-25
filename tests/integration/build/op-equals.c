@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684898822
-#define ORNG_1684898822
+#ifndef ORNG_1684986347
+#define ORNG_1684986347
 
 #include <math.h>
 #include <stdio.h>
@@ -28,7 +28,7 @@ int test_main() {
 	int64_t _0;
 BB0: // 1
 	_45_t0 = 8;
-	_46_x = _45_t0;
+	_46_x = 8;
 	_45_t1 = 2;
 	_45_t2 = _46_x + _45_t1;
 	_46_x = _45_t2;
@@ -47,7 +47,7 @@ BB0: // 1
 	_45_t11 = 2;
 	_45_t12 = powf(_46_x, _45_t11);
 	_46_x = _45_t12;
-	retval = _46_x;
+	retval = _45_t12;
 	goto end;
 end:
 	return retval;

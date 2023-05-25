@@ -89,6 +89,7 @@ pub const IRKind = enum {
     loadArrayLiteral, // TODO: ?
     loadDefaultArray, // TODO: ?
     loadString, // TODO: ?
+    decl,
 
     // Monadic instructions
     copy,
@@ -137,7 +138,7 @@ pub const IRKind = enum {
     throw,
 };
 
-const IRData = union(enum) {
+pub const IRData = union(enum) {
     branch: ?*IR,
     int: i128,
     float: f64,
@@ -145,6 +146,7 @@ const IRData = union(enum) {
     symbol: *Symbol,
     irList: std.ArrayList(*IR),
     symbverList: std.ArrayList(*SymbolVersion),
+
     none,
 };
 
@@ -173,6 +175,11 @@ pub const IR = struct {
         retval.next = null;
         retval.data = IRData.none;
         ir_uid += 1;
+        return retval;
+    }
+
+    fn createDecl(dest: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.decl, dest, null, null, allocator);
         return retval;
     }
 
@@ -285,6 +292,7 @@ pub const BasicBlock = struct {
         self.visited = true;
 
         std.debug.print("Basic Block BB{}", .{self.uid});
+        BasicBlock.printSymbverList(&self.parameters);
         var maybe_ir = self.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.pprint();
@@ -292,14 +300,18 @@ pub const BasicBlock = struct {
         if (self.has_branch) {
             if (self.branch) |branch| {
                 std.debug.print("if (!{s}_{?}) goto {}", .{ self.condition.?.symbol.name, self.condition.?.version, branch.uid });
+                BasicBlock.printSymbverList(&self.branch_arguments);
             } else {
                 std.debug.print("if (!{s}_{?}) goto <END>", .{ self.condition.?.symbol.name, self.condition.?.version });
+                BasicBlock.printSymbverList(&self.branch_arguments);
             }
         }
         if (self.next) |next| {
             std.debug.print("goto {}", .{next.uid});
+            BasicBlock.printSymbverList(&self.next_arguments);
         } else {
             std.debug.print("goto <END>", .{});
+            BasicBlock.printSymbverList(&self.next_arguments);
         }
         if (self.branch) |branch| {
             branch.pprint();
@@ -595,7 +607,8 @@ pub const CFG = struct {
             },
             ._or => {
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
                 var else_label = try IR.createLabel(allocator);
@@ -607,7 +620,9 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // lhs was true, store `true` in symbver
-                var load_true = try IR.createInt(symbver, 1, allocator);
+                var load_true_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                var load_true = try IR.createInt(load_true_symbver, 1, allocator);
+                load_true_symbver.def = load_true;
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
@@ -615,7 +630,9 @@ pub const CFG = struct {
                 self.appendInstruction(else_label);
                 var rhs = try self.flattenAST(scope, ast._or.rhs, return_label, break_label, continue_label, false, errors, allocator);
                 std.debug.assert(rhs != null);
-                var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
+                var copy_right_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                var copy_right = try IR.create(.copy, copy_right_symbver, rhs, null, allocator);
+                copy_right_symbver.def = copy_right;
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -1117,7 +1134,7 @@ pub const CFG = struct {
                 }
             }
             // Do the same for the condition of a branch, if there is one
-            if (bb.has_branch and bb.condition != null and bb.condition.?.version == null) {
+            if (bb.has_branch and bb.condition != null) {
                 bb.condition = bb.condition.?.findVersion(bb.ir_head, null);
                 if (bb.condition.?.version == null) {
                     _ = try bb.condition.?.putSymbolVersionSet(&bb.parameters);

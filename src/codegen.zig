@@ -51,7 +51,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
-                if (dest.symbol.name[0] != '$' and dest.symbol.decld) {
+                if (dest.symbol.decld or dest.type.* == .unit) {
                     continue;
                 }
                 try printVarDef(dest, out);
@@ -139,6 +139,8 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
 
 fn generateIR(ir: *IR, out: *std.fs.File) !void {
     if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
+        return;
+    } else if (ir.dest != null and ir.dest.?.type.* == .unit) {
         return;
     }
 
@@ -290,6 +292,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .label,
         .jump,
         .branchIfFalse,
+        .decl,
         => {},
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
@@ -365,9 +368,6 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
 }
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    if (symbver.type.* == .unit) {
-        return;
-    }
     try out.writer().print("\t", .{});
     if (std.mem.eql(u8, symbver.symbol.name, "$retval")) {
         try out.writer().print("retval = ", .{});
@@ -382,9 +382,6 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
 }
 
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    if (symbver.type.* == .unit) {
-        return;
-    }
     try out.writer().print("\t", .{});
     try printType(symbver.type, out);
     try out.writer().print(" ", .{});
@@ -421,9 +418,6 @@ fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
 }
 
 fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    if (symbver.type.* == .unit) {
-        return;
-    }
     if (symbver.symbol.name[0] != '$') {
         try printPath(symbver.symbol, out);
     } else {

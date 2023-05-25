@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1684898822
-#define ORNG_1684898822
+#ifndef ORNG_1684986347
+#define ORNG_1684986347
 
 #include <math.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@ BB0: // 1
 	_2_t1 = 7;
 	_2_t2 = _2_t0 + _2_t1;
 	_3_x = _2_t2;
-	retval = _3_x;
+	retval = _2_t2;
 	goto end;
 end:
 	return retval;

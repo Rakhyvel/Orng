@@ -46,6 +46,7 @@
 - [ ] optimization
     - [x] version symbols
     - [ ] Constant fold (AST & IR)
+        > For what were 'phony' symbols in Old Orange, create a default def
     - [ ] Dead code elimination (IR)
     - [ ] dataflow analysis, register allocation
     - [ ] Peephole (LIR/asm/C)
