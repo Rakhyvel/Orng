@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685229661
-#define ORNG_1685229661
+#ifndef ORNG_1685230411
+#define ORNG_1685230411
 
 #include <math.h>
 #include <stdio.h>
@@ -26,9 +26,9 @@ int test_main() {
 	int64_t _94_t17;
 	int64_t _94_$retval;
 BB0: // 1
-// Versions: 1
+// Versions: 14
 	_95_found = 0;
-// Versions: 4
+// Versions: 15
 	_96_n = 0;
 	goto BB1;
 BB1: // 2
@@ -36,7 +36,7 @@ BB1: // 2
 	_94_t4 = _96_n;
 // Versions: 1
 	_94_t5 = 10;
-// Versions: 2
+// Versions: 5
 	_94_t3 = _94_t4 < _94_t5;
 	if (!_94_t3) {
 		goto BB19;
@@ -44,7 +44,7 @@ BB1: // 2
 		goto BB2;
 	}
 BB2: // 1
-// Versions: 2
+// Versions: 5
 	_94_t3 = 1;
 	goto BB3;
 BB3: // 2
@@ -62,7 +62,7 @@ BB4: // 1
 		goto BB5;
 	}
 BB5: // 1
-// Versions: 4
+// Versions: 15
 	_96_n = 100;
 	goto BB6;
 BB6: // 2
@@ -70,7 +70,7 @@ BB6: // 2
 	_94_t11 = _96_n;
 // Versions: 1
 	_94_t12 = 6;
-// Versions: 2
+// Versions: 5
 	_94_t10 = _94_t11 == _94_t12;
 	if (!_94_t10) {
 		goto BB12;
@@ -78,7 +78,7 @@ BB6: // 2
 		goto BB7;
 	}
 BB7: // 1
-// Versions: 2
+// Versions: 5
 	_94_t10 = 1;
 	goto BB8;
 BB8: // 2
@@ -88,7 +88,7 @@ BB8: // 2
 		goto BB9;
 	}
 BB9: // 1
-// Versions: 1
+// Versions: 14
 	_95_found = 1;
 	goto BB10;
 BB10: // 2
@@ -98,11 +98,11 @@ BB10: // 2
 	_94_t15 = 1;
 // Versions: 1
 	_94_t16 = _94_t14 + _94_t15;
-// Versions: 4
+// Versions: 15
 	_96_n = _94_t16;
 	goto BB1;
 BB12: // 1
-// Versions: 2
+// Versions: 5
 	_94_t10 = 0;
 	goto BB8;
 BB15: // 1
@@ -114,7 +114,7 @@ BB15: // 1
 		goto BB16;
 	}
 BB16: // 1
-// Versions: 2
+// Versions: 4
 	_94_t17 = 15;
 	goto BB17;
 BB17: // 2
@@ -122,11 +122,11 @@ BB17: // 2
 	_94_$retval = _94_t17;
 	goto end;
 BB18: // 1
-// Versions: 2
+// Versions: 4
 	_94_t17 = 4;
 	goto BB17;
 BB19: // 1
-// Versions: 2
+// Versions: 5
 	_94_t3 = 0;
 	goto BB3;
 end:

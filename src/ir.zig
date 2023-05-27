@@ -112,8 +112,8 @@ pub const IRKind = enum {
     lesser,
     greaterEqual,
     lesserEqual,
-    leftShift,
-    rightShift,
+    // leftShift,
+    // rightShift,
     add,
     sub,
     mult,
@@ -1131,8 +1131,7 @@ pub const CFG = struct {
                 if (ir.src1 != null) {
                     ir.src1 = ir.src1.?.findVersion(bb.ir_head, ir);
                     if (ir.src1.?.version == null) {
-                        var put = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
-                        std.debug.print("{s} {}\n", .{ ir.src1.?.symbol.name, put });
+                        _ = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
                     }
                 }
                 // If src2 version is null, and is not defined in this BB, request it as a parameter
