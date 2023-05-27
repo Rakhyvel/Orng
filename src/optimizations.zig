@@ -7,8 +7,7 @@ const IR = _ir.IR;
 
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     while (try propagate(cfg) or try bbOptimizations(cfg, allocator)) {
-        cfg.block_graph_head.?.pprint();
-        std.debug.print("\n", .{});
+        // cfg.block_graph_head.?.pprint();
     }
     cfg.clearVisitedBBs();
 }
@@ -67,16 +66,12 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         }
 
         // Remove constant true/false branches
-        if (bb.has_branch and bb.condition.?.def == null) {
-            std.debug.print("BB{}\n", .{bb.uid});
-        }
         if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .loadInt) {
             bb.has_branch = false;
             if (bb.condition.?.def.?.data.int == 0) {
                 bb.next = bb.branch; // TODO: Swap block args?
                 bb.next_arguments = bb.branch_arguments;
             }
-            std.debug.print("constant branch\n", .{});
             retval = true;
         }
 
@@ -222,7 +217,6 @@ fn propagate(cfg: *CFG) !bool {
                         def.src1 = null;
                         def.src2 = null;
                         retval = true;
-                        std.debug.print("SELF COPY!\n", .{});
                     }
                     // Known float, float value
                     else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
@@ -231,7 +225,6 @@ fn propagate(cfg: *CFG) !bool {
                         def.src1 = null;
                         def.src2 = null;
                         retval = true;
-                        std.debug.print("SELF COPY!\n", .{});
                     }
                 },
 

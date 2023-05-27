@@ -522,7 +522,7 @@ pub const CFG = struct {
                     _ = try create(symbol, self, errors, allocator);
                     var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
 
-                    var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
+                    var ir = try IR.create(.loadSymbol, symbver, null, null, allocator); // TODO: Check if you can just create a new version of this?
                     ir.data = IRData{ .symbol = symbol };
                     symbver.def = ir;
                     self.appendInstruction(ir);
@@ -640,7 +640,8 @@ pub const CFG = struct {
             },
             ._and => {
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
                 var else_label = try IR.createLabel(allocator);
@@ -654,13 +655,17 @@ pub const CFG = struct {
                 // lhs was true, recurse to rhs, store in symbver
                 var rhs = try self.flattenAST(scope, ast._and.rhs, return_label, break_label, continue_label, false, errors, allocator);
                 std.debug.assert(rhs != null);
-                var copy_right = try IR.create(.copy, symbver, rhs, null, allocator);
+                var copy_right_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                var copy_right = try IR.create(.copy, copy_right_symbver, rhs, null, allocator);
+                copy_right_symbver.def = copy_right;
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
-                var load_false = try IR.createInt(symbver, 0, allocator);
+                var load_false_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                var load_false = try IR.createInt(load_false_symbver, 0, allocator);
+                load_false_symbver.def = load_false;
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -790,7 +795,8 @@ pub const CFG = struct {
                 std.debug.assert(ast.conditional.exprs.items.len == ast.conditional.tokens.items.len + 1);
 
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 var end_label = try IR.createLabel(allocator);
                 var else_label = try IR.createLabel(allocator);
@@ -830,12 +836,16 @@ pub const CFG = struct {
                     lhs = rhs;
                 }
                 // all tests passed, store `true` in symbver
-                var load_true = try IR.createInt(symbver, 1, allocator);
+                var load_true_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                var load_true = try IR.createInt(load_true_symbver, 1, allocator);
+                load_true_symbver.def = load_true;
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 // at least one test failed, store `false` in symbver
                 self.appendInstruction(else_label);
-                var load_false = try IR.createInt(symbver, 0, allocator);
+                var load_false_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                var load_false = try IR.createInt(load_false_symbver, 0, allocator);
+                load_false_symbver.def = load_false;
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, allocator));
                 self.appendInstruction(end_label);
@@ -845,7 +855,8 @@ pub const CFG = struct {
             // Control-flow expressions
             ._if => {
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // If there's a let, then do it, dumby!
                 if (ast._if.let) |let| {
@@ -862,18 +873,22 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |blockSymbver| {
-                    var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
-                    self.appendInstruction(blockCopy);
+                if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |block_symbver| {
+                    var block_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var block_copy = try IR.create(.copy, block_copy_symbver, block_symbver, null, allocator);
+                    block_copy_symbver.def = block_copy;
+                    self.appendInstruction(block_copy);
                 }
                 self.appendInstruction(try IR.createJump(end_label, allocator));
 
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 if (ast._if.elseBlock) |elseBlock| {
-                    if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
-                        var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, allocator);
-                        self.appendInstruction(elseCopy);
+                    if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |else_symbver| {
+                        var else_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                        var else_copy = try IR.create(.copy, else_copy_symbver, else_symbver, null, allocator);
+                        else_copy_symbver.def = else_copy;
+                        self.appendInstruction(else_copy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, allocator));
                 }
@@ -882,7 +897,8 @@ pub const CFG = struct {
             },
             .cond => {
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // If there's a let, then do it, dumby!
                 if (ast.cond.let) |let| {
@@ -912,6 +928,7 @@ pub const CFG = struct {
                     self.appendInstruction(lhs_label);
                     if (mapping.mapping.lhs) |lhs| {
                         var condition = (try self.flattenAST(ast.cond.scope.?, lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                        // std.debug.assert(condition.def != null);
                         if (lhs_label_index < lhs_label_list.items.len - 1) {
                             var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
                             self.appendInstruction(branch);
@@ -930,9 +947,11 @@ pub const CFG = struct {
                 for (ast.cond.mappings.items) |mapping| {
                     if (mapping.mapping.rhs) |rhs| {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
-                        if (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)) |rhsSymbver| {
-                            var rhsCopy = try IR.create(.copy, symbver, rhsSymbver, null, allocator);
-                            self.appendInstruction(rhsCopy);
+                        if (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)) |rhs_symbver| {
+                            var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                            var rhs_copy = try IR.create(.copy, rhs_copy_symbver, rhs_symbver, null, allocator);
+                            rhs_copy_symbver.def = rhs_copy;
+                            self.appendInstruction(rhs_copy);
                         }
                         self.appendInstruction(try IR.createJump(end_label, allocator));
                         rhs_label_index += 1;
