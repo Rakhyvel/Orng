@@ -417,36 +417,6 @@ pub const CFG = struct {
         // retval.clearVisitedBBs();
         try retval.calculatePhiParamsAndArgs(allocator);
 
-        // Phi parameters and arguments are un-versioned by design up to this point. Version them now.
-        for (retval.basic_blocks.items) |bb| {
-            for (bb.parameters.items) |symbver| {
-                symbver.makeUnique();
-            }
-            for (bb.next_arguments.items) |symbver| {
-                symbver.makeUnique();
-            }
-            for (bb.branch_arguments.items) |symbver| {
-                symbver.makeUnique();
-            }
-        }
-
-        // Symbol versions dependent on phi parameters will have null versions. Assign the versions here.
-        for (retval.basic_blocks.items) |bb| {
-            var maybe_ir: ?*IR = bb.ir_head;
-            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.src1 != null and ir.src1.?.version == null) {
-                    ir.src1 = ir.src1.?.findSymbolVersionSet(&bb.parameters);
-                    std.debug.assert(ir.src1 != null);
-                    std.debug.assert(ir.src1.?.version != null);
-                }
-                if (ir.src2 != null and ir.src2.?.version == null) {
-                    ir.src2 = ir.src2.?.findSymbolVersionSet(&bb.parameters);
-                    std.debug.assert(ir.src2 != null);
-                    std.debug.assert(ir.src2.?.version != null);
-                }
-            }
-        }
-
         return retval;
     }
 
@@ -1158,22 +1128,24 @@ pub const CFG = struct {
             var maybe_ir: ?*IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 // If src1 version is null, and is not defined in this BB, request it as a parameter
-                if (ir.src1 != null and ir.src1.?.version == null) {
+                if (ir.src1 != null) {
                     ir.src1 = ir.src1.?.findVersion(bb.ir_head, ir);
                     if (ir.src1.?.version == null) {
-                        _ = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
+                        var put = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
+                        std.debug.print("{s} {}\n", .{ ir.src1.?.symbol.name, put });
                     }
                 }
                 // If src2 version is null, and is not defined in this BB, request it as a parameter
-                if (ir.src2 != null and ir.src2.?.version == null) {
+                if (ir.src2 != null) {
                     ir.src2 = ir.src2.?.findVersion(bb.ir_head, ir);
                     if (ir.src2.?.version == null) {
                         _ = try ir.src2.?.putSymbolVersionSet(&bb.parameters);
                     }
                 }
             }
+
             // Do the same for the condition of a branch, if there is one
-            if (bb.has_branch and bb.condition != null) {
+            if (bb.has_branch) {
                 bb.condition = bb.condition.?.findVersion(bb.ir_head, null);
                 if (bb.condition.?.version == null) {
                     _ = try bb.condition.?.putSymbolVersionSet(&bb.parameters);

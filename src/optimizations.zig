@@ -11,7 +11,8 @@ pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
         try bbOptimizations(cfg, allocator) or
         try removeUnusedDefs(cfg))
     {
-        // cfg.block_graph_head.?.pprint();
+        cfg.block_graph_head.?.pprint();
+        std.debug.print("\n", .{});
     }
     cfg.clearVisitedBBs();
 }
@@ -21,6 +22,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     countPredecessors(cfg);
     try cfg.calculatePhiParamsAndArgs(allocator);
+    calculateVersions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
@@ -69,11 +71,11 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             break;
         }
 
-        // Remove constant true/false branches
+        // Convert constant true/false branches to jumps
         if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .loadInt) {
             bb.has_branch = false;
             if (bb.condition.?.def.?.data.int == 0) {
-                bb.next = bb.branch; // TODO: Swap block args?
+                bb.next = bb.branch;
                 bb.next_arguments = bb.branch_arguments;
             }
             retval = true;
@@ -108,6 +110,10 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         }
     }
 
+    if (retval) {
+        try cfg.calculatePhiParamsAndArgs(allocator);
+    }
+
     return retval;
 }
 
@@ -136,7 +142,6 @@ fn _countPredecessors(bb: *BasicBlock) void {
 }
 
 fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
-    _ = wipeIR;
     var i: usize = 0;
     while (i < cfg.basic_blocks.items.len) : (i += 1) {
         if (bb == cfg.basic_blocks.items[i]) {
@@ -144,12 +149,10 @@ fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
         }
     }
     _ = cfg.basic_blocks.orderedRemove(i);
-    var maybe_ir: ?*IR = bb.ir_head;
-    while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-        if (ir.dest != null) {
-            if (ir.dest.?.symbol.versions > 0) {
-                ir.dest.?.symbol.versions -= 1;
-            }
+    if (wipeIR) {
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            ir.removed = true;
         }
     }
 }
@@ -166,14 +169,23 @@ fn findIR(bb: *BasicBlock, symbver: *SymbolVersion) ?*IR {
 
 fn propagate(cfg: *CFG) !bool {
     var retval = false;
+
+    calculateVersions(cfg);
+
     for (cfg.basic_blocks.items) |bb| {
         var maybe_def = bb.ir_head;
         while (maybe_def) |def| : (maybe_def = def.next) {
             switch (def.kind) {
                 .copy => {
                     // Self-copy elimination
-                    if (def.dest.?.symbol == def.src1.?.symbol) {
-                        std.debug.print("SELF COPY!\n", .{});
+                    if (def.dest.?.symbol == def.src1.?.symbol and def.src1.?.def != null) {
+                        // std.debug.print("{?}\n", .{def.src1.?.def});
+                        def.kind = def.src1.?.def.?.kind;
+                        def.data = def.src1.?.def.?.data;
+                        def.dest = def.src1.?.def.?.dest;
+                        def.src1 = def.src1.?.def.?.src1;
+                        // def.src2 = def.src1.?.def.?.src2;
+                        retval = true;
                     }
                     // Integer constant propagation
                     else if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadInt) {
@@ -359,11 +371,12 @@ fn removeUnusedDefs(cfg: *CFG) !bool {
     var retval = false;
 
     calculateUsage(cfg);
+    calculateVersions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and !ir.removed and !ir.dest.?.used and ir.dest.?.symbol.versions == 1) {
+            if (ir.dest != null and !ir.removed and !ir.dest.?.used) {
                 bb.removeInstruction(ir);
                 retval = true;
             }
@@ -371,6 +384,39 @@ fn removeUnusedDefs(cfg: *CFG) !bool {
     }
 
     return retval;
+}
+
+fn calculateVersions(cfg: *CFG) void {
+    for (cfg.basic_blocks.items) |bb| {
+        // Reset all reachable symbol verison counts to 0
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest) |dest| {
+                dest.symbol.versions = 0;
+            }
+            if (ir.src1) |src1| {
+                src1.symbol.versions = 0;
+            }
+            if (ir.src2) |src2| {
+                src2.symbol.versions = 0;
+            }
+        }
+    }
+
+    for (cfg.basic_blocks.items) |bb| {
+        // Parameters define symbol versions
+        for (bb.next_arguments.items) |symbver| {
+            symbver.symbol.versions += 1;
+        }
+
+        // Go through sum up each definition
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest) |dest| {
+                dest.symbol.versions += 1;
+            }
+        }
+    }
 }
 
 fn calculateUsage(cfg: *CFG) void {

@@ -374,7 +374,7 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
 }
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    try out.writer().print("\t", .{});
+    try out.writer().print("// Versions: {}\n\t", .{symbver.symbol.versions});
     try printPath(symbver.symbol, out);
     try out.writer().print(" = ", .{});
 }

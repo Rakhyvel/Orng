@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685225690
-#define ORNG_1685225690
+#ifndef ORNG_1685229660
+#define ORNG_1685229660
 
 #include <math.h>
 #include <stdio.h>
@@ -23,17 +23,20 @@ int test_main() {
 	int64_t _20_t10;
 	int64_t _20_t11;
 	uint8_t _20_t7;
-	int64_t _20_t13;
-	int64_t _20_t14;
-	int64_t _20_t15;
-	int64_t _20_t16;
-	uint8_t _20_t12;
 BB0: // 1
+// Versions: 1
 	_21_x = 4;
-	_20_t3 = _21_x;
+// Versions: 1
+	_21_x = 4;
+// Versions: 1
+	_20_t3 = 4;
+// Versions: 1
 	_20_t4 = 4;
+// Versions: 1
 	_20_t5 = _20_t3 - _20_t4;
+// Versions: 1
 	_20_t6 = 1;
+// Versions: 2
 	_20_t2 = _20_t5 == _20_t6;
 	if (!_20_t2) {
 		goto BB18;
@@ -41,6 +44,7 @@ BB0: // 1
 		goto BB2;
 	}
 BB2: // 1
+// Versions: 2
 	_20_t2 = 1;
 	goto BB3;
 BB3: // 2
@@ -50,16 +54,23 @@ BB3: // 2
 		goto BB5;
 	}
 BB5: // 1
+// Versions: 2
 	_20_t0 = 10;
 	goto BB6;
 BB6: // 3
+// Versions: 1
 	_20_$retval = _20_t0;
 	goto end;
 BB7: // 1
+// Versions: 1
 	_20_t8 = _21_x;
+// Versions: 1
 	_20_t9 = 3;
+// Versions: 1
 	_20_t10 = _20_t8 - _20_t9;
+// Versions: 1
 	_20_t11 = 1;
+// Versions: 2
 	_20_t7 = _20_t10 == _20_t11;
 	if (!_20_t7) {
 		goto BB17;
@@ -67,6 +78,7 @@ BB7: // 1
 		goto BB8;
 	}
 BB8: // 1
+// Versions: 2
 	_20_t7 = 1;
 	goto BB9;
 BB9: // 2
@@ -76,32 +88,19 @@ BB9: // 2
 		goto BB11;
 	}
 BB11: // 1
+// Versions: 2
 	_20_t0 = 23;
 	goto BB6;
 BB12: // 1
-	_20_t13 = _21_x;
-	_20_t14 = 2;
-	_20_t15 = _20_t13 - _20_t14;
-	_20_t16 = 1;
-	_20_t12 = _20_t15 == _20_t16;
-	if (!_20_t12) {
-		goto BB16;
-	} else {
-		goto BB13;
-	}
-BB13: // 1
-	_20_t12 = 1;
-	goto BB15;
-BB15: // 2
+// Versions: 2
 	_20_t0 = 10;
 	goto BB6;
-BB16: // 1
-	_20_t12 = 0;
-	goto BB15;
 BB17: // 1
+// Versions: 2
 	_20_t7 = 0;
 	goto BB9;
 BB18: // 1
+// Versions: 2
 	_20_t2 = 0;
 	goto BB3;
 end:
