@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685159969
-#define ORNG_1685159969
+#ifndef ORNG_1685163890
+#define ORNG_1685163890
 
 #include <math.h>
 #include <stdio.h>
@@ -10,41 +10,37 @@
 int test_main();
 
 int test_main() {
-	int retval;
 	int64_t _107_t2;
 	int64_t _107_t3;
-	uint8_t _107_t4;
 	uint8_t _107_t1;
+	int64_t _107_t5;
 	int64_t _107_t6;
-	int64_t _107_t7;
-	uint8_t _107_t8;
-	uint8_t _107_t5;
-	int64_t _107_t10;
-	int64_t _107_t11;
-	uint8_t _107_t12;
-	uint8_t _107_t9;
-	int64_t _107_t16;
+	uint8_t _107_t4;
+	int64_t _107_t8;
+	int64_t _107_t9;
+	uint8_t _107_t7;
+	int64_t _107_t13;
 	int64_t _107_t0;
-	int64_t _0;
+	int64_t _107_$retval;
 BB1: // 1
 	_107_t2 = 0;
 	_107_t3 = 1;
-	_107_t4 = 0;
 	_107_t1 = 0;
-	_107_t6 = 0;
-	_107_t7 = 1;
-	_107_t8 = 0;
+	_107_t1 = 0;
 	_107_t5 = 0;
-	_107_t10 = 0;
-	_107_t11 = 1;
-	_107_t12 = 0;
-	_107_t9 = 0;
-	_107_t16 = 10;
+	_107_t6 = 1;
+	_107_t4 = 0;
+	_107_t4 = 0;
+	_107_t8 = 0;
+	_107_t9 = 1;
+	_107_t7 = 0;
+	_107_t7 = 0;
+	_107_t13 = 10;
 	_107_t0 = 10;
-	retval = _107_t0;
+	_107_$retval = 10;
 	goto end;
 end:
-	return retval;
+	return _107_$retval;
 }
 
 

@@ -4,6 +4,7 @@ const std = @import("std");
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
+const SymbolVersion = _ir.SymbolVersion;
 
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     while (try propagate(cfg) or try bbOptimizations(cfg, allocator)) {
@@ -140,6 +141,24 @@ fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
         }
     }
     _ = cfg.basic_blocks.orderedRemove(i);
+    var maybe_ir: ?*IR = bb.ir_head;
+    while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+        if (ir.dest != null) {
+            if (ir.dest.?.symbol.versions > 0) {
+                ir.dest.?.symbol.versions -= 1;
+            }
+        }
+    }
+}
+
+fn findIR(bb: *BasicBlock, symbver: *SymbolVersion) ?*IR {
+    var maybe_ir = bb.ir_head;
+    while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+        if (ir.dest != null and ir.dest.?.symbol == symbver.symbol) {
+            return ir;
+        }
+    }
+    return null;
 }
 
 fn propagate(cfg: *CFG) !bool {
@@ -152,7 +171,6 @@ fn propagate(cfg: *CFG) !bool {
                     // Self-copy elimination
                     if (def.dest.?.symbol == def.src1.?.symbol) {
                         std.debug.print("SELF COPY!\n", .{});
-                        break;
                     }
                     // Integer constant propagation
                     else if (def.src1.?.def != null and def.src1.?.def.?.kind == .loadInt) {
@@ -176,7 +194,7 @@ fn propagate(cfg: *CFG) !bool {
                     else if (def.src1.?.def != null and def.src1.?.def.?.kind == .copy and def.src1 != def.src1.?.def.?.src1.?) {
                         def.src1 = def.src1.?.def.?.src1;
                         retval = true;
-                    }
+                    } else {}
                 },
 
                 .not => {
@@ -228,7 +246,107 @@ fn propagate(cfg: *CFG) !bool {
                     }
                 },
 
+                .notEqual => {
+                    // Known int, int value
+                    if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadInt and def.src2.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int != def.src2.?.def.?.data.int) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                    // Known float, float value
+                    else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.float != def.src2.?.def.?.data.float) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
+                .greater => {
+                    // Known int, int value
+                    if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadInt and def.src2.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int > def.src2.?.def.?.data.int) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                    // Known float, float value
+                    else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.float > def.src2.?.def.?.data.float) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
+                .lesser => {
+                    // Known int, int value
+                    if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadInt and def.src2.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int < def.src2.?.def.?.data.int) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                    // Known float, float value
+                    else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.float < def.src2.?.def.?.data.float) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
+                .greaterEqual => {
+                    // Known int, int value
+                    if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadInt and def.src2.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int >= def.src2.?.def.?.data.int) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                    // Known float, float value
+                    else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.float >= def.src2.?.def.?.data.float) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
+                .lesserEqual => {
+                    // Known int, int value
+                    if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadInt and def.src2.?.def.?.kind == .loadInt) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.int <= def.src2.?.def.?.data.int) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                    // Known float, float value
+                    else if (def.src1.?.def != null and def.src2.?.def != null and def.src1.?.def.?.kind == .loadFloat and def.src2.?.def.?.kind == .loadFloat) {
+                        def.kind = .loadInt;
+                        def.data = _ir.IRData{ .int = if (def.src1.?.def.?.data.float <= def.src2.?.def.?.data.float) 1 else 0 };
+                        def.src1 = null;
+                        def.src2 = null;
+                        retval = true;
+                    }
+                },
+
                 else => {},
+            }
+            if (def.src1 != null and def.src1.?.def == null and def.src1.?.symbol.versions == 1) {
+                std.debug.print("{s}\n", .{def.src1.?.symbol.name});
+                def.src1.?.def = findIR(bb, def.src1.?);
+                retval = def.src1.?.def != null;
             }
         }
     }

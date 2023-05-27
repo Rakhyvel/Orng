@@ -522,14 +522,18 @@ pub const CFG = struct {
                     _ = try create(symbol, self, errors, allocator);
                     var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
 
-                    var ir = try IR.create(.loadSymbol, symbver, null, null, allocator); // TODO: Check if you can just create a new version of this?
+                    var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
                     ir.data = IRData{ .symbol = symbol };
                     symbver.def = ir;
                     self.appendInstruction(ir);
                     return symbver;
                 } else {
-                    var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                    symbver.lvalue = lvalue;
+                    var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
+                    var src = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var ir = try IR.create(.copy, symbver, src, null, allocator);
+                    ir.data = IRData{ .symbol = symbol };
+                    symbver.def = ir;
+                    self.appendInstruction(ir);
                     return symbver;
                 }
             },
@@ -827,7 +831,7 @@ pub const CFG = struct {
                         },
                         else => unreachable,
                     }
-                    var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                    var temp = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                     var ir = try IR.create(ir_kind, temp, lhs, rhs, allocator);
                     temp.def = ir;
                     self.appendInstruction(ir);

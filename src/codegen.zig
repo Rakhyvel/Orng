@@ -44,7 +44,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
-    try out.writer().print("int test_{s}() {{\n\tint retval;\n", .{callGraph.symbol.name});
+    try out.writer().print("int test_{s}() {{\n", .{callGraph.symbol.name});
 
     // Collect and then declare all local variables
     for (callGraph.basic_blocks.items) |bb| {
@@ -69,7 +69,9 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     }
 
     // Generate the `end` basic block
-    try out.writer().print("end:\n\treturn retval;\n}}\n\n", .{});
+    try out.writer().print("end:\n\treturn ", .{});
+    try printPath(callGraph.return_symbol, out);
+    try out.writer().print(";\n}}\n\n", .{});
 
     // Generate leaf functions
     for (callGraph.leaves.items) |leaf| {
@@ -319,6 +321,9 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
             .loadSymbol => {
                 try printPath(def.data.symbol, out);
             },
+            .copy => {
+                try printPath(symbver.*.symbol, out);
+            },
             .addrOf => {
                 try out.writer().print("(&", .{});
                 try generateLValueIR(def.src1.?, out);
@@ -336,6 +341,7 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 // TODO: defer to products
             },
             else => {
+                std.debug.print("Not an LValue {?}\n", .{symbver.def.?.*});
                 unreachable;
             },
         }
@@ -369,27 +375,15 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\t", .{});
-    if (std.mem.eql(u8, symbver.symbol.name, "$retval")) {
-        try out.writer().print("retval = ", .{});
-    } else {
-        if (symbver.symbol.name[0] != '$') {
-            try printPath(symbver.symbol, out);
-        } else {
-            try out.writer().print("_{}", .{symbver.version.?});
-        }
-        try out.writer().print(" = ", .{});
-    }
+    try printPath(symbver.symbol, out);
+    try out.writer().print(" = ", .{});
 }
 
 fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\t", .{});
     try printType(symbver.type, out);
     try out.writer().print(" ", .{});
-    if (symbver.symbol.name[0] != '$') {
-        try printPath(symbver.symbol, out);
-    } else {
-        try out.writer().print("_{}", .{symbver.version.?});
-    }
+    try printPath(symbver.symbol, out);
     try out.writer().print(";\n", .{});
 }
 
@@ -418,9 +412,5 @@ fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
 }
 
 fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    if (symbver.symbol.name[0] != '$') {
-        try printPath(symbver.symbol, out);
-    } else {
-        try out.writer().print("_{}", .{symbver.version.?});
-    }
+    try printPath(symbver.symbol, out);
 }
