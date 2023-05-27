@@ -55,7 +55,7 @@ fn integrateTestAll(coverage: bool) !void {
     var dir = try std.fs.cwd().openIterableDir("tests/integration/", .{});
     var it = dir.iterate();
     while (try it.next()) |file| {
-        if (file.kind != .File) {
+        if (file.kind != .file) {
             continue;
         }
         var res = try integrateTestFile(file.name, coverage);

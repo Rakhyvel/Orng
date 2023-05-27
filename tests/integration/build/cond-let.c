@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685163890
-#define ORNG_1685163890
+#ifndef ORNG_1685225690
+#define ORNG_1685225690
 
 #include <math.h>
 #include <stdio.h>
@@ -10,14 +10,12 @@
 int test_main();
 
 int test_main() {
-	int64_t _20_t1;
 	int64_t _21_x;
 	int64_t _20_t3;
 	int64_t _20_t4;
 	int64_t _20_t5;
 	int64_t _20_t6;
 	uint8_t _20_t2;
-	int64_t _20_t17;
 	int64_t _20_t0;
 	int64_t _20_$retval;
 	int64_t _20_t8;
@@ -25,15 +23,12 @@ int test_main() {
 	int64_t _20_t10;
 	int64_t _20_t11;
 	uint8_t _20_t7;
-	int64_t _20_t18;
 	int64_t _20_t13;
 	int64_t _20_t14;
 	int64_t _20_t15;
 	int64_t _20_t16;
 	uint8_t _20_t12;
-	int64_t _20_t19;
 BB0: // 1
-	_20_t1 = 4;
 	_21_x = 4;
 	_20_t3 = _21_x;
 	_20_t4 = 4;
@@ -55,7 +50,6 @@ BB3: // 2
 		goto BB5;
 	}
 BB5: // 1
-	_20_t17 = 10;
 	_20_t0 = 10;
 	goto BB6;
 BB6: // 3
@@ -82,7 +76,6 @@ BB9: // 2
 		goto BB11;
 	}
 BB11: // 1
-	_20_t18 = 23;
 	_20_t0 = 23;
 	goto BB6;
 BB12: // 1
@@ -100,7 +93,6 @@ BB13: // 1
 	_20_t12 = 1;
 	goto BB15;
 BB15: // 2
-	_20_t19 = 10;
 	_20_t0 = 10;
 	goto BB6;
 BB16: // 1

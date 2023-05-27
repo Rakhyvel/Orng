@@ -7,7 +7,10 @@ const IR = _ir.IR;
 const SymbolVersion = _ir.SymbolVersion;
 
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
-    while (try propagate(cfg) or try bbOptimizations(cfg, allocator)) {
+    while (try propagate(cfg) or
+        try bbOptimizations(cfg, allocator) or
+        try removeUnusedDefs(cfg))
+    {
         // cfg.block_graph_head.?.pprint();
     }
     cfg.clearVisitedBBs();
@@ -344,11 +347,67 @@ fn propagate(cfg: *CFG) !bool {
                 else => {},
             }
             if (def.src1 != null and def.src1.?.def == null and def.src1.?.symbol.versions == 1) {
-                std.debug.print("{s}\n", .{def.src1.?.symbol.name});
                 def.src1.?.def = findIR(bb, def.src1.?);
                 retval = def.src1.?.def != null;
             }
         }
     }
     return retval;
+}
+
+fn removeUnusedDefs(cfg: *CFG) !bool {
+    var retval = false;
+
+    calculateUsage(cfg);
+
+    for (cfg.basic_blocks.items) |bb| {
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest != null and !ir.removed and !ir.dest.?.used and ir.dest.?.symbol.versions == 1) {
+                bb.removeInstruction(ir);
+                retval = true;
+            }
+        }
+    }
+
+    return retval;
+}
+
+fn calculateUsage(cfg: *CFG) void {
+    for (cfg.basic_blocks.items) |bb| {
+        // Clear all used flags
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest) |dest| {
+                dest.used = false;
+            }
+        }
+
+        // Arguments are default used
+        for (bb.next_arguments.items) |symbver| {
+            symbver.used = true;
+        }
+        for (bb.branch_arguments.items) |symbver| {
+            symbver.used = true;
+        }
+
+        // Go through and see if each symbol is used
+        maybe_ir = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol)) {
+                ir.dest.?.used = true;
+            }
+            if (ir.src1 != null) {
+                ir.src1.?.used = true;
+            }
+            if (ir.src2 != null) {
+                ir.src2.?.used = true;
+            }
+        }
+
+        // Conditions are used
+        if (bb.has_branch) {
+            bb.condition.?.used = true;
+        }
+    }
 }

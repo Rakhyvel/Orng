@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685163890
-#define ORNG_1685163890
+#ifndef ORNG_1685225690
+#define ORNG_1685225690
 
 #include <math.h>
 #include <stdio.h>
@@ -10,8 +10,6 @@
 int test_main();
 
 int test_main() {
-	int64_t _107_t2;
-	int64_t _107_t3;
 	uint8_t _107_t1;
 	int64_t _107_t5;
 	int64_t _107_t6;
@@ -20,11 +18,8 @@ int test_main() {
 	int64_t _107_t9;
 	uint8_t _107_t7;
 	int64_t _107_t13;
-	int64_t _107_t0;
 	int64_t _107_$retval;
 BB1: // 1
-	_107_t2 = 0;
-	_107_t3 = 1;
 	_107_t1 = 0;
 	_107_t1 = 0;
 	_107_t5 = 0;
@@ -36,7 +31,6 @@ BB1: // 1
 	_107_t7 = 0;
 	_107_t7 = 0;
 	_107_t13 = 10;
-	_107_t0 = 10;
 	_107_$retval = 10;
 	goto end;
 end:

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685163890
-#define ORNG_1685163890
+#ifndef ORNG_1685225690
+#define ORNG_1685225690
 
 #include <math.h>
 #include <stdio.h>
@@ -10,18 +10,12 @@
 int test_main();
 
 int test_main() {
-	uint8_t _6_t2;
 	uint8_t _6_t3;
-	uint8_t _6_t1;
 	uint8_t _6_t4;
-	uint8_t _6_t0;
 	uint8_t _6_$retval;
 BB0: // 1
-	_6_t2 = 0;
 	_6_t3 = 0;
-	_6_t1 = 0;
 	_6_t4 = 1;
-	_6_t0 = 1;
 	_6_$retval = 1;
 	goto end;
 end:

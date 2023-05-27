@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685163890
-#define ORNG_1685163890
+#ifndef ORNG_1685225690
+#define ORNG_1685225690
 
 #include <math.h>
 #include <stdio.h>
@@ -10,31 +10,23 @@
 int test_main();
 
 int test_main() {
-	uint8_t _94_t0;
 	uint8_t _95_found;
-	int64_t _94_t2;
 	int64_t _96_n;
 	int64_t _94_t4;
 	int64_t _94_t5;
 	uint8_t _94_t3;
 	uint8_t _94_t7;
-	int64_t _94_t8;
 	int64_t _94_t11;
 	int64_t _94_t12;
 	uint8_t _94_t10;
-	uint8_t _94_t13;
 	int64_t _94_t14;
 	int64_t _94_t15;
 	int64_t _94_t16;
 	uint8_t _94_t18;
-	int64_t _94_t19;
 	int64_t _94_t17;
 	int64_t _94_$retval;
-	int64_t _94_t20;
 BB0: // 1
-	_94_t0 = 0;
 	_95_found = 0;
-	_94_t2 = 0;
 	_96_n = 0;
 	goto BB1;
 BB1: // 2
@@ -63,7 +55,6 @@ BB4: // 1
 		goto BB5;
 	}
 BB5: // 1
-	_94_t8 = 100;
 	_96_n = 100;
 	goto BB6;
 BB6: // 2
@@ -85,7 +76,6 @@ BB8: // 2
 		goto BB9;
 	}
 BB9: // 1
-	_94_t13 = 1;
 	_95_found = 1;
 	goto BB10;
 BB10: // 2
@@ -105,14 +95,12 @@ BB15: // 1
 		goto BB16;
 	}
 BB16: // 1
-	_94_t19 = 15;
 	_94_t17 = 15;
 	goto BB17;
 BB17: // 2
 	_94_$retval = _94_t17;
 	goto end;
 BB18: // 1
-	_94_t20 = 4;
 	_94_t17 = 4;
 	goto BB17;
 BB19: // 1

@@ -15,6 +15,7 @@ pub const SymbolVersion = struct {
     def: ?*IR,
 
     lvalue: bool,
+    used: bool,
 
     /// Type of the SymbolVersion. Temps use the same symbol, so can't use that for type info
     type: *AST,
@@ -162,6 +163,8 @@ pub const IR = struct {
     prev: ?*IR,
 
     in_block: ?*BasicBlock,
+
+    removed: bool,
 
     pub fn create(kind: IRKind, dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, allocator: std.mem.Allocator) !*IR {
         var retval = try allocator.create(IR);
@@ -344,6 +347,19 @@ pub const BasicBlock = struct {
             ir.prev = elem;
         }
         return ir;
+    }
+
+    pub fn removeInstruction(bb: *BasicBlock, ir: *IR) void {
+        ir.removed = true;
+        if (bb.ir_head != null and bb.ir_head == ir) {
+            bb.ir_head = bb.ir_head.?.next;
+        }
+        if (ir.prev) |prev| {
+            prev.next = ir.next;
+        }
+        if (ir.next) |next| {
+            next.prev = ir.prev;
+        }
     }
 };
 
