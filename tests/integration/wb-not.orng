@@ -1,0 +1,8 @@
+// 31
+fn main: ()->Int =
+    let x = 0
+    let y = &x
+    if not (y^ == 1)
+        31
+    else
+        10

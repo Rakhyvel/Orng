@@ -1,0 +1,9 @@
+// 0
+fn main: ()->Int = 
+    let x: Int = 0
+    let y: &Int = &x
+    if y^ == 0
+        let z = y^
+        z + z - z * z / (z + 1) % (z + 1) ** (z + 1)
+    else
+        1000

@@ -15,7 +15,7 @@ pub const SymbolVersion = struct {
     def: ?*IR,
 
     lvalue: bool,
-    used: bool,
+    uses: usize,
 
     /// Type of the SymbolVersion. Temps use the same symbol, so can't use that for type info
     type: *AST,
@@ -360,6 +360,16 @@ pub const BasicBlock = struct {
         if (ir.next) |next| {
             next.prev = ir.prev;
         }
+    }
+
+    pub fn findInstruction(bb: *BasicBlock, symbol: *Symbol) ?*IR {
+        var maybe_ir = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest.?.symbol == symbol) {
+                return ir;
+            }
+        }
+        return null;
     }
 };
 

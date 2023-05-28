@@ -43,15 +43,12 @@
     - [x] codegen pointer types
     - [x] deref copy
     - [x] `&mut` and validation (also find a way to validate assigning to mut symbols, though that's technically different)
-- [ ] optimization
+- [x] basic optimizations
     - [x] version symbols
     - [ ] Constant fold (AST & IR)
         > For what were 'phony' symbols in Old Orange, create a default def
-    - [ ] Dead code elimination (IR)
-    - [ ] dataflow analysis, register allocation
-    - [ ] Peephole (LIR/asm/C)
-    - [ ] Partial redundancy elimination
-    - [ ] Unrolling (AST -> IR)
+    - [x] Dead code elimination (IR)
+    - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to
 - [ ] `defer`
     - [ ] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`
@@ -112,6 +109,10 @@
         > should likely be shallow equality, otherwise that gets tricky...
     - [ ] `match` statement (rename from case)
 - [ ] new optimizations
+    - [ ] dataflow analysis, register allocation
+    - [ ] Peephole (LIR/asm/C)
+    - [ ] Partial redundancy elimination
+    - [ ] Unrolling (AST -> IR)
     - [ ] Inlining (CFG)
 - [ ] function programming stuff
     - [ ] composition

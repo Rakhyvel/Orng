@@ -21,7 +21,7 @@ pub fn validateScope(scope: *Scope, errors: *errs.Errors) !void {
     }
 }
 
-fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimplemented, OutOfMemory }!void {
+pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, Unimplemented, OutOfMemory }!void {
     if (symbol.valid) {
         return;
     }

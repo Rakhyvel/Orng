@@ -64,14 +64,12 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Generate the basic-block graph, starting at the init basic block
     if (callGraph.block_graph_head) |block_graph_head| {
-        try generateBasicBlock(block_graph_head, out);
+        try generateBasicBlock(block_graph_head, callGraph.return_symbol, out);
         callGraph.clearVisitedBBs();
     }
 
     // Generate the `end` basic block
-    try out.writer().print("end:\n\treturn ", .{});
-    try printPath(callGraph.return_symbol, out);
-    try out.writer().print(";\n}}\n\n", .{});
+    try out.writer().print("}}\n", .{});
 
     // Generate leaf functions
     for (callGraph.leaves.items) |leaf| {
@@ -92,13 +90,13 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     , .{});
 }
 
-fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
+fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void {
     if (bb.visited) {
         return;
     }
     bb.visited = true;
 
-    try out.writer().print("BB{}: // {}\n", .{ bb.uid, bb.number_predecessors });
+    try out.writer().print("BB{}:\n", .{bb.uid});
     var maybe_ir = bb.ir_head;
     while (maybe_ir) |ir| : (maybe_ir = ir.next) {
         try generateIR(ir, out);
@@ -114,27 +112,28 @@ fn generateBasicBlock(bb: *BasicBlock, out: *std.fs.File) !void {
         if (bb.branch) |branch| {
             try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
         } else {
-            try out.writer().print("\t\tgoto end;\n\t}} else {{\n", .{});
+            try printReturn(symbol, out);
+            try out.writer().print("\t}} else {{\n", .{});
         }
 
         // Generate the `next` BB
         if (bb.next) |next| {
             try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
-            try generateBasicBlock(next, out);
+            try generateBasicBlock(next, symbol, out);
         } else {
-            try out.writer().print("\t\tgoto end;\n\t}}\n", .{});
+            try printReturn(symbol, out);
         }
 
         // Generate the `branch` BB
         if (bb.branch) |branch| {
-            try generateBasicBlock(branch, out);
+            try generateBasicBlock(branch, symbol, out);
         }
     } else {
         if (bb.next) |next| {
             try out.writer().print("\tgoto BB{};\n", .{next.uid});
-            try generateBasicBlock(next, out);
+            try generateBasicBlock(next, symbol, out);
         } else {
-            try out.writer().print("\tgoto end;\n", .{});
+            try printReturn(symbol, out);
         }
     }
 }
@@ -374,7 +373,7 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
 }
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    try out.writer().print("// Versions: {}\n\t", .{symbver.symbol.versions});
+    try out.writer().print("\t", .{});
     try printPath(symbver.symbol, out);
     try out.writer().print(" = ", .{});
 }
@@ -413,4 +412,10 @@ fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
 
 fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try printPath(symbver.symbol, out);
+}
+
+fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
+    try out.writer().print("\treturn ", .{});
+    try printPath(return_symbol, out);
+    try out.writer().print(";\n", .{});
 }

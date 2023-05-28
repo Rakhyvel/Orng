@@ -8,23 +8,6 @@ pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
     preemptBinaryOperator(tokens);
     try insertIndentDedents(tokens);
     elsePreempt(tokens);
-    condenseNewLines(tokens);
-}
-
-// Removes any newlines after the first newline in a series of newline tokens
-fn condenseNewLines(tokens: *std.ArrayList(Token)) void {
-    var i: usize = 0;
-    while (i < tokens.items.len - 1) : (i += 1) {
-        var token = tokens.items[i];
-        if (token.kind != .NEWLINE) {
-            continue;
-        }
-
-        while (i > 0 and tokens.items[i + 1].kind == .NEWLINE) {
-            _ = tokens.orderedRemove(i + 1);
-            i -= 1;
-        }
-    }
 }
 
 // function where newlines are pre-empted by binary operators and other newlines

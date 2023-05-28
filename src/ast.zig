@@ -2,6 +2,7 @@ const errs = @import("errors.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 const tokens = @import("token.zig");
+const _validate = @import("validate.zig");
 
 const Error = errs.Error;
 const Scope = _symbol.Scope;
@@ -624,6 +625,7 @@ pub const AST = union(enum) {
                     errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
                     return error.typeError;
                 };
+                try _validate.validateSymbol(symbol, errors);
                 retval = symbol._type.?;
             },
 
