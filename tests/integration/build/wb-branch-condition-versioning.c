@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685775392
-#define ORNG_1685775392
+#ifndef ORNG_1685778818
+#define ORNG_1685778818
 
 #include <math.h>
 #include <stdio.h>
@@ -10,66 +10,66 @@
 int test_main();
 
 int test_main() {
-	uint8_t _116_found;
-	int64_t _117_n;
-	int64_t _115_t5;
-	uint8_t _115_t3;
-	int64_t _115_t12;
-	uint8_t _115_t10;
-	int64_t _115_t15;
-	int64_t _115_t17;
-	int64_t _115_$retval;
+	uint8_t _129_found;
+	int64_t _130_n;
+	int64_t _128_t5;
+	uint8_t _128_t3;
+	int64_t _128_t12;
+	uint8_t _128_t10;
+	int64_t _128_t15;
+	int64_t _128_t17;
+	int64_t _128_$retval;
 BB0:
-	_116_found = 0;
-	_117_n = 0;
+	_129_found = 0;
+	_130_n = 0;
 	goto BB1;
 BB1:
-	_115_t5 = 10;
-	_115_t3 = _117_n < _115_t5;
-	if (!_115_t3) {
-		goto BB19;
+	_128_t5 = 10;
+	_128_t3 = _130_n < _128_t5;
+	if (!_128_t3) {
+		goto BB25;
 	} else {
 		goto BB2;
 	}
 BB2:
-	if (!_116_found) {
-		goto BB6;
+	if (!_129_found) {
+		goto BB7;
 	} else {
 		goto BB5;
 	}
 BB5:
-	_117_n = 100;
-	goto BB6;
-BB6:
-	_115_t12 = 6;
-	_115_t10 = _117_n == _115_t12;
-	if (!_115_t10) {
-		goto BB10;
-	} else {
-		goto BB7;
-	}
+	_130_n = 100;
+	goto BB7;
 BB7:
-	_116_found = 1;
-	goto BB10;
-BB10:
-	_115_t15 = 1;
-	_117_n = _117_n + _115_t15;
-	goto BB1;
-BB19:
-	if (!_116_found) {
-		goto BB18;
+	_128_t12 = 6;
+	_128_t10 = _130_n == _128_t12;
+	if (!_128_t10) {
+		goto BB13;
 	} else {
-		goto BB16;
+		goto BB8;
 	}
-BB16:
-	_115_t17 = 15;
-	goto BB17;
-BB17:
-	_115_$retval = _115_t17;
-	return _115_$retval;
-BB18:
-	_115_t17 = 4;
-	goto BB17;
+BB8:
+	_129_found = 1;
+	goto BB13;
+BB13:
+	_128_t15 = 1;
+	_130_n = _130_n + _128_t15;
+	goto BB1;
+BB25:
+	if (!_129_found) {
+		goto BB23;
+	} else {
+		goto BB19;
+	}
+BB19:
+	_128_t17 = 15;
+	goto BB22;
+BB22:
+	_128_$retval = _128_t17;
+	return _128_$retval;
+BB23:
+	_128_t17 = 4;
+	goto BB22;
 }
 
 int main()

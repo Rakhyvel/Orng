@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685775392
-#define ORNG_1685775392
+#ifndef ORNG_1685778818
+#define ORNG_1685778818
 
 #include <math.h>
 #include <stdio.h>
@@ -25,7 +25,7 @@ BB0:
 	_2_t7 = 1;
 	_2_t4 = _2_t6 == _2_t7;
 	if (!_2_t4) {
-		goto BB6;
+		goto BB9;
 	} else {
 		goto BB1;
 	}
@@ -35,20 +35,20 @@ BB1:
 BB2:
 	_2_t8 = !_2_t4;
 	if (!_2_t8) {
-		goto BB5;
+		goto BB7;
 	} else {
 		goto BB3;
 	}
 BB3:
 	_2_t3 = 31;
-	goto BB4;
-BB4:
+	goto BB6;
+BB6:
 	_2_$retval = _2_t3;
 	return _2_$retval;
-BB5:
+BB7:
 	_2_t3 = 10;
-	goto BB4;
-BB6:
+	goto BB6;
+BB9:
 	_2_t4 = 0;
 	goto BB2;
 }

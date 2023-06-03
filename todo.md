@@ -16,6 +16,7 @@
 - [ ] Organize functions declarations in prefix order
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops to enhanced for dyadic loops
+- [ ] All inits have a corresponding deinit
 - [ ] Find some code not covered and write an integration test for it
 
 ### Pipeline
@@ -46,11 +47,11 @@
     - [x] `&mut` and validation (also find a way to validate assigning to mut symbols, though that's technically different)
 - [x] basic optimizations
     - [x] version symbols
-    - [ ] Constant fold
+    - [x] Constant fold
     - [x] Dead code elimination
     - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to
-- [ ] `defer`
-    - [ ] count defers in block tree-walk
+- [x] `defer`
+    - [x] count defers in block tree-walk
 - [ ] `continue`/`break`/`return`
 - [ ] function calls
     - [ ] named arguments/fields

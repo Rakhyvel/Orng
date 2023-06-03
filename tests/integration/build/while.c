@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685775392
-#define ORNG_1685775392
+#ifndef ORNG_1685778818
+#define ORNG_1685778818
 
 #include <math.h>
 #include <stdio.h>
@@ -10,32 +10,32 @@
 int test_main();
 
 int test_main() {
-	int64_t _165_x;
-	int64_t _166_i;
-	int64_t _164_t5;
-	uint8_t _164_t3;
-	int64_t _164_t10;
-	int64_t _164_$retval;
+	int64_t _171_x;
+	int64_t _172_i;
+	int64_t _170_t5;
+	uint8_t _170_t3;
+	int64_t _170_t10;
+	int64_t _170_$retval;
 BB0:
-	_165_x = 0;
-	_166_i = 0;
+	_171_x = 0;
+	_172_i = 0;
 	goto BB1;
 BB1:
-	_164_t5 = 10;
-	_164_t3 = _166_i <= _164_t5;
-	if (!_164_t3) {
-		goto BB7;
+	_170_t5 = 10;
+	_170_t3 = _172_i <= _170_t5;
+	if (!_170_t3) {
+		goto BB9;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_165_x = _165_x + _166_i;
-	_164_t10 = 1;
-	_166_i = _166_i + _164_t10;
+	_171_x = _171_x + _172_i;
+	_170_t10 = 1;
+	_172_i = _172_i + _170_t10;
 	goto BB1;
-BB7:
-	_164_$retval = _165_x;
-	return _164_$retval;
+BB9:
+	_170_$retval = _171_x;
+	return _170_$retval;
 }
 
 int main()

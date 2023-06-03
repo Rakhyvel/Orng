@@ -8,10 +8,16 @@ const SymbolVersion = _ir.SymbolVersion;
 
 const debug = false;
 
+fn log(msg: []const u8) void {
+    if (debug) {
+        std.debug.print("{s}\n", .{msg});
+    }
+}
+
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     if (debug) {
         cfg.block_graph_head.?.pprint();
-        std.debug.print("\n\n\n", .{});
+        log("\n\n");
     }
     while (try propagate(cfg) or
         try bbOptimizations(cfg, allocator) or
@@ -19,7 +25,7 @@ pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     {
         if (debug) {
             cfg.block_graph_head.?.pprint();
-            std.debug.print("\n\n\n", .{});
+            log("\n\n");
         }
     }
     cfg.clearVisitedBBs();
@@ -34,6 +40,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
+            log("remove unused block");
             removeBasicBlock(cfg, bb, true);
             return true;
         }
@@ -41,6 +48,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     for (cfg.basic_blocks.items) |bb| {
         // Adopt basic blocks with only one incoming block
+        log("adopt block");
         if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
             var end: *IR = bb.ir_head.?.getTail();
 
@@ -81,6 +89,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // Convert constant true/false branches to jumps
         if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .loadInt) {
+            log("convert constant true/false to jumps");
             bb.has_branch = false;
             if (bb.condition.?.def.?.data.int == 0) {
                 bb.next = bb.branch;
@@ -91,6 +100,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // Remove jump chains
         if (bb.next) |next| {
+            log("remove jump chains");
             if (next.ir_head == null and !next.has_branch) {
                 bb.next = next.next;
                 retval = true;
@@ -111,6 +121,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // If next is a branch that depends on a known arugment
         if (bb.next) |next| {
+            log("next depends on known argument");
             if (next.has_branch and next.ir_head == null) {
                 var def = bb.findInstruction(next.condition.?.symbol);
                 if (def != null and def.?.kind == .loadInt) {
@@ -125,6 +136,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // If branch is a branch that depends on a known arugment
         if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null) {
+            log("branch depends on known argument");
             var def = bb.findInstruction(bb.branch.?.condition.?.symbol);
             if (def != null and def.?.kind == .loadInt) {
                 if (def.?.data.int == 0) {
@@ -138,6 +150,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     // Rebase block graph if jump chain
     if (cfg.block_graph_head) |head| {
+        log("rebase block");
         if (head.ir_head == null and !head.has_branch) {
             cfg.block_graph_head = head.next;
             retval = true;
@@ -232,12 +245,7 @@ fn propagateIR(ir: *IR) bool {
         .copy => {
             // Self-copy elimination
             if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null) {
-                ir.kind = ir.src1.?.def.?.kind;
-                ir.data = ir.src1.?.def.?.data;
-                ir.dest = ir.src1.?.def.?.dest;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
-                retval = true;
+                ir.in_block.?.removeInstruction(ir);
             }
             // Integer constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
@@ -258,7 +266,7 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Copy propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
+            else if (ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }

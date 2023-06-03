@@ -18,9 +18,9 @@ fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=
 paramlist: "(" [param {"," param}] ")".
 param: ["mut" | "const"] ident ":" annotExpr. # cannot be productExpr, otherwise ambiguous with ,
 
-statement: non_fn_declaration # (inner named and anon fns are decalred as exprs)
-         | "defer" expr       # defer
-         | "errdefer" expr    # error-defer
+statement: non_fn_declaration   # (inner named and anon fns are decalred as exprs)
+         | "defer" statement    # defer
+         | "errdefer" statement # error-defer
          | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr] # Must be able to do expr as a statement, for functions, cond, case, etc
          .
 

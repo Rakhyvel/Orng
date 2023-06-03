@@ -428,7 +428,9 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             std.debug.print("no return\n", .{});
         },
 
-        ._defer => {},
+        ._defer => {
+            try scope.defers.append(ast._defer.statement);
+        },
         .fnDecl => {
             // type-less
             if (expected != null) {

@@ -255,9 +255,9 @@ pub const Parser = struct {
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             return self.nonFnDeclaration();
         } else if (self.accept(.DEFER)) |token| {
-            return try AST.createDefer(token, try self.expr(), self.astAllocator);
+            return try AST.createDefer(token, try self.statement(), self.astAllocator);
         } else if (self.accept(.ERRDEFER)) |token| {
-            return try AST.createDefer(token, try self.expr(), self.astAllocator);
+            return try AST.createDefer(token, try self.statement(), self.astAllocator);
         } else {
             var exp = try self.expr();
             if (self.accept(.EQUALS)) |token| {

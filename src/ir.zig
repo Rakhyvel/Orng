@@ -1010,15 +1010,33 @@ pub const CFG = struct {
                 if (ast.block.statements.items.len == 0 and ast.block.final == null) {
                     return null;
                 } else {
+                    var continue_labels = std.ArrayList(*IR).init(allocator);
+                    defer continue_labels.deinit();
+                    for (ast.block.scope.?.defers.items) |_| {
+                        try continue_labels.append(try IR.createLabel(allocator));
+                    }
+                    var end = try IR.createLabel(allocator);
+
+                    var current_continue_label = if (continue_label != null) continue_label else end;
+                    var defer_label_index: usize = 0;
+
                     var temp: ?*SymbolVersion = null;
                     for (ast.block.statements.items) |child| {
-                        temp = try self.flattenAST(ast.block.scope.?, child, return_label, break_label, continue_label, lvalue, errors, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, child, return_label, break_label, current_continue_label, lvalue, errors, allocator);
+                        if (child.* == ._defer) {
+                            current_continue_label = continue_labels.items[defer_label_index];
+                            defer_label_index += 1;
+                        }
                     }
                     if (ast.block.final) |final| {
-                        return self.flattenAST(ast.block.scope.?, final, return_label, break_label, continue_label, lvalue, errors, allocator);
-                    } else {
-                        return temp;
+                        temp = try self.flattenAST(ast.block.scope.?, final, return_label, break_label, continue_label, lvalue, errors, allocator);
                     }
+
+                    try self.generateDefers(&ast.block.scope.?.defers, &continue_labels, ast.block.scope.?, errors, allocator);
+                    self.appendInstruction(try IR.createJump(end, allocator));
+                    self.appendInstruction(end);
+
+                    return temp;
                 }
             },
 
@@ -1044,6 +1062,14 @@ pub const CFG = struct {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
                 return error.Unimplemented;
             },
+        }
+    }
+
+    fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ InvalidRange, NotAnLValue, OutOfMemory, Unimplemented, typeError }!void {
+        var i: usize = defers.items.len;
+        while (i > 0) : (i -= 1) {
+            self.appendInstruction(deferLabels.items[i - 1]);
+            _ = try self.flattenAST(scope, defers.items[i - 1], null, null, null, false, errors, allocator);
         }
     }
 

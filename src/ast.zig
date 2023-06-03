@@ -198,7 +198,7 @@ pub const AST = union(enum) {
         refinement: ?*AST,
         init: *AST,
     },
-    _defer: struct { common: ASTCommon, expr: *AST },
+    _defer: struct { common: ASTCommon, statement: *AST },
 
     fn box(ast: AST, alloc: std.mem.Allocator) error{OutOfMemory}!*AST {
         var retval = try alloc.create(AST);
@@ -527,8 +527,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .fnDecl = .{ .common = ASTCommon{ .token = token, ._type = null }, .name = name, .params = params, .retType = retType, .refinement = refinement, .init = init } }, allocator);
     }
 
-    pub fn createDefer(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    pub fn createDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
     }
 
     pub fn createBinop(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

@@ -1,0 +1,9 @@
+// 34
+fn main: ()->Int =
+    let mut x = 2
+    if x == 2
+        defer x = 34
+        defer x = 24
+        defer x = 14
+        x = 4
+    x
