@@ -1,5 +1,6 @@
 ### Nits
 - [x] Rename `case` to `match`
+- [ ] Find copy-pasted code and tidy it up
 - [ ] Standardize token, ast, ir *kind* naming convention
 - [ ] Alphabetize type imports by the module, then by the type.
 - [ ] Standardize the names of parameters, ie:
@@ -9,13 +10,13 @@
     - `ir` for an arbitrary IR node
     - `symbver` for an arbitrary SymbolVersion
     - `maybe_x` for an optional variant of a type
-- [ ] Errors should be capitalized, I guess
+- [ ] Errors should be capitalized
 - [ ] Variables should be snake_case, functions should be snakeCase
 - [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops to enhanced for dyadic loops
-- [~] Find some code not covered and write an integration test for it
+- [ ] Find some code not covered and write an integration test for it
 
 ### Pipeline
 - [x] Errors should print lines
@@ -45,9 +46,8 @@
     - [x] `&mut` and validation (also find a way to validate assigning to mut symbols, though that's technically different)
 - [x] basic optimizations
     - [x] version symbols
-    - [ ] Constant fold (AST & IR)
-        > For what were 'phony' symbols in Old Orange, create a default def
-    - [x] Dead code elimination (IR)
+    - [ ] Constant fold
+    - [x] Dead code elimination
     - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to
 - [ ] `defer`
     - [ ] count defers in block tree-walk

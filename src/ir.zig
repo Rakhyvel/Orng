@@ -96,16 +96,16 @@ pub const IRKind = enum {
     copy,
     not,
     negate,
-    bitNot,
+    // bitNot,
     addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
     dereference,
     derefCopy,
 
     // Diadic instructions
-    bitOr,
-    bitXor,
-    bitAnd,
+    // bitOr,
+    // bitXor,
+    // bitAnd,
     equal,
     notEqual,
     greater,

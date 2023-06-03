@@ -232,7 +232,6 @@ fn propagateIR(ir: *IR) bool {
         .copy => {
             // Self-copy elimination
             if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null) {
-                // std.debug.print("{?}\n", .{ir.src1.?.def});
                 ir.kind = ir.src1.?.def.?.kind;
                 ir.data = ir.src1.?.def.?.data;
                 ir.dest = ir.src1.?.def.?.dest;
@@ -337,14 +336,6 @@ fn propagateIR(ir: *IR) bool {
             }
         },
 
-        .dereference => {
-            // Short-circuit src1 copy
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
-                retval = true;
-            }
-        },
-
         .not => {
             // Known int value
             if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
@@ -376,6 +367,22 @@ fn propagateIR(ir: *IR) bool {
                 ir.data = _ir.IRData{ .float = -ir.src1.?.def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
+                retval = true;
+            }
+        },
+
+        .dereference => {
+            // Short-circuit src1 copy
+            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                ir.src1 = ir.src1.?.def.?.src1;
+                retval = true;
+            }
+        },
+
+        .derefCopy => {
+            // Copy propagation
+            if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
+                ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
         },
