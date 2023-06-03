@@ -1,5 +1,5 @@
 ### Nits
-- [ ] Rename `case` to `match`
+- [x] Rename `case` to `match`
 - [ ] Standardize token, ast, ir *kind* naming convention
 - [ ] Alphabetize type imports by the module, then by the type.
 - [ ] Standardize the names of parameters, ie:

@@ -57,7 +57,7 @@ pub const Parser = struct {
         or nextKind == .INDENT //
         or nextKind == .BAR //
         or nextKind == .MINUS //
-        or nextKind == .CASE //
+        or nextKind == .MATCH //
         or nextKind == .COND //
         or nextKind == .FN //
         or nextKind == .FOR //
@@ -285,8 +285,8 @@ pub const Parser = struct {
             return self.fnDeclaration();
         } else if (self.peekKind(.COND)) {
             return self.condExpr();
-        } else if (self.peekKind(.CASE)) {
-            return self.caseExpr();
+        } else if (self.peekKind(.MATCH)) {
+            return self.matchExpr();
         } else {
             return self.sumType();
         }
@@ -816,8 +816,8 @@ pub const Parser = struct {
         return try AST.createCond(token, let, mappings, self.astAllocator);
     }
 
-    fn caseExpr(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.CASE);
+    fn matchExpr(self: *Parser) ParserErrorEnum!*AST {
+        var token = try self.expect(.MATCH);
         var mappings = std.ArrayList(*AST).init(self.astAllocator);
         var let: ?*AST = null;
 
@@ -826,9 +826,9 @@ pub const Parser = struct {
             _ = try self.expect(.SEMICOLON);
         }
         var exp = try self.productExpr();
-        try self.barList(&mappings, .case);
+        try self.barList(&mappings, .match);
 
-        return try AST.createCase(token, let, exp, mappings, self.astAllocator);
+        return try AST.createMatch(token, let, exp, mappings, self.astAllocator);
     }
 
     fn parens(self: *Parser) ParserErrorEnum!*AST {

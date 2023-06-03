@@ -16,7 +16,7 @@ pub const TokenKind = enum(u32) {
     // Keywords
     AND,
     BREAK,
-    CASE,
+    MATCH,
     CATCH,
     COND,
     CONST,
@@ -226,7 +226,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
 
         .AND => "and",
         .BREAK => "break",
-        .CASE => "case",
+        .MATCH => "match",
         .CATCH => "catch",
         .COND => "cond",
         .CONST => "const",

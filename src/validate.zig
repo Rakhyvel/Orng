@@ -362,9 +362,9 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                 return error.typeError;
             }
         },
-        .case => {
+        .match => {
             // TODO: After pattern matching
-            std.debug.print("case\n", .{});
+            std.debug.print("match\n", .{});
         },
         .mapping => {
             switch (ast.mapping.kind) {
@@ -376,7 +376,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                         try validateAST(rhs, expected, scope, errors);
                     }
                 },
-                .case => {},
+                .match => {},
             }
         },
         ._while => {

@@ -57,7 +57,7 @@ pub const SliceKind = union(enum) {
 };
 
 pub const MappingKind = enum {
-    case,
+    match,
     cond,
 };
 
@@ -139,7 +139,7 @@ pub const AST = union(enum) {
         let: ?*AST,
         mappings: std.ArrayList(*AST),
     },
-    case: struct {
+    match: struct {
         common: ASTCommon,
         scope: ?*Scope,
         let: ?*AST,
@@ -262,7 +262,7 @@ pub const AST = union(enum) {
 
             ._if => return &self._if.common,
             .cond => return &self.cond.common,
-            .case => return &self.case.common,
+            .match => return &self.match.common,
             .mapping => return &self.mapping.common,
             ._while => return &self._while.common,
             ._for => return &self._for.common,
@@ -483,8 +483,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .cond = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings } }, allocator);
     }
 
-    pub fn createCase(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .case = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .expr = expr, .mappings = mappings } }, allocator);
+    pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .expr = expr, .mappings = mappings } }, allocator);
     }
 
     pub fn createMapping(token: Token, kind: MappingKind, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {

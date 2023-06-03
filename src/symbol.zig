@@ -303,12 +303,12 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.cond.let, scope, errors, allocator);
             try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
         },
-        .case => {
+        .match => {
             var new_scope = try Scope.init(scope, "", allocator);
-            definition.case.scope = new_scope;
-            try symbolTableFromAST(definition.case.let, scope, errors, allocator);
-            try symbolTableFromAST(definition.case.expr, scope, errors, allocator);
-            try symbolTableFromASTList(definition.case.mappings, scope, errors, allocator);
+            definition.match.scope = new_scope;
+            try symbolTableFromAST(definition.match.let, scope, errors, allocator);
+            try symbolTableFromAST(definition.match.expr, scope, errors, allocator);
+            try symbolTableFromASTList(definition.match.mappings, scope, errors, allocator);
         },
         .mapping => {
             try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
