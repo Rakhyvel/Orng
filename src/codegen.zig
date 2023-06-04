@@ -112,6 +112,7 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
         if (bb.branch) |branch| {
             try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
         } else {
+            try out.writer().print("\t", .{});
             try printReturn(symbol, out);
             try out.writer().print("\t}} else {{\n", .{});
         }
@@ -121,7 +122,9 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
             try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
             try generateBasicBlock(next, symbol, out);
         } else {
+            try out.writer().print("\t", .{});
             try printReturn(symbol, out);
+            try out.writer().print("\t}}\n", .{});
         }
 
         // Generate the `branch` BB

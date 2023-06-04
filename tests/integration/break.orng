@@ -1,0 +1,10 @@
+// 36
+fn main: () -> Int =
+    let mut x = 36
+    while let mut i = 0; i < 70; i += 1
+        if i % 2 == 0
+            break
+        x += 1
+    else
+        x = 10
+    x

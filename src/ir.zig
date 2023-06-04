@@ -991,28 +991,26 @@ pub const CFG = struct {
                     _ = try self.flattenAST(ast._while.scope.?, let, return_label, break_label, continue_label, false, errors, allocator);
                 }
 
-                // Test lhs, branch
+                // Test condition, branch to either body or else block
                 self.appendInstruction(cond_label);
-                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, break_label, current_continue_label, false, errors, allocator)).?;
+                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, end_label, current_continue_label, false, errors, allocator)).?;
                 var branch = try IR.createBranch(condition, else_label, allocator);
                 self.appendInstruction(branch);
 
-                // lhs was true, recurse to rhs, store in symbver
-                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, current_continue_label, false, errors, allocator)) |blockSymbver| {
+                // Body block
+                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, end_label, current_continue_label, false, errors, allocator)) |blockSymbver| {
                     var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
                     self.appendInstruction(blockCopy);
                 }
 
+                // Post-condition, jump to condition test
                 self.appendInstruction(current_continue_label);
-
-                // Post-condition
                 if (ast._while.post) |post| {
-                    _ = try self.flattenAST(ast._while.scope.?, post, return_label, break_label, continue_label, false, errors, allocator);
+                    _ = try self.flattenAST(ast._while.scope.?, post, return_label, end_label, continue_label, false, errors, allocator);
                 }
-
                 self.appendInstruction(try IR.createJump(cond_label, allocator));
 
-                // cond was false, do else
+                // Else block
                 self.appendInstruction(else_label);
                 if (ast._while.elseBlock) |elseBlock| {
                     if (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
@@ -1078,6 +1076,10 @@ pub const CFG = struct {
             },
             ._continue => {
                 self.appendInstruction(try IR.createJump(continue_label, allocator));
+                return null;
+            },
+            ._break => {
+                self.appendInstruction(try IR.createJump(break_label, allocator));
                 return null;
             },
             else => {
