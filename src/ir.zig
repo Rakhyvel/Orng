@@ -1028,28 +1028,45 @@ pub const CFG = struct {
                 } else {
                     var continue_labels = std.ArrayList(*IR).init(allocator);
                     defer continue_labels.deinit();
+                    var break_labels = std.ArrayList(*IR).init(allocator);
+                    defer break_labels.deinit();
+                    var return_labels = std.ArrayList(*IR).init(allocator);
+                    defer return_labels.deinit();
                     for (ast.block.scope.?.defers.items) |_| {
                         try continue_labels.append(try IR.createLabel(allocator));
+                        try break_labels.append(try IR.createLabel(allocator));
+                        try return_labels.append(try IR.createLabel(allocator));
                     }
                     var end = try IR.createLabel(allocator);
 
                     var current_continue_label = if (continue_label != null) continue_label else end;
+                    var current_break_label = break_label;
+                    var current_return_label = return_label;
                     var defer_label_index: usize = 0;
 
                     var temp: ?*SymbolVersion = null;
                     for (ast.block.statements.items) |child| {
-                        temp = try self.flattenAST(ast.block.scope.?, child, return_label, break_label, current_continue_label, lvalue, errors, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, child, current_return_label, current_break_label, current_continue_label, lvalue, errors, allocator);
                         if (child.* == ._defer) {
                             current_continue_label = continue_labels.items[defer_label_index];
+                            current_break_label = break_labels.items[defer_label_index];
+                            current_return_label = return_labels.items[defer_label_index];
                             defer_label_index += 1;
                         }
                     }
                     if (ast.block.final) |final| {
-                        temp = try self.flattenAST(ast.block.scope.?, final, return_label, break_label, continue_label, lvalue, errors, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, lvalue, errors, allocator);
                     }
 
                     try self.generateDefers(&ast.block.scope.?.defers, &continue_labels, ast.block.scope.?, errors, allocator);
                     self.appendInstruction(try IR.createJump(end, allocator));
+
+                    try self.generateDefers(&ast.block.scope.?.defers, &break_labels, ast.block.scope.?, errors, allocator);
+                    self.appendInstruction(try IR.createJump(break_label, allocator));
+
+                    try self.generateDefers(&ast.block.scope.?.defers, &return_labels, ast.block.scope.?, errors, allocator);
+                    self.appendInstruction(try IR.createJump(return_label, allocator));
+
                     self.appendInstruction(end);
 
                     return temp;
@@ -1080,6 +1097,20 @@ pub const CFG = struct {
             },
             ._break => {
                 self.appendInstruction(try IR.createJump(break_label, allocator));
+                return null;
+            },
+            ._return => {
+                // Copy retval
+                if (ast._return.expr) |expr| {
+                    var retval = (try self.flattenAST(scope, expr, return_label, break_label, continue_label, false, errors, allocator)).?;
+                    var retval_symbver = try SymbolVersion.createUnversioned(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
+                    var retval_copy = try IR.create(.copy, retval_symbver, retval, null, allocator);
+                    retval_symbver.def = retval_copy;
+                    self.appendInstruction(retval_copy);
+                }
+
+                // Jump to return_label
+                self.appendInstruction(try IR.createJump(return_label, allocator));
                 return null;
             },
             else => {

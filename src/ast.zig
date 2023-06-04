@@ -18,6 +18,7 @@ pub var charType: *AST = undefined;
 pub var floatType: *AST = undefined;
 pub var intType: *AST = undefined;
 pub var typeType: *AST = undefined;
+pub var unitType: *AST = undefined;
 pub var voidType: *AST = undefined;
 
 pub fn initTypes() !void {
@@ -27,7 +28,8 @@ pub fn initTypes() !void {
         floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        voidType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         typesInited = true;
     }
 }
@@ -613,11 +615,15 @@ pub const AST = union(enum) {
             .int => retval = intType,
 
             // Type type
+            .unit => retval = typeType,
+
+            // Unit type
+            .assign => retval = unitType,
 
             // Void type
-            .unit,
-            .assign,
-            => retval = voidType,
+            ._continue => retval = voidType,
+            ._break => retval = voidType,
+            ._return => retval = voidType,
 
             // Identifier
             .identifier => {
@@ -655,11 +661,11 @@ pub const AST = union(enum) {
             .mapping => if (self.mapping.rhs) |rhs| {
                 retval = try rhs.typeof(scope, errors);
             } else {
-                retval = voidType;
+                retval = unitType;
             },
             ._while => retval = try self._while.bodyBlock.typeof(scope, errors),
             .block => if (self.block.final) |_| {
-                retval = voidType;
+                retval = unitType;
             } else if (self.block.statements.items.len == 0) {
                 retval = voidType;
             } else {

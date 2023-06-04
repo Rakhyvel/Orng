@@ -404,17 +404,22 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                 }
             }
             if (ast.block.final) |final| {
+                if (ast.block.statements.items.len > 1) {
+                    try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], null, ast.block.scope.?, errors);
+                }
                 try validateAST(final, null, ast.block.scope.?, errors);
-            } else if (ast.block.statements.items.len > 1) {
-                try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], expected, ast.block.scope.?, errors);
-            } else if (ast.block.statements.items.len == 1) {
-                try validateAST(ast.block.statements.items[0], null, ast.block.scope.?, errors);
-            }
+            } else {
+                if (ast.block.statements.items.len > 1) {
+                    try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], expected, ast.block.scope.?, errors);
+                } else if (ast.block.statements.items.len == 1) {
+                    try validateAST(ast.block.statements.items[0], null, ast.block.scope.?, errors);
+                }
 
-            var block_type = try ast.typeof(scope, errors);
-            if (expected != null and !expected.?.typesMatch(block_type)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
-                return error.typeError;
+                var block_type = try ast.typeof(scope, errors);
+                if (expected != null and !expected.?.typesMatch(block_type)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                    return error.typeError;
+                }
             }
         },
 

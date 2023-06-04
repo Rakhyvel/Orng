@@ -137,14 +137,14 @@ pub const Errors = struct {
                     err.redefinition.name,
                 }),
                 .expected2Type => {
-                    try out.print("expected `", .{});
+                    try out.print("expected the type `", .{});
                     try err.expected2Type.expected.printType(out);
-                    try out.print("`, got `", .{});
+                    try out.print("`, got the type `", .{});
                     try err.expected2Type.got.printType(out);
                     try out.print("`\n", .{});
                 },
                 .expectedType => {
-                    try out.print("expected `", .{});
+                    try out.print("expected the type `", .{});
                     try err.expectedType.expected.printType(out);
                     try out.print("`, got a type-less statement\n", .{});
                 },
