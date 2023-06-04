@@ -1,3 +1,4 @@
 // 37
 fn main: ()->Int =
+    if false {return 1000}
     return 37

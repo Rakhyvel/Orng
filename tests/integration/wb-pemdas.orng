@@ -3,7 +3,14 @@ fn main: ()->Int =
     let x: Int = 0
     let y: &Int = &x
     if y^ == 0
-        let z = y^
-        z + z - z * z / (z + 1) % (z + 1) ** (z + 1)
+        let mut z = y^
+        (&mut z)^ = z + z 
+        z = z - z 
+        z = z * z 
+        z = z / (z + 1)
+        z = z % (z + 1) 
+        z = z ** (z + (-1.0))
+        z = z
+        z
     else
         1000

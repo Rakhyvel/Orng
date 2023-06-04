@@ -396,20 +396,20 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             // TODO: After type-classes and iterators
         },
         .block => {
-            var i: usize = 0;
-            if (ast.block.statements.items.len > 1) {
-                while (i < ast.block.statements.items.len - 1) : (i += 1) {
+            if (ast.block.final) |final| {
+                var i: usize = 0;
+                while (i < ast.block.statements.items.len) : (i += 1) {
                     var term = ast.block.statements.items[i];
                     try validateAST(term, null, ast.block.scope.?, errors);
-                }
-            }
-            if (ast.block.final) |final| {
-                if (ast.block.statements.items.len > 1) {
-                    try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], null, ast.block.scope.?, errors);
                 }
                 try validateAST(final, null, ast.block.scope.?, errors);
             } else {
                 if (ast.block.statements.items.len > 1) {
+                    var i: usize = 0;
+                    while (i < ast.block.statements.items.len - 1) : (i += 1) {
+                        var term = ast.block.statements.items[i];
+                        try validateAST(term, null, ast.block.scope.?, errors);
+                    }
                     try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], expected, ast.block.scope.?, errors);
                 } else if (ast.block.statements.items.len == 1) {
                     try validateAST(ast.block.statements.items[0], null, ast.block.scope.?, errors);
@@ -417,19 +417,49 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
 
                 var block_type = try ast.typeof(scope, errors);
                 if (expected != null and !expected.?.typesMatch(block_type)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                    if (ast.block.statements.items.len > 1) {
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.block.statements.items[ast.block.statements.items.len - 1].getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                    } else {
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                    }
                     return error.typeError;
                 }
             }
         },
 
         // no return
-        ._unreachable,
-        ._break,
-        ._continue,
-        .throw,
-        ._return,
-        => {},
+        ._break => {
+            if (!scope.containedInALoop()) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "`break` must be inside a loop",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+        ._continue => {
+            if (!scope.containedInALoop()) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "`continue` must be inside a loop",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+
+        .throw, ._return => {
+            if (!scope.containedInAFunction()) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "`return` must be contained in a function",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+        ._unreachable => {},
 
         ._defer => {
             try scope.defers.append(ast._defer.statement);

@@ -295,7 +295,7 @@ fn propagateIR(ir: *IR) bool {
                 ir.src2 = ir.src1.?.def.?.src2;
                 ir.src1 = ir.src1.?.def.?.src1;
                 ir.dest.?.lvalue = false;
-                return true;
+                retval = true;
             }
             // Sub propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .sub) {
@@ -304,7 +304,7 @@ fn propagateIR(ir: *IR) bool {
                 ir.src2 = ir.src1.?.def.?.src2;
                 ir.src1 = ir.src1.?.def.?.src1;
                 ir.dest.?.lvalue = false;
-                return true;
+                retval = true;
             }
             // Mult propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .mult) {
@@ -313,7 +313,7 @@ fn propagateIR(ir: *IR) bool {
                 ir.src2 = ir.src1.?.def.?.src2;
                 ir.src1 = ir.src1.?.def.?.src1;
                 ir.dest.?.lvalue = false;
-                return true;
+                retval = true;
             }
             // Div propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .div) {
@@ -322,7 +322,7 @@ fn propagateIR(ir: *IR) bool {
                 ir.src2 = ir.src1.?.def.?.src2;
                 ir.src1 = ir.src1.?.def.?.src1;
                 ir.dest.?.lvalue = false;
-                return true;
+                retval = true;
             }
             // Mod propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .mod) {
@@ -331,7 +331,7 @@ fn propagateIR(ir: *IR) bool {
                 ir.src2 = ir.src1.?.def.?.src2;
                 ir.src1 = ir.src1.?.def.?.src1;
                 ir.dest.?.lvalue = false;
-                return true;
+                retval = true;
             }
             // Exponent propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .exponent) {
@@ -340,7 +340,7 @@ fn propagateIR(ir: *IR) bool {
                 ir.src2 = ir.src1.?.def.?.src2;
                 ir.src1 = ir.src1.?.def.?.src1;
                 ir.dest.?.lvalue = false;
-                return true;
+                retval = true;
             }
         },
 

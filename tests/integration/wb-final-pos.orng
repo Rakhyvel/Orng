@@ -1,7 +1,8 @@
-// 38
+// 41
 fn main: () -> Int =
     let mut x = 0
     while x < 100; x += 1
-        defer x += 2
-        if x >= 36 {break}
+        if x == 40
+            x += 1
+            break
     x

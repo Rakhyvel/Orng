@@ -19,6 +19,8 @@ pub const Scope = struct {
     name: []const u8,
     uid: usize,
 
+    in_loop: bool = false,
+    in_function: bool = false,
     defers: std.ArrayList(*AST),
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
@@ -91,6 +93,26 @@ pub const Scope = struct {
             return root(_parent);
         } else {
             return self;
+        }
+    }
+
+    pub fn containedInALoop(self: *Scope) bool {
+        if (self.in_loop) {
+            return true;
+        } else if (self.parent) |parent| {
+            return containedInALoop(parent);
+        } else {
+            return false;
+        }
+    }
+
+    pub fn containedInAFunction(self: *Scope) bool {
+        if (self.in_function) {
+            return true;
+        } else if (self.parent) |parent| {
+            return containedInAFunction(parent);
+        } else {
+            return false;
         }
     }
 };
@@ -319,6 +341,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         },
         ._while => {
             var new_scope = try Scope.init(scope, "", allocator);
+            new_scope.in_loop = true;
             definition._while.scope = new_scope;
             try symbolTableFromAST(definition._while.let, new_scope, errors, allocator);
             try symbolTableFromAST(definition._while.condition, new_scope, errors, allocator);
@@ -339,6 +362,9 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             var new_scope = try Scope.init(scope, "", allocator);
             definition.block.scope = new_scope;
             try symbolTableFromASTList(definition.block.statements, new_scope, errors, allocator);
+            if (definition.block.final) |final| {
+                try symbolTableFromAST(final, new_scope, errors, allocator);
+            }
         },
 
         .throw => try symbolTableFromAST(definition.throw.expr, scope, errors, allocator),
@@ -413,6 +439,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         allocator,
     );
     var fnScope = try Scope.init(scope, "", allocator);
+    fnScope.in_function = true;
     try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);
     try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
 

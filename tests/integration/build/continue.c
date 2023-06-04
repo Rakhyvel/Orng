@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685912303
-#define ORNG_1685912303
+#ifndef ORNG_1685915967
+#define ORNG_1685915967
 
 #include <math.h>
 #include <stdio.h>
@@ -10,50 +10,50 @@
 int test_main();
 
 int test_main() {
-	int64_t _93_x;
-	int64_t _94_i;
-	int64_t _92_t5;
-	uint8_t _92_t3;
-	int64_t _92_t9;
-	int64_t _92_t10;
-	int64_t _92_t11;
-	uint8_t _92_t7;
-	int64_t _92_t16;
-	int64_t _92_t13;
-	int64_t _92_$retval;
+	int64_t _89_x;
+	int64_t _90_i;
+	int64_t _88_t5;
+	uint8_t _88_t3;
+	int64_t _88_t9;
+	int64_t _88_t10;
+	int64_t _88_t11;
+	uint8_t _88_t7;
+	int64_t _88_t16;
+	int64_t _88_t13;
+	int64_t _88_$retval;
 BB0:
-	_93_x = 0;
-	_94_i = 0;
+	_89_x = 0;
+	_90_i = 0;
 	goto BB1;
 BB1:
-	_92_t5 = 70;
-	_92_t3 = _94_i < _92_t5;
-	if (!_92_t3) {
+	_88_t5 = 70;
+	_88_t3 = _90_i < _88_t5;
+	if (!_88_t3) {
 		goto BB16;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_92_t9 = 2;
-	_92_t10 = _94_i % _92_t9;
-	_92_t11 = 0;
-	_92_t7 = _92_t10 == _92_t11;
-	if (!_92_t7) {
+	_88_t9 = 2;
+	_88_t10 = _90_i % _88_t9;
+	_88_t11 = 0;
+	_88_t7 = _88_t10 == _88_t11;
+	if (!_88_t7) {
 		goto BB12;
 	} else {
 		goto BB8;
 	}
 BB8:
-	_92_t16 = 1;
-	_94_i = _94_i + _92_t16;
+	_88_t16 = 1;
+	_90_i = _90_i + _88_t16;
 	goto BB1;
 BB12:
-	_92_t13 = 1;
-	_93_x = _93_x + _92_t13;
+	_88_t13 = 1;
+	_89_x = _89_x + _88_t13;
 	goto BB8;
 BB16:
-	_92_$retval = _93_x;
-	return _92_$retval;
+	_88_$retval = _89_x;
+	return _88_$retval;
 }
 
 int main()
