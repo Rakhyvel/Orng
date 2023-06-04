@@ -508,7 +508,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createContinue(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._break = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
+        return try AST.box(AST{ ._continue = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
     pub fn createThrow(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {

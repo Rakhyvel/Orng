@@ -2,10 +2,10 @@
 # used just to check for ambiguity
 # python3.10 ../rdgen/main.py create --input orng.ebnf --output parser.py
 
-program: top_level_declaration {top_level_declaration}.
+program: top_level_declaration {"newline" top_level_declaration} "eof".
 
 top_level_declaration: fn_declaration 
-                     | const_declaration "newline" # Note: For practicality, newline can be omitted if EOF matches the next token
+                     | const_declaration
                      .
 
 non_fn_declaration: let_declaration | const_declaration.

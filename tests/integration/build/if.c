@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685778818
-#define ORNG_1685778818
+#ifndef ORNG_1685902519
+#define ORNG_1685902519
 
 #include <math.h>
 #include <stdio.h>
@@ -10,10 +10,10 @@
 int test_main();
 
 int test_main() {
-	int64_t _146_$retval;
+	int64_t _154_$retval;
 BB0:
-	_146_$retval = 11;
-	return _146_$retval;
+	_154_$retval = 11;
+	return _154_$retval;
 }
 
 int main()

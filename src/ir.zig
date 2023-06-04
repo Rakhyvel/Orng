@@ -39,12 +39,20 @@ pub const SymbolVersion = struct {
 
     fn pprint(self: ?*SymbolVersion) void {
         if (self) |symbver| {
+            var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+            defer arena.deinit();
+            var out = _string.String.init(arena.allocator());
+            defer out.deinit();
+
             if (symbver.lvalue) {
-                std.debug.print("L", .{});
+                out.concat("L") catch unreachable;
+            } else {
+                out.concat(" ") catch unreachable;
             }
-            std.debug.print("{s}_{?}\t", .{ symbver.symbol.name, symbver.version });
+            out.writer().print("{s}_{?}", .{ symbver.symbol.name, symbver.version }) catch unreachable;
+            std.debug.print("{s:<10}", .{out.str()});
         } else {
-            std.debug.print("<null>\t", .{});
+            std.debug.print("<null>    ", .{});
         }
     }
 
@@ -238,11 +246,7 @@ pub const IR = struct {
             std.debug.print("BB{}:\n", .{self.uid});
         } else {
             const kind_name = @tagName(self.kind);
-            std.debug.print("{}\t{s}", .{ self.uid, kind_name });
-            var i: u64 = 17 - kind_name.len;
-            while (i > 0) : (i -= 1) {
-                std.debug.print(" ", .{});
-            }
+            std.debug.print("    {:<3}\t{s:<12}", .{ self.uid, kind_name });
             SymbolVersion.pprint(self.dest);
             SymbolVersion.pprint(self.src1);
             SymbolVersion.pprint(self.src2);
@@ -294,33 +298,44 @@ pub const BasicBlock = struct {
         }
         self.visited = true;
 
-        std.debug.print("Basic Block BB{}", .{self.uid});
+        std.debug.print("BB{}", .{self.uid});
         BasicBlock.printSymbverList(&self.parameters);
+        std.debug.print(":\n", .{});
         var maybe_ir = self.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.pprint();
         }
         if (self.has_branch) {
-            if (self.branch) |branch| {
-                std.debug.print("if (!{s}_{?}) goto {}", .{ self.condition.?.symbol.name, self.condition.?.version, branch.uid });
+            if (self.next) |next| {
+                std.debug.print("    branch {s}_{?}, BB{}", .{ self.condition.?.symbol.name, self.condition.?.version, next.uid });
                 BasicBlock.printSymbverList(&self.branch_arguments);
             } else {
-                std.debug.print("if (!{s}_{?}) goto <END>", .{ self.condition.?.symbol.name, self.condition.?.version });
+                std.debug.print("    branch {s}_{?}, <END>", .{ self.condition.?.symbol.name, self.condition.?.version });
                 BasicBlock.printSymbverList(&self.branch_arguments);
             }
-        }
-        if (self.next) |next| {
-            std.debug.print("goto {}", .{next.uid});
-            BasicBlock.printSymbverList(&self.next_arguments);
+            std.debug.print(", ", .{});
+            if (self.branch) |branch| {
+                std.debug.print("BB{}", .{branch.uid});
+                BasicBlock.printSymbverList(&self.next_arguments);
+            } else {
+                std.debug.print("<END>", .{});
+                BasicBlock.printSymbverList(&self.next_arguments);
+            }
         } else {
-            std.debug.print("goto <END>", .{});
-            BasicBlock.printSymbverList(&self.next_arguments);
+            if (self.next) |next| {
+                std.debug.print("    jump BB{}", .{next.uid});
+                BasicBlock.printSymbverList(&self.next_arguments);
+            } else {
+                std.debug.print("    jump <END>", .{});
+                BasicBlock.printSymbverList(&self.next_arguments);
+            }
+        }
+        std.debug.print("\n\n", .{});
+        if (self.next) |next| {
+            next.pprint();
         }
         if (self.branch) |branch| {
             branch.pprint();
-        }
-        if (self.next) |next| {
-            next.pprint();
         }
     }
 
@@ -334,7 +349,7 @@ pub const BasicBlock = struct {
                 std.debug.print(", ", .{});
             }
         }
-        std.debug.print(")\n", .{});
+        std.debug.print(")", .{});
     }
 
     pub fn appendInstruction(self: *BasicBlock, ir: *IR) *IR {
@@ -967,6 +982,7 @@ pub const CFG = struct {
 
                 // Labels used
                 var cond_label = try IR.createLabel(allocator);
+                var current_continue_label = try IR.createLabel(allocator);
                 var else_label = try IR.createLabel(allocator);
                 var end_label = try IR.createLabel(allocator);
 
@@ -977,15 +993,17 @@ pub const CFG = struct {
 
                 // Test lhs, branch
                 self.appendInstruction(cond_label);
-                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, break_label, current_continue_label, false, errors, allocator)).?;
                 var branch = try IR.createBranch(condition, else_label, allocator);
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |blockSymbver| {
+                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, break_label, current_continue_label, false, errors, allocator)) |blockSymbver| {
                     var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
                     self.appendInstruction(blockCopy);
                 }
+
+                self.appendInstruction(current_continue_label);
 
                 // Post-condition
                 if (ast._while.post) |post| {
@@ -994,7 +1012,7 @@ pub const CFG = struct {
 
                 self.appendInstruction(try IR.createJump(cond_label, allocator));
 
-                // lhs was false, store `false` in symbver
+                // cond was false, do else
                 self.appendInstruction(else_label);
                 if (ast._while.elseBlock) |elseBlock| {
                     if (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, false, errors, allocator)) |elseSymbver| {
@@ -1056,6 +1074,10 @@ pub const CFG = struct {
                 return null;
             },
             ._defer => {
+                return null;
+            },
+            ._continue => {
+                self.appendInstruction(try IR.createJump(continue_label, allocator));
                 return null;
             },
             else => {

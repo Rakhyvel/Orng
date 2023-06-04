@@ -418,21 +418,19 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             }
         },
 
+        // no return
         ._unreachable,
         ._break,
         ._continue,
         .throw,
         ._return,
-        => {
-            // no-return
-            std.debug.print("no return\n", .{});
-        },
+        => {},
 
         ._defer => {
             try scope.defers.append(ast._defer.statement);
         },
         .fnDecl => {
-            // type-less
+            // TODO: ast expression is a function type
             if (expected != null) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .stage = .typecheck } });
                 return error.typeError;
@@ -440,7 +438,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         },
         .decl => {
             ast.decl.symbol.?.defined = true;
-            // type-less
+            // statement, no type
             if (expected != null) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .stage = .typecheck } });
                 return error.typeError;
