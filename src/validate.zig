@@ -231,7 +231,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             std.debug.print("orelse\n", .{});
         },
         .call => {
-            std.debug.print("call\n", .{});
+            try validateAST(ast.call.lhs, null, scope, errors);
         },
         .index => {
             std.debug.print("index\n", .{});

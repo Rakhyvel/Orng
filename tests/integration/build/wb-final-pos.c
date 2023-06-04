@@ -1,58 +1,59 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685916327
-#define ORNG_1685916327
+#ifndef ORNG_1685922416
+#define ORNG_1685922416
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int test_main();
+int64_t _225_main();
 
-int test_main() {
-	int64_t _222_x;
-	int64_t _221_t4;
-	uint8_t _221_t2;
-	int64_t _221_t8;
-	uint8_t _221_t6;
-	int64_t _221_t10;
-	int64_t _221_$retval;
-	int64_t _221_t13;
+int64_t _225_main() {
+	int64_t _226_x;
+	int64_t _225_t4;
+	uint8_t _225_t2;
+	int64_t _225_t8;
+	uint8_t _225_t6;
+	int64_t _225_t10;
+	int64_t _225_$retval;
+	int64_t _225_t13;
 BB0:
-	_222_x = 0;
+	_226_x = 0;
 	goto BB1;
 BB1:
-	_221_t4 = 100;
-	_221_t2 = _222_x < _221_t4;
-	if (!_221_t2) {
+	_225_t4 = 100;
+	_225_t2 = _226_x < _225_t4;
+	if (!_225_t2) {
 		goto BB8;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_221_t8 = 40;
-	_221_t6 = _222_x == _221_t8;
-	if (!_221_t6) {
+	_225_t8 = 40;
+	_225_t6 = _226_x == _225_t8;
+	if (!_225_t6) {
 		goto BB14;
 	} else {
 		goto BB5;
 	}
 BB5:
-	_221_t10 = 1;
-	_222_x = _222_x + _221_t10;
+	_225_t10 = 1;
+	_226_x = _226_x + _225_t10;
 	goto BB8;
 BB8:
-	_221_$retval = _222_x;
-	return _221_$retval;
+	_225_$retval = _226_x;
+	return _225_$retval;
 BB14:
-	_221_t13 = 1;
-	_222_x = _222_x + _221_t13;
+	_225_t13 = 1;
+	_226_x = _226_x + _225_t13;
 	goto BB1;
 }
 
+
 int main()
 {
-  printf("%d", test_main());
+  printf("%ld",_225_main());
   return 0;
 }
 

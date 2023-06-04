@@ -671,6 +671,10 @@ pub const AST = union(enum) {
             } else {
                 retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors);
             },
+            .call => {
+                var fn_type: *AST = try self.call.lhs.typeof(scope, errors);
+                retval = fn_type.function.rhs;
+            },
 
             else => {
                 std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});

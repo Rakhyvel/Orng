@@ -1,15 +1,15 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685916327
-#define ORNG_1685916327
+#ifndef ORNG_1685922416
+#define ORNG_1685922416
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int test_main();
+int64_t _13_main();
 
-int test_main() {
+int64_t _13_main() {
 	int64_t _13_t1;
 	int64_t* _14_y;
 	int64_t _13_t6;
@@ -60,9 +60,10 @@ BB13:
 	goto BB6;
 }
 
+
 int main()
 {
-  printf("%d", test_main());
+  printf("%ld",_13_main());
   return 0;
 }
 

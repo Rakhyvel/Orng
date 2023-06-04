@@ -1,24 +1,25 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685916327
-#define ORNG_1685916327
+#ifndef ORNG_1685922416
+#define ORNG_1685922416
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int test_main();
+uint8_t _96_main();
 
-int test_main() {
+uint8_t _96_main() {
 	uint8_t _96_$retval;
 BB0:
 	_96_$retval = 0;
 	return _96_$retval;
 }
 
+
 int main()
 {
-  printf("%d", test_main());
+  printf("%d",_96_main());
   return 0;
 }
 

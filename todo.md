@@ -52,12 +52,12 @@
     - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to
 - [x] `defer`
     - [x] count defers in block tree-walk
-- [ ] `continue`/`break`/`return`
+- [x] `continue`/`break`/`return`
 - [ ] function calls
+    - [ ] parameters
     - [ ] named arguments/fields
     - [ ] default parameters
     - [ ] nested functions/anon functions
-    - [ ] Add function parameters as basic-block symbol-version parameters, generate copies in codegen
 - [ ] tuples
     - [ ] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct

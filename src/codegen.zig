@@ -28,10 +28,15 @@ pub fn generate(program: *Program, file: *std.fs.File) !void {
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    try out.writer().print("int test_{s}();\n", .{callGraph.symbol.name});
+    try printType(callGraph.symbol._type.?.function.rhs, out);
+    try out.writer().print(" ", .{});
+    try printPath(callGraph.symbol, out);
+    try out.writer().print("(", .{});
+    try printProductList(callGraph.symbol._type.?.function.lhs, out);
+    try out.writer().print(");\n", .{});
 
-    for (callGraph.leaves.items) |leaf| {
-        try generateFowardFunctions(leaf, out);
+    for (callGraph.children.items) |child| {
+        try generateFowardFunctions(child, out);
     }
 }
 
@@ -44,7 +49,12 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
-    try out.writer().print("int test_{s}() {{\n", .{callGraph.symbol.name});
+    try printType(callGraph.symbol._type.?.function.rhs, out);
+    try out.writer().print(" ", .{});
+    try printPath(callGraph.symbol, out);
+    try out.writer().print("(", .{});
+    try printProductList(callGraph.symbol._type.?.function.lhs, out);
+    try out.writer().print(") {{\n", .{});
 
     // Collect and then declare all local variables
     for (callGraph.basic_blocks.items) |bb| {
@@ -54,7 +64,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
                 if (dest.symbol.decld or dest.type.* == .unit) {
                     continue;
                 }
-                try printVarDef(dest, out);
+                try printVarDef(dest.symbol, out, false);
                 dest.symbol.decld = true;
             }
         }
@@ -68,21 +78,31 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         callGraph.clearVisitedBBs();
     }
 
-    // Generate the `end` basic block
-    try out.writer().print("}}\n", .{});
+    try out.writer().print("}}\n\n", .{});
 
     // Generate leaf functions
-    for (callGraph.leaves.items) |leaf| {
-        try generateFunctions(leaf, out);
+    for (callGraph.children.items) |child| {
+        try generateFunctions(child, out);
     }
 }
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
-    _ = callGraph;
+    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.identifier.common.token.data, "Int")) {
+        try out.writer().print(
+            \\int main()
+            \\{{
+            \\  printf("%ld",
+        , .{});
+    } else {
+        try out.writer().print(
+            \\int main()
+            \\{{
+            \\  printf("%d",
+        , .{});
+    }
+    try printPath(callGraph.symbol, out);
     try out.writer().print(
-        \\int main()
-        \\{{
-        \\  printf("%d", test_main());
+        \\());
         \\  return 0;
         \\}}
         \\
@@ -306,8 +326,11 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try printVar(ir.src1.?, out);
             try out.writer().print("(", .{});
-            for (ir.data.symbverList.items) |symbver| {
+            for (ir.data.symbverList.items, 0..) |symbver, i| {
                 try printVar(symbver, out);
+                if (i + 1 != ir.data.symbverList.items.len) {
+                    try out.writer().print(", ", .{});
+                }
             }
             try out.writer().print(");\n", .{});
         },
@@ -369,6 +392,9 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             try printType(_type.addrOf.expr, out);
             try out.writer().print("*", .{});
         },
+        .function => {
+            try printType(_type.function.rhs, out);
+        },
         else => {
             std.debug.print("{?}", .{_type.*});
         },
@@ -381,12 +407,41 @@ fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print(" = ", .{});
 }
 
-fn printVarDef(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    try out.writer().print("\t", .{});
-    try printType(symbver.type, out);
+fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
+    if (!param) {
+        try out.writer().print("\t", .{});
+    }
+    try printType(symbol._type.?, out);
     try out.writer().print(" ", .{});
-    try printPath(symbver.symbol, out);
-    try out.writer().print(";\n", .{});
+    var is_function = symbol._type.?.* == .function;
+    if (is_function) {
+        try out.writer().print("(*", .{});
+    }
+    try printPath(symbol, out);
+    if (is_function) {
+        try out.writer().print(")(", .{});
+        try printProductList(symbol._type.?.function.lhs, out);
+        try out.writer().print(")", .{});
+    }
+    if (!param) {
+        try out.writer().print(";\n", .{});
+    }
+}
+
+fn printProductList(product: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
+    switch (product.*) {
+        .product => for (product.product.terms.items, 0..) |term, i| {
+            var symbol = term.decl.symbol.?;
+            try printVarDef(symbol, out, true);
+            if (i + 1 != product.product.terms.items.len) {
+                try out.writer().print(", ", .{});
+            }
+        },
+
+        .unit => {},
+
+        else => unreachable,
+    }
 }
 
 fn printPath(symbol: *Symbol, out: *std.fs.File) !void {

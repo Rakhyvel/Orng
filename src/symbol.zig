@@ -427,22 +427,39 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
 }
 
 fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
+    // Calculate the domain type from the function paramter types
     var domain = try extractDomain(
         definition.fnDecl.params,
         definition.fnDecl.retType.getToken(),
         allocator,
     );
+
+    // Create the function type
     var _type = try AST.createFunction(
         definition.fnDecl.retType.getToken(),
         domain,
         definition.fnDecl.retType,
         allocator,
     );
+
+    // Create the function scope
     var fnScope = try Scope.init(scope, "", allocator);
     fnScope.in_function = true;
+
+    // Recurse parameters and init
     try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);
+
+    var keySet = fnScope.symbols.keys();
+    var i: usize = 0;
+    while (i < keySet.len) : (i += 1) {
+        var key = keySet[i];
+        var symbol = fnScope.symbols.get(key).?;
+        symbol.defined = true;
+    }
+
     try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
 
+    // Choose name (maybe anon)
     var buf: []const u8 = undefined;
     if (definition.fnDecl.name) |name| {
         buf = name.identifier.common.token.data;

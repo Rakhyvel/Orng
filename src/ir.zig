@@ -400,7 +400,7 @@ pub const CFG = struct {
     basic_blocks: std.ArrayList(*BasicBlock),
 
     /// All other functions called by this function
-    leaves: std.ArrayList(*CFG),
+    children: std.ArrayList(*CFG),
 
     /// The function that this CFG represents
     symbol: *Symbol,
@@ -418,14 +418,14 @@ pub const CFG = struct {
         retval.ir_tail = null;
         retval.block_graph_head = null;
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
-        retval.leaves = std.ArrayList(*CFG).init(allocator);
+        retval.children = std.ArrayList(*CFG).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, null, null, .mut, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, .mut, allocator);
         retval.visited = false;
 
         if (caller) |caller_node| {
-            try caller_node.leaves.append(retval);
+            try caller_node.children.append(retval);
         }
 
         var eval = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, false, errors, allocator);

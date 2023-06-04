@@ -29,6 +29,10 @@ pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
         }
     }
     cfg.clearVisitedBBs();
+
+    for (cfg.children.items) |child| {
+        try optimize(child, allocator);
+    }
 }
 
 fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
@@ -824,6 +828,11 @@ fn calculateUsage(cfg: *CFG) void {
             }
             if (ir.src2 != null) {
                 ir.src2.?.uses += 1;
+            }
+            if (ir.kind == .call) {
+                for (ir.data.symbverList.items) |symbver| {
+                    symbver.uses += 1;
+                }
             }
         }
 

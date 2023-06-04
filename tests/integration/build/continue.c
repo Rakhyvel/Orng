@@ -1,15 +1,15 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685916327
-#define ORNG_1685916327
+#ifndef ORNG_1685922416
+#define ORNG_1685922416
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int test_main();
+int64_t _88_main();
 
-int test_main() {
+int64_t _88_main() {
 	int64_t _89_x;
 	int64_t _90_i;
 	int64_t _88_t5;
@@ -56,9 +56,10 @@ BB16:
 	return _88_$retval;
 }
 
+
 int main()
 {
-  printf("%d", test_main());
+  printf("%ld",_88_main());
   return 0;
 }
 
