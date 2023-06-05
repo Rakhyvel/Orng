@@ -25,6 +25,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, U
     if (symbol.valid) {
         return;
     }
+    symbol.valid = true;
     if (symbol.kind == ._fn) {
         var codomain = symbol._type.?.function.rhs;
         try validateAST(symbol.init.?, codomain, symbol.scope, errors);
@@ -43,7 +44,6 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors) error{ typeError, U
             unreachable;
         }
     }
-    symbol.valid = true;
 }
 
 /// Errors out if `ast` is not the expected type
@@ -482,7 +482,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
 }
 
 fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
-    var symbol = scope.lookup(ast.identifier.common.token.data) orelse {
+    var symbol = scope.lookup(ast.identifier.common.token.data, false) orelse {
         errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.common.token, .stage = .typecheck } });
         return error.typeError;
     };

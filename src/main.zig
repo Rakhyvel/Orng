@@ -94,7 +94,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     var program_ast = try parser.parse();
 
     // Symbol tree construction
-    var file_root = try symbol.Scope.init(try symbol.getPrelude(), name, allocator); // TODO: replace "test" with the filename, obvi
+    var file_root = try symbol.Scope.init(try symbol.getPrelude(), name, allocator);
     try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
 
     // Typecheck

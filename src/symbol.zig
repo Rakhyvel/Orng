@@ -1,9 +1,11 @@
 const std = @import("std");
 const ast = @import("ast.zig");
 const errs = @import("errors.zig");
+const _ir = @import("ir.zig");
 const _span = @import("span.zig");
 
 const AST = ast.AST;
+const CFG = _ir.CFG;
 const Error = errs.Error;
 const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
@@ -20,7 +22,7 @@ pub const Scope = struct {
     uid: usize,
 
     in_loop: bool = false,
-    in_function: bool = false,
+    in_function: usize = 0,
     defers: std.ArrayList(*AST),
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
@@ -34,15 +36,21 @@ pub const Scope = struct {
         scopeUID += 1;
         if (parent) |_parent| {
             try _parent.children.append(retval);
+            retval.in_loop = _parent.in_loop;
+            retval.in_function = _parent.in_function;
         }
         return retval;
     }
 
-    pub fn lookup(self: *Scope, name: []const u8) ?*Symbol {
+    pub fn lookup(self: *Scope, name: []const u8, crossed_boundary: bool) ?*Symbol {
         if (self.symbols.get(name)) |symbol| {
-            return symbol;
-        } else if (self.parent) |non_null_parent| {
-            return non_null_parent.lookup(name);
+            if (crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
+                return null;
+            } else {
+                return symbol;
+            }
+        } else if (self.parent) |parent| {
+            return parent.lookup(name, parent.in_function < self.in_function or crossed_boundary);
         } else {
             return null;
         }
@@ -107,13 +115,7 @@ pub const Scope = struct {
     }
 
     pub fn containedInAFunction(self: *Scope) bool {
-        if (self.in_function) {
-            return true;
-        } else if (self.parent) |parent| {
-            return containedInAFunction(parent);
-        } else {
-            return false;
-        }
+        return self.in_function > 0;
     }
 };
 
@@ -127,6 +129,7 @@ pub const Symbol = struct {
     init: ?*ast.AST,
     versions: u64,
     kind: SymbolKind,
+    cfg: ?*CFG,
 
     defined: bool,
     valid: bool,
@@ -142,6 +145,7 @@ pub const Symbol = struct {
         retval.init = _init;
         retval.versions = 0;
         retval.kind = kind;
+        retval.cfg = null;
         if (kind == ._fn or kind == ._const) {
             retval.defined = true;
         } else {
@@ -372,7 +376,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .decl => {
             // Both put a Symbol in the current scope, and recurse
             var symbol = try createSymbol(definition, scope, allocator);
-            if (scope.lookup(symbol.name)) |first| {
+            if (scope.lookup(symbol.name, false)) |first| {
                 errors.addError(Error{ .redefinition = .{
                     .first_defined_span = first.span,
                     .redefined_span = symbol.span,
@@ -388,7 +392,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         },
         .fnDecl => {
             var symbol = try createFunctionSymbol(definition, scope, errors, allocator);
-            if (scope.lookup(symbol.name)) |first| {
+            if (scope.lookup(symbol.name, false)) |first| {
                 errors.addError(Error{ .redefinition = .{
                     .first_defined_span = first.span,
                     .redefined_span = symbol.span,
@@ -445,7 +449,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
 
     // Create the function scope
     var fnScope = try Scope.init(scope, "", allocator);
-    fnScope.in_function = true;
+    fnScope.in_function = scope.in_function + 1;
 
     // Recurse parameters and init
     try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);

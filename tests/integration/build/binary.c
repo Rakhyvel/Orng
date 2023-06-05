@@ -7,19 +7,19 @@
 #include <stdint.h>
 
 /* Function Definitions */
-int64_t _88_main();
+int64_t _202_main();
 
-int64_t _88_main() {
-	int64_t _88_$retval;
+int64_t _202_main() {
+	int64_t _202_$retval;
 BB0:
-	_88_$retval = 10;
-	return _88_$retval;
+	_202_$retval = 10;
+	return _202_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_88_main());
+  printf("%ld",_202_main());
   return 0;
 }
 

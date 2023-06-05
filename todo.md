@@ -54,10 +54,11 @@
     - [x] count defers in block tree-walk
 - [x] `continue`/`break`/`return`
 - [ ] function calls
-    - [ ] parameters
-    - [ ] named arguments/fields
+    - [x] parameters
+    - [x] anon functions
+    - [ ] nested functions
+    - [ ] named arguments
     - [ ] default parameters
-    - [ ] nested functions/anon functions
 - [ ] tuples
     - [ ] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
@@ -65,6 +66,7 @@
     - [ ] `.` select
     - [ ] dot-assign
         - [ ] validate dot lvalue
+    - [ ] default fields
     - [ ] `++` for concat
     - [ ] `--` for diff (?)
 - [ ] arrays

@@ -1,39 +1,39 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685928987
-#define ORNG_1685928987
+#ifndef ORNG_1685933745
+#define ORNG_1685933745
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int64_t _2_main();
-int64_t _3_add(int64_t _3_x, int64_t _3_y);
+int64_t _123_main();
+int64_t _124_add(int64_t _124_x, int64_t _124_y);
 
-int64_t _2_main() {
-	int64_t (*_2_t0)(int64_t _3_x, int64_t _3_y);
-	int64_t _2_t2;
-	int64_t _2_t3;
-	int64_t _2_$retval;
+int64_t _123_main() {
+	int64_t (*_123_t0)(int64_t _124_x, int64_t _124_y);
+	int64_t _123_t2;
+	int64_t _123_t3;
+	int64_t _123_$retval;
 BB0:
-	_2_t0 = _3_add;
-	_2_t2 = 40;
-	_2_t3 = 3;
-	_2_$retval = _2_t0(_2_t2, _2_t3);
-	return _2_$retval;
+	_123_t0 = _124_add;
+	_123_t2 = 40;
+	_123_t3 = 3;
+	_123_$retval = _123_t0(_123_t2, _123_t3);
+	return _123_$retval;
 }
 
-int64_t _3_add(int64_t _3_x, int64_t _3_y) {
-	int64_t _3_$retval;
+int64_t _124_add(int64_t _124_x, int64_t _124_y) {
+	int64_t _124_$retval;
 BB0:
-	_3_$retval = _3_x + _3_y;
-	return _3_$retval;
+	_124_$retval = _124_x + _124_y;
+	return _124_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_123_main());
   return 0;
 }
 

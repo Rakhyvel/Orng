@@ -639,7 +639,7 @@ pub const AST = union(enum) {
 
             // Identifier
             .identifier => {
-                var symbol = scope.lookup(self.identifier.common.token.data) orelse {
+                var symbol = scope.lookup(self.identifier.common.token.data, false) orelse {
                     errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
                     return error.typeError;
                 };

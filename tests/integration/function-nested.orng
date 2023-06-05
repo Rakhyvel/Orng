@@ -1,0 +1,11 @@
+// 45
+fn main: ()->Int = 
+    let n = fib(10) - 10
+    fn fib: (n: Int)->Int =
+        cond
+        | n == 0 => n
+        | n == 1 => 1
+        | else   => add(fib(n - 1), fib(n - 2))
+    n
+
+fn add: (x: Int, y: Int)->Int = x + y

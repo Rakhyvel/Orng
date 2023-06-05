@@ -413,6 +413,9 @@ pub const CFG = struct {
     visited: bool,
 
     pub fn create(symbol: *Symbol, caller: ?*CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
+        if (symbol.cfg) |cfg| {
+            return cfg;
+        }
         var retval = try allocator.create(CFG);
         retval.ir_head = null;
         retval.ir_tail = null;
@@ -423,12 +426,13 @@ pub const CFG = struct {
         retval.number_temps = 0;
         retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, .mut, allocator);
         retval.visited = false;
+        symbol.cfg = retval;
 
         if (caller) |caller_node| {
             try caller_node.children.append(retval);
         }
 
-        var eval = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, false, errors, allocator);
+        var eval: ?*SymbolVersion = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, false, errors, allocator);
         var return_version = try SymbolVersion.createUnversioned(retval.return_symbol, symbol._type.?.function.rhs, allocator);
         retval.appendInstruction(try IR.create(.copy, return_version, eval, null, allocator));
         retval.appendInstruction(try IR.createJump(null, allocator));
@@ -528,7 +532,7 @@ pub const CFG = struct {
                 return temp;
             },
             .identifier => {
-                var symbol = scope.lookup(ast.identifier.common.token.data).?;
+                var symbol = scope.lookup(ast.identifier.common.token.data, false).?;
                 if (symbol.kind == ._fn) {
                     _ = try create(symbol, self, errors, allocator);
                     var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
@@ -597,7 +601,7 @@ pub const CFG = struct {
             // Binary operators
             .assign => {
                 if (ast.assign.lhs.* == .identifier) {
-                    var symbol = scope.lookup(ast.assign.lhs.identifier.common.token.data).?;
+                    var symbol = scope.lookup(ast.assign.lhs.identifier.common.token.data, false).?;
                     var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                     symbver.lvalue = true;
                     var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, errors, allocator);

@@ -1,32 +1,32 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685926484
-#define ORNG_1685926484
+#ifndef ORNG_1685933745
+#define ORNG_1685933745
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int64_t _126_main();
+int64_t _133_main();
 
-int64_t _126_main() {
-	int64_t _126_t1;
-	int64_t* _127_y;
-	int64_t _126_t4;
-	int64_t _126_$retval;
+int64_t _133_main() {
+	int64_t _133_t1;
+	int64_t* _134_y;
+	int64_t _133_t4;
+	int64_t _133_$retval;
 BB0:
-	_126_t1 = 4;
-	_127_y = &_126_t1;
-	_126_t4 = 28;
-	*_127_y = _126_t4;
-	_126_$retval = *_127_y;
-	return _126_$retval;
+	_133_t1 = 4;
+	_134_y = &_133_t1;
+	_133_t4 = 28;
+	*_134_y = _133_t4;
+	_133_$retval = *_134_y;
+	return _133_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_126_main());
+  printf("%ld",_133_main());
   return 0;
 }
 

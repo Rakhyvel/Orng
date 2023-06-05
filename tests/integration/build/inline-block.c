@@ -1,25 +1,25 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685926484
-#define ORNG_1685926484
+#ifndef ORNG_1685933745
+#define ORNG_1685933745
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int64_t _145_main();
+int64_t _152_main();
 
-int64_t _145_main() {
-	int64_t _145_$retval;
+int64_t _152_main() {
+	int64_t _152_$retval;
 BB0:
-	_145_$retval = 26;
-	return _145_$retval;
+	_152_$retval = 26;
+	return _152_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_145_main());
+  printf("%ld",_152_main());
   return 0;
 }
 
