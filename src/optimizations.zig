@@ -346,6 +346,15 @@ fn propagateIR(ir: *IR) bool {
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
+            // Call propagation
+            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .call) {
+                ir.kind = .call;
+                ir.data = ir.src1.?.def.?.data;
+                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src2 = null;
+                ir.dest.?.lvalue = false;
+                retval = true;
+            }
         },
 
         .not => {
@@ -712,7 +721,6 @@ fn propagateIR(ir: *IR) bool {
         },
 
         .exponent => {
-            // TODO: Compile error if divide by 0
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
@@ -738,6 +746,20 @@ fn propagateIR(ir: *IR) bool {
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
+            }
+        },
+
+        .call => {
+            // Short-circuit src1 copy
+            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                ir.src1 = ir.src1.?.def.?.src1;
+                retval = true;
+            }
+            for (ir.data.symbverList.items, 0..) |symbver, i| {
+                if (symbver.def != null and symbver.def.?.kind == .copy) {
+                    ir.data.symbverList.items[i] = symbver.def.?.src1.?;
+                    retval = true;
+                }
             }
         },
 

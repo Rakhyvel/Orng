@@ -3,6 +3,8 @@ const _token = @import("token.zig");
 const Token = _token.Token;
 const std = @import("std");
 
+const PRINT_TOKENS = false;
+
 pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
     commentPreempt(tokens);
     preemptBinaryOperator(tokens);
@@ -48,9 +50,7 @@ fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
         var token = tokens.items[i];
         switch (token.kind) {
             .NEWLINE => {
-                if (token.data.len == 1) {
-                    // Don't bother with these, they came from comments
-                } else if (token.data.len == stack.getLast()) {
+                if (token.data.len == stack.getLast()) {
                     // If token spaces == peek spaces => do nothing
                     // This implies this new line is a separator, not an indentor
                 } else if (token.data.len > stack.getLast()) {

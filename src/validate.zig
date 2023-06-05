@@ -231,7 +231,9 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
             std.debug.print("orelse\n", .{});
         },
         .call => {
+            // TODO: Validate function call
             try validateAST(ast.call.lhs, null, scope, errors);
+            try validateAST(ast.call.rhs, null, scope, errors);
         },
         .index => {
             std.debug.print("index\n", .{});
@@ -419,10 +421,11 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                 if (expected != null and !expected.?.typesMatch(block_type)) {
                     if (ast.block.statements.items.len > 1) {
                         errors.addError(Error{ .expected2Type = .{ .span = ast.block.statements.items[ast.block.statements.items.len - 1].getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                        return error.typeError;
                     } else {
                         errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                        return error.typeError;
                     }
-                    return error.typeError;
                 }
             }
         },
@@ -466,10 +469,6 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         },
         .fnDecl => {
             // TODO: ast expression is a function type
-            if (expected != null) {
-                errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .stage = .typecheck } });
-                return error.typeError;
-            }
         },
         .decl => {
             ast.decl.symbol.?.defined = true;

@@ -2,12 +2,12 @@
 fn main: ()->Int =
     // These are
     // Many line
-    // Comments
+// Comments
 
 
 
     10
 
 
-    
+
     // But they shouldn't affect the program!

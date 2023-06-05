@@ -399,6 +399,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             } else {
                 try scope.symbols.put(symbol.name, symbol);
             }
+            definition.fnDecl.symbol = symbol;
         },
         ._defer => try symbolTableFromAST(definition._defer.statement, scope, errors, allocator),
     }
@@ -464,7 +465,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     if (definition.fnDecl.name) |name| {
         buf = name.identifier.common.token.data;
     } else {
-        buf = try nextAnonFunctionName();
+        buf = try nextAnonFunctionName(allocator);
     }
     return try Symbol.create(
         fnScope,
@@ -478,24 +479,25 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
 }
 
 var numAnonFunctions: usize = 0;
-fn nextAnonFunctionName() SymbolErrorEnum![]const u8 {
+fn nextAnonFunctionName(allocator: std.mem.Allocator) SymbolErrorEnum![]const u8 {
     defer numAnonFunctions += 1;
-    var buf: [64]u8 = undefined;
-    _ = try std.fmt.bufPrint(&buf, "_anon{}", .{numAnonFunctions});
-    return &buf;
+    var out = String.init(allocator);
+    defer out.deinit();
+    try out.writer().print("$anon{}", .{numAnonFunctions});
+    return (try out.toOwned()).?;
 }
 
 fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) SymbolErrorEnum!*AST {
     if (params.items.len == 0) {
         return try AST.createUnit(token, allocator);
-    } else if (params.items.len < 2) {
-        return params.items[0].decl.type.?;
+    } else if (params.items.len <= 1) {
+        return params.items[0]; // TODO: Wrap in annotation
     } else {
         std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*AST).init(allocator);
         var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
-            try param_types.append(params.items[i]);
+            try param_types.append(params.items[i]); // TODO: Wrap in annotation
         }
         return try AST.createProduct(params.items[0].getToken(), param_types, allocator);
     }

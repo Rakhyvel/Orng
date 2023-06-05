@@ -199,6 +199,7 @@ pub const AST = union(enum) {
         retType: *AST,
         refinement: ?*AST,
         init: *AST,
+        symbol: ?*Symbol = null,
     },
     _defer: struct { common: ASTCommon, statement: *AST },
 
@@ -579,7 +580,18 @@ pub const AST = union(enum) {
             .function => {
                 try self.function.lhs.printType(out);
                 try out.print("->", .{});
-                try self.function.lhs.printType(out);
+                try self.function.rhs.printType(out);
+            },
+            .product => {
+                try out.print("(", .{});
+                for (self.product.terms.items, 0..) |term, i| {
+                    var symbol = term.decl.symbol.?;
+                    try symbol._type.?.printType(out);
+                    if (i + 1 != self.product.terms.items.len) {
+                        try out.print(", ", .{});
+                    }
+                }
+                try out.print(")", .{});
             },
             else => {
                 try out.print("Unimplemented or not a type: {?}\n", .{self.*});
@@ -674,6 +686,9 @@ pub const AST = union(enum) {
             .call => {
                 var fn_type: *AST = try self.call.lhs.typeof(scope, errors);
                 retval = fn_type.function.rhs;
+            },
+            .fnDecl => {
+                retval = self.fnDecl.symbol.?._type.?;
             },
 
             else => {

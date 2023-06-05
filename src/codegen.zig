@@ -428,19 +428,26 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     }
 }
 
-fn printProductList(product: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
-    switch (product.*) {
-        .product => for (product.product.terms.items, 0..) |term, i| {
+fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
+    switch (ast.*) {
+        .product => for (ast.product.terms.items, 0..) |term, i| {
             var symbol = term.decl.symbol.?;
             try printVarDef(symbol, out, true);
-            if (i + 1 != product.product.terms.items.len) {
+            if (i + 1 != ast.product.terms.items.len) {
                 try out.writer().print(", ", .{});
             }
         },
 
+        .identifier => try printType(ast, out),
+
+        .decl => try printVarDef(ast.decl.symbol.?, out, true),
+
         .unit => {},
 
-        else => unreachable,
+        else => {
+            std.debug.print("Unimplemented printProductList for: {s}\n", .{@tagName(ast.*)});
+            unreachable;
+        },
     }
 }
 

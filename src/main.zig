@@ -12,8 +12,6 @@ const Token = @import("token.zig").Token;
 const validate = @import("validate.zig");
 const optimizations = @import("optimizations.zig");
 
-pub const PRINT_TOKENS = false;
-
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
 // Afterwards, the program is collated to a CFG and written to a .c file. A C compiler may be called, and a
@@ -88,11 +86,6 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     // Layout
     if (!fuzz_tokens) {
         try layout.doLayout(&tokens);
-        if (PRINT_TOKENS) {
-            for (tokens.items) |*token| {
-                token.pprint();
-            }
-        }
     }
 
     // Parse

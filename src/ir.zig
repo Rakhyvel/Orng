@@ -532,7 +532,6 @@ pub const CFG = struct {
                 if (symbol.kind == ._fn) {
                     _ = try create(symbol, self, errors, allocator);
                     var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
-
                     var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
                     ir.data = IRData{ .symbol = symbol };
                     symbver.def = ir;
@@ -1087,6 +1086,15 @@ pub const CFG = struct {
                 symbver.def = ir;
                 self.appendInstruction(ir);
                 return null;
+            },
+            .fnDecl => {
+                _ = try create(ast.fnDecl.symbol.?, self, errors, allocator);
+                var symbver = try self.createTempSymbolVersion(ast.fnDecl.symbol.?._type.?, allocator);
+                var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
+                ir.data = IRData{ .symbol = ast.fnDecl.symbol.? };
+                symbver.def = ir;
+                self.appendInstruction(ir);
+                return symbver;
             },
             ._defer => {
                 return null;
