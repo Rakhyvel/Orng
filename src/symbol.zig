@@ -103,20 +103,6 @@ pub const Scope = struct {
             return self;
         }
     }
-
-    pub fn containedInALoop(self: *Scope) bool {
-        if (self.in_loop) {
-            return true;
-        } else if (self.parent) |parent| {
-            return containedInALoop(parent);
-        } else {
-            return false;
-        }
-    }
-
-    pub fn containedInAFunction(self: *Scope) bool {
-        return self.in_function > 0;
-    }
 };
 
 pub const SymbolKind = enum { _fn, _const, let, mut };
@@ -135,6 +121,7 @@ pub const Symbol = struct {
     valid: bool,
     /// When a local variable, whether or not the variable has been printed out or not
     decld: bool,
+    param: bool,
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
@@ -446,6 +433,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         definition.fnDecl.retType,
         allocator,
     );
+    std.debug.print("{?}\n", .{domain});
 
     // Create the function scope
     var fnScope = try Scope.init(scope, "", allocator);
@@ -460,6 +448,8 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         var key = keySet[i];
         var symbol = fnScope.symbols.get(key).?;
         symbol.defined = true;
+        symbol.decld = true;
+        symbol.param = true;
     }
 
     try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
@@ -495,13 +485,13 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
     if (params.items.len == 0) {
         return try AST.createUnit(token, allocator);
     } else if (params.items.len <= 1) {
-        return params.items[0]; // TODO: Wrap in annotation
+        return AST.createAnnotation(params.items[0].getToken(), params.items[0].decl.pattern, params.items[0].decl.type.?, null, null, allocator);
     } else {
         std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*AST).init(allocator);
         var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
-            try param_types.append(params.items[i]); // TODO: Wrap in annotation
+            try param_types.append(try AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type.?, null, null, allocator));
         }
         return try AST.createProduct(params.items[0].getToken(), param_types, allocator);
     }

@@ -98,7 +98,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
 
     // Typecheck
-    try validate.validateScope(file_root, errors);
+    try validate.validateScope(file_root, errors, allocator);
 
     return file_root;
 }

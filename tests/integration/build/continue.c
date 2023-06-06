@@ -1,65 +1,65 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1685933745
-#define ORNG_1685933745
+#ifndef ORNG_1686023172
+#define ORNG_1686023172
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Function Definitions */
-int64_t _95_main();
+int64_t _112_main();
 
-int64_t _95_main() {
-	int64_t _96_x;
-	int64_t _97_i;
-	int64_t _95_t5;
-	uint8_t _95_t3;
-	int64_t _95_t9;
-	int64_t _95_t10;
-	int64_t _95_t11;
-	uint8_t _95_t7;
-	int64_t _95_t16;
-	int64_t _95_t13;
-	int64_t _95_$retval;
+int64_t _112_main() {
+	int64_t _113_x;
+	int64_t _114_i;
+	int64_t _112_t5;
+	uint8_t _112_t3;
+	int64_t _112_t9;
+	int64_t _112_t10;
+	int64_t _112_t11;
+	uint8_t _112_t7;
+	int64_t _112_t16;
+	int64_t _112_t13;
+	int64_t _112_$retval;
 BB0:
-	_96_x = 0;
-	_97_i = 0;
+	_113_x = 0;
+	_114_i = 0;
 	goto BB1;
 BB1:
-	_95_t5 = 70;
-	_95_t3 = _97_i < _95_t5;
-	if (!_95_t3) {
+	_112_t5 = 70;
+	_112_t3 = _114_i < _112_t5;
+	if (!_112_t3) {
 		goto BB16;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_95_t9 = 2;
-	_95_t10 = _97_i % _95_t9;
-	_95_t11 = 0;
-	_95_t7 = _95_t10 == _95_t11;
-	if (!_95_t7) {
+	_112_t9 = 2;
+	_112_t10 = _114_i % _112_t9;
+	_112_t11 = 0;
+	_112_t7 = _112_t10 == _112_t11;
+	if (!_112_t7) {
 		goto BB12;
 	} else {
 		goto BB8;
 	}
 BB8:
-	_95_t16 = 1;
-	_97_i = _97_i + _95_t16;
+	_112_t16 = 1;
+	_114_i = _114_i + _112_t16;
 	goto BB1;
 BB12:
-	_95_t13 = 1;
-	_96_x = _96_x + _95_t13;
+	_112_t13 = 1;
+	_113_x = _113_x + _112_t13;
 	goto BB8;
 BB16:
-	_95_$retval = _96_x;
-	return _95_$retval;
+	_112_$retval = _113_x;
+	return _112_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_95_main());
+  printf("%ld",_112_main());
   return 0;
 }
 

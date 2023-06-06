@@ -1,0 +1,12 @@
+// 47
+fn main: () -> Int = a(47)
+
+fn a: (n: Int) -> Int = b(n)
+
+fn b: (n: Int) -> Int = c(n)
+
+fn c: (n: Int) -> Int =
+    if n == 47
+        47
+    else
+        a(n)

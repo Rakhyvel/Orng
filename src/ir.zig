@@ -504,28 +504,28 @@ pub const CFG = struct {
             // Literals
             .unit => return null,
             .int => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createInt(temp, ast.int.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
             },
             .char => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createInt(temp, ast.char.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
             },
             .float => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createFloat(temp, ast.float.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
             },
             .string => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createString(temp, ast.string.common.token.data, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
@@ -552,14 +552,14 @@ pub const CFG = struct {
                 }
             },
             ._true => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createInt(temp, 1, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
             },
             ._false => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createInt(temp, 0, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
@@ -570,7 +570,7 @@ pub const CFG = struct {
             .not => {
                 var expr = try self.flattenAST(scope, ast.not.expr, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(expr != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.not, temp, expr, null, allocator);
                 temp.def = ir;
@@ -580,7 +580,7 @@ pub const CFG = struct {
             .negate => {
                 var expr = try self.flattenAST(scope, ast.negate.expr, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(expr != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.negate, temp, expr, null, allocator);
                 temp.def = ir;
@@ -590,7 +590,7 @@ pub const CFG = struct {
             .dereference => {
                 var expr = try self.flattenAST(scope, ast.dereference.expr, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(expr != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.dereference, temp, expr, null, allocator);
                 temp.def = ir;
@@ -625,7 +625,7 @@ pub const CFG = struct {
             },
             ._or => {
                 // Create the result symbol and IR
-                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
@@ -658,7 +658,7 @@ pub const CFG = struct {
             },
             ._and => {
                 // Create the result symbol and IR
-                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
@@ -694,7 +694,7 @@ pub const CFG = struct {
                 std.debug.assert(lhs != null);
                 var rhs = try self.flattenAST(scope, ast.notEqual.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.notEqual, temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -706,7 +706,7 @@ pub const CFG = struct {
                 std.debug.assert(lhs != null);
                 var rhs = try self.flattenAST(scope, ast.add.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.add, temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -718,7 +718,7 @@ pub const CFG = struct {
                 std.debug.assert(lhs != null);
                 var rhs = try self.flattenAST(scope, ast.sub.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.sub, temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -730,7 +730,7 @@ pub const CFG = struct {
                 std.debug.assert(lhs != null);
                 var rhs = try self.flattenAST(scope, ast.mult.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.mult, temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -742,7 +742,7 @@ pub const CFG = struct {
                 std.debug.assert(lhs != null);
                 var rhs = try self.flattenAST(scope, ast.div.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.div, temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -754,7 +754,7 @@ pub const CFG = struct {
                 std.debug.assert(lhs != null);
                 var rhs = try self.flattenAST(scope, ast.mod.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.mod, temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -772,7 +772,7 @@ pub const CFG = struct {
                 var i: usize = ast.exponent.terms.items.len - 1;
                 while (i > 0) : (i -= 1) {
                     lhs = (try self.flattenAST(scope, ast.exponent.terms.items[i - 1], return_label, break_label, continue_label, lvalue, errors, allocator)).?;
-                    temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                    temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                     var ir = try IR.create(.exponent, temp, lhs, rhs, allocator);
                     temp.def = ir;
@@ -783,7 +783,7 @@ pub const CFG = struct {
             },
             .call => {
                 var lhs = (try self.flattenAST(scope, ast.call.lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.createCall(temp, lhs, allocator);
                 switch (ast.call.rhs.*) {
@@ -802,7 +802,7 @@ pub const CFG = struct {
             .addrOf => {
                 var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(expr != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.addrOf, temp, expr, null, allocator);
                 temp.def = ir;
@@ -813,7 +813,7 @@ pub const CFG = struct {
                 std.debug.assert(ast.conditional.exprs.items.len == ast.conditional.tokens.items.len + 1);
 
                 // Create the result symbol and IR
-                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 var end_label = try IR.createLabel(allocator);
@@ -873,7 +873,7 @@ pub const CFG = struct {
             // Control-flow expressions
             ._if => {
                 // Create the result symbol and IR
-                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // If there's a let, then do it, dumby!
@@ -915,7 +915,7 @@ pub const CFG = struct {
             },
             .cond => {
                 // Create the result symbol and IR
-                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // If there's a let, then do it, dumby!
@@ -981,7 +981,7 @@ pub const CFG = struct {
             },
             ._while => {
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors), allocator);
+                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 // Labels used
                 var cond_label = try IR.createLabel(allocator);
@@ -1260,7 +1260,7 @@ pub const CFG = struct {
         // Find phi arguments
         self.clearVisitedBBs();
         var i: usize = 0;
-        while (try self.childrenArgPropagation(self.block_graph_head.?, allocator)) {
+        while (try self.childrenArgPropagation(self.block_graph_head orelse return, allocator)) {
             self.clearVisitedBBs();
             i += 1;
         }

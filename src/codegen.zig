@@ -41,12 +41,6 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 }
 
 fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    if (callGraph.visited) {
-        return;
-    }
-    callGraph.visited = true;
-    defer callGraph.visited = false;
-
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
     try printType(callGraph.symbol._type.?.function.rhs, out);
@@ -69,8 +63,6 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
             }
         }
     }
-
-    // Declare all temporaries used by function
 
     // Generate the basic-block graph, starting at the init basic block
     if (callGraph.block_graph_head) |block_graph_head| {
@@ -395,6 +387,9 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
         .function => {
             try printType(_type.function.rhs, out);
         },
+        .unit => {
+            try out.writer().print("void", .{});
+        },
         else => {
             std.debug.print("{?}", .{_type.*});
         },
@@ -431,8 +426,7 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
 fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
     switch (ast.*) {
         .product => for (ast.product.terms.items, 0..) |term, i| {
-            var symbol = term.decl.symbol.?;
-            try printVarDef(symbol, out, true);
+            try printType(term, out);
             if (i + 1 != ast.product.terms.items.len) {
                 try out.writer().print(", ", .{});
             }
@@ -440,7 +434,20 @@ fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
 
         .identifier => try printType(ast, out),
 
-        .decl => try printVarDef(ast.decl.symbol.?, out, true),
+        .annotation => {
+            try printType(ast.annotation.type, out);
+            try out.writer().print(" ", .{});
+            var is_function = ast.annotation.type.* == .function;
+            if (is_function) {
+                try out.writer().print("(*", .{});
+            }
+            try out.writer().print("{s}", .{ast.annotation.pattern.identifier.common.token.data});
+            if (is_function) {
+                try out.writer().print(")(", .{});
+                try printProductList(ast.annotation.type.function.lhs, out);
+                try out.writer().print(")", .{});
+            }
+        },
 
         .unit => {},
 
@@ -452,7 +459,9 @@ fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
 }
 
 fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
-    try printPathScope(symbol.scope, out);
+    if (!symbol.param) {
+        try printPathScope(symbol.scope, out);
+    }
     try out.writer().print("{s}", .{symbol.name});
 }
 

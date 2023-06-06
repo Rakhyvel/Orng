@@ -173,7 +173,7 @@ fn countPredecessors(cfg: *CFG) void {
         bb.number_predecessors = 0;
     }
     cfg.clearVisitedBBs();
-    _countPredecessors(cfg.block_graph_head.?);
+    _countPredecessors(cfg.block_graph_head orelse return);
 }
 
 fn _countPredecessors(bb: *BasicBlock) void {
@@ -247,8 +247,12 @@ fn propagateIR(ir: *IR) bool {
 
     switch (ir.kind) {
         .copy => {
+            // Unit-copy elimination
+            if (ir.src1 == null) {
+                ir.in_block.?.removeInstruction(ir);
+            }
             // Self-copy elimination
-            if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null) {
+            else if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null) {
                 ir.in_block.?.removeInstruction(ir);
             }
             // Integer constant propagation

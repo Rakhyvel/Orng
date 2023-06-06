@@ -585,13 +585,16 @@ pub const AST = union(enum) {
             .product => {
                 try out.print("(", .{});
                 for (self.product.terms.items, 0..) |term, i| {
-                    var symbol = term.decl.symbol.?;
-                    try symbol._type.?.printType(out);
+                    try term.printType(out);
                     if (i + 1 != self.product.terms.items.len) {
                         try out.print(", ", .{});
                     }
                 }
                 try out.print(")", .{});
+            },
+            .annotation => {
+                try out.print("{s}: ", .{self.annotation.pattern.identifier.common.token.data});
+                try self.annotation.type.printType(out);
             },
             else => {
                 try out.print("Unimplemented or not a type: {?}\n", .{self.*});
@@ -601,7 +604,7 @@ pub const AST = union(enum) {
     }
 
     // Must always return a valid type!
-    pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors) !*AST {
+    pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         if (self.getCommon()._type) |_type| {
             return _type;
         }
@@ -637,21 +640,33 @@ pub const AST = union(enum) {
             ._break => retval = voidType,
             ._return => retval = voidType,
 
+            .product => {
+                if ((try self.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(typeType)) {
+                    retval = typeType;
+                } else {
+                    var terms = std.ArrayList(*AST).init(allocator);
+                    for (self.product.terms.items) |term| {
+                        try terms.append(try term.typeof(scope, errors, allocator));
+                    }
+                    retval = try AST.createProduct(self.getToken(), terms, allocator);
+                }
+            },
+
             // Identifier
             .identifier => {
                 var symbol = scope.lookup(self.identifier.common.token.data, false) orelse {
                     errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
                     return error.typeError;
                 };
-                try _validate.validateSymbol(symbol, errors);
+                try _validate.validateSymbol(symbol, errors, allocator);
                 retval = symbol._type.?;
             },
 
             // Unary Operators (TODO: Make polymorphic)
-            .negate => retval = try self.negate.expr.typeof(scope, errors),
-            .dereference => retval = (try self.dereference.expr.typeof(scope, errors)).addrOf.expr,
+            .negate => retval = try self.negate.expr.typeof(scope, errors, allocator),
+            .dereference => retval = (try self.dereference.expr.typeof(scope, errors, allocator)).addrOf.expr,
             .addrOf => {
-                var child_type = try self.addrOf.expr.typeof(scope, errors);
+                var child_type = try self.addrOf.expr.typeof(scope, errors, allocator);
                 if (child_type.typesMatch(typeType)) {
                     retval = typeType;
                 } else {
@@ -660,31 +675,31 @@ pub const AST = union(enum) {
             },
 
             // Binary operators (TODO: Make polymorphic)
-            .add => retval = try self.add.lhs.typeof(scope, errors),
-            .sub => retval = try self.sub.lhs.typeof(scope, errors),
-            .mult => retval = try self.mult.lhs.typeof(scope, errors),
-            .div => retval = try self.div.lhs.typeof(scope, errors),
-            .mod => retval = try self.mod.lhs.typeof(scope, errors),
-            .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors),
+            .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
+            .sub => retval = try self.sub.lhs.typeof(scope, errors, allocator),
+            .mult => retval = try self.mult.lhs.typeof(scope, errors, allocator),
+            .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
+            .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
+            .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors, allocator),
 
             // Control-flow expressions
-            ._if => retval = try self._if.bodyBlock.typeof(scope, errors),
-            .cond => retval = try self.cond.mappings.items[0].typeof(scope, errors),
+            ._if => retval = try self._if.bodyBlock.typeof(scope, errors, allocator),
+            .cond => retval = try self.cond.mappings.items[0].typeof(scope, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
-                retval = try rhs.typeof(scope, errors);
+                retval = try rhs.typeof(scope, errors, allocator);
             } else {
                 retval = unitType;
             },
-            ._while => retval = try self._while.bodyBlock.typeof(scope, errors),
+            ._while => retval = try self._while.bodyBlock.typeof(scope, errors, allocator),
             .block => if (self.block.final) |_| {
                 retval = unitType;
             } else if (self.block.statements.items.len == 0) {
                 retval = voidType;
             } else {
-                retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors);
+                retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors, allocator);
             },
             .call => {
-                var fn_type: *AST = try self.call.lhs.typeof(scope, errors);
+                var fn_type: *AST = try self.call.lhs.typeof(scope, errors, allocator);
                 retval = fn_type.function.rhs;
             },
             .fnDecl => {
@@ -718,8 +733,37 @@ pub const AST = union(enum) {
                     return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
-            else => {
+            .annotation => {
+                if (other.* == .annotation) {
+                    return typesMatch(self.annotation.type, other.annotation.type);
+                } else {
+                    return typesMatch(self.annotation.type, other);
+                }
+            },
+            .unit => {
                 return true;
+            },
+            .product => {
+                if (other.* != .product) {
+                    return false;
+                } else {
+                    var retval = false;
+                    for (self.product.terms.items, other.product.terms.items) |term, other_term| {
+                        retval = retval and term.typesMatch(other_term);
+                    }
+                    return retval;
+                }
+            },
+            .function => {
+                if (other.* != .function) {
+                    return false;
+                } else {
+                    return self.function.lhs.typesMatch(other.function.lhs) and self.function.rhs.typesMatch(other.function.rhs);
+                }
+            },
+            else => {
+                std.debug.print("Unimplemented for {s}\n", .{@tagName(self.*)});
+                unreachable;
             },
         }
     }

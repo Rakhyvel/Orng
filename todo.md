@@ -56,9 +56,11 @@
 - [ ] function calls
     - [x] parameters
     - [x] anon functions
-    - [ ] nested functions
-    - [ ] named arguments
+    - [x] nested functions
+    - [ ] mut function parameters
+    - [ ] function call arity/type validation
     - [ ] default parameters
+    - [ ] named arguments
 - [ ] tuples
     - [ ] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
@@ -156,6 +158,7 @@
 - [ ] type classes / interfaces / traits
     - [ ] allocators
     - [ ] iterators & for loops
+        - [ ] multi-loops, ranges like zig
     - [ ] Eq, Ord, Num, Bits
     - [ ] derive
 

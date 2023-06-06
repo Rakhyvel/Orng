@@ -3,4 +3,4 @@ fn main: ()->Int =
     let id = fn (x: Int)->Int = x
     apply(id, 43)
 
-fn apply: (f: Int->Int, x: Int)->Int = f(x)
+fn apply: (f: (Int->Int), x: Int)->Int = f(x)
