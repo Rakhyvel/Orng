@@ -578,8 +578,9 @@ pub const AST = union(enum) {
                 try self.inferredError.expr.printType(out);
             },
             .function => {
+                try out.print("(", .{});
                 try self.function.lhs.printType(out);
-                try out.print("->", .{});
+                try out.print(")->", .{});
                 try self.function.rhs.printType(out);
             },
             .product => {
@@ -694,7 +695,7 @@ pub const AST = union(enum) {
             .block => if (self.block.final) |_| {
                 retval = unitType;
             } else if (self.block.statements.items.len == 0) {
-                retval = voidType;
+                retval = unitType;
             } else {
                 retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors, allocator);
             },
@@ -716,6 +717,12 @@ pub const AST = union(enum) {
     }
 
     pub fn typesMatch(self: *AST, other: *AST) bool {
+        if (self.* == .annotation) {
+            return typesMatch(self.annotation.type, other);
+        } else if (other.* == .annotation) {
+            return typesMatch(self, other.annotation.type);
+        }
+
         switch (self.*) {
             .identifier => {
                 if (other.* != .identifier) {
@@ -733,15 +740,10 @@ pub const AST = union(enum) {
                     return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
-            .annotation => {
-                if (other.* == .annotation) {
-                    return typesMatch(self.annotation.type, other.annotation.type);
-                } else {
-                    return typesMatch(self.annotation.type, other);
-                }
-            },
+            .annotation => unreachable,
+
             .unit => {
-                return true;
+                return other.* == .unit;
             },
             .product => {
                 if (other.* != .product) {

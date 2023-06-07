@@ -28,11 +28,16 @@ pub fn generate(program: *Program, file: *std.fs.File) !void {
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    try printType(callGraph.symbol._type.?.function.rhs, out);
+    try printType(callGraph.symbol._type.?.function.rhs, out, false);
     try out.writer().print(" ", .{});
     try printPath(callGraph.symbol, out);
     try out.writer().print("(", .{});
-    try printProductList(callGraph.symbol._type.?.function.lhs, out);
+    for (callGraph.symbol.decl.?.fnDecl.params.items, 0..) |param, i| {
+        try printVarDef(param.decl.symbol.?, out, true);
+        if (i + 1 < callGraph.symbol.decl.?.fnDecl.params.items.len) {
+            try out.writer().print(",", .{});
+        }
+    }
     try out.writer().print(");\n", .{});
 
     for (callGraph.children.items) |child| {
@@ -43,11 +48,16 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
-    try printType(callGraph.symbol._type.?.function.rhs, out);
+    try printType(callGraph.symbol._type.?.function.rhs, out, false);
     try out.writer().print(" ", .{});
     try printPath(callGraph.symbol, out);
     try out.writer().print("(", .{});
-    try printProductList(callGraph.symbol._type.?.function.lhs, out);
+    for (callGraph.symbol.decl.?.fnDecl.params.items, 0..) |param, i| {
+        try printVarDef(param.decl.symbol.?, out, true);
+        if (i + 1 < callGraph.symbol.decl.?.fnDecl.params.items.len) {
+            try out.writer().print(",", .{});
+        }
+    }
     try out.writer().print(") {{\n", .{});
 
     // Collect and then declare all local variables
@@ -367,7 +377,7 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
     }
 }
 
-fn printType(_type: *AST, out: *std.fs.File) !void {
+fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
     switch (_type.*) {
         .identifier => {
             if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
@@ -381,17 +391,26 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             }
         },
         .addrOf => {
-            try printType(_type.addrOf.expr, out);
+            try printType(_type.addrOf.expr, out, full_function);
             try out.writer().print("*", .{});
         },
         .function => {
-            try printType(_type.function.rhs, out);
+            try printType(_type.function.rhs, out, full_function);
+            if (full_function) {
+                try out.writer().print("(*)(", .{});
+                try printProductList(_type.function.lhs, out);
+                try out.writer().print(")", .{});
+            }
         },
         .unit => {
             try out.writer().print("void", .{});
         },
+        .annotation => {
+            try printType(_type.annotation.type, out, full_function);
+        },
         else => {
             std.debug.print("{?}", .{_type.*});
+            unreachable;
         },
     }
 }
@@ -406,7 +425,7 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     if (!param) {
         try out.writer().print("\t", .{});
     }
-    try printType(symbol._type.?, out);
+    try printType(symbol._type.?, out, false);
     try out.writer().print(" ", .{});
     var is_function = symbol._type.?.* == .function;
     if (is_function) {
@@ -426,16 +445,16 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
 fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
     switch (ast.*) {
         .product => for (ast.product.terms.items, 0..) |term, i| {
-            try printType(term, out);
+            try printType(term, out, true);
             if (i + 1 != ast.product.terms.items.len) {
                 try out.writer().print(", ", .{});
             }
         },
 
-        .identifier => try printType(ast, out),
+        .identifier => try printType(ast, out, true),
 
         .annotation => {
-            try printType(ast.annotation.type, out);
+            try printType(ast.annotation.type, out, true);
             try out.writer().print(" ", .{});
             var is_function = ast.annotation.type.* == .function;
             if (is_function) {

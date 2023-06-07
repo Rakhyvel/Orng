@@ -116,6 +116,7 @@ pub const Symbol = struct {
     versions: u64,
     kind: SymbolKind,
     cfg: ?*CFG,
+    decl: ?*AST,
 
     defined: bool,
     valid: bool,
@@ -123,13 +124,14 @@ pub const Symbol = struct {
     decld: bool,
     param: bool,
 
-    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
+    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
         retval.name = name;
         retval.span = span;
         retval._type = _type;
         retval.init = _init;
+        retval.decl = decl;
         retval.versions = 0;
         retval.kind = kind;
         retval.cfg = null;
@@ -411,6 +413,7 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
         definition.decl.pattern.getToken().span,
         definition.decl.type,
         definition.decl.init,
+        null,
         kind,
         allocator,
     );
@@ -433,7 +436,6 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         definition.fnDecl.retType,
         allocator,
     );
-    std.debug.print("{?}\n", .{domain});
 
     // Create the function scope
     var fnScope = try Scope.init(scope, "", allocator);
@@ -467,6 +469,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         definition.getToken().span,
         _type,
         definition.fnDecl.init,
+        definition,
         ._fn,
         allocator,
     );
@@ -509,6 +512,7 @@ pub fn getPrelude() !*Scope {
         Span{ .col = 0, .line = 0 },
         ast.typeType,
         null,
+        null,
         ._const,
         std.heap.page_allocator,
     ));
@@ -517,6 +521,7 @@ pub fn getPrelude() !*Scope {
         "Char",
         Span{ .col = 0, .line = 0 },
         ast.typeType,
+        null,
         null,
         ._const,
         std.heap.page_allocator,
@@ -527,6 +532,7 @@ pub fn getPrelude() !*Scope {
         Span{ .col = 0, .line = 0 },
         ast.typeType,
         null,
+        null,
         ._const,
         std.heap.page_allocator,
     ));
@@ -536,6 +542,7 @@ pub fn getPrelude() !*Scope {
         Span{ .col = 0, .line = 0 },
         ast.typeType,
         null,
+        null,
         ._const,
         std.heap.page_allocator,
     ));
@@ -544,6 +551,7 @@ pub fn getPrelude() !*Scope {
         "Type",
         Span{ .col = 0, .line = 0 },
         ast.typeType,
+        null,
         null,
         ._const,
         std.heap.page_allocator,

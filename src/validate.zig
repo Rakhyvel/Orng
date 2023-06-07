@@ -51,7 +51,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!void {
     switch (ast.*) {
         .unit => {
-            if (expected != null and !expected.?.typesMatch(_ast.voidType)) {
+            if (expected != null and !expected.?.typesMatch(_ast.unitType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
                 return error.typeError;
             }

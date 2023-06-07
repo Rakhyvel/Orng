@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686023173
-#define ORNG_1686023173
+#ifndef ORNG_1686104538
+#define ORNG_1686104538
 
 #include <math.h>
 #include <stdio.h>
@@ -8,10 +8,10 @@
 
 /* Function Definitions */
 int64_t _146_main();
-int64_t _147_add(, );
+int64_t _147_add(int64_t x,int64_t y);
 
 int64_t _146_main() {
-	int64_t (*_146_t0)(, );
+	int64_t (*_146_t0)(int64_t, int64_t);
 	int64_t _146_t2;
 	int64_t _146_t3;
 	int64_t _146_$retval;
@@ -23,7 +23,7 @@ BB0:
 	return _146_$retval;
 }
 
-int64_t _147_add(, ) {
+int64_t _147_add(int64_t x,int64_t y) {
 	int64_t _147_$retval;
 BB0:
 	_147_$retval = x + y;

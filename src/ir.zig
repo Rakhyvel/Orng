@@ -424,7 +424,7 @@ pub const CFG = struct {
         retval.children = std.ArrayList(*CFG).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, .mut, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
         retval.visited = false;
         symbol.cfg = retval;
 
@@ -475,7 +475,7 @@ pub const CFG = struct {
         var buf = try _string.String.init_with_contents(allocator, "t");
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
-        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, span.Span{ .line = 0, .col = 0 }, _type, null, .mut, allocator);
+        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, span.Span{ .line = 0, .col = 0 }, _type, null, null, .mut, allocator);
         return temp_symbol;
     }
 
