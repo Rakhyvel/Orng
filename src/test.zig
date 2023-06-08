@@ -20,13 +20,38 @@ pub fn main() !void {
             arg = args.next().?;
         }
         if (std.mem.eql(u8, "integration", arg)) {
+            try term.outputColor(succeed_color, "[============]\n", out);
+
+            _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/control-flow/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/expressions/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/functions/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/layout/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/whitebox/" }) catch {};
+
+            var results = Results{ .passed = 0, .failed = 0 };
             if (args.next()) |next| {
-                _ = try integrateTestFile(next, false);
+                if (indexOf(next, '.')) |_| {
+                    _ = try integrateTestFile("", next, false);
+                } else {
+                    var open_dir_name = try String.init_with_contents(allocator, "/");
+                    defer open_dir_name.deinit();
+                    try open_dir_name.concat(next);
+                    _ = try integrateTestDir(open_dir_name.str(), &results, false);
+                }
             } else {
-                try integrateTestAll(false);
+                try integrateTestDir("", &results, false);
+                try term.outputColor(succeed_color, "[============]\n", out);
+                try out.print("Passed tests: {}\n", .{results.passed});
+                try out.print("Failed tests: {}\n", .{results.failed});
+                if (results.failed > 0) {
+                    return error.TestsFailed;
+                }
             }
         } else if (std.mem.eql(u8, "coverage", arg)) {
-            try integrateTestAll(true);
+            try integrateTestDir("", null, true);
+            std.debug.print("Coverage output to kcov-out/index.html\n", .{});
         } else if (std.mem.eql(u8, "fuzz", arg)) {
             try fuzzTests();
         } else {
@@ -39,59 +64,57 @@ pub fn main() !void {
 /// kcov can't handle child processes for some reason and freezes.
 /// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
 /// When `coverage` is true, no child processes are spawned, and no output is given.
-fn integrateTestAll(coverage: bool) !void {
-    if (!coverage) {
-        try term.outputColor(succeed_color, "[============]\n", out);
-    }
-
-    var passed: i64 = 0;
-    var failed: i64 = 0;
-    if (!coverage) {
-        _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }) catch {};
-        _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }) catch {};
-    }
-
+const Results = struct { passed: i64, failed: i64 };
+fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !void {
+    var open_dir_name = try String.init_with_contents(allocator, "tests/integration");
+    defer open_dir_name.deinit();
+    try open_dir_name.concat(dir_name);
     // Add all files names in the src folder to `files`
-    var dir = try std.fs.cwd().openIterableDir("tests/integration/", .{});
+    var dir = try std.fs.cwd().openIterableDir(open_dir_name.str(), .{});
     var it = dir.iterate();
     while (try it.next()) |file| {
-        if (file.kind != .file) {
-            continue;
+        switch (file.kind) {
+            .file => {
+                var res = try integrateTestFile(dir_name, file.name, coverage);
+                if (!coverage) {
+                    if (res) {
+                        results.?.passed += 1;
+                    } else {
+                        results.?.failed += 1;
+                    }
+                }
+            },
+            .directory => if (!std.mem.eql(u8, file.name, "build")) {
+                var new_dir_name = try String.init_with_contents(allocator, "");
+                defer new_dir_name.deinit();
+                try new_dir_name.concat(dir_name);
+                try new_dir_name.concat("/");
+                try new_dir_name.concat(file.name);
+                try integrateTestDir(new_dir_name.str(), results, coverage);
+            },
+            else => continue,
         }
-        var res = try integrateTestFile(file.name, coverage);
-        if (res) {
-            passed += 1;
-        } else {
-            failed += 1;
-        }
-    }
-
-    if (!coverage) {
-        try term.outputColor(succeed_color, "[============]\n", out);
-        try out.print("Passed tests: {}\n", .{passed});
-        try out.print("Failed tests: {}\n", .{failed});
-        if (failed > 0) {
-            return error.TestsFailed;
-        }
-    } else {
-        std.debug.print("Coverage output to kcov-out/index.html\n", .{});
     }
 }
 
-fn integrateTestFile(filename: []const u8, coverage: bool) !bool {
-    var dot_index = indexOf(filename, '.');
+fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) !bool {
+    var dot_index = indexOf(filename, '.').?;
     var test_name = filename[0..dot_index];
 
     // Input .orng file
-    var in_name: String = try String.init_with_contents(allocator, "tests/integration/");
+    var in_name: String = try String.init_with_contents(allocator, "tests/integration");
     defer in_name.deinit();
-    try in_name.insert(filename, in_name.len());
+    try in_name.concat(dir_name);
+    try in_name.concat("/");
+    try in_name.concat(filename);
 
     // Output .c file
-    var out_name: String = try String.init_with_contents(allocator, "tests/integration/build/");
+    var out_name: String = try String.init_with_contents(allocator, "tests/integration/build");
     defer out_name.deinit();
-    try out_name.insert(test_name, out_name.len());
-    try out_name.insert(".c", out_name.len());
+    try out_name.concat(dir_name);
+    try out_name.concat("/");
+    try out_name.concat(test_name);
+    try out_name.concat(".c");
 
     if (!coverage) {
         try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
@@ -178,14 +201,14 @@ fn fuzzTests() !void {
     var failed: usize = 0;
 
     // Add lines to arraylist
-    var start: usize = indexOf(contents, '"') + 1;
+    var start: usize = indexOf(contents, '"').? + 1;
     var end: usize = start + 1;
     var broken: bool = false;
     while (end < contents.len and !broken) : (end += 1) {
         if (contents[end] == '"') {
             defer {
                 if (end < contents.len - 4) {
-                    start = indexOf(contents[end + 1 ..], '"') + end + 2;
+                    start = indexOf(contents[end + 1 ..], '"').? + end + 2;
                     end = start;
                 } else {
                     broken = true;
@@ -276,10 +299,13 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {
 }
 
 // Great std lib function candidate! Holy hell...
-fn indexOf(str: []const u8, c: u8) usize {
-    var retval: usize = 0;
-    while (str[retval] != c) : (retval += 1) {}
-    return retval;
+fn indexOf(str: []const u8, c: u8) ?usize {
+    for (0..str.len) |i| {
+        if (str[i] == c) {
+            return i;
+        }
+    }
+    return null;
 }
 
 fn untilNewline(str: []const u8) usize {
