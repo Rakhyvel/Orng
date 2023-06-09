@@ -6,7 +6,8 @@ const ir = @import("ir.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
-const Program = @import("program.zig").Program;
+const _program = @import("program.zig");
+const Program = _program.Program;
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
 const validate = @import("validate.zig");
@@ -122,6 +123,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         // Code generation
         var program = try Program.init(cfg, allocator);
+        try _program.collectTypes(cfg, &program.function_types, allocator);
         var outputFile = try std.fs.cwd().createFile(
             out_name,
             .{

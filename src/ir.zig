@@ -457,6 +457,15 @@ pub const CFG = struct {
         }
     }
 
+    pub fn clearVisited(self: *CFG) void {
+        self.visited = false;
+        for (self.children.items) |child| {
+            if (child.visited) {
+                child.clearVisited();
+            }
+        }
+    }
+
     fn createBasicBlock(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
         var retval = try allocator.create(BasicBlock);
         retval.ir_head = null;

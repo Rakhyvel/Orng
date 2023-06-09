@@ -749,7 +749,7 @@ pub const AST = union(enum) {
                 if (other.* != .product) {
                     return false;
                 } else {
-                    var retval = false;
+                    var retval = true;
                     for (self.product.terms.items, other.product.terms.items) |term, other_term| {
                         retval = retval and term.typesMatch(other_term);
                     }

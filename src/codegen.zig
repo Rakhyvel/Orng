@@ -1,5 +1,6 @@
 const _ast = @import("ast.zig");
 const _ir = @import("ir.zig");
+const _program = @import("program.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 
@@ -7,24 +8,52 @@ const AST = _ast.AST;
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
-const Program = @import("program.zig").Program;
+const Program = _program.Program;
 const Scope = _symbol.Scope;
 const Symbol = _symbol.Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
+var program: *Program = undefined;
+
 /// Takes in a file handler and a program structure
-pub fn generate(program: *Program, file: *std.fs.File) !void {
+pub fn generate(__program: *Program, file: *std.fs.File) !void {
+    program = __program;
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
     try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n\n", .{ program.uid, program.uid });
 
-    try file.writer().print("/* Function Definitions */\n", .{});
+    try file.writer().print("/* Typedefs */\n", .{});
+    try generateFunctionTypedefs(&program.function_types, file);
+    try file.writer().print("\n/* Function forward definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
-    try file.writer().print("\n", .{});
+    try file.writer().print("\n/* Function definitions */\n", .{});
     try generateFunctions(program.callGraph, file);
     try file.writer().print("\n", .{});
     try generateMainFunction(program.callGraph, file);
 
     try file.writer().print("#endif\n", .{});
+}
+
+fn generateFunctionTypedefs(dags: *std.ArrayList(*_program.DAG), out: *std.fs.File) !void {
+    for (dags.items) |dag| {
+        try generateFunctionTypedef(dag, out);
+    }
+}
+
+fn generateFunctionTypedef(dag: *_program.DAG, out: *std.fs.File) !void {
+    if (dag.visited) {
+        return;
+    }
+    dag.visited = true;
+
+    for (dag.dependencies.items) |depen| {
+        try generateFunctionTypedef(depen, out);
+    }
+
+    try out.writer().print("typedef ", .{});
+    try printType(dag.base.function.rhs, out, false);
+    try out.writer().print("(*function{})(", .{dag.uid});
+    try printProductList(dag.base.function.lhs, out);
+    try out.writer().print(");\n", .{});
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
@@ -395,12 +424,8 @@ fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
             try out.writer().print("*", .{});
         },
         .function => {
-            try printType(_type.function.rhs, out, full_function);
-            if (full_function) {
-                try out.writer().print("(*)(", .{});
-                try printProductList(_type.function.lhs, out);
-                try out.writer().print(")", .{});
-            }
+            var i = _program.typeSetGet(_type, &program.function_types).?.uid;
+            try out.writer().print("function{}", .{i});
         },
         .unit => {
             try out.writer().print("void", .{});
@@ -427,16 +452,7 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     }
     try printType(symbol._type.?, out, false);
     try out.writer().print(" ", .{});
-    var is_function = symbol._type.?.* == .function;
-    if (is_function) {
-        try out.writer().print("(*", .{});
-    }
     try printPath(symbol, out);
-    if (is_function) {
-        try out.writer().print(")(", .{});
-        try printProductList(symbol._type.?.function.lhs, out);
-        try out.writer().print(")", .{});
-    }
     if (!param) {
         try out.writer().print(";\n", .{});
     }
@@ -453,20 +469,7 @@ fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
 
         .identifier => try printType(ast, out, true),
 
-        .annotation => {
-            try printType(ast.annotation.type, out, true);
-            try out.writer().print(" ", .{});
-            var is_function = ast.annotation.type.* == .function;
-            if (is_function) {
-                try out.writer().print("(*", .{});
-            }
-            try out.writer().print("{s}", .{ast.annotation.pattern.identifier.common.token.data});
-            if (is_function) {
-                try out.writer().print(")(", .{});
-                try printProductList(ast.annotation.type.function.lhs, out);
-                try out.writer().print(")", .{});
-            }
-        },
+        .annotation => try printType(ast, out, true),
 
         .unit => {},
 
