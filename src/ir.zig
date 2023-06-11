@@ -189,11 +189,6 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createDecl(dest: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.decl, dest, null, null, allocator);
-        return retval;
-    }
-
     fn createInt(dest: *SymbolVersion, int: i128, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadInt, dest, null, null, allocator);
         retval.data = IRData{ .int = int };

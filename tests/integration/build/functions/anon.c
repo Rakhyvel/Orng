@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686278317
-#define ORNG_1686278317
+#ifndef ORNG_1686463458
+#define ORNG_1686463458
 
 #include <math.h>
 #include <stdio.h>
@@ -12,42 +12,42 @@ typedef int64_t(*function1)(int64_t);
 typedef int64_t(*function2)(function1, int64_t);
 
 /* Function forward definitions */
-int64_t _197_main();
-int64_t _199_$anon0(int64_t x);
-int64_t _200_apply(function1 f,int64_t x);
+int64_t _2_main();
+int64_t _4_$anon0(int64_t x);
+int64_t _5_apply(function1 f,int64_t x);
 
 /* Function definitions */
-int64_t _197_main() {
-	function1 _197_t0;
-	function2 _197_t1;
-	int64_t _197_t4;
-	int64_t _197_$retval;
+int64_t _2_main() {
+	function1 _2_t0;
+	function2 _2_t1;
+	int64_t _2_t4;
+	int64_t _2_$retval;
 BB0:
-	_197_t0 = _199_$anon0;
-	_197_t1 = _200_apply;
-	_197_t4 = 43;
-	_197_$retval = _197_t1(_197_t0, _197_t4);
-	return _197_$retval;
+	_2_t0 = _4_$anon0;
+	_2_t1 = _5_apply;
+	_2_t4 = 43;
+	_2_$retval = _2_t1(_2_t0, _2_t4);
+	return _2_$retval;
 }
 
-int64_t _199_$anon0(int64_t x) {
-	int64_t _199_$retval;
+int64_t _4_$anon0(int64_t x) {
+	int64_t _4_$retval;
 BB0:
-	_199_$retval = x;
-	return _199_$retval;
+	_4_$retval = x;
+	return _4_$retval;
 }
 
-int64_t _200_apply(function1 f,int64_t x) {
-	int64_t _200_$retval;
+int64_t _5_apply(function1 f,int64_t x) {
+	int64_t _5_$retval;
 BB0:
-	_200_$retval = f(x);
-	return _200_$retval;
+	_5_$retval = f(x);
+	return _5_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_197_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

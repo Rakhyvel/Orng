@@ -49,9 +49,8 @@
     - [x] version symbols
     - [x] Constant fold
     - [x] Dead code elimination
-    - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to
-    - [ ] local value numbering (maybe global?)
-    - [ ] redundant load/store
+    - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to  
+    - [ ] redundant copy
         - [ ] reaching definitions
 - [x] `defer`
     - [x] count defers in block tree-walk
@@ -62,7 +61,7 @@
     - [x] nested functions
     - [x] mut function parameters
     - [x] function call arity/type validation
-    - [ ] collect function types in program struct, generate typedefs
+    - [x] collect function types in program struct, generate typedefs
     - [ ] default parameters
     - [ ] named arguments
 - [ ] tuples

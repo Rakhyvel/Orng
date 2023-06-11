@@ -238,7 +238,7 @@ pub const Parser = struct {
         _ = try self.expect(.COLON);
         var paramType = try self.annotExpr();
         var init: ?*AST = null;
-        if (self.accept(.BACK_SLASH)) |_| {
+        if (self.accept(.EQUALS)) |_| {
             init = try self.arrowExpr();
         }
 
@@ -254,12 +254,16 @@ pub const Parser = struct {
     fn statement(self: *Parser) ParserErrorEnum!*AST {
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             return self.nonFnDeclaration();
+        } else if (self.peekKind(.FN)) {
+            return self.fnDeclaration();
         } else if (self.accept(.DEFER)) |token| {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
         } else if (self.accept(.ERRDEFER)) |token| {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
+        } else if (self.peekKind(.COND) or self.peekKind(.MATCH)) {
+            return self.condMatchExpr();
         } else {
-            var exp = try self.expr();
+            var exp = try self.arrowExpr();
             if (self.accept(.EQUALS)) |token| {
                 return try AST.createAssign(token, exp, try self.expr(), self.astAllocator);
             } else if (self.accept(.PLUS_EQUALS)) |token| {
@@ -281,12 +285,10 @@ pub const Parser = struct {
     }
 
     fn expr(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peekKind(.FN)) {
+        if (self.peekKind(.COND) or self.peekKind(.MATCH)) {
+            return self.condMatchExpr();
+        } else if (self.peekKind(.FN)) {
             return self.fnDeclaration();
-        } else if (self.peekKind(.COND)) {
-            return self.condExpr();
-        } else if (self.peekKind(.MATCH)) {
-            return self.matchExpr();
         } else {
             return self.sumType();
         }
@@ -328,7 +330,7 @@ pub const Parser = struct {
             if (self.accept(.WHERE)) |_| {
                 predicate = try self.arrowExpr();
             }
-            if (self.accept(.BACK_SLASH)) |_| {
+            if (self.accept(.EQUALS)) |_| {
                 init = try self.arrowExpr();
             }
             return try AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
@@ -829,6 +831,17 @@ pub const Parser = struct {
         try self.barList(&mappings, .match);
 
         return try AST.createMatch(token, let, exp, mappings, self.astAllocator);
+    }
+
+    fn condMatchExpr(self: *Parser) ParserErrorEnum!*AST {
+        if (self.peekKind(.COND)) {
+            return try self.condExpr();
+        } else if (self.peekKind(.MATCH)) {
+            return try self.matchExpr();
+        } else {
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek(), .stage = .parsing } });
+            return ParserErrorEnum.parserError;
+        }
     }
 
     fn parens(self: *Parser) ParserErrorEnum!*AST {

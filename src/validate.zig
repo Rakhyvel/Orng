@@ -49,6 +49,29 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 /// Errors out if `ast` is not the expected type
 /// @param expected Should be null if `ast` can be any type
 pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!void {
+    if (expected != null and expected.?.* == .product) {
+        var new_terms = std.ArrayList(*AST).init(allocator);
+        for (expected.?.product.terms.items, 0..) |term, i| {
+            if (ast.* == .product and i < ast.product.terms.items.len) {
+                std.debug.print("append product self at i:{}\n", .{i});
+                try new_terms.append(ast.product.terms.items[i]);
+            } else if (ast.* == .unit or (ast.* != .product and i > 0) or (ast.* == .product and i >= ast.product.terms.items.len)) {
+                if (term.* == .annotation and term.annotation.init != null) {
+                    std.debug.print("append default at i:{}\n", .{i});
+                    try new_terms.append(term.annotation.init.?);
+                } else {
+                    std.debug.print("no default to append at i:{}\n", .{i});
+                }
+            } else {
+                std.debug.print("appending self at i:{}\n", .{i});
+                try new_terms.append(ast);
+            }
+        }
+        if (new_terms.items.len >= 2) {
+            ast.* = AST{ .product = .{ .common = ast.getCommon().*, .terms = new_terms } };
+        }
+    }
+
     switch (ast.*) {
         .unit => {
             if (expected != null and !expected.?.typesMatch(_ast.unitType)) {
@@ -233,8 +256,18 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         .call => {
             // TODO: Validate lhs is function, returns expected
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* != .function) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function", .stage = .typecheck } });
+                return error.typeError;
+            }
+
             try validateAST(ast.call.lhs, null, scope, errors, allocator);
             try validateAST(ast.call.rhs, lhs_type.function.lhs, scope, errors, allocator);
+
+            if (expected != null and !expected.?.typesMatch(lhs_type.function.rhs)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.function.rhs, .stage = .typecheck } });
+                return error.typeError;
+            }
         },
         .index => {
             std.debug.print("index\n", .{});
@@ -244,7 +277,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
         },
         .function => {
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } }); // TODO: Function types
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
                 return error.typeError;
             }
         },
@@ -300,7 +333,7 @@ pub fn validateAST(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Erro
                     try validateAST(term, expected_term, scope, errors, allocator);
                 }
             } else if (expected == null) {
-                for (ast.product.terms.items) |term| { // Ok, this is cool!
+                for (ast.product.terms.items) |term| {
                     try validateAST(term, null, scope, errors, allocator);
                 }
             } else {

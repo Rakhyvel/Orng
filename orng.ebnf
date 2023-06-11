@@ -1,6 +1,6 @@
 # https://github.com/proebsting/rdgen
 # used just to check for ambiguity
-# python3.10 ../rdgen/main.py create --input orng.ebnf --output parser.py
+# python3.10 ../rdgen/main.py create --input orng.ebnf --output parser.py && grep "AMBIGUOUS" parser.py
 
 program: top_level_declaration {"newline" top_level_declaration} "eof".
 
@@ -16,17 +16,17 @@ let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
 fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" annotExpr. # cannot be productExpr, otherwise ambiguous with ,
+param: ["mut" | "const"] ident ":" arrowExpr ["=" arrowExpr]. # cannot be productExpr, otherwise ambiguous with ,
 
-statement: non_fn_declaration   # (inner named and anon fns are decalred as exprs)
-         | "defer" statement    # defer
-         | "errdefer" statement # error-defer
-         | expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr] # Must be able to do expr as a statement, for functions, cond, case, etc
+statement: non_fn_declaration
+         | fn_declaration
+         | "defer" statement
+         | "errdefer" statement
+         | condMatchExpr
+         | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
          .
 
-
-expr: "cond" condExpr
-    | "case" caseExpr
+expr: condMatchExpr
     | fn_declaration
     | sumExpr
     .
@@ -35,7 +35,7 @@ sumExpr: productExpr {"|" ident [":" productExpr]}. # (lhs of | must be ident or
 
 productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["back_slash" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -97,13 +97,15 @@ whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["el
 
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
 
-barClause: annotExpr ["=>" annotExpr]. # for barClauses in case statements, if the lhs of has a pattern, => must be present
+barClause: annotExpr ["=>" annotExpr]. # for barClauses in match statements, if the lhs of has a pattern, => must be present
 barElse: "else" "=>" annotExpr.
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barListMiddle.
 
 condExpr: [non_fn_declaration ";"] barList.
+matchExpr: [non_fn_declaration ";"] productExpr barList.
+condMatchExpr: "cond" condExpr
+             | "match" matchExpr
+             .
 
-caseExpr: [non_fn_declaration ";"] productExpr barList.
-
-parens: "(" expr ")".
+parens: "(" expr ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens
