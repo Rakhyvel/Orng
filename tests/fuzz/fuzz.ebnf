@@ -4,24 +4,19 @@
 
 program: top_level_declaration {"newline" top_level_declaration} "eof".
 
-top_level_declaration: fn_declaration 
-                     | const_declaration
-                     .
+top_level_declaration: fn_declaration.
 
-non_fn_declaration: let_declaration | const_declaration.
-
-const_declaration: "const" ident [":" arrowExpr] "=" expr.
+non_fn_declaration: let_declaration.
 
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
-fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
+fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" arrowExpr ["=" arrowExpr]. # cannot be productExpr, otherwise ambiguous with ,
+param: ["mut"] ident ":" arrowExpr ["=" arrowExpr]. # cannot be productExpr, otherwise ambiguous with ,
 
 statement: non_fn_declaration
          | fn_declaration
          | "defer" statement
-         | "errdefer" statement
          | condMatchExpr
          | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
          .
@@ -31,11 +26,11 @@ expr: condMatchExpr
     | sumExpr
     .
 
-sumExpr: productExpr {"|" ident [":" productExpr]}. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
+sumExpr: productExpr. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
 
-productExpr: annotExpr {"," annotExpr}.
+productExpr: annotExpr.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+annotExpr: arrowExpr. # (lhs of : must be ident or other TBD patterns)
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -45,28 +40,24 @@ neqExpr: conditionalExpr ["!=" conditionalExpr].
 
 conditionalExpr: deltaExpr {("==" | "<" | "<=" | ">" | ">=") deltaExpr}.
 
-deltaExpr: coalesceExpr {"|>" coalesceExpr}. # (rhs must be a call expr)
+deltaExpr: coalesceExpr. # (rhs must be a call expr)
 
-coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
+coalesceExpr: intExpr .
 
 intExpr: termExpr {("+" | "-" | "!") termExpr}.
 
-termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
+termExpr: prefixExpr {("*" | "/" | "%" ) prefixExpr}.
 
 prefixExpr: "!" hyperExpr                           # inferred error union
           | "not" hyperExpr                         # boolean not
           | "-" hyperExpr                           # negation
           | "&" ["mut"] prefixExpr                  # address-of
-          | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
-          | "?" hyperExpr                           # optional
-          | "try" hyperExpr                         # error coalesce orelese return
-          | "." ident ["=" prefixExpr | parens]    # infered member/named argument/named field
           | hyperExpr
           .
 
-hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
+hyperExpr: postfixExpr {("**") postfixExpr}.
 
-postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | ("^")}.
+postfixExpr: factor {parens |  ("^")}.
 
 factor: ident
       | "true"
@@ -76,12 +67,9 @@ factor: ident
       | octal
       | bin
       | float
-      | char
-      | string
       | blockExpr
       | ifExpr
       | whileExpr
-      | forExpr
       | "unreachable"
       | parens
       .

@@ -201,11 +201,11 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createString(dest: *SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.loadString, dest, null, null, allocator);
-        retval.data = IRData{ .string = string };
-        return retval;
-    }
+    // fn createString(dest: *SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
+    //     var retval = try IR.create(.loadString, dest, null, null, allocator);
+    //     retval.data = IRData{ .string = string };
+    //     return retval;
+    // }
 
     fn createLabel(allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.label, null, null, null, allocator);
@@ -514,13 +514,13 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
-            .char => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
-                var ir = try IR.createInt(temp, ast.char.data, allocator);
-                temp.def = ir;
-                self.appendInstruction(ir);
-                return temp;
-            },
+            // .char => {
+            //     var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+            //     var ir = try IR.createInt(temp, ast.char.data, allocator);
+            //     temp.def = ir;
+            //     self.appendInstruction(ir);
+            //     return temp;
+            // },
             .float => {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createFloat(temp, ast.float.data, allocator);
@@ -528,13 +528,13 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
-            .string => {
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
-                var ir = try IR.createString(temp, ast.string.common.token.data, allocator);
-                temp.def = ir;
-                self.appendInstruction(ir);
-                return temp;
-            },
+            // .string => {
+            //     var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+            //     var ir = try IR.createString(temp, ast.string.common.token.data, allocator);
+            //     temp.def = ir;
+            //     self.appendInstruction(ir);
+            //     return temp;
+            // },
             .identifier => {
                 var symbol = scope.lookup(ast.identifier.common.token.data, false).?;
                 if (symbol.kind == ._fn) {

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686463458
-#define ORNG_1686463458
+#ifndef ORNG_1686513839
+#define ORNG_1686513839
 
 #include <math.h>
 #include <stdio.h>
@@ -11,34 +11,46 @@ typedef int64_t(*function0)();
 typedef int64_t(*function1)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _12_main();
-int64_t _13_add(int64_t x,int64_t y);
+int64_t _207_main();
+int64_t _208_add(int64_t x,int64_t y);
 
 /* Function definitions */
-int64_t _12_main() {
-	function1 _12_t0;
-	int64_t _12_t2;
-	int64_t _12_t3;
-	int64_t _12_$retval;
+int64_t _207_main() {
+	function1 _207_t0;
+	function1 _207_t2;
+	int64_t _207_t4;
+	int64_t _207_t5;
+	int64_t _207_t3;
+	function1 _207_t6;
+	int64_t _207_t8;
+	int64_t _207_t9;
+	int64_t _207_t7;
+	int64_t _207_$retval;
 BB0:
-	_12_t0 = _13_add;
-	_12_t2 = 25;
-	_12_t3 = 25;
-	_12_$retval = _12_t0(_12_t2, _12_t3);
-	return _12_$retval;
+	_207_t0 = _208_add;
+	_207_t2 = _208_add;
+	_207_t4 = 47;
+	_207_t5 = 1;
+	_207_t3 = _207_t2(_207_t4, _207_t5);
+	_207_t6 = _208_add;
+	_207_t8 = 1;
+	_207_t9 = 1;
+	_207_t7 = _207_t6(_207_t8, _207_t9);
+	_207_$retval = _207_t0(_207_t3, _207_t7);
+	return _207_$retval;
 }
 
-int64_t _13_add(int64_t x,int64_t y) {
-	int64_t _13_$retval;
+int64_t _208_add(int64_t x,int64_t y) {
+	int64_t _208_$retval;
 BB0:
-	_13_$retval = x + y;
-	return _13_$retval;
+	_208_$retval = x + y;
+	return _208_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_12_main());
+  printf("%ld",_207_main());
   return 0;
 }
 

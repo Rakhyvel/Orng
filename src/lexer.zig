@@ -119,6 +119,8 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                             token.kind = .DEDENT;
                         } else if (std.mem.eql(u8, token.data, "newline")) {
                             token.kind = .NEWLINE;
+                        } else if (std.mem.eql(u8, token.data, "eof")) {
+                            token.kind = .NEWLINE;
                         } else if (std.mem.eql(u8, token.data, "int")) {
                             const RndGen = std.rand.DefaultPrng;
                             var rnd = RndGen.init(0);
