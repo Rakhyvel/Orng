@@ -52,34 +52,8 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
     var retval: *AST = undefined;
     var ast = old_ast;
 
-    if (expected != null and expected.?.* == .product) {
-        var new_terms = std.ArrayList(*AST).init(allocator);
-        for (expected.?.product.terms.items, 0..) |term, i| {
-            if (ast.* == .product and i < ast.product.terms.items.len) {
-                std.debug.print("append product self at i:{}\n", .{i});
-                try new_terms.append(ast.product.terms.items[i]);
-            } else if (ast.* == .unit or (ast.* != .product and i > 0) or (ast.* == .product and i >= ast.product.terms.items.len)) {
-                if (term.* == .annotation and term.annotation.init != null) {
-                    std.debug.print("append default at i:{} {}\n", .{ i, term.annotation.init.? });
-                    try new_terms.append(term.annotation.init.?);
-                } else {
-                    std.debug.print("no default to append at i:{}\n", .{i});
-                }
-            } else {
-                std.debug.print("appending self at i:{} {}\n", .{ i, ast });
-                try new_terms.append(ast);
-            }
-        }
-        if (new_terms.items.len >= 2) {
-            var new_ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
-            ast = new_ast;
-            std.debug.print("successfully changed ast\n", .{});
-            for (new_terms.items) |term| {
-                std.debug.print("{?}\n", .{term});
-            }
-        } else {
-            std.debug.print("didnt need to change ast\n", .{});
-        }
+    if (expected != null and (expected.?.* == .product or expected.?.* == .annotation)) {
+        ast = try defaultArgs(ast, expected.?, errors, allocator);
     }
 
     switch (ast.*) {
@@ -117,11 +91,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
             } else {
                 retval = ast;
             }
-        },
-
-        .string => {
-            // TODO: strings
-            std.debug.print("string\n", .{});
         },
 
         .identifier => {
@@ -185,18 +154,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
                 ast.dereference.expr = try validateAST(ast.dereference.expr, null, scope, errors, allocator);
             }
             retval = ast;
-        },
-        ._try => {
-            std.debug.print("try\n", .{});
-        },
-        .optional => {
-            std.debug.print("optional\n", .{});
-        },
-        .fromOptional => {
-            std.debug.print("fromOptional\n", .{});
-        },
-        .inferredError => {
-            std.debug.print("inferred error\n", .{});
         },
 
         .assign => {
@@ -297,12 +254,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
                 retval = ast;
             }
         },
-        ._catch => {
-            std.debug.print("catch\n", .{});
-        },
-        ._orelse => {
-            std.debug.print("orelse\n", .{});
-        },
         .call => {
             // TODO: Validate lhs is function, returns expected
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
@@ -321,12 +272,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
                 retval = ast;
             }
         },
-        .index => {
-            std.debug.print("index\n", .{});
-        },
-        .select => {
-            std.debug.print("select\n", .{});
-        },
         .function => {
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
@@ -334,15 +279,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
             } else {
                 retval = ast;
             }
-        },
-        .delta => {
-            std.debug.print("delta\n", .{});
-        },
-        .composition => {
-            std.debug.print("composition\n", .{});
-        },
-        .prepend => {
-            std.debug.print("prepend\n", .{});
         },
         .sum => {
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
@@ -359,12 +295,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
             } else {
                 retval = ast;
             }
-        },
-        .diff => {
-            std.debug.print("diff\n", .{});
-        },
-        .concat => {
-            std.debug.print("concat\n", .{});
         },
         ._union => {
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
@@ -450,20 +380,9 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
             }
             retval = ast;
         },
-        .sliceOf => {
-            std.debug.print("slice of\n", .{});
-        },
+
         .namedArg => {
-            std.debug.print("arg\n", .{});
-        },
-        .subSlice => {
-            std.debug.print("subslice\n", .{});
-        },
-        .annotation => {
-            std.debug.print("annotation\n", .{});
-        },
-        .inferredMember => {
-            std.debug.print("member\n", .{});
+            unreachable;
         },
 
         ._if => {
@@ -497,10 +416,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
                 retval = ast;
             }
         },
-        .match => {
-            // TODO: After pattern matching
-            std.debug.print("match\n", .{});
-        },
         .mapping => {
             switch (ast.mapping.kind) {
                 .cond => {
@@ -528,9 +443,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
                 ast._while.post = try validateAST(post, null, ast._while.scope.?, errors, allocator);
             }
             retval = ast;
-        },
-        ._for => {
-            // TODO: After type-classes and iterators
         },
         .block => {
             var new_statements = std.ArrayList(*AST).init(allocator);
@@ -626,9 +538,165 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
             }
             retval = ast;
         },
+
+        else => {
+            std.debug.print("validateAST() unimplemented for {s}\n", .{@tagName(ast.*)});
+            unreachable;
+        },
     }
 
     return retval;
+}
+
+fn defaultArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    if (try argsAreNames(ast, errors)) {
+        return namedArgs(ast, expected, errors, allocator);
+    } else {
+        return positionalArgs(ast, expected, errors, allocator);
+    }
+}
+
+fn argsAreNames(ast: *AST, errors: *errs.Errors) !bool {
+    switch (ast.*) {
+        .namedArg => return true,
+        .product => {
+            var seen_named = false;
+            var seen_pos = false;
+            for (ast.product.terms.items) |term| {
+                if (term.* == .namedArg) {
+                    seen_named = true;
+                } else {
+                    seen_pos = true;
+                }
+            }
+            std.debug.assert(seen_named or seen_pos);
+            if (seen_named and seen_pos) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "mixed positional and named arguments are not allowed",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            } else {
+                return seen_named;
+            }
+        },
+        else => return false,
+    }
+}
+
+fn positionalArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    switch (expected.*) {
+        .annotation => {
+            if (ast.* == .unit and expected.annotation.init != null) {
+                return expected.annotation.init.?;
+            } else if (ast.* != .unit) {
+                return ast;
+            } else {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "too few arguments",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+
+        .product => {
+            var new_terms = std.ArrayList(*AST).init(allocator);
+            for (expected.product.terms.items, 0..) |term, i| {
+                if (ast.* == .product and i < ast.product.terms.items.len) {
+                    try new_terms.append(ast.product.terms.items[i]);
+                } else if (ast.* == .unit or (ast.* != .product and i > 0) or (ast.* == .product and i >= ast.product.terms.items.len)) {
+                    if (term.* == .annotation and term.annotation.init != null) {
+                        try new_terms.append(term.annotation.init.?);
+                    }
+                } else {
+                    try new_terms.append(ast);
+                }
+            }
+            return try AST.createProduct(ast.getToken(), new_terms, allocator);
+        },
+
+        else => unreachable,
+    }
+}
+
+fn namedArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    var arg_map = std.StringArrayHashMap(*AST).init(allocator);
+
+    // Associate argument names with their values
+    switch (ast.*) { // Can assume ast is either namedArg, or product of namedArgs
+        .namedArg => try putOrError(ast, &arg_map, errors),
+
+        .product => for (ast.product.terms.items) |term| {
+            try putOrError(term, &arg_map, errors);
+        },
+
+        else => unreachable,
+    }
+
+    // Construct positional args in the order specified by `expected`
+    switch (expected.*) {
+        .annotation => {
+            if (arg_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "too many arguments specifed",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            } else {
+                return arg_map.values()[0];
+            }
+        },
+
+        .product => {
+            var new_terms = std.ArrayList(*AST).init(allocator);
+            for (expected.product.terms.items) |term| {
+                if (term.* != .annotation) {
+                    errors.addError(Error{ .basic = .{
+                        .span = ast.getToken().span,
+                        .msg = "receiver does not accept named arugments",
+                        .stage = .typecheck,
+                    } });
+                    return error.typeError;
+                }
+                var arg = arg_map.get(term.annotation.pattern.identifier.common.token.data);
+                if (arg == null) {
+                    if (term.annotation.init != null) {
+                        try new_terms.append(term.annotation.init.?);
+                    } else {
+                        errors.addError(Error{ .basic = .{
+                            .span = ast.getToken().span,
+                            .msg = "not all arguments are specified",
+                            .stage = .typecheck,
+                        } });
+                        return error.typeError;
+                    }
+                } else {
+                    try new_terms.append(arg.?);
+                }
+            }
+            return AST.createProduct(ast.getToken(), new_terms, allocator);
+        },
+
+        else => unreachable,
+    }
+}
+
+fn putOrError(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Errors) !void {
+    var name = ast.namedArg.ident.identifier.common.token.data;
+    if (arg_map.get(name)) |_| {
+        errors.addError(Error{ .basic = .{
+            .span = ast.getToken().span,
+            .msg = "parameter is already defined",
+            .stage = .typecheck,
+        } });
+        return error.typeError;
+    } else {
+        try arg_map.put(name, ast.namedArg.init);
+    }
 }
 
 fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {

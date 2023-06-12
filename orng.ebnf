@@ -60,7 +60,7 @@ prefixExpr: "!" hyperExpr                           # inferred error union
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" hyperExpr                           # optional
           | "try" hyperExpr                         # error coalesce orelese return
-          | "." ident ["=" prefixExpr | parens]    # infered member/named argument/named field
+          | "." ident ["<-" prefixExpr | parens]    # infered member/named argument/named field
           | hyperExpr
           .
 

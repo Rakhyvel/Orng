@@ -11,9 +11,10 @@
     - `symbver` for an arbitrary SymbolVersion
     - `maybe_x` for an optional variant of a type
 - [ ] Errors should be capitalized
-- [ ] Variables should be snake_case, functions should be snakeCase
+- [ ] Everything should be snake_case
 - [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
+- [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops to enhanced for dyadic loops
 - [ ] All inits have a corresponding deinit
@@ -55,15 +56,15 @@
 - [x] `defer`
     - [x] count defers in block tree-walk
 - [x] `continue`/`break`/`return`
-- [ ] function calls
+- [x] function calls
     - [x] parameters
     - [x] anon functions
     - [x] nested functions
     - [x] mut function parameters
     - [x] function call arity/type validation
     - [x] collect function types in program struct, generate typedefs
-    - [ ] default parameters
-    - [ ] named arguments
+    - [x] default parameters
+    - [x] named arguments
 - [ ] tuples
     - [ ] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
