@@ -66,10 +66,10 @@
     - [x] default parameters
     - [x] named arguments
 - [ ] tuples
-    - [ ] type dependency DAG
+    - [x] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
         > Then, when you generate them, just do `struct struct_1 {int _1, int _2}`, which would match `(x: Int, y: Int)` and `(Int, Int)`
-    - [ ] `.` select
+    - [x] `.` select
     - [ ] dot-assign
         - [ ] validate dot lvalue
     - [ ] default fields

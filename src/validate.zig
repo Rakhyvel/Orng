@@ -26,7 +26,6 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         return;
     }
     symbol.valid = true;
-    std.debug.print("{s}\n", .{symbol.name});
 
     if (symbol.kind == ._fn) {
         var codomain = symbol._type.?.function.rhs;
