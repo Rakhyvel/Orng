@@ -26,6 +26,8 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         return;
     }
     symbol.valid = true;
+    std.debug.print("{s}\n", .{symbol.name});
+
     if (symbol.kind == ._fn) {
         var codomain = symbol._type.?.function.rhs;
         symbol.init = try validateAST(symbol.init.?, codomain, symbol.scope, errors, allocator);
@@ -272,7 +274,44 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
                 retval = ast;
             }
         },
+        .select => {
+            var select_lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
+            var selectable: bool = undefined;
+            switch (select_lhs_type.*) {
+                .annotation => selectable = true,
+                .product => {
+                    for (select_lhs_type.product.terms.items) |term| {
+                        if (term.* != .annotation) {
+                            selectable = false;
+                            break;
+                        }
+                    }
+                    selectable = true;
+                },
+                else => selectable = false,
+            }
+            if (!selectable) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "left-hand-side of select is not selectable",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+
+            ast.select.lhs = try validateAST(ast.select.lhs, null, scope, errors, allocator);
+
+            var ast_type = try ast.typeof(scope, errors, allocator);
+            if (expected != null and !expected.?.typesMatch(ast_type)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                retval = ast;
+            }
+        },
         .function => {
+            ast.function.lhs = try validateAST(ast.function.lhs, _ast.typeType, scope, errors, allocator);
+            ast.function.rhs = try validateAST(ast.function.rhs, _ast.typeType, scope, errors, allocator);
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
                 return error.typeError;
@@ -308,10 +347,6 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
         .product => {
             var new_terms = std.ArrayList(*AST).init(allocator);
             if (expected != null and expected.?.typesMatch(_ast.typeType)) {
-                if (expected.?.product.terms.items.len != ast.product.terms.items.len) {
-                    std.debug.print("1\n", .{});
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
-                }
                 for (ast.product.terms.items) |term| {
                     try new_terms.append(try validateAST(term, _ast.typeType, scope, errors, allocator));
                 }
@@ -383,6 +418,18 @@ pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.
 
         .namedArg => {
             unreachable;
+        },
+        .annotation => {
+            if (ast.annotation.init != null) {
+                ast.annotation.init = try validateAST(ast.annotation.init.?, ast.annotation.type, scope, errors, allocator);
+            }
+
+            if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                retval = ast;
+            }
         },
 
         ._if => {

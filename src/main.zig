@@ -123,7 +123,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         // Code generation
         var program = try Program.init(cfg, allocator);
-        try _program.collectTypes(cfg, &program.function_types, allocator);
+        try _program.collectTypes(cfg, &program.types, allocator);
         var outputFile = try std.fs.cwd().createFile(
             out_name,
             .{

@@ -59,14 +59,13 @@ prefixExpr: "!" hyperExpr                           # inferred error union
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" hyperExpr                           # optional
-          | "try" hyperExpr                         # error coalesce orelese return
           | "." ident ["<-" prefixExpr | parens]    # infered member/named argument/named field
           | hyperExpr
           .
 
 hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 
-postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | ("^")}.
+postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | (".!") | ("^")}.
 
 factor: ident
       | "true"

@@ -855,7 +855,7 @@ fn calculateUsage(cfg: *CFG) void {
             if (ir.src2 != null) {
                 ir.src2.?.uses += 1;
             }
-            if (ir.kind == .call) {
+            if (ir.kind == .call or ir.kind == .loadStruct) {
                 for (ir.data.symbverList.items) |symbver| {
                     symbver.uses += 1;
                 }

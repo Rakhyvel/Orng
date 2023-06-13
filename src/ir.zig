@@ -94,7 +94,7 @@ pub const IRKind = enum {
     loadExtern,
     loadInt,
     loadFloat,
-    loadArglist, // TODO: ?
+    loadStruct,
     loadArrayLiteral, // TODO: ?
     loadDefaultArray, // TODO: ?
     loadString, // TODO: ?
@@ -227,6 +227,18 @@ pub const IR = struct {
     fn createCall(dest: *SymbolVersion, src1: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.call, dest, src1, null, allocator);
         retval.data = IRData{ .symbverList = std.ArrayList(*SymbolVersion).init(allocator) };
+        return retval;
+    }
+
+    fn createLoadStruct(dest: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadStruct, dest, null, null, allocator);
+        retval.data = IRData{ .symbverList = std.ArrayList(*SymbolVersion).init(allocator) };
+        return retval;
+    }
+
+    fn createSelect(dest: *SymbolVersion, src1: *SymbolVersion, field_pos: i128, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.select, dest, src1, null, allocator);
+        retval.data = IRData{ .int = field_pos };
         return retval;
     }
 
@@ -796,6 +808,25 @@ pub const CFG = struct {
                         try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, false, errors, allocator)).?);
                     },
                     else => try ir.data.symbverList.append((try self.flattenAST(scope, ast.call.rhs, return_label, break_label, continue_label, false, errors, allocator)).?),
+                }
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .select => {
+                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+
+                var ir = try IR.createSelect(temp, lhs, ast.select.pos.?, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .product => {
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var ir = try IR.createLoadStruct(temp, allocator);
+                for (ast.product.terms.items) |term| {
+                    try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, false, errors, allocator)).?);
                 }
                 temp.def = ir;
                 self.appendInstruction(ir);

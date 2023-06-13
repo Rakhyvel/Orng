@@ -29,7 +29,7 @@ pub const Program = struct {
     uid: i64,
 
     // A graph of type dependencies
-    function_types: std.ArrayList(*DAG),
+    types: std.ArrayList(*DAG),
 
     // A map of includes (key? Or is it really a set)
 
@@ -39,7 +39,7 @@ pub const Program = struct {
         var retval = try allocator.create(Program);
         retval.callGraph = callGraph;
         retval.uid = std.time.timestamp();
-        retval.function_types = std.ArrayList(*DAG).init(allocator);
+        retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
     }
 };
@@ -64,9 +64,6 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), allocator: std.m
 }
 
 fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
-    if (ast.* != .function) {
-        return null;
-    }
     if (typeSetGet(ast, set)) |dag| {
         return dag;
     } else {
@@ -79,6 +76,12 @@ fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Alloca
             }
             if (try typeSetAppend(ast.function.rhs, set, allocator)) |codomain| {
                 try dag.dependencies.append(codomain);
+            }
+        } else if (ast.* == .product) {
+            for (ast.product.terms.items) |term| {
+                if (try typeSetAppend(term, set, allocator)) |dependency| {
+                    try dag.dependencies.append(dependency);
+                }
             }
         }
         return dag;

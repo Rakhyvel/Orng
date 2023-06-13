@@ -22,7 +22,7 @@ pub fn generate(__program: *Program, file: *std.fs.File) !void {
     try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n\n", .{ program.uid, program.uid });
 
     try file.writer().print("/* Typedefs */\n", .{});
-    try generateFunctionTypedefs(&program.function_types, file);
+    try generateFunctionTypedefs(&program.types, file);
     try file.writer().print("\n/* Function forward definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
     try file.writer().print("\n/* Function definitions */\n", .{});
@@ -35,25 +35,35 @@ pub fn generate(__program: *Program, file: *std.fs.File) !void {
 
 fn generateFunctionTypedefs(dags: *std.ArrayList(*_program.DAG), out: *std.fs.File) !void {
     for (dags.items) |dag| {
-        try generateFunctionTypedef(dag, out);
+        try generateTypedefs(dag, out);
     }
 }
 
-fn generateFunctionTypedef(dag: *_program.DAG, out: *std.fs.File) !void {
+fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
     if (dag.visited) {
         return;
     }
     dag.visited = true;
 
     for (dag.dependencies.items) |depen| {
-        try generateFunctionTypedef(depen, out);
+        try generateTypedefs(depen, out);
     }
 
-    try out.writer().print("typedef ", .{});
-    try printType(dag.base.function.rhs, out, false);
-    try out.writer().print("(*function{})(", .{dag.uid});
-    try printProductList(dag.base.function.lhs, out);
-    try out.writer().print(");\n", .{});
+    if (dag.base.* == .function) {
+        try out.writer().print("typedef ", .{});
+        try printType(dag.base.function.rhs, out, false);
+        try out.writer().print("(*function{})(", .{dag.uid});
+        try printProductList(dag.base.function.lhs, out);
+        try out.writer().print(");\n", .{});
+    } else if (dag.base.* == .product) {
+        try out.writer().print("typedef struct {{\n", .{});
+        for (dag.base.product.terms.items, 0..) |term, i| {
+            try out.writer().print("\t", .{});
+            try printType(term, out, false);
+            try out.writer().print(" _{};\n", .{i});
+        }
+        try out.writer().print("}} struct{};\n", .{dag.uid});
+    }
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
@@ -217,6 +227,19 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("{s};\n", .{ir.data.string});
         },
+        .loadStruct => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("(", .{});
+            try printType(ir.dest.?.symbol._type.?, out, false);
+            try out.writer().print(") {{", .{});
+            for (ir.data.symbverList.items, 1..) |symbver, i| {
+                try printVar(symbver, out);
+                if (i != ir.data.symbverList.items.len) {
+                    try out.writer().print(", ", .{});
+                }
+            }
+            try out.writer().print("}};\n", .{});
+        },
 
         // Monadic instructions
         .copy => {
@@ -342,6 +365,11 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src2.?, out);
             try out.writer().print(");\n", .{});
         },
+        .select => {
+            try printVarAssign(ir.dest.?, out);
+            try printVar(ir.src1.?, out);
+            try out.writer().print("._{};\n", .{ir.data.int});
+        },
 
         // Control-flow
         .label,
@@ -424,8 +452,12 @@ fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
             try out.writer().print("*", .{});
         },
         .function => {
-            var i = _program.typeSetGet(_type, &program.function_types).?.uid;
+            var i = _program.typeSetGet(_type, &program.types).?.uid;
             try out.writer().print("function{}", .{i});
+        },
+        .product => {
+            var i = _program.typeSetGet(_type, &program.types).?.uid;
+            try out.writer().print("struct{}", .{i});
         },
         .unit => {
             try out.writer().print("void", .{});
@@ -434,7 +466,7 @@ fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
             try printType(_type.annotation.type, out, full_function);
         },
         else => {
-            std.debug.print("{?}", .{_type.*});
+            std.debug.print("Unimplemented printType() for {?}", .{_type.*});
             unreachable;
         },
     }

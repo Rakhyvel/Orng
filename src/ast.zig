@@ -105,7 +105,7 @@ pub const AST = union(enum) {
     _orelse: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     call: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     index: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    select: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    select: struct { common: ASTCommon, lhs: *AST, rhs: *AST, pos: ?usize },
     function: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     delta: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     composition: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -410,7 +410,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createSelect(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .select = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+        return try AST.box(AST{ .select = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs, .pos = null } }, allocator);
     }
 
     pub fn createSum(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
@@ -650,6 +650,44 @@ pub const AST = union(enum) {
                         try terms.append(try term.typeof(scope, errors, allocator));
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
+                }
+            },
+
+            .select => {
+                var select_lhs_type = try self.select.lhs.typeof(scope, errors, allocator);
+                switch (select_lhs_type.*) {
+                    .annotation => {
+                        if (std.mem.eql(u8, select_lhs_type.annotation.pattern.identifier.common.token.data, self.select.rhs.identifier.common.token.data)) {
+                            self.select.pos = 0;
+                            retval = select_lhs_type.annotation.type;
+                        } else {
+                            errors.addError(Error{ .basic = .{
+                                .span = self.getToken().span,
+                                .msg = "left-hand-side of select does not contain field",
+                                .stage = .typecheck,
+                            } });
+                            return error.typeError;
+                        }
+                    },
+
+                    .product => {
+                        for (select_lhs_type.product.terms.items, 0..) |term, i| {
+                            if (std.mem.eql(u8, term.annotation.pattern.identifier.common.token.data, self.select.rhs.identifier.common.token.data)) {
+                                self.select.pos = i;
+                                retval = term.annotation.type;
+                                break;
+                            }
+                        } else {
+                            errors.addError(Error{ .basic = .{
+                                .span = self.getToken().span,
+                                .msg = "left-hand-side of select does not contain field",
+                                .stage = .typecheck,
+                            } });
+                            return error.typeError;
+                        }
+                    },
+
+                    else => unreachable,
                 }
             },
 
