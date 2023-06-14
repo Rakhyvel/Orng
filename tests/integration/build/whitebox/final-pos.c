@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686709170
-#define ORNG_1686709170
+#ifndef ORNG_1686712671
+#define ORNG_1686712671
 
 #include <math.h>
 #include <stdio.h>
@@ -15,42 +15,42 @@ int64_t _23_main();
 /* Function definitions */
 int64_t _23_main() {
 	int64_t _24_x;
-	int64_t _23_t4;
+	int64_t _23_t3;
 	uint8_t _23_t2;
-	int64_t _23_t8;
-	uint8_t _23_t6;
-	int64_t _23_t10;
+	int64_t _23_t6;
+	uint8_t _23_t5;
+	int64_t _23_t7;
 	int64_t _23_$retval;
-	int64_t _23_t13;
+	int64_t _23_t9;
 BB0:
 	_24_x = 0;
 	goto BB1;
 BB1:
-	_23_t4 = 100;
-	_23_t2 = _24_x < _23_t4;
+	_23_t3 = 100;
+	_23_t2 = _24_x < _23_t3;
 	if (!_23_t2) {
-		goto BB8;
+		goto BB9;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_23_t8 = 40;
-	_23_t6 = _24_x == _23_t8;
-	if (!_23_t6) {
+	_23_t6 = 40;
+	_23_t5 = _24_x == _23_t6;
+	if (!_23_t5) {
 		goto BB14;
 	} else {
 		goto BB5;
 	}
 BB5:
-	_23_t10 = 1;
-	_24_x = _24_x + _23_t10;
-	goto BB8;
-BB8:
+	_23_t7 = 1;
+	_24_x = _24_x + _23_t7;
+	goto BB9;
+BB9:
 	_23_$retval = _24_x;
 	return _23_$retval;
 BB14:
-	_23_t13 = 1;
-	_24_x = _24_x + _23_t13;
+	_23_t9 = 1;
+	_24_x = _24_x + _23_t9;
 	goto BB1;
 }
 

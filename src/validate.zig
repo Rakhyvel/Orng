@@ -770,6 +770,8 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
             }
         },
 
+        .select => {},
+
         else => {
             errors.addError(Error{ .basic = .{
                 .span = ast.getToken().span,
@@ -806,6 +808,10 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
                 } });
                 return error.typeError;
             }
+        },
+
+        .select => {
+            try assertMutable(ast.select.lhs, scope, errors, allocator);
         },
 
         else => {

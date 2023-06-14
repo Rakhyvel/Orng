@@ -275,6 +275,16 @@ pub const IR = struct {
                 .symbol => {
                     std.debug.print("\tsymbol:{s}", .{self.data.symbol.name});
                 },
+                .symbverList => {
+                    std.debug.print("\tsymbverList:[", .{});
+                    for (self.data.symbverList.items, 1..) |symbver, i| {
+                        symbver.pprint();
+                        if (i < self.data.symbverList.items.len) {
+                            std.debug.print(", ", .{});
+                        }
+                    }
+                    std.debug.print("]", .{});
+                },
                 else => {},
             }
             std.debug.print("\n", .{});
@@ -551,21 +561,9 @@ pub const CFG = struct {
                 var symbol = scope.lookup(ast.identifier.common.token.data, false).?;
                 if (symbol.kind == ._fn) {
                     _ = try create(symbol, self, errors, allocator);
-                    var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
-                    var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
-                    ir.data = IRData{ .symbol = symbol };
-                    symbver.def = ir;
-                    self.appendInstruction(ir);
-                    return symbver;
-                } else {
-                    var symbver = try self.createTempSymbolVersion(symbol._type.?, allocator);
-                    var src = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                    var ir = try IR.create(.copy, symbver, src, null, allocator);
-                    ir.data = IRData{ .symbol = symbol };
-                    symbver.def = ir;
-                    self.appendInstruction(ir);
-                    return symbver;
                 }
+                var src = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                return src;
             },
             ._true => {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
@@ -633,6 +631,16 @@ pub const CFG = struct {
                     var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, errors, allocator);
                     std.debug.assert(rhs != null);
                     var ir = try IR.create(.derefCopy, null, lhs, rhs, allocator);
+                    self.appendInstruction(ir);
+                    return null;
+                } else if (ast.assign.lhs.* == .select) {
+                    var lhs = try self.flattenAST(scope, ast.assign.lhs.select.lhs, return_label, break_label, continue_label, true, errors, allocator);
+                    std.debug.assert(lhs != null);
+                    lhs.?.lvalue = true;
+                    var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, errors, allocator);
+                    std.debug.assert(rhs != null);
+                    var ir = try IR.create(.selectCopy, null, lhs, rhs, allocator);
+                    ir.data = IRData{ .int = ast.assign.lhs.select.pos.? };
                     self.appendInstruction(ir);
                     return null;
                 } else {
@@ -1277,6 +1285,18 @@ pub const CFG = struct {
                     ir.src2 = ir.src2.?.findVersion(bb.ir_head, ir);
                     if (ir.src2.?.version == null) {
                         _ = try ir.src2.?.putSymbolVersionSet(&bb.parameters);
+                    }
+                }
+
+                if (ir.data == .symbverList) {
+                    for (ir.data.symbverList.items, 0..) |symbver, i| {
+                        var symbol_find = symbver.findVersion(bb.ir_head, ir);
+                        var slice: [1]*SymbolVersion = undefined;
+                        slice[0] = symbol_find;
+                        try ir.data.symbverList.replaceRange(i, 1, &slice);
+                        if (symbol_find.version == null) {
+                            _ = try symbol_find.putSymbolVersionSet(&bb.parameters);
+                        }
                     }
                 }
             }

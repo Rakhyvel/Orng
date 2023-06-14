@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686709170
-#define ORNG_1686709170
+#ifndef ORNG_1686712671
+#define ORNG_1686712671
 
 #include <math.h>
 #include <stdio.h>
@@ -16,13 +16,13 @@ int64_t _198_return53(int64_t x);
 
 /* Function definitions */
 int64_t _197_main() {
-	function3 _197_t0;
-	int64_t _197_t2;
+	int64_t _197_t1;
+	int64_t _197_t0;
 	int64_t _197_$retval;
 BB0:
-	_197_t0 = _198_return53;
-	_197_t2 = 53;
-	_197_$retval = _197_t0(_197_t2);
+	_197_t1 = 53;
+	_197_t0 = _198_return53(_197_t1);
+	_197_$retval = _197_t0;
 	return _197_$retval;
 }
 

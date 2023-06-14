@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686709170
-#define ORNG_1686709170
+#ifndef ORNG_1686712671
+#define ORNG_1686712671
 
 #include <math.h>
 #include <stdio.h>
@@ -23,14 +23,14 @@ int64_t _204_apply(function3 f,int64_t x);
 /* Function definitions */
 int64_t _201_main() {
 	function3 _201_t0;
-	function4 _201_t1;
-	int64_t _201_t4;
+	int64_t _201_t2;
+	int64_t _201_t1;
 	int64_t _201_$retval;
 BB0:
 	_201_t0 = _203_$anon0;
-	_201_t1 = _204_apply;
-	_201_t4 = 43;
-	_201_$retval = _201_t1(_201_t0, _201_t4);
+	_201_t2 = 43;
+	_201_t1 = _204_apply(_201_t0, _201_t2);
+	_201_$retval = _201_t1;
 	return _201_$retval;
 }
 
@@ -42,9 +42,11 @@ BB0:
 }
 
 int64_t _204_apply(function3 f,int64_t x) {
+	int64_t _204_t0;
 	int64_t _204_$retval;
 BB0:
-	_204_$retval = f(x);
+	_204_t0 = f(x);
+	_204_$retval = _204_t0;
 	return _204_$retval;
 }
 

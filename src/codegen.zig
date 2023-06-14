@@ -278,6 +278,13 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVar(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
+        .selectCopy => {
+            try out.writer().print("\t", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print("._{} = ", .{ir.data.int});
+            try printVar(ir.src2.?, out);
+            try out.writer().print(";\n", .{});
+        },
 
         // Diadic instructions
         .notEqual => {

@@ -273,6 +273,15 @@ fn propagateIR(ir: *IR) bool {
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
+            // Struct constant propagation
+            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadStruct) {
+                ir.kind = .loadStruct;
+                ir.data = ir.src1.?.def.?.data;
+                ir.src1 = null;
+                ir.src2 = null;
+                ir.dest.?.lvalue = false;
+                retval = true;
+            }
             // Copy propagation
             else if (ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
                 ir.src1 = ir.src1.?.def.?.src1;
@@ -350,15 +359,15 @@ fn propagateIR(ir: *IR) bool {
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
-            // Call propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .call) {
-                ir.kind = .call;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src1 = ir.src1.?.def.?.src1;
-                ir.src2 = null;
-                ir.dest.?.lvalue = false;
-                retval = true;
-            }
+            // Call propagation // Not the greatest... ?
+            // else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .call) {
+            //     ir.kind = .call;
+            //     ir.data = ir.src1.?.def.?.data;
+            //     ir.src1 = ir.src1.?.def.?.src1;
+            //     ir.src2 = null;
+            //     ir.dest.?.lvalue = false;
+            //     retval = true;
+            // }
         },
 
         .not => {
@@ -767,13 +776,13 @@ fn propagateIR(ir: *IR) bool {
             }
         },
 
-        .select => {
-            // Short-circuit src1 copy
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
-                retval = true;
-            }
-        },
+        // .selectCopy => {
+        //     // Short-circuit src1 copy
+        //     if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+        //         ir.src1 = ir.src1.?.def.?.src1;
+        //         retval = true;
+        //     }
+        // },
 
         else => {},
     }
@@ -791,6 +800,9 @@ fn removeUnusedDefs(cfg: *CFG) bool {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and ir.dest.?.uses == 0) {
+                if (debug) {
+                    std.debug.print("removing {s}\n", .{ir.dest.?.symbol.name});
+                }
                 bb.removeInstruction(ir);
                 retval = true;
             }
