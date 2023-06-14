@@ -70,6 +70,7 @@
         > Two product types are C-equivalent if they're field's types match as you go through the struct
         > Then, when you generate them, just do `struct struct_1 {int _1, int _2}`, which would match `(x: Int, y: Int)` and `(Int, Int)`
     - [x] `.` select
+    - [x] select and loadStruct optimizations
     - [ ] dot-assign
         - [ ] validate dot lvalue
     - [ ] default fields
