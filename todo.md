@@ -71,9 +71,10 @@
         > Then, when you generate them, just do `struct struct_1 {int _1, int _2}`, which would match `(x: Int, y: Int)` and `(Int, Int)`
     - [x] `.` select
     - [x] select and loadStruct optimizations
-    - [ ] dot-assign
-        - [ ] validate dot lvalue
-    - [ ] default fields
+    - [x] dot-assign
+        - [x] validate dot lvalue
+    - [x] default fields
+    - [ ] pointer to tuple
     - [ ] `++` for concat
     - [ ] `--` for diff (?)
 - [ ] arrays

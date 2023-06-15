@@ -776,14 +776,6 @@ fn propagateIR(ir: *IR) bool {
             }
         },
 
-        // .selectCopy => {
-        //     // Short-circuit src1 copy
-        //     if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-        //         ir.src1 = ir.src1.?.def.?.src1;
-        //         retval = true;
-        //     }
-        // },
-
         else => {},
     }
 
