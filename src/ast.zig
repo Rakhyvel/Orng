@@ -634,12 +634,15 @@ pub const AST = union(enum) {
             .unit => retval = typeType,
 
             // Unit type
-            .assign => retval = unitType,
+            .decl,
+            .assign,
+            => retval = unitType,
 
             // Void type
-            ._continue => retval = voidType,
-            ._break => retval = voidType,
-            ._return => retval = voidType,
+            ._continue,
+            ._break,
+            ._return,
+            => retval = voidType,
 
             .product => {
                 if ((try self.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(typeType)) {

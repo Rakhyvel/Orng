@@ -49,12 +49,22 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 
 /// Errors out if `ast` is not the expected type
 /// @param expected Should be null if `ast` can be any type
-pub fn validateAST(old_ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!*AST {
+pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!*AST {
     var retval: *AST = undefined;
     var ast = old_ast;
+    var expected = old_expected;
 
     if (expected != null and (expected.?.* == .product or expected.?.* == .annotation)) {
-        ast = try defaultArgs(ast, expected.?, errors, allocator);
+        // Attempt to modify ast to fit default values. This may not be possible, especially in the case of a type error
+        ast = defaultArgs(ast, expected.?, errors, allocator) catch |err| switch (err) {
+            error.NoDefault => ast,
+            error.typeError => return error.typeError,
+            error.OutOfMemory => return error.OutOfMemory,
+        };
+    }
+
+    if (expected != null and expected.?.* == .annotation) {
+        expected = expected.?.annotation.type;
     }
 
     switch (ast.*) {
@@ -651,13 +661,20 @@ fn positionalArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: st
         .product => {
             var new_terms = std.ArrayList(*AST).init(allocator);
             for (expected.product.terms.items, 0..) |term, i| {
+                // ast is product, append ast's corresponding term
                 if (ast.* == .product and i < ast.product.terms.items.len) {
                     try new_terms.append(ast.product.terms.items[i]);
-                } else if (ast.* == .unit or (ast.* != .product and i > 0) or (ast.* == .product and i >= ast.product.terms.items.len)) {
+                }
+                // ast is unit or ast isn't a product and i > 0 or ast is a product and off the edge of ast's terms, try to fill with the default
+                else if (ast.* == .unit or (ast.* != .product and i > 0) or (ast.* == .product and i >= ast.product.terms.items.len)) {
                     if (term.* == .annotation and term.annotation.init != null) {
                         try new_terms.append(term.annotation.init.?);
+                    } else {
+                        return error.NoDefault;
                     }
-                } else {
+                }
+                // ast is not product, i != 0, append ast as first term
+                else {
                     try new_terms.append(ast);
                 }
             }

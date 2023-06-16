@@ -74,7 +74,9 @@
     - [x] dot-assign
         - [x] validate dot lvalue
     - [x] default fields
-    - [ ] pointer to tuple
+    - [ ] named arguments
+    - [ ] pointer to tuple, tuple of pointers, select deref
+    - [ ] should not be able to mix annot and non-annot tuples
     - [ ] `++` for concat
     - [ ] `--` for diff (?)
 - [ ] arrays
@@ -104,8 +106,8 @@
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
     - `catch`
-    - `try`
-    - `throw`
+    - `.!`
+    - `throw` (maybe remove!)
     - `errdefer`
     - inferred errors, error coerce
 - [ ] unreachable
@@ -120,19 +122,24 @@
         > should likely be shallow equality, otherwise that gets tricky...
     - [ ] `match` statement (rename from case)
 - [ ] new optimizations
-    - [ ] dataflow analysis, register allocation
-    - [ ] Peephole (LIR/asm/C)
-    - [ ] Partial redundancy elimination
-    - [ ] Unrolling (AST -> IR)
-    - [ ] Inlining (CFG)
+    - [ ] pointer aliasing analysis
+    - [ ] avoid struct copies on select
+    - [ ] temporary combining (basically register allocation)
+    - [ ] local value numbering
+    - [ ] partial redundancy elimination
+    - [ ] redundancy elimination
+    - [ ] induction variable identification/unrolling
+    - [ ] loop invariant lifting
+    - [ ] inlining
 - [ ] function programming stuff
     - [ ] composition
     - [ ] `|>` operator
     - [ ] `.>` operator
     - [ ] partial function application
 - [ ] compile-time evaluation
+    - [ ] `comptime` expression, evaluated at compile time
     - [ ] first-class types based generics
-    - [ ] if a function has all `const` arguments, evaluate at compile-time
+    - [ ] if a function has all `const` arguments, evaluate at compile-time 
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
@@ -144,8 +151,8 @@
         > `import:(const path:String)`
         > `package:(const path:String)`
         > `extern:(const name: String, const T: Type)->T`
-        > `externType:(const name: String, const backing: Type = ())->Type`
-        > `cInclude:(const path: String)->(a tuple of the definitions)`
+        > `extern_type:(const name: String, const backing: Type = ())->Type`
+        > `c_include:(const path: String)->(a tuple of the definitions)`
     - [ ] Specifies the entry function somehow
     - [ ] entry function takes a record of IO function pointers
     - [ ] run a C compiler on the output

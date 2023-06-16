@@ -1,0 +1,6 @@
+// 59
+fn main: () -> Int =
+    let x = 30
+    let y = 29
+    let z: (a: &Int, b: &Int) = (&x, &y)
+    z.a^ + z.b^
