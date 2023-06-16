@@ -1,0 +1,5 @@
+// 61
+fn main: () -> Int =
+    let x: (a: Int, b: Int) = (50, 11)
+    let y = &x
+    y.a + y.b

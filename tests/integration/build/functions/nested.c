@@ -1,19 +1,12 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686884233
-#define ORNG_1686884233
+#ifndef ORNG_1686886319
+#define ORNG_1686886319
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Typedefs */
-typedef int64_t(*function0)();
-typedef int64_t(*function3)(int64_t);
-typedef struct {
-	int64_t _0;
-	int64_t _1;
-} struct6;
-typedef int64_t(*function5)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _226_main();

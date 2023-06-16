@@ -1,13 +1,12 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686884233
-#define ORNG_1686884233
+#ifndef ORNG_1686886319
+#define ORNG_1686886319
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Typedefs */
-typedef int64_t(*function0)();
 
 /* Function forward definitions */
 int64_t _156_main();

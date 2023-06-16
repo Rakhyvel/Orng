@@ -1,28 +1,22 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686884233
-#define ORNG_1686884233
+#ifndef ORNG_1686886319
+#define ORNG_1686886319
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Typedefs */
-typedef int64_t(*function0)();
-typedef int64_t(*function3)(int64_t);
-typedef struct {
-	function3 _0;
-	int64_t _1;
-} struct5;
-typedef int64_t(*function4)(function3, int64_t);
+typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
 int64_t _201_main();
 int64_t _203_$anon0(int64_t x);
-int64_t _204_apply(function3 f,int64_t x);
+int64_t _204_apply(function0 f,int64_t x);
 
 /* Function definitions */
 int64_t _201_main() {
-	function3 _201_t0;
+	function0 _201_t0;
 	int64_t _201_t2;
 	int64_t _201_t1;
 	int64_t _201_$retval;
@@ -41,7 +35,7 @@ BB0:
 	return _203_$retval;
 }
 
-int64_t _204_apply(function3 f,int64_t x) {
+int64_t _204_apply(function0 f,int64_t x) {
 	int64_t _204_t0;
 	int64_t _204_$retval;
 BB0:

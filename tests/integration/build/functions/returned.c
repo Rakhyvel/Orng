@@ -1,24 +1,22 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1686884233
-#define ORNG_1686884233
+#ifndef ORNG_1686886319
+#define ORNG_1686886319
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
 
 /* Typedefs */
-typedef int64_t(*function0)();
-typedef int64_t(*function3)(int64_t);
-typedef function3(*function4)();
+typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
 int64_t _234_main();
-function3 _236_f();
+function0 _236_f();
 int64_t _237_addFour(int64_t x);
 
 /* Function definitions */
 int64_t _234_main() {
-	function3 _234_t0;
+	function0 _234_t0;
 	int64_t _234_t2;
 	int64_t _234_t1;
 	int64_t _234_$retval;
@@ -30,8 +28,8 @@ BB0:
 	return _234_$retval;
 }
 
-function3 _236_f() {
-	function3 _236_$retval;
+function0 _236_f() {
+	function0 _236_$retval;
 BB0:
 	_236_$retval = _237_addFour;
 	return _236_$retval;

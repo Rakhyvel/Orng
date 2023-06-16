@@ -51,8 +51,6 @@
     - [x] Constant fold
     - [x] Dead code elimination
     - [x] If a BB is just a branch on a phi parameter, and the argument is a known value, branch to whichever BB would have been branched to  
-    - [ ] redundant copy
-        - [ ] reaching definitions
 - [x] `defer`
     - [x] count defers in block tree-walk
 - [x] `continue`/`break`/`return`
@@ -74,9 +72,9 @@
     - [x] dot-assign
         - [x] validate dot lvalue
     - [x] default fields
-    - [ ] named arguments
-    - [ ] pointer to tuple, tuple of pointers, select deref
-    - [ ] should not be able to mix annot and non-annot tuples
+    - [x] named fields
+    - [x] pointer to tuple, tuple of pointers, select deref
+    - [x] should not be able to mix annot and non-annot tuples
     - [ ] `++` for concat
     - [ ] `--` for diff (?)
 - [ ] arrays

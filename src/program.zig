@@ -49,7 +49,6 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), allocator: std.m
         return;
     }
     callGraph.visited = true;
-    _ = try typeSetAppend(callGraph.symbol._type.?, set, allocator);
     for (callGraph.basic_blocks.items) |bb| {
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {

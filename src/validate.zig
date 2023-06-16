@@ -284,7 +284,16 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .select => {
+            ast.select.lhs = try validateAST(ast.select.lhs, null, scope, errors, allocator);
+
             var select_lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
+
+            // Implicit dereference
+            if (select_lhs_type.* == .addrOf) {
+                ast.select.lhs = try validateAST(try AST.createDereference(ast.getToken(), ast.select.lhs, allocator), null, scope, errors, allocator);
+                select_lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
+            }
+
             var selectable: bool = undefined;
             switch (select_lhs_type.*) {
                 .annotation => selectable = true,
@@ -307,8 +316,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 } });
                 return error.typeError;
             }
-
-            ast.select.lhs = try validateAST(ast.select.lhs, null, scope, errors, allocator);
 
             var ast_type = try ast.typeof(scope, errors, allocator);
             if (expected != null and !expected.?.typesMatch(ast_type)) {
