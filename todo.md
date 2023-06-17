@@ -73,6 +73,7 @@
         - [x] validate dot lvalue
     - [x] default fields
     - [x] named fields
+        - [ ] change grammar to use assignments instead of `<-`. assignments have void type anyway, probably no confusion with `==`
     - [x] pointer to tuple, tuple of pointers, select deref
     - [x] should not be able to mix annot and non-annot tuples
     - [ ] `++` for concat
@@ -86,6 +87,7 @@
     - [ ] subslices
     - [ ] array from slice? (like a dereference?)
         > How would the size work? It has to be compile-time known
+    > It would be neat if slices had a capacity, so they could be used like lists
 - [ ] UTF8
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
@@ -120,6 +122,7 @@
         > should likely be shallow equality, otherwise that gets tricky...
     - [ ] `match` statement (rename from case)
 - [ ] new optimizations
+    - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
     - [ ] pointer aliasing analysis
     - [ ] avoid struct copies on select
     - [ ] temporary combining (basically register allocation)
@@ -130,12 +133,13 @@
     - [ ] loop invariant lifting
     - [ ] inlining
 - [ ] function programming stuff
-    - [ ] composition
     - [ ] `|>` operator
-    - [ ] `.>` operator
-    - [ ] partial function application
+    - [x] immutability
+    - [ ] composition using `<>`
+    - [ ] partial function application `>>`
 - [ ] compile-time evaluation
     - [ ] `comptime` expression, evaluated at compile time
+    - [ ] array sizes are evaluated at compile-time
     - [ ] first-class types based generics
     - [ ] if a function has all `const` arguments, evaluate at compile-time 
     - [ ] `typeof` prefix operator which returns type expression of expression

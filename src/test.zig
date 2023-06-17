@@ -24,6 +24,7 @@ pub fn main() !void {
 
             _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/arrays/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/control-flow/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/expressions/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/functions/" }) catch {};

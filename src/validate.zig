@@ -28,18 +28,18 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     symbol.valid = true;
 
     if (symbol.kind == ._fn) {
-        var codomain = symbol._type.?.function.rhs;
-        symbol.init = try validateAST(symbol.init.?, codomain, symbol.scope, errors, allocator);
+        symbol._type.?.function.rhs = try validateAST(symbol._type.?.function.rhs, _ast.typeType, symbol.scope, errors, allocator);
+        symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
     } else {
         if (symbol.init != null and symbol._type != null) {
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
             symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
         } else if (symbol.init == null) {
-            // Default value (probably done at the IR side?)
+            // Default value (probably done at the IR side?) OR function parameter
+            symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
         } else if (symbol._type == null) {
             // Infer type
-            var _type = try symbol.init.?.typeof(symbol.scope, errors, allocator);
-            symbol._type = _type;
+            symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), _ast.typeType, symbol.scope, errors, allocator);
             symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
         } else {
             unreachable;
@@ -53,6 +53,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
     var retval: *AST = undefined;
     var ast = old_ast;
     var expected = old_expected;
+
+    if (old_ast.getCommon().is_valid) {
+        return old_ast;
+    }
 
     if (expected != null and (expected.?.* == .product or expected.?.* == .annotation)) {
         // Attempt to modify ast to fit default values. This may not be possible, especially in the case of a type error
@@ -108,9 +112,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             // look up symbol, that's the type
             var symbol = try findSymbol(ast, scope, errors);
             try validateSymbol(symbol, errors, allocator);
-            var _type = symbol._type.?;
-            if (expected != null and !expected.?.typesMatch(_type)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _type, .stage = .typecheck } });
+            if (expected != null and !expected.?.typesMatch(symbol._type.?)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type.?, .stage = .typecheck } });
                 return error.typeError;
             } else {
                 retval = ast;
@@ -266,17 +269,33 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .call => {
-            // TODO: Validate lhs is function, returns expected
+            ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
+
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             if (lhs_type.* != .function) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function", .stage = .typecheck } });
                 return error.typeError;
             }
 
-            ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
             ast.call.rhs = try validateAST(ast.call.rhs, lhs_type.function.lhs, scope, errors, allocator);
 
             if (expected != null and !expected.?.typesMatch(lhs_type.function.rhs)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.function.rhs, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                retval = ast;
+            }
+        },
+        .index => {
+            ast.index.lhs = try validateAST(ast.index.lhs, null, scope, errors, allocator);
+            ast.index.rhs = try validateAST(ast.index.rhs, _ast.intType, scope, errors, allocator);
+
+            var lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .product) {
+                // TODO: Validate product is homotypical
+            }
+
+            if (expected != null and (lhs_type.* == .product and !expected.?.typesMatch(lhs_type.product.terms.items[0])) or lhs_type.* != .product) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.function.rhs, .stage = .typecheck } });
                 return error.typeError;
             } else {
@@ -369,7 +388,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.product.terms = new_terms;
             } else if (expected != null and expected.?.* == .product) {
                 if (expected.?.product.terms.items.len != ast.product.terms.items.len) {
-                    std.debug.print("2\n", .{});
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                 }
                 for (ast.product.terms.items, expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
@@ -425,6 +443,47 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else if (expected == null) {
                 ast.addrOf.expr = try validateAST(ast.addrOf.expr, null, scope, errors, allocator);
                 try validateLValue(ast.addrOf.expr, scope, errors);
+            } else {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                return error.typeError;
+            }
+            retval = ast;
+        },
+        .sliceOf => {
+            if (expected != null and expected.?.typesMatch(_ast.typeType)) {
+                // Slice-of type, type of this ast must be a type, inner must be a type
+                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, _ast.typeType, scope, errors, allocator);
+                var ast_type: *AST = try ast.sliceOf.expr.typeof(scope, errors, allocator);
+                if (!ast_type.typesMatch(expected.?)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                    return error.typeError;
+                } else {
+                    if (ast.sliceOf.len) |len| {
+                        ast.sliceOf.len = try validateAST(len, _ast.intType, scope, errors, allocator);
+                    }
+                }
+                if (ast.sliceOf.kind == .ARRAY) {
+                    // Inflate to product
+                    var new_terms = std.ArrayList(*AST).init(allocator);
+                    for (0..@intCast(usize, ast.sliceOf.len.?.int.data)) |_| {
+                        try new_terms.append(ast.sliceOf.expr);
+                    }
+                    ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
+                }
+            } else if (expected != null and expected.?.* == .sliceOf) {
+                // Slice-of value, expected must be an slice, inner must match with expected's inner
+                if (!expected.?.typesMatch(try ast.typeof(scope, errors, allocator))) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                    return error.typeError;
+                }
+                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, expected.?.sliceOf.expr, scope, errors, allocator);
+                try validateLValue(ast.sliceOf.expr, scope, errors);
+                if (ast.sliceOf.kind == .MUT) {
+                    try assertMutable(ast.sliceOf.expr, scope, errors, allocator);
+                }
+            } else if (expected == null) {
+                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, null, scope, errors, allocator);
+                try validateLValue(ast.sliceOf.expr, scope, errors);
             } else {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                 return error.typeError;
@@ -531,6 +590,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     ast.block.statements = new_statements;
                 }
 
+                ast.getCommon().is_valid = true; // So that the typeof code can be reused. All children should be validated at this point
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !expected.?.typesMatch(block_type)) {
                     if (ast.block.statements.items.len > 1) {
@@ -608,6 +668,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
     }
 
+    retval.getCommon().is_valid = true;
     return retval;
 }
 

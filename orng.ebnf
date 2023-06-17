@@ -23,7 +23,7 @@ statement: non_fn_declaration
          | "defer" statement
          | "errdefer" statement
          | condMatchExpr
-         | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
+         #| arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
          .
 
 expr: condMatchExpr
@@ -36,6 +36,8 @@ sumExpr: productExpr {"|" ident [":" productExpr]}. # (lhs of | must be ident or
 productExpr: annotExpr {"," annotExpr}.
 
 annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+
+assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr].
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -59,7 +61,7 @@ prefixExpr: "!" hyperExpr                           # inferred error union
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" hyperExpr                           # optional
-          | "." ident ["<-" prefixExpr | parens]    # infered member/named argument/named field
+          | "." ident [parens]                      # infered member with optional init
           | hyperExpr
           .
 

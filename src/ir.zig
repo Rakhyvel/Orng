@@ -242,6 +242,12 @@ pub const IR = struct {
         return retval;
     }
 
+    fn createIndex(dest: *SymbolVersion, src1: *SymbolVersion, src2: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.index, dest, src1, src2, allocator);
+        retval.data = IRData.none;
+        return retval;
+    }
+
     pub fn getTail(self: *IR) *IR {
         var mut_self: *IR = self;
         while (mut_self.next != null) : (mut_self = mut_self.next.?) {}
@@ -817,6 +823,16 @@ pub const CFG = struct {
                     },
                     else => try ir.data.symbverList.append((try self.flattenAST(scope, ast.call.rhs, return_label, break_label, continue_label, false, errors, allocator)).?),
                 }
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .index => {
+                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+
+                var ir = try IR.createIndex(temp, lhs, rhs, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;

@@ -30,6 +30,13 @@ pub fn initTypes() !void {
         typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        boolType.getCommon().is_valid = true;
+        charType.getCommon().is_valid = true;
+        floatType.getCommon().is_valid = true;
+        intType.getCommon().is_valid = true;
+        typeType.getCommon().is_valid = true;
+        unitType.getCommon().is_valid = true;
+        voidType.getCommon().is_valid = true;
         typesInited = true;
     }
 }
@@ -68,6 +75,7 @@ const Errors = error{ InvalidRange, OutOfMemory };
 const ASTCommon = struct {
     token: Token,
     _type: ?*AST,
+    is_valid: bool = false,
 };
 
 pub const AST = union(enum) {
@@ -112,7 +120,29 @@ pub const AST = union(enum) {
     prepend: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     sum: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _error: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    product: struct { common: ASTCommon, terms: std.ArrayList(*AST) },
+    product: struct {
+        common: ASTCommon,
+        terms: std.ArrayList(*AST),
+        homotypical: ?bool = null,
+
+        fn is_homotypical(self: @This()) bool {
+            if (self.homotypical) |homotypical| {
+                return homotypical;
+            }
+            var first_type = self.terms.items[0].typeof();
+            for (self.terms.items, 0..) |term, i| {
+                if (i == 0) {
+                    continue;
+                }
+                if (!first_type.typesMatch(term)) {
+                    self.homotypical = false;
+                    return false;
+                }
+            }
+            self.homotypical = true;
+            return true;
+        }
+    },
     diff: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     concat: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _union: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -569,6 +599,17 @@ pub const AST = union(enum) {
                 }
                 try self.addrOf.expr.printType(out);
             },
+            .sliceOf => {
+                try out.print("[", .{});
+                switch (self.sliceOf.kind) {
+                    .MUT => try out.print("mut", .{}),
+                    .MULTIPTR => try out.print("*", .{}),
+                    .ARRAY => try self.sliceOf.len.?.printType(out),
+                    .SLICE => {},
+                }
+                try out.print("]", .{});
+                try self.sliceOf.expr.printType(out);
+            },
             .optional => {
                 try out.print("?", .{});
                 try self.optional.expr.printType(out);
@@ -597,8 +638,11 @@ pub const AST = union(enum) {
                 try out.print("{s}: ", .{self.annotation.pattern.identifier.common.token.data});
                 try self.annotation.type.printType(out);
             },
+
+            // Not necessarily types, but may appear in a type definition
+            .int => try out.print("{}", .{self.int.data}),
             else => {
-                try out.print("Unimplemented or not a type: {?}\n", .{self.*});
+                try out.print("\nprintTypes(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});
                 unreachable;
             },
         }
@@ -606,6 +650,7 @@ pub const AST = union(enum) {
 
     // Must always return a valid type!
     pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+        std.debug.assert(self.getCommon().is_valid);
         if (self.getCommon()._type) |_type| {
             return _type;
         }
@@ -653,6 +698,13 @@ pub const AST = union(enum) {
                         try terms.append(try term.typeof(scope, errors, allocator));
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
+                }
+            },
+
+            .index => {
+                var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
+                if (lhs_type.* == .product) {
+                    retval = lhs_type.product.terms.items[0];
                 }
             },
 
@@ -781,6 +833,13 @@ pub const AST = union(enum) {
                     return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
+            .sliceOf => {
+                if (other.* != .sliceOf) {
+                    return false;
+                } else {
+                    return (self.sliceOf.kind != .MUT or @enumToInt(self.sliceOf.kind) == @enumToInt(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
+                }
+            },
             .annotation => unreachable,
 
             .unit => {
@@ -805,7 +864,7 @@ pub const AST = union(enum) {
                 }
             },
             else => {
-                std.debug.print("Unimplemented for {s}\n", .{@tagName(self.*)});
+                std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(self.*)});
                 unreachable;
             },
         }
