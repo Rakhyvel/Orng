@@ -4,5 +4,5 @@ fn main: ()->Int =
     let y = &x
     if y^ != 5 or 4 > y^ >= 3.0
         33
-    else 
+    else
         10

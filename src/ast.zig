@@ -676,7 +676,9 @@ pub const AST = union(enum) {
             .int => retval = intType,
 
             // Type type
-            .unit => retval = typeType,
+            .unit,
+            .annotation,
+            => retval = typeType,
 
             // Unit type
             .decl,
@@ -690,7 +692,8 @@ pub const AST = union(enum) {
             => retval = voidType,
 
             .product => {
-                if ((try self.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(typeType)) {
+                var first_type = try self.product.terms.items[0].typeof(scope, errors, allocator);
+                if (first_type.typesMatch(typeType)) {
                     retval = typeType;
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
@@ -802,7 +805,7 @@ pub const AST = union(enum) {
 
             else => {
                 std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
-                return error.Unimplemented;
+                unreachable;
             },
         }
         self.getCommon()._type = retval;

@@ -21,9 +21,10 @@ pub const Scope = struct {
     name: []const u8,
     uid: usize,
 
-    in_loop: bool = false,
     in_function: usize = 0,
+    in_loop: bool = false,
     defers: std.ArrayList(*AST),
+    inner_function: ?*Symbol = null,
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
         var retval = try allocator.create(Scope);
@@ -38,6 +39,11 @@ pub const Scope = struct {
             try _parent.children.append(retval);
             retval.in_loop = _parent.in_loop;
             retval.in_function = _parent.in_function;
+            retval.inner_function = _parent.inner_function;
+        } else {
+            retval.in_loop = false;
+            retval.in_function = 0;
+            retval.inner_function = null;
         }
         return retval;
     }
@@ -454,8 +460,6 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         symbol.param = true;
     }
 
-    try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
-
     // Choose name (maybe anon)
     var buf: []const u8 = undefined;
     if (definition.fnDecl.name) |name| {
@@ -463,7 +467,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     } else {
         buf = try nextAnonFunctionName(allocator);
     }
-    return try Symbol.create(
+    var retval = try Symbol.create(
         fnScope,
         buf,
         definition.getToken().span,
@@ -473,6 +477,10 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
         ._fn,
         allocator,
     );
+    fnScope.inner_function = retval;
+
+    try symbolTableFromAST(definition.fnDecl.init, fnScope, errors, allocator);
+    return retval;
 }
 
 var numAnonFunctions: usize = 0;

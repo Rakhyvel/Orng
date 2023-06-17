@@ -51,7 +51,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
 
     if (dag.base.* == .function) {
         try out.writer().print("typedef ", .{});
-        try printType(dag.base.function.rhs, out, false);
+        try printType(dag.base.function.rhs, out);
         try out.writer().print("(*function{})(", .{dag.uid});
         try printProductList(dag.base.function.lhs, out);
         try out.writer().print(");\n", .{});
@@ -59,7 +59,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         try out.writer().print("typedef struct {{\n", .{});
         for (dag.base.product.terms.items, 0..) |term, i| {
             try out.writer().print("\t", .{});
-            try printType(term, out, false);
+            try printType(term, out);
             try out.writer().print(" _{};\n", .{i});
         }
         try out.writer().print("}} struct{};\n", .{dag.uid});
@@ -67,7 +67,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    try printType(callGraph.symbol._type.?.function.rhs, out, false);
+    try printType(callGraph.symbol._type.?.function.rhs, out);
     try out.writer().print(" ", .{});
     try printPath(callGraph.symbol, out);
     try out.writer().print("(", .{});
@@ -87,7 +87,7 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // Print function return type, name, parameter list
     // TODO: If the function return type isn't void, create a `retval` variable
-    try printType(callGraph.symbol._type.?.function.rhs, out, false);
+    try printType(callGraph.symbol._type.?.function.rhs, out);
     try out.writer().print(" ", .{});
     try printPath(callGraph.symbol, out);
     try out.writer().print("(", .{});
@@ -230,7 +230,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .loadStruct => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("(", .{});
-            try printType(ir.dest.?.symbol._type.?, out, false);
+            try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print(") {{", .{});
             for (ir.data.symbverList.items, 1..) |symbver, i| {
                 try printVar(symbver, out);
@@ -375,7 +375,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .index => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("((", .{});
-            try printType(ir.dest.?.symbol._type.?, out, false);
+            try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print("*)(&", .{});
             try printVar(ir.src1.?, out);
             try out.writer().print("))[", .{});
@@ -451,7 +451,7 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
     }
 }
 
-fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
+fn printType(_type: *AST, out: *std.fs.File) !void {
     switch (_type.*) {
         .identifier => {
             if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
@@ -465,7 +465,7 @@ fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
             }
         },
         .addrOf => {
-            try printType(_type.addrOf.expr, out, full_function);
+            try printType(_type.addrOf.expr, out);
             try out.writer().print("*", .{});
         },
         .function => {
@@ -480,7 +480,7 @@ fn printType(_type: *AST, out: *std.fs.File, full_function: bool) !void {
             try out.writer().print("void", .{});
         },
         .annotation => {
-            try printType(_type.annotation.type, out, full_function);
+            try printType(_type.annotation.type, out);
         },
         else => {
             std.debug.print("Unimplemented printType() for {?}", .{_type.*});
@@ -499,7 +499,7 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     if (!param) {
         try out.writer().print("\t", .{});
     }
-    try printType(symbol._type.?, out, false);
+    try printType(symbol._type.?, out);
     try out.writer().print(" ", .{});
     try printPath(symbol, out);
     if (!param) {
@@ -510,15 +510,15 @@ fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
 fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
     switch (ast.*) {
         .product => for (ast.product.terms.items, 0..) |term, i| {
-            try printType(term, out, true);
+            try printType(term, out);
             if (i + 1 != ast.product.terms.items.len) {
                 try out.writer().print(", ", .{});
             }
         },
 
-        .identifier => try printType(ast, out, true),
+        .identifier => try printType(ast, out),
 
-        .annotation => try printType(ast, out, true),
+        .annotation => try printType(ast, out),
 
         .unit => {},
 
