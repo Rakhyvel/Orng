@@ -67,7 +67,7 @@ const FizzBuzzResult
     | integer: Int
 
 fn fizzbuzz: (n: Int)->FizzBuzzResult =
-    cond
+    case
     | n % 15 == 0 => FizzBuzzResult.string("fizzbuzz") 
     //               ^^^^^^^^^^^^^^
     // We can either be explicit with the ADT we use...
@@ -90,7 +90,7 @@ Identifiers may end in a single apostrophe. When unification is done, apostrophe
 // Function that works for values of any type `T'` in the `Eq` type-class
 fn contains: (haystack: []T', needle: T')->Bool
 where T' <: Eq =
-    cond 
+    case
     | haystack.len == 0     => false
     | haystack[0] == needle => true
     | else                  => contains(haystack[1..], needle)
