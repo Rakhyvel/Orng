@@ -161,7 +161,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .dereference => {
             if (expected != null) {
-                ast.dereference.expr = try validateAST(ast.dereference.expr, try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator), scope, errors, allocator);
+                var addr_of = try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator);
+                addr_of.getCommon().is_valid = true;
+                ast.dereference.expr = try validateAST(ast.dereference.expr, addr_of, scope, errors, allocator);
 
                 ast.getCommon().is_valid = true;
                 var ast_type = try ast.typeof(scope, errors, allocator);
@@ -278,8 +280,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .call => {
             ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
-
-            std.debug.print("This -> {}\n", .{ast.call.lhs});
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             if (lhs_type.* != .function) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function", .stage = .typecheck } });
@@ -402,7 +402,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                 }
                 for (ast.product.terms.items, expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
-                    std.debug.print("{}\n", .{expected_term});
                     try new_terms.append(try validateAST(term, expected_term, scope, errors, allocator));
                 }
                 ast.product.terms = new_terms;
@@ -507,10 +506,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             unreachable;
         },
         .annotation => {
+            ast.annotation.type = try validateAST(ast.annotation.type, _ast.typeType, scope, errors, allocator);
             if (ast.annotation.init != null) {
                 ast.annotation.init = try validateAST(ast.annotation.init.?, ast.annotation.type, scope, errors, allocator);
             }
-            ast.annotation.type = try validateAST(ast.annotation.type, _ast.typeType, scope, errors, allocator);
 
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
@@ -666,7 +665,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .fnDecl => {
-            // TODO: ast expression is a function type
+            try validateSymbol(ast.fnDecl.symbol.?, errors, allocator);
             retval = ast;
         },
         .decl => {
