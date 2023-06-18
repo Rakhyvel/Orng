@@ -125,11 +125,11 @@ pub const AST = union(enum) {
         terms: std.ArrayList(*AST),
         homotypical: ?bool = null,
 
-        fn is_homotypical(self: @This()) bool {
+        pub fn is_homotypical(self: *@This()) bool {
             if (self.homotypical) |homotypical| {
                 return homotypical;
             }
-            var first_type = self.terms.items[0].typeof();
+            var first_type = self.terms.items[0];
             for (self.terms.items, 0..) |term, i| {
                 if (i == 0) {
                     continue;

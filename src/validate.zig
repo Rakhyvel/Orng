@@ -296,8 +296,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.index.rhs = try validateAST(ast.index.rhs, _ast.intType, scope, errors, allocator);
 
             var lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
-            if (lhs_type.* == .product) {
-                // TODO: Validate product is homotypical
+            if (lhs_type.* == .product and !lhs_type.product.is_homotypical()) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array is not homotypical", .stage = .typecheck } });
+                return error.typeError;
             }
 
             if (expected != null and (lhs_type.* == .product and !expected.?.typesMatch(lhs_type.product.terms.items[0])) or lhs_type.* != .product) {
@@ -865,6 +866,8 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
             }
         },
 
+        .index => {},
+
         .select => {},
 
         else => {
@@ -899,6 +902,18 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
                     .msg = "attempt to modify non-mutable address",
+                    .stage = .typecheck,
+                } });
+                return error.typeError;
+            }
+        },
+
+        .index => {
+            var lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .sliceOf and (lhs_type.sliceOf.kind != .MUT or lhs_type.sliceOf.kind != .MULTIPTR)) {
+                errors.addError(Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "attempt to modify non-mutable slice",
                     .stage = .typecheck,
                 } });
                 return error.typeError;
