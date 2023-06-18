@@ -872,6 +872,9 @@ fn calculateUsage(cfg: *CFG) void {
                     symbver.uses += 1;
                 }
             }
+            if (ir.data == .symbver) {
+                ir.data.symbver.uses += 1;
+            }
         }
 
         // Conditions are used

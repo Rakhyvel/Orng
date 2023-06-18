@@ -279,6 +279,17 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
+        .indexCopy => {
+            try out.writer().print("(((", .{});
+            try printType(ir.data.symbver.symbol._type.?, out);
+            try out.writer().print("*)(", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print("))[", .{});
+            try printSymbolVersion(ir.src2.?, out);
+            try out.writer().print("]) = ", .{});
+            try printSymbolVersion(ir.data.symbver, out);
+            try out.writer().print(";\n", .{});
+        },
         .selectCopy => {
             try out.writer().print("\t", .{});
             try printSymbolVersion(ir.src1.?, out);

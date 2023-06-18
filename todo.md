@@ -79,9 +79,9 @@
     - [ ] `++` for concat
     - [ ] `--` for diff (?)
 - [ ] arrays
-    - [ ] index
+    - [x] index
     - [ ] index-assign
-        - [ ] validate index lvalue
+        - [x] validate index lvalue
 - [ ] slices
     - [ ] `[]` slice from array operator, with variants
     - [ ] subslices
@@ -166,6 +166,9 @@
     - [ ] Externs
         > 'Primitive types' are just extern types defined in prelude
     > How to do exponentiation without libc?
+    - [ ] debug mode
+        - [ ] array/slice bounds checking
+        - [ ] null dereference
 - [ ] refinement types
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free
