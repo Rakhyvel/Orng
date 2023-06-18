@@ -86,7 +86,6 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
 fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // Print function return type, name, parameter list
-    // TODO: If the function return type isn't void, create a `retval` variable
     try printType(callGraph.symbol._type.?.function.rhs, out);
     try out.writer().print(" ", .{});
     try printPath(callGraph.symbol, out);
@@ -452,7 +451,10 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 try out.writer().print(")", .{});
             },
             .select => {
-                // TODO: defer to products
+                try out.writer().print("(&", .{});
+                try printVar(ir.src1.?, out);
+                try out.writer().print("._{}", .{ir.data.int});
+                try out.writer().print(")", .{});
             },
             else => {
                 try out.writer().print("&", .{});

@@ -922,6 +922,8 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
                     .stage = .typecheck,
                 } });
                 return error.typeError;
+            } else {
+                try assertMutable(ast.index.lhs, scope, errors, allocator);
             }
         },
 
