@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687123796
-#define ORNG_1687123796
+#ifndef ORNG_1687127760
+#define ORNG_1687127760
 
 #include <math.h>
 #include <stdio.h>
@@ -44,7 +44,7 @@ BB0:
 BB1:
 	_12_z = *_10_y;
 	_9_t8 = _12_z + _12_z;
-	*(&_12_z) = _9_t8;
+	*&_12_z = _9_t8;
 	_12_z = _12_z - _12_z;
 	_12_z = _12_z * _12_z;
 	_9_t11 = 1;

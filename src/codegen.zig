@@ -261,8 +261,8 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .addrOf => {
             try printVarAssign(ir.dest.?, out);
-            try out.writer().print("&", .{});
-            try printVar(ir.src1.?, out);
+            ir.src1.?.lvalue = true;
+            try generateLValueIR(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
         .dereference => {
@@ -273,14 +273,16 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .derefCopy => {
             try out.writer().print("\t*", .{});
+            ir.src1.?.lvalue = true;
             try generateLValueIR(ir.src1.?, out);
+            // try printVar(ir.src1.?, out);
             try out.writer().print(" = ", .{});
             try printVar(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .selectCopy => {
             try out.writer().print("\t", .{});
-            try generateLValueIR(ir.src1.?, out);
+            try printVar(ir.src1.?, out);
             try out.writer().print("._{} = ", .{ir.data.int});
             try printVar(ir.src2.?, out);
             try out.writer().print(";\n", .{});
@@ -417,36 +419,43 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 
 fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
     if (symbver.lvalue and symbver.def != null) {
-        var def = symbver.def.?;
-        switch (def.kind) {
+        var ir = symbver.def.?;
+        switch (ir.kind) {
             .loadSymbol => {
-                try printPath(def.data.symbol, out);
+                try printPath(ir.data.symbol, out);
             },
             .copy => {
+                try out.writer().print("(&", .{});
                 try printPath(symbver.*.symbol, out);
+                try out.writer().print(")", .{});
             },
             .addrOf => {
-                try out.writer().print("(&", .{});
-                try generateLValueIR(def.src1.?, out);
-                try out.writer().print(")", .{});
+                try generateLValueIR(ir.src1.?, out);
             },
             .dereference => {
                 try out.writer().print("(*", .{});
-                try generateLValueIR(def.src1.?, out);
+                try generateLValueIR(ir.src1.?, out);
                 try out.writer().print(")", .{});
             },
             .index => {
-                // TODO: defer to arrays
+                try out.writer().print("(((", .{});
+                try printType(ir.dest.?.symbol._type.?, out);
+                try out.writer().print("*)(", .{});
+                try generateLValueIR(ir.src1.?, out);
+                try out.writer().print("))+", .{});
+                try printVar(ir.src2.?, out);
+                try out.writer().print(")", .{});
             },
             .select => {
                 // TODO: defer to products
             },
             else => {
-                std.debug.print("Not an LValue {?}\n", .{symbver.def.?.*});
-                unreachable;
+                try out.writer().print("&", .{});
+                try printVar(symbver, out);
             },
         }
     } else {
+        try out.writer().print("&", .{});
         try printVar(symbver, out);
     }
 }

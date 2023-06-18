@@ -9,20 +9,20 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _54_main();
+uint8_t _267_main();
 
 /* Function definitions */
-int64_t _54_main() {
-	int64_t _54_$retval;
+uint8_t _267_main() {
+	uint8_t _267_$retval;
 BB0:
-	_54_$retval = 42;
-	return _54_$retval;
+	_267_$retval = 0;
+	return _267_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_54_main());
+  printf("%d",_267_main());
   return 0;
 }
 
