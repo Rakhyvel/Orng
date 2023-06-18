@@ -321,11 +321,11 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition._if.bodyBlock, scope, errors, allocator);
             try symbolTableFromAST(definition._if.elseBlock, scope, errors, allocator);
         },
-        .cond => {
+        .case => {
             var new_scope = try Scope.init(scope, "", allocator);
-            definition.cond.scope = new_scope;
-            try symbolTableFromAST(definition.cond.let, scope, errors, allocator);
-            try symbolTableFromASTList(definition.cond.mappings, scope, errors, allocator);
+            definition.case.scope = new_scope;
+            try symbolTableFromAST(definition.case.let, scope, errors, allocator);
+            try symbolTableFromASTList(definition.case.mappings, scope, errors, allocator);
         },
         .match => {
             var new_scope = try Scope.init(scope, "", allocator);

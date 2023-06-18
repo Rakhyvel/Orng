@@ -1,6 +1,6 @@
 // 25
 fn main: ()->Int =
-    cond
+    case
     | false => {}
     | false => {}
     | true  => {}

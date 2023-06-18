@@ -67,7 +67,7 @@ pub const SliceKind = union(enum) {
 
 pub const MappingKind = enum {
     match,
-    cond,
+    case,
 };
 
 const Errors = error{ InvalidRange, OutOfMemory };
@@ -165,7 +165,7 @@ pub const AST = union(enum) {
         bodyBlock: *AST,
         elseBlock: ?*AST,
     },
-    cond: struct {
+    case: struct {
         common: ASTCommon,
         scope: ?*Scope,
         let: ?*AST,
@@ -294,7 +294,7 @@ pub const AST = union(enum) {
             .inferredMember => return &self.inferredMember.common,
 
             ._if => return &self._if.common,
-            .cond => return &self.cond.common,
+            .case => return &self.case.common,
             .match => return &self.match.common,
             .mapping => return &self.mapping.common,
             ._while => return &self._while.common,
@@ -512,8 +512,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._if = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
-    pub fn createCond(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .cond = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings } }, allocator);
+    pub fn createCase(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .case = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings } }, allocator);
     }
 
     pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
@@ -781,7 +781,7 @@ pub const AST = union(enum) {
 
             // Control-flow expressions
             ._if => retval = try self._if.bodyBlock.typeof(scope, errors, allocator),
-            .cond => retval = try self.cond.mappings.items[0].typeof(scope, errors, allocator),
+            .case => retval = try self.case.mappings.items[0].typeof(scope, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
                 retval = try rhs.typeof(scope, errors, allocator);
             } else {

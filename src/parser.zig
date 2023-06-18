@@ -58,7 +58,7 @@ pub const Parser = struct {
         or nextKind == .BAR //
         or nextKind == .MINUS //
         or nextKind == .MATCH //
-        or nextKind == .COND //
+        or nextKind == .CASE //
         or nextKind == .FN //
         or nextKind == .FOR //
         or nextKind == .IF //
@@ -260,8 +260,8 @@ pub const Parser = struct {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
         } else if (self.accept(.ERRDEFER)) |token| {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
-        } else if (self.peekKind(.COND) or self.peekKind(.MATCH)) {
-            return self.condMatchExpr();
+        } else if (self.peekKind(.CASE) or self.peekKind(.MATCH)) {
+            return self.caseMatchExpr();
         } else {
             var exp = try self.arrowExpr();
             if (self.accept(.EQUALS)) |token| {
@@ -285,8 +285,8 @@ pub const Parser = struct {
     }
 
     fn expr(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peekKind(.COND) or self.peekKind(.MATCH)) {
-            return self.condMatchExpr();
+        if (self.peekKind(.CASE) or self.peekKind(.MATCH)) {
+            return self.caseMatchExpr();
         } else if (self.peekKind(.FN)) {
             return self.fnDeclaration();
         } else {
@@ -803,19 +803,19 @@ pub const Parser = struct {
         try self.barListMiddle(mappings, kind);
     }
 
-    fn condExpr(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.COND);
+    fn caseExpr(self: *Parser) ParserErrorEnum!*AST {
+        var token = try self.expect(.CASE);
         var mappings = std.ArrayList(*AST).init(self.astAllocator);
 
         var let: ?*AST = null;
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
-            _ = try self.expect(.SEMICOLON); // Has to be here, otherwise the init expr of the let confuses the cond's |'s with a sum expr
+            _ = try self.expect(.SEMICOLON); // Has to be here, otherwise the init expr of the let confuses the case's |'s with a sum expr
         }
 
-        try self.barList(&mappings, .cond);
+        try self.barList(&mappings, .case);
 
-        return try AST.createCond(token, let, mappings, self.astAllocator);
+        return try AST.createCase(token, let, mappings, self.astAllocator);
     }
 
     fn matchExpr(self: *Parser) ParserErrorEnum!*AST {
@@ -833,9 +833,9 @@ pub const Parser = struct {
         return try AST.createMatch(token, let, exp, mappings, self.astAllocator);
     }
 
-    fn condMatchExpr(self: *Parser) ParserErrorEnum!*AST {
-        if (self.peekKind(.COND)) {
-            return try self.condExpr();
+    fn caseMatchExpr(self: *Parser) ParserErrorEnum!*AST {
+        if (self.peekKind(.CASE)) {
+            return try self.caseExpr();
         } else if (self.peekKind(.MATCH)) {
             return try self.matchExpr();
         } else {

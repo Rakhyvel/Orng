@@ -973,17 +973,17 @@ pub const CFG = struct {
                 self.appendInstruction(end_label);
                 return symbver;
             },
-            .cond => {
+            .case => {
                 // Create the result symbol and IR
                 var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // If there's a let, then do it, dumby!
-                if (ast.cond.let) |let| {
-                    _ = try self.flattenAST(ast.cond.scope.?, let, return_label, break_label, continue_label, false, errors, allocator);
+                if (ast.case.let) |let| {
+                    _ = try self.flattenAST(ast.case.scope.?, let, return_label, break_label, continue_label, false, errors, allocator);
                 }
 
-                // Exit label of cond
+                // Exit label of case
                 var end_label = try IR.createLabel(allocator);
                 // List of labels to branch to on an unsuccessful test ("next test")
                 var lhs_label_list = std.ArrayList(*IR).init(allocator);
@@ -991,21 +991,21 @@ pub const CFG = struct {
                 // List of labels to branch to on a successful test
                 var rhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer rhs_label_list.deinit();
-                for (ast.cond.mappings.items) |mapping| {
+                for (ast.case.mappings.items) |mapping| {
                     try lhs_label_list.append(try IR.createLabel(allocator));
                     if (mapping.mapping.rhs != null) {
                         try rhs_label_list.append(try IR.createLabel(allocator));
                     }
                 }
-                std.debug.assert(lhs_label_list.items.len == ast.cond.mappings.items.len);
+                std.debug.assert(lhs_label_list.items.len == ast.case.mappings.items.len);
 
                 var lhs_label_index: usize = 0;
                 var rhs_label_index: usize = 0;
-                for (ast.cond.mappings.items) |mapping| {
+                for (ast.case.mappings.items) |mapping| {
                     var lhs_label = lhs_label_list.items[lhs_label_index];
                     self.appendInstruction(lhs_label);
                     if (mapping.mapping.lhs) |lhs| {
-                        var condition = (try self.flattenAST(ast.cond.scope.?, lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                        var condition = (try self.flattenAST(ast.case.scope.?, lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
                         // std.debug.assert(condition.def != null);
                         if (lhs_label_index < lhs_label_list.items.len - 1) {
                             var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
@@ -1022,10 +1022,10 @@ pub const CFG = struct {
 
                 // Write the labels and the mappings exprs
                 rhs_label_index = 0;
-                for (ast.cond.mappings.items) |mapping| {
+                for (ast.case.mappings.items) |mapping| {
                     if (mapping.mapping.rhs) |rhs| {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
-                        if (try self.flattenAST(ast.cond.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)) |rhs_symbver| {
+                        if (try self.flattenAST(ast.case.scope.?, rhs, return_label, break_label, continue_label, false, errors, allocator)) |rhs_symbver| {
                             var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                             var rhs_copy = try IR.create(.copy, rhs_copy_symbver, rhs_symbver, null, allocator);
                             rhs_copy_symbver.def = rhs_copy;

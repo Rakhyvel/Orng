@@ -530,14 +530,14 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
-        .cond => {
-            if (ast.cond.let) |let| {
-                ast.cond.let = try validateAST(let, null, scope, errors, allocator);
+        .case => {
+            if (ast.case.let) |let| {
+                ast.case.let = try validateAST(let, null, scope, errors, allocator);
             }
             var new_mappings = std.ArrayList(*AST).init(allocator);
             var num_rhs: usize = 0;
-            for (ast.cond.mappings.items) |mapping| {
-                try new_mappings.append(try validateAST(mapping, expected, ast.cond.scope.?, errors, allocator));
+            for (ast.case.mappings.items) |mapping| {
+                try new_mappings.append(try validateAST(mapping, expected, ast.case.scope.?, errors, allocator));
                 if (mapping.mapping.rhs) |_| {
                     num_rhs += 1;
                 }
@@ -546,13 +546,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected at least one non-null rhs prong", .stage = .typecheck } });
                 return error.typeError;
             } else {
-                ast.cond.mappings = new_mappings;
+                ast.case.mappings = new_mappings;
                 retval = ast;
             }
         },
         .mapping => {
             switch (ast.mapping.kind) {
-                .cond => {
+                .case => {
                     if (ast.mapping.lhs) |lhs| {
                         ast.mapping.lhs = try validateAST(lhs, _ast.boolType, scope, errors, allocator);
                     }

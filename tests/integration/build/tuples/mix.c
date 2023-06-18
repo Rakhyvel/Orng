@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687128491
-#define ORNG_1687128491
+#ifndef ORNG_1687129465
+#define ORNG_1687129465
 
 #include <math.h>
 #include <stdio.h>
@@ -19,42 +19,42 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _34_main();
-struct1 _36_get_array(int64_t a,int64_t b);
+int64_t _341_main();
+struct1 _343_get_array(int64_t _343_a,int64_t _343_b);
 
 /* Function definitions */
-int64_t _34_main() {
-	int64_t _34_t1;
-	int64_t _34_t2;
-	struct1 _34_t0;
-	int64_t _35_z;
-	int64_t* _34_t5;
-	struct3 _35_y;
-	int64_t _34_t6;
-	int64_t _34_$retval;
+int64_t _341_main() {
+	int64_t _341_t1;
+	int64_t _341_t2;
+	struct1 _341_t0;
+	int64_t _342_z;
+	int64_t* _341_t5;
+	struct3 _342_y;
+	int64_t _341_t6;
+	int64_t _341_$retval;
 BB0:
-	_34_t1 = 15;
-	_34_t2 = 16;
-	_34_t0 = _36_get_array(_34_t1, _34_t2);
-	_35_z = 64;
-	_34_t5 = &_35_z;
-	_35_y = (struct3) {_35_z, _34_t5};
-	_34_t6 = _35_y._0;
-	_34_$retval = _34_t6;
-	return _34_$retval;
+	_341_t1 = 15;
+	_341_t2 = 16;
+	_341_t0 = _343_get_array(_341_t1, _341_t2);
+	_342_z = 64;
+	_341_t5 = &_342_z;
+	_342_y = (struct3) {_342_z, _341_t5};
+	_341_t6 = _342_y._0;
+	_341_$retval = _341_t6;
+	return _341_$retval;
 }
 
-struct1 _36_get_array(int64_t a,int64_t b) {
-	struct1 _36_$retval;
+struct1 _343_get_array(int64_t _343_a,int64_t _343_b) {
+	struct1 _343_$retval;
 BB0:
-	_36_$retval = (struct1) {a, b, a, b};
-	return _36_$retval;
+	_343_$retval = (struct1) {_343_a, _343_b, _343_a, _343_b};
+	return _343_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_34_main());
+  printf("%ld",_341_main());
   return 0;
 }
 

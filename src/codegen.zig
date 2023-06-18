@@ -53,7 +53,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         try out.writer().print("typedef ", .{});
         try printType(dag.base.function.rhs, out);
         try out.writer().print("(*function{})(", .{dag.uid});
-        try printProductList(dag.base.function.lhs, out);
+        try printType(dag.base.function.lhs, out);
         try out.writer().print(");\n", .{});
     } else if (dag.base.* == .product) {
         try out.writer().print("typedef struct {{\n", .{});
@@ -69,10 +69,10 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     try printType(callGraph.symbol._type.?.function.rhs, out);
     try out.writer().print(" ", .{});
-    try printPath(callGraph.symbol, out);
+    try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
     for (callGraph.symbol.decl.?.fnDecl.params.items, 0..) |param, i| {
-        try printVarDef(param.decl.symbol.?, out, true);
+        try printVarDecl(param.decl.symbol.?, out, true);
         if (i + 1 < callGraph.symbol.decl.?.fnDecl.params.items.len) {
             try out.writer().print(",", .{});
         }
@@ -88,10 +88,10 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // Print function return type, name, parameter list
     try printType(callGraph.symbol._type.?.function.rhs, out);
     try out.writer().print(" ", .{});
-    try printPath(callGraph.symbol, out);
+    try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
     for (callGraph.symbol.decl.?.fnDecl.params.items, 0..) |param, i| {
-        try printVarDef(param.decl.symbol.?, out, true);
+        try printVarDecl(param.decl.symbol.?, out, true);
         if (i + 1 < callGraph.symbol.decl.?.fnDecl.params.items.len) {
             try out.writer().print(",", .{});
         }
@@ -106,7 +106,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
                 if (dest.symbol.decld or dest.type.* == .unit) {
                     continue;
                 }
-                try printVarDef(dest.symbol, out, false);
+                try printVarDecl(dest.symbol, out, false);
                 dest.symbol.decld = true;
             }
         }
@@ -140,7 +140,7 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
             \\  printf("%d",
         , .{});
     }
-    try printPath(callGraph.symbol, out);
+    try printSymbol(callGraph.symbol, out);
     try out.writer().print(
         \\());
         \\  return 0;
@@ -165,7 +165,7 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
     if (bb.has_branch) {
         // Generate the if
         try out.writer().print("\tif (!", .{});
-        try printVar(bb.condition.?, out);
+        try printSymbolVersion(bb.condition.?, out);
         try out.writer().print(") {{\n", .{});
 
         // Generate branch `if-else`
@@ -211,7 +211,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
     switch (ir.kind) {
         .loadSymbol => {
             try printVarAssign(ir.dest.?, out);
-            try printPath(ir.data.symbol, out);
+            try printSymbol(ir.data.symbol, out);
             try out.writer().print(";\n", .{});
         },
         .loadInt => {
@@ -232,7 +232,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print(") {{", .{});
             for (ir.data.symbverList.items, 1..) |symbver, i| {
-                try printVar(symbver, out);
+                try printSymbolVersion(symbver, out);
                 if (i != ir.data.symbverList.items.len) {
                     try out.writer().print(", ", .{});
                 }
@@ -243,19 +243,19 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         // Monadic instructions
         .copy => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
         .not => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("!", .{});
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
         .negate => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("-", .{});
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
         .addrOf => {
@@ -267,110 +267,110 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .dereference => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("*", .{});
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
         .derefCopy => {
             try out.writer().print("\t*", .{});
             ir.src1.?.lvalue = true;
             try generateLValueIR(ir.src1.?, out);
-            // try printVar(ir.src1.?, out);
+            // try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" = ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .selectCopy => {
             try out.writer().print("\t", .{});
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print("._{} = ", .{ir.data.int});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
 
         // Diadic instructions
         .notEqual => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" != ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .equal => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" == ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .greater => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" > ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .greaterEqual => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" >= ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .lesser => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" < ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .lesserEqual => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" <= ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .add => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" + ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .sub => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" - ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .mult => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" * ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .div => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" / ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .mod => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" % ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .exponent => {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("powf(", .{});
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(", ", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(");\n", .{});
         },
         .index => {
@@ -378,14 +378,14 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print("((", .{});
             try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print("*)(&", .{});
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print("))[", .{});
-            try printVar(ir.src2.?, out);
+            try printSymbolVersion(ir.src2.?, out);
             try out.writer().print("];\n", .{});
         },
         .select => {
             try printVarAssign(ir.dest.?, out);
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print("._{};\n", .{ir.data.int});
         },
 
@@ -406,10 +406,10 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             } else {
                 try out.writer().print("\t", .{});
             }
-            try printVar(ir.src1.?, out);
+            try printSymbolVersion(ir.src1.?, out);
             try out.writer().print("(", .{});
             for (ir.data.symbverList.items, 0..) |symbver, i| {
-                try printVar(symbver, out);
+                try printSymbolVersion(symbver, out);
                 if (i + 1 != ir.data.symbverList.items.len) {
                     try out.writer().print(", ", .{});
                 }
@@ -421,25 +421,13 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
     }
 }
 
+// Generates the C code to evaluate the l-value of a given AST
 fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
     if (symbver.lvalue and symbver.def != null) {
         var ir = symbver.def.?;
         switch (ir.kind) {
-            .loadSymbol => {
-                try printPath(ir.data.symbol, out);
-            },
-            .copy => {
-                try out.writer().print("(&", .{});
-                try printPath(symbver.*.symbol, out);
-                try out.writer().print(")", .{});
-            },
             .addrOf => {
                 try generateLValueIR(ir.src1.?, out);
-            },
-            .dereference => {
-                try out.writer().print("(*", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print(")", .{});
             },
             .index => {
                 try out.writer().print("(((", .{});
@@ -447,23 +435,23 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 try out.writer().print("*)(", .{});
                 try generateLValueIR(ir.src1.?, out);
                 try out.writer().print("))+", .{});
-                try printVar(ir.src2.?, out);
+                try printSymbolVersion(ir.src2.?, out);
                 try out.writer().print(")", .{});
             },
             .select => {
                 try out.writer().print("(&", .{});
-                try printVar(ir.src1.?, out);
+                try printSymbolVersion(ir.src1.?, out);
                 try out.writer().print("._{}", .{ir.data.int});
                 try out.writer().print(")", .{});
             },
             else => {
                 try out.writer().print("&", .{});
-                try printVar(symbver, out);
+                try printSymbolVersion(symbver, out);
             },
         }
     } else {
         try out.writer().print("&", .{});
-        try printVar(symbver, out);
+        try printSymbolVersion(symbver, out);
     }
 }
 
@@ -507,76 +495,32 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("\t", .{});
-    try printPath(symbver.symbol, out);
+    try printSymbol(symbver.symbol, out);
     try out.writer().print(" = ", .{});
 }
 
-fn printVarDef(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
+fn printVarDecl(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     if (!param) {
         try out.writer().print("\t", .{});
     }
     try printType(symbol._type.?, out);
     try out.writer().print(" ", .{});
-    try printPath(symbol, out);
+    try printSymbol(symbol, out);
     if (!param) {
         try out.writer().print(";\n", .{});
     }
 }
 
-fn printProductList(ast: *AST, out: *std.fs.File) std.fs.File.WriteError!void {
-    switch (ast.*) {
-        .product => for (ast.product.terms.items, 0..) |term, i| {
-            try printType(term, out);
-            if (i + 1 != ast.product.terms.items.len) {
-                try out.writer().print(", ", .{});
-            }
-        },
-
-        .identifier => try printType(ast, out),
-
-        .annotation => try printType(ast, out),
-
-        .unit => {},
-
-        else => {
-            std.debug.print("Unimplemented printProductList for: {s}\n", .{@tagName(ast.*)});
-            unreachable;
-        },
-    }
+fn printSymbol(symbol: *Symbol, out: *std.fs.File) !void {
+    try out.writer().print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
 
-fn printPath(symbol: *Symbol, out: *std.fs.File) !void {
-    if (!symbol.param) {
-        try printPathScope(symbol.scope, out);
-    }
-    try out.writer().print("{s}", .{symbol.name});
-}
-
-fn printPathScope(scope: *Scope, out: *std.fs.File) !void {
-    if (scope.name.len > 0) {
-        if (scope.parent) |parent| {
-            try printPathScope(parent, out);
-        }
-        var i: usize = 0;
-        while (i < scope.name.len) : (i += 1) {
-            if (scope.name[i] == '/' or scope.name[i] == '-') {
-                try out.writer().print("_", .{});
-            } else {
-                try out.writer().print("{c}", .{scope.name[i]});
-            }
-        }
-        try out.writer().print("_", .{});
-    } else {
-        try out.writer().print("_{}_", .{scope.uid});
-    }
-}
-
-fn printVar(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    try printPath(symbver.symbol, out);
+fn printSymbolVersion(symbver: *SymbolVersion, out: *std.fs.File) !void {
+    try printSymbol(symbver.symbol, out);
 }
 
 fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
     try out.writer().print("\treturn ", .{});
-    try printPath(return_symbol, out);
+    try printSymbol(return_symbol, out);
     try out.writer().print(";\n", .{});
 }

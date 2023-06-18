@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687128490
-#define ORNG_1687128490
+#ifndef ORNG_1687129465
+#define ORNG_1687129465
 
 #include <math.h>
 #include <stdio.h>
@@ -13,36 +13,36 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _309_main();
 
 /* Function definitions */
-int64_t _2_main() {
-	int64_t _2_t1;
-	int64_t _2_t4;
-	struct1 _3_x;
-	struct1* _3_y;
-	struct1 _2_t6;
-	int64_t _2_t7;
-	struct1 _2_t8;
-	int64_t _2_t9;
-	int64_t _2_$retval;
+int64_t _309_main() {
+	int64_t _309_t1;
+	int64_t _309_t4;
+	struct1 _310_x;
+	struct1* _310_y;
+	struct1 _309_t6;
+	int64_t _309_t7;
+	struct1 _309_t8;
+	int64_t _309_t9;
+	int64_t _309_$retval;
 BB0:
-	_2_t1 = 19;
-	_2_t4 = 39;
-	_3_x = (struct1) {_2_t1, _2_t4};
-	_3_y = &_3_x;
-	_2_t6 = *_3_y;
-	_2_t7 = _2_t6._0;
-	_2_t8 = *_3_y;
-	_2_t9 = _2_t8._1;
-	_2_$retval = _2_t7 + _2_t9;
-	return _2_$retval;
+	_309_t1 = 19;
+	_309_t4 = 39;
+	_310_x = (struct1) {_309_t1, _309_t4};
+	_310_y = &_310_x;
+	_309_t6 = *_310_y;
+	_309_t7 = _309_t6._0;
+	_309_t8 = *_310_y;
+	_309_t9 = _309_t8._1;
+	_309_$retval = _309_t7 + _309_t9;
+	return _309_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_309_main());
   return 0;
 }
 
