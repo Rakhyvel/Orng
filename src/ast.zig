@@ -809,6 +809,7 @@ pub const AST = union(enum) {
             },
         }
         self.getCommon()._type = retval;
+        self.getCommon()._type.?.getCommon().is_valid = true;
         return retval;
     }
 
@@ -818,6 +819,8 @@ pub const AST = union(enum) {
         } else if (other.* == .annotation) {
             return typesMatch(self, other.annotation.type);
         }
+        std.debug.assert(self.getCommon().is_valid);
+        std.debug.assert(other.getCommon().is_valid);
 
         switch (self.*) {
             .identifier => {
@@ -852,6 +855,9 @@ pub const AST = union(enum) {
                 if (other.* != .product) {
                     return false;
                 } else {
+                    if (other.product.terms.items.len != self.product.terms.items.len) {
+                        return false;
+                    }
                     var retval = true;
                     for (self.product.terms.items, other.product.terms.items) |term, other_term| {
                         retval = retval and term.typesMatch(other_term);

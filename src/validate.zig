@@ -28,7 +28,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     symbol.valid = true;
 
     if (symbol.kind == ._fn) {
-        symbol._type.?.function.rhs = try validateAST(symbol._type.?.function.rhs, _ast.typeType, symbol.scope, errors, allocator);
+        symbol._type.? = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
         symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
     } else {
         if (symbol.init != null and symbol._type != null) {
@@ -69,6 +69,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
     if (expected != null and expected.?.* == .annotation) {
         expected = expected.?.annotation.type;
+    }
+    if (expected) |exp| {
+        std.debug.assert(exp.getCommon().is_valid);
     }
 
     switch (ast.*) {
@@ -276,6 +279,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .call => {
             ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
 
+            std.debug.print("This -> {}\n", .{ast.call.lhs});
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             if (lhs_type.* != .function) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function", .stage = .typecheck } });
@@ -398,6 +402,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                 }
                 for (ast.product.terms.items, expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
+                    std.debug.print("{}\n", .{expected_term});
                     try new_terms.append(try validateAST(term, expected_term, scope, errors, allocator));
                 }
                 ast.product.terms = new_terms;
@@ -505,6 +510,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast.annotation.init != null) {
                 ast.annotation.init = try validateAST(ast.annotation.init.?, ast.annotation.type, scope, errors, allocator);
             }
+            ast.annotation.type = try validateAST(ast.annotation.type, _ast.typeType, scope, errors, allocator);
 
             if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
