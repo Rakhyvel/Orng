@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687129465
-#define ORNG_1687129465
+#ifndef ORNG_1687130061
+#define ORNG_1687130061
 
 #include <math.h>
 #include <stdio.h>
@@ -9,45 +9,45 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _47_main();
+int64_t _51_main();
 
 /* Function definitions */
-int64_t _47_main() {
-	int64_t _48_x;
-	int64_t* _48_y;
-	int64_t _47_t4;
-	int64_t _47_t5;
-	int64_t _47_t7;
-	uint8_t _47_t3;
-	int64_t _47_t2;
-	int64_t _47_$retval;
+int64_t _51_main() {
+	int64_t _52_x;
+	int64_t* _52_y;
+	int64_t _51_t4;
+	int64_t _51_t5;
+	int64_t _51_t7;
+	uint8_t _51_t3;
+	int64_t _51_t2;
+	int64_t _51_$retval;
 BB0:
-	_48_x = 1;
-	_48_y = &_48_x;
-	_47_t4 = *_48_y;
-	_47_t5 = -_47_t4;
-	_47_t7 = -1;
-	_47_t3 = _47_t5 == _47_t7;
-	if (!_47_t3) {
+	_52_x = 1;
+	_52_y = &_52_x;
+	_51_t4 = *_52_y;
+	_51_t5 = -_51_t4;
+	_51_t7 = -1;
+	_51_t3 = _51_t5 == _51_t7;
+	if (!_51_t3) {
 		goto BB9;
 	} else {
 		goto BB1;
 	}
 BB1:
-	_47_t2 = 32;
+	_51_t2 = 32;
 	goto BB6;
 BB6:
-	_47_$retval = _47_t2;
-	return _47_$retval;
+	_51_$retval = _51_t2;
+	return _51_$retval;
 BB9:
-	_47_t2 = 10;
+	_51_t2 = 10;
 	goto BB6;
 }
 
 
 int main()
 {
-  printf("%ld",_47_main());
+  printf("%ld",_51_main());
   return 0;
 }
 

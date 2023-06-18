@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687129465
-#define ORNG_1687129465
+#ifndef ORNG_1687130061
+#define ORNG_1687130061
 
 #include <math.h>
 #include <stdio.h>
@@ -9,86 +9,86 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _226_main();
-int64_t _228_fib(int64_t _228_n);
-int64_t _231_add(int64_t _231_x,int64_t _231_y);
+int64_t _230_main();
+int64_t _232_fib(int64_t _232_n);
+int64_t _235_add(int64_t _235_x,int64_t _235_y);
 
 /* Function definitions */
-int64_t _226_main() {
-	int64_t _226_t1;
-	int64_t _226_t0;
-	int64_t _226_t2;
-	int64_t _226_$retval;
+int64_t _230_main() {
+	int64_t _230_t1;
+	int64_t _230_t0;
+	int64_t _230_t2;
+	int64_t _230_$retval;
 BB0:
-	_226_t1 = 10;
-	_226_t0 = _228_fib(_226_t1);
-	_226_t2 = 10;
-	_226_$retval = _226_t0 - _226_t2;
-	return _226_$retval;
+	_230_t1 = 10;
+	_230_t0 = _232_fib(_230_t1);
+	_230_t2 = 10;
+	_230_$retval = _230_t0 - _230_t2;
+	return _230_$retval;
 }
 
-int64_t _228_fib(int64_t _228_n) {
-	int64_t _228_t2;
-	uint8_t _228_t1;
-	int64_t _228_t0;
-	int64_t _228_$retval;
-	int64_t _228_t8;
-	int64_t _228_t9;
-	int64_t _228_t7;
-	int64_t _228_t11;
-	int64_t _228_t12;
-	int64_t _228_t10;
-	int64_t _228_t6;
-	int64_t _228_t4;
-	uint8_t _228_t3;
+int64_t _232_fib(int64_t _232_n) {
+	int64_t _232_t2;
+	uint8_t _232_t1;
+	int64_t _232_t0;
+	int64_t _232_$retval;
+	int64_t _232_t8;
+	int64_t _232_t9;
+	int64_t _232_t7;
+	int64_t _232_t11;
+	int64_t _232_t12;
+	int64_t _232_t10;
+	int64_t _232_t6;
+	int64_t _232_t4;
+	uint8_t _232_t3;
 BB1:
-	_228_t2 = 0;
-	_228_t1 = _228_n == _228_t2;
-	if (!_228_t1) {
+	_232_t2 = 0;
+	_232_t1 = _232_n == _232_t2;
+	if (!_232_t1) {
 		goto BB16;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_228_t0 = _228_n;
+	_232_t0 = _232_n;
 	goto BB7;
 BB7:
-	_228_$retval = _228_t0;
-	return _228_$retval;
+	_232_$retval = _232_t0;
+	return _232_$retval;
 BB16:
-	_228_t4 = 1;
-	_228_t3 = _228_n == _228_t4;
-	if (!_228_t3) {
+	_232_t4 = 1;
+	_232_t3 = _232_n == _232_t4;
+	if (!_232_t3) {
 		goto BB15;
 	} else {
 		goto BB9;
 	}
 BB9:
-	_228_t0 = 1;
+	_232_t0 = 1;
 	goto BB7;
 BB15:
-	_228_t8 = 1;
-	_228_t9 = _228_n - _228_t8;
-	_228_t7 = _228_fib(_228_t9);
-	_228_t11 = 2;
-	_228_t12 = _228_n - _228_t11;
-	_228_t10 = _228_fib(_228_t12);
-	_228_t6 = _231_add(_228_t7, _228_t10);
-	_228_t0 = _228_t6;
+	_232_t8 = 1;
+	_232_t9 = _232_n - _232_t8;
+	_232_t7 = _232_fib(_232_t9);
+	_232_t11 = 2;
+	_232_t12 = _232_n - _232_t11;
+	_232_t10 = _232_fib(_232_t12);
+	_232_t6 = _235_add(_232_t7, _232_t10);
+	_232_t0 = _232_t6;
 	goto BB7;
 }
 
-int64_t _231_add(int64_t _231_x,int64_t _231_y) {
-	int64_t _231_$retval;
+int64_t _235_add(int64_t _235_x,int64_t _235_y) {
+	int64_t _235_$retval;
 BB0:
-	_231_$retval = _231_x + _231_y;
-	return _231_$retval;
+	_235_$retval = _235_x + _235_y;
+	return _235_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_226_main());
+  printf("%ld",_230_main());
   return 0;
 }
 

@@ -713,39 +713,19 @@ pub const AST = union(enum) {
 
             .select => {
                 var select_lhs_type = try self.select.lhs.typeof(scope, errors, allocator);
-                switch (select_lhs_type.*) {
-                    .annotation => {
-                        if (std.mem.eql(u8, select_lhs_type.annotation.pattern.identifier.common.token.data, self.select.rhs.identifier.common.token.data)) {
-                            self.select.pos = 0;
-                            retval = select_lhs_type.annotation.type;
-                        } else {
-                            errors.addError(Error{ .basic = .{
-                                .span = self.getToken().span,
-                                .msg = "left-hand-side of select does not contain field",
-                                .stage = .typecheck,
-                            } });
-                            return error.typeError;
-                        }
-                    },
-
-                    .product => {
-                        for (select_lhs_type.product.terms.items, 0..) |term, i| {
-                            if (std.mem.eql(u8, term.annotation.pattern.identifier.common.token.data, self.select.rhs.identifier.common.token.data)) {
-                                self.select.pos = i;
-                                retval = term.annotation.type;
-                                break;
-                            }
-                        } else {
-                            errors.addError(Error{ .basic = .{
-                                .span = self.getToken().span,
-                                .msg = "left-hand-side of select does not contain field",
-                                .stage = .typecheck,
-                            } });
-                            return error.typeError;
-                        }
-                    },
-
-                    else => unreachable,
+                for (select_lhs_type.product.terms.items, 0..) |term, i| {
+                    if (std.mem.eql(u8, term.annotation.pattern.identifier.common.token.data, self.select.rhs.identifier.common.token.data)) {
+                        self.select.pos = i;
+                        retval = term.annotation.type;
+                        break;
+                    }
+                } else {
+                    errors.addError(Error{ .basic = .{
+                        .span = self.getToken().span,
+                        .msg = "left-hand-side of select does not contain field",
+                        .stage = .typecheck,
+                    } });
+                    return error.typeError;
                 }
             },
 

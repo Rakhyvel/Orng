@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687129465
-#define ORNG_1687129465
+#ifndef ORNG_1687130061
+#define ORNG_1687130061
 
 #include <math.h>
 #include <stdio.h>
@@ -15,42 +15,42 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _351_main();
+int64_t _355_main();
 
 /* Function definitions */
-int64_t _351_main() {
-	int64_t _351_t1;
-	int64_t _351_t2;
-	int64_t _351_t3;
-	int64_t _351_t4;
-	struct1 _352_x;
-	int64_t _351_t5;
-	int64_t _351_t6;
-	int64_t* _352_y;
-	int64_t _351_t8;
-	int64_t _351_t9;
-	int64_t _351_t10;
-	int64_t _351_$retval;
+int64_t _355_main() {
+	int64_t _355_t1;
+	int64_t _355_t2;
+	int64_t _355_t3;
+	int64_t _355_t4;
+	struct1 _356_x;
+	int64_t _355_t5;
+	int64_t _355_t6;
+	int64_t* _356_y;
+	int64_t _355_t8;
+	int64_t _355_t9;
+	int64_t _355_t10;
+	int64_t _355_$retval;
 BB0:
-	_351_t1 = 1;
-	_351_t2 = 2;
-	_351_t3 = 3;
-	_351_t4 = 4;
-	_352_x = (struct1) {_351_t1, _351_t2, _351_t3, _351_t4};
-	_351_t5 = 0;
-	_352_y = (((int64_t*)(&_352_x))+_351_t5);
-	_351_t8 = 63;
-	*(((int64_t*)(&_352_x))+_351_t5) = _351_t8;
-	_351_t9 = 0;
-	_351_t10 = ((int64_t*)(&_352_x))[_351_t9];
-	_351_$retval = _351_t10;
-	return _351_$retval;
+	_355_t1 = 1;
+	_355_t2 = 2;
+	_355_t3 = 3;
+	_355_t4 = 4;
+	_356_x = (struct1) {_355_t1, _355_t2, _355_t3, _355_t4};
+	_355_t5 = 0;
+	_356_y = (((int64_t*)(&_356_x))+_355_t5);
+	_355_t8 = 63;
+	*(((int64_t*)(&_356_x))+_355_t5) = _355_t8;
+	_355_t9 = 0;
+	_355_t10 = ((int64_t*)(&_356_x))[_355_t9];
+	_355_$retval = _355_t10;
+	return _355_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_351_main());
+  printf("%ld",_355_main());
   return 0;
 }
 

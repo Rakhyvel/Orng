@@ -323,21 +323,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 select_lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
             }
 
-            var selectable: bool = undefined;
-            switch (select_lhs_type.*) {
-                .annotation => selectable = true,
-                .product => {
-                    for (select_lhs_type.product.terms.items) |term| {
-                        if (term.* != .annotation) {
-                            selectable = false;
-                            break;
-                        }
-                    }
-                    selectable = true;
-                },
-                else => selectable = false,
-            }
-            if (!selectable) {
+            if (select_lhs_type.* != .product) {
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
                     .msg = "left-hand-side of select is not selectable",
