@@ -205,7 +205,7 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
 fn generateIR(ir: *IR, out: *std.fs.File) !void {
     if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
         return;
-    } else if (ir.dest != null and ir.dest.?.type.* == .unit) {
+    } else if (ir.dest != null and ir.dest.?.type.* == .unit and ir.kind != .call) {
         return;
     }
 
@@ -401,7 +401,12 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             return error.Unimplemented;
         },
         .call => {
-            try printVarAssign(ir.dest.?, out);
+            var void_fn = ir.dest.?.type.* == .unit;
+            if (!void_fn) {
+                try printVarAssign(ir.dest.?, out);
+            } else {
+                try out.writer().print("\t", .{});
+            }
             try printVar(ir.src1.?, out);
             try out.writer().print("(", .{});
             for (ir.data.symbverList.items, 0..) |symbver, i| {

@@ -858,7 +858,7 @@ fn calculateUsage(cfg: *CFG) void {
         // Go through and see if each symbol is used
         maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol)) {
+            if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol or ir.kind == .call)) {
                 ir.dest.?.uses += 1;
             }
             if (ir.src1 != null) {

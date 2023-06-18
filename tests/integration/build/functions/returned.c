@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687127760
-#define ORNG_1687127760
+#ifndef ORNG_1687128100
+#define ORNG_1687128100
 
 #include <math.h>
 #include <stdio.h>
@@ -10,44 +10,44 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _234_main();
-function0 _236_f();
-int64_t _237_addFour(int64_t x);
+int64_t _39_main();
+function0 _41_f();
+int64_t _42_addFour(int64_t x);
 
 /* Function definitions */
-int64_t _234_main() {
-	function0 _234_t0;
-	int64_t _234_t2;
-	int64_t _234_t1;
-	int64_t _234_$retval;
+int64_t _39_main() {
+	function0 _39_t0;
+	int64_t _39_t2;
+	int64_t _39_t1;
+	int64_t _39_$retval;
 BB0:
-	_234_t0 = _236_f();
-	_234_t2 = 45;
-	_234_t1 = _234_t0(_234_t2);
-	_234_$retval = _234_t1;
-	return _234_$retval;
+	_39_t0 = _41_f();
+	_39_t2 = 45;
+	_39_t1 = _39_t0(_39_t2);
+	_39_$retval = _39_t1;
+	return _39_$retval;
 }
 
-function0 _236_f() {
-	function0 _236_$retval;
+function0 _41_f() {
+	function0 _41_$retval;
 BB0:
-	_236_$retval = _237_addFour;
-	return _236_$retval;
+	_41_$retval = _42_addFour;
+	return _41_$retval;
 }
 
-int64_t _237_addFour(int64_t x) {
-	int64_t _237_t0;
-	int64_t _237_$retval;
+int64_t _42_addFour(int64_t x) {
+	int64_t _42_t0;
+	int64_t _42_$retval;
 BB0:
-	_237_t0 = 4;
-	_237_$retval = x + _237_t0;
-	return _237_$retval;
+	_42_t0 = 4;
+	_42_$retval = x + _42_t0;
+	return _42_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_234_main());
+  printf("%ld",_39_main());
   return 0;
 }
 

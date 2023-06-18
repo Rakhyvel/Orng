@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687127760
-#define ORNG_1687127760
+#ifndef ORNG_1687128100
+#define ORNG_1687128100
 
 #include <math.h>
 #include <stdio.h>
@@ -9,32 +9,32 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _215_main();
-int64_t _216_id(int64_t x);
+int64_t _20_main();
+int64_t _21_id(int64_t x);
 
 /* Function definitions */
-int64_t _215_main() {
-	int64_t _215_t1;
-	int64_t _215_t0;
-	int64_t _215_$retval;
+int64_t _20_main() {
+	int64_t _20_t1;
+	int64_t _20_t0;
+	int64_t _20_$retval;
 BB0:
-	_215_t1 = 52;
-	_215_t0 = _216_id(_215_t1);
-	_215_$retval = _215_t0;
-	return _215_$retval;
+	_20_t1 = 52;
+	_20_t0 = _21_id(_20_t1);
+	_20_$retval = _20_t0;
+	return _20_$retval;
 }
 
-int64_t _216_id(int64_t x) {
-	int64_t _216_$retval;
+int64_t _21_id(int64_t x) {
+	int64_t _21_$retval;
 BB0:
-	_216_$retval = x;
-	return _216_$retval;
+	_21_$retval = x;
+	return _21_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_215_main());
+  printf("%ld",_20_main());
   return 0;
 }
 
