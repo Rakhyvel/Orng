@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -27,8 +27,8 @@ BB0:
 	_317_t1 = 20;
 	_317_t2 = 3;
 	_318_x = (struct1) {_317_t1, _317_t2};
-	_317_t3 = _318_x._0;
-	_317_t4 = _318_x._1;
+	_317_t3 = *&(_318_x._0);
+	_317_t4 = *&(_318_x._1);
 	_317_$retval = _317_t3 * _317_t4;
 	return _317_$retval;
 }

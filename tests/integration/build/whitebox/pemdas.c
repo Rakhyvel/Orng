@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -14,10 +14,12 @@ int64_t _9_main();
 /* Function definitions */
 int64_t _9_main() {
 	int64_t _10_x;
+	int64_t* _9_t1;
 	int64_t* _10_y;
 	int64_t _9_t4;
 	int64_t _9_t5;
 	uint8_t _9_t3;
+	int64_t _9_t6;
 	int64_t _12_z;
 	int64_t* _9_t7;
 	int64_t _9_t8;
@@ -32,8 +34,9 @@ int64_t _9_main() {
 	int64_t _9_$retval;
 BB0:
 	_10_x = 0;
-	_10_y = &_10_x;
-	_9_t4 = *_10_y;
+	_9_t1 = &_10_x;
+	_10_y = _9_t1;
+	_9_t4 = *_9_t1;
 	_9_t5 = 0;
 	_9_t3 = _9_t4 == _9_t5;
 	if (!_9_t3) {
@@ -42,10 +45,12 @@ BB0:
 		goto BB1;
 	}
 BB1:
-	_12_z = *_10_y;
-	_9_t8 = _12_z + _12_z;
-	*&_12_z = _9_t8;
-	_12_z = _12_z - _12_z;
+	_9_t6 = *_10_y;
+	_12_z = _9_t6;
+	_9_t7 = &_12_z;
+	_9_t8 = _9_t6 + _9_t6;
+	**&_9_t7 = _9_t8;
+	_12_z = _9_t6 - _9_t6;
 	_12_z = _12_z * _12_z;
 	_9_t11 = 1;
 	_9_t12 = _12_z + _9_t11;

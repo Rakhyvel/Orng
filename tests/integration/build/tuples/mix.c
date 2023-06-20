@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -39,7 +39,7 @@ BB0:
 	_346_z = 64;
 	_345_t5 = &_346_z;
 	_346_y = (struct3) {_346_z, _345_t5};
-	_345_t6 = _346_y._0;
+	_345_t6 = *&(_346_y._0);
 	_345_$retval = _345_t6;
 	return _345_$retval;
 }

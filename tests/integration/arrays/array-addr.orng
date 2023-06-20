@@ -1,0 +1,9 @@
+// 71
+fn main: () -> Int =
+    let a = 1
+    let b = 2
+    let c = 3
+    let d = 4
+    let x = (&mut a, &mut b, &mut c, &mut d)
+    x[2]^ = 71
+    x[2]^

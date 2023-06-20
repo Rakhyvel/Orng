@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -14,7 +14,7 @@ int64_t _16_main();
 /* Function definitions */
 int64_t _16_main() {
 	int64_t _17_x;
-	int64_t* _17_y;
+	int64_t* _16_t1;
 	int64_t _16_t3;
 	int64_t _16_t4;
 	uint8_t _16_t2;
@@ -25,8 +25,8 @@ int64_t _16_main() {
 	int64_t _16_$retval;
 BB0:
 	_17_x = 0;
-	_17_y = &_17_x;
-	_16_t3 = *_17_y;
+	_16_t1 = &_17_x;
+	_16_t3 = *_16_t1;
 	_16_t4 = 1;
 	_16_t2 = _16_t3 == _16_t4;
 	if (!_16_t2) {

@@ -634,7 +634,6 @@ pub const CFG = struct {
                 } else if (ast.assign.lhs.* == .dereference) {
                     var lhs = try self.flattenAST(scope, ast.assign.lhs.dereference.expr, return_label, break_label, continue_label, true, errors, allocator);
                     std.debug.assert(lhs != null);
-                    lhs.?.lvalue = true;
                     var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, errors, allocator);
                     std.debug.assert(rhs != null);
                     var ir = try IR.create(.derefCopy, null, lhs, rhs, allocator);
@@ -643,7 +642,6 @@ pub const CFG = struct {
                 } else if (ast.assign.lhs.* == .index) {
                     var index_lhs = try self.flattenAST(scope, ast.assign.lhs.index.lhs, return_label, break_label, continue_label, true, errors, allocator);
                     std.debug.assert(index_lhs != null);
-                    index_lhs.?.lvalue = true;
                     var index_rhs = try self.flattenAST(scope, ast.assign.lhs.index.rhs, return_label, break_label, continue_label, true, errors, allocator);
                     std.debug.assert(index_lhs != null);
                     var assign_rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, errors, allocator);

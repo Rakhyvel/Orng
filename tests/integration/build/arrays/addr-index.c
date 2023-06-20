@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -26,7 +26,7 @@ int64_t _359_main() {
 	struct1 _360_x;
 	int64_t _359_t5;
 	int64_t _359_t6;
-	int64_t* _360_y;
+	int64_t* _359_t7;
 	int64_t _359_t8;
 	int64_t _359_t9;
 	int64_t _359_t10;
@@ -38,11 +38,11 @@ BB0:
 	_359_t4 = 4;
 	_360_x = (struct1) {_359_t1, _359_t2, _359_t3, _359_t4};
 	_359_t5 = 0;
-	_360_y = (((int64_t*)(&_360_x))+_359_t5);
+	_359_t7 = (((int64_t*)(&_360_x))+_359_t5);
 	_359_t8 = 63;
-	*(((int64_t*)(&_360_x))+_359_t5) = _359_t8;
+	**&_359_t7 = _359_t8;
 	_359_t9 = 0;
-	_359_t10 = ((int64_t*)(&_360_x))[_359_t9];
+	_359_t10 = *(((int64_t*)(&_360_x))+_359_t9);
 	_359_$retval = _359_t10;
 	return _359_$retval;
 }

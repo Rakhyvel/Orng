@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -20,7 +20,7 @@ int64_t _313_main() {
 	int64_t _313_t1;
 	int64_t _313_t4;
 	struct1 _314_x;
-	struct1* _314_y;
+	struct1* _313_t5;
 	struct1 _313_t6;
 	int64_t _313_t7;
 	struct1 _313_t8;
@@ -30,11 +30,11 @@ BB0:
 	_313_t1 = 19;
 	_313_t4 = 39;
 	_314_x = (struct1) {_313_t1, _313_t4};
-	_314_y = &_314_x;
-	_313_t6 = *_314_y;
-	_313_t7 = _313_t6._0;
-	_313_t8 = *_314_y;
-	_313_t9 = _313_t8._1;
+	_313_t5 = &_314_x;
+	_313_t6 = *_313_t5;
+	_313_t7 = *&(_313_t6._0);
+	_313_t8 = *_313_t5;
+	_313_t9 = *&(_313_t8._1);
 	_313_$retval = _313_t7 + _313_t9;
 	return _313_$retval;
 }

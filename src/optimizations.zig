@@ -288,23 +288,23 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Addrof propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .addrOf) {
-                ir.kind = .addrOf;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src1 = ir.src1.?.def.?.src1;
-                ir.src2 = null;
-                ir.dest.?.lvalue = false;
-                retval = true;
-            }
+            // else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .addrOf) {
+            //     ir.kind = .addrOf;
+            //     ir.data = ir.src1.?.def.?.data;
+            //     ir.src1 = ir.src1.?.def.?.src1;
+            //     ir.src2 = null;
+            //     ir.dest.?.lvalue = false;
+            //     retval = true;
+            // }
             // Dereference propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .dereference) {
-                ir.kind = .dereference;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src1 = ir.src1.?.def.?.src1;
-                ir.src2 = null;
-                ir.dest.?.lvalue = false;
-                retval = true;
-            }
+            // else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .dereference) {
+            //     ir.kind = .dereference;
+            //     ir.data = ir.src1.?.def.?.data;
+            //     ir.src1 = ir.src1.?.def.?.src1;
+            //     ir.src2 = null;
+            //     ir.dest.?.lvalue = false;
+            //     retval = true;
+            // }
             // Add propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .add) {
                 ir.kind = .add;

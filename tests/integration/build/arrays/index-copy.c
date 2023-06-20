@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687131173
-#define ORNG_1687131173
+#ifndef ORNG_1687227438
+#define ORNG_1687227438
 
 #include <math.h>
 #include <stdio.h>
@@ -37,9 +37,9 @@ BB0:
 	_356_x = (struct1) {_355_t1, _355_t2, _355_t3, _355_t4};
 	_355_t5 = 2;
 	_355_t6 = 62;
-(((int64_t*)(&_356_x))[_355_t5]) = _355_t6;
+*(((int64_t*)(&_356_x))+_355_t5) = _355_t6;
 	_355_t7 = 2;
-	_355_t8 = ((int64_t*)(&_356_x))[_355_t7];
+	_355_t8 = *(((int64_t*)(&_356_x))+_355_t7);
 	_355_$retval = _355_t8;
 	return _355_$retval;
 }

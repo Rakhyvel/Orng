@@ -260,7 +260,6 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .addrOf => {
             try printVarAssign(ir.dest.?, out);
-            ir.src1.?.lvalue = true;
             try generateLValueIR(ir.src1.?, out);
             try out.writer().print(";\n", .{});
         },
@@ -271,22 +270,21 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print(";\n", .{});
         },
         .derefCopy => {
-            try out.writer().print("\t*", .{});
-            ir.src1.?.lvalue = true;
+            try out.writer().print("\t**", .{});
             try generateLValueIR(ir.src1.?, out);
-            // try printSymbolVersion(ir.src1.?, out);
             try out.writer().print(" = ", .{});
             try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
         .indexCopy => {
-            try out.writer().print("(((", .{});
+            // store(lval(index(src1, src2)), rval(data.symbver))
+            try out.writer().print("*(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
             try out.writer().print("*)(", .{});
             try generateLValueIR(ir.src1.?, out);
-            try out.writer().print("))[", .{});
+            try out.writer().print("))+", .{});
             try printSymbolVersion(ir.src2.?, out);
-            try out.writer().print("]) = ", .{});
+            try out.writer().print(") = ", .{});
             try printSymbolVersion(ir.data.symbver, out);
             try out.writer().print(";\n", .{});
         },
@@ -386,18 +384,15 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .index => {
             try printVarAssign(ir.dest.?, out);
-            try out.writer().print("((", .{});
-            try printType(ir.dest.?.symbol._type.?, out);
-            try out.writer().print("*)(&", .{});
-            try printSymbolVersion(ir.src1.?, out);
-            try out.writer().print("))[", .{});
-            try printSymbolVersion(ir.src2.?, out);
-            try out.writer().print("];\n", .{});
+            try out.writer().print("*", .{});
+            try generateLValueIR(ir.dest.?, out);
+            try out.writer().print(";\n", .{});
         },
         .select => {
             try printVarAssign(ir.dest.?, out);
-            try printSymbolVersion(ir.src1.?, out);
-            try out.writer().print("._{};\n", .{ir.data.int});
+            try out.writer().print("*", .{});
+            try generateLValueIR(ir.dest.?, out);
+            try out.writer().print(";\n", .{});
         },
 
         // Control-flow
@@ -434,10 +429,10 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 
 // Generates the C code to evaluate the l-value of a given AST
 fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    if (symbver.lvalue and symbver.def != null) {
+    if (symbver.def != null) {
         var ir = symbver.def.?;
         switch (ir.kind) {
-            .addrOf => {
+            .dereference => {
                 try generateLValueIR(ir.src1.?, out);
             },
             .index => {
@@ -450,7 +445,7 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 try out.writer().print(")", .{});
             },
             .select => {
-                try out.writer().print("(&", .{});
+                try out.writer().print("&(", .{});
                 try printSymbolVersion(ir.src1.?, out);
                 try out.writer().print("._{}", .{ir.data.int});
                 try out.writer().print(")", .{});
