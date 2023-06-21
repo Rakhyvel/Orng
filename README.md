@@ -57,7 +57,7 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 ### Factorial Function
 ```rs
 // One-liner factorial function!
-fn factorial: (n: Int)->Int = if n < 2 {1} else {n * fact(n - 1)}
+fn factorial: (n: Int)->Int = if n < 2 {1} else {n * factorial(n - 1)}
 ```
 Lets break that down so we can understand how Orng works.
 ```rs

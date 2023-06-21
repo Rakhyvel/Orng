@@ -1,0 +1,22 @@
+fn main: (sys: System)->!() =
+    while let i = 0; i < 100; i += 1
+        // Can pattern match on ADTs! Again, can let it be inferred if possible
+        match fizzbuzz(i)
+        | .string(s')  => try sys.stdout.>println("{}", s')
+        | .integer(j') => try sys.stdout.>println("{}", j')
+
+// Define an Algebraic Data Type (ADT), similar to tagged unions
+const FizzBuzzResult 
+    = string: String
+    | integer: Int
+
+fn fizzbuzz: (n: Int)->FizzBuzzResult =
+    case
+    | n % 15 == 0 => FizzBuzzResult.string("fizzbuzz") 
+    //               ^^^^^^^^^^^^^^
+    // We can either be explicit with the ADT we use...
+    | n % 5 == 0  => .string("buzz") 
+    //              ^
+    // ... Or we can let it be inferred, if possible
+    | n % 3 == 0  => .string("fizz")
+    | else        => .integer(n)

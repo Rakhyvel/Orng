@@ -1,5 +1,0 @@
-fn main: ()->!() = 
-    let x: Int = 4
-    defer x + 4
-    let y: Int = 5
-    y + 4
