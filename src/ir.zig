@@ -615,6 +615,7 @@ pub const CFG = struct {
 
                 var ir = try IR.create(.dereference, temp, expr, null, allocator);
                 temp.def = ir;
+                temp.lvalue = lvalue;
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -839,7 +840,7 @@ pub const CFG = struct {
                 return temp;
             },
             .index => {
-                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, true, errors, allocator)).?;
                 var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, false, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
@@ -849,7 +850,7 @@ pub const CFG = struct {
                 return temp;
             },
             .select => {
-                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, true, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.createSelect(temp, lhs, ast.select.pos.?, allocator);
@@ -870,9 +871,8 @@ pub const CFG = struct {
 
             // Fancy Operators
             .addrOf => {
-                var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, lvalue, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, true, errors, allocator);
                 std.debug.assert(expr != null);
-                expr.?.lvalue = true;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.create(.addrOf, temp, expr, null, allocator);

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687314590
-#define ORNG_1687314590
+#ifndef ORNG_1687316164
+#define ORNG_1687316164
 
 #include <math.h>
 #include <stdio.h>
@@ -18,52 +18,52 @@ typedef struct {
 } struct2;
 
 /* Function forward definitions */
-int64_t _11_main();
+int64_t _375_main();
 
 /* Function definitions */
-int64_t _11_main() {
-	int64_t _11_t2;
-	int64_t _11_t3;
-	struct1 _11_t1;
-	int64_t _11_t5;
-	int64_t _11_t6;
-	struct1 _11_t4;
-	int64_t _11_t8;
-	int64_t _11_t9;
-	struct1 _11_t7;
-	struct2 _12_x;
-	int64_t _11_t10;
-	struct1 _11_t11;
-	int64_t _11_t12;
-	int64_t _11_t13;
-	struct1 _11_t14;
-	int64_t _11_t15;
-	int64_t _11_$retval;
+int64_t _375_main() {
+	int64_t _375_t2;
+	int64_t _375_t3;
+	struct1 _375_t1;
+	int64_t _375_t5;
+	int64_t _375_t6;
+	struct1 _375_t4;
+	int64_t _375_t8;
+	int64_t _375_t9;
+	struct1 _375_t7;
+	struct2 _376_x;
+	int64_t _375_t10;
+	struct1 _375_t11;
+	int64_t _375_t12;
+	int64_t _375_t13;
+	struct1 _375_t14;
+	int64_t _375_t15;
+	int64_t _375_$retval;
 BB0:
-	_11_t2 = 1;
-	_11_t3 = 2;
-	_11_t1 = (struct1) {_11_t2, _11_t3};
-	_11_t5 = 3;
-	_11_t6 = 4;
-	_11_t4 = (struct1) {_11_t5, _11_t6};
-	_11_t8 = 5;
-	_11_t9 = 6;
-	_11_t7 = (struct1) {_11_t8, _11_t9};
-	_12_x = (struct2) {_11_t1, _11_t4, _11_t7};
-	_11_t10 = 1;
-	_11_t12 = 73;
-	((((struct1*)(&_12_x))+_11_t10))->_0 = _11_t12;
-	_11_t13 = 1;
-	_11_t14 = *(((struct1*)(&_12_x))+_11_t13);
-	_11_t15 = *&(((((struct1*)(&_12_x))+_11_t13))->_0);
-	_11_$retval = _11_t15;
-	return _11_$retval;
+	_375_t2 = 1;
+	_375_t3 = 2;
+	_375_t1 = (struct1) {_375_t2, _375_t3};
+	_375_t5 = 3;
+	_375_t6 = 4;
+	_375_t4 = (struct1) {_375_t5, _375_t6};
+	_375_t8 = 5;
+	_375_t9 = 6;
+	_375_t7 = (struct1) {_375_t8, _375_t9};
+	_376_x = (struct2) {_375_t1, _375_t4, _375_t7};
+	_375_t10 = 1;
+	_375_t12 = 73;
+	((((struct1*)(&_376_x))+_375_t10))->_0 = _375_t12;
+	_375_t13 = 1;
+	_375_t14 = *(((struct1*)(&_376_x))+_375_t13);
+	_375_t15 = *&(((((struct1*)(&_376_x))+_375_t13))->_0);
+	_375_$retval = _375_t15;
+	return _375_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_11_main());
+  printf("%ld",_375_main());
   return 0;
 }
 
