@@ -1,3 +1,5 @@
+const std = import_package("std")
+
 const RationalNumber: Type = 
     ( numerator: Int
     , denominator: Int where denominator > 0
