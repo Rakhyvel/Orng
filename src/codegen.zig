@@ -289,9 +289,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print(";\n", .{});
         },
         .selectCopy => {
-            try out.writer().print("\t", .{});
-            try printSymbolVersion(ir.src1.?, out);
-            try out.writer().print("._{} = ", .{ir.data.int});
+            try out.writer().print("\t(", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print(")->_{} = ", .{ir.data.int});
             try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
@@ -433,7 +433,7 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
         var ir = symbver.def.?;
         switch (ir.kind) {
             .dereference => {
-                try generateLValueIR(ir.src1.?, out);
+                try printSymbolVersion(ir.src1.?, out);
             },
             .index => {
                 try out.writer().print("(((", .{});
@@ -445,9 +445,9 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 try out.writer().print(")", .{});
             },
             .select => {
-                try out.writer().print("&(", .{});
-                try printSymbolVersion(ir.src1.?, out);
-                try out.writer().print("._{}", .{ir.data.int});
+                try out.writer().print("&((", .{});
+                try generateLValueIR(ir.src1.?, out);
+                try out.writer().print(")->_{}", .{ir.data.int});
                 try out.writer().print(")", .{});
             },
             else => {

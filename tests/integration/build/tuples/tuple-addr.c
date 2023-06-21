@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687227438
-#define ORNG_1687227438
+#ifndef ORNG_1687313477
+#define ORNG_1687313477
 
 #include <math.h>
 #include <stdio.h>
@@ -13,38 +13,38 @@ typedef struct {
 } struct2;
 
 /* Function forward definitions */
-int64_t _341_main();
+int64_t _38_main();
 
 /* Function definitions */
-int64_t _341_main() {
-	int64_t _342_x;
-	int64_t _342_y;
-	int64_t* _341_t3;
-	int64_t* _341_t4;
-	struct2 _342_z;
-	int64_t* _341_t5;
-	int64_t _341_t6;
-	int64_t* _341_t7;
-	int64_t _341_t8;
-	int64_t _341_$retval;
+int64_t _38_main() {
+	int64_t _39_x;
+	int64_t _39_y;
+	int64_t* _38_t3;
+	int64_t* _38_t4;
+	struct2 _39_z;
+	int64_t* _38_t5;
+	int64_t _38_t6;
+	int64_t* _38_t7;
+	int64_t _38_t8;
+	int64_t _38_$retval;
 BB0:
-	_342_x = 30;
-	_342_y = 29;
-	_341_t3 = &_342_x;
-	_341_t4 = &_342_y;
-	_342_z = (struct2) {_341_t3, _341_t4};
-	_341_t5 = *&(_342_z._0);
-	_341_t6 = *_341_t5;
-	_341_t7 = *&(_342_z._1);
-	_341_t8 = *_341_t7;
-	_341_$retval = _341_t6 + _341_t8;
-	return _341_$retval;
+	_39_x = 30;
+	_39_y = 29;
+	_38_t3 = &_39_x;
+	_38_t4 = &_39_y;
+	_39_z = (struct2) {_38_t3, _38_t4};
+	_38_t5 = *&((&_39_z)->_0);
+	_38_t6 = *_38_t5;
+	_38_t7 = *&((&_39_z)->_1);
+	_38_t8 = *_38_t7;
+	_38_$retval = _38_t6 + _38_t8;
+	return _38_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_341_main());
+  printf("%ld",_38_main());
   return 0;
 }
 

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687227438
-#define ORNG_1687227438
+#ifndef ORNG_1687313477
+#define ORNG_1687313477
 
 #include <math.h>
 #include <stdio.h>
@@ -13,30 +13,30 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _337_main();
+int64_t _34_main();
 
 /* Function definitions */
-int64_t _337_main() {
-	int64_t _337_t1;
-	int64_t _337_t2;
-	struct1 _338_x;
-	int64_t _337_t3;
-	int64_t _337_t4;
-	int64_t _337_$retval;
+int64_t _34_main() {
+	int64_t _34_t1;
+	int64_t _34_t2;
+	struct1 _35_x;
+	int64_t _34_t3;
+	int64_t _34_t4;
+	int64_t _34_$retval;
 BB0:
-	_337_t1 = 50;
-	_337_t2 = 7;
-	_338_x = (struct1) {_337_t1, _337_t2};
-	_337_t3 = *&(_338_x._0);
-	_337_t4 = *&(_338_x._1);
-	_337_$retval = _337_t3 + _337_t4;
-	return _337_$retval;
+	_34_t1 = 50;
+	_34_t2 = 7;
+	_35_x = (struct1) {_34_t1, _34_t2};
+	_34_t3 = *&((&_35_x)->_0);
+	_34_t4 = *&((&_35_x)->_1);
+	_34_$retval = _34_t3 + _34_t4;
+	return _34_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_337_main());
+  printf("%ld",_34_main());
   return 0;
 }
 

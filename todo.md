@@ -80,8 +80,9 @@
     - [ ] `--` for diff (?)
 - [ ] arrays
     - [x] index
-    - [ ] index-assign
+    - [x] index-assign
         - [x] validate index lvalue
+    - [ ] when deref copy prop op is enabled, pemdas.orng emits type error
 - [ ] slices
     - [ ] `[]` slice from array operator, with variants
     - [ ] subslices

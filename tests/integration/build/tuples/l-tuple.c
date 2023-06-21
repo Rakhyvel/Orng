@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687227438
-#define ORNG_1687227438
+#ifndef ORNG_1687313477
+#define ORNG_1687313477
 
 #include <math.h>
 #include <stdio.h>
@@ -15,38 +15,38 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _329_main();
+int64_t _26_main();
 
 /* Function definitions */
-int64_t _329_main() {
-	int64_t _329_t1;
-	int64_t _329_t2;
-	int64_t _329_t3;
-	int64_t _329_t4;
-	struct1 _330_x;
-	int64_t _329_t5;
-	int64_t* _329_t6;
-	int64_t _329_t7;
-	int64_t _329_t8;
-	int64_t _329_$retval;
+int64_t _26_main() {
+	int64_t _26_t1;
+	int64_t _26_t2;
+	int64_t _26_t3;
+	int64_t _26_t4;
+	struct1 _27_x;
+	int64_t _26_t5;
+	int64_t* _26_t6;
+	int64_t _26_t7;
+	int64_t _26_t8;
+	int64_t _26_$retval;
 BB0:
-	_329_t1 = 1;
-	_329_t2 = 2;
-	_329_t3 = 3;
-	_329_t4 = 4;
-	_330_x = (struct1) {_329_t1, _329_t2, _329_t3, _329_t4};
-	_329_t6 = &(_330_x._3);
-	_329_t7 = 66;
-	**&_329_t6 = _329_t7;
-	_329_t8 = *&(_330_x._3);
-	_329_$retval = _329_t8;
-	return _329_$retval;
+	_26_t1 = 1;
+	_26_t2 = 2;
+	_26_t3 = 3;
+	_26_t4 = 4;
+	_27_x = (struct1) {_26_t1, _26_t2, _26_t3, _26_t4};
+	_26_t6 = &((&_27_x)->_3);
+	_26_t7 = 66;
+	**&_26_t6 = _26_t7;
+	_26_t8 = *&((&_27_x)->_3);
+	_26_$retval = _26_t8;
+	return _26_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_329_main());
+  printf("%ld",_26_main());
   return 0;
 }
 

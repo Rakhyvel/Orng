@@ -1,0 +1,7 @@
+// 75
+fn main: () -> Int =
+    let mut x: Int = 75
+    let mut y = &mut x
+    let mut z = &mut y
+    z^^ = 75
+    z^^
