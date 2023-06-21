@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687313803
-#define ORNG_1687313803
+#ifndef ORNG_1687314590
+#define ORNG_1687314590
 
 #include <math.h>
 #include <stdio.h>
@@ -73,7 +73,7 @@ BB0:
 	_26_t19 = *(((int64_t*)((((struct1*)(&_27_x))+_26_t16)))+_26_t18);
 	_26_t20 = 1;
 	_26_t21 = _26_t19 + _26_t20;
-*(((int64_t*)((((struct1*)(&_27_x))+_26_t13)))+_26_t15) = _26_t21;
+	*(((int64_t*)((((struct1*)(&_27_x))+_26_t13)))+_26_t15) = _26_t21;
 	_26_t22 = 1;
 	_26_t23 = *(((struct1*)(&_27_x))+_26_t22);
 	_26_t24 = 2;

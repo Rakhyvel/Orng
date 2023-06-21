@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687313803
-#define ORNG_1687313803
+#ifndef ORNG_1687314590
+#define ORNG_1687314590
 
 #include <math.h>
 #include <stdio.h>
@@ -55,7 +55,7 @@ BB0:
 	_22_t0 = *_22_x;
 	_22_t1 = 3;
 	_22_t2 = 78;
-*(((int64_t*)(_22_x))+_22_t1) = _22_t2;
+	*(((int64_t*)(_22_x))+_22_t1) = _22_t2;
 	_22_$retval = _22_x;
 	return _22_$retval;
 }

@@ -25,7 +25,7 @@ zig build
 Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a simple "Hello, World" program in Orng:
 ```rs
 fn main: (sys: System)->!() =
-    sys.out.>println("Hello, World!")
+    sys.stdout.>println("Hello, World!")
 ```
 
 To run this program, simply save it to a file with a ".orng" extension and then run the following command in the terminal:
@@ -81,8 +81,8 @@ fn main: (sys: System)->!() =
     while let i = 0; i < 100; i += 1
         // Can pattern match on ADTs! Again, can let it be inferred if possible
         match fizzbuzz(i)
-        | .string(s')  => try sys.out.>println("{}", s')
-        | .integer(j') => try sys.out.>println("{}", j')
+        | .string(s')  => try sys.stdout.>println("{}", s')
+        | .integer(j') => try sys.stdout.>println("{}", j')
 ```
 ### Generic Type Unification
 Identifiers may end in a single apostrophe. When unification is done, apostrophe'd identifiers are considered to be free variables, and regular identifiers are terms.

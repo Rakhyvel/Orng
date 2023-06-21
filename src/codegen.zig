@@ -278,7 +278,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .indexCopy => {
             // store(lval(index(src1, src2)), rval(data.symbver))
-            try out.writer().print("*(((", .{});
+            try out.writer().print("\t*(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
             try out.writer().print("*)(", .{});
             try generateLValueIR(ir.src1.?, out);
@@ -433,6 +433,7 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
         var ir = symbver.def.?;
         switch (ir.kind) {
             .dereference => {
+                // The lval of a dereference is the reference itself
                 try printSymbolVersion(ir.src1.?, out);
             },
             .index => {

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687313803
-#define ORNG_1687313803
+#ifndef ORNG_1687314590
+#define ORNG_1687314590
 
 #include <math.h>
 #include <stdio.h>
@@ -42,7 +42,7 @@ BB0:
 	_31_t6 = *_31_t5;
 	_31_t7 = 2;
 	_31_t8 = 70;
-*(((int64_t*)(_31_t5))+_31_t7) = _31_t8;
+	*(((int64_t*)(_31_t5))+_31_t7) = _31_t8;
 	_31_t9 = *_31_t5;
 	_31_t10 = 2;
 	_31_t11 = *(((int64_t*)(_31_t5))+_31_t10);

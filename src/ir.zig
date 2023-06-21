@@ -642,7 +642,7 @@ pub const CFG = struct {
                 } else if (ast.assign.lhs.* == .index) {
                     var index_lhs = try self.flattenAST(scope, ast.assign.lhs.index.lhs, return_label, break_label, continue_label, true, errors, allocator);
                     std.debug.assert(index_lhs != null);
-                    var index_rhs = try self.flattenAST(scope, ast.assign.lhs.index.rhs, return_label, break_label, continue_label, true, errors, allocator);
+                    var index_rhs = try self.flattenAST(scope, ast.assign.lhs.index.rhs, return_label, break_label, continue_label, false, errors, allocator);
                     std.debug.assert(index_lhs != null);
                     var assign_rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, false, errors, allocator);
                     std.debug.assert(assign_rhs != null);

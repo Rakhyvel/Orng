@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687313803
-#define ORNG_1687313803
+#ifndef ORNG_1687314590
+#define ORNG_1687314590
 
 #include <math.h>
 #include <stdio.h>
@@ -51,7 +51,7 @@ BB0:
 	_39_t9 = *&((&_40_x)->_0);
 	_39_t10 = 1;
 	_39_t11 = 72;
-*(((int64_t*)(&((&_40_x)->_0)))+_39_t10) = _39_t11;
+	*(((int64_t*)(&((&_40_x)->_0)))+_39_t10) = _39_t11;
 	_39_t12 = *&((&_40_x)->_0);
 	_39_t13 = 1;
 	_39_t14 = *(((int64_t*)(&((&_40_x)->_0)))+_39_t13);
