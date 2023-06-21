@@ -59,6 +59,16 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 // One-liner factorial function!
 fn factorial: (n: Int)->Int = if n < 2 {1} else {n * fact(n - 1)}
 ```
+Lets break that down so we can understand how Orng works.
+```
+fn factorial                      // Define a new function called `factorial`.
+  : (n: Int)->Int                 // The type of `factorial` is a function, 
+                                  //     which takes an integer called `n` and 
+                                  //     returns an integer.
+    = if n < 2 {1}                // The result of calling factorial is either 
+                                  //     `1` if `n > 2`,
+      else {n * factorial(n - 1)} // Otherwise is `n * factorial(n-1)`.
+```
 ### Fizzbuzz
 ```rs
 // Define an Algebraic Data Type (ADT), similar to tagged unions
