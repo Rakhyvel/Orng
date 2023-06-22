@@ -24,7 +24,7 @@ fn main: (_: System)->!() =
 
     // UFCS syntax
     // Note that `>>` is an operator which takes the lhs,
-    // and prepends it to the function arguments.
+    // and prepends it to the rhs function to form a new function.
     std.debug.assert( rect_a>>aabb_collision(rect_b))
 
     // It is not an error to not provide all arguments.
