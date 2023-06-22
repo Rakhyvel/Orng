@@ -134,7 +134,6 @@
     - [ ] loop invariant lifting
     - [ ] inlining
 - [ ] function programming stuff
-    - [ ] `|>` operator
     - [x] immutability
     - [ ] composition using `<>`
     - [ ] partial function application `>>`

@@ -1,0 +1,43 @@
+const std = import_package("std")
+
+// Define types Point and Rectangle as named-tuples
+const Point: Type = (x: Float, y: Float)
+const Rectangle: Type = 
+    ( top_left: Point
+    , width: Float
+    , height: Float
+    )
+
+// Define a function which detects if the two rectangles are collided
+fn aabb_collision: (a: Rectangle, b: Rectangle)->Bool
+    =   a.top_left.x < b.top_left.x + b.width 
+    and a.top_left.x + a.width > b.top_left.x
+    and a.top_left.y < b.top_left.y + b.height
+    and a.top_left.y + a.height > b.top_left.y
+
+fn main: (_: System)->!() =
+    let rect_a: Rectangle = ((10, 10), 10, 10)
+    let rect_b: Rectangle = ((13, 15), 15, 10)
+
+    // Normal functional call
+    std.debug.assert( aabb_collision(rect_a, rect_b) )
+
+    // UFCS syntax
+    // Note that `>>` is an operator which takes the lhs,
+    // and prepends it to the function arguments.
+    std.debug.assert( rect_a>>aabb_collision(rect_b))
+
+    // It is not an error to not provide all arguments.
+
+    // This creates a new, partially applied function
+    // (In the C implementation, this is achieved with struct that contains
+    //  the function pointer and the arguments as struct members.)
+    let collided_with_rect_a: Rectangle->Bool = rect_a >> aabb_collision
+    std.debug.assert( collided_with_rect_a(rect_b))
+
+    // Thus, you can do psuedo-currying. `>>` is right-associative.
+    std.debug.assert( rect_b >> rect_a >> aabb_collision() )
+
+    // Note that `rect_b >> rect_a >> aabb_collision` refers to the anonymous
+    // thunk, where as `rect_b >> rect_a >> aabb_collision()` calls the
+    // anonymous thunk.
