@@ -18,6 +18,7 @@
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops to enhanced for dyadic loops
 - [ ] All inits have a corresponding deinit
+- [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [ ] Find some code not covered and write an integration test for it
 
 ### Pipeline

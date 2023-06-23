@@ -1,0 +1,5 @@
+// 100
+fn main: () -> Int =
+    let x: [5]Int = (1, 2, 3, 4, 5)
+    let y: []Int = []x
+    y[2] + 97
