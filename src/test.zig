@@ -29,6 +29,7 @@ pub fn main() !void {
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/expressions/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/functions/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/layout/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/slices/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/tuples/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/whitebox/" }) catch {};
 
