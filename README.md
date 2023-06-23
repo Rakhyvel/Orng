@@ -46,7 +46,6 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
     - Immutable-By-Default variables
     - Pattern Matching
     - Generic Type Unification
-    - Partially Applied Functions
     - Type Inference
 * **Bidirectional C Interop:** Orng compiles to C and can parse C header files, which afford seamless interop with C. Orng code can interact with existing C code, and C code can interact with your Orng code.
 
@@ -66,7 +65,7 @@ fn factorial                      // Define a new function called `factorial`.
                                   //     which takes an integer called `n` and 
                                   //     returns an integer.
     = if n < 2 {1}                // The result of calling factorial is either 
-                                  //     `1` if `n > 2`,
+                                  //     `1` if `n < 2`,
       else {n * factorial(n - 1)} // Otherwise is `n * factorial(n-1)`.
 ```
 ### Fizzbuzz
@@ -109,6 +108,8 @@ where T' <: Eq =
 
 ## Contributing
 We welcome contributions of all kinds! Bug reports, feature requests, code contributions and documentation updates are always appreciated.
+
+Take a look at the `Nits` section under `todo.md` for some entry-level PR ideas.
 
 ## License
 Orng is released under the MIT license. See LICENSE for details.

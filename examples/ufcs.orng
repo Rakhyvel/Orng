@@ -24,20 +24,37 @@ fn main: (_: System)->!() =
 
     // UFCS syntax
     // Note that `>>` is an operator which takes the lhs,
-    // and prepends it to the rhs function to form a new function.
+    // and prepends it to the rhs "function call".
     std.debug.assert( rect_a>>aabb_collision(rect_b))
 
-    // It is not an error to not provide all arguments.
-
-    // This creates a new, partially applied function
-    // (In the C implementation, this is achieved with struct that contains
-    //  the function pointer and the arguments as struct members.)
-    let collided_with_rect_a: Rectangle->Bool = rect_a >> aabb_collision
-    std.debug.assert( collided_with_rect_a(rect_b))
-
-    // Thus, you can do psuedo-currying. `>>` is right-associative.
+    // A `>>` counts as a function call, so you can chain them together
     std.debug.assert( rect_b >> rect_a >> aabb_collision() )
 
-    // Note that `rect_b >> rect_a >> aabb_collision` refers to the anonymous
-    // thunk, where as `rect_b >> rect_a >> aabb_collision()` calls the
-    // anonymous thunk.
+    // You can also chain function calls together, similar to the `|>` operator
+    // found in many other languages
+    rect_b
+    >> rect_a
+    >> aabb_collision()
+    >> std.debug.assert()
+
+    // Note that this is not partial function application. The following code
+    // would result in an error if uncommented:
+    //      std.debug.assert( rect_a >> aabb_collision() )
+    //                                                ^
+    // error: aabb_collision takes 2 parameters, 1 provided
+
+    
+    // Related is the `?>` operator.
+    // The `?>` operator takes an optional-typed argument, and returns null if 
+    // it is null, otherwise behaves as the `>>` operator.
+    const rand = extern_function("rand", ()->Int)
+    fn maybe_get_rectangle: ()->?Rectangle = 
+        if rand() % 2
+            .some(rect_a)
+        else 
+            .null
+    let maybe_collided: ?Bool 
+        =  maybe_get_rectangle() 
+        ?> maybe_get_rectangle()
+        ?> aabb_collision()
+    

@@ -136,7 +136,8 @@
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`
-    - [ ] partial function application `>>`
+    - [ ] prepend `>>`
+    - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
     - [ ] `comptime` expression, evaluated at compile time
     - [ ] array sizes are evaluated at compile-time
@@ -179,6 +180,4 @@
         - [ ] multi-loops, ranges like zig
     - [ ] Eq, Ord, Num, Bits
     - [ ] derive
-
-### Rationales
-- Can't do `backtick identifiers`, because it's difficult to generate them out to C. You could have a map in each scope from the backtick name to a generated name. I just don't think its worth it at the moment.
+    - [ ] dot prepend `.>`
