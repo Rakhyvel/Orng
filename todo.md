@@ -1,4 +1,5 @@
 ### Nits
+<!-- These are good first-issues for those looking to contribute -->
 - [x] Rename `case` to `match`
 - [ ] Find copy-pasted code and tidy it up
 - [ ] Standardize token, ast, ir *kind* naming convention
@@ -12,13 +13,13 @@
     - `maybe_x` for an optional variant of a type
 - [ ] Errors should be capitalized
 - [ ] Everything should be snake_case
-- [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
+- [ ] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
+- [ ] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops to enhanced for dyadic loops
 - [ ] All inits have a corresponding deinit
-- [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [ ] Find some code not covered and write an integration test for it
 
 ### Pipeline
@@ -37,6 +38,10 @@
 - [x] immutability checking
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
+
+### Testing
+- [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
+- [ ] allow more than one command line argument
 
 ### Features
 - [x] addresses

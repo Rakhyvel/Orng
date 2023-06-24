@@ -475,6 +475,10 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
                 try out.writer().print("int32_t", .{});
             }
         },
+        .sliceOf => {
+            try printType(_type.sliceOf.expr, out);
+            try out.writer().print("*", .{});
+        },
         .addrOf => {
             try printType(_type.addrOf.expr, out);
             try out.writer().print("*", .{});

@@ -880,6 +880,16 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .sliceOf => {
+                var expr = try self.flattenAST(scope, ast.sliceOf.expr, return_label, break_label, continue_label, true, errors, allocator);
+                std.debug.assert(expr != null);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+
+                var ir = try IR.create(.addrOf, temp, expr, null, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
             .conditional => {
                 std.debug.assert(ast.conditional.exprs.items.len == ast.conditional.tokens.items.len + 1);
 

@@ -708,6 +708,10 @@ pub const AST = union(enum) {
                 var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
                 if (lhs_type.* == .product) {
                     retval = lhs_type.product.terms.items[0];
+                } else if (lhs_type.* == .sliceOf) {
+                    retval = lhs_type.sliceOf.expr;
+                } else {
+                    unreachable;
                 }
             },
 
@@ -747,7 +751,17 @@ pub const AST = union(enum) {
                 if (child_type.typesMatch(typeType)) {
                     retval = typeType;
                 } else {
-                    retval = try createAddrOf(self.addrOf.common.token, child_type, self.addrOf.mut, std.heap.page_allocator);
+                    retval = try createAddrOf(self.getToken(), child_type, self.addrOf.mut, std.heap.page_allocator);
+                }
+            },
+            .sliceOf => {
+                var expr_type = try self.sliceOf.expr.typeof(scope, errors, allocator);
+                std.debug.assert(expr_type.* == .product and expr_type.product.is_homotypical());
+                var child_type = expr_type.product.terms.items[0];
+                if (child_type.typesMatch(typeType)) {
+                    retval = typeType;
+                } else {
+                    retval = try createSliceOf(self.getToken(), child_type, self.sliceOf.len, self.sliceOf.kind, std.heap.page_allocator);
                 }
             },
 
@@ -823,7 +837,7 @@ pub const AST = union(enum) {
                 if (other.* != .sliceOf) {
                     return false;
                 } else {
-                    return (self.sliceOf.kind != .MUT or @enumToInt(self.sliceOf.kind) == @enumToInt(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
+                    return (self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
                 }
             },
             .annotation => unreachable,

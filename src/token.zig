@@ -189,10 +189,10 @@ pub const Token = struct {
 
 pub fn kindFromString(data: []const u8) TokenKind {
     var ix: usize = 0;
-    const num_ctors = @enumToInt(TokenKind.len);
+    const num_ctors = @intFromEnum(TokenKind.len);
 
     while (ix < num_ctors) : (ix += 1) {
-        const kind: TokenKind = @intToEnum(TokenKind, ix);
+        const kind: TokenKind = @enumFromInt(TokenKind, ix);
         const reprKind: ?[]const u8 = reprFromTokenKind(kind);
         if (reprKind) |repr| {
             if (strEquals(data, repr)) {

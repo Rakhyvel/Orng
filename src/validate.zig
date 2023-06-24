@@ -305,9 +305,20 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return error.typeError;
             }
 
-            if (expected != null and (lhs_type.* == .product and !expected.?.typesMatch(lhs_type.product.terms.items[0])) or lhs_type.* != .product) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.function.rhs, .stage = .typecheck } });
-                return error.typeError;
+            if (expected != null) {
+                if (lhs_type.* == .product and !expected.?.typesMatch(lhs_type.product.terms.items[0])) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    return error.typeError;
+                } else if (lhs_type.* == .sliceOf and !expected.?.typesMatch(lhs_type.sliceOf.expr)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    return error.typeError;
+                } else if (lhs_type.* != .product and lhs_type.* != .sliceOf) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    return error.typeError;
+                } else {
+                    std.debug.print("hehre\n", .{});
+                    retval = ast;
+                }
             } else {
                 retval = ast;
             }
@@ -468,13 +479,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
                 }
             } else if (expected != null and expected.?.* == .sliceOf) {
+                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, null, scope, errors, allocator);
+
                 // Slice-of value, expected must be an slice, inner must match with expected's inner
-                if (!expected.?.typesMatch(try ast.typeof(scope, errors, allocator))) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                // ast.sliceOf.expr must be homotypical product type of expected
+                var expr_type = try ast.sliceOf.expr.typeof(scope, errors, allocator);
+                ast.getCommon().is_valid = true;
+                if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "attempt to take slice-of something that is not an array", .stage = .typecheck } });
+                    return error.typeError;
+                } else if (expected.?.* != .sliceOf or !expected.?.typesMatch(try ast.typeof(scope, errors, allocator))) {
+                    errors.addError(Error{ .expected2Type = .{
+                        .span = ast.getToken().span,
+                        .expected = expected.?,
+                        .got = try ast.typeof(scope, errors, allocator),
+                        .stage = .typecheck,
+                    } });
                     return error.typeError;
                 }
-                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, expected.?.sliceOf.expr, scope, errors, allocator);
+
                 try validateLValue(ast.sliceOf.expr, scope, errors);
+
                 if (ast.sliceOf.kind == .MUT) {
                     try assertMutable(ast.sliceOf.expr, scope, errors, allocator);
                 }
