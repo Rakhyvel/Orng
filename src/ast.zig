@@ -766,7 +766,12 @@ pub const AST = union(enum) {
                 } else {
                     // Regular slice type, change to product of data address and length
                     var term_types = std.ArrayList(*AST).init(allocator);
-                    var data_type = try AST.createAddrOf(self.getToken(), (try self.sliceOf.expr.typeof(scope, errors, allocator)).product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
+                    var data_type = try AST.createAddrOf(
+                        self.getToken(),
+                        expr_type.product.terms.items[0],
+                        self.sliceOf.kind == .MUT,
+                        allocator,
+                    );
                     var annot_type = try AST.createAnnotation(self.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
                     data_type.getCommon().is_valid = true;
                     annot_type.getCommon().is_valid = true;

@@ -231,7 +231,12 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print("(", .{});
             try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print(") {{", .{});
-            for (ir.data.symbverList.items, 1..) |symbver, i| {
+            for (ir.data.symbverList.items, ir.dest.?.symbol._type.?.product.terms.items, 1..) |symbver, expected, i| {
+                if (!expected.typesMatch(symbver.symbol._type.?)) {
+                    try out.writer().print("(", .{});
+                    try printType(expected, out);
+                    try out.writer().print(")", .{});
+                }
                 try printSymbolVersion(symbver, out);
                 if (i != ir.data.symbverList.items.len) {
                     try out.writer().print(", ", .{});
