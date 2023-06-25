@@ -124,6 +124,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
         homotypical: ?bool = null,
+        was_slice: bool = false,
 
         pub fn is_homotypical(self: *@This()) bool {
             if (self.homotypical) |homotypical| {
@@ -650,7 +651,7 @@ pub const AST = union(enum) {
 
     // Must always return a valid type!
     pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-        std.debug.assert(self.getCommon().is_valid);
+        // std.debug.assert(self.getCommon().is_valid);
         if (self.getCommon()._type) |_type| {
             return _type;
         }
@@ -707,9 +708,11 @@ pub const AST = union(enum) {
             .index => {
                 var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
                 if (lhs_type.* == .product) {
-                    retval = lhs_type.product.terms.items[0];
-                } else if (lhs_type.* == .sliceOf) {
-                    retval = lhs_type.sliceOf.expr;
+                    if (lhs_type.product.was_slice) {
+                        retval = lhs_type.product.terms.items[0].annotation.type.addrOf.expr;
+                    } else {
+                        retval = lhs_type.product.terms.items[0];
+                    }
                 } else {
                     unreachable;
                 }
@@ -761,7 +764,24 @@ pub const AST = union(enum) {
                 if (child_type.typesMatch(typeType)) {
                     retval = typeType;
                 } else {
-                    retval = try createSliceOf(self.getToken(), child_type, self.sliceOf.len, self.sliceOf.kind, std.heap.page_allocator);
+                    // Regular slice type, change to product of data address and length
+                    var term_types = std.ArrayList(*AST).init(allocator);
+                    var data_type = try AST.createAddrOf(self.getToken(), (try self.sliceOf.expr.typeof(scope, errors, allocator)).product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
+                    var annot_type = try AST.createAnnotation(self.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
+                    data_type.getCommon().is_valid = true;
+                    annot_type.getCommon().is_valid = true;
+                    try term_types.append(annot_type);
+                    try term_types.append(try AST.createAnnotation(
+                        self.getToken(),
+                        try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
+                        intType,
+                        null,
+                        null,
+                        allocator,
+                    ));
+                    retval = try AST.createProduct(self.getToken(), term_types, allocator);
+                    retval.getCommon().is_valid = true;
+                    retval.product.was_slice = true;
                 }
             },
 

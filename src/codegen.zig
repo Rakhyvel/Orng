@@ -436,12 +436,20 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 // The lval of a dereference is the reference itself
                 try printSymbolVersion(ir.src1.?, out);
             },
-            .index => {
+            .index => if (!ir.src1.?.symbol._type.?.product.was_slice) {
                 try out.writer().print("(((", .{});
                 try printType(ir.dest.?.symbol._type.?, out);
                 try out.writer().print("*)(", .{});
                 try generateLValueIR(ir.src1.?, out);
                 try out.writer().print("))+", .{});
+                try printSymbolVersion(ir.src2.?, out);
+                try out.writer().print(")", .{});
+            } else {
+                try out.writer().print("(((", .{});
+                try printType(ir.dest.?.symbol._type.?, out);
+                try out.writer().print("*)((", .{});
+                try generateLValueIR(ir.src1.?, out);
+                try out.writer().print(")->_0))+", .{});
                 try printSymbolVersion(ir.src2.?, out);
                 try out.writer().print(")", .{});
             },
@@ -474,10 +482,6 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
                 try out.writer().print("int32_t", .{});
             }
-        },
-        .sliceOf => {
-            try printType(_type.sliceOf.expr, out);
-            try out.writer().print("*", .{});
         },
         .addrOf => {
             try printType(_type.addrOf.expr, out);

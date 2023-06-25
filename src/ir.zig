@@ -1,13 +1,15 @@
+const _ast = @import("ast.zig");
 const errs = @import("errors.zig");
 const span = @import("span.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 const _string = @import("zig-string/zig-string.zig");
 
-const AST = @import("ast.zig").AST;
+const AST = _ast.AST;
 const Error = errs.Error;
 const Scope = _symbol.Scope;
 const Symbol = _symbol.Symbol;
+const Token = @import("token.zig").Token;
 
 pub const SymbolVersion = struct {
     symbol: *Symbol,
@@ -106,6 +108,7 @@ pub const IRKind = enum {
     negate,
     // bitNot,
     addrOf,
+    sliceOf, // TODO: Consider making slices tuples instead
     sizeOf, //< For extern types that Orng can't do automatically
     dereference,
     derefCopy,
@@ -872,16 +875,6 @@ pub const CFG = struct {
             // Fancy Operators
             .addrOf => {
                 var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, true, errors, allocator);
-                std.debug.assert(expr != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
-
-                var ir = try IR.create(.addrOf, temp, expr, null, allocator);
-                temp.def = ir;
-                self.appendInstruction(ir);
-                return temp;
-            },
-            .sliceOf => {
-                var expr = try self.flattenAST(scope, ast.sliceOf.expr, return_label, break_label, continue_label, true, errors, allocator);
                 std.debug.assert(expr != null);
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
