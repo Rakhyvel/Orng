@@ -90,7 +90,7 @@
         - [x] validate index lvalue
     - [ ] when deref copy prop op is enabled, pemdas.orng emits type error
 - [ ] slices
-    - [ ] `[]` slice from array operator, with variants
+    - [x] `[]` slice from array operator, with variants
     - [ ] subslices
     - [ ] array from slice? (like a dereference?)
         > How would the size work? It has to be compile-time known

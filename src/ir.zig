@@ -108,7 +108,6 @@ pub const IRKind = enum {
     negate,
     // bitNot,
     addrOf,
-    sliceOf, // TODO: Consider making slices tuples instead
     sizeOf, //< For extern types that Orng can't do automatically
     dereference,
     derefCopy,

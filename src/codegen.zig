@@ -281,13 +281,23 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(";\n", .{});
         },
-        .indexCopy => {
+        .indexCopy => if (!ir.src1.?.symbol._type.?.product.was_slice) {
             // store(lval(index(src1, src2)), rval(data.symbver))
             try out.writer().print("\t*(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
             try out.writer().print("*)(", .{});
             try generateLValueIR(ir.src1.?, out);
             try out.writer().print("))+", .{});
+            try printSymbolVersion(ir.src2.?, out);
+            try out.writer().print(") = ", .{});
+            try printSymbolVersion(ir.data.symbver, out);
+            try out.writer().print(";\n", .{});
+        } else {
+            try out.writer().print("\t*(((", .{});
+            try printType(ir.data.symbver.symbol._type.?, out);
+            try out.writer().print("*)((", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print(")->_0))+", .{});
             try printSymbolVersion(ir.src2.?, out);
             try out.writer().print(") = ", .{});
             try printSymbolVersion(ir.data.symbver, out);
@@ -434,44 +444,39 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 
 // Generates the C code to evaluate the l-value of a given AST
 fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    if (symbver.def != null) {
-        var ir = symbver.def.?;
-        switch (ir.kind) {
-            .dereference => {
-                // The lval of a dereference is the reference itself
-                try printSymbolVersion(ir.src1.?, out);
-            },
-            .index => if (!ir.src1.?.symbol._type.?.product.was_slice) {
-                try out.writer().print("(((", .{});
-                try printType(ir.dest.?.symbol._type.?, out);
-                try out.writer().print("*)(", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print("))+", .{});
-                try printSymbolVersion(ir.src2.?, out);
-                try out.writer().print(")", .{});
-            } else {
-                try out.writer().print("(((", .{});
-                try printType(ir.dest.?.symbol._type.?, out);
-                try out.writer().print("*)((", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print(")->_0))+", .{});
-                try printSymbolVersion(ir.src2.?, out);
-                try out.writer().print(")", .{});
-            },
-            .select => {
-                try out.writer().print("&((", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print(")->_{}", .{ir.data.int});
-                try out.writer().print(")", .{});
-            },
-            else => {
-                try out.writer().print("&", .{});
-                try printSymbolVersion(symbver, out);
-            },
-        }
-    } else {
-        try out.writer().print("&", .{});
-        try printSymbolVersion(symbver, out);
+    var ir = symbver.def.?;
+    switch (ir.kind) {
+        .dereference => {
+            // The lval of a dereference is the reference itself
+            try printSymbolVersion(ir.src1.?, out);
+        },
+        .index => if (!ir.src1.?.symbol._type.?.product.was_slice) {
+            try out.writer().print("(((", .{});
+            try printType(ir.dest.?.symbol._type.?, out);
+            try out.writer().print("*)(", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print("))+", .{});
+            try printSymbolVersion(ir.src2.?, out);
+            try out.writer().print(")", .{});
+        } else {
+            try out.writer().print("(((", .{});
+            try printType(ir.dest.?.symbol._type.?, out);
+            try out.writer().print("*)((", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print(")->_0))+", .{});
+            try printSymbolVersion(ir.src2.?, out);
+            try out.writer().print(")", .{});
+        },
+        .select => {
+            try out.writer().print("&((", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print(")->_{}", .{ir.data.int});
+            try out.writer().print(")", .{});
+        },
+        else => {
+            try out.writer().print("&", .{});
+            try printSymbolVersion(symbver, out);
+        },
     }
 }
 

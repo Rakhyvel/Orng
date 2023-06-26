@@ -76,6 +76,9 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
     var dir = try std.fs.cwd().openIterableDir(open_dir_name.str(), .{});
     var it = dir.iterate();
     while (try it.next()) |file| {
+        if (std.mem.eql(u8, file.name, "build") or std.mem.eql(u8, file.name, "README.md")) {
+            continue;
+        }
         switch (file.kind) {
             .file => {
                 var res = try integrateTestFile(dir_name, file.name, coverage);
@@ -87,7 +90,7 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
                     }
                 }
             },
-            .directory => if (!std.mem.eql(u8, file.name, "build")) {
+            .directory => {
                 var new_dir_name = try String.init_with_contents(allocator, "");
                 defer new_dir_name.deinit();
                 try new_dir_name.concat(dir_name);
