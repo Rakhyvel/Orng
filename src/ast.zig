@@ -21,6 +21,9 @@ pub var typeType: *AST = undefined;
 pub var unitType: *AST = undefined;
 pub var voidType: *AST = undefined;
 
+/// Whether to match types based on C rules. This is should be on when working witht typesets.
+pub var c_type_equivalence = false;
+
 pub fn initTypes() !void {
     if (!typesInited) {
         boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
@@ -855,14 +858,14 @@ pub const AST = union(enum) {
                 if (other.* != .addrOf) {
                     return false;
                 } else {
-                    return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
+                    return (c_type_equivalence or self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
             .sliceOf => {
                 if (other.* != .sliceOf) {
                     return false;
                 } else {
-                    return (self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
+                    return (c_type_equivalence or self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
                 }
             },
             .annotation => unreachable,

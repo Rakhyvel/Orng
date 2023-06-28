@@ -444,39 +444,44 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 
 // Generates the C code to evaluate the l-value of a given AST
 fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    var ir = symbver.def.?;
-    switch (ir.kind) {
-        .dereference => {
-            // The lval of a dereference is the reference itself
-            try printSymbolVersion(ir.src1.?, out);
-        },
-        .index => if (!ir.src1.?.symbol._type.?.product.was_slice) {
-            try out.writer().print("(((", .{});
-            try printType(ir.dest.?.symbol._type.?, out);
-            try out.writer().print("*)(", .{});
-            try generateLValueIR(ir.src1.?, out);
-            try out.writer().print("))+", .{});
-            try printSymbolVersion(ir.src2.?, out);
-            try out.writer().print(")", .{});
-        } else {
-            try out.writer().print("(((", .{});
-            try printType(ir.dest.?.symbol._type.?, out);
-            try out.writer().print("*)((", .{});
-            try generateLValueIR(ir.src1.?, out);
-            try out.writer().print(")->_0))+", .{});
-            try printSymbolVersion(ir.src2.?, out);
-            try out.writer().print(")", .{});
-        },
-        .select => {
-            try out.writer().print("&((", .{});
-            try generateLValueIR(ir.src1.?, out);
-            try out.writer().print(")->_{}", .{ir.data.int});
-            try out.writer().print(")", .{});
-        },
-        else => {
-            try out.writer().print("&", .{});
-            try printSymbolVersion(symbver, out);
-        },
+    if (symbver.def) |ir| {
+        switch (ir.kind) {
+            .dereference => {
+                // The lval of a dereference is the reference itself
+                try printSymbolVersion(ir.src1.?, out);
+            },
+            .index => if (!ir.src1.?.symbol._type.?.product.was_slice) {
+                try out.writer().print("(((", .{});
+                try printType(ir.dest.?.symbol._type.?, out);
+                try out.writer().print("*)(", .{});
+                try generateLValueIR(ir.src1.?, out);
+                try out.writer().print("))+", .{});
+                try printSymbolVersion(ir.src2.?, out);
+                try out.writer().print(")", .{});
+            } else {
+                try out.writer().print("(((", .{});
+                try printType(ir.dest.?.symbol._type.?, out);
+                try out.writer().print("*)((", .{});
+                try generateLValueIR(ir.src1.?, out);
+                try out.writer().print(")->_0))+", .{});
+                try printSymbolVersion(ir.src2.?, out);
+                try out.writer().print(")", .{});
+            },
+            .select => {
+                try out.writer().print("&((", .{});
+                try generateLValueIR(ir.src1.?, out);
+                try out.writer().print(")->_{}", .{ir.data.int});
+                try out.writer().print(")", .{});
+            },
+            else => {
+                try out.writer().print("&", .{});
+                try printSymbolVersion(symbver, out);
+            },
+        }
+    } else {
+        // Function parameters are a common example of symbol versions that do not have a definition
+        try out.writer().print("&", .{});
+        try printSymbolVersion(symbver, out);
     }
 }
 

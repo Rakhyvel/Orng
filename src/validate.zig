@@ -308,7 +308,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
             }
 
-            if (lhs_type.* == .product and !lhs_type.product.is_homotypical() and !lhs_type.product.was_slice) {
+            if (lhs_type.* == .product and !lhs_type.product.was_slice and !lhs_type.product.is_homotypical()) {
+                for (lhs_type.product.terms.items) |term| {
+                    std.debug.print("{}", .{term});
+                }
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array is not homotypical", .stage = .typecheck } });
                 return error.typeError;
             }
@@ -478,7 +481,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (ast.sliceOf.kind == .ARRAY) {
                     // Inflate to product
                     var new_terms = std.ArrayList(*AST).init(allocator);
-                    for (0..@intCast(usize, ast.sliceOf.len.?.int.data)) |_| {
+                    for (0..@as(usize, @intCast(ast.sliceOf.len.?.int.data))) |_| {
                         try new_terms.append(ast.sliceOf.expr);
                     }
                     ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
@@ -534,7 +537,18 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
                 // Restructrure as product
                 var new_terms = std.ArrayList(*AST).init(allocator);
-                try new_terms.append(try AST.createAddrOf(ast.getToken(), ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator));
+                var index = try AST.createIndex(
+                    ast.getToken(),
+                    ast.sliceOf.expr,
+                    try AST.createInt(ast.getToken(), 0, allocator),
+                    allocator,
+                );
+                try new_terms.append(try AST.createAddrOf(
+                    ast.getToken(),
+                    index,
+                    ast.sliceOf.kind == .MUT,
+                    allocator,
+                ));
                 try new_terms.append(try AST.createInt(ast.getToken(), expr_type.product.terms.items.len, allocator));
                 ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
                 ast.getCommon().is_valid = true;

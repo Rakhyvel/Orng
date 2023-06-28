@@ -192,7 +192,7 @@ pub fn kindFromString(data: []const u8) TokenKind {
     const num_ctors = @intFromEnum(TokenKind.len);
 
     while (ix < num_ctors) : (ix += 1) {
-        const kind: TokenKind = @enumFromInt(TokenKind, ix);
+        const kind: TokenKind = @enumFromInt(ix);
         const reprKind: ?[]const u8 = reprFromTokenKind(kind);
         if (reprKind) |repr| {
             if (strEquals(data, repr)) {

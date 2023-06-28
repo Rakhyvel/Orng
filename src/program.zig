@@ -63,6 +63,7 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), allocator: std.m
 }
 
 fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
+    _ast.c_type_equivalence = true;
     if (typeSetGet(ast, set)) |dag| {
         return dag;
     } else {
@@ -88,6 +89,7 @@ fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Alloca
 }
 
 pub fn typeSetGet(ast: *AST, set: *std.ArrayList(*DAG)) ?*DAG {
+    _ast.c_type_equivalence = true;
     for (set.items) |dag| {
         if (dag.base.typesMatch(ast)) {
             return dag;
