@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687918146
-#define ORNG_1687918146
+#ifndef ORNG_1687736425022823292
+#define ORNG_1687736425022823292
 
 #include <math.h>
 #include <stdio.h>
@@ -20,51 +20,51 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _6_main();
+int64_t _415_main();
 
 /* Function definitions */
-int64_t _6_main() {
-	int64_t _6_t1;
-	int64_t _6_t2;
-	int64_t _6_t3;
-	int64_t _6_t4;
-	int64_t _6_t5;
-	struct1 _7_x;
-	int64_t _6_t7;
-	int64_t _6_t8;
-	int64_t* _6_t9;
-	int64_t _6_t10;
-	struct3 _7_y;
-	int64_t _6_t11;
-	int64_t _6_t12;
-	int64_t _6_t13;
-	int64_t _6_t14;
-	int64_t _6_$retval;
+int64_t _415_main() {
+	int64_t _415_t1;
+	int64_t _415_t2;
+	int64_t _415_t3;
+	int64_t _415_t4;
+	int64_t _415_t5;
+	struct1 _416_x;
+	int64_t _415_t7;
+	int64_t _415_t8;
+	int64_t* _415_t9;
+	int64_t _415_t10;
+	struct3 _416_y;
+	int64_t _415_t11;
+	int64_t _415_t12;
+	int64_t _415_t13;
+	int64_t _415_t14;
+	int64_t _415_$retval;
 BB0:
-	_6_t1 = 1;
-	_6_t2 = 2;
-	_6_t3 = 3;
-	_6_t4 = 4;
-	_6_t5 = 5;
-	_7_x = (struct1) {_6_t1, _6_t2, _6_t3, _6_t4, _6_t5};
-	_6_t7 = 0;
-	_6_t8 = *(((int64_t*)(&_7_x))+_6_t7);
-	_6_t9 = (((int64_t*)(&_7_x))+_6_t7);
-	_6_t10 = 5;
-	_7_y = (struct3) {_6_t9, _6_t10};
-	_6_t11 = 2;
-	_6_t12 = 81;
-	*(((int64_t*)((&_7_y)->_0))+_6_t11) = _6_t12;
-	_6_t13 = 2;
-	_6_t14 = *(((int64_t*)((&_7_y)->_0))+_6_t13);
-	_6_$retval = _6_t14;
-	return _6_$retval;
+	_415_t1 = 1;
+	_415_t2 = 2;
+	_415_t3 = 3;
+	_415_t4 = 4;
+	_415_t5 = 5;
+	_416_x = (struct1) {_415_t1, _415_t2, _415_t3, _415_t4, _415_t5};
+	_415_t7 = 0;
+	_415_t8 = *(((int64_t*)(&_416_x))+_415_t7);
+	_415_t9 = (((int64_t*)(&_416_x))+_415_t7);
+	_415_t10 = 5;
+	_416_y = (struct3) {_415_t9, _415_t10};
+	_415_t11 = 2;
+	_415_t12 = 81;
+	*(((int64_t*)((&_416_y)->_0))+_415_t11) = _415_t12;
+	_415_t13 = 2;
+	_415_t14 = *(((int64_t*)((&_416_y)->_0))+_415_t13);
+	_415_$retval = _415_t14;
+	return _415_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_6_main());
+  printf("%ld",_415_main());
   return 0;
 }
 

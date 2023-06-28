@@ -26,7 +26,7 @@ pub const Program = struct {
     callGraph: *CFG,
 
     // A unique identifier for the event of compiling this Orng program
-    uid: i64,
+    uid: i128,
 
     // A graph of type dependencies
     types: std.ArrayList(*DAG),
@@ -35,10 +35,10 @@ pub const Program = struct {
 
     // A map of filenames to lists of lines
 
-    pub fn init(callGraph: *CFG, allocator: std.mem.Allocator) !*Program {
+    pub fn init(callGraph: *CFG, uid: i128, allocator: std.mem.Allocator) !*Program {
         var retval = try allocator.create(Program);
         retval.callGraph = callGraph;
-        retval.uid = std.time.timestamp();
+        retval.uid = uid;
         retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
     }
