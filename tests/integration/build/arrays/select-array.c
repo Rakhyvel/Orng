@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687316164
-#define ORNG_1687316164
+#ifndef ORNG_1687311123054696905
+#define ORNG_1687311123054696905
 
 #include <math.h>
 #include <stdio.h>
@@ -18,51 +18,51 @@ typedef struct {
 } struct2;
 
 /* Function forward definitions */
-int64_t _403_main();
+int64_t _407_main();
 
 /* Function definitions */
-int64_t _403_main() {
-	int64_t _403_t2;
-	int64_t _403_t3;
-	int64_t _403_t4;
-	struct1 _403_t1;
-	int64_t _403_t6;
-	int64_t _403_t7;
-	int64_t _403_t8;
-	struct1 _403_t5;
-	struct2 _404_x;
-	struct1 _403_t9;
-	int64_t _403_t10;
-	int64_t _403_t11;
-	struct1 _403_t12;
-	int64_t _403_t13;
-	int64_t _403_t14;
-	int64_t _403_$retval;
+int64_t _407_main() {
+	int64_t _407_t2;
+	int64_t _407_t3;
+	int64_t _407_t4;
+	struct1 _407_t1;
+	int64_t _407_t6;
+	int64_t _407_t7;
+	int64_t _407_t8;
+	struct1 _407_t5;
+	struct2 _408_x;
+	struct1 _407_t9;
+	int64_t _407_t10;
+	int64_t _407_t11;
+	struct1 _407_t12;
+	int64_t _407_t13;
+	int64_t _407_t14;
+	int64_t _407_$retval;
 BB0:
-	_403_t2 = 1;
-	_403_t3 = 2;
-	_403_t4 = 3;
-	_403_t1 = (struct1) {_403_t2, _403_t3, _403_t4};
-	_403_t6 = 4;
-	_403_t7 = 5;
-	_403_t8 = 6;
-	_403_t5 = (struct1) {_403_t6, _403_t7, _403_t8};
-	_404_x = (struct2) {_403_t1, _403_t5};
-	_403_t9 = *&((&_404_x)->_0);
-	_403_t10 = 1;
-	_403_t11 = 72;
-	*(((int64_t*)(&((&_404_x)->_0)))+_403_t10) = _403_t11;
-	_403_t12 = *&((&_404_x)->_0);
-	_403_t13 = 1;
-	_403_t14 = *(((int64_t*)(&((&_404_x)->_0)))+_403_t13);
-	_403_$retval = _403_t14;
-	return _403_$retval;
+	_407_t2 = 1;
+	_407_t3 = 2;
+	_407_t4 = 3;
+	_407_t1 = (struct1) {_407_t2, _407_t3, _407_t4};
+	_407_t6 = 4;
+	_407_t7 = 5;
+	_407_t8 = 6;
+	_407_t5 = (struct1) {_407_t6, _407_t7, _407_t8};
+	_408_x = (struct2) {_407_t1, _407_t5};
+	_407_t9 = *&((&_408_x)->_0);
+	_407_t10 = 1;
+	_407_t11 = 72;
+	*(((int64_t*)(&((&_408_x)->_0)))+_407_t10) = _407_t11;
+	_407_t12 = *&((&_408_x)->_0);
+	_407_t13 = 1;
+	_407_t14 = *(((int64_t*)(&((&_408_x)->_0)))+_407_t13);
+	_407_$retval = _407_t14;
+	return _407_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_403_main());
+  printf("%ld",_407_main());
   return 0;
 }
 

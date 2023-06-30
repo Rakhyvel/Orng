@@ -1,4 +1,5 @@
 ### Nits
+<!-- These are good first-issues for those looking to contribute -->
 - [x] Rename `case` to `match`
 - [ ] Find copy-pasted code and tidy it up
 - [ ] Standardize token, ast, ir *kind* naming convention
@@ -12,7 +13,8 @@
     - `maybe_x` for an optional variant of a type
 - [ ] Errors should be capitalized
 - [ ] Everything should be snake_case
-- [ ] Replace `.common` with `.getCommon` for ASTs outside of ast.zig
+- [ ] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
+- [ ] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
@@ -37,6 +39,10 @@
 - [x] immutability checking
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
+
+### Testing
+- [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
+- [ ] allow more than one command line argument
 
 ### Features
 - [x] addresses
@@ -84,17 +90,17 @@
     - [x] index-assign
         - [x] validate index lvalue
     - [ ] when deref copy prop op is enabled, pemdas.orng emits type error
-- [ ] slices
-    - [ ] `[]` slice from array operator, with variants
-    - [ ] subslices
-    - [ ] array from slice? (like a dereference?)
-        > How would the size work? It has to be compile-time known
-    > It would be neat if slices had a capacity, so they could be used like lists
+- [x] slices
+    - [x] `[]` slice from array operator, with variants
+    - [x] subslices
 - [ ] UTF8
+    - [ ] Bytes, Rings
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes
+        - [ ] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
+        - [ ] TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
     - [ ] Character literals
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes
@@ -107,11 +113,21 @@
     - [ ] `orelse` coalesce
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
-    - `catch`
-    - `.!`
-    - `throw` (maybe remove!)
-    - `errdefer`
-    - inferred errors, error coerce
+    - [ ] stack traces
+    - [ ] `catch`
+    - [ ] `.!`
+    - [ ] `throw` (maybe remove!)
+    - [ ] `errdefer`
+    - [ ] inferred errors, error coerce
+- [ ] more compile errors
+    - [ ] static index out of bounds
+    - [ ] dynamic index out of bounds
+    - [ ] static slice lower > greater
+    - [ ] dynamic slice lower > greater
+    - [ ] static checked arithmetic
+    - [ ] dynamic checked arithmetic
+    - [ ] static divide by zero
+    - [ ] dynamic divide by zero
 - [ ] unreachable
 - [ ] pattern matching
     - [ ] product destructuring

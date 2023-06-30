@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687316164
-#define ORNG_1687316164
+#ifndef ORNG_1687919380049862844
+#define ORNG_1687919380049862844
 
 #include <math.h>
 #include <stdio.h>
@@ -15,43 +15,43 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _395_main();
+int64_t _399_main();
 
 /* Function definitions */
-int64_t _395_main() {
-	int64_t _395_t1;
-	int64_t _395_t2;
-	int64_t _395_t3;
-	int64_t _395_t4;
-	struct1 _396_x;
-	struct1* _395_t5;
-	struct1 _395_t6;
-	int64_t _395_t7;
-	int64_t _395_t8;
-	struct1 _395_t9;
-	int64_t _395_t10;
-	int64_t _395_t11;
-	int64_t _395_$retval;
+int64_t _399_main() {
+	int64_t _399_t1;
+	int64_t _399_t2;
+	int64_t _399_t3;
+	int64_t _399_t4;
+	struct1 _400_x;
+	struct1* _399_t5;
+	struct1 _399_t6;
+	int64_t _399_t7;
+	int64_t _399_t8;
+	struct1 _399_t9;
+	int64_t _399_t10;
+	int64_t _399_t11;
+	int64_t _399_$retval;
 BB0:
-	_395_t1 = 1;
-	_395_t2 = 2;
-	_395_t3 = 3;
-	_395_t4 = 4;
-	_396_x = (struct1) {_395_t1, _395_t2, _395_t3, _395_t4};
-	_395_t5 = &_396_x;
-	_395_t7 = 2;
-	_395_t8 = 70;
-	*(((int64_t*)(_395_t5))+_395_t7) = _395_t8;
-	_395_t10 = 2;
-	_395_t11 = *(((int64_t*)(_395_t5))+_395_t10);
-	_395_$retval = _395_t11;
-	return _395_$retval;
+	_399_t1 = 1;
+	_399_t2 = 2;
+	_399_t3 = 3;
+	_399_t4 = 4;
+	_400_x = (struct1) {_399_t1, _399_t2, _399_t3, _399_t4};
+	_399_t5 = &_400_x;
+	_399_t7 = 2;
+	_399_t8 = 70;
+	*(((int64_t*)(_399_t5))+_399_t7) = _399_t8;
+	_399_t10 = 2;
+	_399_t11 = *(((int64_t*)(_399_t5))+_399_t10);
+	_399_$retval = _399_t11;
+	return _399_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_395_main());
+  printf("%ld",_399_main());
   return 0;
 }
 

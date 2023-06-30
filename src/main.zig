@@ -51,6 +51,9 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
 
+    var stat = try file.stat();
+    var uid = stat.mtime;
+
     // Read in the contents of the file
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
@@ -74,7 +77,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
             else => return err,
         }
     };
-    try output(errors, &lines, file_root, out_name, allocator);
+    try output(errors, &lines, file_root, uid, out_name, allocator);
 }
 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree
@@ -105,7 +108,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
-pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, out_name: []const u8, allocator: std.mem.Allocator) !void {
+pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, uid: i128, out_name: []const u8, allocator: std.mem.Allocator) !void {
     // IR translation
     var irAllocator = std.heap.ArenaAllocator.init(allocator);
     defer irAllocator.deinit();
@@ -122,7 +125,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         try optimizations.optimize(cfg, allocator);
 
         // Code generation
-        var program = try Program.init(cfg, allocator);
+        var program = try Program.init(cfg, uid, allocator);
         try _program.collectTypes(cfg, &program.types, allocator);
         var outputFile = try std.fs.cwd().createFile(
             out_name,

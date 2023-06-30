@@ -26,7 +26,7 @@ pub const Program = struct {
     callGraph: *CFG,
 
     // A unique identifier for the event of compiling this Orng program
-    uid: i64,
+    uid: i128,
 
     // A graph of type dependencies
     types: std.ArrayList(*DAG),
@@ -35,10 +35,10 @@ pub const Program = struct {
 
     // A map of filenames to lists of lines
 
-    pub fn init(callGraph: *CFG, allocator: std.mem.Allocator) !*Program {
+    pub fn init(callGraph: *CFG, uid: i128, allocator: std.mem.Allocator) !*Program {
         var retval = try allocator.create(Program);
         retval.callGraph = callGraph;
-        retval.uid = std.time.timestamp();
+        retval.uid = uid;
         retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
     }
@@ -63,6 +63,7 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), allocator: std.m
 }
 
 fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
+    _ast.c_type_equivalence = true;
     if (typeSetGet(ast, set)) |dag| {
         return dag;
     } else {
@@ -88,6 +89,7 @@ fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Alloca
 }
 
 pub fn typeSetGet(ast: *AST, set: *std.ArrayList(*DAG)) ?*DAG {
+    _ast.c_type_equivalence = true;
     for (set.items) |dag| {
         if (dag.base.typesMatch(ast)) {
             return dag;

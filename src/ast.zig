@@ -21,6 +21,9 @@ pub var typeType: *AST = undefined;
 pub var unitType: *AST = undefined;
 pub var voidType: *AST = undefined;
 
+/// Whether to match types based on C rules. This is should be on when working witht typesets.
+pub var c_type_equivalence = false;
+
 pub fn initTypes() !void {
     if (!typesInited) {
         boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
@@ -124,6 +127,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
         homotypical: ?bool = null,
+        was_slice: bool = false,
 
         pub fn is_homotypical(self: *@This()) bool {
             if (self.homotypical) |homotypical| {
@@ -650,7 +654,7 @@ pub const AST = union(enum) {
 
     // Must always return a valid type!
     pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-        std.debug.assert(self.getCommon().is_valid);
+        // std.debug.assert(self.getCommon().is_valid);
         if (self.getCommon()._type) |_type| {
             return _type;
         }
@@ -701,13 +705,20 @@ pub const AST = union(enum) {
                         try terms.append(try term.typeof(scope, errors, allocator));
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
+                    retval.product.was_slice = self.product.was_slice;
                 }
             },
 
             .index => {
                 var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
                 if (lhs_type.* == .product) {
-                    retval = lhs_type.product.terms.items[0];
+                    if (lhs_type.product.was_slice) {
+                        retval = lhs_type.product.terms.items[0].annotation.type.addrOf.expr;
+                    } else {
+                        retval = lhs_type.product.terms.items[0];
+                    }
+                } else {
+                    unreachable;
                 }
             },
 
@@ -731,8 +742,8 @@ pub const AST = union(enum) {
 
             // Identifier
             .identifier => {
-                var symbol = scope.lookup(self.identifier.common.token.data, false) orelse {
-                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
+                var symbol = scope.lookup(self.getToken().data, false) orelse {
+                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .stage = .typecheck } });
                     return error.typeError;
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
@@ -747,9 +758,42 @@ pub const AST = union(enum) {
                 if (child_type.typesMatch(typeType)) {
                     retval = typeType;
                 } else {
-                    retval = try createAddrOf(self.addrOf.common.token, child_type, self.addrOf.mut, std.heap.page_allocator);
+                    retval = try createAddrOf(self.getToken(), child_type, self.addrOf.mut, std.heap.page_allocator);
                 }
             },
+            .sliceOf => {
+                var expr_type = try self.sliceOf.expr.typeof(scope, errors, allocator);
+                std.debug.assert(expr_type.* == .product and expr_type.product.is_homotypical());
+                var child_type = expr_type.product.terms.items[0];
+                if (child_type.typesMatch(typeType)) {
+                    retval = typeType;
+                } else {
+                    // Regular slice type, change to product of data address and length
+                    var term_types = std.ArrayList(*AST).init(allocator);
+                    var data_type = try AST.createAddrOf(
+                        self.getToken(),
+                        expr_type.product.terms.items[0],
+                        self.sliceOf.kind == .MUT,
+                        allocator,
+                    );
+                    var annot_type = try AST.createAnnotation(self.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
+                    data_type.getCommon().is_valid = true;
+                    annot_type.getCommon().is_valid = true;
+                    try term_types.append(annot_type);
+                    try term_types.append(try AST.createAnnotation(
+                        self.getToken(),
+                        try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
+                        intType,
+                        null,
+                        null,
+                        allocator,
+                    ));
+                    retval = try AST.createProduct(self.getToken(), term_types, allocator);
+                    retval.getCommon().is_valid = true;
+                    retval.product.was_slice = true;
+                }
+            },
+            .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
 
             // Binary operators (TODO: Make polymorphic)
             .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
@@ -816,14 +860,14 @@ pub const AST = union(enum) {
                 if (other.* != .addrOf) {
                     return false;
                 } else {
-                    return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
+                    return (c_type_equivalence or self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
             .sliceOf => {
                 if (other.* != .sliceOf) {
                     return false;
                 } else {
-                    return (self.sliceOf.kind != .MUT or @enumToInt(self.sliceOf.kind) == @enumToInt(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
+                    return (c_type_equivalence or self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
                 }
             },
             .annotation => unreachable,
