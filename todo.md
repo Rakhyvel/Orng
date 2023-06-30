@@ -89,14 +89,11 @@
     - [x] index-assign
         - [x] validate index lvalue
     - [ ] when deref copy prop op is enabled, pemdas.orng emits type error
-- [ ] slices
+- [x] slices
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
-    - [ ] array from slice? (like a dereference?)
-        > How would the size work? It has to be compile-time known
-    > It would be neat if slices had a capacity, so they could be used like lists
 - [ ] UTF8
-    - [ ] Bytes
+    - [ ] Bytes, Rings
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
