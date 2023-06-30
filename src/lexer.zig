@@ -232,7 +232,9 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                         col += 1;
                         state = .float;
                     } else {
-                        return error.lexerError;
+                        try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, line, col));
+                        slice_start = ix;
+                        state = .none;
                     }
                 } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'x') {
                     // hexadecimal

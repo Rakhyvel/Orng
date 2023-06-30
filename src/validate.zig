@@ -309,9 +309,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (lhs_type.* == .product and !lhs_type.product.was_slice and !lhs_type.product.is_homotypical()) {
-                for (lhs_type.product.terms.items) |term| {
-                    std.debug.print("{}", .{term});
-                }
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array is not homotypical", .stage = .typecheck } });
                 return error.typeError;
             }
@@ -556,7 +553,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
+        .subSlice => {
+            if (ast.subSlice.lower) |lower| {
+                ast.subSlice.lower = try validateAST(lower, _ast.intType, scope, errors, allocator);
+            } else {
+                ast.subSlice.lower = try AST.createInt(ast.getToken(), 0, allocator);
+            }
+            if (ast.subSlice.upper) |upper| {
+                ast.subSlice.upper = try validateAST(upper, _ast.intType, scope, errors, allocator);
+            } else {
+                // TODO: Make it the slice length (requires a select AST)
+            }
 
+            var super_type = try ast.subSlice.super.typeof(scope, errors, allocator);
+            if (super_type.* != .product or !super_type.product.was_slice) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot take a sub-slice of something that is not a slice", .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                ast.subSlice.super = try validateAST(ast.subSlice.super, null, scope, errors, allocator);
+            }
+            retval = ast;
+        },
         .annotation => {
             ast.annotation.type = try validateAST(ast.annotation.type, _ast.typeType, scope, errors, allocator);
             if (ast.annotation.init != null) {

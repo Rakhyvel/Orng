@@ -705,6 +705,7 @@ pub const AST = union(enum) {
                         try terms.append(try term.typeof(scope, errors, allocator));
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
+                    retval.product.was_slice = self.product.was_slice;
                 }
             },
 
@@ -741,8 +742,8 @@ pub const AST = union(enum) {
 
             // Identifier
             .identifier => {
-                var symbol = scope.lookup(self.identifier.common.token.data, false) orelse {
-                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.identifier.common.token, .stage = .typecheck } });
+                var symbol = scope.lookup(self.getToken().data, false) orelse {
+                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .stage = .typecheck } });
                     return error.typeError;
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
@@ -792,6 +793,7 @@ pub const AST = union(enum) {
                     retval.product.was_slice = true;
                 }
             },
+            .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
 
             // Binary operators (TODO: Make polymorphic)
             .add => retval = try self.add.lhs.typeof(scope, errors, allocator),

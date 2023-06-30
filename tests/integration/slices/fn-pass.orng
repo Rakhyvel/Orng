@@ -4,5 +4,4 @@ fn main: () -> Int =
     let y = [mut]x
     f(y)
 
-
 fn f: (x: []Int)->Int = x[1] + 80

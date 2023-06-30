@@ -882,6 +882,36 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .subSlice => {
+                var arr = (try self.flattenAST(scope, ast.subSlice.super, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var lower = (try self.flattenAST(scope, ast.subSlice.lower.?, return_label, break_label, continue_label, false, errors, allocator)).?;
+                var upper = (try self.flattenAST(scope, ast.subSlice.upper.?, return_label, break_label, continue_label, false, errors, allocator)).?;
+
+                var new_size = try self.createTempSymbolVersion(_ast.intType, allocator);
+                var new_size_ir = try IR.create(.sub, new_size, upper, lower, allocator);
+                new_size.def = new_size_ir;
+                self.appendInstruction(new_size_ir);
+
+                var slice_type = try ast.typeof(scope, errors, allocator);
+                var data_type = slice_type.product.terms.items[0];
+                var data_ptr = try self.createTempSymbolVersion(data_type, allocator);
+                var data_ptr_ir = try IR.createSelect(data_ptr, arr, 0, allocator);
+                data_ptr.def = data_ptr_ir;
+                self.appendInstruction(data_ptr_ir);
+
+                var new_data_ptr = try self.createTempSymbolVersion(data_type, allocator);
+                var new_data_ptr_ir = try IR.create(.add, new_data_ptr, data_ptr, lower, allocator);
+                new_data_ptr.def = new_data_ptr_ir;
+                self.appendInstruction(new_data_ptr_ir);
+
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var load_struct = try IR.createLoadStruct(temp, allocator);
+                try load_struct.data.symbverList.append(new_data_ptr);
+                try load_struct.data.symbverList.append(new_size);
+                temp.def = load_struct;
+                self.appendInstruction(load_struct);
+                return temp;
+            },
             .conditional => {
                 std.debug.assert(ast.conditional.exprs.items.len == ast.conditional.tokens.items.len + 1);
 

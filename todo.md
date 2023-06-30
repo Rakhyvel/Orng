@@ -91,15 +91,18 @@
     - [ ] when deref copy prop op is enabled, pemdas.orng emits type error
 - [ ] slices
     - [x] `[]` slice from array operator, with variants
-    - [ ] subslices
+    - [x] subslices
     - [ ] array from slice? (like a dereference?)
         > How would the size work? It has to be compile-time known
     > It would be neat if slices had a capacity, so they could be used like lists
 - [ ] UTF8
+    - [ ] Bytes
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes
+        - [ ] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
+        - [ ] TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
     - [ ] Character literals
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes
@@ -112,11 +115,21 @@
     - [ ] `orelse` coalesce
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
-    - `catch`
-    - `.!`
-    - `throw` (maybe remove!)
-    - `errdefer`
-    - inferred errors, error coerce
+    - [ ] stack traces
+    - [ ] `catch`
+    - [ ] `.!`
+    - [ ] `throw` (maybe remove!)
+    - [ ] `errdefer`
+    - [ ] inferred errors, error coerce
+- [ ] more compile errors
+    - [ ] static index out of bounds
+    - [ ] dynamic index out of bounds
+    - [ ] static slice lower > greater
+    - [ ] dynamic slice lower > greater
+    - [ ] static checked arithmetic
+    - [ ] dynamic checked arithmetic
+    - [ ] static divide by zero
+    - [ ] dynamic divide by zero
 - [ ] unreachable
 - [ ] pattern matching
     - [ ] product destructuring

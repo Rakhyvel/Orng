@@ -1,0 +1,13 @@
+// 84
+fn main: () -> Int =
+    let mut x: [6]Int = (1, 15, 24, 4, 35, 6)
+    let y = [mut]x
+    let z: [mut]Int = y[1..5]
+    z[2] = 10
+    sum_up(z)
+
+fn sum_up: (xs: []Int)->Int =
+    let mut sum: Int = 0
+    while let mut i: Int = 0; i < xs.length; i += 1
+        sum += xs[i]
+    sum
