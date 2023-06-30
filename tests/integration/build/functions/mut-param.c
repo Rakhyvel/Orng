@@ -9,54 +9,54 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _223_main();
-int64_t _224_sumDown(int64_t _224_x);
+int64_t _2_main();
+int64_t _3_sumDown(int64_t _3_x);
 
 /* Function definitions */
-int64_t _223_main() {
-	int64_t _223_t1;
-	int64_t _223_t0;
-	int64_t _223_t2;
-	int64_t _223_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t0;
+	int64_t _2_t2;
+	int64_t _2_$retval;
 BB0:
-	_223_t1 = 8;
-	_223_t0 = _224_sumDown(_223_t1);
-	_223_t2 = 2;
-	_223_$retval = _223_t0 + _223_t2;
-	return _223_$retval;
+	_2_t1 = 8;
+	_2_t0 = _3_sumDown(_2_t1);
+	_2_t2 = 2;
+	_2_$retval = _2_t0 + _2_t2;
+	return _2_$retval;
 }
 
-int64_t _224_sumDown(int64_t _224_x) {
-	int64_t _226_i;
-	int64_t _224_t2;
-	uint8_t _224_t1;
-	int64_t _224_t4;
-	int64_t _224_$retval;
+int64_t _3_sumDown(int64_t _3_x) {
+	int64_t _5_i;
+	int64_t _3_t2;
+	uint8_t _3_t1;
+	int64_t _3_t4;
+	int64_t _3_$retval;
 BB0:
-	_226_i = _224_x;
+	_5_i = _3_x;
 	goto BB1;
 BB1:
-	_224_t2 = 0;
-	_224_t1 = _226_i >= _224_t2;
-	if (!_224_t1) {
+	_3_t2 = 0;
+	_3_t1 = _5_i >= _3_t2;
+	if (!_3_t1) {
 		goto BB10;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_224_x = _224_x + _226_i;
-	_224_t4 = 1;
-	_226_i = _226_i - _224_t4;
+	_3_x = _3_x + _5_i;
+	_3_t4 = 1;
+	_5_i = _5_i - _3_t4;
 	goto BB1;
 BB10:
-	_224_$retval = _224_x;
-	return _224_$retval;
+	_3_$retval = _3_x;
+	return _3_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_223_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

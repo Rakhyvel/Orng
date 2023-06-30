@@ -9,31 +9,31 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _300_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _300_main() {
-	int64_t _301_x;
-	int64_t* _300_t1;
-	int64_t _300_t2;
-	int64_t* _300_t3;
-	int64_t _300_t4;
-	int64_t _300_$retval;
+int64_t _2_main() {
+	int64_t _3_x;
+	int64_t* _2_t1;
+	int64_t _2_t2;
+	int64_t* _2_t3;
+	int64_t _2_t4;
+	int64_t _2_$retval;
 BB0:
-	_301_x = 5;
-	_300_t1 = &_301_x;
-	_300_t2 = 74;
-	**&_300_t1 = _300_t2;
-	_300_t3 = &_301_x;
-	_300_t4 = *_300_t3;
-	_300_$retval = _300_t4;
-	return _300_$retval;
+	_3_x = 5;
+	_2_t1 = &_3_x;
+	_2_t2 = 74;
+	**&_2_t1 = _2_t2;
+	_2_t3 = &_3_x;
+	_2_t4 = *_2_t3;
+	_2_$retval = _2_t4;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_300_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

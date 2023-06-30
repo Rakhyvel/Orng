@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687736625476559037
-#define ORNG_1687736625476559037
+#ifndef ORNG_1688146807081997220
+#define ORNG_1688146807081997220
 
 #include <math.h>
 #include <stdio.h>
@@ -16,41 +16,41 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _384_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _384_main() {
-	int64_t _384_t1;
-	int64_t _384_t2;
-	int64_t _384_t3;
-	int64_t _384_t4;
-	int64_t _384_t5;
-	struct1 _385_x;
-	struct1* _384_t6;
-	struct1 _384_t7;
-	int64_t _384_t8;
-	int64_t _384_t9;
-	int64_t _384_t10;
-	int64_t _384_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	int64_t _2_t5;
+	struct1 _3_x;
+	struct1* _2_t6;
+	struct1 _2_t7;
+	int64_t _2_t8;
+	int64_t _2_t9;
+	int64_t _2_t10;
+	int64_t _2_$retval;
 BB0:
-	_384_t1 = 1;
-	_384_t2 = 2;
-	_384_t3 = 3;
-	_384_t4 = 4;
-	_384_t5 = 5;
-	_385_x = (struct1) {_384_t1, _384_t2, _384_t3, _384_t4, _384_t5};
-	_384_t6 = &_385_x;
-	_384_t8 = 2;
-	_384_t9 = *(((int64_t*)(_384_t6))+_384_t8);
-	_384_t10 = 77;
-	_384_$retval = _384_t9 + _384_t10;
-	return _384_$retval;
+	_2_t1 = 1;
+	_2_t2 = 2;
+	_2_t3 = 3;
+	_2_t4 = 4;
+	_2_t5 = 5;
+	_3_x = (struct1) {_2_t1, _2_t2, _2_t3, _2_t4, _2_t5};
+	_2_t6 = &_3_x;
+	_2_t8 = 2;
+	_2_t9 = *(((int64_t*)(_2_t6))+_2_t8);
+	_2_t10 = 77;
+	_2_$retval = _2_t9 + _2_t10;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_384_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

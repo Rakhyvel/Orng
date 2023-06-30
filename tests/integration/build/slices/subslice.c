@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1688089601589312928
-#define ORNG_1688089601589312928
+#ifndef ORNG_1688146807093997542
+#define ORNG_1688146807093997542
 
 #include <math.h>
 #include <stdio.h>
@@ -21,93 +21,93 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _423_main();
-int64_t _425_sum_up(struct3 _425_xs);
+int64_t _2_main();
+int64_t _4_sum_up(struct3 _4_xs);
 
 /* Function definitions */
-int64_t _423_main() {
-	int64_t _423_t1;
-	int64_t _423_t2;
-	int64_t _423_t3;
-	int64_t _423_t4;
-	int64_t _423_t5;
-	int64_t _423_t6;
-	struct1 _424_x;
-	int64_t _423_t8;
-	int64_t _423_t9;
-	int64_t* _423_t10;
-	int64_t _423_t11;
-	struct3 _424_y;
-	int64_t _423_t12;
-	int64_t _423_t14;
-	int64_t* _423_t15;
-	int64_t* _423_t16;
-	struct3 _424_z;
-	int64_t _423_t18;
-	int64_t _423_t19;
-	int64_t _423_t20;
-	int64_t _423_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	int64_t _2_t5;
+	int64_t _2_t6;
+	struct1 _3_x;
+	int64_t _2_t8;
+	int64_t _2_t9;
+	int64_t* _2_t10;
+	int64_t _2_t11;
+	struct3 _3_y;
+	int64_t _2_t12;
+	int64_t _2_t14;
+	int64_t* _2_t15;
+	int64_t* _2_t16;
+	struct3 _3_z;
+	int64_t _2_t18;
+	int64_t _2_t19;
+	int64_t _2_t20;
+	int64_t _2_$retval;
 BB0:
-	_423_t1 = 1;
-	_423_t2 = 15;
-	_423_t3 = 24;
-	_423_t4 = 4;
-	_423_t5 = 35;
-	_423_t6 = 6;
-	_424_x = (struct1) {_423_t1, _423_t2, _423_t3, _423_t4, _423_t5, _423_t6};
-	_423_t8 = 0;
-	_423_t9 = *(((int64_t*)(&_424_x))+_423_t8);
-	_423_t10 = (((int64_t*)(&_424_x))+_423_t8);
-	_423_t11 = 6;
-	_424_y = (struct3) {_423_t10, _423_t11};
-	_423_t12 = 1;
-	_423_t14 = 4;
-	_423_t15 = *&((&_424_y)->_0);
-	_423_t16 = _423_t15 + _423_t12;
-	_424_z = (struct3) {_423_t16, _423_t14};
-	_423_t18 = 2;
-	_423_t19 = 10;
-	*(((int64_t*)((&_424_z)->_0))+_423_t18) = _423_t19;
-	_423_t20 = _425_sum_up(_424_z);
-	_423_$retval = _423_t20;
-	return _423_$retval;
+	_2_t1 = 1;
+	_2_t2 = 15;
+	_2_t3 = 24;
+	_2_t4 = 4;
+	_2_t5 = 35;
+	_2_t6 = 6;
+	_3_x = (struct1) {_2_t1, _2_t2, _2_t3, _2_t4, _2_t5, _2_t6};
+	_2_t8 = 0;
+	_2_t9 = *(((int64_t*)(&_3_x))+_2_t8);
+	_2_t10 = (((int64_t*)(&_3_x))+_2_t8);
+	_2_t11 = 6;
+	_3_y = (struct3) {_2_t10, _2_t11};
+	_2_t12 = 1;
+	_2_t14 = 4;
+	_2_t15 = *&((&_3_y)->_0);
+	_2_t16 = _2_t15 + _2_t12;
+	_3_z = (struct3) {_2_t16, _2_t14};
+	_2_t18 = 2;
+	_2_t19 = 10;
+	*(((int64_t*)((&_3_z)->_0))+_2_t18) = _2_t19;
+	_2_t20 = _4_sum_up(_3_z);
+	_2_$retval = _2_t20;
+	return _2_$retval;
 }
 
-int64_t _425_sum_up(struct3 _425_xs) {
-	int64_t _426_sum;
-	int64_t _427_i;
-	int64_t _425_t4;
-	uint8_t _425_t3;
-	int64_t _425_t5;
-	int64_t _425_t7;
-	int64_t _425_$retval;
+int64_t _4_sum_up(struct3 _4_xs) {
+	int64_t _5_sum;
+	int64_t _6_i;
+	int64_t _4_t4;
+	uint8_t _4_t3;
+	int64_t _4_t5;
+	int64_t _4_t7;
+	int64_t _4_$retval;
 BB0:
-	_426_sum = 0;
-	_427_i = 0;
+	_5_sum = 0;
+	_6_i = 0;
 	goto BB1;
 BB1:
-	_425_t4 = *&((&_425_xs)->_1);
-	_425_t3 = _427_i < _425_t4;
-	if (!_425_t3) {
+	_4_t4 = *&((&_4_xs)->_1);
+	_4_t3 = _6_i < _4_t4;
+	if (!_4_t3) {
 		goto BB10;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_425_t5 = *(((int64_t*)((&_425_xs)->_0))+_427_i);
-	_426_sum = _426_sum + _425_t5;
-	_425_t7 = 1;
-	_427_i = _427_i + _425_t7;
+	_4_t5 = *(((int64_t*)((&_4_xs)->_0))+_6_i);
+	_5_sum = _5_sum + _4_t5;
+	_4_t7 = 1;
+	_6_i = _6_i + _4_t7;
 	goto BB1;
 BB10:
-	_425_$retval = _426_sum;
-	return _425_$retval;
+	_4_$retval = _5_sum;
+	return _4_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_423_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

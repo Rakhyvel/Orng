@@ -9,61 +9,61 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _16_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _16_main() {
-	int64_t _17_x;
-	int64_t* _16_t1;
-	int64_t _16_t3;
-	int64_t _16_t4;
-	uint8_t _16_t2;
-	uint8_t _16_t5;
-	uint8_t _16_t6;
-	uint8_t _16_t7;
-	int64_t _16_t8;
-	int64_t _16_$retval;
+int64_t _2_main() {
+	int64_t _3_x;
+	int64_t* _2_t1;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	uint8_t _2_t2;
+	uint8_t _2_t5;
+	uint8_t _2_t6;
+	uint8_t _2_t7;
+	int64_t _2_t8;
+	int64_t _2_$retval;
 BB0:
-	_17_x = 0;
-	_16_t1 = &_17_x;
-	_16_t3 = *_16_t1;
-	_16_t4 = 1;
-	_16_t2 = _16_t3 == _16_t4;
-	if (!_16_t2) {
+	_3_x = 0;
+	_2_t1 = &_3_x;
+	_2_t3 = *_2_t1;
+	_2_t4 = 1;
+	_2_t2 = _2_t3 == _2_t4;
+	if (!_2_t2) {
 		goto BB9;
 	} else {
 		goto BB1;
 	}
 BB1:
-	_16_t2 = 1;
+	_2_t2 = 1;
 	goto BB2;
 BB2:
-	_16_t5 = !_16_t2;
-	_16_t6 = !_16_t5;
-	_16_t7 = !_16_t6;
-	if (!_16_t7) {
+	_2_t5 = !_2_t2;
+	_2_t6 = !_2_t5;
+	_2_t7 = !_2_t6;
+	if (!_2_t7) {
 		goto BB7;
 	} else {
 		goto BB3;
 	}
 BB3:
-	_16_t8 = 31;
+	_2_t8 = 31;
 	goto BB6;
 BB6:
-	_16_$retval = _16_t8;
-	return _16_$retval;
+	_2_$retval = _2_t8;
+	return _2_$retval;
 BB7:
-	_16_t8 = 10;
+	_2_t8 = 10;
 	goto BB6;
 BB9:
-	_16_t2 = 0;
+	_2_t2 = 0;
 	goto BB2;
 }
 
 
 int main()
 {
-  printf("%ld",_16_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

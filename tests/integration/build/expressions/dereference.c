@@ -9,26 +9,26 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _266_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _266_main() {
-	int64_t _267_x;
-	int64_t* _266_t1;
-	int64_t _266_t4;
-	int64_t _266_$retval;
+int64_t _2_main() {
+	int64_t _3_x;
+	int64_t* _2_t1;
+	int64_t _2_t4;
+	int64_t _2_$retval;
 BB0:
-	_267_x = 29;
-	_266_t1 = &_267_x;
-	_266_t4 = *_266_t1;
-	_266_$retval = _266_t4;
-	return _266_$retval;
+	_3_x = 29;
+	_2_t1 = &_3_x;
+	_2_t4 = *_2_t1;
+	_2_$retval = _2_t4;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_266_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

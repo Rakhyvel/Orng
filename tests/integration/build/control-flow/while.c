@@ -9,42 +9,42 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _195_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _195_main() {
-	int64_t _196_x;
-	int64_t _197_i;
-	int64_t _195_t4;
-	uint8_t _195_t3;
-	int64_t _195_t6;
-	int64_t _195_$retval;
+int64_t _2_main() {
+	int64_t _3_x;
+	int64_t _4_i;
+	int64_t _2_t4;
+	uint8_t _2_t3;
+	int64_t _2_t6;
+	int64_t _2_$retval;
 BB0:
-	_196_x = 0;
-	_197_i = 0;
+	_3_x = 0;
+	_4_i = 0;
 	goto BB1;
 BB1:
-	_195_t4 = 10;
-	_195_t3 = _197_i <= _195_t4;
-	if (!_195_t3) {
+	_2_t4 = 10;
+	_2_t3 = _4_i <= _2_t4;
+	if (!_2_t3) {
 		goto BB10;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_196_x = _196_x + _197_i;
-	_195_t6 = 1;
-	_197_i = _197_i + _195_t6;
+	_3_x = _3_x + _4_i;
+	_2_t6 = 1;
+	_4_i = _4_i + _2_t6;
 	goto BB1;
 BB10:
-	_195_$retval = _196_x;
-	return _195_$retval;
+	_2_$retval = _3_x;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_195_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

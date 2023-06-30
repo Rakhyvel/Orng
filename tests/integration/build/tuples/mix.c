@@ -19,42 +19,42 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _361_main();
-struct1 _363_get_array(int64_t _363_a,int64_t _363_b);
+int64_t _2_main();
+struct1 _4_get_array(int64_t _4_a,int64_t _4_b);
 
 /* Function definitions */
-int64_t _361_main() {
-	int64_t _361_t1;
-	int64_t _361_t2;
-	struct1 _361_t0;
-	int64_t _362_z;
-	int64_t* _361_t5;
-	struct3 _362_y;
-	int64_t _361_t6;
-	int64_t _361_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	struct1 _2_t0;
+	int64_t _3_z;
+	int64_t* _2_t5;
+	struct3 _3_y;
+	int64_t _2_t6;
+	int64_t _2_$retval;
 BB0:
-	_361_t1 = 15;
-	_361_t2 = 16;
-	_361_t0 = _363_get_array(_361_t1, _361_t2);
-	_362_z = 64;
-	_361_t5 = &_362_z;
-	_362_y = (struct3) {_362_z, _361_t5};
-	_361_t6 = *&((&_362_y)->_0);
-	_361_$retval = _361_t6;
-	return _361_$retval;
+	_2_t1 = 15;
+	_2_t2 = 16;
+	_2_t0 = _4_get_array(_2_t1, _2_t2);
+	_3_z = 64;
+	_2_t5 = &_3_z;
+	_3_y = (struct3) {_3_z, _2_t5};
+	_2_t6 = *&((&_3_y)->_0);
+	_2_$retval = _2_t6;
+	return _2_$retval;
 }
 
-struct1 _363_get_array(int64_t _363_a,int64_t _363_b) {
-	struct1 _363_$retval;
+struct1 _4_get_array(int64_t _4_a,int64_t _4_b) {
+	struct1 _4_$retval;
 BB0:
-	_363_$retval = (struct1) {_363_a, _363_b, _363_a, _363_b};
-	return _363_$retval;
+	_4_$retval = (struct1) {_4_a, _4_b, _4_a, _4_b};
+	return _4_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_361_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

@@ -13,30 +13,30 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _345_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _345_main() {
-	int64_t _345_t1;
-	int64_t _345_t2;
-	struct1 _346_x;
-	int64_t _345_t3;
-	int64_t _345_t4;
-	int64_t _345_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	struct1 _3_x;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	int64_t _2_$retval;
 BB0:
-	_345_t1 = 50;
-	_345_t2 = 5;
-	_346_x = (struct1) {_345_t1, _345_t2};
-	_345_t3 = *&((&_346_x)->_0);
-	_345_t4 = *&((&_346_x)->_1);
-	_345_$retval = _345_t3 + _345_t4;
-	return _345_$retval;
+	_2_t1 = 50;
+	_2_t2 = 5;
+	_3_x = (struct1) {_2_t1, _2_t2};
+	_2_t3 = *&((&_3_x)->_0);
+	_2_t4 = *&((&_3_x)->_1);
+	_2_$retval = _2_t3 + _2_t4;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_345_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

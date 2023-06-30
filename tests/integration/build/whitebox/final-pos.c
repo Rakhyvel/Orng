@@ -9,54 +9,54 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _23_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _23_main() {
-	int64_t _24_x;
-	int64_t _23_t3;
-	uint8_t _23_t2;
-	int64_t _23_t6;
-	uint8_t _23_t5;
-	int64_t _23_t7;
-	int64_t _23_$retval;
-	int64_t _23_t9;
+int64_t _2_main() {
+	int64_t _3_x;
+	int64_t _2_t3;
+	uint8_t _2_t2;
+	int64_t _2_t6;
+	uint8_t _2_t5;
+	int64_t _2_t7;
+	int64_t _2_$retval;
+	int64_t _2_t9;
 BB0:
-	_24_x = 0;
+	_3_x = 0;
 	goto BB1;
 BB1:
-	_23_t3 = 100;
-	_23_t2 = _24_x < _23_t3;
-	if (!_23_t2) {
+	_2_t3 = 100;
+	_2_t2 = _3_x < _2_t3;
+	if (!_2_t2) {
 		goto BB9;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_23_t6 = 40;
-	_23_t5 = _24_x == _23_t6;
-	if (!_23_t5) {
+	_2_t6 = 40;
+	_2_t5 = _3_x == _2_t6;
+	if (!_2_t5) {
 		goto BB14;
 	} else {
 		goto BB5;
 	}
 BB5:
-	_23_t7 = 1;
-	_24_x = _24_x + _23_t7;
+	_2_t7 = 1;
+	_3_x = _3_x + _2_t7;
 	goto BB9;
 BB9:
-	_23_$retval = _24_x;
-	return _23_$retval;
+	_2_$retval = _3_x;
+	return _2_$retval;
 BB14:
-	_23_t9 = 1;
-	_24_x = _24_x + _23_t9;
+	_2_t9 = 1;
+	_3_x = _3_x + _2_t9;
 	goto BB1;
 }
 
 
 int main()
 {
-  printf("%ld",_23_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

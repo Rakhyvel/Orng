@@ -9,36 +9,36 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _314_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _314_main() {
-	int64_t _315_x;
-	int64_t* _314_t1;
-	int64_t* _315_y;
-	int64_t** _314_t2;
-	int64_t* _314_t3;
-	int64_t _314_t4;
-	int64_t* _314_t5;
-	int64_t _314_t6;
-	int64_t _314_$retval;
+int64_t _2_main() {
+	int64_t _3_x;
+	int64_t* _2_t1;
+	int64_t* _3_y;
+	int64_t** _2_t2;
+	int64_t* _2_t3;
+	int64_t _2_t4;
+	int64_t* _2_t5;
+	int64_t _2_t6;
+	int64_t _2_$retval;
 BB0:
-	_315_x = 75;
-	_314_t1 = &_315_x;
-	_315_y = _314_t1;
-	_314_t2 = &_315_y;
-	_314_t4 = 75;
-	**_314_t2 = _314_t4;
-	_314_t5 = *_314_t2;
-	_314_t6 = *_314_t5;
-	_314_$retval = _314_t6;
-	return _314_$retval;
+	_3_x = 75;
+	_2_t1 = &_3_x;
+	_3_y = _2_t1;
+	_2_t2 = &_3_y;
+	_2_t4 = 75;
+	**_2_t2 = _2_t4;
+	_2_t5 = *_2_t2;
+	_2_t6 = *_2_t5;
+	_2_$retval = _2_t6;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_314_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

@@ -9,71 +9,71 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _37_main();
-int64_t _38_a(int64_t _38_n);
-int64_t _39_b(int64_t _39_n);
-int64_t _40_c(int64_t _40_n);
+int64_t _2_main();
+int64_t _3_a(int64_t _3_n);
+int64_t _4_b(int64_t _4_n);
+int64_t _5_c(int64_t _5_n);
 
 /* Function definitions */
-int64_t _37_main() {
-	int64_t _37_t1;
-	int64_t _37_t0;
-	int64_t _37_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t0;
+	int64_t _2_$retval;
 BB0:
-	_37_t1 = 47;
-	_37_t0 = _38_a(_37_t1);
-	_37_$retval = _37_t0;
-	return _37_$retval;
+	_2_t1 = 47;
+	_2_t0 = _3_a(_2_t1);
+	_2_$retval = _2_t0;
+	return _2_$retval;
 }
 
-int64_t _38_a(int64_t _38_n) {
-	int64_t _38_t0;
-	int64_t _38_$retval;
+int64_t _3_a(int64_t _3_n) {
+	int64_t _3_t0;
+	int64_t _3_$retval;
 BB0:
-	_38_t0 = _39_b(_38_n);
-	_38_$retval = _38_t0;
-	return _38_$retval;
+	_3_t0 = _4_b(_3_n);
+	_3_$retval = _3_t0;
+	return _3_$retval;
 }
 
-int64_t _39_b(int64_t _39_n) {
-	int64_t _39_t0;
-	int64_t _39_$retval;
+int64_t _4_b(int64_t _4_n) {
+	int64_t _4_t0;
+	int64_t _4_$retval;
 BB0:
-	_39_t0 = _40_c(_39_n);
-	_39_$retval = _39_t0;
-	return _39_$retval;
+	_4_t0 = _5_c(_4_n);
+	_4_$retval = _4_t0;
+	return _4_$retval;
 }
 
-int64_t _40_c(int64_t _40_n) {
-	int64_t _40_t2;
-	uint8_t _40_t1;
-	int64_t _40_t0;
-	int64_t _40_$retval;
-	int64_t _40_t4;
+int64_t _5_c(int64_t _5_n) {
+	int64_t _5_t2;
+	uint8_t _5_t1;
+	int64_t _5_t0;
+	int64_t _5_$retval;
+	int64_t _5_t4;
 BB0:
-	_40_t2 = 47;
-	_40_t1 = _40_n == _40_t2;
-	if (!_40_t1) {
+	_5_t2 = 47;
+	_5_t1 = _5_n == _5_t2;
+	if (!_5_t1) {
 		goto BB9;
 	} else {
 		goto BB1;
 	}
 BB1:
-	_40_t0 = 47;
+	_5_t0 = 47;
 	goto BB6;
 BB6:
-	_40_$retval = _40_t0;
-	return _40_$retval;
+	_5_$retval = _5_t0;
+	return _5_$retval;
 BB9:
-	_40_t4 = _38_a(_40_n);
-	_40_t0 = _40_t4;
+	_5_t4 = _3_a(_5_n);
+	_5_t0 = _5_t4;
 	goto BB6;
 }
 
 
 int main()
 {
-  printf("%ld",_37_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

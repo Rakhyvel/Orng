@@ -9,25 +9,25 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _244_main();
-void _246_void();
+int64_t _2_main();
+void _4_void();
 
 /* Function definitions */
-int64_t _244_main() {
-	int64_t _244_$retval;
+int64_t _2_main() {
+	int64_t _2_$retval;
 BB0:
-	_246_void();
-	_244_$retval = 65;
-	return _244_$retval;
+	_4_void();
+	_2_$retval = 65;
+	return _2_$retval;
 }
 
-void _246_void() {
+void _4_void() {
 }
 
 
 int main()
 {
-  printf("%ld",_244_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

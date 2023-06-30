@@ -9,20 +9,20 @@
 /* Typedefs */
 
 /* Function forward definitions */
-uint8_t _90_main();
+uint8_t _2_main();
 
 /* Function definitions */
-uint8_t _90_main() {
-	uint8_t _90_$retval;
+uint8_t _2_main() {
+	uint8_t _2_$retval;
 BB0:
-	_90_$retval = 1;
-	return _90_$retval;
+	_2_$retval = 1;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%d",_90_main());
+  printf("%d",_2_main());
   return 0;
 }
 

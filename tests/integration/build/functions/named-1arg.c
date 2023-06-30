@@ -9,32 +9,32 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _219_main();
-int64_t _220_id(int64_t _220_x);
+int64_t _2_main();
+int64_t _3_id(int64_t _3_x);
 
 /* Function definitions */
-int64_t _219_main() {
-	int64_t _219_t1;
-	int64_t _219_t0;
-	int64_t _219_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t0;
+	int64_t _2_$retval;
 BB0:
-	_219_t1 = 52;
-	_219_t0 = _220_id(_219_t1);
-	_219_$retval = _219_t0;
-	return _219_$retval;
+	_2_t1 = 52;
+	_2_t0 = _3_id(_2_t1);
+	_2_$retval = _2_t0;
+	return _2_$retval;
 }
 
-int64_t _220_id(int64_t _220_x) {
-	int64_t _220_$retval;
+int64_t _3_id(int64_t _3_x) {
+	int64_t _3_$retval;
 BB0:
-	_220_$retval = _220_x;
-	return _220_$retval;
+	_3_$retval = _3_x;
+	return _3_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_219_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

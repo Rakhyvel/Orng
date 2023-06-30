@@ -9,34 +9,34 @@
 /* Typedefs */
 
 /* Function forward definitions */
-int64_t _254_main();
-int64_t _255_add(int64_t _255_x,int64_t _255_y);
+int64_t _2_main();
+int64_t _3_add(int64_t _3_x,int64_t _3_y);
 
 /* Function definitions */
-int64_t _254_main() {
-	int64_t _254_t1;
-	int64_t _254_t2;
-	int64_t _254_t0;
-	int64_t _254_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	int64_t _2_t0;
+	int64_t _2_$retval;
 BB0:
-	_254_t1 = 4;
-	_254_t2 = 50;
-	_254_t0 = _255_add(_254_t1, _254_t2);
-	_254_$retval = _254_t0;
-	return _254_$retval;
+	_2_t1 = 4;
+	_2_t2 = 50;
+	_2_t0 = _3_add(_2_t1, _2_t2);
+	_2_$retval = _2_t0;
+	return _2_$retval;
 }
 
-int64_t _255_add(int64_t _255_x,int64_t _255_y) {
-	int64_t _255_$retval;
+int64_t _3_add(int64_t _3_x,int64_t _3_y) {
+	int64_t _3_$retval;
 BB0:
-	_255_$retval = _255_x + _255_y;
-	return _255_$retval;
+	_3_$retval = _3_x + _3_y;
+	return _3_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_254_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

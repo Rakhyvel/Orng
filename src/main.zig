@@ -135,6 +135,8 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         );
         defer outputFile.close();
         try codegen.generate(program, &outputFile);
+
+        symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.
     } else {
         errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "no `main` function specified", .stage = .symbolTree } });
         try errors.printErrors(lines, "");

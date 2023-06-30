@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687919227081540448
-#define ORNG_1687919227081540448
+#ifndef ORNG_1688146807093997542
+#define ORNG_1688146807093997542
 
 #include <math.h>
 #include <stdio.h>
@@ -19,56 +19,56 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _431_main();
-int64_t _433_f(struct3 _433_x);
+int64_t _2_main();
+int64_t _4_f(struct3 _4_x);
 
 /* Function definitions */
-int64_t _431_main() {
-	int64_t _431_t1;
-	int64_t _431_t2;
-	int64_t _431_t3;
-	int64_t _431_t4;
-	struct1 _432_x;
-	int64_t _431_t6;
-	int64_t _431_t7;
-	int64_t* _431_t8;
-	int64_t _431_t9;
-	struct3 _432_y;
-	int64_t _431_t10;
-	int64_t _431_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	struct1 _3_x;
+	int64_t _2_t6;
+	int64_t _2_t7;
+	int64_t* _2_t8;
+	int64_t _2_t9;
+	struct3 _3_y;
+	int64_t _2_t10;
+	int64_t _2_$retval;
 BB0:
-	_431_t1 = 1;
-	_431_t2 = 2;
-	_431_t3 = 3;
-	_431_t4 = 4;
-	_432_x = (struct1) {_431_t1, _431_t2, _431_t3, _431_t4};
-	_431_t6 = 0;
-	_431_t7 = *(((int64_t*)(&_432_x))+_431_t6);
-	_431_t8 = (((int64_t*)(&_432_x))+_431_t6);
-	_431_t9 = 4;
-	_432_y = (struct3) {_431_t8, _431_t9};
-	_431_t10 = _433_f(_432_y);
-	_431_$retval = _431_t10;
-	return _431_$retval;
+	_2_t1 = 1;
+	_2_t2 = 2;
+	_2_t3 = 3;
+	_2_t4 = 4;
+	_3_x = (struct1) {_2_t1, _2_t2, _2_t3, _2_t4};
+	_2_t6 = 0;
+	_2_t7 = *(((int64_t*)(&_3_x))+_2_t6);
+	_2_t8 = (((int64_t*)(&_3_x))+_2_t6);
+	_2_t9 = 4;
+	_3_y = (struct3) {_2_t8, _2_t9};
+	_2_t10 = _4_f(_3_y);
+	_2_$retval = _2_t10;
+	return _2_$retval;
 }
 
-int64_t _433_f(struct3 _433_x) {
-	int64_t _433_t0;
-	int64_t _433_t1;
-	int64_t _433_t2;
-	int64_t _433_$retval;
+int64_t _4_f(struct3 _4_x) {
+	int64_t _4_t0;
+	int64_t _4_t1;
+	int64_t _4_t2;
+	int64_t _4_$retval;
 BB0:
-	_433_t0 = 1;
-	_433_t1 = *(((int64_t*)((&_433_x)->_0))+_433_t0);
-	_433_t2 = 80;
-	_433_$retval = _433_t1 + _433_t2;
-	return _433_$retval;
+	_4_t0 = 1;
+	_4_t1 = *(((int64_t*)((&_4_x)->_0))+_4_t0);
+	_4_t2 = 80;
+	_4_$retval = _4_t1 + _4_t2;
+	return _4_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_431_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

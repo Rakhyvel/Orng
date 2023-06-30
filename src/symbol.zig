@@ -13,7 +13,7 @@ const Token = @import("token.zig").Token;
 
 pub const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
 
-var scopeUID: usize = 0;
+pub var scopeUID: usize = 0;
 pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),

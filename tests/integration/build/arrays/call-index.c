@@ -15,53 +15,53 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _388_main();
-struct1* _390_f(struct1* _390_x);
+int64_t _2_main();
+struct1* _4_f(struct1* _4_x);
 
 /* Function definitions */
-int64_t _388_main() {
-	int64_t _388_t1;
-	int64_t _388_t2;
-	int64_t _388_t3;
-	int64_t _388_t4;
-	struct1 _389_x;
-	struct1* _388_t6;
-	struct1* _388_t5;
-	struct1 _388_t7;
-	int64_t _388_t8;
-	int64_t _388_t9;
-	int64_t _388_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	struct1 _3_x;
+	struct1* _2_t6;
+	struct1* _2_t5;
+	struct1 _2_t7;
+	int64_t _2_t8;
+	int64_t _2_t9;
+	int64_t _2_$retval;
 BB0:
-	_388_t1 = 1;
-	_388_t2 = 2;
-	_388_t3 = 3;
-	_388_t4 = 4;
-	_389_x = (struct1) {_388_t1, _388_t2, _388_t3, _388_t4};
-	_388_t6 = &_389_x;
-	_388_t5 = _390_f(_388_t6);
-	_388_t8 = 3;
-	_388_t9 = *(((int64_t*)(_388_t5))+_388_t8);
-	_388_$retval = _388_t9;
-	return _388_$retval;
+	_2_t1 = 1;
+	_2_t2 = 2;
+	_2_t3 = 3;
+	_2_t4 = 4;
+	_3_x = (struct1) {_2_t1, _2_t2, _2_t3, _2_t4};
+	_2_t6 = &_3_x;
+	_2_t5 = _4_f(_2_t6);
+	_2_t8 = 3;
+	_2_t9 = *(((int64_t*)(_2_t5))+_2_t8);
+	_2_$retval = _2_t9;
+	return _2_$retval;
 }
 
-struct1* _390_f(struct1* _390_x) {
-	struct1 _390_t0;
-	int64_t _390_t1;
-	int64_t _390_t2;
-	struct1* _390_$retval;
+struct1* _4_f(struct1* _4_x) {
+	struct1 _4_t0;
+	int64_t _4_t1;
+	int64_t _4_t2;
+	struct1* _4_$retval;
 BB0:
-	_390_t1 = 3;
-	_390_t2 = 78;
-	*(((int64_t*)(_390_x))+_390_t1) = _390_t2;
-	_390_$retval = _390_x;
-	return _390_$retval;
+	_4_t1 = 3;
+	_4_t2 = 78;
+	*(((int64_t*)(_4_x))+_4_t1) = _4_t2;
+	_4_$retval = _4_x;
+	return _4_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_388_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

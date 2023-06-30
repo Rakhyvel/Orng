@@ -10,44 +10,44 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _205_main();
-int64_t _207_$anon0(int64_t _207_x);
-int64_t _208_apply(function0 _208_f,int64_t _208_x);
+int64_t _2_main();
+int64_t _4_$anon0(int64_t _4_x);
+int64_t _5_apply(function0 _5_f,int64_t _5_x);
 
 /* Function definitions */
-int64_t _205_main() {
-	function0 _205_t0;
-	int64_t _205_t2;
-	int64_t _205_t1;
-	int64_t _205_$retval;
+int64_t _2_main() {
+	function0 _2_t0;
+	int64_t _2_t2;
+	int64_t _2_t1;
+	int64_t _2_$retval;
 BB0:
-	_205_t0 = _207_$anon0;
-	_205_t2 = 43;
-	_205_t1 = _208_apply(_205_t0, _205_t2);
-	_205_$retval = _205_t1;
-	return _205_$retval;
+	_2_t0 = _4_$anon0;
+	_2_t2 = 43;
+	_2_t1 = _5_apply(_2_t0, _2_t2);
+	_2_$retval = _2_t1;
+	return _2_$retval;
 }
 
-int64_t _207_$anon0(int64_t _207_x) {
-	int64_t _207_$retval;
+int64_t _4_$anon0(int64_t _4_x) {
+	int64_t _4_$retval;
 BB0:
-	_207_$retval = _207_x;
-	return _207_$retval;
+	_4_$retval = _4_x;
+	return _4_$retval;
 }
 
-int64_t _208_apply(function0 _208_f,int64_t _208_x) {
-	int64_t _208_t0;
-	int64_t _208_$retval;
+int64_t _5_apply(function0 _5_f,int64_t _5_x) {
+	int64_t _5_t0;
+	int64_t _5_$retval;
 BB0:
-	_208_t0 = _208_f(_208_x);
-	_208_$retval = _208_t0;
-	return _208_$retval;
+	_5_t0 = _5_f(_5_x);
+	_5_$retval = _5_t0;
+	return _5_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_205_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

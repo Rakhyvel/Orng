@@ -13,33 +13,33 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _349_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _349_main() {
-	int64_t _349_t1;
-	int64_t _349_t2;
-	struct1 _350_x;
-	int64_t _349_t3;
-	int64_t _349_t4;
-	int64_t _349_t5;
-	int64_t _349_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	struct1 _3_x;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	int64_t _2_t5;
+	int64_t _2_$retval;
 BB0:
-	_349_t1 = 50;
-	_349_t2 = 5;
-	_350_x = (struct1) {_349_t1, _349_t2};
-	_349_t3 = 6;
-	(&_350_x)->_1 = _349_t3;
-	_349_t4 = *&((&_350_x)->_0);
-	_349_t5 = *&((&_350_x)->_1);
-	_349_$retval = _349_t4 + _349_t5;
-	return _349_$retval;
+	_2_t1 = 50;
+	_2_t2 = 5;
+	_3_x = (struct1) {_2_t1, _2_t2};
+	_2_t3 = 6;
+	(&_3_x)->_1 = _2_t3;
+	_2_t4 = *&((&_3_x)->_0);
+	_2_t5 = *&((&_3_x)->_1);
+	_2_$retval = _2_t4 + _2_t5;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_349_main());
+  printf("%ld",_2_main());
   return 0;
 }
 

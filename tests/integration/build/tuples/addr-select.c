@@ -15,39 +15,39 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _321_main();
+int64_t _2_main();
 
 /* Function definitions */
-int64_t _321_main() {
-	int64_t _321_t1;
-	int64_t _321_t2;
-	int64_t _321_t3;
-	int64_t _321_t4;
-	struct1 _322_x;
-	int64_t _321_t5;
-	int64_t* _321_t6;
-	int64_t _321_t7;
-	int64_t _321_t8;
-	int64_t _321_$retval;
+int64_t _2_main() {
+	int64_t _2_t1;
+	int64_t _2_t2;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	struct1 _3_x;
+	int64_t _2_t5;
+	int64_t* _2_t6;
+	int64_t _2_t7;
+	int64_t _2_t8;
+	int64_t _2_$retval;
 BB0:
-	_321_t1 = 1;
-	_321_t2 = 2;
-	_321_t3 = 3;
-	_321_t4 = 4;
-	_322_x = (struct1) {_321_t1, _321_t2, _321_t3, _321_t4};
-	_321_t5 = *&((&_322_x)->_3);
-	_321_t6 = &((&_322_x)->_3);
-	_321_t7 = 66;
-	**&_321_t6 = _321_t7;
-	_321_t8 = *&((&_322_x)->_3);
-	_321_$retval = _321_t8;
-	return _321_$retval;
+	_2_t1 = 1;
+	_2_t2 = 2;
+	_2_t3 = 3;
+	_2_t4 = 4;
+	_3_x = (struct1) {_2_t1, _2_t2, _2_t3, _2_t4};
+	_2_t5 = *&((&_3_x)->_3);
+	_2_t6 = &((&_3_x)->_3);
+	_2_t7 = 66;
+	**&_2_t6 = _2_t7;
+	_2_t8 = *&((&_3_x)->_3);
+	_2_$retval = _2_t8;
+	return _2_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_321_main());
+  printf("%ld",_2_main());
   return 0;
 }
 
