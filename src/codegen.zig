@@ -65,6 +65,20 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
             try out.writer().print(" _{};\n", .{i});
         }
         try out.writer().print("}} struct{};\n", .{dag.uid});
+    } else if (dag.base.* == .sum) {
+        try out.writer().print("typedef struct {{\n\tuint64_t tag;\n", .{});
+        if (!dag.base.sum.all_unit) {
+            try out.writer().print("\tunion {{\n", .{});
+            for (dag.base.sum.terms.items, 0..) |term, i| {
+                if (!term.annotation.type.typesMatch(_ast.unitType)) {
+                    try out.writer().print("\t\t", .{});
+                    try printType(term, out);
+                    try out.writer().print(" _{};\n", .{i});
+                }
+            }
+            try out.writer().print("\t}};\n", .{});
+        }
+        try out.writer().print("}} struct{};\n", .{dag.uid});
     }
 }
 
@@ -317,6 +331,17 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
                 if (i != ir.data.symbverList.items.len) {
                     try out.writer().print(", ", .{});
                 }
+            }
+            try out.writer().print("}};\n", .{});
+        },
+        .loadUnion => {
+            try printVarAssign(ir.dest.?, out);
+            try out.writer().print("(", .{});
+            try printType(ir.dest.?.symbol._type.?, out);
+            try out.writer().print(") {{{}", .{ir.data.int});
+            if (ir.src1) |init| {
+                try out.writer().print(", ", .{});
+                try printSymbolVersion(init, out);
             }
             try out.writer().print("}};\n", .{});
         },
@@ -589,7 +614,7 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             var i = (try _program.typeSetGet(_type, &program.types, program.prelude, program.errors, program.allocator)).?.uid;
             try out.writer().print("function{}", .{i});
         },
-        .product => {
+        .sum, .product => {
             var i = (try _program.typeSetGet(_type, &program.types, program.prelude, program.errors, program.allocator)).?.uid;
             try out.writer().print("struct{}", .{i});
         },

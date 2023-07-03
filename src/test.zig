@@ -31,6 +31,7 @@ pub fn main() !void {
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/layout/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/slices/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/strings/" }) catch {};
+            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/sums/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/tuples/" }) catch {};
             _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/whitebox/" }) catch {};
 
@@ -105,7 +106,10 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
 }
 
 fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) !bool {
-    var dot_index = indexOf(filename, '.').?;
+    var dot_index = indexOf(filename, '.') orelse {
+        std.debug.print("filename {s} doens't contain a '.'", .{filename});
+        return error.InvalidFilename;
+    };
     var test_name = filename[0..dot_index];
 
     // Input .orng file

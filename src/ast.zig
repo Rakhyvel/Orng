@@ -130,7 +130,11 @@ pub const AST = union(enum) {
     delta: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     composition: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     prepend: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    sum: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    sum: struct {
+        common: ASTCommon,
+        terms: std.ArrayList(*AST),
+        all_unit: bool = true,
+    },
     _error: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     product: struct {
         common: ASTCommon,
@@ -167,7 +171,13 @@ pub const AST = union(enum) {
     namedArg: struct { common: ASTCommon, ident: *AST, init: *AST },
     subSlice: struct { common: ASTCommon, super: *AST, lower: ?*AST, upper: ?*AST },
     annotation: struct { common: ASTCommon, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
-    inferredMember: struct { common: ASTCommon, ident: *AST, init: ?*AST },
+    inferredMember: struct {
+        common: ASTCommon,
+        ident: *AST,
+        init: ?*AST,
+        base: ?*AST = null,
+        pos: ?i128 = null,
+    },
 
     // Control-flow expressions
     _if: struct {
@@ -456,8 +466,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .select = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs, .pos = null } }, allocator);
     }
 
-    pub fn createSum(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createSum(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
     pub fn createFunction(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
@@ -810,8 +820,16 @@ pub const AST = union(enum) {
 
             .select => {
                 var select_lhs_type = try self.select.lhs.typeof(scope, errors, allocator);
-                for (select_lhs_type.product.terms.items, 0..) |term, i| {
-                    if (std.mem.eql(u8, term.annotation.pattern.identifier.common.token.data, self.select.rhs.identifier.common.token.data)) {
+                var annot_list: *std.ArrayList(*AST) = undefined;
+                if (select_lhs_type.* == .product) {
+                    annot_list = &select_lhs_type.product.terms;
+                } else if (select_lhs_type.* == .sum) {
+                    annot_list = &select_lhs_type.sum.terms;
+                } else {
+                    unreachable;
+                }
+                for (annot_list.items, 0..) |term, i| {
+                    if (std.mem.eql(u8, term.annotation.pattern.getToken().data, self.select.rhs.getToken().data)) {
                         self.select.pos = i;
                         retval = term.annotation.type;
                         break;
@@ -858,6 +876,7 @@ pub const AST = union(enum) {
                 }
             },
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
+            .inferredMember => retval = self.inferredMember.base.?,
 
             // Binary operators (TODO: Make polymorphic)
             .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
@@ -948,6 +967,20 @@ pub const AST = union(enum) {
                     }
                     var retval = true;
                     for (self.product.terms.items, other.product.terms.items) |term, other_term| {
+                        retval = retval and term.typesMatch(other_term);
+                    }
+                    return retval;
+                }
+            },
+            .sum => {
+                if (other.* != .sum) {
+                    return false;
+                } else {
+                    if (other.sum.terms.items.len != self.sum.terms.items.len) {
+                        return false;
+                    }
+                    var retval = true;
+                    for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
                         retval = retval and term.typesMatch(other_term);
                     }
                     return retval;

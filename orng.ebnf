@@ -47,7 +47,7 @@ neqExpr: conditionalExpr ["!=" conditionalExpr].
 
 conditionalExpr: deltaExpr {("==" | "<" | "<=" | ">" | ">=") deltaExpr}.
 
-deltaExpr: coalesceExpr {"|>" coalesceExpr}. # (rhs must be a call expr)
+deltaExpr: coalesceExpr {">>" coalesceExpr}. # (rhs must be a call expr)
 
 coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 

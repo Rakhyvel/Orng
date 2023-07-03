@@ -98,9 +98,8 @@ pub const IRKind = enum {
     loadInt,
     loadFloat,
     loadStruct,
-    loadArrayLiteral, // TODO: ?
-    loadDefaultArray, // TODO: ?
-    loadString, // TODO: ?
+    loadUnion,
+    loadString,
     decl,
 
     // Monadic instructions
@@ -243,6 +242,12 @@ pub const IR = struct {
     fn createSelect(dest: *SymbolVersion, src1: *SymbolVersion, field_pos: i128, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.select, dest, src1, null, allocator);
         retval.data = IRData{ .int = field_pos };
+        return retval;
+    }
+
+    fn createUnion(dest: *SymbolVersion, init: ?*SymbolVersion, tag: i128, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadUnion, dest, init, null, allocator);
+        retval.data = IRData{ .int = tag };
         return retval;
     }
 
@@ -934,6 +939,18 @@ pub const CFG = struct {
                 try load_struct.data.symbverList.append(new_size);
                 temp.def = load_struct;
                 self.appendInstruction(load_struct);
+                return temp;
+            },
+            .inferredMember => {
+                var init: ?*SymbolVersion = null;
+                if (ast.inferredMember.init) |_init| {
+                    init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, true, errors, allocator);
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+
+                var ir = try IR.createUnion(temp, init, ast.inferredMember.pos.?, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
                 return temp;
             },
             .conditional => {

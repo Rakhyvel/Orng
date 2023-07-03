@@ -347,7 +347,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 select_lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
             }
 
-            if (select_lhs_type.* != .product) {
+            if (select_lhs_type.* != .product and select_lhs_type.* != .sum) {
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
                     .msg = "left-hand-side of select is not selectable",
@@ -375,7 +375,30 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-
+        .sum => {
+            var new_terms = std.ArrayList(*AST).init(allocator);
+            for (ast.sum.terms.items) |term| {
+                // Make sure identifiers aren't repeated
+                if (term.* == .annotation) {
+                    try new_terms.append(try validateAST(term, _ast.typeType, scope, errors, allocator));
+                    ast.sum.all_unit = ast.sum.all_unit and term.typesMatch(_ast.unitType);
+                } else if (term.* == .identifier) {
+                    var new_annotation = try AST.createAnnotation(term.getToken(), term, _ast.unitType, null, null, allocator);
+                    new_annotation.getCommon().is_valid = true;
+                    try new_terms.append(new_annotation);
+                } else {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "invalid sum expression, must be annotation or identifier", .stage = .typecheck } });
+                    return error.typeError;
+                }
+            }
+            ast.sum.terms = new_terms;
+            if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                retval = ast;
+            }
+        },
         .product => {
             var new_terms = std.ArrayList(*AST).init(allocator);
             if (expected != null and expected.?.typesMatch(_ast.typeType)) {
@@ -556,7 +579,30 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-
+        .inferredMember => {
+            if (expected == null) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot infer the sum type", .stage = .typecheck } });
+                return error.typeError;
+            } else if (expected != null and expected.?.* != .sum) {
+                // TODO: Better error message
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected a sum type", .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                ast.inferredMember.base = expected.?;
+                for (expected.?.sum.terms.items, 0..) |term, i| {
+                    if (std.mem.eql(u8, term.annotation.pattern.getToken().data, ast.inferredMember.ident.getToken().data)) {
+                        ast.inferredMember.pos = i;
+                    }
+                }
+                // TODO: Expect that if the annotation doesn't have a default value, init must not be null, otherwise init := default value
+                if (ast.inferredMember.pos == null) {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "not a member of the sum type", .stage = .typecheck } });
+                    return error.typeError;
+                } else {
+                    retval = ast;
+                }
+            }
+        },
         ._if => {
             if (ast._if.let) |let| {
                 ast._if.let = try validateAST(let, null, scope, errors, allocator);

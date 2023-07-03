@@ -263,8 +263,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.prepend.rhs, scope, errors, allocator);
         },
         .sum => {
-            try symbolTableFromAST(definition.sum.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.sum.rhs, scope, errors, allocator);
+            try symbolTableFromASTList(definition.sum.terms, scope, errors, allocator);
         },
         ._error => {
             try symbolTableFromAST(definition._error.lhs, scope, errors, allocator);

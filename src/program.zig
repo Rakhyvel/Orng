@@ -99,6 +99,12 @@ fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors
                     try dag.dependencies.append(dependency);
                 }
             }
+        } else if (ast.* == .sum) {
+            for (ast.sum.terms.items) |term| {
+                if (try typeSetAppend(term, set, scope, errors, allocator)) |dependency| {
+                    try dag.dependencies.append(dependency);
+                }
+            }
         }
         return dag;
     }
