@@ -108,7 +108,6 @@
         - [ ] `\u<unicode code point, hex>`
         - [x] Error on invalid escapes
         - [x] Error if character literal contains more than one character
-    - [ ] Support UTF-8 identifiers
 - [ ] Sum types
     - [ ] `||` for union
 - [ ] optionals

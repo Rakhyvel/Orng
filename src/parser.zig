@@ -81,6 +81,8 @@ pub const Parser = struct {
         return nextKind == .LET or nextKind == .CONST or nextKind == .DEFER or nextKind == .ERRDEFER or self.nextIsExpr();
     }
 
+    /// Returns the next token if its kind matches the given kind, otherwise
+    /// null
     fn accept(self: *Parser, kind: TokenKind) ?Token {
         var token = self.peek();
         if (token.kind == kind) {
@@ -91,6 +93,7 @@ pub const Parser = struct {
         }
     }
 
+    /// Returns the token with an expected kind, or throws an error.
     fn expect(self: *Parser, kind: TokenKind) ParserErrorEnum!Token {
         if (self.accept(kind)) |token| {
             return token;
@@ -100,6 +103,7 @@ pub const Parser = struct {
         }
     }
 
+    /// Parses a token stream a file into a list of declaration ASTs
     pub fn parse(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
         var decls = std.ArrayList(*AST).init(self.astAllocator);
         while (self.accept(.NEWLINE)) |_| {}
@@ -855,6 +859,12 @@ pub const Parser = struct {
     }
 };
 
+/// This function takes an input array of unsigned 8-bit integers (`input`) and
+/// an allocator and returns a new array on the allocator with the apostrophes
+/// removed.
+///
+/// Used to remove apostrophes from number literals before they are parsed by
+/// std.fmt parse functions, which cannot handle apostophes.
 fn stripApostrophes(input: []const u8, allocator: std.mem.Allocator) ![]const u8 {
     var retval = String.init(allocator);
     defer retval.deinit();
