@@ -71,11 +71,31 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
 fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *std.fs.File) !void {
     for (interned_strings.items, 0..) |str, i| {
         try out.writer().print("char* string_{} = \"", .{i});
+        var escape = false;
         for (str, 0..) |byte, j| {
             if (j == 0 or j == str.len - 1) {
                 continue;
+            } else if (escape) {
+                escape = false;
+                if (byte == 'n') {
+                    try out.writer().print("\\x0A", .{});
+                } else if (byte == 'r') {
+                    try out.writer().print("\\x0D", .{});
+                } else if (byte == 't') {
+                    try out.writer().print("\\x09", .{});
+                } else if (byte == '\'') {
+                    try out.writer().print("\\x27", .{});
+                } else if (byte == '"') {
+                    try out.writer().print("\\x22", .{});
+                } else {
+                    // TODO: Do \xNN, possibly \u{NNNNNN}
+                }
             } else {
-                try out.writer().print("\\x{x}", .{byte});
+                if (byte == '\\') {
+                    escape = true;
+                } else {
+                    try out.writer().print("\\x{X}", .{byte});
+                }
             }
         }
         try out.writer().print("\";\n", .{});
@@ -258,7 +278,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("(", .{});
             try printType(ir.dest.?.symbol._type.?, out);
-            try out.writer().print(") {{string_{}, {}}};\n", .{ ir.data.string_id, program.interned_strings.items[ir.data.string_id].len });
+            try out.writer().print(") {{string_{}, {}}};\n", .{ ir.data.string_id, program.interned_strings.items[ir.data.string_id].len - 1 });
         },
         .loadStruct => {
             try printVarAssign(ir.dest.?, out);
@@ -534,7 +554,7 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
                 try out.writer().print("double", .{});
             } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
-                try out.writer().print("int32_t", .{});
+                try out.writer().print("uint32_t", .{});
             } else {
                 try printType(_type.getCommon().expanded_type.?, out);
             }

@@ -375,30 +375,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-        .sum => {
-            if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
-                return error.typeError;
-            } else {
-                retval = ast;
-            }
-        },
-        ._error => {
-            if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
-                return error.typeError;
-            } else {
-                retval = ast;
-            }
-        },
-        ._union => {
-            if (expected != null and !expected.?.typesMatch(_ast.typeType)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
-                return error.typeError;
-            } else {
-                retval = ast;
-            }
-        },
 
         .product => {
             var new_terms = std.ArrayList(*AST).init(allocator);

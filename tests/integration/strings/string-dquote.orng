@@ -1,0 +1,4 @@
+// 34
+fn main: () -> Byte = 
+    let x = "\n\r\t\'\""
+    x[4]

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1688344203871266608
-#define ORNG_1688344203871266608
+#ifndef ORNG_1688344925273742548
+#define ORNG_1688344925273742548
 
 #include <math.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@ typedef struct {
 } struct0;
 
 /* Interned Strings */
-char* string_0 = "\x48\x65\x6c\x6c\x6f\x2c\x20\x4f\x72\x6e\x67\x21\x20\xf0\x9f\x8d\x8a";
+char* string_0 = "\x48\x65\x6C\x6C\x6F\x2C\x20\x4F\x72\x6E\x67\x21\x20\xF0\x9F\x8D\x8A";
 
 /* Function forward definitions */
 struct0 _2_main();
@@ -22,7 +22,7 @@ struct0 _2_main();
 struct0 _2_main() {
 	struct0 _2_$retval;
 BB0:
-	_2_$retval = (struct0) {string_0, 19};
+	_2_$retval = (struct0) {string_0, 18};
 	return _2_$retval;
 }
 

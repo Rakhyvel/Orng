@@ -13,7 +13,7 @@ typedef struct {
 } struct0;
 
 /* Interned Strings */
-char* string_0 = "\x4e\x4f\x57\x20\x59\x55\x4f\x20\x43\x45\x45\x2e\x2e\x2e";
+char* string_0 = "\x4E\x4F\x57\x20\x59\x55\x4F\x20\x43\x45\x45\x2E\x2E\x2E";
 
 /* Function forward definitions */
 uint8_t _2_main();
@@ -25,7 +25,7 @@ uint8_t _2_main() {
 	uint8_t _2_t2;
 	uint8_t _2_$retval;
 BB0:
-	_3_x = (struct0) {string_0, 16};
+	_3_x = (struct0) {string_0, 15};
 	_2_t1 = 5;
 	_2_t2 = *(((uint8_t*)((&_3_x)->_0))+_2_t1);
 	_2_$retval = _2_t2;
