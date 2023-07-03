@@ -98,10 +98,10 @@
     - [x] Byte type
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
-        - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
+        - [x] Character escapes (`\n`, `\r`, `\t`, `\x<hex byte>` `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes (this should happen at lex-time)
-        - [ ] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
-        - [ ] TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
+        - [x] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
+        > TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
     - [ ] Character literals
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes

@@ -72,8 +72,12 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
     for (interned_strings.items, 0..) |str, i| {
         try out.writer().print("char* string_{} = \"", .{i});
         var escape = false;
+        var skip: i8 = 0;
         for (str, 0..) |byte, j| {
-            if (j == 0 or j == str.len - 1) {
+            if (skip > 0) {
+                skip -= 1;
+                continue;
+            } else if (j == 0 or j == str.len - 1) {
                 continue;
             } else if (escape) {
                 escape = false;
@@ -87,8 +91,12 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
                     try out.writer().print("\\x27", .{});
                 } else if (byte == '"') {
                     try out.writer().print("\\x22", .{});
+                } else if (byte == 'x') {
+                    var res: usize = get_nibble(str[j + 1]) * 16 + get_nibble(str[j + 2]);
+                    try out.writer().print("\\x{X}", .{res});
+                    skip = 2;
                 } else {
-                    // TODO: Do \xNN, possibly \u{NNNNNN}
+                    unreachable;
                 }
             } else {
                 if (byte == '\\') {
@@ -99,6 +107,18 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
             }
         }
         try out.writer().print("\";\n", .{});
+    }
+}
+
+fn get_nibble(c: u8) u8 {
+    if ('0' <= c and c <= '9') {
+        return c - '0';
+    } else if ('a' <= c and c <= 'f') {
+        return c - 'a' + 10;
+    } else if ('A' <= c and c <= 'F') {
+        return c - 'A' + 10;
+    } else {
+        unreachable;
     }
 }
 
