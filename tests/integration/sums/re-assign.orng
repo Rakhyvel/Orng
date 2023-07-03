@@ -1,0 +1,5 @@
+// 103
+fn main: () -> Int =
+    let mut x: (int: Int | bool: Bool) = .int(4)
+    x.int = 103
+    x.int

@@ -1,0 +1,5 @@
+// 104
+fn main: () -> Int =
+    let mut x: (sum: (int: Int | bool: Bool) | _) = .sum(.int(4))
+    x.sum.int = 104
+    x.sum.int

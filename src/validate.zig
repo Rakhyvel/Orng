@@ -607,6 +607,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     return error.typeError;
                 } else if (ast.inferredMember.init == null) {
                     ast.inferredMember.init = proper_term.?.annotation.init.?;
+                } else {
+                    ast.inferredMember.init = try validateAST(ast.inferredMember.init.?, proper_term.?.annotation.type, scope, errors, allocator);
                 }
                 retval = ast;
             }
