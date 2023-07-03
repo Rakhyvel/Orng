@@ -31,6 +31,8 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
         ident,
         string,
         escapedString,
+        byteString1,
+        byteString2,
         char,
         escapedChar,
         integer,
@@ -182,10 +184,39 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                 if (ix == contents.len) {
                     errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
-                } else {
+                } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\'' or next_char == '"') {
                     ix += 1;
                     col += 1;
                     state = .string;
+                } else if (next_char == 'x') {
+                    ix += 1;
+                    col += 1;
+                    state = .byteString1;
+                } else {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid escape sequence", .stage = .tokenization } });
+                    return LexerErrors.lexerError;
+                }
+            },
+
+            .byteString1 => {
+                if (std.ascii.isDigit(next_char) or ('a' <= next_char and next_char <= 'f') or ('A' <= next_char and next_char <= 'F')) {
+                    ix += 1;
+                    col += 1;
+                    state = .byteString2;
+                } else {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid escape sequence", .stage = .tokenization } });
+                    return LexerErrors.lexerError;
+                }
+            },
+
+            .byteString2 => {
+                if (std.ascii.isDigit(next_char) or ('a' <= next_char and next_char <= 'f') or ('A' <= next_char and next_char <= 'F')) {
+                    ix += 1;
+                    col += 1;
+                    state = .string;
+                } else {
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid escape sequence", .stage = .tokenization } });
+                    return LexerErrors.lexerError;
                 }
             },
 

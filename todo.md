@@ -105,6 +105,7 @@
     - [ ] Character literals
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)
         - [ ] Error on invalid escapes
+    - [ ] Support UTF-8 identifiers
 - [ ] Sum types
     - [ ] `||` for union
 - [ ] optionals

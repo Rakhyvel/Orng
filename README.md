@@ -22,10 +22,13 @@ zig build
 ```
 
 ## Usage
-Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a simple "Hello, World" program in Orng:
+Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a "Hello, World" program in Orng:
 ```rs
 fn main: (sys: System)->!() =
-    sys.stdout.>println("Hello, Orng! 🍊")
+    greet("Orng! 🍊", sys.stdout)
+
+fn greet: (recipient: String, out: @Writer) -> !() =
+    out.>writeln("Hello, {s}", recipient)
 ```
 
 To run this program, simply save it to a file with a ".orng" extension and then run the following command in the terminal:
