@@ -377,15 +377,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .sum => {
             var new_terms = std.ArrayList(*AST).init(allocator);
+            var idents_seen = std.StringArrayHashMap(void).init(allocator);
+            defer idents_seen.deinit();
             for (ast.sum.terms.items) |term| {
                 // Make sure identifiers aren't repeated
                 if (term.* == .annotation) {
                     try new_terms.append(try validateAST(term, _ast.typeType, scope, errors, allocator));
                     ast.sum.all_unit = ast.sum.all_unit and term.typesMatch(_ast.unitType);
+                    var res = try idents_seen.fetchPut(term.annotation.pattern.getToken().data, {});
+                    if (res) |_| {
+                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "duplication of sum member", .stage = .typecheck } });
+                        return error.typeError;
+                    }
                 } else if (term.* == .identifier) {
                     var new_annotation = try AST.createAnnotation(term.getToken(), term, _ast.unitType, null, null, allocator);
                     new_annotation.getCommon().is_valid = true;
                     try new_terms.append(new_annotation);
+                    var res = try idents_seen.fetchPut(term.getToken().data, {});
+                    if (res) |_| {
+                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "duplication of sum member", .stage = .typecheck } });
+                        return error.typeError;
+                    }
                 } else {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "invalid sum expression, must be annotation or identifier", .stage = .typecheck } });
                     return error.typeError;

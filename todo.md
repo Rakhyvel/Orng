@@ -110,6 +110,7 @@
         - [x] Error if character literal contains more than one character
 - [ ] Sum types
     - [ ] `||` for union
+    - [ ] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
 - [ ] optionals
     - [ ] `?` constructor
     - [ ] `.?` (or `some`?) value from optional
