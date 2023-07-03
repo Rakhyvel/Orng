@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1688400214792780085
-#define ORNG_1688400214792780085
+#ifndef ORNG_1688413757276238320
+#define ORNG_1688413757276238320
 
 #include <math.h>
 #include <stdio.h>
@@ -28,7 +28,7 @@ int64_t _2_main() {
 	int64_t _2_t2;
 	int64_t _2_$retval;
 BB0:
-	_2_t0 = 101;
+	_2_t0 = 102;
 	_2_t1 = (struct1) {0, _2_t0};
 	_3_x = _2_t1;
 	_2_t2 = *&((&_3_x)->_0);

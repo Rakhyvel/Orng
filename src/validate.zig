@@ -589,18 +589,26 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return error.typeError;
             } else {
                 ast.inferredMember.base = expected.?;
+                var proper_term: ?*AST = null;
                 for (expected.?.sum.terms.items, 0..) |term, i| {
                     if (std.mem.eql(u8, term.annotation.pattern.getToken().data, ast.inferredMember.ident.getToken().data)) {
                         ast.inferredMember.pos = i;
+                        proper_term = term;
+                        break;
                     }
                 }
-                // TODO: Expect that if the annotation doesn't have a default value, init must not be null, otherwise init := default value
                 if (ast.inferredMember.pos == null) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "not a member of the sum type", .stage = .typecheck } });
                     return error.typeError;
-                } else {
-                    retval = ast;
                 }
+
+                if (ast.inferredMember.init == null and proper_term.?.annotation.init == null) {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "must specify an initialize value", .stage = .typecheck } });
+                    return error.typeError;
+                } else if (ast.inferredMember.init == null) {
+                    ast.inferredMember.init = proper_term.?.annotation.init.?;
+                }
+                retval = ast;
             }
         },
         ._if => {

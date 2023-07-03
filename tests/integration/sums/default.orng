@@ -1,0 +1,4 @@
+// 102
+fn main: () -> Int = 
+    let x: (int: Int = 102 | bool: Bool = false) = .int
+    x.int

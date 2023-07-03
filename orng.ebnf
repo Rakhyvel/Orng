@@ -31,7 +31,7 @@ expr: condMatchExpr
     | sumExpr
     .
 
-sumExpr: productExpr {"|" ident [":" productExpr]}. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
+sumExpr: productExpr {"|" annotExpr}. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
 
 productExpr: annotExpr {"," annotExpr}.
 
