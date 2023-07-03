@@ -273,6 +273,15 @@ fn propagateIR(ir: *IR) bool {
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
+            // String constant propagation
+            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadString) {
+                ir.kind = .loadString;
+                ir.data = ir.src1.?.def.?.data;
+                ir.src1 = null;
+                ir.src2 = null;
+                ir.dest.?.lvalue = false;
+                retval = true;
+            }
             // Struct constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadStruct) {
                 ir.kind = .loadStruct;

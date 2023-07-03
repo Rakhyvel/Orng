@@ -8,6 +8,8 @@
 
 /* Typedefs */
 
+/* Interned Strings */
+
 /* Function forward definitions */
 int64_t _2_main();
 int64_t _4_fib(int64_t _4_n);

@@ -14,6 +14,8 @@ typedef struct {
 	int64_t* _3;
 } struct2;
 
+/* Interned Strings */
+
 /* Function forward definitions */
 int64_t _2_main();
 

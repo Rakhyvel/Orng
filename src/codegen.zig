@@ -23,6 +23,8 @@ pub fn generate(__program: *Program, file: *std.fs.File) !void {
 
     try file.writer().print("/* Typedefs */\n", .{});
     try generateFunctionTypedefs(&program.types, file);
+    try file.writer().print("\n/* Interned Strings */\n", .{});
+    try generateInternedStrings(program.interned_strings, file);
     try file.writer().print("\n/* Function forward definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
     try file.writer().print("\n/* Function definitions */\n", .{});
@@ -63,6 +65,20 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
             try out.writer().print(" _{};\n", .{i});
         }
         try out.writer().print("}} struct{};\n", .{dag.uid});
+    }
+}
+
+fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *std.fs.File) !void {
+    for (interned_strings.items, 0..) |str, i| {
+        try out.writer().print("char* string_{} = \"", .{i});
+        for (str, 0..) |byte, j| {
+            if (j == 0 or j == str.len - 1) {
+                continue;
+            } else {
+                try out.writer().print("\\x{x}", .{byte});
+            }
+        }
+        try out.writer().print("\";\n", .{});
     }
 }
 
@@ -133,6 +149,12 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
             \\{{
             \\  printf("%ld",
         , .{});
+    } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.identifier.common.token.data, "String")) {
+        try out.writer().print(
+            \\int main()
+            \\{{
+            \\  printf("%s",
+        , .{});
     } else {
         try out.writer().print(
             \\int main()
@@ -141,13 +163,23 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
         , .{});
     }
     try printSymbol(callGraph.symbol, out);
-    try out.writer().print(
-        \\());
-        \\  return 0;
-        \\}}
-        \\
-        \\
-    , .{});
+    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.identifier.common.token.data, "String")) {
+        try out.writer().print(
+            \\()._0);
+            \\  return 0;
+            \\}}
+            \\
+            \\
+        , .{});
+    } else {
+        try out.writer().print(
+            \\());
+            \\  return 0;
+            \\}}
+            \\
+            \\
+        , .{});
+    }
 }
 
 fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void {
@@ -224,7 +256,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .loadString => {
             try printVarAssign(ir.dest.?, out);
-            try out.writer().print("{s};\n", .{ir.data.string});
+            try out.writer().print("(", .{});
+            try printType(ir.dest.?.symbol._type.?, out);
+            try out.writer().print(") {{string_{}, {}}};\n", .{ ir.data.string_id, program.interned_strings.items[ir.data.string_id].len });
         },
         .loadStruct => {
             try printVarAssign(ir.dest.?, out);
@@ -450,22 +484,25 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
                 // The lval of a dereference is the reference itself
                 try printSymbolVersion(ir.src1.?, out);
             },
-            .index => if (!ir.src1.?.symbol._type.?.product.was_slice) {
-                try out.writer().print("(((", .{});
-                try printType(ir.dest.?.symbol._type.?, out);
-                try out.writer().print("*)(", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print("))+", .{});
-                try printSymbolVersion(ir.src2.?, out);
-                try out.writer().print(")", .{});
-            } else {
-                try out.writer().print("(((", .{});
-                try printType(ir.dest.?.symbol._type.?, out);
-                try out.writer().print("*)((", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print(")->_0))+", .{});
-                try printSymbolVersion(ir.src2.?, out);
-                try out.writer().print(")", .{});
+            .index => {
+                var lhs_type = ir.src1.?.symbol._type.?;
+                if (lhs_type.* == .product and !lhs_type.product.was_slice) {
+                    try out.writer().print("(((", .{});
+                    try printType(ir.dest.?.symbol._type.?, out);
+                    try out.writer().print("*)(", .{});
+                    try generateLValueIR(ir.src1.?, out);
+                    try out.writer().print("))+", .{});
+                    try printSymbolVersion(ir.src2.?, out);
+                    try out.writer().print(")", .{});
+                } else {
+                    try out.writer().print("(((", .{});
+                    try printType(ir.dest.?.symbol._type.?, out);
+                    try out.writer().print("*)((", .{});
+                    try generateLValueIR(ir.src1.?, out);
+                    try out.writer().print(")->_0))+", .{});
+                    try printSymbolVersion(ir.src2.?, out);
+                    try out.writer().print(")", .{});
+                }
             },
             .select => {
                 try out.writer().print("&((", .{});
@@ -487,8 +524,10 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
 
 fn printType(_type: *AST, out: *std.fs.File) !void {
     switch (_type.*) {
-        .identifier => {
+        .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
             if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
+                try out.writer().print("uint8_t", .{});
+            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Byte")) {
                 try out.writer().print("uint8_t", .{});
             } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
                 try out.writer().print("int64_t", .{});
@@ -496,6 +535,8 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
                 try out.writer().print("double", .{});
             } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
                 try out.writer().print("int32_t", .{});
+            } else {
+                try printType(_type.getCommon().expanded_type.?, out);
             }
         },
         .addrOf => {
@@ -503,11 +544,11 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
             try out.writer().print("*", .{});
         },
         .function => {
-            var i = _program.typeSetGet(_type, &program.types).?.uid;
+            var i = (try _program.typeSetGet(_type, &program.types, program.prelude, program.errors, program.allocator)).?.uid;
             try out.writer().print("function{}", .{i});
         },
         .product => {
-            var i = _program.typeSetGet(_type, &program.types).?.uid;
+            var i = (try _program.typeSetGet(_type, &program.types, program.prelude, program.errors, program.allocator)).?.uid;
             try out.writer().print("struct{}", .{i});
         },
         .unit => {

@@ -25,7 +25,7 @@ zig build
 Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a simple "Hello, World" program in Orng:
 ```rs
 fn main: (sys: System)->!() =
-    sys.stdout.>println("Hello, World!")
+    sys.stdout.>println("Hello, Orng! 🍊")
 ```
 
 To run this program, simply save it to a file with a ".orng" extension and then run the following command in the terminal:

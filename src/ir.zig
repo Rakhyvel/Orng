@@ -1,5 +1,6 @@
 const _ast = @import("ast.zig");
 const errs = @import("errors.zig");
+const program = @import("program.zig");
 const span = @import("span.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
@@ -153,7 +154,7 @@ pub const IRData = union(enum) {
     branch: ?*IR,
     int: i128,
     float: f64,
-    string: []const u8,
+    string_id: usize,
     symbver: *SymbolVersion, // Used by index-copy, since it needs an extra symbver to hold index-rhs
     symbol: *Symbol,
     irList: std.ArrayList(*IR),
@@ -204,11 +205,11 @@ pub const IR = struct {
         return retval;
     }
 
-    // fn createString(dest: *SymbolVersion, string: []const u8, allocator: std.mem.Allocator) !*IR {
-    //     var retval = try IR.create(.loadString, dest, null, null, allocator);
-    //     retval.data = IRData{ .string = string };
-    //     return retval;
-    // }
+    fn createString(dest: *SymbolVersion, id: usize, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.loadString, dest, null, null, allocator);
+        retval.data = IRData{ .string_id = id };
+        return retval;
+    }
 
     fn createLabel(allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.label, null, null, null, allocator);
@@ -435,10 +436,15 @@ pub const CFG = struct {
 
     return_symbol: *Symbol,
 
+    /// Non-owning pointer to set of interned string literals
+    /// Provided by main, global to all CFGs.
+    interned_strings: *std.ArrayList([]const u8),
+
     /// Whether or not this CFG is visited
     visited: bool,
 
-    pub fn create(symbol: *Symbol, caller: ?*CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
+    // BIG TODO: 'Contextualize' errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
+    pub fn create(symbol: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
         if (symbol.cfg) |cfg| {
             return cfg;
         }
@@ -452,6 +458,7 @@ pub const CFG = struct {
         retval.number_temps = 0;
         retval.return_symbol = try Symbol.create(symbol.scope, "$retval", span.Span{ .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
         retval.visited = false;
+        retval.interned_strings = interned_strings;
         symbol.cfg = retval;
 
         if (caller) |caller_node| {
@@ -559,17 +566,18 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
-            // .string => {
-            //     var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
-            //     var ir = try IR.createString(temp, ast.string.common.token.data, allocator);
-            //     temp.def = ir;
-            //     self.appendInstruction(ir);
-            //     return temp;
-            // },
+            .string => {
+                try program.interned_string_set_add(ast.getToken().data, self.interned_strings);
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var ir = try IR.createString(temp, self.interned_strings.items.len - 1, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
             .identifier => {
                 var symbol = scope.lookup(ast.identifier.common.token.data, false).?;
                 if (symbol.kind == ._fn) {
-                    _ = try create(symbol, self, errors, allocator);
+                    _ = try create(symbol, self, self.interned_strings, errors, allocator);
                 }
                 var src = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                 return src;
@@ -1195,7 +1203,7 @@ pub const CFG = struct {
                 return null;
             },
             .fnDecl => {
-                _ = try create(ast.fnDecl.symbol.?, self, errors, allocator);
+                _ = try create(ast.fnDecl.symbol.?, self, self.interned_strings, errors, allocator);
                 var symbver = try self.createTempSymbolVersion(ast.fnDecl.symbol.?._type.?, allocator);
                 var ir = try IR.create(.loadSymbol, symbver, null, null, allocator);
                 ir.data = IRData{ .symbol = ast.fnDecl.symbol.? };

@@ -14,6 +14,8 @@ typedef struct {
 	int64_t _3;
 } struct1;
 
+/* Interned Strings */
+
 /* Function forward definitions */
 int64_t _2_main();
 struct1 _4_get_array(int64_t _4_a,int64_t _4_b);

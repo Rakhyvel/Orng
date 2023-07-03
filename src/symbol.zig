@@ -509,14 +509,26 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
 }
 
 var prelude: ?*Scope = null;
-pub fn getPrelude() !*Scope {
+pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
+    _ = allocator;
     if (prelude) |_prelude| {
         return _prelude;
     }
     prelude = try Scope.init(null, "", std.heap.page_allocator);
+
     try prelude.?.symbols.put("Bool", try Symbol.create(
         prelude.?,
         "Bool",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    try prelude.?.symbols.put("Byte", try Symbol.create(
+        prelude.?,
+        "Byte",
         Span{ .col = 0, .line = 0 },
         ast.typeType,
         null,
@@ -550,6 +562,16 @@ pub fn getPrelude() !*Scope {
         Span{ .col = 0, .line = 0 },
         ast.typeType,
         null,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
+    try prelude.?.symbols.put("String", try Symbol.create(
+        prelude.?,
+        "String",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        ast.byteSliceType,
         null,
         ._const,
         std.heap.page_allocator,

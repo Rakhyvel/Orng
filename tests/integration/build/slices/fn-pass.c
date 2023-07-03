@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1688146807093997542
-#define ORNG_1688146807093997542
+#ifndef ORNG_1688333821536306890
+#define ORNG_1688333821536306890
 
 #include <math.h>
 #include <stdio.h>
@@ -17,6 +17,8 @@ typedef struct {
 	int64_t* _0;
 	int64_t _1;
 } struct3;
+
+/* Interned Strings */
 
 /* Function forward definitions */
 int64_t _2_main();

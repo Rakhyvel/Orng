@@ -14,9 +14,12 @@ const TokenKind = tokens.TokenKind;
 
 pub var typesInited = false;
 pub var boolType: *AST = undefined;
+pub var byteType: *AST = undefined;
+pub var byteSliceType: *AST = undefined;
 pub var charType: *AST = undefined;
 pub var floatType: *AST = undefined;
 pub var intType: *AST = undefined;
+pub var stringType: *AST = undefined;
 pub var typeType: *AST = undefined;
 pub var unitType: *AST = undefined;
 pub var voidType: *AST = undefined;
@@ -27,16 +30,21 @@ pub var c_type_equivalence = false;
 pub fn initTypes() !void {
     if (!typesInited) {
         boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        byteType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Byte", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         charType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        stringType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "String", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        byteSliceType = try AST.create_slice_type(byteType, false, std.heap.page_allocator); // Slice types must be AFTER intType
         boolType.getCommon().is_valid = true;
+        byteType.getCommon().is_valid = true;
         charType.getCommon().is_valid = true;
         floatType.getCommon().is_valid = true;
         intType.getCommon().is_valid = true;
+        stringType.getCommon().is_valid = true;
         typeType.getCommon().is_valid = true;
         unitType.getCommon().is_valid = true;
         voidType.getCommon().is_valid = true;
@@ -78,6 +86,7 @@ const Errors = error{ InvalidRange, OutOfMemory };
 const ASTCommon = struct {
     token: Token,
     _type: ?*AST,
+    expanded_type: ?*AST = null,
     is_valid: bool = false,
 };
 
@@ -568,6 +577,78 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
     }
 
+    pub fn create_slice_type(of: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
+        var token = Token.create("a slice", TokenKind.IDENTIFIER, 0, 0);
+        var term_types = std.ArrayList(*AST).init(allocator);
+        var data_type = try AST.createAddrOf(
+            token,
+            of,
+            mut,
+            allocator,
+        );
+        var annot_type = try AST.createAnnotation(token, try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
+        data_type.getCommon().is_valid = true;
+        annot_type.getCommon().is_valid = true;
+        try term_types.append(annot_type);
+        try term_types.append(try AST.createAnnotation(
+            token,
+            try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
+            intType,
+            null,
+            null,
+            allocator,
+        ));
+        var retval = try AST.createProduct(token, term_types, allocator);
+        retval.getCommon().is_valid = true;
+        retval.product.was_slice = true;
+        return retval;
+    }
+
+    pub fn exapnd_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+        if (self.getCommon().expanded_type) |expaned_type| {
+            return expaned_type;
+        }
+
+        var retval: *AST = undefined;
+        switch (self.*) {
+            .identifier => {
+                var symbol = scope.lookup(self.getToken().data, false) orelse {
+                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .stage = .typecheck } });
+                    return error.typeError;
+                };
+                try _validate.validateSymbol(symbol, errors, allocator);
+                if (symbol.init) |init| {
+                    retval = try init.exapnd_type(scope, errors, allocator);
+                } else {
+                    retval = self;
+                }
+            },
+            .product => {
+                var terms = std.ArrayList(*AST).init(allocator);
+                for (self.product.terms.items) |term| {
+                    try terms.append(try term.exapnd_type(scope, errors, allocator));
+                }
+                retval = try AST.createProduct(self.getToken(), terms, allocator);
+            },
+            .addrOf => {
+                var expr = try self.addrOf.expr.exapnd_type(scope, errors, allocator);
+                retval = try AST.createAddrOf(self.getToken(), expr, self.addrOf.mut, allocator);
+            },
+            .function => {
+                var lhs = try self.function.lhs.exapnd_type(scope, errors, allocator);
+                var rhs = try self.function.rhs.exapnd_type(scope, errors, allocator);
+                retval = try AST.createFunction(self.getToken(), lhs, rhs, allocator);
+            },
+            .annotation => retval = try self.annotation.type.exapnd_type(scope, errors, allocator),
+            .unit => retval = self,
+
+            else => retval = self,
+        }
+        retval.getCommon().is_valid = true;
+        self.getCommon().expanded_type = retval;
+        return retval;
+    }
+
     pub fn createBinop(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         switch (token.kind) {
             .PLUS_EQUALS => return createAdd(token, lhs, rhs, allocator),
@@ -679,6 +760,9 @@ pub const AST = union(enum) {
             // Int64 type
             .int => retval = intType,
 
+            // String type
+            .string => retval = stringType,
+
             // Type type
             .unit,
             .annotation,
@@ -711,12 +795,14 @@ pub const AST = union(enum) {
 
             .index => {
                 var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
-                if (lhs_type.* == .product) {
+                if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
                     if (lhs_type.product.was_slice) {
                         retval = lhs_type.product.terms.items[0].annotation.type.addrOf.expr;
                     } else {
                         retval = lhs_type.product.terms.items[0];
                     }
+                } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String")) {
+                    retval = byteType;
                 } else {
                     unreachable;
                 }
@@ -768,29 +854,7 @@ pub const AST = union(enum) {
                 if (child_type.typesMatch(typeType)) {
                     retval = typeType;
                 } else {
-                    // Regular slice type, change to product of data address and length
-                    var term_types = std.ArrayList(*AST).init(allocator);
-                    var data_type = try AST.createAddrOf(
-                        self.getToken(),
-                        expr_type.product.terms.items[0],
-                        self.sliceOf.kind == .MUT,
-                        allocator,
-                    );
-                    var annot_type = try AST.createAnnotation(self.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
-                    data_type.getCommon().is_valid = true;
-                    annot_type.getCommon().is_valid = true;
-                    try term_types.append(annot_type);
-                    try term_types.append(try AST.createAnnotation(
-                        self.getToken(),
-                        try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
-                        intType,
-                        null,
-                        null,
-                        allocator,
-                    ));
-                    retval = try AST.createProduct(self.getToken(), term_types, allocator);
-                    retval.getCommon().is_valid = true;
-                    retval.product.was_slice = true;
+                    retval = try create_slice_type(expr_type.product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
                 }
             },
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),

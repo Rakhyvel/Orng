@@ -1,0 +1,4 @@
+// 85
+fn main: () -> Byte =
+    let x: String = "NOW YUO CEE..."
+    x[5]

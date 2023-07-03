@@ -1,0 +1,2 @@
+// Hello, Orng! 🍊
+fn main: () -> String = "Hello, Orng! 🍊"

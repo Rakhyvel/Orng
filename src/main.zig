@@ -98,7 +98,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     var program_ast = try parser.parse();
 
     // Symbol tree construction
-    var file_root = try symbol.Scope.init(try symbol.getPrelude(), name, allocator);
+    var file_root = try symbol.Scope.init(try symbol.getPrelude(allocator), name, allocator);
     try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
 
     // Typecheck
@@ -119,19 +119,19 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
             try errors.printErrors(lines, "");
             return error.symbolError;
         }
-        var cfg = try ir.CFG.create(msymb, null, errors, allocator);
+        var intered_strings = std.ArrayList([]const u8).init(allocator);
+        defer intered_strings.deinit();
+        var cfg = try ir.CFG.create(msymb, null, &intered_strings, errors, allocator);
 
         // Optimize
         try optimizations.optimize(cfg, allocator);
 
         // Code generation
-        var program = try Program.init(cfg, uid, allocator);
-        try _program.collectTypes(cfg, &program.types, allocator);
+        var program = try Program.init(cfg, uid, &intered_strings, try symbol.getPrelude(allocator), errors, allocator);
+        try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
         var outputFile = try std.fs.cwd().createFile(
             out_name,
-            .{
-                .read = false,
-            },
+            .{ .read = false },
         );
         defer outputFile.close();
         try codegen.generate(program, &outputFile);

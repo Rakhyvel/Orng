@@ -1,8 +1,11 @@
 const _ast = @import("ast.zig");
+const errs = @import("errors.zig");
 const std = @import("std");
+const _symbol = @import("symbol.zig");
 
 const AST = _ast.AST;
 const CFG = @import("ir.zig").CFG;
+const Scope = _symbol.Scope;
 
 pub const DAG = struct {
     base: *AST,
@@ -25,26 +28,38 @@ pub const Program = struct {
     // CFG node of entry program point
     callGraph: *CFG,
 
-    // A unique identifier for the event of compiling this Orng program
+    // A unique identifier for this Orng program
     uid: i128,
 
     // A graph of type dependencies
     types: std.ArrayList(*DAG),
 
-    // A map of includes (key? Or is it really a set)
+    // Interned strings
+    interned_strings: *std.ArrayList([]const u8),
 
-    // A map of filenames to lists of lines
+    // The prelude scope node
+    prelude: *Scope,
 
-    pub fn init(callGraph: *CFG, uid: i128, allocator: std.mem.Allocator) !*Program {
+    // Errors, used as context
+    errors: *errs.Errors,
+
+    // Allocator for the program
+    allocator: std.mem.Allocator,
+
+    pub fn init(callGraph: *CFG, uid: i128, interned_strings: *std.ArrayList([]const u8), prelude: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Program {
         var retval = try allocator.create(Program);
         retval.callGraph = callGraph;
         retval.uid = uid;
+        retval.interned_strings = interned_strings;
+        retval.prelude = prelude;
+        retval.errors = errors;
+        retval.allocator = allocator;
         retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
     }
 };
 
-pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
+pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     if (callGraph.visited) {
         return;
     }
@@ -53,33 +68,34 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), allocator: std.m
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and ir.dest.?.symbol._type != null) {
-                _ = try typeSetAppend(ir.dest.?.symbol._type.?, set, allocator);
+                _ = try typeSetAppend(ir.dest.?.symbol._type.?, set, scope, errors, allocator);
             }
         }
     }
     for (callGraph.children.items) |child| {
-        try collectTypes(child, set, allocator);
+        try collectTypes(child, set, scope, errors, allocator);
     }
 }
 
-fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
+fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
     _ast.c_type_equivalence = true;
-    if (typeSetGet(ast, set)) |dag| {
+    var ast = try old_ast.exapnd_type(scope, errors, allocator);
+    if (try typeSetGet(ast, set, scope, errors, allocator)) |dag| {
         return dag;
     } else {
         var dag = try DAG.init(ast, set.items.len, allocator);
         try set.append(dag);
 
         if (ast.* == .function) {
-            if (try typeSetAppend(ast.function.lhs, set, allocator)) |domain| {
+            if (try typeSetAppend(ast.function.lhs, set, scope, errors, allocator)) |domain| {
                 try dag.dependencies.append(domain);
             }
-            if (try typeSetAppend(ast.function.rhs, set, allocator)) |codomain| {
+            if (try typeSetAppend(ast.function.rhs, set, scope, errors, allocator)) |codomain| {
                 try dag.dependencies.append(codomain);
             }
         } else if (ast.* == .product) {
             for (ast.product.terms.items) |term| {
-                if (try typeSetAppend(term, set, allocator)) |dependency| {
+                if (try typeSetAppend(term, set, scope, errors, allocator)) |dependency| {
                     try dag.dependencies.append(dependency);
                 }
             }
@@ -88,12 +104,23 @@ fn typeSetAppend(ast: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Alloca
     }
 }
 
-pub fn typeSetGet(ast: *AST, set: *std.ArrayList(*DAG)) ?*DAG {
+pub fn typeSetGet(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
     _ast.c_type_equivalence = true;
+    var ast = try old_ast.exapnd_type(scope, errors, allocator);
     for (set.items) |dag| {
         if (dag.base.typesMatch(ast)) {
             return dag;
         }
     }
     return null;
+}
+
+pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8)) !void {
+    for (set.items) |item| {
+        if (std.mem.eql(u8, item, str)) {
+            return;
+        }
+    }
+    // str must not be in set, add it
+    try set.append(str);
 }

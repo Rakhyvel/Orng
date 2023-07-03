@@ -19,6 +19,7 @@
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops to enhanced for dyadic loops
+- [ ] Go through files and find TODO comments
 - [ ] All inits have a corresponding deinit
 - [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [ ] Find some code not covered and write an integration test for it
@@ -94,7 +95,7 @@
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
 - [ ] UTF8
-    - [ ] Bytes, Rings
+    - [x] Byte type
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [ ] Character escapes (`\n`, `\r`, `\t`, `\u<32 bit number literal>`)

@@ -103,6 +103,15 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
 
+        .string => {
+            if (expected != null and !expected.?.typesMatch(_ast.stringType)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.stringType, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                retval = ast;
+            }
+        },
+
         .float => {
             if (expected != null and !expected.?.typesMatch(_ast.floatType)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
@@ -484,23 +493,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
                 } else {
                     // Regular slice type, change to product of data address and length
-                    var term_types = std.ArrayList(*AST).init(allocator);
-                    var data_type = try AST.createAddrOf(ast.getToken(), ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
-                    var annot_type = try AST.createAnnotation(ast.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
-                    data_type.getCommon().is_valid = true;
-                    annot_type.getCommon().is_valid = true;
-                    try term_types.append(annot_type);
-                    try term_types.append(try AST.createAnnotation(
-                        ast.getToken(),
-                        try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
-                        _ast.intType,
-                        null,
-                        null,
-                        allocator,
-                    ));
-                    ast = try AST.createProduct(ast.getToken(), term_types, allocator);
-                    ast.getCommon().is_valid = true;
-                    ast.product.was_slice = true;
+                    ast = try AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
                 }
                 was_type = true;
             } else {
@@ -751,6 +744,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             std.debug.print("validateAST() unimplemented for {s}\n", .{@tagName(ast.*)});
             unreachable;
         },
+    }
+
+    if (expected != null and expected.?.typesMatch(_ast.typeType)) {
+        _ = try retval.exapnd_type(scope, errors, allocator);
     }
 
     retval.getCommon().is_valid = true;

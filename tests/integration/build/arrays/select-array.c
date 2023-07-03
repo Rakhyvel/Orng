@@ -17,6 +17,8 @@ typedef struct {
 	struct1 _1;
 } struct2;
 
+/* Interned Strings */
+
 /* Function forward definitions */
 int64_t _2_main();
 
