@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1688359964375149055
-#define ORNG_1688359964375149055
+#ifndef ORNG_1688357907032957411
+#define ORNG_1688357907032957411
 
 #include <math.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@ typedef struct {
 } struct0;
 
 /* Interned Strings */
-char* string_0 = "\x4E\x4F\x57\x20\x59\x55\x4F\x20\x43\x45\x45\x2E\x2E\x2E";
+char* string_0 = "\x5C";
 
 /* Function forward definitions */
 uint8_t _2_main();
@@ -25,8 +25,8 @@ uint8_t _2_main() {
 	uint8_t _2_t2;
 	uint8_t _2_$retval;
 BB0:
-	_3_x = (struct0) {string_0, 15};
-	_2_t1 = 5;
+	_3_x = (struct0) {string_0, 3};
+	_2_t1 = 0;
 	_2_t2 = *(((uint8_t*)((&_3_x)->_0))+_2_t1);
 	_2_$retval = _2_t2;
 	return _2_$retval;

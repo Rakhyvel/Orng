@@ -541,7 +541,7 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, OutOfMemory, NotAnLValue, Unimplemented, InvalidRange }!?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, OutOfMemory, NotAnLValue, Unimplemented, InvalidRange, Utf8ExpectedContinuation, Utf8OverlongEncoding, Utf8EncodesSurrogateHalf, Utf8CodepointTooLarge }!?*SymbolVersion {
         switch (ast.*) {
             // Literals
             .unit => return null,
@@ -552,13 +552,29 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
-            // .char => {
-            //     var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
-            //     var ir = try IR.createInt(temp, ast.char.data, allocator);
-            //     temp.def = ir;
-            //     self.appendInstruction(ir);
-            //     return temp;
-            // },
+            .char => {
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var codepoint: u21 = undefined;
+                switch (ast.getToken().data[1]) {
+                    '\\' => switch (ast.getToken().data[2]) {
+                        'n' => codepoint = 0x0A,
+                        'r' => codepoint = 0x0D,
+                        't' => codepoint = 0x09,
+                        '\\' => codepoint = 0x5C,
+                        '\'' => codepoint = 0x27,
+                        '"' => codepoint = 0x22,
+                        else => unreachable,
+                    },
+                    else => {
+                        var num_bytes = std.unicode.utf8ByteSequenceLength(ast.getToken().data[1]) catch return error.typeError;
+                        codepoint = try std.unicode.utf8Decode(ast.getToken().data[1 .. num_bytes + 1]);
+                    },
+                }
+                var ir = try IR.createInt(temp, codepoint, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
             .float => {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 var ir = try IR.createFloat(temp, ast.float.data, allocator);
@@ -1243,7 +1259,7 @@ pub const CFG = struct {
         }
     }
 
-    fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ InvalidRange, NotAnLValue, OutOfMemory, Unimplemented, typeError }!void {
+    fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ InvalidRange, NotAnLValue, OutOfMemory, Unimplemented, typeError, Utf8ExpectedContinuation, Utf8OverlongEncoding, Utf8EncodesSurrogateHalf, Utf8CodepointTooLarge }!void {
         var i: usize = defers.items.len;
         while (i > 0) : (i -= 1) {
             self.appendInstruction(deferLabels.items[i - 1]);

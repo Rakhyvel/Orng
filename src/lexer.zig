@@ -184,7 +184,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                 if (ix == contents.len) {
                     errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
-                } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\'' or next_char == '"') {
+                } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                     ix += 1;
                     col += 1;
                     state = .string;

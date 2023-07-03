@@ -94,7 +94,7 @@ pub const AST = union(enum) {
     // Literals
     unit: struct { common: ASTCommon },
     int: struct { common: ASTCommon, data: i128 },
-    char: struct { common: ASTCommon, data: u8 }, // TODO: Represent a UTF-8 codepoint AKA a rune
+    char: struct { common: ASTCommon },
     float: struct { common: ASTCommon, data: f64 },
     string: struct { common: ASTCommon },
     identifier: struct { common: ASTCommon },
@@ -335,8 +335,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
     }
 
-    pub fn createChar(token: Token, data: u8, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .char = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
+    pub fn createChar(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .char = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
     pub fn createFloat(token: Token, data: f64, allocator: std.mem.Allocator) !*AST {

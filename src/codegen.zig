@@ -87,6 +87,8 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
                     try out.writer().print("\\x0D", .{});
                 } else if (byte == 't') {
                     try out.writer().print("\\x09", .{});
+                } else if (byte == '\\') {
+                    try out.writer().print("\\x5C", .{});
                 } else if (byte == '\'') {
                     try out.writer().print("\\x27", .{});
                 } else if (byte == '"') {

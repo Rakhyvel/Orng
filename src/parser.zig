@@ -599,8 +599,7 @@ pub const Parser = struct {
             var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
             return try AST.createFloat(token, try std.fmt.parseFloat(f64, stripped), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
-            // TODO: Support unicode, escapes
-            return try AST.createChar(token, token.data[1], self.astAllocator);
+            return try AST.createChar(token, self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
             return try AST.createString(token, self.astAllocator);
         } else if (self.peekKind(.INDENT)) {
