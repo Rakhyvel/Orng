@@ -133,6 +133,8 @@
     - [ ] dynamic checked arithmetic
     - [ ] static divide by zero
     - [ ] dynamic divide by zero
+    - [ ] static union tag check
+    - [ ] dynaminc? union tag check
 - [ ] unreachable
 - [ ] pattern matching
     - [ ] product destructuring

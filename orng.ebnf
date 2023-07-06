@@ -19,11 +19,9 @@ paramlist: "(" [param {"," param}] ")".
 param: ["mut" | "const"] ident ":" arrowExpr ["=" arrowExpr]. # cannot be productExpr, otherwise ambiguous with ,
 
 statement: non_fn_declaration
-         | fn_declaration
          | "defer" statement
          | "errdefer" statement
-         | condMatchExpr
-         #| arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
+         | expr
          .
 
 expr: condMatchExpr
@@ -35,9 +33,9 @@ sumExpr: productExpr {"|" annotExpr}. # (lhs of | must be ident or annotExpr wit
 
 productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+annotExpr: assignExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
 
-assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr].
+assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") arrowExpr].
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
@@ -61,7 +59,6 @@ prefixExpr: "!" hyperExpr                           # inferred error union
           | "&" ["mut"] prefixExpr                  # address-of
           | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" hyperExpr                           # optional
-          | "." ident [parens]                      # infered member with optional init
           | hyperExpr
           .
 
@@ -84,6 +81,7 @@ factor: ident
       | whileExpr
       | forExpr
       | "unreachable"
+      | "." ident
       | parens
       .
 

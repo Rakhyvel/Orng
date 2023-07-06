@@ -70,7 +70,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         if (!dag.base.sum.all_unit) {
             try out.writer().print("\tunion {{\n", .{});
             for (dag.base.sum.terms.items, 0..) |term, i| {
-                if (!term.annotation.type.typesMatch(_ast.unitType)) {
+                if (!term.annotation.type.c_typesMatch(_ast.unitType)) {
                     try out.writer().print("\t\t", .{});
                     try printType(term, out);
                     try out.writer().print(" _{};\n", .{i});
@@ -322,7 +322,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print(") {{", .{});
             for (ir.data.symbverList.items, ir.dest.?.symbol._type.?.product.terms.items, 1..) |symbver, expected, i| {
-                if (!expected.typesMatch(symbver.symbol._type.?)) {
+                if (!expected.c_typesMatch(symbver.symbol._type.?)) {
                     try out.writer().print("(", .{});
                     try printType(expected, out);
                     try out.writer().print(")", .{});
@@ -338,9 +338,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printVarAssign(ir.dest.?, out);
             try out.writer().print("(", .{});
             try printType(ir.dest.?.symbol._type.?, out);
-            try out.writer().print(") {{{}", .{ir.data.int});
+            try out.writer().print(") {{.tag={}", .{ir.data.int});
             if (ir.src1) |init| {
-                try out.writer().print(", ", .{});
+                try out.writer().print(", ._{}=", .{ir.data.int});
                 try printSymbolVersion(init, out);
             }
             try out.writer().print("}};\n", .{});

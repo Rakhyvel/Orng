@@ -240,7 +240,7 @@ pub const Parser = struct {
         var introducer: ?Token = self.accept(.MUT) orelse self.accept(.CONST);
         var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         _ = try self.expect(.COLON);
-        var paramType = try self.annotExpr();
+        var paramType = try self.arrowExpr();
         var init: ?*AST = null;
         if (self.accept(.EQUALS)) |_| {
             init = try self.arrowExpr();
@@ -258,33 +258,12 @@ pub const Parser = struct {
     fn statement(self: *Parser) ParserErrorEnum!*AST {
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             return self.nonFnDeclaration();
-        } else if (self.peekKind(.FN)) {
-            return self.fnDeclaration();
         } else if (self.accept(.DEFER)) |token| {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
         } else if (self.accept(.ERRDEFER)) |token| {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
-        } else if (self.peekKind(.CASE) or self.peekKind(.MATCH)) {
-            return self.caseMatchExpr();
         } else {
-            var exp = try self.arrowExpr();
-            if (self.accept(.EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try self.expr(), self.astAllocator);
-            } else if (self.accept(.PLUS_EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.expr(), self.astAllocator), self.astAllocator);
-            } else if (self.accept(.MINUS_EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.expr(), self.astAllocator), self.astAllocator);
-            } else if (self.accept(.STAR_EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.expr(), self.astAllocator), self.astAllocator);
-            } else if (self.accept(.SLASH_EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.expr(), self.astAllocator), self.astAllocator);
-            } else if (self.accept(.PERCENT_EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.expr(), self.astAllocator), self.astAllocator);
-            } else if (self.accept(.D_STAR_EQUALS)) |token| {
-                return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.expr(), self.astAllocator), self.astAllocator);
-            } else {
-                return exp;
-            }
+            return self.expr();
         }
     }
 
@@ -337,7 +316,7 @@ pub const Parser = struct {
     }
 
     fn annotExpr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.arrowExpr();
+        var exp = try self.assignExpr();
         if (self.accept(.COLON)) |token| {
             var _type = try self.arrowExpr();
             var predicate: ?*AST = null;
@@ -349,6 +328,27 @@ pub const Parser = struct {
                 init = try self.arrowExpr();
             }
             return try AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
+        } else {
+            return exp;
+        }
+    }
+
+    fn assignExpr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.arrowExpr();
+        if (self.accept(.EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try self.arrowExpr(), self.astAllocator);
+        } else if (self.accept(.PLUS_EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+        } else if (self.accept(.MINUS_EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+        } else if (self.accept(.STAR_EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+        } else if (self.accept(.SLASH_EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+        } else if (self.accept(.PERCENT_EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+        } else if (self.accept(.D_STAR_EQUALS)) |token| {
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
         } else {
             return exp;
         }
@@ -496,15 +496,6 @@ pub const Parser = struct {
             return try AST.createOptional(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.TRY)) |token| {
             return try AST.createTry(token, try self.prependExpr(), self.astAllocator);
-        } else if (self.accept(.PERIOD)) |token| {
-            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
-            if (self.accept(.LEFT_SKINNY_ARROW)) |_| {
-                return try AST.createNamedArg(token, ident, try self.prefixExpr(), self.astAllocator);
-            } else if (self.peekKind(.L_PAREN)) {
-                return try AST.createInferredMember(token, ident, try self.parens(), self.astAllocator);
-            } else {
-                return try AST.createInferredMember(token, ident, null, self.astAllocator);
-            }
         } else {
             return try self.prependExpr();
         }
@@ -627,6 +618,9 @@ pub const Parser = struct {
             return try self.whileExpr();
         } else if (self.peekKind(.FOR)) {
             return try self.forExpr();
+        } else if (self.accept(.PERIOD)) |token| {
+            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+            return try AST.createInferredMember(token, ident, self.astAllocator);
         } else if (self.accept(.UNREACHABLE)) |token| {
             return try AST.createUnreachable(token, self.astAllocator);
         } else if (self.peekKind(.L_PAREN)) {

@@ -13,13 +13,13 @@ typedef struct {
 		int64_t _0;
 		uint8_t _1;
 	};
-} struct1;
+} struct0;
 typedef struct {
 	uint64_t tag;
 	union {
-		struct1 _0;
+		struct0 _0;
 	};
-} struct3;
+} struct1;
 
 /* Interned Strings */
 
@@ -29,17 +29,17 @@ int64_t _2_main();
 /* Function definitions */
 int64_t _2_main() {
 	int64_t _2_t0;
-	struct1 _2_t1;
-	struct3 _3_x;
-	struct1 _2_t3;
+	struct0 _2_t1;
+	struct1 _3_x;
+	struct0 _2_t3;
 	int64_t _2_t4;
-	struct1 _2_t5;
+	struct0 _2_t5;
 	int64_t _2_t6;
 	int64_t _2_$retval;
 BB0:
 	_2_t0 = 4;
-	_2_t1 = (struct1) {0, _2_t0};
-	_3_x = (struct3) {0, _2_t1};
+	_2_t1 = (struct0) {.tag=0, ._0=_2_t0};
+	_3_x = (struct1) {.tag=0, ._0=_2_t1};
 	_2_t4 = 104;
 	(&((&_3_x)->_0))->_0 = _2_t4;
 	_2_t5 = *&((&_3_x)->_0);

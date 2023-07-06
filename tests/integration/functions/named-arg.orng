@@ -1,4 +1,4 @@
 // 51
-fn main: () -> Int = div(.x <- 510, .y <- 10)
+fn main: () -> Int = div(x = 510, y = 10)
 
 fn div: (x: Int, y: Int) -> Int = x / y

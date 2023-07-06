@@ -1,4 +1,4 @@
 // 52
-fn main: () -> Int = id(.x <- 52)
+fn main: () -> Int = id(x = 52)
 
 fn id: (x: Int)->Int = x

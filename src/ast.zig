@@ -24,9 +24,6 @@ pub var typeType: *AST = undefined;
 pub var unitType: *AST = undefined;
 pub var voidType: *AST = undefined;
 
-/// Whether to match types based on C rules. This is should be on when working witht typesets.
-pub var c_type_equivalence = false;
-
 pub fn initTypes() !void {
     if (!typesInited) {
         boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
@@ -142,7 +139,7 @@ pub const AST = union(enum) {
         homotypical: ?bool = null,
         was_slice: bool = false,
 
-        pub fn is_homotypical(self: *@This()) bool {
+        pub fn is_homotypical(self: *@This(), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
             if (self.homotypical) |homotypical| {
                 return homotypical;
             }
@@ -151,7 +148,7 @@ pub const AST = union(enum) {
                 if (i == 0) {
                     continue;
                 }
-                if (!first_type.typesMatch(term)) {
+                if (!try first_type.typesMatch(term, scope, errors, allocator)) {
                     self.homotypical = false;
                     return false;
                 }
@@ -168,13 +165,12 @@ pub const AST = union(enum) {
     conditional: struct { common: ASTCommon, tokens: std.ArrayList(Token), exprs: std.ArrayList(*AST) },
     addrOf: struct { common: ASTCommon, expr: *AST, mut: bool },
     sliceOf: struct { common: ASTCommon, expr: *AST, len: ?*AST, kind: SliceKind },
-    namedArg: struct { common: ASTCommon, ident: *AST, init: *AST },
     subSlice: struct { common: ASTCommon, super: *AST, lower: ?*AST, upper: ?*AST },
     annotation: struct { common: ASTCommon, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
     inferredMember: struct {
         common: ASTCommon,
         ident: *AST,
-        init: ?*AST,
+        init: ?*AST = null,
         base: ?*AST = null,
         pos: ?i128 = null,
     },
@@ -311,7 +307,6 @@ pub const AST = union(enum) {
 
             .addrOf => return &self.addrOf.common,
             .sliceOf => return &self.sliceOf.common,
-            .namedArg => return &self.namedArg.common,
             .subSlice => return &self.subSlice.common,
             .annotation => return &self.annotation.common,
             .inferredMember => return &self.inferredMember.common,
@@ -515,10 +510,6 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .sliceOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .len = len, .kind = kind } }, allocator);
     }
 
-    pub fn createNamedArg(token: Token, ident: *AST, init: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .namedArg = .{ .common = ASTCommon{ .token = token, ._type = null }, .ident = ident, .init = init } }, allocator);
-    }
-
     pub fn createSubSlice(token: Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .subSlice = .{ .common = ASTCommon{ .token = token, ._type = null }, .super = super, .lower = lower, .upper = upper } }, allocator);
     }
@@ -527,8 +518,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .annotation = .{ .common = ASTCommon{ .token = token, ._type = null }, .pattern = pattern, .type = _type, .predicate = predicate, .init = init } }, allocator);
     }
 
-    pub fn createInferredMember(token: Token, ident: *AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .inferredMember = .{ .common = ASTCommon{ .token = token, ._type = null }, .ident = ident, .init = init } }, allocator);
+    pub fn createInferredMember(token: Token, ident: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .inferredMember = .{ .common = ASTCommon{ .token = token, ._type = null }, .ident = ident } }, allocator);
     }
 
     pub fn createIf(token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
@@ -649,8 +640,7 @@ pub const AST = union(enum) {
                 var rhs = try self.function.rhs.exapnd_type(scope, errors, allocator);
                 retval = try AST.createFunction(self.getToken(), lhs, rhs, allocator);
             },
-            .annotation => retval = try self.annotation.type.exapnd_type(scope, errors, allocator),
-            .unit => retval = self,
+            .annotation, .unit => retval = self,
 
             else => retval = self,
         }
@@ -729,6 +719,16 @@ pub const AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
+            .sum => {
+                try out.print("(", .{});
+                for (self.sum.terms.items, 0..) |term, i| {
+                    try term.printType(out);
+                    if (i + 1 != self.sum.terms.items.len) {
+                        try out.print(" | ", .{});
+                    }
+                }
+                try out.print(")", .{});
+            },
             .annotation => {
                 try out.print("{s}: ", .{self.annotation.pattern.identifier.common.token.data});
                 try self.annotation.type.printType(out);
@@ -776,6 +776,7 @@ pub const AST = union(enum) {
             // Type type
             .unit,
             .annotation,
+            .sum,
             => retval = typeType,
 
             // Unit type
@@ -791,7 +792,7 @@ pub const AST = union(enum) {
 
             .product => {
                 var first_type = try self.product.terms.items[0].typeof(scope, errors, allocator);
-                if (first_type.typesMatch(typeType)) {
+                if (try first_type.typesMatch(typeType, scope, errors, allocator)) {
                     retval = typeType;
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
@@ -819,7 +820,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = try self.select.lhs.typeof(scope, errors, allocator);
+                var select_lhs_type = try (try self.select.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
                 var annot_list: *std.ArrayList(*AST) = undefined;
                 if (select_lhs_type.* == .product) {
                     annot_list = &select_lhs_type.product.terms;
@@ -859,7 +860,7 @@ pub const AST = union(enum) {
             .dereference => retval = (try self.dereference.expr.typeof(scope, errors, allocator)).addrOf.expr,
             .addrOf => {
                 var child_type = try self.addrOf.expr.typeof(scope, errors, allocator);
-                if (child_type.typesMatch(typeType)) {
+                if (try child_type.typesMatch(typeType, scope, errors, allocator)) {
                     retval = typeType;
                 } else {
                     retval = try createAddrOf(self.getToken(), child_type, self.addrOf.mut, std.heap.page_allocator);
@@ -867,9 +868,9 @@ pub const AST = union(enum) {
             },
             .sliceOf => {
                 var expr_type = try self.sliceOf.expr.typeof(scope, errors, allocator);
-                std.debug.assert(expr_type.* == .product and expr_type.product.is_homotypical());
+                std.debug.assert(expr_type.* == .product and try expr_type.product.is_homotypical(scope, errors, allocator));
                 var child_type = expr_type.product.terms.items[0];
-                if (child_type.typesMatch(typeType)) {
+                if (try child_type.typesMatch(typeType, scope, errors, allocator)) {
                     retval = typeType;
                 } else {
                     retval = try create_slice_type(expr_type.product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
@@ -920,11 +921,16 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    pub fn typesMatch(self: *AST, other: *AST) bool {
+    pub fn typesMatch(self: *AST, other: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         if (self.* == .annotation) {
-            return typesMatch(self.annotation.type, other);
+            return try typesMatch(self.annotation.type, other, scope, errors, allocator);
         } else if (other.* == .annotation) {
-            return typesMatch(self, other.annotation.type);
+            return try typesMatch(self, other.annotation.type, scope, errors, allocator);
+        }
+        if (self.* == .identifier and other.* != .identifier and self != try self.exapnd_type(scope, errors, allocator)) {
+            return try typesMatch(try self.exapnd_type(scope, errors, allocator), other, scope, errors, allocator);
+        } else if (self.* != .identifier and other.* == .identifier and other != try other.exapnd_type(scope, errors, allocator)) {
+            return try typesMatch(self, try other.exapnd_type(scope, errors, allocator), scope, errors, allocator);
         }
         std.debug.assert(self.getCommon().is_valid);
         std.debug.assert(other.getCommon().is_valid);
@@ -943,14 +949,14 @@ pub const AST = union(enum) {
                 if (other.* != .addrOf) {
                     return false;
                 } else {
-                    return (c_type_equivalence or self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and typesMatch(self.addrOf.expr, other.addrOf.expr);
+                    return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and try typesMatch(self.addrOf.expr, other.addrOf.expr, scope, errors, allocator);
                 }
             },
             .sliceOf => {
                 if (other.* != .sliceOf) {
                     return false;
                 } else {
-                    return (c_type_equivalence or self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and typesMatch(self.sliceOf.expr, other.sliceOf.expr);
+                    return (self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and try typesMatch(self.sliceOf.expr, other.sliceOf.expr, scope, errors, allocator);
                 }
             },
             .annotation => unreachable,
@@ -967,7 +973,7 @@ pub const AST = union(enum) {
                     }
                     var retval = true;
                     for (self.product.terms.items, other.product.terms.items) |term, other_term| {
-                        retval = retval and term.typesMatch(other_term);
+                        retval = retval and try term.typesMatch(other_term, scope, errors, allocator);
                     }
                     return retval;
                 }
@@ -981,7 +987,7 @@ pub const AST = union(enum) {
                     }
                     var retval = true;
                     for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
-                        retval = retval and term.typesMatch(other_term);
+                        retval = retval and try term.typesMatch(other_term, scope, errors, allocator);
                     }
                     return retval;
                 }
@@ -990,7 +996,87 @@ pub const AST = union(enum) {
                 if (other.* != .function) {
                     return false;
                 } else {
-                    return self.function.lhs.typesMatch(other.function.lhs) and self.function.rhs.typesMatch(other.function.rhs);
+                    return try self.function.lhs.typesMatch(other.function.lhs, scope, errors, allocator) and try self.function.rhs.typesMatch(other.function.rhs, scope, errors, allocator);
+                }
+            },
+            else => {
+                std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(self.*)});
+                unreachable;
+            },
+        }
+    }
+
+    pub fn c_typesMatch(self: *AST, other: *AST) bool {
+        if (self.* == .annotation) {
+            return c_typesMatch(self.annotation.type, other);
+        } else if (other.* == .annotation) {
+            return c_typesMatch(self, other.annotation.type);
+        }
+        std.debug.assert(self.getCommon().is_valid);
+        std.debug.assert(other.getCommon().is_valid);
+
+        switch (self.*) {
+            .identifier => {
+                if (other.* != .identifier) {
+                    return false;
+                } else if (std.mem.eql(u8, "Float", self.identifier.common.token.data) and std.mem.eql(u8, "Int", other.identifier.common.token.data)) {
+                    return true;
+                } else {
+                    return std.mem.eql(u8, self.identifier.common.token.data, other.identifier.common.token.data);
+                }
+            },
+            .addrOf => {
+                if (other.* != .addrOf) {
+                    return false;
+                } else {
+                    return c_typesMatch(self.addrOf.expr, other.addrOf.expr);
+                }
+            },
+            .sliceOf => {
+                if (other.* != .sliceOf) {
+                    return false;
+                } else {
+                    return c_typesMatch(self.sliceOf.expr, other.sliceOf.expr);
+                }
+            },
+            .annotation => unreachable,
+
+            .unit => {
+                return other.* == .unit;
+            },
+            .product => {
+                if (other.* != .product) {
+                    return false;
+                } else {
+                    if (other.product.terms.items.len != self.product.terms.items.len) {
+                        return false;
+                    }
+                    var retval = true;
+                    for (self.product.terms.items, other.product.terms.items) |term, other_term| {
+                        retval = retval and term.c_typesMatch(other_term);
+                    }
+                    return retval;
+                }
+            },
+            .sum => {
+                if (other.* != .sum) {
+                    return false;
+                } else {
+                    if (other.sum.terms.items.len != self.sum.terms.items.len) {
+                        return false;
+                    }
+                    var retval = true;
+                    for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
+                        retval = retval and term.c_typesMatch(other_term);
+                    }
+                    return retval;
+                }
+            },
+            .function => {
+                if (other.* != .function) {
+                    return false;
+                } else {
+                    return self.function.lhs.c_typesMatch(other.function.lhs) and self.function.rhs.c_typesMatch(other.function.rhs);
                 }
             },
             else => {

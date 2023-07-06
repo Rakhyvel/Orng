@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1688414363252829175
-#define ORNG_1688414363252829175
+#ifndef ORNG_1688416007820931021
+#define ORNG_1688416007820931021
 
 #include <math.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@ typedef struct {
 		int64_t _0;
 		uint8_t _1;
 	};
-} struct1;
+} struct0;
 
 /* Interned Strings */
 
@@ -23,13 +23,13 @@ int64_t _2_main();
 /* Function definitions */
 int64_t _2_main() {
 	int64_t _2_t0;
-	struct1 _3_x;
+	struct0 _3_x;
 	int64_t _2_t2;
 	int64_t _2_t3;
 	int64_t _2_$retval;
 BB0:
 	_2_t0 = 4;
-	_3_x = (struct1) {0, _2_t0};
+	_3_x = (struct0) {.tag=0, ._0=_2_t0};
 	_2_t2 = 103;
 	(&_3_x)->_0 = _2_t2;
 	_2_t3 = *&((&_3_x)->_0);

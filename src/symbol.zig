@@ -177,6 +177,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         ._false,
         ._break,
         ._continue,
+        .inferredMember,
         => {},
 
         .not => try symbolTableFromAST(definition.not.expr, scope, errors, allocator),
@@ -293,10 +294,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.sliceOf.expr, scope, errors, allocator);
             try symbolTableFromAST(definition.sliceOf.len, scope, errors, allocator);
         },
-        .namedArg => {
-            try symbolTableFromAST(definition.namedArg.ident, scope, errors, allocator);
-            try symbolTableFromAST(definition.namedArg.init, scope, errors, allocator);
-        },
         .subSlice => {
             try symbolTableFromAST(definition.subSlice.super, scope, errors, allocator);
             try symbolTableFromAST(definition.subSlice.lower, scope, errors, allocator);
@@ -306,10 +303,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.annotation.type, scope, errors, allocator);
             try symbolTableFromAST(definition.annotation.predicate, scope, errors, allocator);
             try symbolTableFromAST(definition.annotation.init, scope, errors, allocator);
-        },
-        .inferredMember => {
-            try symbolTableFromAST(definition.inferredMember.ident, scope, errors, allocator);
-            try symbolTableFromAST(definition.inferredMember.init, scope, errors, allocator);
         },
 
         ._if => {

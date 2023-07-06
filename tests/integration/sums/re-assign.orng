@@ -1,5 +1,7 @@
 // 103
+const Int_Or_Bool = int: Int = 102 | bool: Bool = false
+
 fn main: () -> Int =
-    let mut x: (int: Int | bool: Bool) = .int(4)
+    let mut x: Int_Or_Bool = .int(4)
     x.int = 103
     x.int
