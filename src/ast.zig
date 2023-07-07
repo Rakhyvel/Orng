@@ -111,7 +111,6 @@ pub const AST = union(enum) {
     assign: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _or: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _and: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    notEqual: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     add: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     sub: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     mult: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -281,7 +280,6 @@ pub const AST = union(enum) {
             .assign => return &self.assign.common,
             ._or => return &self._or.common,
             ._and => return &self._and.common,
-            .notEqual => return &self.notEqual.common,
             .conditional => return &self.conditional.common,
             .add => return &self.add.common,
             .sub => return &self.sub.common,
@@ -406,10 +404,6 @@ pub const AST = union(enum) {
 
     pub fn createAnd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._and = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createNotEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .notEqual = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createConditional(_tokens: std.ArrayList(Token), exprs: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
@@ -757,7 +751,6 @@ pub const AST = union(enum) {
             .not,
             ._or,
             ._and,
-            .notEqual,
             .conditional,
             => retval = boolType,
 

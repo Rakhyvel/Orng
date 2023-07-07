@@ -214,17 +214,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-        .notEqual => {
-            ast.notEqual.lhs = try validateAST(ast.notEqual.lhs, null, scope, errors, allocator);
-            ast.notEqual.rhs = try validateAST(ast.notEqual.rhs, try ast.notEqual.lhs.typeof(scope, errors, allocator), scope, errors, allocator);
-
-            if (expected != null and !try expected.?.typesMatch(_ast.boolType, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType, .stage = .typecheck } });
-                return error.typeError;
-            } else {
-                retval = ast;
-            }
-        },
         .add => {
             ast.add.lhs = try validateAST(ast.add.lhs, _ast.floatType, scope, errors, allocator);
             ast.add.rhs = try validateAST(ast.add.rhs, _ast.floatType, scope, errors, allocator);

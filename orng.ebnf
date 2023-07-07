@@ -24,7 +24,7 @@ statement: non_fn_declaration
          | expr
          .
 
-expr: condMatchExpr
+expr: caseMatchExpr
     | fn_declaration
     | sumExpr
     .
@@ -39,11 +39,9 @@ assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") arrowExp
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
-boolExpr: neqExpr {("and" | "or") neqExpr}.
+boolExpr: caseitionalExpr {("and" | "or") caseitionalExpr}.
 
-neqExpr: conditionalExpr ["!=" conditionalExpr].
-
-conditionalExpr: deltaExpr {("==" | "<" | "<=" | ">" | ">=") deltaExpr}.
+caseitionalExpr: deltaExpr {("==" | "!=" | "<" | "<=" | ">" | ">=") deltaExpr}.
 
 deltaExpr: coalesceExpr {">>" coalesceExpr}. # (rhs must be a call expr)
 
@@ -100,9 +98,9 @@ barElse: "else" "=>" annotExpr.
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barListMiddle.
 
-condExpr: [non_fn_declaration ";"] barList.
+caseExpr: [non_fn_declaration ";"] barList.
 matchExpr: [non_fn_declaration ";"] productExpr barList.
-condMatchExpr: "cond" condExpr
+caseMatchExpr: "case" caseExpr
              | "match" matchExpr
              .
 

@@ -200,10 +200,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition._and.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition._and.rhs, scope, errors, allocator);
         },
-        .notEqual => {
-            try symbolTableFromAST(definition.notEqual.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.notEqual.rhs, scope, errors, allocator);
-        },
         .add => {
             try symbolTableFromAST(definition.add.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition.add.rhs, scope, errors, allocator);

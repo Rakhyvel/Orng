@@ -363,24 +363,15 @@ pub const Parser = struct {
     }
 
     fn boolExpr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.neqExpr();
+        var exp = try self.conditionalExpr();
         while (true) {
             if (self.accept(.AND)) |token| {
-                exp = try AST.createAnd(token, exp, try self.neqExpr(), self.astAllocator);
+                exp = try AST.createAnd(token, exp, try self.conditionalExpr(), self.astAllocator);
             } else if (self.accept(.OR)) |token| {
-                exp = try AST.createOr(token, exp, try self.neqExpr(), self.astAllocator);
+                exp = try AST.createOr(token, exp, try self.conditionalExpr(), self.astAllocator);
             } else {
                 return exp;
             }
-        }
-    }
-
-    fn neqExpr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.conditionalExpr();
-        if (self.accept(.NOT_EQUALS)) |token| {
-            return try AST.createNotEqual(token, exp, try self.conditionalExpr(), self.astAllocator);
-        } else {
-            return exp;
         }
     }
 
@@ -388,7 +379,7 @@ pub const Parser = struct {
         var exp = try self.deltaExpr();
         var tokens: ?std.ArrayList(Token) = null;
         var exprs: ?std.ArrayList(*AST) = null;
-        while (self.accept(.D_EQUALS) orelse self.accept(.GTR) orelse self.accept(.LSR) orelse self.accept(.GTE) orelse self.accept(.LTE)) |token| {
+        while (self.accept(.D_EQUALS) orelse self.accept(.NOT_EQUALS) orelse self.accept(.GTR) orelse self.accept(.LSR) orelse self.accept(.GTE) orelse self.accept(.LTE)) |token| {
             if (tokens == null) {
                 tokens = std.ArrayList(Token).init(self.astAllocator);
                 exprs = std.ArrayList(*AST).init(self.astAllocator);

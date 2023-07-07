@@ -762,18 +762,6 @@ pub const CFG = struct {
                 self.appendInstruction(end_label);
                 return symbver;
             },
-            .notEqual => {
-                var lhs = try self.flattenAST(scope, ast.notEqual.lhs, return_label, break_label, continue_label, lvalue, errors, allocator);
-                std.debug.assert(lhs != null);
-                var rhs = try self.flattenAST(scope, ast.notEqual.rhs, return_label, break_label, continue_label, lvalue, errors, allocator);
-                std.debug.assert(rhs != null);
-                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
-
-                var ir = try IR.create(.notEqual, temp, lhs, rhs, allocator);
-                temp.def = ir;
-                self.appendInstruction(ir);
-                return temp;
-            },
             .add => {
                 var lhs = try self.flattenAST(scope, ast.add.lhs, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(lhs != null);
@@ -974,6 +962,9 @@ pub const CFG = struct {
                     switch (token.kind) {
                         .D_EQUALS => {
                             ir_kind = .equal;
+                        },
+                        .NOT_EQUALS => {
+                            ir_kind = .notEqual;
                         },
                         .GTR => {
                             ir_kind = .greater;

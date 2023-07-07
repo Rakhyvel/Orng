@@ -21,7 +21,6 @@
 - [ ] Change some while loops to enhanced for dyadic loops
 - [ ] Go through files and find TODO comments
 - [ ] All inits have a corresponding deinit
-- [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [ ] Find some code not covered and write an integration test for it
 
 ### Pipeline
@@ -40,6 +39,7 @@
 - [x] immutability checking
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
+- [ ] != should actually probably be chainable
 
 ### Testing
 - [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -135,6 +135,7 @@
     - [ ] dynamic divide by zero
     - [ ] static union tag check
     - [ ] dynaminc? union tag check
+    - [ ] compile-time const check
 - [ ] unreachable
 - [ ] pattern matching
     - [ ] product destructuring
@@ -164,6 +165,8 @@
     - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
     - [ ] `comptime` expression, evaluated at compile time
+    - [ ] `const` should actually likely be a type modifier
+        > Should it actually? `const T` can represent all the values that `T` can, there's just an extra contraint that those values be known at compile-time. Idk if that's really a type.
     - [ ] array sizes are evaluated at compile-time
     - [ ] first-class types based generics
     - [ ] if a function has all `const` arguments, evaluate at compile-time 
@@ -195,6 +198,7 @@
         - [ ] array/slice bounds checking
         - [ ] null dereference
 - [ ] refinement types
+    - [ ] `where` should only check for things at runtime, unless specified with `where comptime`
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free
     - [ ] error if an identifier contains a `'` in the middle of itself

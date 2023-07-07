@@ -2,7 +2,7 @@
 fn main: () -> String = 
     fizzbuzz(30).string
 
-const FizzBuzzResult 
+const FizzBuzzResult: Type
     = string: String
     | integer: Int
 
