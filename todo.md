@@ -39,7 +39,7 @@
 - [x] immutability checking
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
-- [ ] != should actually probably be chainable
+- [x] != should actually probably be chainable
 
 ### Testing
 - [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -85,7 +85,6 @@
     - [x] pointer to tuple, tuple of pointers, select deref
     - [x] should not be able to mix annot and non-annot tuples
     - [ ] `++` for concat
-    - [ ] `--` for diff (?)
 - [ ] arrays
     - [x] index
     - [x] index-assign
@@ -109,7 +108,7 @@
         - [x] Error on invalid escapes
         - [x] Error if character literal contains more than one character
 - [ ] Sum types
-    - [ ] `||` for union
+    - [x] `||` for union
     - [ ] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
 - [ ] optionals
     - [ ] `?` constructor
@@ -146,7 +145,7 @@
     - [ ] self-equality checks
         > `let x', x' = (3, 4) // maybe this causes a panic, like an assert`
         > should likely be shallow equality, otherwise that gets tricky...
-    - [ ] `match` statement (rename from case)
+    - [ ] `match` statement
 - [ ] new optimizations
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
     - [ ] pointer aliasing analysis

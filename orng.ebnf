@@ -16,7 +16,8 @@ let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
 fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" arrowExpr ["=" arrowExpr]. # cannot be productExpr, otherwise ambiguous with ,
+param: ["mut" | "const"] ident ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
+                                                              # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier
 
 statement: non_fn_declaration
          | "defer" statement
@@ -35,13 +36,13 @@ productExpr: annotExpr {"," annotExpr}.
 
 annotExpr: assignExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
 
-assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") arrowExpr].
+assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignExpr].
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
-boolExpr: caseitionalExpr {("and" | "or") caseitionalExpr}.
+boolExpr: conditionalExpr {("and" | "or") conditionalExpr}.
 
-caseitionalExpr: deltaExpr {("==" | "!=" | "<" | "<=" | ">" | ">=") deltaExpr}.
+conditionalExpr: deltaExpr {("==" | "!=" | "<" | "<=" | ">" | ">=") deltaExpr}.
 
 deltaExpr: coalesceExpr {">>" coalesceExpr}. # (rhs must be a call expr)
 
@@ -104,4 +105,4 @@ caseMatchExpr: "case" caseExpr
              | "match" matchExpr
              .
 
-parens: "(" expr ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens
+parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens

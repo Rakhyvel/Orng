@@ -336,19 +336,21 @@ pub const Parser = struct {
     fn assignExpr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.arrowExpr();
         if (self.accept(.EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try self.arrowExpr(), self.astAllocator);
+            return try AST.createAssign(token, exp, try self.assignExpr(), self.astAllocator);
         } else if (self.accept(.PLUS_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignExpr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.MINUS_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignExpr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.STAR_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignExpr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.SLASH_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignExpr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.PERCENT_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignExpr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.D_STAR_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.arrowExpr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignExpr(), self.astAllocator), self.astAllocator);
+        } else if (self.accept(.LEFT_SKINNY_ARROW)) |token| {
+            return try AST.createInject(token, exp, try self.assignExpr(), self.astAllocator);
         } else {
             return exp;
         }

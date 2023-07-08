@@ -131,6 +131,7 @@ pub const AST = union(enum) {
         terms: std.ArrayList(*AST),
         all_unit: bool = true,
     },
+    inject: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _error: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     product: struct {
         common: ASTCommon,
@@ -297,6 +298,7 @@ pub const AST = union(enum) {
             .composition => return &self.composition.common,
             .prepend => return &self.prepend.common,
             .sum => return &self.sum.common,
+            .inject => return &self.inject.common,
             ._error => return &self._error.common,
             .product => return &self.product.common,
             .diff => return &self.diff.common,
@@ -457,6 +459,10 @@ pub const AST = union(enum) {
 
     pub fn createSum(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
+    }
+
+    pub fn createInject(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .inject = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createFunction(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

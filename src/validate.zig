@@ -419,6 +419,30 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
+        .inject => {
+            if (ast.inject.lhs.* == .inferredMember) {
+                // Pass expected so that base can be inferred call
+                ast.inject.lhs = try validateAST(ast.inject.lhs, expected, scope, errors, allocator);
+            } else {
+                ast.inject.lhs = try validateAST(ast.inject.lhs, null, scope, errors, allocator);
+            }
+            var lhs_type = try ast.inject.lhs.typeof(scope, errors, allocator);
+            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+            if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
+                if (expected != null and !try expected.?.typesMatch(lhs_type, scope, errors, allocator)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    return error.typeError;
+                }
+                var pos: i128 = ast.inject.lhs.inferredMember.pos.?;
+                var proper_term: *AST = ast.inject.lhs.inferredMember.base.?.sum.terms.items[@as(usize, @intCast(pos))];
+
+                ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, proper_term.annotation.type, scope, errors, allocator);
+                retval = ast.inject.lhs;
+            } else {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum", .stage = .typecheck } });
+                return error.typeError;
+            }
+        },
         .product => {
             var new_terms = std.ArrayList(*AST).init(allocator);
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
@@ -445,6 +469,35 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 // unreachable;
             }
             retval = ast;
+        },
+        ._union => {
+            ast._union.lhs = try validateAST(ast._union.lhs, _ast.typeType, scope, errors, allocator);
+            ast._union.rhs = try validateAST(ast._union.rhs, _ast.typeType, scope, errors, allocator);
+
+            var expand_lhs = try ast._union.lhs.exapnd_type(scope, errors, allocator);
+            var expand_rhs = try ast._union.rhs.exapnd_type(scope, errors, allocator);
+            if (expand_lhs.* != .sum or expand_rhs.* != .sum) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "the union operator is not applied to a sum type", .stage = .typecheck } });
+                return error.typeError;
+            } else if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                var new_terms = std.ArrayList(*AST).init(allocator);
+                var names = std.StringArrayHashMap(*AST).init(allocator);
+
+                for (expand_lhs.sum.terms.items) |term| {
+                    try putAnnotation(term, &names, errors);
+                    try new_terms.append(term);
+                }
+                for (expand_rhs.sum.terms.items) |term| {
+                    try putAnnotation(term, &names, errors);
+                    try new_terms.append(term);
+                }
+
+                retval = try AST.createSum(ast.getToken(), new_terms, allocator);
+                retval.sum.all_unit = expand_lhs.sum.all_unit and expand_rhs.sum.all_unit;
+            }
         },
         .conditional => {
             var new_exprs = std.ArrayList(*AST).init(allocator);
@@ -967,6 +1020,20 @@ fn putAssign(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Er
         return error.typeError;
     } else {
         try arg_map.put(name, ast.assign.rhs);
+    }
+}
+
+fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Errors) !void {
+    var name = ast.annotation.pattern.getToken().data;
+    if (arg_map.get(name)) |_| {
+        errors.addError(Error{ .basic = .{
+            .span = ast.getToken().span,
+            .msg = "duplicate annotation identifiers detected",
+            .stage = .typecheck,
+        } });
+        return error.typeError;
+    } else {
+        try arg_map.put(name, ast.annotation.type);
     }
 }
 
