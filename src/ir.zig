@@ -643,6 +643,7 @@ pub const CFG = struct {
                 var expr = try self.flattenAST(scope, ast.dereference.expr, return_label, break_label, continue_label, lvalue, errors, allocator);
                 std.debug.assert(expr != null);
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                temp.lvalue = lvalue;
 
                 var ir = try IR.create(.dereference, temp, expr, null, allocator);
                 temp.def = ir;

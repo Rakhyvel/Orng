@@ -630,6 +630,7 @@ pub const AST = union(enum) {
                     try terms.append(try term.exapnd_type(scope, errors, allocator));
                 }
                 retval = try AST.createProduct(self.getToken(), terms, allocator);
+                retval.product.was_slice = self.product.was_slice;
             },
             .addrOf => {
                 var expr = try self.addrOf.expr.exapnd_type(scope, errors, allocator);
@@ -640,7 +641,11 @@ pub const AST = union(enum) {
                 var rhs = try self.function.rhs.exapnd_type(scope, errors, allocator);
                 retval = try AST.createFunction(self.getToken(), lhs, rhs, allocator);
             },
-            .annotation, .unit => retval = self,
+            .annotation => {
+                var expr = try self.annotation.type.exapnd_type(scope, errors, allocator);
+                retval = try AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
+            },
+            .unit => retval = self,
 
             else => retval = self,
         }
@@ -792,7 +797,12 @@ pub const AST = union(enum) {
             .product => {
                 var first_type = try self.product.terms.items[0].typeof(scope, errors, allocator);
                 if (try first_type.typesMatch(typeType, scope, errors, allocator)) {
+                    // typeof product type is Type
                     retval = typeType;
+                } else if (self.product.was_slice) {
+                    var addr: *AST = self.product.terms.items[0];
+                    retval = try create_slice_type(try addr.addrOf.expr.typeof(scope, errors, allocator), addr.addrOf.mut, allocator);
+                    retval.product.was_slice = true;
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
                     for (self.product.terms.items) |term| {

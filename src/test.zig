@@ -1,7 +1,7 @@
 const std = @import("std");
 const errs = @import("errors.zig");
 const compiler = @import("main.zig");
-const term = @import("zig-term/term.zig");
+const term = @import("term.zig");
 const String = @import("zig-string/zig-string.zig").String;
 
 const allocator = std.heap.page_allocator;

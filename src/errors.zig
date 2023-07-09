@@ -1,7 +1,7 @@
 const ast = @import("ast.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
-const term = @import("zig-term/term.zig");
+const term = @import("term.zig");
 const token = @import("token.zig");
 
 const AST = ast.AST;

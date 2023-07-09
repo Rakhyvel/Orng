@@ -94,8 +94,8 @@
 - [x] slices
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
-    - [ ] sublices with inferred lower bound (0)
-    - [ ] sublices with inferred upper bound (length)
+    - [x] sublices with inferred lower bound (0)
+    - [x] sublices with inferred upper bound (length)
 - [ ] UTF8
     - [x] Byte type
     - [ ] string literals
@@ -110,14 +110,12 @@
         - [ ] `\u<unicode code point, hex>`
         - [x] Error on invalid escapes
         - [x] Error if character literal contains more than one character
-- [ ] Sum types
+- [x] Sum types
     - [x] `||` for union
-    - [ ] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
+    - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
 - [ ] optionals
     - [ ] `?` constructor
-        > It's useful to have the error unwrap and optional unwrap be the same fixity
     - [ ] `orelse` coalesce
-    - [ ] some way to check if it's null or not, preferably without pattern matching
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
     - [ ] stack traces
@@ -125,9 +123,11 @@
     - [ ] `.!`
     - [ ] `throw` (maybe remove!)
     - [ ] `errdefer`
-    - [ ] `.?` (or `some`?) value from optional
+    - [ ] `.?` value from optional
     - [ ] inferred errors, error coerce
 - [ ] more compile errors
+    - [ ] default values
+    - [ ] explicit discarding with `_`
     - [ ] static index out of bounds
     - [ ] dynamic index out of bounds
     - [ ] static slice lower > greater
@@ -152,16 +152,17 @@
         > should likely be shallow equality, otherwise that gets tricky...
     - [ ] `match` statement
 - [ ] new optimizations
+    - [ ] expand_types should only allocate if anything changes
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
-    - [ ] pointer aliasing analysis
-    - [ ] avoid struct copies on select
+    - [x] avoid struct copies on select
     - [ ] temporary combining (basically register allocation)
     - [ ] local value numbering
     - [ ] partial redundancy elimination
     - [ ] redundancy elimination
-    - [ ] induction variable identification/unrolling
-    - [ ] loop invariant lifting
-    - [ ] inlining
+    - [ ] induction variable identification/unrolling (this is a good one if possible)
+    - [ ] ! inlining
+    - [ ] ? loop invariant lifting
+    - [ ] ? pointer aliasing analysis
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`
@@ -182,11 +183,12 @@
     > Read about philosophy of other build systems, what do users want/need to build Orng programs?
         > Maybe Orng programs don't require a build script, they can just do `import` and it's all good
             > Packages may need to include c-files/libraries. This should be documented somewhere. A *simple* build file is acceptable.
-        > `import:(const path:String)`
-        > `package:(const path:String)`
-        > `extern:(const name: String, const T: Type)->T`
-        > `extern_type:(const name: String, const backing: Type = ())->Type`
-        > `c_include:(const path: String)->(a tuple of the definitions)`
+            > Modules can be cyclic within a package, packages cannot be cyclic
+        > `fn import(const path:String) -> (tuple of definitions in module)`
+        > `fn package(path: const String) -> (tuple of modules in package)`
+        > `fn extern(name: const String, T: Type) -> T`
+        > `fn extern_type(name: const String, backing: Type = ()) -> Type`
+        > `fn c_include(path: const String) -> (a tuple of the definitions)`
     - [ ] Specifies the entry function somehow
     - [ ] entry function takes a record of IO function pointers
     - [ ] run a C compiler on the output
@@ -196,13 +198,13 @@
     > How do 'packages' work? How **SHOULD** they work?
     - [ ] Optionally execute output executable after compiling
     - [ ] Externs
-        > 'Primitive types' are just extern types defined in prelude
+    - [ ] Prelude with:
+        - [ ] Each primitive type as an extern type
+        - [ ] `is_null()`
     > How to do exponentiation without libc?
-    - [ ] debug mode
-        - [ ] array/slice bounds checking
-        - [ ] null dereference
+    - [ ] debug mode which enables checks for UB
 - [ ] refinement types
-    - [ ] `where` should only check for things at runtime, unless specified with `where comptime`
+    - [ ] `where` should only check for things at runtime, unless specified with `where const`
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free
     - [ ] error if an identifier contains a `'` in the middle of itself
@@ -210,6 +212,7 @@
     - [ ] allocators
     - [ ] iterators & for loops
         - [ ] multi-loops, ranges like zig
-    - [ ] Eq, Ord, Num, Bits
+    - [ ] Eq, Ord, Num, Bits, Convertible
+        - [ ] Inlining will hopefully remove vtable lookups for things like integer math, which would stink!
     - [ ] derive
     - [ ] dot prepend `.>`

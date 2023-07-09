@@ -613,12 +613,21 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ));
                 try new_terms.append(try AST.createInt(ast.getToken(), expr_type.product.terms.items.len, allocator));
                 ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
+                ast.product.was_slice = true;
                 ast.getCommon().is_valid = true;
                 ast.product.was_slice = true;
             }
             retval = ast;
         },
         .subSlice => {
+            var super_type = try ast.subSlice.super.typeof(scope, errors, allocator);
+            if (super_type.* != .product or !super_type.product.was_slice) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot take a sub-slice of something that is not a slice", .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                ast.subSlice.super = try validateAST(ast.subSlice.super, null, scope, errors, allocator);
+            }
+
             if (ast.subSlice.lower) |lower| {
                 ast.subSlice.lower = try validateAST(lower, _ast.intType, scope, errors, allocator);
             } else {
@@ -627,15 +636,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast.subSlice.upper) |upper| {
                 ast.subSlice.upper = try validateAST(upper, _ast.intType, scope, errors, allocator);
             } else {
-                // TODO: Make it the slice length (requires a select AST)
-            }
-
-            var super_type = try ast.subSlice.super.typeof(scope, errors, allocator);
-            if (super_type.* != .product or !super_type.product.was_slice) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot take a sub-slice of something that is not a slice", .stage = .typecheck } });
-                return error.typeError;
-            } else {
-                ast.subSlice.super = try validateAST(ast.subSlice.super, null, scope, errors, allocator);
+                var index = try AST.createSelect(
+                    ast.getToken(),
+                    ast.subSlice.super,
+                    try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
+                    allocator,
+                );
+                ast.subSlice.upper = try validateAST(index, _ast.intType, scope, errors, allocator);
             }
             retval = ast;
         },

@@ -1,0 +1,73 @@
+// This file is included as the root of every Orng program.
+// It includes definitions that are common enough to have a sort of "built-in" status
+
+// Primitive types
+// Word types
+let Word8 = extern_type("uint8_t")
+let Byte = Word8
+let Word16 = extern_type("uint16_t")
+let Word32 = extern_type("uint32_t")
+let Char = Word32
+let Word64 = extern_type("uint64_t")
+
+// Integer types
+let Int8 = extern_type("int8_t")
+let Int16 = extern_type("int16_t")
+let Int32 = extern_type("int32_t")
+let Int64 = extern_type("int64_t")
+let Int = Int64
+
+// Floating point types
+let Float32 = extern_type("float")
+let Float64 = extern_type("double")
+let Float = Float64
+
+// Miscellaneous types
+let String = []Byte
+
+
+// Functions
+fn is_null(x: ?T') -> Bool 
+    match x
+    | .null => true
+    | _     => false
+
+fn isnt_null(x: ?T') -> Bool
+    match x
+    | .null => false
+    | _     => true
+
+
+// Type classes
+class Eq
+    // TODO
+
+class Ord
+    // TODO
+
+class Num
+    // TODO
+
+class Bits
+    // TODO
+
+class Reader
+    // TODO
+
+class Writer
+    // TODO
+
+class Allocator
+    // TODO
+
+class Iterable
+    // TODO
+
+class Iterator
+    // TODO
+
+class Indexable
+    // TODO
+
+class Convertible
+    // TODO
