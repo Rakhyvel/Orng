@@ -29,7 +29,6 @@ int64_t _2_main() {
 	struct0 _3_x;
 	struct0* _2_t6;
 	struct0* _2_t5;
-	struct0 _2_t7;
 	int64_t _2_t8;
 	int64_t _2_t9;
 	int64_t _2_$retval;
@@ -48,7 +47,6 @@ BB0:
 }
 
 struct0* _4_f(struct0* _4_x) {
-	struct0 _4_t0;
 	int64_t _4_t1;
 	int64_t _4_t2;
 	struct0* _4_$retval;

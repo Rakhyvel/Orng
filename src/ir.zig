@@ -130,10 +130,10 @@ pub const IRKind = enum {
     div,
     mod,
     exponent,
-    index, // src1[src2]
-    indexCopy, // src1[data] = src2
+    index, // dest = src1[src2]
+    indexCopy, // src1[data.symbver] = src2
     subSlice,
-    select,
+    select, // dest = src1._${data.int}
     selectCopy,
     cast,
 
@@ -862,6 +862,7 @@ pub const CFG = struct {
                 var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, true, errors, allocator)).?;
                 var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, false, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                temp.lvalue = lvalue;
 
                 var ir = try IR.createIndex(temp, lhs, rhs, allocator);
                 temp.def = ir;
@@ -871,6 +872,7 @@ pub const CFG = struct {
             .select => {
                 var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, true, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                temp.lvalue = lvalue;
 
                 var ir = try IR.createSelect(temp, lhs, ast.select.pos.?, allocator);
                 temp.def = ir;

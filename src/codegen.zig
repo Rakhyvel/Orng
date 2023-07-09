@@ -175,7 +175,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
-                if (dest.symbol.decld or dest.type.* == .unit) {
+                if (dest.symbol.decld or dest.type.* == .unit or dest.symbol.versions == 0) {
                     continue;
                 }
                 try printVarDecl(dest.symbol, out, false);

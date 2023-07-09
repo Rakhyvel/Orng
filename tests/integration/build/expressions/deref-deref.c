@@ -19,7 +19,6 @@ int64_t _2_main() {
 	int64_t* _2_t1;
 	int64_t* _3_y;
 	int64_t** _2_t2;
-	int64_t* _2_t3;
 	int64_t _2_t4;
 	int64_t* _2_t5;
 	int64_t _2_t6;

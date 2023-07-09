@@ -858,6 +858,9 @@ fn calculateVersions(cfg: *CFG) void {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
+                if (dest.lvalue) {
+                    continue;
+                }
                 dest.symbol.versions += 1;
             }
         }

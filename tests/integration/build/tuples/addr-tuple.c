@@ -23,9 +23,7 @@ int64_t _2_main() {
 	int64_t _2_t4;
 	struct0 _3_x;
 	struct0* _2_t5;
-	struct0 _2_t6;
 	int64_t _2_t7;
-	struct0 _2_t8;
 	int64_t _2_t9;
 	int64_t _2_$retval;
 BB0:
