@@ -86,11 +86,11 @@
     - [x] pointer to tuple, tuple of pointers, select deref
     - [x] should not be able to mix annot and non-annot tuples
     - [ ] `++` for concat
-- [ ] arrays
+- [x] arrays
     - [x] index
     - [x] index-assign
         - [x] validate index lvalue
-    - [ ] when deref copy prop op is enabled, pemdas.orng emits type error
+    - [x] when deref copy prop op is enabled, pemdas.orng emits type error
 - [x] slices
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
