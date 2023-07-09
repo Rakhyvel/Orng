@@ -24,10 +24,10 @@ zig build
 ## Usage
 Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a "Hello, World" program in Orng:
 ```rs
-fn main: (sys: System)->!() =
+fn main(sys: System)->!()
     greet("Orng! 🍊", sys.stdout)
 
-fn greet: (recipient: String, out: @Writer) -> !() =
+fn greet(recipient: String, out: @Writer) -> !()
     out.>writeln("Hello, {s}", recipient)
 ```
 
@@ -58,16 +58,17 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 ## Examples
 ### Factorial Function
 ```rs
-// One-liner factorial function!
-fn factorial: (n: Int)->Int = if n < 2 {1} else {n * factorial(n - 1)}
+// A factorial function!
+fn factorial(n: Int) -> Int
+    if n < 2 {1} else {n * factorial(n - 1)}
 ```
 Lets break that down so we can understand how Orng works.
 ```rs
 fn factorial                      // Define a new function called `factorial`.
-  : (n: Int)->Int                 // The type of `factorial` is a function, 
+    (n: Int) -> Int               // The type of `factorial` is a function, 
                                   //     which takes an integer called `n` and 
                                   //     returns an integer.
-    = if n < 2 {1}                // The result of calling factorial is either 
+    if n < 2 {1}                  // The result of calling factorial is either 
                                   //     `1` if `n < 2`,
       else {n * factorial(n - 1)} // Otherwise is `n * factorial(n-1)`.
 ```
@@ -78,7 +79,7 @@ const FizzBuzzResult
     = string: String
     | integer: Int
 
-fn fizzbuzz: (n: Int)->FizzBuzzResult =
+fn fizzbuzz(n: Int) -> FizzBuzzResult
     case
     | n % 15 == 0 => FizzBuzzResult.string("fizzbuzz") 
     //               ^^^^^^^^^^^^^^
@@ -89,7 +90,7 @@ fn fizzbuzz: (n: Int)->FizzBuzzResult =
     | n % 3 == 0  => .string("fizz")
     | else        => .integer(n)
 
-fn main: (sys: System)->!() =
+fn main(sys: System) -> !()
     while let i = 0; i < 100; i += 1
         // Can pattern match on ADTs! Again, can let it be inferred if possible
         match fizzbuzz(i)
@@ -100,8 +101,8 @@ fn main: (sys: System)->!() =
 Identifiers may end in a single apostrophe. When unification is done, apostrophe'd identifiers are considered to be free variables, and regular identifiers are terms.
 ```rs
 // Function that works for values of any type `T'` in the `Eq` type-class
-fn contains: (haystack: []T', needle: T')->Bool
-where T' <: Eq =
+fn contains(haystack: []T', needle: T') -> Bool
+where T' <: Eq
     case
     | haystack.len == 0     => false
     | haystack[0] == needle => true

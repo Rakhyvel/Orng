@@ -1,4 +1,4 @@
-fn main: (sys: System)->!() =
+fn main(sys: System) -> !()
     while let i = 0; i < 100; i += 1
         match fizzbuzz(i)
         | .string(s')  => try sys.stdout.>println("{s}", s')
@@ -9,7 +9,7 @@ const FizzBuzzResult
     = string: String
     | integer: Int
 
-fn fizzbuzz: (n: Int)->FizzBuzzResult =
+fn fizzbuzz(n: Int) -> FizzBuzzResult
     case
     | n % 15 == 0 => .string("fizzbuzz") 
     | n % 5 == 0  => .string("buzz") 

@@ -1,7 +1,7 @@
-fn main: (sys: System) -> !() =
+fn main(sys: System) -> !() 
     sys.stdout.>println("Factorial of 6 is {}", factorial(6))
 
-fn factorial: (n: Int)->Int = 
+fn factorial(n: Int)->Int 
     if n < 2
         1
     else 
