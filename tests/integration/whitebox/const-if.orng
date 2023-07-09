@@ -1,5 +1,5 @@
 // 107
-fn main: () -> Int =
+fn main() -> Int
     if const x = 4; x == 4
         107
     else

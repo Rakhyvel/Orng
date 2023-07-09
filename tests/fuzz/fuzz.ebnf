@@ -2,62 +2,59 @@
 # used just to check for ambiguity
 # python3.10 ../rdgen/main.py create --input orng.ebnf --output parser.py && grep "AMBIGUOUS" parser.py
 
-program: top_level_declaration {"newline" top_level_declaration} "eof".
+program: declaration {"newline" declaration} "eof".
 
-top_level_declaration: fn_declaration.
+declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
-non_fn_declaration: let_declaration.
+lambda: "\\" [param {"," param}] "->" arrowExpr ["where" arrowExpr] blockExpr.
+param: ["mut"] ident ":" boolExpr ["where" boolExpr] ["=" boolExpr]. # must not be productExpr, or ambiguous with ,
+                                                    # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier
 
-let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
-
-fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr "=" expr.
-paramlist: "(" [param {"," param}] ")".
-param: ["mut"] ident ":" arrowExpr ["=" arrowExpr]. # cannot be productExpr, otherwise ambiguous with ,
-
-statement: non_fn_declaration
-         | fn_declaration
+statement: declaration
          | "defer" statement
-         | condMatchExpr
-         | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=") expr]
+         | "errdefer" statement
+         | expr
          .
 
-expr: condMatchExpr
-    | fn_declaration
+expr: caseMatchExpr
+    | lambda
     | sumExpr
     .
 
-sumExpr: productExpr. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
+sumExpr: productExpr {"|" annotExpr}. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
 
-productExpr: annotExpr.
+productExpr: annotExpr {"," annotExpr}.
 
-annotExpr: arrowExpr. # (lhs of : must be ident or other TBD patterns)
+annotExpr: assignExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+
+assignExpr: arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignExpr].
 
 arrowExpr: boolExpr {"->" boolExpr}.
 
-boolExpr: neqExpr {("and" | "or") neqExpr}.
+boolExpr: conditionalExpr {("and" | "or") conditionalExpr}.
 
-neqExpr: conditionalExpr ["!=" conditionalExpr].
+conditionalExpr: deltaExpr {("==" | "!=" | "<" | "<=" | ">" | ">=") deltaExpr}.
 
-conditionalExpr: deltaExpr {("==" | "<" | "<=" | ">" | ">=") deltaExpr}.
+deltaExpr: coalesceExpr {">>" coalesceExpr}. # (rhs must be a call expr)
 
-deltaExpr: coalesceExpr. # (rhs must be a call expr)
-
-coalesceExpr: intExpr .
+coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
 intExpr: termExpr {("+" | "-" | "!") termExpr}.
 
-termExpr: prefixExpr {("*" | "/" | "%" ) prefixExpr}.
+termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
 
 prefixExpr: "!" hyperExpr                           # inferred error union
           | "not" hyperExpr                         # boolean not
           | "-" hyperExpr                           # negation
           | "&" ["mut"] prefixExpr                  # address-of
+          | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
+          | "?" hyperExpr                           # optional
           | hyperExpr
           .
 
-hyperExpr: postfixExpr {("**") postfixExpr}.
+hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 
-postfixExpr: factor {parens |  ("^")}.
+postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | (".!") | ("^")}.
 
 factor: ident
       | "true"
@@ -67,21 +64,24 @@ factor: ident
       | octal
       | bin
       | float
+      | char
+      | string
       | blockExpr
       | ifExpr
       | whileExpr
+      | forExpr
       | "unreachable"
+      | "." ident
       | parens
       .
-
 
 indentBlockExpr: indent [statement {"newline" statement }] [("throw" expr "newline") | ("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
 braceBlockExpr: "{" {statement ";"} [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] "}".
 blockExpr: indentBlockExpr | braceBlockExpr.
 
-ifExpr: "if" [non_fn_declaration ";"] expr blockExpr ["else" blockExpr].
+ifExpr: "if" [declaration ";"] expr blockExpr ["else" blockExpr].
 
-whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
+whileExpr: "while" [declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
 
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
 
@@ -90,10 +90,10 @@ barElse: "else" "=>" annotExpr.
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barListMiddle.
 
-condExpr: [non_fn_declaration ";"] barList.
-matchExpr: [non_fn_declaration ";"] productExpr barList.
-condMatchExpr: "cond" condExpr
+caseExpr: [declaration ";"] barList.
+matchExpr: [declaration ";"] productExpr barList.
+caseMatchExpr: "case" caseExpr
              | "match" matchExpr
              .
 
-parens: "(" expr ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens
+parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens

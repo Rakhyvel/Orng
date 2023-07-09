@@ -1,5 +1,5 @@
 // 38
-fn main: () -> Int =
+fn main() -> Int
     let mut x = 0
     while x < 100; x += 1
         defer x += 2

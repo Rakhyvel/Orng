@@ -1,5 +1,5 @@
 // 74
-fn main: () -> Int = 
+fn main() -> Int
     let mut x: Int = 5
     (&mut x)^ = 74
     (&mut x)^

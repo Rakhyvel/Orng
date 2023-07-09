@@ -189,72 +189,6 @@ pub const Parser = struct {
         );
     }
 
-    fn fnDeclaration(self: *Parser) ParserErrorEnum!*AST {
-        var introducer = try self.expect(.FN);
-        var maybeIdent: ?*AST = null;
-
-        if (self.accept(.IDENTIFIER)) |token| {
-            maybeIdent = try AST.createIdentifier(token, self.astAllocator);
-            _ = try self.expect(.COLON);
-        }
-        var params = try self.paramlist();
-        _ = try self.expect(.RIGHT_SKINNY_ARROW);
-        var retType = try self.arrowExpr();
-
-        var refinement: ?*AST = null;
-        if (self.accept(.WHERE)) |_| {
-            _ = try self.arrowExpr();
-        }
-
-        _ = try self.expect(.EQUALS);
-        var init = try self.expr();
-
-        return try AST.createFnDecl(
-            introducer,
-            maybeIdent,
-            params,
-            retType,
-            refinement,
-            init,
-            self.astAllocator,
-        );
-    }
-
-    fn paramlist(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
-        var params = std.ArrayList(*AST).init(self.astAllocator);
-        errdefer params.deinit();
-
-        _ = try self.expect(.L_PAREN);
-        if (self.peekKind(.CONST) or self.peekKind(.MUT) or self.peekKind(.IDENTIFIER)) {
-            try params.append(try self.param());
-            if (self.accept(.COMMA)) |_| {
-                try params.append(try self.param());
-            }
-        }
-        _ = try self.expect(.R_PAREN);
-
-        return params;
-    }
-
-    fn param(self: *Parser) ParserErrorEnum!*AST {
-        var introducer: ?Token = self.accept(.MUT) orelse self.accept(.CONST);
-        var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
-        _ = try self.expect(.COLON);
-        var paramType = try self.arrowExpr();
-        var init: ?*AST = null;
-        if (self.accept(.EQUALS)) |_| {
-            init = try self.arrowExpr();
-        }
-
-        return try AST.createDecl(
-            if (introducer) |i| i else .{ .kind = .LET, .data = "let", .span = ident.getToken().span },
-            ident,
-            paramType,
-            init,
-            self.astAllocator,
-        );
-    }
-
     fn statement(self: *Parser) ParserErrorEnum!*AST {
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             return self.nonFnDeclaration();
@@ -270,8 +204,6 @@ pub const Parser = struct {
     fn expr(self: *Parser) ParserErrorEnum!*AST {
         if (self.peekKind(.CASE) or self.peekKind(.MATCH)) {
             return self.caseMatchExpr();
-        } else if (self.peekKind(.FN)) {
-            return self.fnDeclaration();
         } else {
             return self.sumType();
         }
@@ -611,6 +543,8 @@ pub const Parser = struct {
             return try self.whileExpr();
         } else if (self.peekKind(.FOR)) {
             return try self.forExpr();
+        } else if (self.peekKind(.FN)) {
+            return self.fnDeclaration();
         } else if (self.accept(.PERIOD)) |token| {
             var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
             return try AST.createInferredMember(token, ident, self.astAllocator);
@@ -765,6 +699,70 @@ pub const Parser = struct {
         }
 
         return try AST.createFor(token, let, elem, iterable, bodyBlock, elseBlock, self.astAllocator);
+    }
+
+    fn fnDeclaration(self: *Parser) ParserErrorEnum!*AST {
+        var introducer = try self.expect(.FN);
+        var maybeIdent: ?*AST = null;
+
+        if (self.accept(.IDENTIFIER)) |token| {
+            maybeIdent = try AST.createIdentifier(token, self.astAllocator);
+        }
+        var params = try self.paramlist();
+        _ = try self.expect(.RIGHT_SKINNY_ARROW);
+        var retType = try self.arrowExpr();
+
+        var refinement: ?*AST = null;
+        if (self.accept(.WHERE)) |_| {
+            _ = try self.arrowExpr();
+        }
+
+        var init = try self.blockExpr();
+
+        return try AST.createFnDecl(
+            introducer,
+            maybeIdent,
+            params,
+            retType,
+            refinement,
+            init,
+            self.astAllocator,
+        );
+    }
+
+    fn paramlist(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
+        var params = std.ArrayList(*AST).init(self.astAllocator);
+        errdefer params.deinit();
+
+        _ = try self.expect(.L_PAREN);
+        if (self.peekKind(.CONST) or self.peekKind(.MUT) or self.peekKind(.IDENTIFIER)) {
+            try params.append(try self.param());
+            if (self.accept(.COMMA)) |_| {
+                try params.append(try self.param());
+            }
+        }
+        _ = try self.expect(.R_PAREN);
+
+        return params;
+    }
+
+    fn param(self: *Parser) ParserErrorEnum!*AST {
+        var introducer: ?Token = self.accept(.MUT) orelse self.accept(.CONST);
+        var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+        _ = try self.expect(.COLON);
+        var paramType = try self.arrowExpr();
+        var init: ?*AST = null;
+        if (self.accept(.EQUALS)) |_| {
+            init = try self.arrowExpr();
+        }
+
+        return try AST.createDecl(
+            if (introducer) |i| i else .{ .kind = .LET, .data = "let", .span = ident.getToken().span },
+            ident,
+            paramType,
+            init,
+            self.astAllocator,
+        );
     }
 
     fn barClause(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {

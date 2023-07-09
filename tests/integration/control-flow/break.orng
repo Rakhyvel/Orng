@@ -1,5 +1,5 @@
 // 36
-fn main: () -> Int =
+fn main() -> Int
     let mut x = 36
     while let mut i = 0; i < 70; i += 1
         if i % 2 == 0

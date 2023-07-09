@@ -71,6 +71,7 @@ pub const TokenKind = enum(u32) {
     LEFT_SKINNY_ARROW,
     RIGHT_SKINNY_ARROW,
     SLASH,
+    BACKSLASH,
     STAR,
 
     // Punctuation
@@ -279,6 +280,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .PLUS => "+",
         .RIGHT_SKINNY_ARROW => "->",
         .SLASH => "/",
+        .BACKSLASH => "\\",
         .STAR => "*",
 
         // Punctuation

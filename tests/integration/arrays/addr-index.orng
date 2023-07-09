@@ -1,5 +1,5 @@
 // 63
-fn main: () -> Int =
+fn main() -> Int
     let mut x: [4]Int = (1, 2, 3, 4)
     let y: &mut Int = &mut x[0]
     y^ = 63

@@ -1,4 +1,4 @@
 // 50
-fn main: () -> Int = add(add(47), add())
+fn main() -> Int {add(add(47), add())}
 
-fn add: (x: Int = 1, y: Int = 1) -> Int = x + y
+fn add(x: Int = 1, y: Int = 1) -> Int {x + y}

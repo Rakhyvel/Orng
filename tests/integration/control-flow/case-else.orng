@@ -1,5 +1,5 @@
 // 10
-fn main: ()->Int =
+fn main()->Int
     case
     | 0 == 1 => 5
     | 0 == 1 => 10

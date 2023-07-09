@@ -1,2 +1,2 @@
 // 39
-fn main: () -> Char = '\''
+fn main() -> Char {'\''}

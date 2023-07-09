@@ -1,2 +1,2 @@
 // 0
-fn main: ()->Bool = not true
+fn main()->Bool {not true}

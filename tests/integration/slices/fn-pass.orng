@@ -1,7 +1,7 @@
 // 82
-fn main: () -> Int =
+fn main() -> Int
     let mut x = (1, 2, 3, 4)
     let y = [mut]x
     f(y)
 
-fn f: (x: []Int)->Int = x[1] + 80
+fn f(x: []Int)->Int {x[1] + 80}

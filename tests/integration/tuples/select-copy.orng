@@ -1,5 +1,5 @@
 // 56
-fn main: () -> Int =
+fn main() -> Int
     let mut x: (a: Int, b: Int) = 50, 5
     x.b = 6
     x.a + x.b

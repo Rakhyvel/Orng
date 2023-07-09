@@ -1,5 +1,5 @@
 // 31
-fn main: ()->Int =
+fn main()->Int
     let x = 0
     let y = &x
     let mut b = not (y^ == 1)

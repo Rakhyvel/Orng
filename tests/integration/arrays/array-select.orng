@@ -1,5 +1,5 @@
 // 73
-fn main: () -> Int =
+fn main() -> Int
     let mut x: [3](a: Int, b: Int) = 
         ( (1, 2)
         , (3, 4)

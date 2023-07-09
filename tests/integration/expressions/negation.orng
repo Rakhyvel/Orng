@@ -1,2 +1,2 @@
 // -10
-fn main:()->Int = -10
+fn main()->Int {-10}

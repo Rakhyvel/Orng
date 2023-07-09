@@ -1,5 +1,5 @@
 // 34
-fn main: ()->Int =
+fn main()->Int
     let mut x = 2
     if x == 2
         defer x = 34

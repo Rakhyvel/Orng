@@ -1,4 +1,4 @@
 // 92
-fn main: () -> Byte =
+fn main() -> Byte
     let x = "\\"
     x[0]

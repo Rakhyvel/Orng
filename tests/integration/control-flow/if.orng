@@ -1,4 +1,4 @@
 // 11
-fn main: ()->Int = 
+fn main()->Int 
     if let x: Int = 4; true
         x + 7

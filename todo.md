@@ -18,9 +18,10 @@
 - [ ] Organize functions declarations in prefix order
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
-- [ ] Change some while loops to enhanced for dyadic loops
+- [ ] Change some while loops with counter to enhanced for loops
 - [ ] Go through files and find TODO comments
 - [ ] All inits have a corresponding deinit
+- [ ] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
 
 ### Pipeline
@@ -93,6 +94,8 @@
 - [x] slices
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
+    - [ ] sublices with inferred lower bound (0)
+    - [ ] sublices with inferred upper bound (length)
 - [ ] UTF8
     - [x] Byte type
     - [ ] string literals
@@ -112,9 +115,9 @@
     - [ ] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
 - [ ] optionals
     - [ ] `?` constructor
-    - [ ] `.?` (or `some`?) value from optional
         > It's useful to have the error unwrap and optional unwrap be the same fixity
     - [ ] `orelse` coalesce
+    - [ ] some way to check if it's null or not, preferably without pattern matching
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
     - [ ] stack traces
@@ -122,6 +125,7 @@
     - [ ] `.!`
     - [ ] `throw` (maybe remove!)
     - [ ] `errdefer`
+    - [ ] `.?` (or `some`?) value from optional
     - [ ] inferred errors, error coerce
 - [ ] more compile errors
     - [ ] static index out of bounds
@@ -135,7 +139,8 @@
     - [ ] static union tag check
     - [ ] dynaminc? union tag check
     - [ ] compile-time const check
-- [ ] unreachable
+    - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
+    - [ ] unreachable
 - [ ] pattern matching
     - [ ] product destructuring
     - [ ] sum-type destructuring

@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1687130355121295703
-#define ORNG_1687130355121295703
+#ifndef ORNG_1688936213703439887
+#define ORNG_1688936213703439887
 
 #include <math.h>
 #include <stdio.h>

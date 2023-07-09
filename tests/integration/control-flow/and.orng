@@ -1,2 +1,2 @@
 // 1
-fn main: ()->Bool = true and true and true
+fn main()->Bool {true and true and true}

@@ -1,5 +1,5 @@
 // 11
-fn main: ()->Int =
+fn main()->Int
     if let x: Int = 4; false
         x + 3
     else

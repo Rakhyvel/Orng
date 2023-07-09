@@ -1,12 +1,12 @@
 // fizzbuzz
-fn main: () -> String = 
+fn main()-> String
     fizzbuzz(30).string
 
 const FizzBuzzResult: Type
     = string: String
     | integer: Int
 
-fn fizzbuzz: (n: Int)->FizzBuzzResult =
+fn fizzbuzz(n: Int) -> FizzBuzzResult
     case
     | n % 15 == 0 => .string <- "fizzbuzz"
     | n % 5 == 0  => .string <- "buzz"

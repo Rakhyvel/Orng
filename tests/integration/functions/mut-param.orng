@@ -1,7 +1,7 @@
 // 46
-fn main: () -> Int = sumDown(8) + 2
+fn main() -> Int {sumDown(8) + 2}
 
-fn sumDown: (mut x: Int) -> Int =
+fn sumDown(mut x: Int) -> Int
     while let mut i = x; i >= 0; i -= 1
         x += i
     x

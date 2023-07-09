@@ -14,11 +14,6 @@ const_declaration: "const" ident [":" arrowExpr] "=" expr.
 
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
-fn_declaration: "fn" [ident ":"] paramlist "->" arrowExpr ["where" arrowExpr] "=" expr.
-paramlist: "(" [param {"," param}] ")".
-param: ["mut" | "const"] ident ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
-                                                              # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier
-
 statement: non_fn_declaration
          | "defer" statement
          | "errdefer" statement
@@ -26,7 +21,6 @@ statement: non_fn_declaration
          .
 
 expr: caseMatchExpr
-    | fn_declaration
     | sumExpr
     .
 
@@ -79,6 +73,7 @@ factor: ident
       | ifExpr
       | whileExpr
       | forExpr
+      | fn_declaration
       | "unreachable"
       | "." ident
       | parens
@@ -92,7 +87,12 @@ ifExpr: "if" [non_fn_declaration ";"] expr blockExpr ["else" blockExpr].
 
 whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
 
-forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr].
+forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr]. # TODO: Perhaps specify type of element?
+
+fn_declaration: "fn" [ident] paramlist "->" arrowExpr ["where" arrowExpr] "=" blockExpr.
+paramlist: "(" [param {"," param}] ")".
+param: ["mut"] ident ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
+                                                    # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier
 
 barClause: annotExpr ["=>" annotExpr]. # for barClauses in match statements, if the lhs of has a pattern, => must be present
 barElse: "else" "=>" annotExpr.

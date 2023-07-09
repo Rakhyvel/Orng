@@ -1,2 +1,2 @@
 // Hello, Orng! 🍊
-fn main: () -> String = "Hello, Orng! 🍊"
+fn main() -> String {"Hello, Orng! 🍊"}

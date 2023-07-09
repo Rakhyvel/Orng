@@ -77,7 +77,15 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
             else => return err,
         }
     };
-    try output(errors, &lines, file_root, uid, out_name, allocator);
+    output(errors, &lines, file_root, uid, out_name, allocator) catch |err| {
+        switch (err) {
+            error.typeError => {
+                try errors.printErrors(&lines, in_name);
+                return err;
+            },
+            else => return err,
+        }
+    };
 }
 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree

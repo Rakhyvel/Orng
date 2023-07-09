@@ -1,2 +1,2 @@
 // 26
-fn main: ()->Int = {let mut x: Int = 13; x *= 2; x}
+fn main()->Int {let mut x: Int = 13; x *= 2; x}

@@ -1,5 +1,5 @@
 // 42
-fn main: () -> Int = 
+fn main() -> Int
     let x = 10
     let y = 10
     let z = y

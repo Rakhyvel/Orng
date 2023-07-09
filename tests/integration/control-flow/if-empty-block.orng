@@ -1,4 +1,4 @@
 // 24
-fn main: ()->Int =
+fn main()->Int
     if true {} else {}
     24

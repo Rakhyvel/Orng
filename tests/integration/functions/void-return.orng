@@ -1,6 +1,6 @@
 // 65
-fn main: () -> Int =
+fn main() -> Int
     void()
     65
 
-fn void: () -> () = {}
+fn void() -> () {}

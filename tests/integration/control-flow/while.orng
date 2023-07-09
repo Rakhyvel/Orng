@@ -1,5 +1,5 @@
 // 55
-fn main: ()->Int =
+fn main()->Int
     let mut x: Int = 0
     while let mut i: Int = 0; i <= 10; i = i + 1
         x = x + i

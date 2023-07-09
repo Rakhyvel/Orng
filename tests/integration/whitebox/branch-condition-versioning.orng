@@ -1,5 +1,5 @@
 // 15
-fn main: ()->Int = 
+fn main()->Int
     let mut found: Bool = false
     while let mut n: Int = 0; n < 10; n += 1
         if found
