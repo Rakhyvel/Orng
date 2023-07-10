@@ -67,7 +67,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         try out.writer().print("}} struct{};\n", .{dag.uid});
     } else if (dag.base.* == .sum) {
         try out.writer().print("typedef struct {{\n\tuint64_t tag;\n", .{});
-        if (!dag.base.sum.all_unit) {
+        if (!dag.base.sum.is_all_unit()) {
             try out.writer().print("\tunion {{\n", .{});
             for (dag.base.sum.terms.items, 0..) |term, i| {
                 if (!term.annotation.type.c_typesMatch(_ast.unitType)) {

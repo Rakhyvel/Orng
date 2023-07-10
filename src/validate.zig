@@ -186,7 +186,15 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
-
+        .optional => {
+            ast.optional.expr = try validateAST(ast.optional.expr, _ast.typeType, scope, errors, allocator);
+            var ast_type: *AST = try ast.optional.expr.typeof(scope, errors, allocator);
+            if (expected != null and !try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                return error.typeError;
+            }
+            retval = try AST.create_optional_type(ast.optional.expr, allocator);
+        },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);
             ast.assign.rhs = try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors, allocator), scope, errors, allocator);
@@ -391,7 +399,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 // Make sure identifiers aren't repeated
                 if (term.* == .annotation) {
                     try new_terms.append(try validateAST(term, _ast.typeType, scope, errors, allocator));
-                    ast.sum.all_unit = ast.sum.all_unit and try term.typesMatch(_ast.unitType, scope, errors, allocator);
                     var res = try idents_seen.fetchPut(term.annotation.pattern.getToken().data, {});
                     if (res) |_| {
                         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "duplication of sum member", .stage = .typecheck } });
@@ -496,7 +503,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
 
                 retval = try AST.createSum(ast.getToken(), new_terms, allocator);
-                retval.sum.all_unit = expand_lhs.sum.all_unit and expand_rhs.sum.all_unit;
             }
         },
         .conditional => {

@@ -1,0 +1,6 @@
+// 113
+fn main() -> Int 
+    let mut x: ?Int = .some <- 4
+    x = .none
+    x = .some <- 113
+    x.some // This acts like `.?` in Zig, tags are checked at runtime in debug mode

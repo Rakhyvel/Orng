@@ -114,17 +114,18 @@
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
 - [ ] optionals
     - [ ] `?` constructor
+    - [ ] remove `fromOptional`
     - [ ] `orelse` coalesce
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
+    - [ ] remove `throw`
+    - [ ] binary `!`
     - [ ] stack traces
     - [ ] `catch`
-    - [ ] `.!`
-    - [ ] `throw` (maybe remove!)
     - [ ] `errdefer`
-    - [ ] `.?` value from optional
-    - [ ] inferred errors, error coerce
+    - [ ] inferred errors
 - [ ] more compile errors
+    - [ ] unreachable
     - [ ] default values
     - [ ] explicit discarding with `_`
     - [ ] static index out of bounds
@@ -136,10 +137,9 @@
     - [ ] static divide by zero
     - [ ] dynamic divide by zero
     - [ ] static union tag check
-    - [ ] dynaminc? union tag check
+    - [ ] dynaminc union tag check
     - [ ] compile-time const check
     - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
-    - [ ] unreachable
 - [ ] pattern matching
     - [ ] product destructuring
     - [ ] sum-type destructuring

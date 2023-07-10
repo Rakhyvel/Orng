@@ -129,7 +129,18 @@ pub const AST = union(enum) {
     sum: struct {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
-        all_unit: bool = true,
+        all_unit: ?bool = null,
+        pub fn is_all_unit(self: *@This()) bool {
+            if (self.all_unit) |all_unit| {
+                return all_unit;
+            }
+            var res = true;
+            for (self.terms.items) |term| {
+                res = res and term.c_typesMatch(unitType);
+            }
+            self.all_unit = res;
+            return res;
+        }
     },
     inject: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _error: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -567,29 +578,44 @@ pub const AST = union(enum) {
     }
 
     pub fn create_slice_type(of: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
-        var token = Token.create("a slice", TokenKind.IDENTIFIER, 0, 0);
         var term_types = std.ArrayList(*AST).init(allocator);
         var data_type = try AST.createAddrOf(
-            token,
+            of.getToken(),
             of,
             mut,
             allocator,
         );
-        var annot_type = try AST.createAnnotation(token, try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
+        var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
         data_type.getCommon().is_valid = true;
         annot_type.getCommon().is_valid = true;
         try term_types.append(annot_type);
         try term_types.append(try AST.createAnnotation(
-            token,
+            of.getToken(),
             try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
             intType,
             null,
             null,
             allocator,
         ));
-        var retval = try AST.createProduct(token, term_types, allocator);
+        var retval = try AST.createProduct(of.getToken(), term_types, allocator);
         retval.getCommon().is_valid = true;
         retval.product.was_slice = true;
+        return retval;
+    }
+
+    pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
+        var term_types = std.ArrayList(*AST).init(allocator);
+
+        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, 0, 0), allocator), of_type, null, null, allocator);
+        some_type.getCommon().is_valid = true;
+        try term_types.append(some_type);
+
+        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, 0, 0), allocator), unitType, null, unitType, allocator);
+        none_type.getCommon().is_valid = true;
+        try term_types.append(none_type);
+
+        var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
+        retval.getCommon().is_valid = true;
         return retval;
     }
 

@@ -22,19 +22,6 @@ pub fn main() !void {
         if (std.mem.eql(u8, "integration", arg)) {
             try term.outputColor(succeed_color, "[============]\n", out);
 
-            _ = exec(&[_][]const u8{ "/bin/rm", "-rf", "tests/integration/build/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/arrays/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/control-flow/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/expressions/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/functions/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/layout/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/slices/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/strings/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/sums/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/tuples/" }) catch {};
-            _ = exec(&[_][]const u8{ "/bin/mkdir", "tests/integration/build/whitebox/" }) catch {};
-
             var results = Results{ .passed = 0, .failed = 0 };
             if (args.next()) |next| {
                 if (indexOf(next, '.')) |_| {
@@ -76,6 +63,8 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
     try open_dir_name.concat(dir_name);
     // Add all files names in the src folder to `files`
     var dir = try std.fs.cwd().openIterableDir(open_dir_name.str(), .{});
+    defer dir.close();
+
     var it = dir.iterate();
     while (try it.next()) |file| {
         if (std.mem.eql(u8, file.name, "build") or std.mem.eql(u8, file.name, "README.md")) {
@@ -123,6 +112,9 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     var out_name: String = try String.init_with_contents(allocator, "tests/integration/build");
     defer out_name.deinit();
     try out_name.concat(dir_name);
+    { // Check if directory exists, create it if not
+        _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str() }) catch {};
+    }
     try out_name.concat("/");
     try out_name.concat(test_name);
     try out_name.concat(".c");
