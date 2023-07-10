@@ -44,7 +44,7 @@ coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
 
 intExpr: termExpr {("+" | "-" | "!") termExpr}.
 
-termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "++" | "--" | "||") prefixExpr}.
+termExpr: prefixExpr {("*" | "/" | "%" | "<>" | "||") prefixExpr}.
 
 prefixExpr: "!" hyperExpr                           # inferred error union
           | "not" hyperExpr                         # boolean not

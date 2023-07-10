@@ -72,7 +72,7 @@
     - [x] collect function types in program struct, generate typedefs
     - [x] default parameters
     - [x] named arguments
-- [ ] tuples
+- [x] tuples
     - [x] type dependency DAG
         > Two product types are C-equivalent if they're field's types match as you go through the struct
         > Then, when you generate them, just do `struct struct_1 {int _1, int _2}`, which would match `(x: Int, y: Int)` and `(Int, Int)`
@@ -82,10 +82,9 @@
         - [x] validate dot lvalue
     - [x] default fields
     - [x] named fields
-        - [ ] change grammar to use assignments instead of `<-`. assignments have void type anyway, probably no confusion with `==`
+        - [x] change grammar to use assignments instead of `<-`. assignments have void type anyway, probably no confusion with `==`
     - [x] pointer to tuple, tuple of pointers, select deref
     - [x] should not be able to mix annot and non-annot tuples
-    - [ ] `++` for concat
 - [x] arrays
     - [x] index
     - [x] index-assign

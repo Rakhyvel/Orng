@@ -270,14 +270,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition._error.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition._error.rhs, scope, errors, allocator);
         },
-        .diff => {
-            try symbolTableFromAST(definition.diff.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.diff.rhs, scope, errors, allocator);
-        },
-        .concat => {
-            try symbolTableFromAST(definition.concat.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.concat.rhs, scope, errors, allocator);
-        },
         ._union => {
             try symbolTableFromAST(definition._union.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition._union.rhs, scope, errors, allocator);

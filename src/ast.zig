@@ -157,8 +157,6 @@ pub const AST = union(enum) {
             return true;
         }
     },
-    diff: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    concat: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _union: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
 
     // Fancy operators
@@ -301,8 +299,6 @@ pub const AST = union(enum) {
             .inject => return &self.inject.common,
             ._error => return &self._error.common,
             .product => return &self.product.common,
-            .diff => return &self.diff.common,
-            .concat => return &self.concat.common,
             ._union => return &self._union.common,
 
             .addrOf => return &self.addrOf.common,
@@ -488,14 +484,6 @@ pub const AST = union(enum) {
     pub fn createProduct(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
         std.debug.assert(terms.items.len >= 2);
         return try AST.box(AST{ .product = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
-    }
-
-    pub fn createDiff(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .diff = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createConcat(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .concat = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createUnion(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

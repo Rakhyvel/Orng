@@ -380,10 +380,6 @@ pub const Parser = struct {
                 exp = try AST.createMod(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.DIAMOND)) |token| {
                 exp = try AST.createComposition(token, exp, try self.prefixExpr(), self.astAllocator);
-            } else if (self.accept(.D_PLUS)) |token| {
-                exp = try AST.createConcat(token, exp, try self.prefixExpr(), self.astAllocator);
-            } else if (self.accept(.D_MINUS)) |token| {
-                exp = try AST.createDiff(token, exp, try self.prefixExpr(), self.astAllocator);
             } else if (self.accept(.D_BAR)) |token| {
                 exp = try AST.createUnion(token, exp, try self.prefixExpr(), self.astAllocator);
             } else {
