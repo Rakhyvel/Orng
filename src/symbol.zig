@@ -185,7 +185,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
         ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
         .optional => try symbolTableFromAST(definition.optional.expr, scope, errors, allocator),
-        .fromOptional => try symbolTableFromAST(definition.fromOptional.expr, scope, errors, allocator),
         .inferredError => try symbolTableFromAST(definition.inferredError.expr, scope, errors, allocator),
 
         .assign => {

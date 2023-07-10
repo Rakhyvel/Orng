@@ -104,7 +104,6 @@ pub const AST = union(enum) {
     dereference: struct { common: ASTCommon, expr: *AST },
     _try: struct { common: ASTCommon, expr: *AST },
     optional: struct { common: ASTCommon, expr: *AST },
-    fromOptional: struct { common: ASTCommon, expr: *AST },
     inferredError: struct { common: ASTCommon, expr: *AST },
 
     // Binary operators
@@ -284,7 +283,6 @@ pub const AST = union(enum) {
             .dereference => return &self.dereference.common,
             ._try => return &self._try.common,
             .optional => return &self.optional.common,
-            .fromOptional => return &self.fromOptional.common,
             .inferredError => return &self.inferredError.common,
 
             .assign => return &self.assign.common,
@@ -393,10 +391,6 @@ pub const AST = union(enum) {
 
     pub fn createOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .optional = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
-    }
-
-    pub fn createFromOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .fromOptional = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createInferredError(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {

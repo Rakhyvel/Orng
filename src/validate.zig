@@ -286,12 +286,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .call => {
-            if (ast.call.lhs.* == .inferredMember) {
-                // Pass expected so that base can be inferred
-                ast.call.lhs = try validateAST(ast.call.lhs, expected, scope, errors, allocator);
-            } else {
-                ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
-            }
+            ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
             if (expanded_lhs_type.* == .function) {
@@ -303,16 +298,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 } else {
                     retval = ast;
                 }
-            } else if (expanded_lhs_type.* == .sum and ast.call.lhs.* == .inferredMember) {
-                if (expected != null and !try expected.?.typesMatch(lhs_type, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
-                    return error.typeError;
-                }
-                var pos: i128 = ast.call.lhs.inferredMember.pos.?;
-                var proper_term: *AST = ast.call.lhs.inferredMember.base.?.sum.terms.items[@as(usize, @intCast(pos))];
-
-                ast.call.lhs.inferredMember.init = try validateAST(ast.call.rhs, proper_term.annotation.type, scope, errors, allocator);
-                retval = ast.call.lhs;
             } else {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function", .stage = .typecheck } });
                 return error.typeError;

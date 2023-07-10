@@ -483,8 +483,6 @@ pub const Parser = struct {
                     ),
                     self.astAllocator,
                 );
-            } else if (self.accept(.PERIOD_Q_MARK)) |token| {
-                exp = try AST.createFromOptional(token, exp, self.astAllocator);
             } else if (self.accept(.CARET)) |token| {
                 exp = try AST.createDereference(token, exp, self.astAllocator);
             } else {

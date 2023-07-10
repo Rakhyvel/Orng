@@ -112,8 +112,8 @@
 - [x] Sum types
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
-- [ ] optionals
-    - [ ] `?` constructor
+- [x] optionals
+    - [x] `?` constructor
     - [ ] remove `fromOptional`
     - [ ] `orelse` coalesce
     - [ ] control-flow operators return optional if else isn't present

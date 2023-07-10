@@ -79,7 +79,6 @@ pub const TokenKind = enum(u32) {
     D_PERIOD,
     E_MARK,
     PERIOD,
-    PERIOD_Q_MARK,
     Q_MARK,
     SEMICOLON,
 
@@ -115,7 +114,6 @@ pub const unaryOperators = [_]TokenKind{
     .L_SQUARE,
     .Q_MARK,
     .TRY,
-    .PERIOD_Q_MARK,
     .CARET,
 };
 
@@ -284,7 +282,6 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .D_PERIOD => "..",
         .E_MARK => "!",
         .PERIOD => ".",
-        .PERIOD_Q_MARK => ".?",
         .Q_MARK => "?",
         .SEMICOLON => ";",
 

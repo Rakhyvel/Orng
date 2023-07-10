@@ -112,7 +112,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     var out_name: String = try String.init_with_contents(allocator, "tests/integration/build");
     defer out_name.deinit();
     try out_name.concat(dir_name);
-    { // Check if directory exists, create it if not
+    if (!coverage) { // Create output directory if it doesn't exist
         _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str() }) catch {};
     }
     try out_name.concat("/");
