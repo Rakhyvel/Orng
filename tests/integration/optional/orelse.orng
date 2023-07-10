@@ -1,0 +1,5 @@
+// 114
+fn main() -> Int
+    let x: ?Int = .none
+    let y: ?Int = .some <- 100
+    (y orelse -10) + (x orelse 14)
