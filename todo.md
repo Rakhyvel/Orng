@@ -114,7 +114,7 @@
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
 - [x] optionals
     - [x] `?` constructor
-    - [ ] remove `fromOptional`
+    - [x] remove `fromOptional`
     - [ ] `orelse` coalesce
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
