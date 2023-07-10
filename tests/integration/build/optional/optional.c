@@ -10,7 +10,7 @@
 typedef struct {
 	uint64_t tag;
 	union {
-		int64_t _0;
+		int64_t _1;
 	};
 } struct0;
 
@@ -23,13 +23,11 @@ int64_t _2_main();
 int64_t _2_main() {
 	int64_t _2_t3;
 	struct0 _3_x;
-	int64_t _2_t5;
 	int64_t _2_$retval;
 BB0:
 	_2_t3 = 113;
-	_3_x = (struct0) {.tag=0, ._0=_2_t3};
-	_2_t5 = *&((&_3_x)->_0);
-	_2_$retval = _2_t5;
+	_3_x = (struct0) {.tag=1, ._1=_2_t3};
+	_2_$retval = (&_3_x)->_1;
 	return _2_$retval;
 }
 

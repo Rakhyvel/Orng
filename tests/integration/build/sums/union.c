@@ -32,13 +32,11 @@ int64_t _2_main();
 int64_t _2_main() {
 	int64_t _2_t6;
 	struct0 _3_x;
-	int64_t _2_t8;
 	int64_t _2_$retval;
 BB0:
 	_2_t6 = 108;
 	_3_x = (struct0) {.tag=2, ._2=_2_t6};
-	_2_t8 = *&((&_3_x)->_2);
-	_2_$retval = _2_t8;
+	_2_$retval = (&_3_x)->_2;
 	return _2_$retval;
 }
 

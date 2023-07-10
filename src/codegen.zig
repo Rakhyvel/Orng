@@ -506,9 +506,14 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .select => {
             try printVarAssign(ir.dest.?, out);
-            try out.writer().print("*", .{});
-            try generateLValueIR(ir.dest.?, out);
-            try out.writer().print(";\n", .{});
+            try out.writer().print("(", .{});
+            try generateLValueIR(ir.src1.?, out);
+            try out.writer().print(")->_{};\n", .{ir.data.int});
+        },
+        .get_tag => {
+            try printVarAssign(ir.dest.?, out);
+            try printSymbolVersion(ir.src1.?, out);
+            try out.writer().print(".tag;\n", .{});
         },
 
         // Control-flow

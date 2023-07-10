@@ -378,14 +378,14 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Select propagation
-            // else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .select) {
-            //     ir.kind = .select;
-            //     ir.dest.?.lvalue = ir.src1.?.def.?.dest.?.lvalue;
-            //     ir.data = ir.src1.?.def.?.data;
-            //     ir.src2 = ir.src1.?.def.?.src2;
-            //     ir.src1 = ir.src1.?.def.?.src1;
-            //     retval = true;
-            // }
+            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .select) {
+                ir.kind = .select;
+                ir.dest.?.lvalue = ir.src1.?.def.?.dest.?.lvalue;
+                ir.data = ir.src1.?.def.?.data;
+                ir.src2 = ir.src1.?.def.?.src2;
+                ir.src1 = ir.src1.?.def.?.src1;
+                retval = true;
+            }
             // Call propagation // Not the greatest... ?
             // else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .call) {
             //     ir.kind = .call;

@@ -32,13 +32,11 @@ struct0 _4_fizzbuzz(int64_t _4_n);
 struct1 _2_main() {
 	int64_t _2_t1;
 	struct0 _2_t0;
-	struct1 _2_t2;
 	struct1 _2_$retval;
 BB0:
 	_2_t1 = 30;
 	_2_t0 = _4_fizzbuzz(_2_t1);
-	_2_t2 = *&((&_2_t0)->_0);
-	_2_$retval = _2_t2;
+	_2_$retval = (&_2_t0)->_0;
 	return _2_$retval;
 }
 

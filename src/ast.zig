@@ -128,6 +128,7 @@ pub const AST = union(enum) {
     sum: struct {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
+        was_optional: bool = false,
         all_unit: ?bool = null,
         pub fn is_all_unit(self: *@This()) bool {
             if (self.all_unit) |all_unit| {
@@ -600,16 +601,17 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, 0, 0), allocator), of_type, null, null, allocator);
-        some_type.getCommon().is_valid = true;
-        try term_types.append(some_type);
-
         var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, 0, 0), allocator), unitType, null, unitType, allocator);
         none_type.getCommon().is_valid = true;
         try term_types.append(none_type);
 
+        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, 0, 0), allocator), of_type, null, null, allocator);
+        some_type.getCommon().is_valid = true;
+        try term_types.append(some_type);
+
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
         retval.getCommon().is_valid = true;
+        retval.sum.was_optional = true;
         return retval;
     }
 
@@ -903,6 +905,7 @@ pub const AST = union(enum) {
             .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
             .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
             .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors, allocator),
+            ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
 
             // Control-flow expressions
             ._if => retval = try self._if.bodyBlock.typeof(scope, errors, allocator),

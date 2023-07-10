@@ -28,7 +28,6 @@ int64_t _2_main() {
 	struct0 _3_x;
 	int64_t* _3_y;
 	int64_t _2_t7;
-	int64_t _2_t8;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 1;
@@ -39,8 +38,7 @@ BB0:
 	_3_y = &((&_3_x)->_3);
 	_2_t7 = 66;
 	**&_3_y = _2_t7;
-	_2_t8 = *&((&_3_x)->_3);
-	_2_$retval = _2_t8;
+	_2_$retval = (&_3_x)->_3;
 	return _2_$retval;
 }
 

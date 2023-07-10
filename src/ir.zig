@@ -59,6 +59,23 @@ pub const SymbolVersion = struct {
         }
     }
 
+    pub fn format(self: SymbolVersion, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+        var out = _string.String.init(arena.allocator());
+        defer out.deinit();
+
+        if (self.lvalue) {
+            out.concat("L") catch unreachable;
+        } else {
+            out.concat(" ") catch unreachable;
+        }
+        out.writer().print("{s}_{?}", .{ self.symbol.name, self.version }) catch unreachable;
+        try writer.print("{s:<10}", .{out.str()});
+    }
+
     fn findVersion(self: *SymbolVersion, ir: ?*IR, stop: ?*IR) *SymbolVersion {
         var retval: *SymbolVersion = self;
         var maybe_ir = ir;
@@ -135,6 +152,7 @@ pub const IRKind = enum {
     subSlice,
     select, // dest = src1._${data.int}
     selectCopy,
+    get_tag,
     cast,
 
     // Control-flow
@@ -245,6 +263,11 @@ pub const IR = struct {
         return retval;
     }
 
+    fn createGetTag(dest: *SymbolVersion, src1: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.get_tag, dest, src1, null, allocator);
+        return retval;
+    }
+
     fn createUnion(dest: *SymbolVersion, init: ?*SymbolVersion, tag: i128, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadUnion, dest, init, null, allocator);
         retval.data = IRData{ .int = tag };
@@ -284,9 +307,6 @@ pub const IR = struct {
                 .float => {
                     std.debug.print("\tfloat:{}", .{self.data.float});
                 },
-                .string => {
-                    std.debug.print("\tstring:{s}", .{self.data.string});
-                },
                 .symbol => {
                     std.debug.print("\tsymbol:{s}", .{self.data.symbol.name});
                 },
@@ -303,6 +323,58 @@ pub const IR = struct {
                 else => {},
             }
             std.debug.print("\n", .{});
+        }
+    }
+
+    pub fn format(self: IR, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        if (self.kind == .label) {
+            try writer.print("BB{}:\n", .{self.uid});
+        } else {
+            const kind_name = @tagName(self.kind);
+            try writer.print("    {:<3}\t{s:<12}", .{ self.uid, kind_name });
+            if (self.dest) |dest| {
+                try SymbolVersion.format(dest.*, fmt, options, writer);
+            } else {
+                try writer.print("<null>    ", .{});
+            }
+            if (self.src1) |src1| {
+                try SymbolVersion.format(src1.*, fmt, options, writer);
+            } else {
+                try writer.print("<null>    ", .{});
+            }
+            if (self.src2) |src2| {
+                try SymbolVersion.format(src2.*, fmt, options, writer);
+            } else {
+                try writer.print("<null>    ", .{});
+            }
+            switch (self.data) {
+                .branch => {
+                    if (self.data.branch) |branch| {
+                        try writer.print("\tBB{}", .{branch.uid});
+                    }
+                },
+                .int => {
+                    try writer.print("\tint:{}", .{self.data.int});
+                },
+                .float => {
+                    try writer.print("\tfloat:{}", .{self.data.float});
+                },
+                .symbol => {
+                    try writer.print("\tsymbol:{s}", .{self.data.symbol.name});
+                },
+                .symbverList => {
+                    try writer.print("\tsymbverList:[", .{});
+                    for (self.data.symbverList.items, 1..) |symbver, i| {
+                        try symbver.format(fmt, options, writer);
+                        if (i < self.data.symbverList.items.len) {
+                            try writer.print(", ", .{});
+                        }
+                    }
+                    try writer.print("]", .{});
+                },
+                else => {},
+            }
+            try writer.print("\n", .{});
         }
     }
 };
@@ -842,6 +914,47 @@ pub const CFG = struct {
                     rhs = temp;
                 }
                 return temp;
+            },
+            ._orelse => {
+                // Create the result symbol.
+                // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator); // Not actually assigned directly, just so that optimizations can capture the version
+
+                var lhs = (try flattenAST(self, scope, ast._orelse.lhs, return_label, break_label, continue_label, lvalue, errors, allocator)).?;
+
+                // Labels used
+                var else_label = try IR.createLabel(allocator);
+                var end_label = try IR.createLabel(allocator);
+
+                // Test if lhs tag is 1 (some)
+                var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
+                var load_tag = try IR.createGetTag(condition, lhs, allocator); // Assumes `some` tag is nonzero, `none` tag is zero
+                condition.def = load_tag;
+                self.appendInstruction(load_tag);
+
+                var branch = try IR.createBranch(condition, else_label, allocator);
+                self.appendInstruction(branch);
+
+                // tag was `.some`, store lhs.some in symbver
+                var val = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var ir_select = try IR.createSelect(val, lhs, 1, allocator);
+                val.def = ir_select;
+                self.appendInstruction(ir_select);
+                var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                self.appendInstruction(try IR.create(.copy, some_symbver, val, null, allocator));
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+
+                self.appendInstruction(else_label);
+
+                // tag was `.none`, store rhs in symbver
+                var rhs = (try flattenAST(self, scope, ast._orelse.rhs, return_label, break_label, continue_label, lvalue, errors, allocator)).?;
+
+                var rhs_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                self.appendInstruction(try IR.create(.copy, rhs_symbver, rhs, null, allocator));
+
+                self.appendInstruction(end_label);
+                return symbver;
             },
             .call => {
                 var lhs = (try self.flattenAST(scope, ast.call.lhs, return_label, break_label, continue_label, false, errors, allocator)).?;

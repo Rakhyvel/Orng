@@ -32,7 +32,6 @@ int64_t _2_main() {
 	int64_t _3_z;
 	int64_t* _2_t5;
 	struct1 _3_y;
-	int64_t _2_t6;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 15;
@@ -41,8 +40,7 @@ BB0:
 	_3_z = 64;
 	_2_t5 = &_3_z;
 	_3_y = (struct1) {_3_z, _2_t5};
-	_2_t6 = *&((&_3_y)->_0);
-	_2_$retval = _2_t6;
+	_2_$retval = (&_3_y)->_0;
 	return _2_$retval;
 }
 
