@@ -1,0 +1,5 @@
+// 115
+fn main() -> Int
+    let x = 45
+    let y = if x == 100 {45}
+    y orelse 115

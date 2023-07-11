@@ -288,7 +288,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         ._orelse => {
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
-            if (lhs_expanded_type.* != .sum and !lhs_expanded_type.sum.was_optional) {
+            if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "left-hand side of orelse is not an optional type", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {

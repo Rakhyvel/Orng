@@ -115,7 +115,7 @@
 - [x] optionals
     - [x] `?` constructor
     - [x] remove `fromOptional`
-    - [ ] `orelse` coalesce
+    - [x] `orelse` coalesce
     - [ ] control-flow operators return optional if else isn't present
 - [ ] errors
     - [ ] remove `throw`
@@ -159,9 +159,10 @@
     - [ ] partial redundancy elimination
     - [ ] redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
+    - [ ] better select optimizations
     - [ ] ! inlining
     - [ ] ? loop invariant lifting
-    - [ ] ? pointer aliasing analysis
+    - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`

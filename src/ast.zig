@@ -908,7 +908,14 @@ pub const AST = union(enum) {
             ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
 
             // Control-flow expressions
-            ._if => retval = try self._if.bodyBlock.typeof(scope, errors, allocator),
+            ._if => {
+                var body_type = try self._if.bodyBlock.typeof(scope, errors, allocator);
+                if (self._if.elseBlock) |_| {
+                    retval = body_type;
+                } else {
+                    retval = try create_optional_type(body_type, allocator);
+                }
+            },
             .case => retval = try self.case.mappings.items[0].typeof(scope, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
                 retval = try rhs.typeof(scope, errors, allocator);

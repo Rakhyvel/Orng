@@ -789,6 +789,39 @@ fn propagateIR(ir: *IR) bool {
             }
         },
 
+        .select => {
+            // Known loadUnion value
+            if (ir.src1.?.def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
+                ir.kind = .copy;
+                ir.data = _ir.IRData.none;
+                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src2 = null;
+                retval = true;
+            }
+            // Known loadStruct value
+            else if (ir.src1.?.def != null and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadStruct) {
+                var field = ir.src1.?.def.?.data.symbverList.items[@as(usize, @intCast(ir.data.int))]; // TODO: This should really be a check that the symbol version hasn't updated out from underneathe us
+                if (field.symbol.versions == 1) {
+                    ir.kind = .copy;
+                    ir.src1 = field;
+                    ir.src2 = null;
+                    ir.data = _ir.IRData.none;
+                    retval = true;
+                }
+            }
+        },
+
+        .get_tag => {
+            // Known loadUnion value
+            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadUnion) {
+                ir.kind = .loadInt;
+                ir.data = ir.src1.?.def.?.data; // Copy the src's tag (in data.int)
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
+        },
+
         .call => {
             // Short-circuit src1 copy
             if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {

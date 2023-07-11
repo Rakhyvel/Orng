@@ -1149,7 +1149,14 @@ pub const CFG = struct {
                 // lhs was true, recurse to rhs, store in symbver
                 if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, false, errors, allocator)) |block_symbver| {
                     var block_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                    var block_copy = try IR.create(.copy, block_copy_symbver, block_symbver, null, allocator);
+                    var block_copy: *IR = undefined;
+                    if (ast._if.elseBlock == null) {
+                        // no else block => if is optional, coerce up to `.some <- block`
+                        block_copy = try IR.createUnion(block_copy_symbver, block_symbver, 1, allocator);
+                    } else {
+                        // regular if-else => copy block
+                        block_copy = try IR.create(.copy, block_copy_symbver, block_symbver, null, allocator);
+                    }
                     block_copy_symbver.def = block_copy;
                     self.appendInstruction(block_copy);
                 }
@@ -1165,6 +1172,12 @@ pub const CFG = struct {
                         self.appendInstruction(else_copy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, allocator));
+                } else {
+                    // no else block => if is optional, store null
+                    var else_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var else_copy = try IR.createUnion(else_copy_symbver, null, 0, allocator);
+                    else_copy_symbver.def = else_copy;
+                    self.appendInstruction(else_copy);
                 }
                 self.appendInstruction(end_label);
                 return symbver;
