@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1689043886005905008
-#define ORNG_1689043886005905008
+#ifndef ORNG_1689043337074952400
+#define ORNG_1689043337074952400
 
 #include <math.h>
 #include <stdio.h>
@@ -16,8 +16,8 @@ int64_t _2_main();
 /* Function definitions */
 int64_t _2_main() {
 	int64_t _2_$retval;
-BB0:
-	_2_$retval = 115;
+BB1:
+	_2_$retval = 116;
 	return _2_$retval;
 }
 

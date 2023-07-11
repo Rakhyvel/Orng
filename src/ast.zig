@@ -922,7 +922,14 @@ pub const AST = union(enum) {
             } else {
                 retval = unitType;
             },
-            ._while => retval = try self._while.bodyBlock.typeof(scope, errors, allocator),
+            ._while => {
+                var body_type = try self._while.bodyBlock.typeof(scope, errors, allocator);
+                if (self._while.elseBlock) |_| {
+                    retval = body_type;
+                } else {
+                    retval = try create_optional_type(body_type, allocator);
+                }
+            },
             .block => if (self.block.final) |_| {
                 retval = unitType;
             } else if (self.block.statements.items.len == 0) {

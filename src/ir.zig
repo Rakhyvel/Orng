@@ -1250,7 +1250,8 @@ pub const CFG = struct {
             },
             ._while => {
                 // Create the result symbol and IR
-                var symbver = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
                 var cond_label = try IR.createLabel(allocator);
@@ -1270,9 +1271,18 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // Body block
-                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, end_label, current_continue_label, false, errors, allocator)) |blockSymbver| {
-                    var blockCopy = try IR.create(.copy, symbver, blockSymbver, null, allocator);
-                    self.appendInstruction(blockCopy);
+                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, end_label, current_continue_label, false, errors, allocator)) |block_symbver| {
+                    var block_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var block_copy: *IR = undefined;
+                    if (ast._while.elseBlock == null) {
+                        // no else block => while is optional, coerce up to `.some <- block`
+                        block_copy = try IR.createUnion(block_copy_symbver, block_symbver, 1, allocator);
+                    } else {
+                        // regular while-else => copy block
+                        block_copy = try IR.create(.copy, block_copy_symbver, block_symbver, null, allocator);
+                    }
+                    self.appendInstruction(block_copy);
+                    block_copy_symbver.def = block_copy;
                 }
 
                 // Post-condition, jump to condition test
@@ -1290,6 +1300,12 @@ pub const CFG = struct {
                         self.appendInstruction(elseCopy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, allocator));
+                } else {
+                    // no else block => while is optional, store null
+                    var else_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var else_copy = try IR.createUnion(else_copy_symbver, null, 0, allocator);
+                    else_copy_symbver.def = else_copy;
+                    self.appendInstruction(else_copy);
                 }
                 self.appendInstruction(end_label);
                 return symbver;

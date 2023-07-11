@@ -126,6 +126,7 @@
     - [ ] inferred errors
 - [ ] more compile errors
     - [ ] unreachable
+        - [ ] go back and add optional `case`, with `| else => unreachable` clauses
     - [ ] default values
     - [ ] explicit discarding with `_`
     - [ ] static index out of bounds
