@@ -293,6 +293,20 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
+        ._catch => {
+            ast._catch.rhs = try validateAST(ast._catch.rhs, expected, scope, errors, allocator);
+            var lhs_expanded_type = try (try ast._catch.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+            if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "left-hand side of catch is not an error type", .stage = .typecheck } });
+                return error.typeError;
+            } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                ast._catch.lhs = try validateAST(ast._catch.lhs, null, scope, errors, allocator);
+            }
+            retval = ast;
+        },
         ._orelse => {
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);

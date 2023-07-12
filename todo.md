@@ -117,9 +117,9 @@
     - [x] remove `fromOptional`
     - [x] `orelse` coalesce
     - [x] control-flow operators return optional if else isn't present
-- [ ] errors
+- [x] errors
     - [x] binary `!`
-    - [ ] `catch`
+    - [x] `catch`
     - [ ] `errdefer`
     - [ ] stack traces
     - [ ] inferred errors

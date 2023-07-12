@@ -915,6 +915,47 @@ pub const CFG = struct {
                 }
                 return temp;
             },
+            ._catch => {
+                // Create the result symbol.
+                // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator); // Not actually assigned directly, just so that optimizations can capture the version
+
+                var lhs = (try flattenAST(self, scope, ast._catch.lhs, return_label, break_label, continue_label, lvalue, errors, allocator)).?;
+
+                // Labels used
+                var else_label = try IR.createLabel(allocator);
+                var end_label = try IR.createLabel(allocator);
+
+                // Test if lhs tag is 1 (some)
+                var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
+                var load_tag = try IR.createGetTag(condition, lhs, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
+                condition.def = load_tag;
+                self.appendInstruction(load_tag);
+
+                var branch = try IR.createBranch(condition, else_label, allocator);
+                self.appendInstruction(branch);
+
+                // tag was `.ok`, store lhs.some in symbver
+                var val = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                var ir_select = try IR.createSelect(val, lhs, 1, allocator);
+                val.def = ir_select;
+                self.appendInstruction(ir_select);
+                var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                self.appendInstruction(try IR.create(.copy, some_symbver, val, null, allocator));
+                self.appendInstruction(try IR.createJump(end_label, allocator));
+
+                self.appendInstruction(else_label);
+
+                // tag was `.err`, store rhs in symbver
+                var rhs = (try flattenAST(self, scope, ast._catch.rhs, return_label, break_label, continue_label, lvalue, errors, allocator)).?;
+
+                var rhs_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                self.appendInstruction(try IR.create(.copy, rhs_symbver, rhs, null, allocator));
+
+                self.appendInstruction(end_label);
+                return symbver;
+            },
             ._orelse => {
                 // Create the result symbol.
                 // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.

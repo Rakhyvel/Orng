@@ -925,6 +925,7 @@ pub const AST = union(enum) {
             .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
             .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
             .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors, allocator),
+            ._catch => retval = try self._catch.rhs.typeof(scope, errors, allocator),
             ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
 
             // Control-flow expressions
