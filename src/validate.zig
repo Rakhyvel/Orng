@@ -186,13 +186,21 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
-        .optional => {
-            ast.optional.expr = try validateAST(ast.optional.expr, _ast.typeType, scope, errors, allocator);
-            var ast_type: *AST = try ast.optional.expr.typeof(scope, errors, allocator);
-            if (expected != null and !try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
+        ._error => {
+            if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                 return error.typeError;
             }
+            ast._error.lhs = try validateAST(ast._error.lhs, _ast.typeType, scope, errors, allocator);
+            ast._error.rhs = try validateAST(ast._error.rhs, _ast.typeType, scope, errors, allocator);
+            retval = try AST.create_error_type(ast._error.lhs, ast._error.rhs, allocator);
+        },
+        .optional => {
+            if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                return error.typeError;
+            }
+            ast.optional.expr = try validateAST(ast.optional.expr, _ast.typeType, scope, errors, allocator);
             retval = try AST.create_optional_type(ast.optional.expr, allocator);
         },
         .assign => {

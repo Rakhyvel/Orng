@@ -129,6 +129,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
         was_optional: bool = false,
+        was_error: bool = false,
         all_unit: ?bool = null,
         pub fn is_all_unit(self: *@This()) bool {
             if (self.all_unit) |all_unit| {
@@ -615,6 +616,23 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
+        var term_types = std.ArrayList(*AST).init(allocator);
+
+        var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, 0, 0), allocator), err_type, null, unitType, allocator);
+        none_type.getCommon().is_valid = true;
+        try term_types.append(none_type);
+
+        var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, 0, 0), allocator), ok_type, null, null, allocator);
+        some_type.getCommon().is_valid = true;
+        try term_types.append(some_type);
+
+        var retval = try AST.createSum(ok_type.getToken(), term_types, allocator);
+        retval.getCommon().is_valid = true;
+        retval.sum.was_error = true;
+        return retval;
+    }
+
     pub fn exapnd_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         if (self.getCommon().expanded_type) |expaned_type| {
             return expaned_type;
@@ -791,6 +809,8 @@ pub const AST = union(enum) {
             .unit,
             .annotation,
             .sum,
+            .optional,
+            ._error,
             => retval = typeType,
 
             // Unit type

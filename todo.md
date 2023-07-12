@@ -116,14 +116,15 @@
     - [x] `?` constructor
     - [x] remove `fromOptional`
     - [x] `orelse` coalesce
-    - [ ] control-flow operators return optional if else isn't present
+    - [x] control-flow operators return optional if else isn't present
 - [ ] errors
-    - [ ] remove `throw`
-    - [ ] binary `!`
-    - [ ] stack traces
+    - [x] binary `!`
     - [ ] `catch`
     - [ ] `errdefer`
+    - [ ] stack traces
     - [ ] inferred errors
+    - [ ] decide what to do with `throw`
+        > It could be useful to have 
 - [ ] more compile errors
     - [ ] unreachable
         - [ ] go back and add optional `case`, with `| else => unreachable` clauses
