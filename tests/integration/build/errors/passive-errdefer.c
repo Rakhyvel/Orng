@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1689218672738204847
-#define ORNG_1689218672738204847
+#ifndef ORNG_1689219180491343165
+#define ORNG_1689219180491343165
 
 #include <math.h>
 #include <stdio.h>
@@ -43,22 +43,32 @@ BB0:
 
 struct0 _4_f(int64_t* _4_x,uint8_t _4_fail) {
 	int64_t _4_t0;
-	struct0 _4_$retval;
+	int64_t _4_t4;
+	int64_t _4_t5;
 	int64_t _4_t6;
+	int64_t _4_t10;
+	int64_t _4_t11;
+	int64_t _4_t12;
+	struct0 _4_$retval;
 BB0:
-	_4_t0 = 4;
+	_4_t0 = 6;
 	**&_4_x = _4_t0;
 	if (!_4_fail) {
-		goto BB4;
+		goto BB9;
 	} else {
 		goto BB1;
 	}
 BB1:
-	_4_$retval = (struct0) {.tag=0};
-	_4_t6 = 115;
+	_4_t4 = *_4_x;
+	_4_t5 = 100;
+	_4_t6 = _4_t4 + _4_t5;
 	**&_4_x = _4_t6;
+	_4_t10 = *_4_x;
+	_4_t11 = 9;
+	_4_t12 = _4_t10 + _4_t11;
+	**&_4_x = _4_t12;
 	return _4_$retval;
-BB4:
+BB9:
 	_4_$retval = (struct0) {.tag=1};
 	return _4_$retval;
 }

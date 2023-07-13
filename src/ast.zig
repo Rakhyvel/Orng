@@ -261,6 +261,7 @@ pub const AST = union(enum) {
         symbol: ?*Symbol = null,
     },
     _defer: struct { common: ASTCommon, statement: *AST },
+    _errdefer: struct { common: ASTCommon, statement: *AST },
 
     fn box(ast: AST, alloc: std.mem.Allocator) error{OutOfMemory}!*AST {
         var retval = try alloc.create(AST);
@@ -332,6 +333,7 @@ pub const AST = union(enum) {
             .decl => return &self.decl.common,
             .fnDecl => return &self.fnDecl.common,
             ._defer => return &self._defer.common,
+            ._errdefer => return &self._errdefer.common,
         }
     }
 
@@ -571,6 +573,10 @@ pub const AST = union(enum) {
 
     pub fn createDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
+    }
+
+    pub fn createErrDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._errdefer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
     }
 
     pub fn create_slice_type(of: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {

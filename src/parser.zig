@@ -195,7 +195,7 @@ pub const Parser = struct {
         } else if (self.accept(.DEFER)) |token| {
             return try AST.createDefer(token, try self.statement(), self.astAllocator);
         } else if (self.accept(.ERRDEFER)) |token| {
-            return try AST.createDefer(token, try self.statement(), self.astAllocator);
+            return try AST.createErrDefer(token, try self.statement(), self.astAllocator);
         } else {
             return self.expr();
         }

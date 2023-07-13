@@ -24,6 +24,7 @@ pub const Scope = struct {
     in_function: usize = 0,
     in_loop: bool = false,
     defers: std.ArrayList(*AST),
+    errdefers: std.ArrayList(*AST),
     inner_function: ?*Symbol = null,
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
@@ -34,6 +35,7 @@ pub const Scope = struct {
         retval.name = name;
         retval.uid = scopeUID;
         retval.defers = std.ArrayList(*AST).init(allocator);
+        retval.errdefers = std.ArrayList(*AST).init(allocator);
         scopeUID += 1;
         if (parent) |_parent| {
             try _parent.children.append(retval);
@@ -384,6 +386,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             definition.fnDecl.symbol = symbol;
         },
         ._defer => try symbolTableFromAST(definition._defer.statement, scope, errors, allocator),
+        ._errdefer => try symbolTableFromAST(definition._errdefer.statement, scope, errors, allocator),
     }
 }
 

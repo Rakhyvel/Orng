@@ -121,6 +121,7 @@
     - [x] binary `!`
     - [x] `catch`
     - [ ] `errdefer`
+    - [ ] `try`
     - [ ] stack traces
     - [ ] inferred errors
     - [ ] decide what to do with `throw`
@@ -185,9 +186,7 @@
 - [ ] build system (built upon compile-time evaluation)
     > Should be stateless, gosh dangit!
     > Read about philosophy of other build systems, what do users want/need to build Orng programs?
-        > Maybe Orng programs don't require a build script, they can just do `import` and it's all good
-            > Packages may need to include c-files/libraries. This should be documented somewhere. A *simple* build file is acceptable.
-            > Modules can be cyclic within a package, packages cannot be cyclic
+        > `orng build ?.orng` command takes in a file `?.orng` that has a `build` constant, which has fields for 
         > `fn import(const path:String) -> (tuple of definitions in module)`
         > `fn package(path: const String) -> (tuple of modules in package)`
         > `fn extern(name: const String, T: Type) -> T`

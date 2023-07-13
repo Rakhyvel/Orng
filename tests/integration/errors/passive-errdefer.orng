@@ -1,4 +1,4 @@
-// 119
+// 121
 fn main() -> Int
     let mut x = 10
     let mut y = 10
@@ -7,9 +7,10 @@ fn main() -> Int
     x + y
 
 fn f(x: &mut Int, fail: Bool)->()!()
-    errdefer x^ = 115
-    x^ = 4
+    errdefer x^ += 9
+    x^ = 6
     if fail
-        return .err <- ()
+        errdefer x^ += 100
+        (.err <- ())
     else    
-        return .ok <- ()
+        (.ok <- ())
