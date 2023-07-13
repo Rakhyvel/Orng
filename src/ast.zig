@@ -489,7 +489,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createProduct(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        std.debug.assert(terms.items.len >= 2);
+        // std.debug.assert(terms.items.len >= 2);
         return try AST.box(AST{ .product = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
@@ -952,7 +952,7 @@ pub const AST = union(enum) {
                 }
             },
             .block => if (self.block.final) |_| {
-                retval = unitType;
+                retval = voidType;
             } else if (self.block.statements.items.len == 0) {
                 retval = unitType;
             } else {
@@ -986,6 +986,9 @@ pub const AST = union(enum) {
             return try typesMatch(try self.exapnd_type(scope, errors, allocator), other, scope, errors, allocator);
         } else if (self.* != .identifier and other.* == .identifier and other != try other.exapnd_type(scope, errors, allocator)) {
             return try typesMatch(self, try other.exapnd_type(scope, errors, allocator), scope, errors, allocator);
+        }
+        if (other.* == .identifier and std.mem.eql(u8, "Void", other.getToken().data)) {
+            return true; // Bottom type
         }
         std.debug.assert(self.getCommon().is_valid);
         std.debug.assert(other.getCommon().is_valid);

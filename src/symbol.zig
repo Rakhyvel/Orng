@@ -569,6 +569,16 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
         ._const,
         std.heap.page_allocator,
     ));
+    try prelude.?.symbols.put("Void", try Symbol.create(
+        prelude.?,
+        "Void",
+        Span{ .col = 0, .line = 0 },
+        ast.typeType,
+        null,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    ));
     return prelude.?;
 }
 pub fn resetPrelude() void {

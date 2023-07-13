@@ -128,6 +128,8 @@
 - [ ] more compile errors
     - [ ] unreachable
         - [ ] go back and add optional `case`, with `| else => unreachable` clauses
+    - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
+        - [ ] `.poison` AST node which represents apart of the program with errors that should not be re-validated
     - [ ] default values
     - [ ] explicit discarding with `_`
     - [ ] static index out of bounds
@@ -141,7 +143,6 @@
     - [ ] static union tag check
     - [ ] dynaminc union tag check
     - [ ] compile-time const check
-    - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
 - [ ] pattern matching
     - [ ] product destructuring
     - [ ] sum-type destructuring
@@ -156,15 +157,16 @@
     - [ ] expand_types should only allocate if anything changes
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
     - [x] avoid struct copies on select
-    - [ ] temporary combining (basically register allocation)
     - [ ] local value numbering
     - [ ] partial redundancy elimination
     - [ ] redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
     - [ ] better select optimizations
+    - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
+        > At the *very* least, add a flag to symbols to see if they're aliased with & at all
     - [ ] ! inlining
     - [ ] ? loop invariant lifting
-    - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
+    - [ ] temporary combining (basically register allocation) (do this one last!)
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`

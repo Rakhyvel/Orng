@@ -1384,6 +1384,7 @@ pub const CFG = struct {
                         }
                     }
                     if (ast.block.final) |final| {
+                        // If returning an error sum type, check at runtime if the tag is errant. If so, branch to errdefers instead of returns.
                         temp = try self.flattenAST(ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, lvalue, errors, allocator);
                     }
 

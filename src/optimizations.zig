@@ -624,7 +624,7 @@ fn propagateIR(ir: *IR) bool {
 
         .add => {
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int + ir.src2.?.def.?.data.int };
                 ir.src1 = null;
@@ -632,7 +632,7 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float + ir.src2.?.def.?.data.float };
                 ir.src1 = null;
@@ -653,7 +653,7 @@ fn propagateIR(ir: *IR) bool {
 
         .sub => {
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int - ir.src2.?.def.?.data.int };
                 ir.src1 = null;
@@ -661,7 +661,7 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float - ir.src2.?.def.?.data.float };
                 ir.src1 = null;
@@ -682,7 +682,7 @@ fn propagateIR(ir: *IR) bool {
 
         .mult => {
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int * ir.src2.?.def.?.data.int };
                 ir.src1 = null;
@@ -690,7 +690,7 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float * ir.src2.?.def.?.data.float };
                 ir.src1 = null;
@@ -712,7 +712,7 @@ fn propagateIR(ir: *IR) bool {
         .div => {
             // TODO: Compile error if divide by 0
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = @divTrunc(ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
                 ir.src1 = null;
@@ -720,7 +720,7 @@ fn propagateIR(ir: *IR) bool {
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float / ir.src2.?.def.?.data.float };
                 ir.src1 = null;
@@ -741,7 +741,7 @@ fn propagateIR(ir: *IR) bool {
 
         .mod => {
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = @rem(ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
                 ir.src1 = null;
@@ -762,7 +762,7 @@ fn propagateIR(ir: *IR) bool {
 
         .exponent => {
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = std.math.pow(i128, ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
                 ir.src1 = null;
@@ -813,7 +813,7 @@ fn propagateIR(ir: *IR) bool {
 
         .get_tag => {
             // Known loadUnion value
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadUnion) {
+            if (ir.src1.?.def != null and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
                 ir.kind = .loadInt;
                 ir.data = ir.src1.?.def.?.data; // Copy the src's tag (in data.int)
                 ir.src1 = null;

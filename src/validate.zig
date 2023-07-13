@@ -834,6 +834,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
 
                 ast.getCommon().is_valid = true; // So that the typeof code can be reused. All children should be validated at this point
+                std.debug.print("Doing type of block:\n", .{});
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try expected.?.typesMatch(block_type, scope, errors, allocator)) {
                     if (ast.block.statements.items.len > 1) {
