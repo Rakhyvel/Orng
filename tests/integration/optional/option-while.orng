@@ -1,4 +1,4 @@
-// 116
+// 123
 fn main() -> Int
-    let y: ?Int = while false {45}
-    y orelse 116
+    let y = while false {45}
+    y orelse 123

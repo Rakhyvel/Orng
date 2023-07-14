@@ -1,0 +1,4 @@
+// 124
+fn main() -> Int
+    let y: ?Int = if false {45}
+    y orelse 124

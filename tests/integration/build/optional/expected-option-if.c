@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1689307719175965074
-#define ORNG_1689307719175965074
+#ifndef ORNG_1689307725500148100
+#define ORNG_1689307725500148100
 
 #include <math.h>
 #include <stdio.h>
@@ -25,23 +25,23 @@ int64_t _2_main() {
 	uint8_t _2_t4;
 	int64_t _2_t3;
 	int64_t _2_$retval;
-BB1:
+BB0:
 	_3_y = (struct0) {.tag=0};
 	_2_t4 = _3_y.tag;
 	if (!_2_t4) {
-		goto BB10;
-	} else {
 		goto BB7;
+	} else {
+		goto BB4;
 	}
-BB7:
+BB4:
 	_2_t3 = (&_3_y)->_1;
-	goto BB9;
-BB9:
+	goto BB6;
+BB6:
 	_2_$retval = _2_t3;
 	return _2_$retval;
-BB10:
-	_2_t3 = 123;
-	goto BB9;
+BB7:
+	_2_t3 = 124;
+	goto BB6;
 }
 
 
