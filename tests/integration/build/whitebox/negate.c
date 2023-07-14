@@ -30,19 +30,19 @@ BB0:
 	_2_t5 = -_2_t4;
 	_2_t7 = -1;
 	_2_t3 = _2_t5 == _2_t7;
-	if (!_2_t3) {
-		goto BB9;
-	} else {
+	if (_2_t3) {
 		goto BB1;
+	} else {
+		goto BB9;
 	}
-BB1:
-	_2_t2 = 32;
+BB9:
+	_2_t2 = 10;
 	goto BB6;
 BB6:
 	_2_$retval = _2_t2;
 	return _2_$retval;
-BB9:
-	_2_t2 = 10;
+BB1:
+	_2_t2 = 32;
 	goto BB6;
 }
 

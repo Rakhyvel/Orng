@@ -63,48 +63,48 @@ BB1:
 	_4_t3 = _4_n % _4_t2;
 	_4_t4 = 0;
 	_4_t1 = _4_t3 == _4_t4;
-	if (!_4_t1) {
-		goto BB22;
-	} else {
+	if (_4_t1) {
 		goto BB2;
+	} else {
+		goto BB22;
 	}
-BB2:
-	_4_t13 = (struct1) {string_0, 9};
-	_4_t0 = (struct0) {.tag=0, ._0=_4_t13};
-	goto BB7;
-BB7:
-	_4_$retval = _4_t0;
-	return _4_$retval;
 BB22:
 	_4_t6 = 5;
 	_4_t7 = _4_n % _4_t6;
 	_4_t8 = 0;
 	_4_t5 = _4_t7 == _4_t8;
-	if (!_4_t5) {
-		goto BB21;
-	} else {
+	if (_4_t5) {
 		goto BB9;
+	} else {
+		goto BB21;
 	}
-BB9:
-	_4_t15 = (struct1) {string_1, 5};
-	_4_t0 = (struct0) {.tag=0, ._0=_4_t15};
-	goto BB7;
 BB21:
 	_4_t10 = 3;
 	_4_t11 = _4_n % _4_t10;
 	_4_t12 = 0;
 	_4_t9 = _4_t11 == _4_t12;
-	if (!_4_t9) {
-		goto BB20;
-	} else {
+	if (_4_t9) {
 		goto BB14;
+	} else {
+		goto BB20;
 	}
+BB20:
+	_4_t0 = (struct0) {.tag=1, ._1=_4_n};
+	goto BB7;
+BB7:
+	_4_$retval = _4_t0;
+	return _4_$retval;
 BB14:
 	_4_t17 = (struct1) {string_2, 5};
 	_4_t0 = (struct0) {.tag=0, ._0=_4_t17};
 	goto BB7;
-BB20:
-	_4_t0 = (struct0) {.tag=1, ._1=_4_n};
+BB9:
+	_4_t15 = (struct1) {string_1, 5};
+	_4_t0 = (struct0) {.tag=0, ._0=_4_t15};
+	goto BB7;
+BB2:
+	_4_t13 = (struct1) {string_0, 9};
+	_4_t0 = (struct0) {.tag=0, ._0=_4_t13};
 	goto BB7;
 }
 

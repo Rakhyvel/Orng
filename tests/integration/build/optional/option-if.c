@@ -28,19 +28,19 @@ int64_t _2_main() {
 BB0:
 	_3_y = (struct0) {.tag=0};
 	_2_t4 = _3_y.tag;
-	if (!_2_t4) {
-		goto BB7;
-	} else {
+	if (_2_t4) {
 		goto BB4;
+	} else {
+		goto BB7;
 	}
-BB4:
-	_2_t3 = (&_3_y)->_1;
+BB7:
+	_2_t3 = 115;
 	goto BB6;
 BB6:
 	_2_$retval = _2_t3;
 	return _2_$retval;
-BB7:
-	_2_t3 = 115;
+BB4:
+	_2_t3 = (&_3_y)->_1;
 	goto BB6;
 }
 

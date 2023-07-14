@@ -55,20 +55,20 @@ int64_t _8_c(int64_t _8_n) {
 BB0:
 	_8_t2 = 47;
 	_8_t1 = _8_n == _8_t2;
-	if (!_8_t1) {
-		goto BB9;
-	} else {
+	if (_8_t1) {
 		goto BB1;
+	} else {
+		goto BB9;
 	}
-BB1:
-	_8_t0 = 47;
+BB9:
+	_8_t4 = _4_a(_8_n);
+	_8_t0 = _8_t4;
 	goto BB6;
 BB6:
 	_8_$retval = _8_t0;
 	return _8_$retval;
-BB9:
-	_8_t4 = _4_a(_8_n);
-	_8_t0 = _8_t4;
+BB1:
+	_8_t0 = 47;
 	goto BB6;
 }
 

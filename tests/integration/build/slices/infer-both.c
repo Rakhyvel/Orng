@@ -76,20 +76,20 @@ BB0:
 BB1:
 	_4_t4 = (&_4_xs)->_1;
 	_4_t3 = _6_i < _4_t4;
-	if (!_4_t3) {
-		goto BB10;
-	} else {
+	if (_4_t3) {
 		goto BB2;
+	} else {
+		goto BB10;
 	}
+BB10:
+	_4_$retval = _5_sum;
+	return _4_$retval;
 BB2:
 	_4_t5 = *(((int64_t*)((&_4_xs)->_0))+_6_i);
 	_5_sum = _5_sum + _4_t5;
 	_4_t7 = 1;
 	_6_i = _6_i + _4_t7;
 	goto BB1;
-BB10:
-	_4_$retval = _5_sum;
-	return _4_$retval;
 }
 
 

@@ -33,33 +33,33 @@ BB0:
 BB1:
 	_2_t4 = 70;
 	_2_t3 = _4_i < _2_t4;
-	if (!_2_t3) {
-		goto BB17;
-	} else {
+	if (_2_t3) {
 		goto BB2;
+	} else {
+		goto BB17;
 	}
+BB17:
+	_3_x = 10;
+	goto BB9;
+BB9:
+	_2_$retval = _3_x;
+	return _2_$retval;
 BB2:
 	_2_t7 = 2;
 	_2_t8 = _4_i % _2_t7;
 	_2_t9 = 0;
 	_2_t6 = _2_t8 == _2_t9;
-	if (!_2_t6) {
-		goto BB14;
-	} else {
+	if (_2_t6) {
 		goto BB9;
+	} else {
+		goto BB14;
 	}
-BB9:
-	_2_$retval = _3_x;
-	return _2_$retval;
 BB14:
 	_2_t10 = 1;
 	_3_x = _3_x + _2_t10;
 	_2_t12 = 1;
 	_4_i = _4_i + _2_t12;
 	goto BB1;
-BB17:
-	_3_x = 10;
-	goto BB9;
 }
 
 

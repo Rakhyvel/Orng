@@ -23,14 +23,16 @@ pub fn main() !void {
             try term.outputColor(succeed_color, "[============]\n", out);
 
             var results = Results{ .passed = 0, .failed = 0 };
-            if (args.next()) |next| {
-                if (indexOf(next, '.')) |_| {
-                    _ = try integrateTestFile("", next, false);
-                } else {
-                    var open_dir_name = try String.init_with_contents(allocator, "/");
-                    defer open_dir_name.deinit();
-                    try open_dir_name.concat(next);
-                    _ = try integrateTestDir(open_dir_name.str(), &results, false);
+            if (args.inner.index < args.inner.count) {
+                while (args.next()) |next| {
+                    if (indexOf(next, '.')) |_| {
+                        _ = try integrateTestFile("", next, false);
+                    } else {
+                        var open_dir_name = try String.init_with_contents(allocator, "/");
+                        defer open_dir_name.deinit();
+                        try open_dir_name.concat(next);
+                        _ = try integrateTestDir(open_dir_name.str(), &results, false);
+                    }
                 }
             } else {
                 try integrateTestDir("", &results, false);
@@ -121,7 +123,11 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
 
     if (!coverage) {
         try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
-        try out.print("{s}\n", .{filename});
+        if (dir_name.len > 1) {
+            try out.print("{s}/{s}\n", .{ dir_name[1..], filename });
+        } else {
+            try out.print("{s}\n", .{filename});
+        }
     }
 
     // Read in the expected value and stdout

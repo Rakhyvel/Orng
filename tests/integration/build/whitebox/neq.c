@@ -32,36 +32,36 @@ BB0:
 	_2_t5 = *_3_y;
 	_2_t6 = 5;
 	_2_t4 = _2_t5 != _2_t6;
-	if (!_2_t4) {
-		goto BB16;
-	} else {
+	if (_2_t4) {
 		goto BB5;
+	} else {
+		goto BB16;
 	}
-BB5:
-	_2_t2 = 33;
-	goto BB8;
-BB8:
-	_2_$retval = _2_t2;
-	return _2_$retval;
 BB16:
 	_2_t8 = 4;
 	_2_t9 = *_3_y;
 	_2_t7 = _2_t8 > _2_t9;
-	if (!_2_t7) {
-		goto BB15;
-	} else {
+	if (_2_t7) {
 		goto BB12;
-	}
-BB12:
-	_2_t10 = 3.0e+00;
-	_2_t7 = _2_t9 >= _2_t10;
-	if (!_2_t7) {
-		goto BB15;
 	} else {
-		goto BB5;
+		goto BB15;
 	}
 BB15:
 	_2_t2 = 10;
+	goto BB8;
+BB8:
+	_2_$retval = _2_t2;
+	return _2_$retval;
+BB12:
+	_2_t10 = 3.0e+00;
+	_2_t7 = _2_t9 >= _2_t10;
+	if (_2_t7) {
+		goto BB5;
+	} else {
+		goto BB15;
+	}
+BB5:
+	_2_t2 = 33;
 	goto BB8;
 }
 

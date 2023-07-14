@@ -31,34 +31,34 @@ BB0:
 	_2_t3 = *_3_y;
 	_2_t4 = 1;
 	_2_t2 = _2_t3 == _2_t4;
-	if (!_2_t2) {
-		goto BB9;
-	} else {
+	if (_2_t2) {
 		goto BB1;
+	} else {
+		goto BB9;
 	}
-BB1:
-	_2_t2 = 1;
+BB9:
+	_2_t2 = 0;
 	goto BB2;
 BB2:
 	_2_t5 = !_2_t2;
 	_2_t6 = !_2_t5;
 	_2_t7 = !_2_t6;
-	if (!_2_t7) {
-		goto BB7;
-	} else {
+	if (_2_t7) {
 		goto BB3;
+	} else {
+		goto BB7;
 	}
-BB3:
-	_2_t8 = 31;
+BB7:
+	_2_t8 = 10;
 	goto BB6;
 BB6:
 	_2_$retval = _2_t8;
 	return _2_$retval;
-BB7:
-	_2_t8 = 10;
+BB3:
+	_2_t8 = 31;
 	goto BB6;
-BB9:
-	_2_t2 = 0;
+BB1:
+	_2_t2 = 1;
 	goto BB2;
 }
 

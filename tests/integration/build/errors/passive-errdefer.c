@@ -43,25 +43,34 @@ BB0:
 
 struct0 _4_f(int64_t* _4_x,uint8_t _4_fail) {
 	int64_t _4_t0;
-	struct0 _4_t1;
+	int64_t _4_t4;
+	int64_t _4_t5;
+	int64_t _4_t6;
+	int64_t _4_t10;
+	int64_t _4_t11;
+	int64_t _4_t12;
 	struct0 _4_$retval;
 BB0:
 	_4_t0 = 6;
 	**&_4_x = _4_t0;
 	if (_4_fail) {
-		goto BB1; // true path
+		goto BB1;
 	} else {
-		goto BB5; // false path
+		goto BB9;
 	}
-BB5:
-	_4_t1 = (struct0) {.tag=1};
-	goto BB4;
-BB4:
-	_4_$retval = _4_t1;
+BB9:
+	_4_$retval = (struct0) {.tag=1};
 	return _4_$retval;
 BB1:
-	_4_t1 = (struct0) {.tag=0};
-	goto BB4;
+	_4_t4 = *_4_x;
+	_4_t5 = 100;
+	_4_t6 = _4_t4 + _4_t5;
+	**&_4_x = _4_t6;
+	_4_t10 = *_4_x;
+	_4_t11 = 9;
+	_4_t12 = _4_t10 + _4_t11;
+	**&_4_x = _4_t12;
+	return _4_$retval;
 }
 
 

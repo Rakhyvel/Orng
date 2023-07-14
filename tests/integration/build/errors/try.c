@@ -37,9 +37,9 @@ BB0:
 	_2_t1 = _4_f(_2_t2);
 	_2_t3 = _2_t1.tag;
 	if (_2_t3) {
-		goto BB1; // true path
+		goto BB1;
 	} else {
-		goto BB7; // false path
+		goto BB7;
 	}
 BB7:
 	_2_t0 = 122;
@@ -49,9 +49,9 @@ BB2:
 	_2_t7 = _4_f(_2_t8);
 	_2_t9 = _2_t7.tag;
 	if (_2_t9) {
-		goto BB3; // true path
+		goto BB3;
 	} else {
-		goto BB6; // false path
+		goto BB6;
 	}
 BB6:
 	_2_t6 = 122;
@@ -76,9 +76,9 @@ struct0 _4_f(uint8_t _4_fail) {
 	int64_t _4_t5;
 BB0:
 	if (_4_fail) {
-		goto BB1; // true path
+		goto BB1;
 	} else {
-		goto BB8; // false path
+		goto BB8;
 	}
 BB8:
 	_4_t5 = 0;
@@ -91,9 +91,9 @@ BB1:
 	_4_t1 = _9_g();
 	_4_t2 = _4_t1.tag;
 	if (_4_t2) {
-		goto BB2; // true path
+		goto BB2;
 	} else {
-		goto BB7; // false path
+		goto BB7;
 	}
 BB7:
 	_4_$retval = _4_t1;

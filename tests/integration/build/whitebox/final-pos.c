@@ -29,30 +29,30 @@ BB0:
 BB1:
 	_2_t3 = 100;
 	_2_t2 = _3_x < _2_t3;
-	if (!_2_t2) {
-		goto BB9;
-	} else {
+	if (_2_t2) {
 		goto BB2;
-	}
-BB2:
-	_2_t6 = 40;
-	_2_t5 = _3_x == _2_t6;
-	if (!_2_t5) {
-		goto BB14;
 	} else {
-		goto BB5;
+		goto BB9;
 	}
-BB5:
-	_2_t7 = 1;
-	_3_x = _3_x + _2_t7;
-	goto BB9;
 BB9:
 	_2_$retval = _3_x;
 	return _2_$retval;
+BB2:
+	_2_t6 = 40;
+	_2_t5 = _3_x == _2_t6;
+	if (_2_t5) {
+		goto BB5;
+	} else {
+		goto BB14;
+	}
 BB14:
 	_2_t9 = 1;
 	_3_x = _3_x + _2_t9;
 	goto BB1;
+BB5:
+	_2_t7 = 1;
+	_3_x = _3_x + _2_t7;
+	goto BB9;
 }
 
 

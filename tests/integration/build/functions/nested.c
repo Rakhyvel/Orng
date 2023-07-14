@@ -46,28 +46,19 @@ int64_t _4_fib(int64_t _4_n) {
 BB1:
 	_4_t2 = 0;
 	_4_t1 = _4_n == _4_t2;
-	if (!_4_t1) {
-		goto BB16;
-	} else {
+	if (_4_t1) {
 		goto BB2;
+	} else {
+		goto BB16;
 	}
-BB2:
-	_4_t0 = _4_n;
-	goto BB7;
-BB7:
-	_4_$retval = _4_t0;
-	return _4_$retval;
 BB16:
 	_4_t4 = 1;
 	_4_t3 = _4_n == _4_t4;
-	if (!_4_t3) {
-		goto BB15;
-	} else {
+	if (_4_t3) {
 		goto BB9;
+	} else {
+		goto BB15;
 	}
-BB9:
-	_4_t0 = 1;
-	goto BB7;
 BB15:
 	_4_t8 = 1;
 	_4_t9 = _4_n - _4_t8;
@@ -77,6 +68,15 @@ BB15:
 	_4_t10 = _4_fib(_4_t12);
 	_4_t6 = _7_add(_4_t7, _4_t10);
 	_4_t0 = _4_t6;
+	goto BB7;
+BB7:
+	_4_$retval = _4_t0;
+	return _4_$retval;
+BB9:
+	_4_t0 = 1;
+	goto BB7;
+BB2:
+	_4_t0 = _4_n;
 	goto BB7;
 }
 

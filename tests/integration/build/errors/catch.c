@@ -31,19 +31,19 @@ BB0:
 	_2_t0 = 100;
 	_3_x = (struct0) {.tag=0, ._0=_2_t0};
 	_2_t3 = _3_x.tag;
-	if (!_2_t3) {
-		goto BB4;
-	} else {
+	if (_2_t3) {
 		goto BB1;
+	} else {
+		goto BB4;
 	}
-BB1:
-	_2_t2 = (&_3_x)->_1;
+BB4:
+	_2_t2 = 118;
 	goto BB3;
 BB3:
 	_2_$retval = _2_t2;
 	return _2_$retval;
-BB4:
-	_2_t2 = 118;
+BB1:
+	_2_t2 = (&_3_x)->_1;
 	goto BB3;
 }
 

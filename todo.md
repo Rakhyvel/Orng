@@ -45,7 +45,7 @@
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [x] find out if GCC supports UBSan! enable it
-- [ ] allow more than one command line argument
+- [x] allow more than one command line argument
 
 ### Features
 - [x] addresses

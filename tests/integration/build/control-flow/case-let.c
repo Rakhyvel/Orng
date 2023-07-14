@@ -32,31 +32,31 @@ BB0:
 	_2_t4 = _3_x - _2_t3;
 	_2_t5 = 1;
 	_2_t2 = _2_t4 == _2_t5;
-	if (!_2_t2) {
-		goto BB19;
-	} else {
+	if (_2_t2) {
 		goto BB2;
+	} else {
+		goto BB19;
 	}
-BB2:
-	_2_t0 = 10;
-	goto BB7;
-BB7:
-	_2_$retval = _2_t0;
-	return _2_$retval;
 BB19:
 	_2_t7 = 3;
 	_2_t8 = _3_x - _2_t7;
 	_2_t9 = 1;
 	_2_t6 = _2_t8 == _2_t9;
-	if (!_2_t6) {
-		goto BB18;
-	} else {
+	if (_2_t6) {
 		goto BB9;
+	} else {
+		goto BB18;
 	}
+BB18:
+	_2_t0 = 10;
+	goto BB7;
+BB7:
+	_2_$retval = _2_t0;
+	return _2_$retval;
 BB9:
 	_2_t0 = 23;
 	goto BB7;
-BB18:
+BB2:
 	_2_t0 = 10;
 	goto BB7;
 }

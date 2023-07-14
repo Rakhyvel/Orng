@@ -6,7 +6,7 @@ const CFG = _ir.CFG;
 const IR = _ir.IR;
 const SymbolVersion = _ir.SymbolVersion;
 
-const debug = true;
+const debug = false;
 
 fn log(msg: []const u8) void {
     if (debug) {

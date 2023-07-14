@@ -48,18 +48,18 @@ struct0 _4_f(int64_t* _4_x,uint8_t _4_fail) {
 BB0:
 	_4_t0 = 4;
 	**&_4_x = _4_t0;
-	if (!_4_fail) {
-		goto BB4;
-	} else {
+	if (_4_fail) {
 		goto BB1;
+	} else {
+		goto BB4;
 	}
+BB4:
+	_4_$retval = (struct0) {.tag=1};
+	return _4_$retval;
 BB1:
 	_4_$retval = (struct0) {.tag=0};
 	_4_t6 = 115;
 	**&_4_x = _4_t6;
-	return _4_$retval;
-BB4:
-	_4_$retval = (struct0) {.tag=1};
 	return _4_$retval;
 }
 

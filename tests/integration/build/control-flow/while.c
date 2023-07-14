@@ -28,19 +28,19 @@ BB0:
 BB1:
 	_2_t4 = 10;
 	_2_t3 = _4_i <= _2_t4;
-	if (!_2_t3) {
-		goto BB10;
-	} else {
+	if (_2_t3) {
 		goto BB2;
+	} else {
+		goto BB10;
 	}
+BB10:
+	_2_$retval = _3_x;
+	return _2_$retval;
 BB2:
 	_3_x = _3_x + _4_i;
 	_2_t6 = 1;
 	_4_i = _4_i + _2_t6;
 	goto BB1;
-BB10:
-	_2_$retval = _3_x;
-	return _2_$retval;
 }
 
 

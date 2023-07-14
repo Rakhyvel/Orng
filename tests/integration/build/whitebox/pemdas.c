@@ -38,11 +38,17 @@ BB0:
 	_2_t4 = *_3_y;
 	_2_t5 = 0;
 	_2_t3 = _2_t4 == _2_t5;
-	if (!_2_t3) {
-		goto BB9;
-	} else {
+	if (_2_t3) {
 		goto BB1;
+	} else {
+		goto BB9;
 	}
+BB9:
+	_2_t2 = 1000;
+	goto BB6;
+BB6:
+	_2_$retval = _2_t2;
+	return _2_$retval;
 BB1:
 	_5_z = *_3_y;
 	_2_t7 = _3_y;
@@ -62,12 +68,6 @@ BB1:
 	_2_t21 = -1.0e+00;
 	_5_z = _5_z * _2_t21;
 	_2_t2 = _5_z;
-	goto BB6;
-BB6:
-	_2_$retval = _2_t2;
-	return _2_$retval;
-BB9:
-	_2_t2 = 1000;
 	goto BB6;
 }
 

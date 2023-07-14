@@ -31,50 +31,50 @@ BB0:
 BB1:
 	_2_t4 = 10;
 	_2_t3 = _4_n < _2_t4;
-	if (!_2_t3) {
-		goto BB26;
-	} else {
+	if (_2_t3) {
 		goto BB2;
-	}
-BB2:
-	if (!_3_found) {
-		goto BB7;
 	} else {
-		goto BB5;
+		goto BB26;
 	}
-BB5:
-	_4_n = 100;
-	goto BB7;
-BB7:
-	_2_t9 = 6;
-	_2_t8 = _4_n == _2_t9;
-	if (!_2_t8) {
-		goto BB13;
-	} else {
-		goto BB8;
-	}
-BB8:
-	_3_found = 1;
-	goto BB13;
-BB13:
-	_2_t11 = 1;
-	_4_n = _4_n + _2_t11;
-	goto BB1;
 BB26:
-	if (!_3_found) {
-		goto BB24;
-	} else {
+	if (_3_found) {
 		goto BB20;
+	} else {
+		goto BB24;
 	}
-BB20:
-	_2_t13 = 15;
+BB24:
+	_2_t13 = 4;
 	goto BB23;
 BB23:
 	_2_$retval = _2_t13;
 	return _2_$retval;
-BB24:
-	_2_t13 = 4;
+BB20:
+	_2_t13 = 15;
 	goto BB23;
+BB2:
+	if (_3_found) {
+		goto BB5;
+	} else {
+		goto BB7;
+	}
+BB7:
+	_2_t9 = 6;
+	_2_t8 = _4_n == _2_t9;
+	if (_2_t8) {
+		goto BB8;
+	} else {
+		goto BB13;
+	}
+BB13:
+	_2_t11 = 1;
+	_4_n = _4_n + _2_t11;
+	goto BB1;
+BB8:
+	_3_found = 1;
+	goto BB13;
+BB5:
+	_4_n = 100;
+	goto BB7;
 }
 
 
