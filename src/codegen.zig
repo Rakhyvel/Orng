@@ -252,32 +252,32 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
 
     if (bb.has_branch) {
         // Generate the if
-        try out.writer().print("\tif (!", .{});
+        try out.writer().print("\tif (", .{});
         try printSymbolVersion(bb.condition.?, out);
         try out.writer().print(") {{\n", .{});
 
         // Generate branch `if-else`
-        if (bb.branch) |branch| {
-            try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{branch.uid});
+        if (bb.next) |next| {
+            try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{next.uid});
         } else {
             try out.writer().print("\t", .{});
             try printReturn(symbol, out);
             try out.writer().print("\t}} else {{\n", .{});
         }
 
-        // Generate the `next` BB
-        if (bb.next) |next| {
-            try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{next.uid});
-            try generateBasicBlock(next, symbol, out);
+        // Generate the `branch` BB
+        if (bb.branch) |branch| {
+            try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{branch.uid});
+            try generateBasicBlock(branch, symbol, out);
         } else {
             try out.writer().print("\t", .{});
             try printReturn(symbol, out);
             try out.writer().print("\t}}\n", .{});
         }
 
-        // Generate the `branch` BB
-        if (bb.branch) |branch| {
-            try generateBasicBlock(branch, symbol, out);
+        // Generate the `next` BB
+        if (bb.next) |next| {
+            try generateBasicBlock(next, symbol, out);
         }
     } else {
         if (bb.next) |next| {

@@ -6,7 +6,7 @@ const CFG = _ir.CFG;
 const IR = _ir.IR;
 const SymbolVersion = _ir.SymbolVersion;
 
-const debug = false;
+const debug = true;
 
 fn log(msg: []const u8) void {
     if (debug) {
@@ -14,25 +14,28 @@ fn log(msg: []const u8) void {
     }
 }
 
+fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
+    if (debug) {
+        std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
+        if (cfg.block_graph_head) |block_head| {
+            block_head.pprint();
+            log("\n\n");
+        } else {
+            std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
+        }
+    }
+}
+
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     if (debug) {
-        std.debug.print("CFG: {s}\n", .{cfg.symbol.name});
+        std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
         log("\n\n");
     }
     while (try propagate(cfg) or
         try bbOptimizations(cfg, allocator) or
         removeUnusedDefs(cfg))
-    {
-        if (debug) {
-            if (cfg.block_graph_head) |block_head| {
-                block_head.pprint();
-                log("\n\n");
-            } else {
-                std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
-            }
-        }
-    }
+    {}
     cfg.clearVisitedBBs();
 
     for (cfg.children.items) |child| {
@@ -49,7 +52,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
-            log("remove unused block");
+            defer log_optimization_pass("remove unused block", cfg);
             removeBasicBlock(cfg, bb, true);
             return true;
         }
@@ -57,8 +60,8 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     for (cfg.basic_blocks.items) |bb| {
         // Adopt basic blocks with only one incoming block
-        log("adopt block");
         if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
+            defer log_optimization_pass("adopt block", cfg);
             var end: *IR = bb.ir_head.?.getTail();
 
             // Join next block at the end of this block
@@ -98,7 +101,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // Convert constant true/false branches to jumps
         if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .loadInt) {
-            log("convert constant true/false to jumps");
+            defer log_optimization_pass("convert constant true/false to jumps", cfg);
             bb.has_branch = false;
             if (bb.condition.?.def.?.data.int == 0) {
                 bb.next = bb.branch;
@@ -109,7 +112,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // Remove jump chains
         if (bb.next) |next| {
-            log("remove jump chains");
+            defer log_optimization_pass("remove jump chains", cfg);
             if (next.ir_head == null and !next.has_branch) {
                 bb.next = next.next;
                 retval = true;
@@ -130,7 +133,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // If next is a branch that depends on a known arugment
         if (bb.next) |next| {
-            log("next depends on known argument");
+            defer log_optimization_pass("next depends on known argument", cfg);
             if (next.has_branch and next.ir_head == null) {
                 var def = bb.findInstruction(next.condition.?.symbol);
                 if (def != null and def.?.kind == .loadInt) {
@@ -145,7 +148,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // If branch is a branch that depends on a known arugment
         if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null) {
-            log("branch depends on known argument");
+            defer log_optimization_pass("branch depends on known argument", cfg);
             var def = bb.findInstruction(bb.branch.?.condition.?.symbol);
             if (def != null and def.?.kind == .loadInt) {
                 if (def.?.data.int == 0) {
@@ -159,7 +162,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     // Rebase block graph if jump chain
     if (cfg.block_graph_head) |head| {
-        log("rebase block");
+        defer log_optimization_pass("rebase block", cfg);
         if (head.ir_head == null and !head.has_branch) {
             cfg.block_graph_head = head.next;
             retval = true;

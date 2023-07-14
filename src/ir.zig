@@ -1428,17 +1428,18 @@ pub const CFG = struct {
                     }
                     if (ast.block.final) |final| {
                         temp = try self.flattenAST(ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, current_error_label, lvalue, errors, allocator);
-                    } else if (temp) |_temp| {
-                        var expanded_temp_type = try _temp.type.exapnd_type(scope, errors, allocator);
-                        if (expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
-                            // Returning error sum, runtime check if error, branch to error path
-                            var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
-                            var load_tag = try IR.createGetTag(condition, _temp, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
-                            condition.def = load_tag;
-                            self.appendInstruction(load_tag);
-                            self.appendInstruction(try IR.createBranch(condition, current_error_label, allocator));
-                        }
                     }
+                    // else if (temp) |_temp| {
+                    //     var expanded_temp_type = try _temp.type.exapnd_type(scope, errors, allocator);
+                    //     if (expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
+                    //         // Returning error sum, runtime check if error, branch to error path
+                    //         var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
+                    //         var load_tag = try IR.createGetTag(condition, _temp, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
+                    //         condition.def = load_tag;
+                    //         self.appendInstruction(load_tag);
+                    //         self.appendInstruction(try IR.createBranch(condition, current_error_label, allocator));
+                    //     }
+                    // }
 
                     try self.generateDefers(&ast.block.scope.?.defers, &continue_labels, ast.block.scope.?, errors, allocator);
                     self.appendInstruction(try IR.createJump(end, allocator));
