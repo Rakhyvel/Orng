@@ -732,7 +732,7 @@ pub const CFG = struct {
                 var load_tag = try IR.createGetTag(condition, expr, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
                 condition.def = load_tag;
                 self.appendInstruction(load_tag);
-                self.appendInstruction(try IR.createBranch(condition, error_label, allocator));
+                self.appendInstruction(try IR.createBranch(condition, error_label.?, allocator));
 
                 // Unwrap the `.ok` value
                 var ok_symbver = try self.createTempSymbolVersion(expanded_expr_type.sum.terms.items[1], allocator);
@@ -1395,7 +1395,7 @@ pub const CFG = struct {
                     var current_continue_label = if (continue_label != null) continue_label else end;
                     var current_break_label = break_label;
                     var current_return_label = return_label;
-                    var current_error_label = error_label; // TODO: Add error_label
+                    var current_error_label = error_label orelse end; // TODO: Add error_label
                     var defer_label_index: usize = 0;
                     var errdefer_label_index: usize = 0;
 
@@ -1417,14 +1417,12 @@ pub const CFG = struct {
                     } else if (temp) |_temp| {
                         var expanded_temp_type = try _temp.type.exapnd_type(scope, errors, allocator);
                         if (expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
-                            if (current_error_label) |err| {
-                                // Returning error sum, runtime check if error, branch to error path
-                                var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
-                                var load_tag = try IR.createGetTag(condition, _temp, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
-                                condition.def = load_tag;
-                                self.appendInstruction(load_tag);
-                                self.appendInstruction(try IR.createBranch(condition, err, allocator));
-                            }
+                            // Returning error sum, runtime check if error, branch to error path
+                            var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
+                            var load_tag = try IR.createGetTag(condition, _temp, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
+                            condition.def = load_tag;
+                            self.appendInstruction(load_tag);
+                            self.appendInstruction(try IR.createBranch(condition, current_error_label, allocator));
                         }
                     }
 

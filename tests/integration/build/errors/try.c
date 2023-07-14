@@ -73,10 +73,10 @@ struct0 _4_f(uint8_t _4_fail) {
 	int64_t _7_x;
 	struct0 _4_t0;
 	struct0 _4_$retval;
-	int64_t _4_t5;
+	int64_t _4_t6;
 BB0:
 	if (!_4_fail) {
-		goto BB6;
+		goto BB8;
 	} else {
 		goto BB1;
 	}
@@ -84,21 +84,21 @@ BB1:
 	_4_t1 = _9_g();
 	_4_t2 = _4_t1.tag;
 	if (!_4_t2) {
-		return _4_$retval;
+		goto BB7;
 	} else {
 		goto BB2;
 	}
 BB2:
 	_7_x = (&_4_t1)->_1;
 	_4_t0 = (struct0) {.tag=1, ._1=_7_x};
-	goto BB5;
-BB5:
+	goto BB7;
+BB7:
 	_4_$retval = _4_t0;
 	return _4_$retval;
-BB6:
-	_4_t5 = 0;
-	_4_t0 = (struct0) {.tag=1, ._1=_4_t5};
-	goto BB5;
+BB8:
+	_4_t6 = 0;
+	_4_t0 = (struct0) {.tag=1, ._1=_4_t6};
+	goto BB7;
 }
 
 struct0 _9_g() {

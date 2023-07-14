@@ -159,7 +159,8 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     }
 
     // compile C (make sure no errors)
-    var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm" }) catch {
+    var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm", "-fsanitize=undefined,address,leak" }) catch {
+        std.debug.print("Error compiling with GCC", .{});
         return false;
     };
     if (gcc_res.retcode != 0) {
