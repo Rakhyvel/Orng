@@ -9,4 +9,4 @@ fn f(fail: Bool) -> ()!Int
     else
         (.ok<-0)
 
-fn g() -> ()!Int {.err<-()}
+fn g() -> ()!Int {.err}

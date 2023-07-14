@@ -136,6 +136,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         // Code generation
         var program = try Program.init(cfg, uid, &intered_strings, try symbol.getPrelude(allocator), errors, allocator);
+        program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
         var outputFile = try std.fs.cwd().createFile(
             out_name,

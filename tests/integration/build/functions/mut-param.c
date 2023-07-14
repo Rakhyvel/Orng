@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 
 /* Interned Strings */
@@ -22,6 +26,7 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 8;
+    $lines[$line_idx++] = "fn main() -> Int {sumDown(8) + 2}";
 	_2_t0 = _4_sumDown(_2_t1);
 	_2_t2 = 2;
 	_2_$retval = _2_t0 + _2_t2;

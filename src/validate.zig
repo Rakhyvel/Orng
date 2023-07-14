@@ -202,12 +202,31 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try is not of an error expression", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
-                // Error union, but .err field types don't match with expected
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                // lhs is rror union, but .err field types don't match with expected
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type, .stage = .typecheck } });
+                return error.typeError;
+            } else if (scope.inner_function == null) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function", .stage = .typecheck } });
                 return error.typeError;
             } else {
-                // Everything is fine, validate expr without an expectation of a type
-                ast._try.expr = try validateAST(ast._try.expr, null, scope, errors, allocator);
+                var expanded_function_return = try scope.inner_function.?._type.?.function.rhs.exapnd_type(scope, errors, allocator);
+                if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return error sum", .stage = .typecheck } });
+                    return error.typeError;
+                } else if (!try lhs_expanded_type.sum.terms.items[0].annotation.type.typesMatch(expanded_function_return.sum.terms.items[0].annotation.type, scope, errors, allocator)) {
+                    // lhs error union's `.err` member is not a compatible type with the function's error type
+                    // TODO: Specialized message, since this is a strange corner case of type matching
+                    errors.addError(Error{ .expected2Type = .{
+                        .span = ast.getToken().span,
+                        .expected = lhs_expanded_type.sum.terms.items[0].annotation.type,
+                        .got = expanded_function_return.sum.terms.items[0].annotation.type,
+                        .stage = .typecheck,
+                    } });
+                    return error.typeError;
+                } else {
+                    // Everything is fine, validate expr without an expectation of a type
+                    ast._try.expr = try validateAST(ast._try.expr, null, scope, errors, allocator);
+                }
             }
             retval = ast;
         },

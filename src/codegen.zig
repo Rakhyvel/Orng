@@ -21,6 +21,9 @@ pub fn generate(__program: *Program, file: *std.fs.File) !void {
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
     try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n\n", .{ program.uid, program.uid });
 
+    try file.writer().print("/* Debug information */\n", .{});
+    try generateDebug(file);
+
     try file.writer().print("/* Typedefs */\n", .{});
     try generateFunctionTypedefs(&program.types, file);
     try file.writer().print("\n/* Interned Strings */\n", .{});
@@ -196,6 +199,15 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     for (callGraph.children.items) |child| {
         try generateFunctions(child, out);
     }
+}
+
+fn generateDebug(out: *std.fs.File) !void {
+    try out.writer().print(
+        \\static const char* $lines[1024];
+        \\static uint16_t $line_idx = 0;
+        \\
+        \\
+    , .{});
 }
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
@@ -527,6 +539,11 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             return error.Unimplemented;
         },
         .call => {
+            try out.writer().print(
+                \\    $lines[$line_idx++] = "{s}";
+                \\
+            , .{program.lines.items[ir.dest.?.symbol.span.line - 1]});
+
             var void_fn = ir.dest.?.type.* == .unit;
             if (!void_fn) {
                 try printVarAssign(ir.dest.?, out);

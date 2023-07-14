@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 
 /* Interned Strings */
@@ -18,6 +22,7 @@ void _4_void();
 int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
+    $lines[$line_idx++] = "    void()";
 	_4_void();
 	_2_$retval = 65;
 	return _2_$retval;

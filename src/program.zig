@@ -34,6 +34,9 @@ pub const Program = struct {
     // A graph of type dependencies
     types: std.ArrayList(*DAG),
 
+    // TODO: Make this a map from filename -> lines
+    lines: *std.ArrayList([]const u8),
+
     // Interned strings
     interned_strings: *std.ArrayList([]const u8),
 

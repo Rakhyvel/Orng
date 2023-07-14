@@ -1,10 +1,14 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1689362540460588396
-#define ORNG_1689362540460588396
+#ifndef ORNG_1689377628306533825
+#define ORNG_1689377628306533825
 
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
 
 /* Typedefs */
 typedef struct {
@@ -34,6 +38,7 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t2 = 1;
+    $lines[$line_idx++] = "    (f(true) catch 122) + (f(false) catch 122)";
 	_2_t1 = _4_f(_2_t2);
 	_2_t3 = _2_t1.tag;
 	if (_2_t3) {
@@ -46,6 +51,7 @@ BB7:
 	goto BB2;
 BB2:
 	_2_t8 = 0;
+    $lines[$line_idx++] = "    (f(true) catch 122) + (f(false) catch 122)";
 	_2_t7 = _4_f(_2_t8);
 	_2_t9 = _2_t7.tag;
 	if (_2_t9) {
@@ -88,6 +94,7 @@ BB6:
 	_4_$retval = _4_t0;
 	return _4_$retval;
 BB1:
+    $lines[$line_idx++] = "        let x = try g()";
 	_4_t1 = _9_g();
 	_4_t2 = _4_t1.tag;
 	if (_4_t2) {

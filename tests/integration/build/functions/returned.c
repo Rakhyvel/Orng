@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 typedef int64_t(*function0)(int64_t);
 
@@ -23,8 +27,10 @@ int64_t _2_main() {
 	int64_t _2_t1;
 	int64_t _2_$retval;
 BB0:
+    $lines[$line_idx++] = "    f()(45)";
 	_2_t0 = _4_f();
 	_2_t2 = 45;
+    $lines[$line_idx++] = "    f()(45)";
 	_2_t1 = _2_t0(_2_t2);
 	_2_$retval = _2_t1;
 	return _2_$retval;

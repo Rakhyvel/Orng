@@ -1032,6 +1032,7 @@ pub const CFG = struct {
             .call => {
                 var lhs = (try self.flattenAST(scope, ast.call.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+                temp.symbol.span = ast.getToken().span;
 
                 var ir = try IR.createCall(temp, lhs, allocator);
                 switch (ast.call.rhs.*) {

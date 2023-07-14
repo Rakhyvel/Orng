@@ -102,12 +102,14 @@
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [x] Character escapes (`\n`, `\r`, `\t`, `\x<hex byte>`)
         - [ ] `\u<unicode code point, hex>`
+            > Incredibly non-trivial
         - [x] Error on invalid escapes (this should happen at lex-time)
         - [x] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
         > TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
     - [ ] Character literals
         - [x] Character escapes (`\n`, `\r`, `\t`)
         - [ ] `\u<unicode code point, hex>`
+            > Seems non-trivial
         - [x] Error on invalid escapes
         - [x] Error if character literal contains more than one character
 - [x] Sum types
@@ -123,15 +125,16 @@
     - [x] `catch`
     - [x] `errdefer`
     - [x] `try`
-    - [ ] stack traces
     - [ ] inferred errors
-    - [ ] decide what to do with `throw`
-        > It could be useful to have 
+    - [ ] remove `throw`
 - [ ] more compile errors
-    - [ ] unreachable
-        - [ ] go back and add optional `case`, with `| else => unreachable` clauses
     - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
         - [ ] `.poison` AST node which represents apart of the program with errors that should not be re-validated
+        - [ ] negative test cases that pass if code compiles and panics vs negative test cases that pass if code doesn't compile
+            > Perhaps a panic is a positive test case, actually?
+    - [ ] unreachable
+        - [ ] go back and add optional `case`, with `| else => unreachable` clauses
+        - [ ] stack traces
     - [ ] default values
     - [ ] explicit discarding with `_`
     - [ ] static index out of bounds
