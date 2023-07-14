@@ -16,6 +16,7 @@ fn log(msg: []const u8) void {
 
 pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     if (debug) {
+        std.debug.print("CFG: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
         log("\n\n");
     }
@@ -24,8 +25,12 @@ pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
         removeUnusedDefs(cfg))
     {
         if (debug) {
-            cfg.block_graph_head.?.pprint();
-            log("\n\n");
+            if (cfg.block_graph_head) |block_head| {
+                block_head.pprint();
+                log("\n\n");
+            } else {
+                std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
+            }
         }
     }
     cfg.clearVisitedBBs();

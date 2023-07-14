@@ -43,7 +43,8 @@
 - [x] != should actually probably be chainable
 
 ### Testing
-- [ ] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
+- [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
+- [ ] find out if GCC supports UBSan! enable it
 - [ ] allow more than one command line argument
 
 ### Features
@@ -120,8 +121,8 @@
 - [x] errors
     - [x] binary `!`
     - [x] `catch`
-    - [ ] `errdefer`
-    - [ ] `try`
+    - [x] `errdefer`
+    - [x] `try`
     - [ ] stack traces
     - [ ] inferred errors
     - [ ] decide what to do with `throw`

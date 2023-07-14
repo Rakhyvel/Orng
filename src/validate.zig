@@ -195,6 +195,22 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast._error.rhs = try validateAST(ast._error.rhs, _ast.typeType, scope, errors, allocator);
             retval = try AST.create_error_type(ast._error.lhs, ast._error.rhs, allocator);
         },
+        ._try => {
+            var lhs_expanded_type = try (try ast._try.expr.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+            if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
+                // lhs is not even an expected type
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try is not of an error expression", .stage = .typecheck } });
+                return error.typeError;
+            } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
+                // Error union, but .err field types don't match with expected
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                return error.typeError;
+            } else {
+                // Everything is fine, validate expr without an expectation of a type
+                ast._try.expr = try validateAST(ast._try.expr, null, scope, errors, allocator);
+            }
+            retval = ast;
+        },
         .optional => {
             if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
@@ -908,7 +924,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.decl.symbol.?.defined = true;
             // statement, no type
             if (expected != null) {
-                errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .stage = .typecheck } });
+                errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast, .stage = .typecheck } });
                 return error.typeError;
             }
             retval = ast;

@@ -923,6 +923,7 @@ pub const AST = union(enum) {
             },
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
             .inferredMember => retval = self.inferredMember.base.?,
+            ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).sum.terms.items[1],
 
             // Binary operators (TODO: Make polymorphic)
             .add => retval = try self.add.lhs.typeof(scope, errors, allocator),

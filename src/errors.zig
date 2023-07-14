@@ -54,6 +54,7 @@ pub const Error = union(enum) {
     expectedType: struct {
         span: Span,
         expected: *AST,
+        got: *AST,
         stage: Stage,
     },
     undeclaredIdentifier: struct {
@@ -146,7 +147,7 @@ pub const Errors = struct {
                 .expectedType => {
                     try out.print("expected a value of the type `", .{});
                     try err.expectedType.expected.printType(out);
-                    try out.print("`, got a type-less statement\n", .{});
+                    try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
                 },
                 .undeclaredIdentifier => {
                     try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data});

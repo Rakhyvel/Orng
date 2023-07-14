@@ -1,0 +1,12 @@
+// 122
+fn main() -> Int 
+    (f(true) catch 122) + (f(false) catch 122)
+
+fn f(fail: Bool) -> ()!Int
+    if fail
+        let x = try g()
+        (.ok<-x)
+    else
+        (.ok<-0)
+
+fn g() -> ()!Int {.err<-()}
