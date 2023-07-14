@@ -1,0 +1,4 @@
+// 125
+fn main() -> Int
+    let x: ?Int = if true {.some<-125} else {.none}
+    x.some

@@ -742,22 +742,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast._if.let = try validateAST(let, null, scope, errors, allocator);
             }
             ast._if.condition = try validateAST(ast._if.condition, _ast.boolType, ast._if.scope.?, errors, allocator);
-            var optional_type = false;
             if (expected != null) {
                 var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
-                if (expected_expanded.* == .sum and expected_expanded.sum.was_optional) {
+                var expects_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
+                var has_else = ast._if.elseBlock != null;
+                if (has_else) {
+                    ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
+                    ast._if.elseBlock = try validateAST(ast._if.elseBlock.?, expected.?, ast._if.scope.?, errors, allocator);
+                } else if (expects_optional) {
                     var full_type = expected_expanded.sum.terms.items[1];
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
                     if (ast._if.elseBlock) |elseBlock| {
                         ast._if.elseBlock = try validateAST(elseBlock, full_type, ast._if.scope.?, errors, allocator);
                     }
-                    optional_type = true;
+                } else {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "if expression without else gives optional", .stage = .typecheck } });
+                    return error.typeError;
                 }
-            }
-            if (!optional_type) {
-                ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected, ast._if.scope.?, errors, allocator);
+            } else {
+                ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, null, ast._if.scope.?, errors, allocator);
                 if (ast._if.elseBlock) |elseBlock| {
-                    ast._if.elseBlock = try validateAST(elseBlock, expected, ast._if.scope.?, errors, allocator);
+                    ast._if.elseBlock = try validateAST(elseBlock, null, ast._if.scope.?, errors, allocator);
                 }
             }
             retval = ast;

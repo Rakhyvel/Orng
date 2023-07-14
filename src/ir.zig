@@ -726,19 +726,33 @@ pub const CFG = struct {
             ._try => {
                 var expr = (try self.flattenAST(scope, ast._try.expr, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
 
+                var end = try IR.createLabel(allocator);
+                var err = try IR.createLabel(allocator);
+
                 var expanded_expr_type = try expr.type.exapnd_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
                 var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
                 var load_tag = try IR.createGetTag(condition, expr, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
                 condition.def = load_tag;
                 self.appendInstruction(load_tag);
-                self.appendInstruction(try IR.createBranch(condition, error_label.?, allocator));
+                self.appendInstruction(try IR.createBranch(condition, err, allocator));
 
                 // Unwrap the `.ok` value
                 var ok_symbver = try self.createTempSymbolVersion(expanded_expr_type.sum.terms.items[1], allocator);
                 var unwrap_ok = try IR.createSelect(ok_symbver, expr, 1, allocator);
                 ok_symbver.def = unwrap_ok;
                 self.appendInstruction(unwrap_ok);
+                self.appendInstruction(try IR.createJump(end, allocator));
+
+                // Else, store the error in retval, return through error
+                self.appendInstruction(err);
+                var retval_symbver = try SymbolVersion.createUnversioned(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
+                var retval_copy = try IR.create(.copy, retval_symbver, expr, null, allocator);
+                retval_symbver.def = retval_copy;
+                self.appendInstruction(retval_copy);
+                self.appendInstruction(try IR.createJump(error_label, allocator));
+
+                self.appendInstruction(end);
                 return ok_symbver;
             },
 
@@ -1395,7 +1409,7 @@ pub const CFG = struct {
                     var current_continue_label = if (continue_label != null) continue_label else end;
                     var current_break_label = break_label;
                     var current_return_label = return_label;
-                    var current_error_label = error_label orelse end; // TODO: Add error_label
+                    var current_error_label = error_label;
                     var defer_label_index: usize = 0;
                     var errdefer_label_index: usize = 0;
 
