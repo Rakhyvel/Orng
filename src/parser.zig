@@ -125,7 +125,7 @@ pub const Parser = struct {
             }
             return decl;
         } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `const`", .got = self.peek(), .stage = .parsing } });
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `const` declaration in the top level", .got = self.peek(), .stage = .parsing } });
             return ParserErrorEnum.parserError;
         }
     }
@@ -409,7 +409,12 @@ pub const Parser = struct {
             } else {
                 sliceKind = .SLICE;
             }
-            _ = try self.expect(.R_SQUARE);
+            if (self.peekKind(.R_SQUARE)) {
+                _ = self.expect(.R_SQUARE) catch {};
+            } else {
+                self.errors.addError(Error{ .missing_close = .{ .expected = .R_SQUARE, .got = self.peek(), .open = token, .stage = .parsing } });
+                return error.parserError;
+            }
             return try AST.createSliceOf(token, try self.prefixExpr(), len, sliceKind, self.astAllocator);
         } else if (self.accept(.Q_MARK)) |token| {
             return try AST.createOptional(token, try self.prependExpr(), self.astAllocator);
@@ -470,7 +475,12 @@ pub const Parser = struct {
                         return ParserErrorEnum.parserError;
                     }, self.astAllocator);
                 }
-                _ = try self.expect(.R_SQUARE);
+                if (self.peekKind(.R_SQUARE)) {
+                    _ = self.expect(.R_SQUARE) catch {};
+                } else {
+                    self.errors.addError(Error{ .missing_close = .{ .expected = .R_SQUARE, .got = self.peek(), .open = token, .stage = .parsing } });
+                    return error.parserError;
+                }
             } else if (self.accept(.PERIOD)) |token| {
                 exp = try AST.createSelect(
                     token,
@@ -559,7 +569,12 @@ pub const Parser = struct {
 
         while (self.nextIsStatement()) {
             try statements.append(try self.statement());
-            _ = try self.expect(.NEWLINE);
+            if (self.peekKind(.NEWLINE)) {
+                _ = self.expect(.NEWLINE) catch {};
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a newline after statement", .got = self.peek(), .stage = .parsing } });
+                return error.parserError;
+            }
             while (self.accept(.NEWLINE)) |_| {}
         }
 
@@ -579,8 +594,12 @@ pub const Parser = struct {
             while (self.accept(.NEWLINE)) |_| {}
         }
 
-        // TODO: Better error messages, if missing newline, hits this expect, which doesn't give much info
-        _ = try self.expect(.DEDENT);
+        if (self.peekKind(.DEDENT)) {
+            _ = self.expect(.DEDENT) catch {};
+        } else {
+            self.errors.addError(Error{ .missing_close = .{ .expected = .DEDENT, .got = self.peek(), .open = indent, .stage = .parsing } });
+            return error.parserError;
+        }
 
         return try AST.createBlock(indent, statements, final, self.astAllocator);
     }
@@ -613,7 +632,12 @@ pub const Parser = struct {
             while (self.accept(.SEMICOLON)) |_| {}
         }
 
-        _ = try self.expect(.R_BRACE);
+        if (self.peekKind(.R_BRACE)) {
+            _ = self.expect(.R_BRACE) catch {};
+        } else {
+            self.errors.addError(Error{ .missing_close = .{ .expected = .R_BRACE, .got = self.peek(), .open = indent, .stage = .parsing } });
+            return error.parserError;
+        }
 
         return try AST.createBlock(indent, statements, final, self.astAllocator);
     }
@@ -634,7 +658,12 @@ pub const Parser = struct {
         var let: ?*AST = null;
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
-            _ = try self.expect(.SEMICOLON);
+            if (self.peekKind(.SEMICOLON)) {
+                _ = self.expect(.SEMICOLON) catch {};
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek(), .stage = .parsing } });
+                return error.parserError;
+            }
         }
         var cond = try self.expr();
         var bodyBlock = try self.blockExpr();
@@ -651,7 +680,12 @@ pub const Parser = struct {
         var let: ?*AST = null;
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
-            _ = try self.expect(.SEMICOLON);
+            if (self.peekKind(.SEMICOLON)) {
+                _ = self.expect(.SEMICOLON) catch {};
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek(), .stage = .parsing } });
+                return error.parserError;
+            }
         }
         var cond = try self.expr();
         var post: ?*AST = null;
@@ -723,14 +757,19 @@ pub const Parser = struct {
         var params = std.ArrayList(*AST).init(self.astAllocator);
         errdefer params.deinit();
 
-        _ = try self.expect(.L_PAREN);
+        var token = try self.expect(.L_PAREN);
         if (self.peekKind(.CONST) or self.peekKind(.MUT) or self.peekKind(.IDENTIFIER)) {
             try params.append(try self.param());
             if (self.accept(.COMMA)) |_| {
                 try params.append(try self.param());
             }
         }
-        _ = try self.expect(.R_PAREN);
+        if (self.peekKind(.R_PAREN)) {
+            _ = self.expect(.R_PAREN) catch {};
+        } else {
+            self.errors.addError(Error{ .missing_close = .{ .expected = .R_PAREN, .got = self.peek(), .open = token, .stage = .parsing } });
+            return error.parserError;
+        }
 
         return params;
     }
@@ -767,7 +806,12 @@ pub const Parser = struct {
 
     fn barElse(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
         var token = try self.expect(.ELSE);
-        _ = try self.expect(.RIGHT_FAT_ARROW);
+        if (self.peekKind(.RIGHT_FAT_ARROW)) {
+            _ = self.expect(.RIGHT_FAT_ARROW) catch {};
+        } else {
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`=>` after `else`", .got = self.peek(), .stage = .parsing } });
+            return error.parserError;
+        }
         var rhs = try self.annotExpr();
 
         return try AST.createMapping(token, kind, null, rhs, self.astAllocator);
@@ -781,7 +825,8 @@ pub const Parser = struct {
             } else if (self.nextIsExpr()) {
                 try self.barListMiddle(mappings, kind);
             } else {
-                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `=>`", .got = self.peek(), .stage = .parsing } });
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `|`", .got = self.peek(), .stage = .parsing } });
+                return error.parserError;
             }
         }
     }
@@ -798,7 +843,12 @@ pub const Parser = struct {
         var let: ?*AST = null;
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
-            _ = try self.expect(.SEMICOLON); // Has to be here, otherwise the init expr of the let confuses the case's |'s with a sum expr
+            if (self.peekKind(.SEMICOLON)) {
+                _ = self.expect(.SEMICOLON) catch {};
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek(), .stage = .parsing } });
+                return error.parserError;
+            } // Has to be here, otherwise the init expr of the let confuses the case's |'s with a sum expr
         }
 
         try self.barList(&mappings, .case);
@@ -813,7 +863,12 @@ pub const Parser = struct {
 
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             let = try self.nonFnDeclaration();
-            _ = try self.expect(.SEMICOLON);
+            if (self.peekKind(.SEMICOLON)) {
+                _ = self.expect(.SEMICOLON) catch {};
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek(), .stage = .parsing } });
+                return error.parserError;
+            }
         }
         var exp = try self.productExpr();
         try self.barList(&mappings, .match);
@@ -838,7 +893,12 @@ pub const Parser = struct {
         if (self.nextIsExpr()) {
             exp = try self.expr();
         }
-        _ = try self.expect(.R_PAREN);
+        if (self.peekKind(.R_PAREN)) {
+            _ = self.expect(.R_PAREN) catch {};
+        } else {
+            self.errors.addError(Error{ .missing_close = .{ .expected = .R_PAREN, .got = self.peek(), .open = token, .stage = .parsing } });
+            return error.parserError;
+        }
 
         return exp orelse try AST.createUnit(token, self.astAllocator);
     }

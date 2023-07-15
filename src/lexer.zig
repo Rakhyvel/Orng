@@ -113,7 +113,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .ident => {
                 if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    var token = Token.create(contents[slice_start..ix], null, line, col);
+                    var token = Token.create(contents[slice_start..ix], null, line, col - 1);
                     if (fuzz_tokens) {
                         if (std.mem.eql(u8, token.data, "indent")) {
                             token.kind = .INDENT;
@@ -193,8 +193,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .byteString1;
                 } else {
-                    // I *believe* the column of the error span should be one more than `col`, since `col` points to the `\`
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -205,7 +204,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .byteString2;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -216,7 +215,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .string;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -260,7 +259,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .char;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -308,7 +307,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .integerDigit => {
                 if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -333,7 +332,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
             },
 
             .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
+                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
                 return error.lexerError;
             } else {
                 ix += 1;
@@ -365,7 +364,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .hex;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -394,7 +393,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .octal;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "octal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "octal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -423,7 +422,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .binary;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "binary", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "binary", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -435,7 +434,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     ix += 1;
                     col += 1;
                 } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                    var token = Token.create(contents[slice_start..ix], null, line, col);
+                    var token = Token.create(contents[slice_start..ix], null, line, col - 1);
                     try tokens.append(token);
                     slice_start = ix;
                     state = .none;

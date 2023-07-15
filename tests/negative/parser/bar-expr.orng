@@ -1,0 +1,5 @@
+fn main() -> ()
+    case
+    | false =>  4
+    |  => let x = 4
+    0

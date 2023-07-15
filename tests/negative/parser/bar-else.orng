@@ -1,0 +1,4 @@
+fn main() -> Int
+    case
+    | true  => 0
+    | else  3

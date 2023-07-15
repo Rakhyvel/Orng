@@ -1,0 +1,3 @@
+fn main() -> Int
+    let x = [let y = 4]Int
+    0

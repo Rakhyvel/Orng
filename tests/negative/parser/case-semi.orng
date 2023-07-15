@@ -1,0 +1,3 @@
+fn main() -> Int
+    case let x = 4
+    | true => 0

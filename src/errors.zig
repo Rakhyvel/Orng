@@ -55,12 +55,21 @@ pub const Error = union(enum) {
         got: Token,
         stage: Stage,
     },
+    missing_close: struct {
+        expected: TokenKind,
+        got: Token,
+        open: Token,
+        stage: Stage,
+    },
+
+    // Symbol
     redefinition: struct {
         first_defined_span: Span,
         redefined_span: Span,
         name: []const u8,
         stage: Stage,
     },
+
     expected2Type: struct {
         span: Span,
         expected: *AST,
@@ -98,6 +107,8 @@ pub const Error = union(enum) {
 
             .expectedBasicToken => return self.expectedBasicToken.stage,
             .expected2Token => return self.expected2Token.stage,
+            .missing_close => return self.missing_close.stage,
+
             .redefinition => return self.redefinition.stage,
             .expected2Type => return self.expected2Type.stage,
             .expectedType => return self.expectedType.stage,
@@ -117,6 +128,8 @@ pub const Error = union(enum) {
 
             .expectedBasicToken => return self.expectedBasicToken.got.span,
             .expected2Token => return self.expected2Token.got.span,
+            .missing_close => return self.missing_close.got.span,
+
             .redefinition => return self.redefinition.redefined_span,
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
@@ -148,12 +161,15 @@ pub const Errors = struct {
             try printPrelude(err.getSpan(), filename);
             try (term.Attr{ .bold = true }).dump(out);
             switch (err) {
+                // General errors
                 .basic => try out.print("{s}\n", .{err.basic.msg}),
                 .basicNoSpan => try out.print("{s}\n", .{err.basicNoSpan.msg}),
 
+                // Lexer errors
                 .invalid_digit => try out.print("'{c}' is not a valid {s} digit\n", .{ err.invalid_digit.digit, err.invalid_digit.base }),
                 .invalid_escape => try out.print("invalid escape sequence '\\{c}'\n", .{err.invalid_escape.digit}),
 
+                // Parser errors
                 .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
                     err.expectedBasicToken.expected,
                     token.reprFromTokenKind(err.expectedBasicToken.got.kind) orelse err.expectedBasicToken.got.data,
@@ -162,9 +178,22 @@ pub const Errors = struct {
                     token.reprFromTokenKind(err.expected2Token.expected) orelse "identifier",
                     token.reprFromTokenKind(err.expected2Token.got.kind) orelse err.expected2Token.got.data,
                 }),
-                .redefinition => try out.print("redefinition of symbol `{s}`\n", .{
-                    err.redefinition.name,
-                }),
+                .missing_close => {
+                    try out.print("expected closing `{s}` to match opening `{s}` here, got `{s}`\n", .{
+                        token.reprFromTokenKind(err.missing_close.expected) orelse "",
+                        token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data,
+                        token.reprFromTokenKind(err.missing_close.got.kind) orelse err.missing_close.got.data,
+                    });
+                },
+
+                // Symbol
+                .redefinition => {
+                    try out.print("redefinition of symbol `{s}`\n", .{
+                        err.redefinition.name,
+                    });
+                },
+
+                // Typecheck
                 .expected2Type => {
                     try out.print("expected a value of the type `", .{});
                     try err.expected2Type.expected.printType(out);
@@ -189,6 +218,27 @@ pub const Errors = struct {
             }
             try (term.Attr{ .bold = false }).dump(out);
             try printEpilude(err.getSpan(), lines);
+
+            // Extra info
+            switch (err) {
+                .missing_close => {
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try print_note_prelude(err.missing_close.open.span, filename);
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try out.print("opening `{s}` defined here\n", .{token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data});
+                    try (term.Attr{ .bold = false }).dump(out);
+                    try printEpilude(err.missing_close.open.span, lines);
+                },
+                .redefinition => {
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try print_note_prelude(err.redefinition.first_defined_span, filename);
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
+                    try (term.Attr{ .bold = false }).dump(out);
+                    try printEpilude(err.redefinition.first_defined_span, lines);
+                },
+                else => {},
+            }
         }
     }
 
@@ -199,10 +249,23 @@ pub const Errors = struct {
         try term.outputColor(term.Attr{ .fg = .red, .bold = true }, "error: ", out);
     }
 
-    fn printEpilude(maybe_span: ?Span, lines: *std.ArrayList([]const u8)) !void {
+    fn print_note_prelude(maybe_span: ?Span, filename: []const u8) !void {
         if (maybe_span) |span| {
-            try out.print("{s}\n", .{lines.items[span.line - 1]});
-            var i: usize = 2;
+            try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
+        }
+        try term.outputColor(term.Attr{ .fg = .cyan, .bold = true }, "note: ", out);
+    }
+
+    fn printEpilude(maybe_span: ?Span, lines: *std.ArrayList([]const u8)) !void {
+        if (maybe_span) |old_span| {
+            var span = old_span;
+            if (lines.items.len > span.line - 1) {
+                try out.print("{s}\n", .{lines.items[span.line - 1]});
+            } else {
+                try out.print("{s}\n", .{lines.items[lines.items.len - 1]});
+                span.col = lines.items[lines.items.len - 1].len + 1;
+            }
+            var i: usize = 1;
             while (i < span.col) : (i += 1) {
                 try out.print(" ", .{});
             }
