@@ -193,7 +193,8 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .byteString1;
                 } else {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid escape sequence", .stage = .tokenization } });
+                    // I *believe* the column of the error span should be one more than `col`, since `col` points to the `\`
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -204,7 +205,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .byteString2;
                 } else {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid escape sequence", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -215,7 +216,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .string;
                 } else {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid escape sequence", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -259,7 +260,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .char;
                 } else {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid character escape sequence", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -307,7 +308,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .integerDigit => {
                 if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid integer literal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -332,7 +333,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
             },
 
             .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid floating point literal", .stage = .tokenization } });
+                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
                 return error.lexerError;
             } else {
                 ix += 1;
@@ -364,7 +365,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .hex;
                 },
                 else => {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid hexadecimal integer literal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -393,7 +394,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .octal;
                 },
                 else => {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid octal integer literal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "octal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -422,7 +423,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .binary;
                 },
                 else => {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "invalid binary integer literal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 2, .line = line }, .digit = next_char, .base = "binary", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -459,200 +460,4 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
     try tokens.append(Token.create("EOF", .EOF, line, col));
     return tokens;
-}
-
-//////////////////////
-// TESTS BEGIN HERE //
-//////////////////////
-
-test "whitespace" {
-    const contents = "\n  \n    ";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(@as(usize, 2), tokens.items.len);
-    try tokens.items[0].expectToken(.NEWLINE, "\n    ", 4, 3);
-    try tokens.items[1].expectToken(.EOF, "EOF", 1, 4);
-}
-
-test "identifier" {
-    const contents = "one _two three'";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(tokens.items.len, 4);
-    try tokens.items[0].expectToken(.IDENTIFIER, "one", 3, 1);
-    try tokens.items[1].expectToken(.IDENTIFIER, "_two", 8, 1);
-    try tokens.items[2].expectToken(.IDENTIFIER, "three'", 15, 1);
-    try tokens.items[3].expectToken(.EOF, "EOF", 1, 2);
-}
-
-test "numbers" {
-    const contents = "10.0'0 0xAB'C 0o77'7 0b11'1 10'0";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(tokens.items.len, 6);
-    try tokens.items[0].expectToken(.FLOAT, "10.0'0", 6, 1);
-    try tokens.items[1].expectToken(.HEX_INTEGER, "0xAB'C", 13, 1);
-    try tokens.items[2].expectToken(.OCT_INTEGER, "0o77'7", 20, 1);
-    try tokens.items[3].expectToken(.BIN_INTEGER, "0b11'1", 27, 1);
-    try tokens.items[4].expectToken(.DECIMAL_INTEGER, "10'0", 32, 1);
-    try tokens.items[5].expectToken(.EOF, "EOF", 1, 2);
-}
-
-test "string" {
-    const contents = "\"a \\\"string\\\"\"";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(tokens.items.len, 2);
-    try tokens.items[0].expectToken(.STRING, "\"a \\\"string\\\"\"", 14, 1);
-    try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
-}
-
-test "string-eof" {
-    const contents = "\"this isn't a string- it's an error!";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
-    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
-}
-
-test "string-escape eof" {
-    const contents = "\"this isn't a string- it's an error! \\";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
-    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
-}
-
-test "char" {
-    const contents = "\'a \\\'character\\\'\'";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(tokens.items.len, 2);
-    try tokens.items[0].expectToken(.CHAR, "\'a \\\'character\\\'\'", 17, 1);
-    try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
-}
-
-test "char-eof" {
-    const contents = "\'a \\\'character\\\'";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
-    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
-}
-
-test "char-escaped eof" {
-    const contents = "\'a \\\'character\\";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokensOrErr = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(LexerErrors.lexerError, tokensOrErr);
-    try std.testing.expectEqual(@as(usize, errors.errors_list.items.len), 1);
-}
-
-test "symbol" {
-    const contents = "([{==<+}])";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(tokens.items.len, 10);
-    try tokens.items[0].expectToken(.L_PAREN, "(", 1, 1);
-    try tokens.items[1].expectToken(.L_SQUARE, "[", 2, 1);
-    try tokens.items[2].expectToken(.L_BRACE, "{", 3, 1);
-    try tokens.items[3].expectToken(.D_EQUALS, "==", 5, 1);
-    try tokens.items[4].expectToken(.LSR, "<", 6, 1);
-    try tokens.items[5].expectToken(.PLUS, "+", 7, 1);
-    try tokens.items[6].expectToken(.R_BRACE, "}", 8, 1);
-    try tokens.items[7].expectToken(.R_SQUARE, "]", 9, 1);
-    try tokens.items[8].expectToken(.R_PAREN, ")", 10, 1);
-    try tokens.items[9].expectToken(.EOF, "EOF", 1, 2);
-}
-
-test "comment" {
-    const contents = "==// This is a comment! haha";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = try getTokens(contents, &errors, std.testing.allocator);
-    defer tokens.deinit();
-
-    try std.testing.expectEqual(tokens.items.len, 2);
-    try tokens.items[0].expectToken(.D_EQUALS, "==", 2, 1);
-    try tokens.items[1].expectToken(.EOF, "EOF", 1, 2);
-}
-
-test "integer-error" {
-    const contents = "100'abc";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(error.lexerError, tokens);
-}
-
-test "float-eof" {
-    const contents = "1.";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(error.lexerError, tokens);
-}
-
-test "float-error" {
-    const contents = "1.a";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(error.lexerError, tokens);
-}
-
-test "hex-error" {
-    const contents = "0xG";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(error.lexerError, tokens);
-}
-
-test "octal-error" {
-    const contents = "0o9";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(error.lexerError, tokens);
-}
-
-test "binary-error" {
-    const contents = "0b2";
-    var errors = errs.Errors.init(std.testing.allocator);
-    defer errors.deinit();
-    var tokens = getTokens(contents, &errors, std.testing.allocator);
-
-    try std.testing.expectError(error.lexerError, tokens);
 }

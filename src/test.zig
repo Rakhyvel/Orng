@@ -11,6 +11,8 @@ const succeed_color = term.Attr{ .fg = .green, .bold = true };
 const fail_color = term.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term.Attr{ .fg = .blue, .bold = true };
 
+const Test_File_Fn = @TypeOf(integrateTestFile);
+
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
@@ -21,34 +23,16 @@ pub fn main() !void {
             arg = args.next().?;
         }
         if (std.mem.eql(u8, "integration", arg)) {
-            try term.outputColor(succeed_color, "[============]\n", out);
-
-            var results = Results{ .passed = 0, .failed = 0 };
-            if (args.inner.index < args.inner.count) {
-                while (args.next()) |next| {
-                    if (indexOf(next, '.')) |_| {
-                        _ = try integrateTestFile("", next, false);
-                    } else {
-                        var open_dir_name = try String.init_with_contents(allocator, "/");
-                        defer open_dir_name.deinit();
-                        try open_dir_name.concat(next);
-                        _ = try integrateTestDir(open_dir_name.str(), &results, false);
-                    }
-                }
-            } else {
-                try integrateTestDir("", &results, false);
-                try term.outputColor(succeed_color, "[============]\n", out);
-                try out.print("Passed tests: {}\n", .{results.passed});
-                try out.print("Failed tests: {}\n", .{results.failed});
-                if (results.failed > 0) {
-                    return error.TestsFailed;
-                }
-            }
+            try parse_args(args, "tests/integration", integrateTestFile);
         } else if (std.mem.eql(u8, "coverage", arg)) {
-            try integrateTestDir("", null, true);
-            std.debug.print("Coverage output to kcov-out/index.html\n", .{});
+            _ = try testDir("", null, true, "tests/integration", integrateTestFile);
+        } else if (std.mem.eql(u8, "negative-coverage", arg)) {
+            _ = try testDir("", null, true, "tests/integration", integrateTestFile);
+            _ = try testDir("", null, true, "tests/negative", negativeTestFile);
         } else if (std.mem.eql(u8, "fuzz", arg)) {
             try fuzzTests();
+        } else if (std.mem.eql(u8, "negative", arg)) {
+            try parse_args(args, "tests/negative", negativeTestFile);
         } else {
             std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{arg});
             return error.InvalidCliArgument;
@@ -56,12 +40,40 @@ pub fn main() !void {
     }
 }
 
+fn parse_args(old_args: std.process.ArgIterator, root: []const u8, comptime test_file: Test_File_Fn) !void {
+    var args = old_args;
+    try term.outputColor(succeed_color, "[============]\n", out);
+
+    var results = Results{ .passed = 0, .failed = 0 };
+    if (args.inner.index < args.inner.count) {
+        while (args.next()) |next| {
+            if (indexOf(next, '.')) |_| {
+                _ = try integrateTestFile("", next, false);
+            } else {
+                var open_dir_name = try String.init_with_contents(allocator, "/");
+                defer open_dir_name.deinit();
+                try open_dir_name.concat(next);
+                _ = try testDir(open_dir_name.str(), &results, false, root, test_file);
+            }
+        }
+    } else {
+        try testDir("", &results, false, root, test_file);
+        try term.outputColor(succeed_color, "[============]\n", out);
+        try out.print("Passed tests: {}\n", .{results.passed});
+        try out.print("Failed tests: {}\n", .{results.failed});
+        if (results.failed > 0) {
+            return error.TestsFailed;
+        }
+        std.debug.print("Coverage output to kcov-out/index.html\n", .{});
+    }
+}
+
 /// kcov can't handle child processes for some reason and freezes.
 /// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
 /// When `coverage` is true, no child processes are spawned, and no output is given.
 const Results = struct { passed: i64, failed: i64 };
-fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !void {
-    var open_dir_name = try String.init_with_contents(allocator, "tests/integration");
+fn testDir(dir_name: []const u8, results: ?*Results, coverage: bool, start: []const u8, comptime test_file_fn: Test_File_Fn) !void {
+    var open_dir_name = try String.init_with_contents(allocator, start);
     defer open_dir_name.deinit();
     try open_dir_name.concat(dir_name);
     // Add all files names in the src folder to `files`
@@ -75,7 +87,7 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
         }
         switch (file.kind) {
             .file => {
-                var res = try integrateTestFile(dir_name, file.name, coverage);
+                var res = try test_file_fn(dir_name, file.name, coverage);
                 if (!coverage) {
                     if (res) {
                         results.?.passed += 1;
@@ -90,7 +102,7 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
                 try new_dir_name.concat(dir_name);
                 try new_dir_name.concat("/");
                 try new_dir_name.concat(file.name);
-                try integrateTestDir(new_dir_name.str(), results, coverage);
+                try testDir(new_dir_name.str(), results, coverage, start, test_file_fn);
             },
             else => continue,
         }
@@ -184,7 +196,6 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
         try out.print("C -> Executable.\n", .{});
         return false;
     }
-    defer _ = exec(&[_][]const u8{ "/bin/rm", "-f", "a.out" }) catch {};
 
     // execute (make sure no signals)
     var res = exec(&[_][]const u8{"./a.out"}) catch |e| {
@@ -202,6 +213,81 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
     try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
     return true;
+}
+
+fn negativeTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) !bool {
+    if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
+        return true;
+    }
+    var dot_index = indexOf(filename, '.') orelse {
+        std.debug.print("filename {s} doens't contain a '.'", .{filename});
+        return error.InvalidFilename;
+    };
+    var test_name = filename[0..dot_index];
+    _ = test_name;
+
+    // Input .orng file
+    var in_name: String = try String.init_with_contents(allocator, "tests/negative");
+    defer in_name.deinit();
+    try in_name.concat(dir_name);
+    try in_name.concat("/");
+    try in_name.concat(filename);
+
+    if (!coverage) {
+        try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
+        if (dir_name.len > 1) {
+            try out.print("{s}/{s}\n", .{ dir_name[1..], filename });
+        } else {
+            try out.print("{s}\n", .{filename});
+        }
+    }
+
+    // Read in the expected value and stdout
+    var f = std.fs.cwd().openFile(in_name.str(), .{}) catch |err| switch (err) {
+        error.FileNotFound => {
+            std.debug.print("filename {s} doesn't exist\n", .{filename});
+            return err;
+        },
+        else => return err,
+    };
+    defer f.close();
+    var buf_reader = std.io.bufferedReader(f.reader());
+    var in_stream = buf_reader.reader();
+    var contents_arraylist = std.ArrayList(u8).init(allocator);
+    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
+    var contents = try contents_arraylist.toOwnedSlice();
+    var expectedOut = contents[3..untilNewline(contents)];
+    _ = expectedOut;
+
+    // Try to compile Orng (make sure no errors)
+    var errors = errs.Errors.init(allocator);
+    defer errors.deinit();
+    compiler.compile(&errors, in_name.str(), "a.out", allocator) catch |err| {
+        if (!coverage) {
+            switch (err) {
+                error.lexerError,
+                error.parserError,
+                error.symbolError,
+                error.typeError,
+                => {
+                    try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+                    return true;
+                },
+                else => {
+                    std.debug.print("{}\n", .{err});
+                    try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                    try out.print("Orng Compiler crashed unexpectedly!\n", .{});
+                    std.debug.dumpCurrentStackTrace(128);
+                    return err;
+                },
+            }
+        } else {
+            return false;
+        }
+    };
+    try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+    try out.print("Negative test compiled without error.\n", .{});
+    return false;
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler

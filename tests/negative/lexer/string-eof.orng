@@ -1,0 +1,2 @@
+fn main() -> Int
+    let x = "this string doesn't have an end!

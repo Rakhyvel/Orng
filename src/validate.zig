@@ -771,9 +771,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 } else if (expects_optional) {
                     var full_type = expected_expanded.sum.terms.items[1];
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
-                    if (ast._if.elseBlock) |elseBlock| {
-                        ast._if.elseBlock = try validateAST(elseBlock, full_type, ast._if.scope.?, errors, allocator);
-                    }
                 } else {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "if expression without else gives optional", .stage = .typecheck } });
                     return error.typeError;
@@ -835,9 +832,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (expected_expanded.* == .sum and expected_expanded.sum.was_optional) {
                     var full_type = expected_expanded.sum.terms.items[1];
                     ast._while.bodyBlock = try validateAST(ast._while.bodyBlock, full_type, ast._while.scope.?, errors, allocator);
-                    if (ast._while.elseBlock) |elseBlock| {
-                        ast._while.elseBlock = try validateAST(elseBlock, full_type, ast._while.scope.?, errors, allocator);
-                    }
                     optional_type = true;
                 }
             }

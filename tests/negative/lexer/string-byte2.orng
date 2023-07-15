@@ -1,0 +1,3 @@
+fn main() -> Int
+    let x = "\x0Z" // This is invalid because the second character of 0Z is not a valid hex digit
+    0

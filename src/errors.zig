@@ -20,6 +20,7 @@ pub const Stage = enum {
 };
 
 pub const Error = union(enum) {
+    // General errors
     basic: struct {
         span: Span,
         msg: []const u8,
@@ -29,6 +30,21 @@ pub const Error = union(enum) {
         msg: []const u8,
         stage: Stage,
     },
+
+    // Lexer errors
+    invalid_digit: struct {
+        span: Span,
+        digit: u8,
+        base: []const u8,
+        stage: Stage,
+    },
+    invalid_escape: struct {
+        span: Span,
+        digit: u8,
+        stage: Stage,
+    },
+
+    // Parse errors
     expectedBasicToken: struct {
         expected: []const u8,
         got: Token,
@@ -76,6 +92,10 @@ pub const Error = union(enum) {
         switch (self.*) {
             .basic => return self.basic.stage,
             .basicNoSpan => return self.basicNoSpan.stage,
+
+            .invalid_digit => return self.invalid_digit.stage,
+            .invalid_escape => return self.invalid_escape.stage,
+
             .expectedBasicToken => return self.expectedBasicToken.stage,
             .expected2Token => return self.expected2Token.stage,
             .redefinition => return self.redefinition.stage,
@@ -91,6 +111,10 @@ pub const Error = union(enum) {
         switch (self.*) {
             .basic => return self.basic.span,
             .basicNoSpan => return null,
+
+            .invalid_digit => return self.invalid_digit.span,
+            .invalid_escape => return self.invalid_escape.span,
+
             .expectedBasicToken => return self.expectedBasicToken.got.span,
             .expected2Token => return self.expected2Token.got.span,
             .redefinition => return self.redefinition.redefined_span,
@@ -126,6 +150,10 @@ pub const Errors = struct {
             switch (err) {
                 .basic => try out.print("{s}\n", .{err.basic.msg}),
                 .basicNoSpan => try out.print("{s}\n", .{err.basicNoSpan.msg}),
+
+                .invalid_digit => try out.print("'{c}' is not a valid {s} digit\n", .{ err.invalid_digit.digit, err.invalid_digit.base }),
+                .invalid_escape => try out.print("invalid escape sequence '\\{c}'\n", .{err.invalid_escape.digit}),
+
                 .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
                     err.expectedBasicToken.expected,
                     token.reprFromTokenKind(err.expectedBasicToken.got.kind) orelse err.expectedBasicToken.got.data,
