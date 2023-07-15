@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 
 /* Interned Strings */
@@ -23,6 +27,7 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 47;
+    $lines[$line_idx++] = "fn main() -> Int {a(47)}";
 	_2_t0 = _4_a(_2_t1);
 	_2_$retval = _2_t0;
 	return _2_$retval;
@@ -32,6 +37,7 @@ int64_t _4_a(int64_t _4_n) {
 	int64_t _4_t0;
 	int64_t _4_$retval;
 BB0:
+    $lines[$line_idx++] = "fn a(n: Int) -> Int {b(n)}";
 	_4_t0 = _6_b(_4_n);
 	_4_$retval = _4_t0;
 	return _4_$retval;
@@ -41,6 +47,7 @@ int64_t _6_b(int64_t _6_n) {
 	int64_t _6_t0;
 	int64_t _6_$retval;
 BB0:
+    $lines[$line_idx++] = "fn b(n: Int) -> Int {c(n)}";
 	_6_t0 = _8_c(_6_n);
 	_6_$retval = _6_t0;
 	return _6_$retval;
@@ -61,6 +68,7 @@ BB0:
 		goto BB9;
 	}
 BB9:
+    $lines[$line_idx++] = "        a(n)";
 	_8_t4 = _4_a(_8_n);
 	_8_t0 = _8_t4;
 	goto BB6;

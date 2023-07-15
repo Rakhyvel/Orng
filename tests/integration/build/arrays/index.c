@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 typedef struct {
 	int64_t _0;
@@ -40,6 +44,7 @@ int64_t _2_main() {
 BB0:
 	_2_t1 = 15;
 	_2_t2 = 16;
+    $lines[$line_idx++] = "    let x: [4]Int  = get_array(15, 16)";
 	_2_t0 = _4_get_array(_2_t1, _2_t2);
 	_3_x = _2_t0;
 	_2_t3 = 0;

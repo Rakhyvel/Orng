@@ -104,7 +104,6 @@ pub const AST = union(enum) {
     dereference: struct { common: ASTCommon, expr: *AST },
     _try: struct { common: ASTCommon, expr: *AST },
     optional: struct { common: ASTCommon, expr: *AST },
-    inferredError: struct { common: ASTCommon, expr: *AST },
 
     // Binary operators
     assign: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -242,7 +241,6 @@ pub const AST = union(enum) {
     _break: struct { common: ASTCommon },
     _continue: struct { common: ASTCommon },
     _unreachable: struct { common: ASTCommon },
-    throw: struct { common: ASTCommon, expr: *AST },
     _return: struct { common: ASTCommon, expr: ?*AST },
     decl: struct {
         common: ASTCommon,
@@ -259,6 +257,7 @@ pub const AST = union(enum) {
         refinement: ?*AST,
         init: *AST,
         symbol: ?*Symbol = null,
+        infer_error: bool,
     },
     _defer: struct { common: ASTCommon, statement: *AST },
     _errdefer: struct { common: ASTCommon, statement: *AST },
@@ -286,7 +285,6 @@ pub const AST = union(enum) {
             .dereference => return &self.dereference.common,
             ._try => return &self._try.common,
             .optional => return &self.optional.common,
-            .inferredError => return &self.inferredError.common,
 
             .assign => return &self.assign.common,
             ._or => return &self._or.common,
@@ -328,7 +326,6 @@ pub const AST = union(enum) {
             .block => return &self.block.common,
             ._break => return &self._break.common,
             ._continue => return &self._continue.common,
-            .throw => return &self.throw.common,
             ._return => return &self._return.common,
             .decl => return &self.decl.common,
             .fnDecl => return &self.fnDecl.common,
@@ -395,10 +392,6 @@ pub const AST = union(enum) {
 
     pub fn createOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .optional = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
-    }
-
-    pub fn createInferredError(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .inferredError = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
@@ -555,10 +548,6 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._continue = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createThrow(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .throw = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
-    }
-
     pub fn createReturn(token: Token, expr: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
@@ -567,8 +556,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbol = null, .pattern = pattern, .type = _type, .init = init } }, allocator);
     }
 
-    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .fnDecl = .{ .common = ASTCommon{ .token = token, ._type = null }, .name = name, .params = params, .retType = retType, .refinement = refinement, .init = init } }, allocator);
+    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, infer_error: bool, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .fnDecl = .{ .common = ASTCommon{ .token = token, ._type = null }, .name = name, .params = params, .retType = retType, .refinement = refinement, .init = init, .infer_error = infer_error } }, allocator);
     }
 
     pub fn createDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
@@ -737,10 +726,6 @@ pub const AST = union(enum) {
             .optional => {
                 try out.print("?", .{});
                 try self.optional.expr.printType(out);
-            },
-            .inferredError => {
-                try out.print("!", .{});
-                try self.inferredError.expr.printType(out);
             },
             .function => {
                 try out.print("(", .{});

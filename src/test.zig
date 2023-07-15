@@ -9,6 +9,7 @@ const revert = term.Attr{};
 const out = std.io.getStdOut().writer();
 const succeed_color = term.Attr{ .fg = .green, .bold = true };
 const fail_color = term.Attr{ .fg = .red, .bold = true };
+const not_orng_color = term.Attr{ .fg = .blue, .bold = true };
 
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -97,6 +98,9 @@ fn integrateTestDir(dir_name: []const u8, results: ?*Results, coverage: bool) !v
 }
 
 fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) !bool {
+    if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
+        return true;
+    }
     var dot_index = indexOf(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return error.InvalidFilename;
@@ -131,7 +135,13 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     }
 
     // Read in the expected value and stdout
-    var f = try std.fs.cwd().openFile(in_name.str(), .{});
+    var f = std.fs.cwd().openFile(in_name.str(), .{}) catch |err| switch (err) {
+        error.FileNotFound => {
+            std.debug.print("filename {s} doesn't exist\n", .{filename});
+            return err;
+        },
+        else => return err,
+    };
     defer f.close();
     var buf_reader = std.io.bufferedReader(f.reader());
     var in_stream = buf_reader.reader();

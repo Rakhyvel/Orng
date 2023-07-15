@@ -120,18 +120,18 @@
     - [x] remove `fromOptional`
     - [x] `orelse` coalesce
     - [x] control-flow operators return optional if else isn't present
-- [x] errors
+- [ ] errors
     - [x] binary `!`
     - [x] `catch`
     - [x] `errdefer`
     - [x] `try`
     - [ ] inferred errors
-    - [ ] remove `throw`
+        > Investigate. Seems problematic to implement well
+    - [x] remove `throw`
 - [ ] more compile errors
     - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
         - [ ] `.poison` AST node which represents apart of the program with errors that should not be re-validated
-        - [ ] negative test cases that pass if code compiles and panics vs negative test cases that pass if code doesn't compile
-            > Perhaps a panic is a positive test case, actually?
+        > 'positive' test cases compile (panics are 'positive'!). 'negative' test cases do not compile!
     - [ ] unreachable
         - [ ] go back and add optional `case`, with `| else => unreachable` clauses
         - [ ] stack traces

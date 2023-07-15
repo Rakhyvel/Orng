@@ -947,7 +947,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .decl => {
             ast.decl.symbol.?.defined = true;
             // statement, no type
-            if (expected != null) {
+            if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast, .stage = .typecheck } });
                 return error.typeError;
             }

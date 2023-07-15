@@ -164,7 +164,6 @@ pub const IRKind = enum {
     // Errors
     pushStackTrace,
     clearStackTrace,
-    throw,
 };
 
 pub const IRData = union(enum) {

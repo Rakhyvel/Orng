@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 typedef struct {
 	int64_t _0;
@@ -39,6 +43,7 @@ BB0:
 	_2_t4 = 4;
 	_3_x = (struct0) {_2_t1, _2_t2, _2_t3, _2_t4};
 	_2_t6 = &_3_x;
+    $lines[$line_idx++] = "    f(&mut x)^[3]";
 	_2_t5 = _4_f(_2_t6);
 	_2_t8 = 3;
 	_2_t9 = *(((int64_t*)(_2_t5))+_2_t8);

@@ -391,8 +391,6 @@ pub const Parser = struct {
     fn prefixExpr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.NOT)) |token| {
             return try AST.createNot(token, try self.prependExpr(), self.astAllocator);
-        } else if (self.accept(.E_MARK)) |token| {
-            return try AST.createInferredError(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
             return try AST.createNegate(token, try self.prependExpr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
@@ -579,9 +577,6 @@ pub const Parser = struct {
             }
             final = try AST.createReturn(token, exp, self.astAllocator);
             while (self.accept(.NEWLINE)) |_| {}
-        } else if (self.accept(.THROW)) |token| {
-            final = try AST.createThrow(token, try self.expr(), self.astAllocator);
-            while (self.accept(.NEWLINE)) |_| {}
         }
 
         // TODO: Better error messages, if missing newline, hits this expect, which doesn't give much info
@@ -615,9 +610,6 @@ pub const Parser = struct {
                 exp = try self.expr();
             }
             final = try AST.createReturn(token, exp, self.astAllocator);
-            while (self.accept(.SEMICOLON)) |_| {}
-        } else if (self.accept(.THROW)) |token| {
-            final = try AST.createThrow(token, try self.expr(), self.astAllocator);
             while (self.accept(.SEMICOLON)) |_| {}
         }
 
@@ -704,6 +696,8 @@ pub const Parser = struct {
         }
         var params = try self.paramlist();
         _ = try self.expect(.RIGHT_SKINNY_ARROW);
+        // var infer_token = self.accept(.E_MARK);
+        // _ = infer_token;
         var retType = try self.arrowExpr();
 
         var refinement: ?*AST = null;
@@ -720,6 +714,7 @@ pub const Parser = struct {
             retType,
             refinement,
             init,
+            false,
             self.astAllocator,
         );
     }

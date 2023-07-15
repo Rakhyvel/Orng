@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 typedef struct {
 	uint8_t* _0;
@@ -35,6 +39,7 @@ struct1 _2_main() {
 	struct1 _2_$retval;
 BB0:
 	_2_t1 = 30;
+    $lines[$line_idx++] = "    fizzbuzz(30).string";
 	_2_t0 = _4_fizzbuzz(_2_t1);
 	_2_$retval = (&_2_t0)->_0;
 	return _2_$retval;

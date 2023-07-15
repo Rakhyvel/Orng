@@ -187,7 +187,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
         ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
         .optional => try symbolTableFromAST(definition.optional.expr, scope, errors, allocator),
-        .inferredError => try symbolTableFromAST(definition.inferredError.expr, scope, errors, allocator),
 
         .assign => {
             try symbolTableFromAST(definition.assign.lhs, scope, errors, allocator);
@@ -351,7 +350,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             }
         },
 
-        .throw => try symbolTableFromAST(definition.throw.expr, scope, errors, allocator),
         ._return => try symbolTableFromAST(definition._return.expr, scope, errors, allocator),
         .decl => {
             // Both put a Symbol in the current scope, and recurse

@@ -6,6 +6,10 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Debug information */
+static const char* $lines[1024];
+static uint16_t $line_idx = 0;
+
 /* Typedefs */
 typedef struct {
 	int64_t _0;
@@ -59,6 +63,7 @@ BB0:
 	_2_t14 = _2_t13 - _2_t12;
 	_2_t16 = _2_t10 + _2_t12;
 	_3_z = (struct1) {_2_t16, _2_t14};
+    $lines[$line_idx++] = "    sum_up(z)";
 	_2_t18 = _4_sum_up(_3_z);
 	_2_$retval = _2_t18;
 	return _2_$retval;
