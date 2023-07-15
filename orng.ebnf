@@ -78,8 +78,8 @@ factor: ident
       | parens
       .
 
-indentBlockExpr: indent [statement {"newline" statement }] [("throw" expr "newline") | ("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
-braceBlockExpr: "{" {statement ";"} [("throw" expr) | ("return" [expr]) | ("continue") | ("break")] "}".
+indentBlockExpr: indent [statement {"newline" statement }] [("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
+braceBlockExpr: "{" {statement ";"} [("return" [expr]) | ("continue") | ("break")] "}".
 blockExpr: indentBlockExpr | braceBlockExpr.
 
 ifExpr: "if" [non_fn_declaration ";"] expr blockExpr ["else" blockExpr].
