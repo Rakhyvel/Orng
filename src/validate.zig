@@ -78,7 +78,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
     switch (ast.*) {
         .unit => {
             if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator) and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.unitType, .stage = .typecheck } });
                 return error.typeError;
             } else {
                 retval = ast;
@@ -174,13 +174,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 var addr_of = try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator);
                 addr_of.getCommon().is_valid = true;
                 ast.dereference.expr = try validateAST(ast.dereference.expr, addr_of, scope, errors, allocator);
-
-                ast.getCommon().is_valid = true;
-                var ast_type = try ast.typeof(scope, errors, allocator);
-                if (expected != null and !try expected.?.typesMatch(ast_type, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
-                    return error.typeError;
-                }
             } else {
                 ast.dereference.expr = try validateAST(ast.dereference.expr, null, scope, errors, allocator);
             }
@@ -332,10 +325,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast._catch.rhs = try validateAST(ast._catch.rhs, expected, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._catch.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "left-hand side of catch is not an error type", .stage = .typecheck } });
+                errors.addError(Error{ .basic = .{ .span = ast._catch.lhs.getToken().span, .msg = "left-hand side of catch is not an error type", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                // TODO: Print the correct expected and got type, to match orelse for this error.
+                // Tough because we don't have the lhs error information... or maybe not?
+                errors.addError(Error{ .expected2Type = .{ .span = ast._catch.lhs.getToken().span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type, .stage = .typecheck } });
                 return error.typeError;
             } else {
                 ast._catch.lhs = try validateAST(ast._catch.lhs, null, scope, errors, allocator);
@@ -346,10 +341,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "left-hand side of orelse is not an optional type", .stage = .typecheck } });
+                errors.addError(Error{ .basic = .{ .span = ast._orelse.lhs.getToken().span, .msg = "left-hand side of orelse is not an optional type", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType, .stage = .typecheck } });
+                var optional_expected = try AST.create_optional_type(expected.?, allocator);
+                errors.addError(Error{ .expected2Type = .{ .span = ast._orelse.lhs.getToken().span, .expected = optional_expected, .got = lhs_expanded_type, .stage = .typecheck } });
                 return error.typeError;
             } else {
                 ast._orelse.lhs = try validateAST(ast._orelse.lhs, null, scope, errors, allocator);

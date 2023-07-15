@@ -26,10 +26,6 @@ pub const Error = union(enum) {
         msg: []const u8,
         stage: Stage,
     },
-    basicNoSpan: struct {
-        msg: []const u8,
-        stage: Stage,
-    },
 
     // Lexer errors
     invalid_digit: struct {
@@ -100,7 +96,6 @@ pub const Error = union(enum) {
     pub fn getStage(self: *const Error) Stage {
         switch (self.*) {
             .basic => return self.basic.stage,
-            .basicNoSpan => return self.basicNoSpan.stage,
 
             .invalid_digit => return self.invalid_digit.stage,
             .invalid_escape => return self.invalid_escape.stage,
@@ -121,7 +116,6 @@ pub const Error = union(enum) {
     pub fn getSpan(self: *const Error) ?Span {
         switch (self.*) {
             .basic => return self.basic.span,
-            .basicNoSpan => return null,
 
             .invalid_digit => return self.invalid_digit.span,
             .invalid_escape => return self.invalid_escape.span,
@@ -163,7 +157,6 @@ pub const Errors = struct {
             switch (err) {
                 // General errors
                 .basic => try out.print("{s}\n", .{err.basic.msg}),
-                .basicNoSpan => try out.print("{s}\n", .{err.basicNoSpan.msg}),
 
                 // Lexer errors
                 .invalid_digit => try out.print("'{c}' is not a valid {s} digit\n", .{ err.invalid_digit.digit, err.invalid_digit.base }),
@@ -244,7 +237,11 @@ pub const Errors = struct {
 
     fn printPrelude(maybe_span: ?Span, filename: []const u8) !void {
         if (maybe_span) |span| {
-            try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
+            if (span.line > 0 and span.col > 0) {
+                try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
+            } else {
+                try out.print("{s}: ", .{filename});
+            }
         }
         try term.outputColor(term.Attr{ .fg = .red, .bold = true }, "error: ", out);
     }
@@ -259,7 +256,9 @@ pub const Errors = struct {
     fn printEpilude(maybe_span: ?Span, lines: *std.ArrayList([]const u8)) !void {
         if (maybe_span) |old_span| {
             var span = old_span;
-            if (lines.items.len > span.line - 1) {
+            if (span.line == 0) {
+                return;
+            } else if (lines.items.len + 1 > span.line) {
                 try out.print("{s}\n", .{lines.items[span.line - 1]});
             } else {
                 try out.print("{s}\n", .{lines.items[lines.items.len - 1]});

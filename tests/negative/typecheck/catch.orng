@@ -1,0 +1,3 @@
+fn main() -> Int
+    let x: ()!Char = .ok <- '4'
+    x catch 4

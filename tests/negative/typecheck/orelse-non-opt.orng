@@ -1,0 +1,2 @@
+fn main() -> Int
+    4 orelse 5

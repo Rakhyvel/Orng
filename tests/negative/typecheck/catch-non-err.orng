@@ -1,0 +1,2 @@
+fn main() -> Int
+    4 catch 5

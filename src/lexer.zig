@@ -11,9 +11,13 @@ const LexerErrors = error{lexerError};
 // Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
 // However, we couldn't print out the line for the error if we did tokens and lines at the same time
 // It's desirable to print the line, therefore lines must be done before tokens
-pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8)) !void {
+pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs.Errors) !void {
     var start: usize = 0;
     var end: usize = 1;
+    if (contents.len == 0) {
+        errors.addError(errs.Error{ .basic = .{ .span = Span{ .line = 0, .col = 0 }, .msg = "file is empty", .stage = .symbolTree } });
+        return error.lexerError;
+    }
     while (end < contents.len) : (end += 1) {
         if (contents[end] == '\n') {
             try lines.append(contents[start..end]);

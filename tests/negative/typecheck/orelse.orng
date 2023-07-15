@@ -1,0 +1,3 @@
+fn main() -> Int
+    let x: ?Char = .some <- '4'
+    x orelse 4

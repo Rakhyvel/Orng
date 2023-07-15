@@ -743,7 +743,10 @@ pub const AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
-            .sum => {
+            .sum => if (self.sum.was_optional) {
+                try out.print("?", .{});
+                try self.sum.terms.items[1].annotation.type.printType(out);
+            } else {
                 try out.print("(", .{});
                 for (self.sum.terms.items, 0..) |term, i| {
                     try term.printType(out);

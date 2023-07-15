@@ -255,9 +255,6 @@ fn negativeTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) 
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-    var contents = try contents_arraylist.toOwnedSlice();
-    var expectedOut = contents[3..untilNewline(contents)];
-    _ = expectedOut;
 
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);

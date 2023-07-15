@@ -8,6 +8,7 @@ const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
 const _program = @import("program.zig");
 const Program = _program.Program;
+const Span = @import("span.zig");
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
 const validate = @import("validate.zig");
@@ -91,7 +92,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree
 pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), name: []const u8, contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
     // Tokenize, and also append lines to the list of lines
-    try lexer.getLines(contents, lines);
+    try lexer.getLines(contents, lines, errors);
     var tokens = try lexer.getTokens(contents, errors, fuzz_tokens, allocator);
     defer tokens.deinit(); // Make copies of tokens, never take their address
 
@@ -123,8 +124,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
     var main_symbol = file_root.symbols.get("main");
     if (main_symbol) |msymb| {
         if (msymb._type.?.* != .function) {
-            errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "entry point `main` is not a function", .stage = .symbolTree } });
-            try errors.printErrors(lines, "");
+            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .line = 0, .col = 0 }, .msg = "entry point `main` is not a function", .stage = .symbolTree } });
             return error.symbolError;
         }
         var intered_strings = std.ArrayList([]const u8).init(allocator);
@@ -147,8 +147,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.
     } else {
-        errors.addError(errs.Error{ .basicNoSpan = .{ .msg = "no `main` function specified", .stage = .symbolTree } });
-        try errors.printErrors(lines, "");
+        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .line = 0, .col = 0 }, .msg = "no `main` function specified", .stage = .symbolTree } });
         return error.symbolError;
     }
 }
