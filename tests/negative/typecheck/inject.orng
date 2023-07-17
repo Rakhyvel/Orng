@@ -1,0 +1,5 @@
+fn main() -> Int
+    const T = (a: Int | b: Int)
+    const S = (a: Int | b: Char)
+    let x:T = S.b <- 3
+    0

@@ -1,0 +1,4 @@
+fn main() -> Int
+    let x: [3]Char = ('a', 'b', 'c')
+    let y: []Int = []x
+    0

@@ -1121,7 +1121,7 @@ pub const CFG = struct {
             .inferredMember => {
                 var init: ?*SymbolVersion = null;
                 var pos: i128 = ast.inferredMember.pos.?;
-                var proper_term: *AST = ast.inferredMember.base.?.sum.terms.items[@as(usize, @intCast(pos))];
+                var proper_term: *AST = (try ast.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
                 if (ast.inferredMember.init) |_init| {
                     init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, error_label, true, errors, allocator);
                 } else if (proper_term.annotation.init == null) {

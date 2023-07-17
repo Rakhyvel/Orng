@@ -1,0 +1,4 @@
+fn main() -> Int
+    let x = 0
+    let y: &Char = &x
+    0

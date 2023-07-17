@@ -1,0 +1,3 @@
+fn main() -> Int {f()}
+
+fn f()->Char {'d'}

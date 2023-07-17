@@ -1,0 +1,3 @@
+fn main() -> Int
+    let x: Int = if true {1}
+    0

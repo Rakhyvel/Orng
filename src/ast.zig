@@ -180,7 +180,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         ident: *AST,
         init: ?*AST = null,
-        base: ?*AST = null,
+        base: ?*AST = null, // This should ideally be kept in unexpanded form. typeof(inferredMember) returns inferredMember.base.?.exapnd_type()
         pos: ?i128 = null,
     },
 
@@ -733,7 +733,13 @@ pub const AST = union(enum) {
                 try out.print(")->", .{});
                 try self.function.rhs.printType(out);
             },
-            .product => {
+            .product => if (self.product.homotypical != null and self.product.homotypical.?) {
+                try out.print("[{}]", .{self.product.terms.items.len});
+                try self.product.terms.items[0].printType(out);
+            } else if (self.product.was_slice) {
+                try out.print("[]", .{});
+                try self.product.terms.items[0].printType(out);
+            } else {
                 try out.print("(", .{});
                 for (self.product.terms.items, 0..) |term, i| {
                     try term.printType(out);
@@ -805,6 +811,7 @@ pub const AST = union(enum) {
             .sum,
             .optional,
             ._error,
+            ._union,
             => retval = typeType,
 
             // Unit type
@@ -910,7 +917,7 @@ pub const AST = union(enum) {
                 }
             },
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
-            .inferredMember => retval = self.inferredMember.base.?,
+            .inferredMember => retval = try self.inferredMember.base.?.exapnd_type(scope, errors, allocator),
             ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).sum.terms.items[1],
 
             // Binary operators (TODO: Make polymorphic)

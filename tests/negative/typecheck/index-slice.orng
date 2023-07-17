@@ -1,0 +1,4 @@
+fn main() -> Int
+    let x = ('1', '2', '3')
+    let y = []x
+    y[1]

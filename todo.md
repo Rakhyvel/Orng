@@ -133,7 +133,7 @@
         - [x] negative tests up to type checking
         - [ ] `.poison` AST node which represents apart of the program with errors that should not be re-validated
         - [ ] negative tests beyond type checking
-        - [ ] fix spans being inconsistently off
+        - [ ] fix spans being inconsistently off (perhaps make it so that the whole expression is highlighted)
         > 'positive' test cases compile (panics are 'positive'!). 'negative' test cases do not compile!
     - [ ] unreachable
         - [ ] go back and add optional `case`, with `| else => unreachable` clauses
@@ -199,6 +199,7 @@
         > `fn extern(name: const String, T: Type) -> T`
         > `fn extern_type(name: const String, backing: Type = ()) -> Type`
         > `fn c_include(path: const String) -> (a tuple of the definitions)`
+    - [ ] `pub` keyword
     - [ ] Specifies the entry function somehow
     - [ ] entry function takes a record of IO function pointers
     - [ ] run a C compiler on the output

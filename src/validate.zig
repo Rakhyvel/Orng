@@ -371,6 +371,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .index => {
+            var lhs_span = ast.index.lhs.getToken().span; // Used for error reporting
             ast.index.lhs = try validateAST(ast.index.lhs, null, scope, errors, allocator);
             ast.index.rhs = try validateAST(ast.index.rhs, _ast.intType, scope, errors, allocator);
 
@@ -383,16 +384,16 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(scope, errors, allocator)) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array is not homotypical", .stage = .typecheck } });
+                errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "array is not homotypical", .stage = .typecheck } });
                 return error.typeError;
             }
 
             if (expected != null) {
                 if (lhs_type.* == .product and !lhs_type.product.was_slice and !try expected.?.typesMatch(lhs_type.product.terms.items[0], scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.product.terms.items[0], .stage = .typecheck } });
                     return error.typeError;
                 } else if (lhs_type.* == .product and lhs_type.product.was_slice and !try expected.?.typesMatch(lhs_type.product.terms.items[0].annotation.type.addrOf.expr, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.product.terms.items[0].annotation.type.addrOf.expr, .stage = .typecheck } });
                     return error.typeError;
                 } else {
                     retval = ast;
@@ -445,28 +446,30 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .sum => {
             var new_terms = std.ArrayList(*AST).init(allocator);
-            var idents_seen = std.StringArrayHashMap(void).init(allocator);
+            var idents_seen = std.StringArrayHashMap(*AST).init(allocator);
             defer idents_seen.deinit();
             for (ast.sum.terms.items) |term| {
                 // Make sure identifiers aren't repeated
                 if (term.* == .annotation) {
                     try new_terms.append(try validateAST(term, _ast.typeType, scope, errors, allocator));
-                    var res = try idents_seen.fetchPut(term.annotation.pattern.getToken().data, {});
-                    if (res) |_| {
-                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "duplication of sum member", .stage = .typecheck } });
+                    var name = term.annotation.pattern.getToken().data;
+                    var res = try idents_seen.fetchPut(name, term);
+                    if (res) |_res| {
+                        errors.addError(Error{ .sum_duplicate = .{ .span = term.getToken().span, .identifier = name, .first = _res.value.getToken().span, .stage = .typecheck } });
                         return error.typeError;
                     }
                 } else if (term.* == .identifier) {
                     var new_annotation = try AST.createAnnotation(term.getToken(), term, _ast.unitType, null, null, allocator);
                     new_annotation.getCommon().is_valid = true;
                     try new_terms.append(new_annotation);
-                    var res = try idents_seen.fetchPut(term.getToken().data, {});
-                    if (res) |_| {
-                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "duplication of sum member", .stage = .typecheck } });
+                    var name = term.getToken().data;
+                    var res = try idents_seen.fetchPut(name, term);
+                    if (res) |_res| {
+                        errors.addError(Error{ .sum_duplicate = .{ .span = term.getToken().span, .identifier = name, .first = _res.value.getToken().span, .stage = .typecheck } });
                         return error.typeError;
                     }
                 } else {
-                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "invalid sum expression, must be annotation or identifier", .stage = .typecheck } });
+                    errors.addError(Error{ .basic = .{ .span = term.getToken().span, .msg = "invalid sum expression, must be annotation or identifier", .stage = .typecheck } });
                     return error.typeError;
                 }
             }
@@ -489,11 +492,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
             if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
                 if (expected != null and !try expected.?.typesMatch(lhs_type, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type, .stage = .typecheck } });
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast.inject.lhs.inferredMember.base.?, .stage = .typecheck } });
                     return error.typeError;
                 }
                 var pos: i128 = ast.inject.lhs.inferredMember.pos.?;
-                var proper_term: *AST = ast.inject.lhs.inferredMember.base.?.sum.terms.items[@as(usize, @intCast(pos))];
+                var proper_term: *AST = (try ast.inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
 
                 ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, proper_term.annotation.type, scope, errors, allocator);
                 retval = ast.inject.lhs;
@@ -512,6 +515,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else if (expected != null and expected.?.* == .product) {
                 if (expected.?.product.terms.items.len != ast.product.terms.items.len) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                    return error.typeError;
                 }
                 for (ast.product.terms.items, expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
                     try new_terms.append(try validateAST(term, expected_term, scope, errors, allocator));
@@ -525,18 +529,24 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                 return error.typeError;
-                // unreachable;
             }
             retval = ast;
         },
         ._union => {
+            // Save spans since lhs and rhs are expanded, need spans for errors
+            var lhs_span = ast._union.lhs.getToken().span;
+            var rhs_span = ast._union.rhs.getToken().span;
+
             ast._union.lhs = try validateAST(ast._union.lhs, _ast.typeType, scope, errors, allocator);
             ast._union.rhs = try validateAST(ast._union.rhs, _ast.typeType, scope, errors, allocator);
 
             var expand_lhs = try ast._union.lhs.exapnd_type(scope, errors, allocator);
             var expand_rhs = try ast._union.rhs.exapnd_type(scope, errors, allocator);
-            if (expand_lhs.* != .sum or expand_rhs.* != .sum) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "the union operator is not applied to a sum type", .stage = .typecheck } });
+            if (expand_lhs.* != .sum) {
+                errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type", .stage = .typecheck } });
+                return error.typeError;
+            } else if (expand_rhs.* != .sum) {
+                errors.addError(Error{ .basic = .{ .span = rhs_span, .msg = "right hand side of union is not a sum type", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
@@ -574,19 +584,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 // Address type, type of this ast must be a type, inner must be a type
                 ast.addrOf.expr = try validateAST(ast.addrOf.expr, _ast.typeType, scope, errors, allocator);
-                var ast_type: *AST = try ast.addrOf.expr.typeof(scope, errors, allocator);
-                if (!try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
-                    return error.typeError;
-                }
-            } else if (expected != null and expected.?.* == .addrOf) {
+            } else if (expected != null and (try expected.?.exapnd_type(scope, errors, allocator)).* == .addrOf) {
                 // Address value, expected must be an address, inner must match with expected's inner
-                ast.addrOf.expr = try validateAST(ast.addrOf.expr, expected.?.addrOf.expr, scope, errors, allocator);
+                var expanded_expected = try expected.?.exapnd_type(scope, errors, allocator); // Call is memoized
+                ast.addrOf.expr = try validateAST(ast.addrOf.expr, expanded_expected.addrOf.expr, scope, errors, allocator);
                 ast.getCommon().is_valid = true;
-                if (!try expected.?.typesMatch(try ast.typeof(scope, errors, allocator), scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
-                    return error.typeError;
-                }
                 try validateLValue(ast.addrOf.expr, scope, errors);
                 if (ast.addrOf.mut) {
                     try assertMutable(ast.addrOf.expr, scope, errors, allocator);
@@ -605,14 +607,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 // Slice-of type, type of this ast must be a type, inner must be a type
                 ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, _ast.typeType, scope, errors, allocator);
-                var ast_type: *AST = try ast.sliceOf.expr.typeof(scope, errors, allocator);
-                if (!try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
-                    return error.typeError;
-                } else {
-                    if (ast.sliceOf.len) |len| {
-                        ast.sliceOf.len = try validateAST(len, _ast.intType, scope, errors, allocator);
-                    }
+                if (ast.sliceOf.len) |len| {
+                    ast.sliceOf.len = try validateAST(len, _ast.intType, scope, errors, allocator);
                 }
                 if (ast.sliceOf.kind == .ARRAY) {
                     // Inflate to product
@@ -627,6 +623,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 was_type = true;
             } else {
+                if (ast.sliceOf.kind != .SLICE and ast.sliceOf.kind != .MUT) {
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is not allowed in slice-of operator", .stage = .typecheck } });
+                    return error.typeError;
+                }
                 ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, null, scope, errors, allocator);
 
                 // Slice-of value, expected must be an slice, inner must match with expected's inner
@@ -637,15 +637,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "attempt to take slice-of something that is not an array", .stage = .typecheck } });
                     return error.typeError;
                 } else if (expected != null and !try expected.?.typesMatch(try ast.typeof(scope, errors, allocator), scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{
-                        .span = ast.getToken().span,
-                        .expected = expected.?,
-                        .got = try ast.typeof(scope, errors, allocator),
-                        .stage = .typecheck,
-                    } });
-                    return error.typeError;
-                } else if (ast.sliceOf.len != null or ast.sliceOf.kind == .ARRAY) {
-                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "illegal length specifier in slice-of operator", .stage = .typecheck } });
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                     return error.typeError;
                 }
 
@@ -726,27 +718,26 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot infer the sum type", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and expected_expanded.* != .sum) {
-                // TODO: Better error message
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected a sum type", .stage = .typecheck } });
                 return error.typeError;
             } else {
-                ast.inferredMember.base = expected_expanded;
+                ast.inferredMember.base = expected;
                 for (expected_expanded.sum.terms.items, 0..) |term, i| {
                     if (std.mem.eql(u8, term.annotation.pattern.getToken().data, ast.inferredMember.ident.getToken().data)) {
                         ast.inferredMember.pos = i;
                         break;
                     }
                 }
+                if (ast.inferredMember.pos == null) {
+                    errors.addError(Error{ .member_not_in = .{ .span = ast.getToken().span, .identifier = ast.inferredMember.ident.getToken().data, .group_name = "sum", .stage = .typecheck } });
+                    return error.typeError;
+                }
 
                 var pos: i128 = ast.inferredMember.pos.?;
-                var proper_term: *AST = ast.inferredMember.base.?.sum.terms.items[@as(usize, @intCast(pos))];
+                var proper_term: *AST = expected_expanded.sum.terms.items[@as(usize, @intCast(pos))];
 
                 if (proper_term.annotation.init) |_init| {
                     ast.inferredMember.init = _init; // This will be overriden by a call expression's rhs
-                }
-                if (ast.inferredMember.pos == null) {
-                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "not a member of the sum type", .stage = .typecheck } });
-                    return error.typeError;
                 }
 
                 retval = ast;
@@ -768,7 +759,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     var full_type = expected_expanded.sum.terms.items[1];
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
                 } else {
-                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "if expression without else gives optional", .stage = .typecheck } });
+                    ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
+                    ast.getCommon().is_valid = true;
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
                     return error.typeError;
                 }
             } else {
@@ -792,7 +785,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
             }
             if (num_rhs == 0) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected at least one non-null rhs prong", .stage = .typecheck } });
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "case does not have a prong with `=>`", .stage = .typecheck } });
                 return error.typeError;
             } else {
                 ast.case.mappings = new_mappings;
@@ -866,13 +859,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.getCommon().is_valid = true; // So that the typeof code can be reused. All children should be validated at this point
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try expected.?.typesMatch(block_type, scope, errors, allocator)) {
-                    if (ast.block.statements.items.len > 1) {
-                        errors.addError(Error{ .expected2Type = .{ .span = ast.block.statements.items[ast.block.statements.items.len - 1].getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
-                        return error.typeError;
-                    } else {
-                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
-                        return error.typeError;
-                    }
+                    std.debug.assert(ast.block.statements.items.len == 0);
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
+                    return error.typeError;
                 }
             }
             retval = ast;
@@ -906,7 +895,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (scope.in_function == 0 or scope.inner_function == null) {
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
-                    .msg = "`return` must be contained in a function",
+                    .msg = "`return` must be inside in a function",
                     .stage = .typecheck,
                 } });
                 return error.typeError;

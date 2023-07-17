@@ -1,0 +1,3 @@
+fn main() -> Int
+    const x: Type = &4
+    0

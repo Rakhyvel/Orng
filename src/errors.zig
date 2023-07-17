@@ -66,6 +66,7 @@ pub const Error = union(enum) {
         stage: Stage,
     },
 
+    // Typecheck
     expected2Type: struct {
         span: Span,
         expected: *AST,
@@ -76,6 +77,18 @@ pub const Error = union(enum) {
         span: Span,
         expected: *AST,
         got: *AST,
+        stage: Stage,
+    },
+    sum_duplicate: struct {
+        span: Span,
+        identifier: []const u8,
+        first: Span,
+        stage: Stage,
+    },
+    member_not_in: struct {
+        span: Span,
+        identifier: []const u8,
+        group_name: []const u8,
         stage: Stage,
     },
     undeclaredIdentifier: struct {
@@ -107,6 +120,8 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.stage,
             .expected2Type => return self.expected2Type.stage,
             .expectedType => return self.expectedType.stage,
+            .sum_duplicate => return self.sum_duplicate.stage,
+            .member_not_in => return self.member_not_in.stage,
             .undeclaredIdentifier => return self.undeclaredIdentifier.stage,
             .useBeforeDef => return self.useBeforeDef.stage,
             .modifyImmutable => return self.modifyImmutable.stage,
@@ -127,6 +142,8 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.redefined_span,
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
+            .sum_duplicate => return self.sum_duplicate.span,
+            .member_not_in => return self.member_not_in.span,
             .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
             .useBeforeDef => return self.useBeforeDef.identifier.span,
             .modifyImmutable => return self.modifyImmutable.identifier.span,
@@ -199,6 +216,12 @@ pub const Errors = struct {
                     try err.expectedType.expected.printType(out);
                     try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
                 },
+                .sum_duplicate => {
+                    try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier});
+                },
+                .member_not_in => {
+                    try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name });
+                },
                 .undeclaredIdentifier => {
                     try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data});
                 },
@@ -229,6 +252,14 @@ pub const Errors = struct {
                     try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
                     try (term.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.redefinition.first_defined_span, lines);
+                },
+                .sum_duplicate => {
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try print_note_prelude(err.sum_duplicate.first, filename);
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
+                    try (term.Attr{ .bold = false }).dump(out);
+                    try printEpilude(err.sum_duplicate.first, lines);
                 },
                 else => {},
             }

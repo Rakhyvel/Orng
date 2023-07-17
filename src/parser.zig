@@ -178,6 +178,7 @@ pub const Parser = struct {
             init = try self.expr();
         } else {
             self.errors.addError(Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value", .stage = .parsing } });
+            return error.parserError;
         }
 
         return try AST.createDecl(
