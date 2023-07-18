@@ -1,0 +1,3 @@
+fn main() -> Int
+    try 0
+    0

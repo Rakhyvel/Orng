@@ -1,0 +1,5 @@
+fn main() -> Int
+    try f()
+
+fn f() -> Char!Int
+    return .err <- 'd'

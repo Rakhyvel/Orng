@@ -1,0 +1,3 @@
+fn main() -> Int
+    let x: (a | b) || (b | c) = .b
+    0

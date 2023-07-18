@@ -752,6 +752,10 @@ pub const AST = union(enum) {
             .sum => if (self.sum.was_optional) {
                 try out.print("?", .{});
                 try self.sum.terms.items[1].annotation.type.printType(out);
+            } else if (self.sum.was_error) {
+                try self.sum.terms.items[0].annotation.type.printType(out);
+                try out.print("!", .{});
+                try self.sum.terms.items[1].annotation.type.printType(out);
             } else {
                 try out.print("(", .{});
                 for (self.sum.terms.items, 0..) |term, i| {
@@ -887,10 +891,7 @@ pub const AST = union(enum) {
 
             // Identifier
             .identifier => {
-                var symbol = scope.lookup(self.getToken().data, false) orelse {
-                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .stage = .typecheck } });
-                    return error.typeError;
-                };
+                var symbol = try _validate.findSymbol(self, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
                 retval = symbol._type.?;
             },

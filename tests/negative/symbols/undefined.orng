@@ -1,0 +1,4 @@
+fn main() -> Int
+    let y = x
+    let x = 0
+    y

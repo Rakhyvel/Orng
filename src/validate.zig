@@ -189,14 +189,16 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = try AST.create_error_type(ast._error.lhs, ast._error.rhs, allocator);
         },
         ._try => {
+            var expr_span = ast._try.expr.getToken().span;
+            ast._try.expr = try validateAST(ast._try.expr, null, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._try.expr.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
-                // lhs is not even an expected type
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try is not of an error expression", .stage = .typecheck } });
+                // lhs is not even an error type
+                errors.addError(Error{ .basic = .{ .span = expr_span, .msg = "try is not of an error expression", .stage = .typecheck } });
                 return error.typeError;
             } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
-                // lhs is rror union, but .err field types don't match with expected
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type, .stage = .typecheck } });
+                // lhs is error union, but .err field types don't match with expected
+                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = lhs_expanded_type, .stage = .typecheck } });
                 return error.typeError;
             } else if (scope.inner_function == null) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function", .stage = .typecheck } });
@@ -204,21 +206,17 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else {
                 var expanded_function_return = try scope.inner_function.?._type.?.function.rhs.exapnd_type(scope, errors, allocator);
                 if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
-                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return error sum", .stage = .typecheck } });
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return an error", .stage = .typecheck } });
                     return error.typeError;
                 } else if (!try lhs_expanded_type.sum.terms.items[0].annotation.type.typesMatch(expanded_function_return.sum.terms.items[0].annotation.type, scope, errors, allocator)) {
                     // lhs error union's `.err` member is not a compatible type with the function's error type
-                    // TODO: Specialized message, since this is a strange corner case of type matching
                     errors.addError(Error{ .expected2Type = .{
-                        .span = ast.getToken().span,
-                        .expected = lhs_expanded_type.sum.terms.items[0].annotation.type,
-                        .got = expanded_function_return.sum.terms.items[0].annotation.type,
+                        .span = expr_span,
+                        .expected = lhs_expanded_type,
+                        .got = expanded_function_return,
                         .stage = .typecheck,
                     } });
                     return error.typeError;
-                } else {
-                    // Everything is fine, validate expr without an expectation of a type
-                    ast._try.expr = try validateAST(ast._try.expr, null, scope, errors, allocator);
                 }
             }
             retval = ast;
@@ -925,6 +923,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .decl => {
             ast.decl.symbol.?.defined = true;
+            try validateSymbol(ast.decl.symbol.?, errors, allocator);
             // statement, no type
             if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast, .stage = .typecheck } });
@@ -951,7 +950,7 @@ fn defaultArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.m
     if (try argsAreNames(ast, errors)) {
         return namedArgs(ast, expected, errors, allocator);
     } else {
-        return positionalArgs(ast, expected, errors, allocator);
+        return positionalArgs(ast, expected, allocator);
     }
 }
 
@@ -984,7 +983,7 @@ fn argsAreNames(ast: *AST, errors: *errs.Errors) !bool {
     }
 }
 
-fn positionalArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+fn positionalArgs(ast: *AST, expected: *AST, allocator: std.mem.Allocator) !*AST {
     switch (expected.*) {
         .annotation => {
             if (ast.* == .unit and expected.annotation.init != null) {
@@ -992,12 +991,7 @@ fn positionalArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: st
             } else if (ast.* != .unit) {
                 return ast;
             } else {
-                errors.addError(Error{ .basic = .{
-                    .span = ast.getToken().span,
-                    .msg = "too few arguments",
-                    .stage = .typecheck,
-                } });
-                return error.typeError;
+                return error.NoDefault;
             }
         },
 
@@ -1068,7 +1062,7 @@ fn namedArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem
                 if (term.* != .annotation) {
                     errors.addError(Error{ .basic = .{
                         .span = ast.getToken().span,
-                        .msg = "receiver does not accept named arugments",
+                        .msg = "expected type does not accept named arugments",
                         .stage = .typecheck,
                     } });
                     return error.typeError;
@@ -1124,7 +1118,7 @@ fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *err
     }
 }
 
-fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
+pub fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
     var symbol = scope.lookup(ast.identifier.common.token.data, false) orelse {
         errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.common.token, .stage = .typecheck } });
         return error.typeError;
