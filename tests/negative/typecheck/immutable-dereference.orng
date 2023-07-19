@@ -1,0 +1,5 @@
+fn main() -> Int
+    let x = 0
+    let y = &x
+    y^ = 4
+    0

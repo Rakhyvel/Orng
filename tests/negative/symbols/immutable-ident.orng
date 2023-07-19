@@ -1,0 +1,4 @@
+fn main() -> Int
+    let x = 0
+    x = 4
+    x

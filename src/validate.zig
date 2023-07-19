@@ -11,10 +11,7 @@ const Token = @import("token.zig").Token;
 
 pub fn validateScope(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     for (scope.symbols.keys()) |key| {
-        var symbol = scope.symbols.get(key) orelse {
-            std.debug.print("{s} doesn't exist in this scope\n", .{key});
-            return error.typeError;
-        };
+        var symbol = scope.symbols.get(key).?;
         try validateSymbol(symbol, errors, allocator);
     }
     for (scope.children.items) |child| {
@@ -231,8 +228,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);
-            ast.assign.rhs = try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors, allocator), scope, errors, allocator);
             try validateLValue(ast.assign.lhs, scope, errors);
+            ast.assign.rhs = try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors, allocator), scope, errors, allocator);
             try assertMutable(ast.assign.lhs, scope, errors, allocator);
             retval = ast;
         },
@@ -640,7 +637,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
 
                 try validateLValue(ast.sliceOf.expr, scope, errors);
-
                 if (ast.sliceOf.kind == .MUT) {
                     try assertMutable(ast.sliceOf.expr, scope, errors, allocator);
                 }
@@ -1143,9 +1139,13 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
             }
         },
 
-        .index => {},
+        .index => {
+            try validateLValue(ast.index.lhs, scope, errors);
+        },
 
-        .select => {},
+        .select => {
+            try validateLValue(ast.select.lhs, scope, errors);
+        },
 
         else => {
             errors.addError(Error{ .basic = .{
@@ -1178,7 +1178,7 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
             if (!child_type.addrOf.mut) {
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
-                    .msg = "attempt to modify non-mutable address",
+                    .msg = "cannot modify non-mutable address",
                     .stage = .typecheck,
                 } });
                 return error.typeError;
@@ -1192,7 +1192,7 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
                 if (!child_type.annotation.type.addrOf.mut) {
                     errors.addError(Error{ .basic = .{
                         .span = ast.getToken().span,
-                        .msg = "attempt to modify non-mutable address",
+                        .msg = "cannot modify non-mutable address",
                         .stage = .typecheck,
                     } });
                     return error.typeError;
@@ -1206,13 +1206,6 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
             try assertMutable(ast.select.lhs, scope, errors, allocator);
         },
 
-        else => {
-            errors.addError(Error{ .basic = .{
-                .span = ast.getToken().span,
-                .msg = "not modifiable",
-                .stage = .typecheck,
-            } });
-            return error.typeError;
-        },
+        else => unreachable,
     }
 }
