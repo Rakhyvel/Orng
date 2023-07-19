@@ -149,7 +149,6 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                                 else => unreachable,
                             }
                         }
-                        // TODO: Replace `ident`, `int`, `hex`, `octal`, `bin`, `float`, `char`, `string` with random values
                     }
                     try tokens.append(token);
                     slice_start = ix;

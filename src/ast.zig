@@ -880,9 +880,10 @@ pub const AST = union(enum) {
                         break;
                     }
                 } else {
-                    errors.addError(Error{ .basic = .{
+                    errors.addError(Error{ .member_not_in = .{
                         .span = self.getToken().span,
-                        .msg = "left-hand-side of select does not contain field",
+                        .identifier = self.select.rhs.getToken().data,
+                        .group_name = "tuple",
                         .stage = .typecheck,
                     } });
                     return error.typeError;
@@ -898,7 +899,10 @@ pub const AST = union(enum) {
 
             // Unary Operators (TODO: Make polymorphic)
             .negate => retval = try self.negate.expr.typeof(scope, errors, allocator),
-            .dereference => retval = (try self.dereference.expr.typeof(scope, errors, allocator)).addrOf.expr,
+            .dereference => {
+                var _type = try self.dereference.expr.typeof(scope, errors, allocator);
+                retval = _type.addrOf.expr;
+            },
             .addrOf => {
                 var child_type = try self.addrOf.expr.typeof(scope, errors, allocator);
                 if (try child_type.typesMatch(typeType, scope, errors, allocator)) {

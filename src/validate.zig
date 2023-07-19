@@ -174,6 +174,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else {
                 ast.dereference.expr = try validateAST(ast.dereference.expr, null, scope, errors, allocator);
             }
+            var expr_type = try ast.dereference.expr.typeof(scope, errors, allocator);
+            var expanded_expr_type = try expr_type.exapnd_type(scope, errors, allocator);
+            if (expanded_expr_type.* != .addrOf) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected an address", .stage = .typecheck } });
+                return error.typeError;
+            }
             retval = ast;
         },
         ._error => {
