@@ -7,6 +7,8 @@ const errs = @import("errors.zig");
 const Error = errs.Error;
 
 const LexerErrors = error{lexerError};
+const RndGen = std.rand.DefaultPrng;
+var rnd = RndGen.init(0);
 
 // Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
 // However, we couldn't print out the line for the error if we did tokens and lines at the same time
@@ -127,26 +129,41 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                             token.kind = .NEWLINE;
                         } else if (std.mem.eql(u8, token.data, "eof")) {
                             token.kind = .NEWLINE;
-                        } else if (std.mem.eql(u8, token.data, "int")) {
-                            const RndGen = std.rand.DefaultPrng;
-                            var rnd = RndGen.init(0);
+                        } else if (std.mem.eql(u8, token.data, "int") or std.mem.eql(u8, token.data, "hex") or std.mem.eql(u8, token.data, "oct") or std.mem.eql(u8, token.data, "bin")) {
                             var some_random_num = rnd.random().int(i32);
                             token.kind = .DECIMAL_INTEGER;
-                            switch (@rem(some_random_num, 3)) {
+                            switch (@mod(some_random_num, 3)) {
                                 0 => token.data = "0",
                                 1 => token.data = "1",
                                 2 => token.data = "2",
                                 else => unreachable,
                             }
-                        } else if (std.mem.eql(u8, token.data, "ident")) {
-                            const RndGen = std.rand.DefaultPrng;
-                            var rnd = RndGen.init(0);
+                        } else if (std.mem.eql(u8, token.data, "char")) {
                             var some_random_num = rnd.random().int(i32);
-                            switch (@rem(some_random_num, 3)) {
-                                0 => token.data = "main",
-                                1 => token.data = "a",
-                                2 => token.data = "b",
+                            token.kind = .CHAR;
+                            switch (@mod(some_random_num, 3)) {
+                                0 => token.data = "'0'",
+                                1 => token.data = "'1'",
+                                2 => token.data = "'2'",
                                 else => unreachable,
+                            }
+                        } else if (std.mem.eql(u8, token.data, "ident")) {
+                            var some_random_num = rnd.random().int(i69);
+                            switch (@mod(some_random_num, 2)) {
+                                0 => switch (@mod(@divTrunc(some_random_num, 2), 7)) {
+                                    0 => token.data = "Bool",
+                                    1 => token.data = "Byte",
+                                    2 => token.data = "Char",
+                                    3 => token.data = "Float",
+                                    4 => token.data = "Int",
+                                    5 => token.data = "String",
+                                    else => token.data = "Type",
+                                },
+                                else => switch (@mod(@divTrunc(some_random_num, 2), 3)) {
+                                    0 => token.data = "main",
+                                    1 => token.data = "a",
+                                    else => token.data = "b",
+                                },
                             }
                         }
                     }

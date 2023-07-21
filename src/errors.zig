@@ -198,9 +198,7 @@ pub const Errors = struct {
 
                 // Symbol
                 .redefinition => {
-                    try out.print("redefinition of symbol `{s}`\n", .{
-                        err.redefinition.name,
-                    });
+                    try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name});
                 },
 
                 // Typecheck
@@ -246,12 +244,14 @@ pub const Errors = struct {
                     try printEpilude(err.missing_close.open.span, lines);
                 },
                 .redefinition => {
-                    try (term.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.redefinition.first_defined_span, filename);
-                    try (term.Attr{ .bold = true }).dump(out);
-                    try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
-                    try (term.Attr{ .bold = false }).dump(out);
-                    try printEpilude(err.redefinition.first_defined_span, lines);
+                    if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
+                        try (term.Attr{ .bold = true }).dump(out);
+                        try print_note_prelude(err.redefinition.first_defined_span, filename);
+                        try (term.Attr{ .bold = true }).dump(out);
+                        try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
+                        try (term.Attr{ .bold = false }).dump(out);
+                        try printEpilude(err.redefinition.first_defined_span, lines);
+                    }
                 },
                 .sum_duplicate => {
                     try (term.Attr{ .bold = true }).dump(out);

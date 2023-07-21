@@ -96,6 +96,13 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     var tokens = try lexer.getTokens(contents, errors, fuzz_tokens, allocator);
     defer tokens.deinit(); // Make copies of tokens, never take their address
 
+    if (fuzz_tokens) {
+        for (tokens.items) |token| {
+            std.debug.print("{s} ", .{token.data});
+        }
+        std.debug.print("\n", .{});
+    }
+
     // Layout
     if (!fuzz_tokens) {
         try layout.doLayout(&tokens);
@@ -118,15 +125,14 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 
 /// Takes in a statically correct symbol tree, writes it out to a file
 pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, uid: i128, out_name: []const u8, allocator: std.mem.Allocator) !void {
-    // IR translation
-    var irAllocator = std.heap.ArenaAllocator.init(allocator);
-    defer irAllocator.deinit();
-    var main_symbol = file_root.symbols.get("main");
-    if (main_symbol) |msymb| {
-        if (msymb._type.?.* != .function) {
+    if (file_root.symbols.get("main")) |msymb| {
+        if (msymb._type.?.* != .function or msymb.kind != ._fn) {
             errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .line = 0, .col = 0 }, .msg = "entry point `main` is not a function", .stage = .symbolTree } });
             return error.symbolError;
         }
+        // IR translation
+        var irAllocator = std.heap.ArenaAllocator.init(allocator);
+        defer irAllocator.deinit();
         var intered_strings = std.ArrayList([]const u8).init(allocator);
         defer intered_strings.deinit();
         var cfg = try ir.CFG.create(msymb, null, &intered_strings, errors, allocator);
@@ -134,7 +140,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         // Optimize
         try optimizations.optimize(cfg, allocator);
 
-        // Code generation
+        // C Code generation
         var program = try Program.init(cfg, uid, &intered_strings, try symbol.getPrelude(allocator), errors, allocator);
         program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);

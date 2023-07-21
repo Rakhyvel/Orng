@@ -302,6 +302,7 @@ fn fuzzTests() !void {
 
     var passed: usize = 0;
     var failed: usize = 0;
+    var i: usize = 0;
 
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"').? + 1;
@@ -321,31 +322,48 @@ fn fuzzTests() !void {
             // Found end of string
             var program_text: []const u8 = contents[start..end];
 
-            std.debug.print("{s}\n", .{program_text});
+            // std.debug.print("{s}\n", .{program_text});
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
             var errors = errs.Errors.init(allocator);
             defer errors.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
+            i += 1;
             var file_root = compiler.compileContents(&errors, &lines, "fuzz", program_text, true, allocator) catch |err| {
-                try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                try errors.printErrors(&lines, "");
                 switch (err) {
                     error.lexerError,
-                    error.parserError,
                     error.symbolError,
                     error.typeError,
-                    => try out.print("Orng -> C.\n", .{}),
-                    else => try out.print("Orng Compiler crashed!\n", .{}),
+                    => {
+                        passed += 1;
+                        try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        try out.print("Orng -> IR. {}\n", .{i});
+                        continue;
+                    },
+                    else => {
+                        failed += 1;
+                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try out.print("Orng Compiler crashed!\n", .{});
+                        return;
+                    },
                 }
-                failed += 1;
-                std.debug.dumpCurrentStackTrace(128);
-                continue;
             };
-            compiler.output(&errors, &lines, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch {
-                try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-                try out.print("Orng Compiler crashed with input above!\n", .{});
-                failed += 1;
-                continue;
+            compiler.output(&errors, &lines, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch |err| {
+                switch (err) {
+                    error.symbolError => {
+                        passed += 1;
+                        try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        try out.print("Orng -> C. {}\n", .{i});
+                        continue;
+                    },
+                    else => {
+                        failed += 1;
+                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try out.print("Orng Compiler crashed with input above!\n", .{});
+                        return;
+                    },
+                }
             };
 
             var should_continue: bool = false;

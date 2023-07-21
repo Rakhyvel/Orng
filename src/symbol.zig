@@ -433,6 +433,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
 
     // Recurse parameters and init
     try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);
+    try symbolTableFromAST(definition.fnDecl.retType, fnScope, errors, allocator);
 
     var keySet = fnScope.symbols.keys();
     var i: usize = 0;

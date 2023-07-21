@@ -82,7 +82,7 @@ ifExpr: "if" [non_fn_declaration ";"] expr blockExpr ["else" blockExpr].
 
 whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
 
-fn_declaration: "fn" [ident] paramlist "->" arrowExpr "=" blockExpr.
+fn_declaration: "fn" [ident] paramlist "->" arrowExpr blockExpr.
 paramlist: "(" [param {"," param}] ")".
 param: ["mut"] ident ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
                                                     # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier

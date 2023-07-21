@@ -650,7 +650,7 @@ pub const Parser = struct {
             return try self.braceBlockExpr();
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a block", .got = self.peek(), .stage = .parsing } });
-            return ParserErrorEnum.parserError;
+            return error.parserError;
         }
     }
 

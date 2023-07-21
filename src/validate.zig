@@ -122,6 +122,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             // look up symbol, that's the type
             var symbol = try findSymbol(ast, scope, errors);
             try validateSymbol(symbol, errors, allocator);
+            if (symbol._type == null) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "recursive definition detected", .stage = .typecheck } });
+                return error.typeError;
+            }
+            var symb_type_valid = symbol._type.?.getCommon().is_valid;
+            symbol._type.?.getCommon().is_valid = true;
+            defer symbol._type.?.getCommon().is_valid = symb_type_valid;
             if (expected != null and !try expected.?.typesMatch(symbol._type.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type.?, .stage = .typecheck } });
                 return error.typeError;
@@ -406,12 +413,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .select => {
             ast.select.lhs = try validateAST(ast.select.lhs, null, scope, errors, allocator);
 
-            var select_lhs_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+            var lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
+            var select_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
 
             // Implicit dereference
             if (select_lhs_type.* == .addrOf) {
                 ast.select.lhs = try validateAST(try AST.createDereference(ast.getToken(), ast.select.lhs, allocator), null, scope, errors, allocator);
-                select_lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
+                select_lhs_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
             }
 
             if (try select_lhs_type.typesMatch(_ast.typeType, scope, errors, allocator) and (try ast.select.lhs.exapnd_type(scope, errors, allocator)).* == .sum) {
@@ -582,24 +590,32 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .addrOf => {
-            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
-                // Address type, type of this ast must be a type, inner must be a type
-                ast.addrOf.expr = try validateAST(ast.addrOf.expr, _ast.typeType, scope, errors, allocator);
-            } else if (expected != null and (try expected.?.exapnd_type(scope, errors, allocator)).* == .addrOf) {
-                // Address value, expected must be an address, inner must match with expected's inner
-                var expanded_expected = try expected.?.exapnd_type(scope, errors, allocator); // Call is memoized
-                ast.addrOf.expr = try validateAST(ast.addrOf.expr, expanded_expected.addrOf.expr, scope, errors, allocator);
-                ast.getCommon().is_valid = true;
-                try validateLValue(ast.addrOf.expr, scope, errors);
-                if (ast.addrOf.mut) {
-                    try assertMutable(ast.addrOf.expr, scope, errors, allocator);
-                }
-            } else if (expected == null) {
+            if (expected == null) {
+                // Not expecting anything, just validate expr
                 ast.addrOf.expr = try validateAST(ast.addrOf.expr, null, scope, errors, allocator);
                 try validateLValue(ast.addrOf.expr, scope, errors);
             } else {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
-                return error.typeError;
+                if (try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                    // Address type, type of this ast must be a type, inner must be a type
+                    ast.addrOf.expr = try validateAST(ast.addrOf.expr, _ast.typeType, scope, errors, allocator);
+                } else {
+                    // Address value, expected must be an address, inner must match with expected's inner
+                    var expanded_expected = try expected.?.exapnd_type(scope, errors, allocator); // Call is memoized
+                    if (expanded_expected.* != .addrOf) {
+                        // Didn't expect an address type. Validate expr and report error
+                        ast.addrOf.expr = try validateAST(ast.addrOf.expr, null, scope, errors, allocator);
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                        return error.typeError;
+                    }
+
+                    // Everythings Ok.
+                    ast.addrOf.expr = try validateAST(ast.addrOf.expr, expanded_expected.addrOf.expr, scope, errors, allocator);
+                    ast.getCommon().is_valid = true;
+                    try validateLValue(ast.addrOf.expr, scope, errors);
+                    if (ast.addrOf.mut) {
+                        try assertMutable(ast.addrOf.expr, scope, errors, allocator);
+                    }
+                }
             }
             retval = ast;
         },
@@ -670,12 +686,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .subSlice => {
+            ast.subSlice.super = try validateAST(ast.subSlice.super, null, scope, errors, allocator);
             var super_type = try ast.subSlice.super.typeof(scope, errors, allocator);
             if (super_type.* != .product or !super_type.product.was_slice) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot take a sub-slice of something that is not a slice", .stage = .typecheck } });
                 return error.typeError;
-            } else {
-                ast.subSlice.super = try validateAST(ast.subSlice.super, null, scope, errors, allocator);
             }
 
             if (ast.subSlice.lower) |lower| {
@@ -920,6 +935,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .fnDecl => {
+            if (expected) |_expected| {
+                var expected_expanded = try _expected.exapnd_type(scope, errors, allocator);
+                if (expected_expanded.* != .function) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
+                    return error.typeError;
+                }
+            }
             try validateSymbol(ast.fnDecl.symbol.?, errors, allocator);
             retval = ast;
         },

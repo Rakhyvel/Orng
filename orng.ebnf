@@ -88,7 +88,7 @@ whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["el
 
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr]. # TODO: Perhaps specify type of element?
 
-fn_declaration: "fn" [ident] paramlist "->" ["!"] arrowExpr ["where" arrowExpr] "=" blockExpr.
+fn_declaration: "fn" [ident] paramlist "->" ["!"] arrowExpr ["where" arrowExpr] blockExpr.
 paramlist: "(" [param {"," param}] ")".
 param: ["mut"] ident ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
                                                     # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier
