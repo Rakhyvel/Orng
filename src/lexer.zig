@@ -60,7 +60,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
     var ix: usize = 0;
     var state: LexState = .none;
     var line: usize = 1;
-    var col: usize = 0;
+    var col: usize = 1;
 
     while (ix < contents.len + 1) {
         // It should be ok to not have a newline at the end of a file
@@ -73,21 +73,33 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .whitespace;
                     if (next_char == '\n') {
                         line += 1;
-                        col = 0;
+                        ix += 1;
+                        col = 1;
+                    } else {
+                        ix += 1;
+                        col += 1;
                     }
                 } else if (std.ascii.isAlphabetic(next_char) or next_char == '_') {
                     state = .ident;
+                    ix += 1;
+                    col += 1;
                 } else if (std.ascii.isDigit(next_char)) {
                     state = .integer;
+                    ix += 1;
+                    col += 1;
                 } else if (next_char == '"') {
                     state = .string;
+                    ix += 1;
+                    col += 1;
                 } else if (next_char == '\'') {
                     state = .char;
+                    ix += 1;
+                    col += 1;
                 } else {
                     state = .symbol;
+                    ix += 1;
+                    col += 1;
                 }
-                ix += 1;
-                col += 1;
             },
 
             .whitespace => {
@@ -110,7 +122,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                 } else if (next_char == '\n') {
                     line += 1;
                     ix += 1;
-                    col = 0;
+                    col = 1;
                 } else {
                     ix += 1;
                     col += 1;
@@ -119,7 +131,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .ident => {
                 if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    var token = Token.create(contents[slice_start..ix], null, line, col - 1);
+                    var token = Token.create(contents[slice_start..ix], null, line, col);
                     if (fuzz_tokens) {
                         if (std.mem.eql(u8, token.data, "indent")) {
                             token.kind = .INDENT;
@@ -454,7 +466,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     ix += 1;
                     col += 1;
                 } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                    var token = Token.create(contents[slice_start..ix], null, line, col - 1);
+                    var token = Token.create(contents[slice_start..ix], null, line, col);
                     try tokens.append(token);
                     slice_start = ix;
                     state = .none;

@@ -129,11 +129,11 @@
         > Investigate. Seems problematic to implement well
     - [x] remove `throw`
 - [ ] more compile errors
-    - [ ] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
+    - [x] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
         - [x] negative tests up to type checking
         - [x] `.poison` AST node which represents apart of the program with errors that should not be re-validated
         - [x] negative tests beyond type checking
-        - [ ] fix spans being inconsistently off (perhaps make it so that the whole expression is highlighted)
+        - [x] fix spans being inconsistently off (perhaps make it so that the whole expression is highlighted)
         > 'positive' test cases compile (panics are 'positive'!). 'negative' test cases do not compile!
     - [ ] unreachable
         - [ ] go back and add optional `case`, with `| else => unreachable` clauses

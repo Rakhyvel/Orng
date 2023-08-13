@@ -295,7 +295,7 @@ pub const Errors = struct {
                 try out.print("{s}\n", .{lines.items[lines.items.len - 1]});
                 span.col = lines.items[lines.items.len - 1].len + 1;
             }
-            var i: usize = 1;
+            var i: usize = 2;
             while (i < span.col) : (i += 1) {
                 try out.print(" ", .{});
             }
