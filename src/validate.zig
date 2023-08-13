@@ -576,7 +576,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
                 for (expand_lhs.sum.terms.items) |term| {
                     putAnnotation(term, &names, errors) catch |err| switch (err) {
-                        error.typeError => return _ast.poisoned,
+                        error.typeError => unreachable, // I don't believe this is possible
                         else => return err,
                     };
                     try new_terms.append(term);
@@ -636,7 +636,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     };
                     if (ast.addrOf.mut) {
                         assertMutable(ast.addrOf.expr, scope, errors, allocator) catch |err| switch (err) {
-                            error.typeError => return _ast.poisoned,
+                            error.typeError => return _ast.poisoned, // Soft unreachable, will be caught early but is still good to have this here
                             else => return err,
                         };
                     }
@@ -684,12 +684,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
 
                 validateLValue(ast.sliceOf.expr, scope, errors) catch |err| switch (err) {
-                    error.typeError => return _ast.poisoned,
+                    error.typeError => return _ast.poisoned, // soft unreachable, will be rejected because not a slice type
                     else => return err,
                 };
                 if (ast.sliceOf.kind == .MUT) {
                     assertMutable(ast.sliceOf.expr, scope, errors, allocator) catch |err| switch (err) {
-                        error.typeError => return _ast.poisoned,
+                        error.typeError => return _ast.poisoned, // soft unreachable, will be rejected because not a slice type
                         else => return err,
                     };
                 }
