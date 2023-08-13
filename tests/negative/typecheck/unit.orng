@@ -1,1 +1,2 @@
 fn main() -> Int {()}
+fn lol() -> Int{()}

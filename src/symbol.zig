@@ -180,6 +180,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         ._break,
         ._continue,
         .inferredMember,
+        .poison,
         => {},
 
         .not => try symbolTableFromAST(definition.not.expr, scope, errors, allocator),

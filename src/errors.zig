@@ -239,7 +239,7 @@ pub const Errors = struct {
                     try (term.Attr{ .bold = true }).dump(out);
                     try print_note_prelude(err.missing_close.open.span, filename);
                     try (term.Attr{ .bold = true }).dump(out);
-                    try out.print("opening `{s}` defined here\n", .{token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data});
+                    try out.print("opening `{s}` here\n", .{token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data});
                     try (term.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.missing_close.open.span, lines);
                 },

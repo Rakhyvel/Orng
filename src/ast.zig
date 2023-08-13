@@ -23,6 +23,7 @@ pub var stringType: *AST = undefined;
 pub var typeType: *AST = undefined;
 pub var unitType: *AST = undefined;
 pub var voidType: *AST = undefined;
+pub var poisoned: *AST = undefined;
 
 pub fn initTypes() !void {
     if (!typesInited) {
@@ -34,6 +35,7 @@ pub fn initTypes() !void {
         stringType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "String", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
         byteSliceType = try AST.create_slice_type(byteType, false, std.heap.page_allocator); // Slice types must be AFTER intType
         boolType.getCommon().is_valid = true;
@@ -88,6 +90,8 @@ const ASTCommon = struct {
 };
 
 pub const AST = union(enum) {
+    // Not generated for correct programs, used to represent incorrect ASTs
+    poison: struct { common: ASTCommon },
     // Literals
     unit: struct { common: ASTCommon },
     int: struct { common: ASTCommon, data: i128 },
@@ -270,6 +274,7 @@ pub const AST = union(enum) {
 
     pub fn getCommon(self: *AST) *ASTCommon {
         switch (self.*) {
+            .poison => return &self.poison.common,
             .unit => return &self.unit.common,
             .int => return &self.int.common,
             .char => return &self.char.common,
@@ -336,6 +341,10 @@ pub const AST = union(enum) {
 
     pub fn getToken(self: *AST) Token {
         return self.getCommon().token;
+    }
+
+    pub fn createPoison(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .poison = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
     pub fn createUnit(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -668,7 +677,9 @@ pub const AST = union(enum) {
                 var expr = try self.annotation.type.exapnd_type(scope, errors, allocator);
                 retval = try AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
             },
-            .unit => retval = self,
+            .poison,
+            .unit,
+            => retval = self,
 
             else => retval = self,
         }
@@ -788,6 +799,9 @@ pub const AST = union(enum) {
         }
         var retval: *AST = undefined;
         switch (self.*) {
+            // Poisoned type
+            .poison => retval = poisoned,
+
             // Bool type
             ._true,
             ._false,
@@ -983,6 +997,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    /// A poisoned AST matches with any other type
     pub fn typesMatch(self: *AST, other: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         if (self.* == .annotation) {
             return try typesMatch(self.annotation.type, other, scope, errors, allocator);
@@ -993,6 +1008,9 @@ pub const AST = union(enum) {
             return try typesMatch(try self.exapnd_type(scope, errors, allocator), other, scope, errors, allocator);
         } else if (self.* != .identifier and other.* == .identifier and other != try other.exapnd_type(scope, errors, allocator)) {
             return try typesMatch(self, try other.exapnd_type(scope, errors, allocator), scope, errors, allocator);
+        }
+        if (self.* == .poison or other.* == .poison) {
+            return true; // Whatever
         }
         if (other.* == .identifier and std.mem.eql(u8, "Void", other.getToken().data)) {
             return true; // Bottom type

@@ -119,6 +119,9 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 
     // Typecheck
     try validate.validateScope(file_root, errors, allocator);
+    if (errors.errors_list.items.len > 0) {
+        return error.typeError;
+    }
 
     return file_root;
 }

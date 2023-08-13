@@ -48,7 +48,7 @@ fn parse_args(old_args: std.process.ArgIterator, root: []const u8, comptime test
     if (args.inner.index < args.inner.count) {
         while (args.next()) |next| {
             if (indexOf(next, '.')) |_| {
-                _ = try integrateTestFile("", next, false);
+                _ = try test_file("", next, false);
             } else {
                 var open_dir_name = try String.init_with_contents(allocator, "/");
                 defer open_dir_name.deinit();
