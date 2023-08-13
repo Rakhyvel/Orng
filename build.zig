@@ -29,6 +29,7 @@ fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
+    //
     // step when running `zig build`).
     const install_cmd = b.addInstallArtifact(exe, .{});
 
