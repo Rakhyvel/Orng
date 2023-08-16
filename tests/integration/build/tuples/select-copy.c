@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];

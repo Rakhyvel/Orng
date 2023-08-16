@@ -19,7 +19,7 @@ var program: *Program = undefined;
 pub fn generate(__program: *Program, file: *std.fs.File) !void {
     program = __program;
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
-    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n\n", .{ program.uid, program.uid });
+    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n#include<stdlib.h>\n\n", .{ program.uid, program.uid });
 
     try file.writer().print("/* Debug information */\n", .{});
     try generateDebug(file);
@@ -539,11 +539,6 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             return error.Unimplemented;
         },
         .call => {
-            try out.writer().print(
-                \\    $lines[$line_idx++] = "{s}";
-                \\
-            , .{program.lines.items[ir.dest.?.symbol.span.line - 1]});
-
             var void_fn = ir.dest.?.type.* == .unit;
             if (!void_fn) {
                 try printVarAssign(ir.dest.?, out);
@@ -562,6 +557,24 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
 
         // Errors
+        .pushStackTrace => {
+            try out.writer().print(
+                \\    $lines[$line_idx++] = "{s}:{}:{}:\n{s}";
+                \\
+            , .{ ir.data.span.filename, ir.data.span.line, ir.data.span.col, program.lines.items[ir.data.span.line - 1] });
+        },
+        .panic => {
+            try out.writer().print(
+                \\    fprintf(stderr, "panic: reached unreachable code\n");
+                \\    for(uint16_t $i = 0; $i < $line_idx; $i++) {{
+                \\        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+                \\    }}
+                \\    exit(1);
+                \\
+            ,
+                .{},
+            );
+        },
     }
 }
 
@@ -680,7 +693,9 @@ fn printSymbolVersion(symbver: *SymbolVersion, out: *std.fs.File) !void {
 }
 
 fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
-    try out.writer().print("\treturn ", .{});
-    try printSymbol(return_symbol, out);
-    try out.writer().print(";\n", .{});
+    if (return_symbol.versions > 0) { // To fix errors when function ends in `unreachable`
+        try out.writer().print("\treturn ", .{});
+        try printSymbol(return_symbol, out);
+        try out.writer().print(";\n", .{});
+    }
 }

@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -27,7 +28,7 @@ int64_t _2_main() {
 BB0:
 	_2_t1 = 510;
 	_2_t2 = 10;
-    $lines[$line_idx++] = "fn main() -> Int {div(x = 510, y = 10)}";
+    $lines[$line_idx++] = "tests/integration/functions/named-arg.orng:2:23:\nfn main() -> Int {div(x = 510, y = 10)}";
 	_2_t0 = _4_div(_2_t1, _2_t2);
 	_2_$retval = _2_t0;
 	return _2_$retval;

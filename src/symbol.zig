@@ -505,7 +505,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Bool", try Symbol.create(
         prelude.?,
         "Bool",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,
@@ -515,7 +515,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Byte", try Symbol.create(
         prelude.?,
         "Byte",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,
@@ -525,7 +525,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Char", try Symbol.create(
         prelude.?,
         "Char",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,
@@ -535,7 +535,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Float", try Symbol.create(
         prelude.?,
         "Float",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,
@@ -545,7 +545,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Int", try Symbol.create(
         prelude.?,
         "Int",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,
@@ -555,7 +555,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("String", try Symbol.create(
         prelude.?,
         "String",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         ast.byteSliceType,
         null,
@@ -565,7 +565,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Type", try Symbol.create(
         prelude.?,
         "Type",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,
@@ -575,7 +575,7 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try prelude.?.symbols.put("Void", try Symbol.create(
         prelude.?,
         "Void",
-        Span{ .col = 0, .line = 0 },
+        Span{ .filename = "", .col = 0, .line = 0 },
         ast.typeType,
         null,
         null,

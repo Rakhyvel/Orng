@@ -17,7 +17,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     var start: usize = 0;
     var end: usize = 1;
     if (contents.len == 0) {
-        errors.addError(errs.Error{ .basic = .{ .span = Span{ .line = 0, .col = 0 }, .msg = "file is empty", .stage = .symbolTree } });
+        errors.addError(errs.Error{ .basic = .{ .span = Span{ .filename = "", .line = 0, .col = 0 }, .msg = "file is empty", .stage = .symbolTree } });
         return error.lexerError;
     }
     while (end < contents.len) : (end += 1) {
@@ -30,7 +30,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
 }
 
 /// Will always end in an EOF on the first column of the next line
-pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
+pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
     const LexState = enum {
         none,
         whitespace,
@@ -114,7 +114,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                         }
                     }
                     if (maybe_last_newline_ix) |last_newline_ix| {
-                        try tokens.append(Token.create(contents[last_newline_ix..ix], .NEWLINE, line, col));
+                        try tokens.append(Token.create(contents[last_newline_ix..ix], .NEWLINE, filename, line, col));
                     }
 
                     slice_start = ix;
@@ -131,7 +131,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .ident => {
                 if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
-                    var token = Token.create(contents[slice_start..ix], null, line, col);
+                    var token = Token.create(contents[slice_start..ix], null, filename, line, col);
                     if (fuzz_tokens) {
                         if (std.mem.eql(u8, token.data, "indent")) {
                             token.kind = .INDENT;
@@ -190,13 +190,13 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .string => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected `\"`, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected `\"`, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else switch (next_char) {
                     '"' => {
                         ix += 1;
                         col += 1;
-                        try tokens.append(Token.create(contents[slice_start..ix], .STRING, line, col));
+                        try tokens.append(Token.create(contents[slice_start..ix], .STRING, filename, line, col));
                         slice_start = ix;
                         state = .none;
                     },
@@ -214,7 +214,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .escapedString => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                     ix += 1;
@@ -225,7 +225,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .byteString1;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -236,7 +236,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .byteString2;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -247,14 +247,14 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .string;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
 
             .char => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a `'`, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a `'`, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else switch (next_char) {
                     '\'' => {
@@ -263,10 +263,10 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                         var num_codepoints = try std.unicode.utf8CountCodepoints(contents[slice_start + 1 .. ix - 1]);
                         var escaped = contents[slice_start + 1] == '\\';
                         if ((!escaped and num_codepoints > 1) or (escaped and num_codepoints > 2)) {
-                            errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "more than one codepoint specified in character literal", .stage = .tokenization } });
+                            errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal", .stage = .tokenization } });
                             return LexerErrors.lexerError;
                         }
-                        try tokens.append(Token.create(contents[slice_start..ix], .CHAR, line, col));
+                        try tokens.append(Token.create(contents[slice_start..ix], .CHAR, filename, line, col));
                         slice_start = ix;
                         state = .none;
                     },
@@ -284,14 +284,14 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .escapedChar => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                     ix += 1;
                     col += 1;
                     state = .char;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -304,7 +304,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                         col += 1;
                         state = .float;
                     } else {
-                        try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, line, col));
+                        try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, filename, line, col));
                         slice_start = ix;
                         state = .none;
                     }
@@ -328,7 +328,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .integerDigit;
                 } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, line, col));
+                    try tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -339,7 +339,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .integerDigit => {
                 if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -354,7 +354,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                     state = .floatDigit;
                 } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    try tokens.append(Token.create(contents[slice_start..ix], .FLOAT, line, col));
+                    try tokens.append(Token.create(contents[slice_start..ix], .FLOAT, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -364,7 +364,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
             },
 
             .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
+                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
                 return error.lexerError;
             } else {
                 ix += 1;
@@ -383,7 +383,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                 },
                 else => {
-                    try tokens.append(Token.create(contents[slice_start..ix], .HEX_INTEGER, line, col));
+                    try tokens.append(Token.create(contents[slice_start..ix], .HEX_INTEGER, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 },
@@ -396,7 +396,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .hex;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -412,7 +412,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                 },
                 else => {
-                    try tokens.append(Token.create(contents[slice_start..ix], .OCT_INTEGER, line, col));
+                    try tokens.append(Token.create(contents[slice_start..ix], .OCT_INTEGER, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 },
@@ -425,7 +425,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .octal;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "octal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "octal", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -441,7 +441,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     col += 1;
                 },
                 else => {
-                    try tokens.append(Token.create(contents[slice_start..ix], .BIN_INTEGER, line, col));
+                    try tokens.append(Token.create(contents[slice_start..ix], .BIN_INTEGER, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 },
@@ -454,7 +454,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     state = .binary;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .col = col + 1, .line = line }, .digit = next_char, .base = "binary", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "binary", .stage = .tokenization } });
                     return error.lexerError;
                 },
             },
@@ -466,7 +466,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
                     ix += 1;
                     col += 1;
                 } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                    var token = Token.create(contents[slice_start..ix], null, line, col);
+                    var token = Token.create(contents[slice_start..ix], null, filename, line, col);
                     try tokens.append(token);
                     slice_start = ix;
                     state = .none;
@@ -478,7 +478,7 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
 
             .comment => {
                 if (next_char == '\n') {
-                    try tokens.append(Token.create("", .COMMENT, line, col));
+                    try tokens.append(Token.create("", .COMMENT, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 } else {
@@ -489,6 +489,6 @@ pub fn getTokens(contents: []const u8, errors: *errs.Errors, fuzz_tokens: bool, 
         }
     }
 
-    try tokens.append(Token.create("EOF", .EOF, line, col));
+    try tokens.append(Token.create("EOF", .EOF, filename, line, col));
     return tokens;
 }

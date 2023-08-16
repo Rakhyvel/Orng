@@ -1,0 +1,9 @@
+// 
+fn main() -> Int
+    f()
+
+fn f() -> Int
+    g()
+
+fn g() -> Int
+    unreachable

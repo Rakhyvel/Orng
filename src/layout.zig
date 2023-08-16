@@ -57,14 +57,14 @@ fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
                     // If token spaces >  peek spaces => append token spaces, replace with indent
                     try stack.append(token.data.len);
                     var slice: [1]Token = undefined;
-                    slice[0] = Token.create("", .INDENT, token.span.line, token.span.col);
+                    slice[0] = Token.create("", .INDENT, "", token.span.line, token.span.col);
                     try tokens.replaceRange(i, 1, &slice);
                 } else while (token.data.len < stack.getLast()) {
                     // If token spaces <  peek spaces => while token spaces < peek spaces {pop, replace with dedent}
                     _ = stack.pop();
                     var slice: [3]Token = undefined;
                     slice[0] = token;
-                    slice[1] = Token.create("", .DEDENT, token.span.line, token.span.col);
+                    slice[1] = Token.create("", .DEDENT, "", token.span.line, token.span.col);
                     slice[2] = token;
                     try tokens.replaceRange(i, 1, &slice);
                 }
@@ -82,8 +82,8 @@ fn insertIndentDedents(tokens: *std.ArrayList(Token)) !void {
         const lastToken = tokens.getLast();
         var dedents_to_insert: usize = stack.items.len - 1;
         while (dedents_to_insert > 0) : (dedents_to_insert -= 1) {
-            try tokens.insert(tokens.items.len - 1, Token.create("", .NEWLINE, lastToken.span.line, lastToken.span.col));
-            try tokens.insert(tokens.items.len - 1, Token.create("", .DEDENT, lastToken.span.line, lastToken.span.col));
+            try tokens.insert(tokens.items.len - 1, Token.create("", .NEWLINE, "", lastToken.span.line, lastToken.span.col));
+            try tokens.insert(tokens.items.len - 1, Token.create("", .DEDENT, "", lastToken.span.line, lastToken.span.col));
         }
     }
 }

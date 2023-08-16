@@ -27,18 +27,30 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 
     if (symbol.kind == ._fn) {
         symbol._type.? = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
-        symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
+        if (symbol._type.?.* != .poison) {
+            symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
+        } else {
+            symbol.init = _ast.poisoned;
+        }
     } else {
         if (symbol.init != null and symbol._type != null) {
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
-            symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
+            if (symbol._type.?.* != .poison) {
+                symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
+            } else {
+                symbol.init = _ast.poisoned;
+            }
         } else if (symbol.init == null) {
             // Default value (probably done at the IR side?) OR function parameter
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
         } else if (symbol._type == null) {
             // Infer type
             symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
-            symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), _ast.typeType, symbol.scope, errors, allocator);
+            if (symbol.init.?.* != .poison) {
+                symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), _ast.typeType, symbol.scope, errors, allocator);
+            } else {
+                symbol._type = _ast.poisoned;
+            }
         } else {
             unreachable;
         }
@@ -735,7 +747,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 var index = try AST.createSelect(
                     ast.getToken(),
                     ast.subSlice.super,
-                    try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
+                    try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator),
                     allocator,
                 );
                 ast.subSlice.upper = try validateAST(index, _ast.intType, scope, errors, allocator);
@@ -966,14 +978,15 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .fnDecl => {
+            try validateSymbol(ast.fnDecl.symbol.?, errors, allocator);
             if (expected) |_expected| {
                 var expected_expanded = try _expected.exapnd_type(scope, errors, allocator);
-                if (expected_expanded.* != .function) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType, .stage = .typecheck } });
+                var self_type = try ast.typeof(scope, errors, allocator);
+                if (!try expected_expanded.typesMatch(self_type, scope, errors, allocator)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected_expanded, .got = self_type, .stage = .typecheck } });
                     return _ast.poisoned;
                 }
             }
-            try validateSymbol(ast.fnDecl.symbol.?, errors, allocator);
             retval = ast;
         },
         .decl => {

@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -51,7 +52,7 @@ BB0:
 	_2_t8 = (((int64_t*)(&_3_x))+_2_t6);
 	_2_t9 = 4;
 	_3_y = (struct1) {_2_t8, _2_t9};
-    $lines[$line_idx++] = "    f(y)";
+    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)";
 	_2_t10 = _4_f(_3_y);
 	_2_$retval = _2_t10;
 	return _2_$retval;

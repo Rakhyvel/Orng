@@ -887,6 +887,7 @@ fn calculateVersions(cfg: *CFG) void {
                 src2.symbol.versions = 0;
             }
         }
+        cfg.return_symbol.versions = 0;
     }
 
     for (cfg.basic_blocks.items) |bb| {

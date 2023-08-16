@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -31,13 +32,13 @@ int64_t _2_main() {
 BB0:
 	_2_t2 = 47;
 	_2_t3 = 1;
-    $lines[$line_idx++] = "fn main() -> Int {add(add(47), add())}";
+    $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:27:\nfn main() -> Int {add(add(47), add())}";
 	_2_t1 = _4_add(_2_t2, _2_t3);
 	_2_t5 = 1;
 	_2_t6 = 1;
-    $lines[$line_idx++] = "fn main() -> Int {add(add(47), add())}";
+    $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:36:\nfn main() -> Int {add(add(47), add())}";
 	_2_t4 = _4_add(_2_t5, _2_t6);
-    $lines[$line_idx++] = "fn main() -> Int {add(add(47), add())}";
+    $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:23:\nfn main() -> Int {add(add(47), add())}";
 	_2_t0 = _4_add(_2_t1, _2_t4);
 	_2_$retval = _2_t0;
 	return _2_$retval;

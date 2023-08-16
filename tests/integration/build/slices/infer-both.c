@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -60,7 +61,7 @@ BB0:
 	_2_t12 = (&_3_y)->_0;
 	_2_t13 = _2_t12 + _2_t9;
 	_3_z = (struct1) {_2_t13, _2_t11};
-    $lines[$line_idx++] = "    sum_up(z)";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)";
 	_2_t15 = _4_sum_up(_3_z);
 	_2_$retval = _2_t15;
 	return _2_$retval;

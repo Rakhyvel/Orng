@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -33,7 +34,7 @@ int64_t _2_main() {
 BB0:
 	_2_t1 = 15;
 	_2_t2 = 16;
-    $lines[$line_idx++] = "    let x: [4]Int = get_array(15, 16)";
+    $lines[$line_idx++] = "tests/integration/tuples/mix.orng:3:31:\n    let x: [4]Int = get_array(15, 16)";
 	_2_t0 = _4_get_array(_2_t1, _2_t2);
 	_2_$retval = 64;
 	return _2_$retval;

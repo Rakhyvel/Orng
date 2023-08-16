@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -25,7 +26,7 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 52;
-    $lines[$line_idx++] = "fn main() -> Int {id(x = 52)}";
+    $lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:2:22:\nfn main() -> Int {id(x = 52)}";
 	_2_t0 = _4_id(_2_t1);
 	_2_$retval = _2_t0;
 	return _2_$retval;

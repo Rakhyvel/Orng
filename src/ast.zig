@@ -27,16 +27,16 @@ pub var poisoned: *AST = undefined;
 
 pub fn initTypes() !void {
     if (!typesInited) {
-        boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        byteType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Byte", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        charType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        stringType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "String", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
-        voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .line = 0, .col = 0 } }, std.heap.page_allocator);
+        boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        byteType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Byte", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        charType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        stringType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "String", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         byteSliceType = try AST.create_slice_type(byteType, false, std.heap.page_allocator); // Slice types must be AFTER intType
         boolType.getCommon().is_valid = true;
         byteType.getCommon().is_valid = true;
@@ -585,13 +585,13 @@ pub const AST = union(enum) {
             mut,
             allocator,
         );
-        var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, 0, 0), allocator), data_type, null, null, allocator);
+        var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", 0, 0), allocator), data_type, null, null, allocator);
         data_type.getCommon().is_valid = true;
         annot_type.getCommon().is_valid = true;
         try term_types.append(annot_type);
         try term_types.append(try AST.createAnnotation(
             of.getToken(),
-            try AST.createIdentifier(Token.create("length", null, 0, 0), allocator),
+            try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator),
             intType,
             null,
             null,
@@ -606,11 +606,11 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, 0, 0), allocator), unitType, null, unitType, allocator);
+        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", 0, 0), allocator), unitType, null, unitType, allocator);
         none_type.getCommon().is_valid = true;
         try term_types.append(none_type);
 
-        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, 0, 0), allocator), of_type, null, null, allocator);
+        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", 0, 0), allocator), of_type, null, null, allocator);
         some_type.getCommon().is_valid = true;
         try term_types.append(some_type);
 
@@ -623,11 +623,11 @@ pub const AST = union(enum) {
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, 0, 0), allocator), err_type, null, unitType, allocator);
+        var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, "", 0, 0), allocator), err_type, null, unitType, allocator);
         none_type.getCommon().is_valid = true;
         try term_types.append(none_type);
 
-        var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, 0, 0), allocator), ok_type, null, null, allocator);
+        var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
         some_type.getCommon().is_valid = true;
         try term_types.append(some_type);
 
@@ -841,6 +841,7 @@ pub const AST = union(enum) {
             ._continue,
             ._break,
             ._return,
+            ._unreachable,
             => retval = voidType,
 
             .product => {

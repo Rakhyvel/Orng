@@ -161,8 +161,8 @@ pub const Token = struct {
     data: []const u8,
     span: Span,
 
-    pub fn create(data: []const u8, kind: ?TokenKind, line: usize, col: usize) Token {
-        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .line = line, .col = col } };
+    pub fn create(data: []const u8, kind: ?TokenKind, filename: []const u8, line: usize, col: usize) Token {
+        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .filename = filename, .line = line, .col = col } };
     }
 
     pub fn repr(self: *Token) []const u8 {

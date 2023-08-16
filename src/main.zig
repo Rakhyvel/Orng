@@ -43,11 +43,6 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     // (Done for testing, where more than program is compiled one after another)
     symbol.resetPrelude();
 
-    // Construct the name
-    var i: usize = 0;
-    while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
-    var name: []const u8 = in_name[0..i];
-
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -65,7 +60,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     var lines = std.ArrayList([]const u8).init(allocator);
     defer lines.deinit();
 
-    var file_root = compileContents(errors, &lines, name, contents, false, allocator) catch |err| {
+    var file_root = compileContents(errors, &lines, in_name, contents, false, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parserError,
@@ -90,10 +85,15 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
 }
 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree
-pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), name: []const u8, contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
+pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), in_name: []const u8, contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
+    // Construct the name
+    var i: usize = 0;
+    while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
+    var name: []const u8 = in_name[0..i];
+
     // Tokenize, and also append lines to the list of lines
     try lexer.getLines(contents, lines, errors);
-    var tokens = try lexer.getTokens(contents, errors, fuzz_tokens, allocator);
+    var tokens = try lexer.getTokens(contents, in_name, errors, fuzz_tokens, allocator);
     defer tokens.deinit(); // Make copies of tokens, never take their address
 
     if (fuzz_tokens) {
@@ -130,7 +130,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, uid: i128, out_name: []const u8, allocator: std.mem.Allocator) !void {
     if (file_root.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
-            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .line = 0, .col = 0 }, .msg = "entry point `main` is not a function", .stage = .symbolTree } });
+            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function", .stage = .symbolTree } });
             return error.symbolError;
         }
         // IR translation
@@ -156,7 +156,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.
     } else {
-        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .line = 0, .col = 0 }, .msg = "no `main` function specified", .stage = .symbolTree } });
+        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "no `main` function specified", .stage = .symbolTree } });
         return error.symbolError;
     }
 }

@@ -5,6 +5,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
+#include<stdlib.h>
 
 /* Debug information */
 static const char* $lines[1024];
@@ -68,7 +69,7 @@ BB0:
 	_2_t18 = 2;
 	_2_t19 = 10;
 	*(((int64_t*)((&_3_z)->_0))+_2_t18) = _2_t19;
-    $lines[$line_idx++] = "    sum_up(z)";
+    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)";
 	_2_t20 = _4_sum_up(_3_z);
 	_2_$retval = _2_t20;
 	return _2_$retval;
