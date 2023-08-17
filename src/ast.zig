@@ -202,6 +202,7 @@ pub const AST = union(enum) {
         scope: ?*Scope,
         let: ?*AST,
         mappings: std.ArrayList(*AST),
+        has_else: bool,
     },
     match: struct {
         common: ASTCommon,
@@ -525,8 +526,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._if = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
-    pub fn createCase(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .case = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings } }, allocator);
+    pub fn createCase(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .case = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings, .has_else = has_else } }, allocator);
     }
 
     pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {

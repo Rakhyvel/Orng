@@ -519,6 +519,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else {
                 ast.inject.lhs = try validateAST(ast.inject.lhs, null, scope, errors, allocator);
             }
+            if (ast.inject.lhs.* == .poison) { // Don't bother moving on...
+                return _ast.poisoned;
+            }
             var lhs_type = try ast.inject.lhs.typeof(scope, errors, allocator);
             var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
             if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
@@ -776,7 +779,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot infer the sum type", .stage = .typecheck } });
                 return _ast.poisoned;
             } else if (expected != null and expected_expanded.* != .sum) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected a sum type", .stage = .typecheck } });
+                errors.addError(Error{ .expectedGotString = .{ .span = ast.getToken().span, .expected = expected.?, .got = "an inferred member", .stage = .typecheck } });
                 return _ast.poisoned;
             } else {
                 ast.inferredMember.base = expected;
@@ -807,13 +810,14 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             ast._if.condition = try validateAST(ast._if.condition, _ast.boolType, ast._if.scope.?, errors, allocator);
             if (expected != null) {
+                // expecting a type
                 var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
-                var expects_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
+                var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
                 var has_else = ast._if.elseBlock != null;
                 if (has_else) {
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
                     ast._if.elseBlock = try validateAST(ast._if.elseBlock.?, expected.?, ast._if.scope.?, errors, allocator);
-                } else if (expects_optional) {
+                } else if (is_expected_optional) {
                     var full_type = expected_expanded.sum.terms.items[1];
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
                 } else {
@@ -823,6 +827,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     return _ast.poisoned;
                 }
             } else {
+                // expecting nothing
                 ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, null, ast._if.scope.?, errors, allocator);
                 if (ast._if.elseBlock) |elseBlock| {
                     ast._if.elseBlock = try validateAST(elseBlock, null, ast._if.scope.?, errors, allocator);
@@ -837,9 +842,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var new_mappings = std.ArrayList(*AST).init(allocator);
             var num_rhs: usize = 0;
             for (ast.case.mappings.items) |mapping| {
-                try new_mappings.append(try validateAST(mapping, expected, ast.case.scope.?, errors, allocator));
                 if (mapping.mapping.rhs) |_| {
                     num_rhs += 1;
+                }
+
+                if (expected != null) {
+                    var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
+                    var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
+                    var has_else = ast.case.has_else;
+                    if (has_else) {
+                        try new_mappings.append(try validateAST(mapping, expected, ast.case.scope.?, errors, allocator));
+                    } else if (is_expected_optional) {
+                        var full_type = expected_expanded.sum.terms.items[1];
+                        try new_mappings.append(try validateAST(mapping, full_type, ast.case.scope.?, errors, allocator));
+                    } else {
+                        var new_map = try validateAST(mapping, expected.?, ast._if.scope.?, errors, allocator);
+                        ast.getCommon().is_valid = true;
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try new_map.typeof(scope, errors, allocator), .stage = .typecheck } });
+                        return _ast.poisoned;
+                    }
+                } else {
+                    try new_mappings.append(try validateAST(mapping, expected, ast.case.scope.?, errors, allocator));
                 }
             }
             if (num_rhs == 0) {

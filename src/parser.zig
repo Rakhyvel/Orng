@@ -818,23 +818,27 @@ pub const Parser = struct {
         return try AST.createMapping(token, kind, null, rhs, self.astAllocator);
     }
 
-    fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!void {
+    /// returns whether the bar list has an else
+    fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
         try mappings.append(try self.barClause(kind));
         if (self.accept(.BAR)) |_| {
             if (self.peekKind(.ELSE)) {
                 try mappings.append(try self.barElse(kind));
+                return true;
             } else if (self.nextIsExpr()) {
-                try self.barListMiddle(mappings, kind);
+                return try self.barListMiddle(mappings, kind);
             } else {
                 self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `|`", .got = self.peek(), .stage = .parsing } });
                 return error.parserError;
             }
+        } else {
+            return false;
         }
     }
 
-    fn barList(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!void {
+    fn barList(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
         _ = try self.expect(.BAR);
-        try self.barListMiddle(mappings, kind);
+        return try self.barListMiddle(mappings, kind);
     }
 
     fn caseExpr(self: *Parser) ParserErrorEnum!*AST {
@@ -852,9 +856,9 @@ pub const Parser = struct {
             } // Has to be here, otherwise the init expr of the let confuses the case's |'s with a sum expr
         }
 
-        try self.barList(&mappings, .case);
+        var has_else = try self.barList(&mappings, .case);
 
-        return try AST.createCase(token, let, mappings, self.astAllocator);
+        return try AST.createCase(token, let, mappings, has_else, self.astAllocator);
     }
 
     fn matchExpr(self: *Parser) ParserErrorEnum!*AST {
@@ -872,7 +876,7 @@ pub const Parser = struct {
             }
         }
         var exp = try self.productExpr();
-        try self.barList(&mappings, .match);
+        _ = try self.barList(&mappings, .match);
 
         return try AST.createMatch(token, let, exp, mappings, self.astAllocator);
     }

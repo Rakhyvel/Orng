@@ -79,6 +79,12 @@ pub const Error = union(enum) {
         got: *AST,
         stage: Stage,
     },
+    expectedGotString: struct {
+        span: Span,
+        expected: *AST,
+        got: []const u8,
+        stage: Stage,
+    },
     sum_duplicate: struct {
         span: Span,
         identifier: []const u8,
@@ -120,6 +126,7 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.stage,
             .expected2Type => return self.expected2Type.stage,
             .expectedType => return self.expectedType.stage,
+            .expectedGotString => return self.expectedGotString.stage,
             .sum_duplicate => return self.sum_duplicate.stage,
             .member_not_in => return self.member_not_in.stage,
             .undeclaredIdentifier => return self.undeclaredIdentifier.stage,
@@ -142,6 +149,7 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.redefined_span,
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
+            .expectedGotString => return self.expectedGotString.span,
             .sum_duplicate => return self.sum_duplicate.span,
             .member_not_in => return self.member_not_in.span,
             .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
@@ -213,6 +221,11 @@ pub const Errors = struct {
                     try out.print("expected a value of the type `", .{});
                     try err.expectedType.expected.printType(out);
                     try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
+                },
+                .expectedGotString => {
+                    try out.print("expected a value of the type `", .{});
+                    try err.expectedGotString.expected.printType(out);
+                    try out.print("`, got {s}\n", .{err.expectedGotString.got});
                 },
                 .sum_duplicate => {
                     try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier});
