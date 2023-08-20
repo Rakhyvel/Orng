@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1692246326320143452
-#define ORNG_1692246326320143452
+#ifndef ORNG_1692247368719028229
+#define ORNG_1692247368719028229
 
 #include <math.h>
 #include <stdio.h>
@@ -31,7 +31,7 @@ int64_t _2_main() {
 	int64_t _2_t5;
 	int64_t _2_$retval;
 BB1:
-	_3_x = 2;
+	_3_x = (struct0) {.tag=0};
 	_2_t6 = _3_x.tag;
 	if (_2_t6) {
 		goto BB5;

@@ -137,7 +137,7 @@
         > 'positive' test cases compile (panics are 'positive'!). 'negative' test cases do not compile!
     - [x] unreachable
         - [x] stack traces
-        - [ ] go back and add optional `case`, with `| else => unreachable` clauses
+        - [x] go back and add optional `case`, with `| else => unreachable` clauses
     - [ ] proper fuzz tests
         > If a program ever compiles, make a log of what the orng program was
         > Fuzz testing will unfortunately crash if compiler crashes (maybe can be de-coupled?), so store latest orng program somewhere too

@@ -1308,10 +1308,12 @@ pub const CFG = struct {
 
                 // Exit label of case
                 var end_label = try IR.createLabel(allocator);
-                // List of labels to branch to on an unsuccessful test ("next test")
+                // Label jumped to if all tests fail and no `else` mapping
+                var none_label = try IR.createLabel(allocator);
+                // List of labels to branch to on an unsuccessful test (ie "next test")
                 var lhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer lhs_label_list.deinit();
-                // List of labels to branch to on a successful test
+                // List of labels to branch to on a successful test (ie "code for the mapping")
                 var rhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer rhs_label_list.deinit();
                 for (ast.case.mappings.items) |mapping| {
@@ -1324,15 +1326,20 @@ pub const CFG = struct {
 
                 var lhs_label_index: usize = 0;
                 var rhs_label_index: usize = 0;
+                // Write the jumps based on the conditions
                 for (ast.case.mappings.items) |mapping| {
                     var lhs_label = lhs_label_list.items[lhs_label_index];
                     self.appendInstruction(lhs_label);
                     if (mapping.mapping.lhs) |lhs| {
+                        // test condition, branch to next test if fails, otherwise continue (and jump to code)
                         var condition = (try self.flattenAST(ast.case.scope.?, lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                         // std.debug.assert(condition.def != null);
                         if (lhs_label_index < lhs_label_list.items.len - 1) {
                             var branch = try IR.createBranch(condition, lhs_label_list.items[lhs_label_index + 1], allocator);
                             self.appendInstruction(branch);
+                        } else {
+                            // Append code to run if no tests pass and no else statement
+                            self.appendInstruction(try IR.createJump(none_label, allocator));
                         }
                     }
                     var rhs_label = rhs_label_list.items[rhs_label_index];
@@ -1343,14 +1350,29 @@ pub const CFG = struct {
                     lhs_label_index += 1;
                 }
 
+                { // All tests failed, no `else` mapping. Store `.none` as result
+                    self.appendInstruction(none_label);
+                    var else_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var else_copy = try IR.createUnion(else_copy_symbver, null, 0, allocator);
+                    else_copy_symbver.def = else_copy;
+                    self.appendInstruction(else_copy);
+                    self.appendInstruction(try IR.createJump(end_label, allocator));
+                }
+
                 // Write the labels and the mappings exprs
                 rhs_label_index = 0;
                 for (ast.case.mappings.items) |mapping| {
                     if (mapping.mapping.rhs) |rhs| {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
                         if (try self.flattenAST(ast.case.scope.?, rhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) |rhs_symbver| {
+                            if (ast.case.has_else) {} else {}
                             var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                            var rhs_copy = try IR.create(.copy, rhs_copy_symbver, rhs_symbver, null, allocator);
+                            var rhs_copy: *IR = undefined;
+                            if (ast.case.has_else) {
+                                rhs_copy = try IR.create(.copy, rhs_copy_symbver, rhs_symbver, null, allocator);
+                            } else {
+                                rhs_copy = try IR.createUnion(rhs_copy_symbver, rhs_symbver, 1, allocator);
+                            }
                             rhs_copy_symbver.def = rhs_copy;
                             self.appendInstruction(rhs_copy);
                         }
