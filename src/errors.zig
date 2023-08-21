@@ -211,11 +211,18 @@ pub const Errors = struct {
 
                 // Typecheck
                 .expected2Type => {
-                    try out.print("expected a value of the type `", .{});
-                    try err.expected2Type.expected.printType(out);
-                    try out.print("`, got a value of the type `", .{});
-                    try err.expected2Type.got.printType(out);
-                    try out.print("`\n", .{});
+                    std.debug.assert(err.expected2Type.expected.* != .poison);
+                    if (err.expected2Type.got.* != .poison) {
+                        try out.print("expected a value of the type `", .{});
+                        try err.expected2Type.expected.printType(out);
+                        try out.print("`, got a value of the type `", .{});
+                        try err.expected2Type.got.printType(out);
+                        try out.print("`\n", .{});
+                    } else {
+                        try out.print("expected a value of the type `", .{});
+                        try err.expected2Type.expected.printType(out);
+                        try out.print("`\n", .{});
+                    }
                 },
                 .expectedType => {
                     try out.print("expected a value of the type `", .{});
@@ -223,6 +230,7 @@ pub const Errors = struct {
                     try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
                 },
                 .expectedGotString => {
+                    std.debug.assert(err.expectedGotString.expected.* != .poison);
                     try out.print("expected a value of the type `", .{});
                     try err.expectedGotString.expected.printType(out);
                     try out.print("`, got {s}\n", .{err.expectedGotString.got});

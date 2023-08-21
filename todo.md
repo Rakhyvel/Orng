@@ -47,6 +47,12 @@
 - [x] find out if GCC supports UBSan! enable it
 - [x] allow more than one command line argument
 
+### In-House rdgen
+- [ ] Written in Zig
+- [ ] Parses an LL(1) grammar
+- [ ] Rejects if grammar is not LL(1) ("ambiguity" but not exactly)
+- [ ] Generates JSON files of example programs, with identifiers, numbers, etc replaced with random values
+
 ### Features
 - [x] addresses
     - [x] addr-of operator

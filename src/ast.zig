@@ -778,6 +778,11 @@ pub const AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
+            ._union => {
+                try self._union.lhs.printType(out);
+                try out.print("||", .{});
+                try self._union.rhs.printType(out);
+            },
             .annotation => {
                 try out.print("{s}: ", .{self.annotation.pattern.identifier.common.token.data});
                 try self.annotation.type.printType(out);
@@ -785,6 +790,7 @@ pub const AST = union(enum) {
 
             // Not necessarily types, but may appear in a type definition
             .int => try out.print("{}", .{self.int.data}),
+            .poison => try out.print("<error>", .{}),
             else => {
                 try out.print("\nprintTypes(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});
                 unreachable;
@@ -831,6 +837,7 @@ pub const AST = union(enum) {
             .optional,
             ._error,
             ._union,
+            .function,
             => retval = typeType,
 
             // Unit type
@@ -874,7 +881,10 @@ pub const AST = union(enum) {
                     }
                 } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String")) {
                     retval = byteType;
+                } else if (lhs_type.* == .poison) {
+                    retval = poisoned;
                 } else {
+                    std.debug.print("{s} is not indexable\n", .{@tagName(lhs_type.*)});
                     unreachable;
                 }
             },
@@ -929,6 +939,7 @@ pub const AST = union(enum) {
             },
             .sliceOf => {
                 var expr_type = try self.sliceOf.expr.typeof(scope, errors, allocator);
+                std.debug.print("{s}\n", .{@tagName(expr_type.*)});
                 std.debug.assert(expr_type.* == .product and try expr_type.product.is_homotypical(scope, errors, allocator));
                 var child_type = expr_type.product.terms.items[0];
                 if (try child_type.typesMatch(typeType, scope, errors, allocator)) {

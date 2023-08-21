@@ -341,6 +341,12 @@ fn fuzzTests() !void {
                         try out.print("Orng -> IR. {}\n", .{i});
                         continue;
                     },
+                    error.parserError => {
+                        failed += 1;
+                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try out.print("Parsing mismatch!\n", .{});
+                        return;
+                    },
                     else => {
                         failed += 1;
                         try term.outputColor(fail_color, "[ ... FAILED ] ", out);
