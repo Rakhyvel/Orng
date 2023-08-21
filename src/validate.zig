@@ -410,6 +410,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         ._orelse => {
+            ast._orelse.lhs = try validateAST(ast._orelse.lhs, null, scope, errors, allocator);
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
@@ -419,8 +420,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 var optional_expected = try AST.create_optional_type(expected.?, allocator);
                 errors.addError(Error{ .expected2Type = .{ .span = ast._orelse.lhs.getToken().span, .expected = optional_expected, .got = lhs_expanded_type, .stage = .typecheck } });
                 return _ast.poisoned;
-            } else {
-                ast._orelse.lhs = try validateAST(ast._orelse.lhs, null, scope, errors, allocator);
             }
             if (ast._orelse.lhs.* == .poison or ast._orelse.rhs.* == .poison) {
                 return _ast.poisoned;
@@ -1087,6 +1086,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.block.final = try validateAST(final, null, ast.block.scope.?, errors, allocator);
                 poisoned = poisoned or ast.block.final.?.* == .poison;
             } else {
+                // block has no 'final' statement (return, continue, break, etc)
                 if (ast.block.statements.items.len > 1) {
                     var i: usize = 0;
                     while (i < ast.block.statements.items.len - 1) : (i += 1) {
@@ -1109,7 +1109,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.getCommon().is_valid = true; // So that the typeof code can be reused. All children should be validated at this point
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try expected.?.typesMatch(block_type, scope, errors, allocator)) {
-                    std.debug.assert(ast.block.statements.items.len == 0);
+                    // std.debug.assert(ast.block.statements.items.len == 0); // this this true? what about a block that ends in a defer? or a decl?
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type, .stage = .typecheck } });
                     return _ast.poisoned;
                 }

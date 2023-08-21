@@ -843,6 +843,8 @@ pub const AST = union(enum) {
             // Unit type
             .decl,
             .assign,
+            ._defer,
+            ._errdefer,
             => retval = unitType,
 
             // Void type
@@ -939,7 +941,6 @@ pub const AST = union(enum) {
             },
             .sliceOf => {
                 var expr_type = try self.sliceOf.expr.typeof(scope, errors, allocator);
-                std.debug.print("{s}\n", .{@tagName(expr_type.*)});
                 std.debug.assert(expr_type.* == .product and try expr_type.product.is_homotypical(scope, errors, allocator));
                 var child_type = expr_type.product.terms.items[0];
                 if (try child_type.typesMatch(typeType, scope, errors, allocator)) {
