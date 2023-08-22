@@ -20,10 +20,10 @@ pub fn validateScope(scope: *Scope, errors: *errs.Errors, allocator: std.mem.All
 }
 
 pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!void {
-    if (symbol.valid) {
+    if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
-    symbol.valid = true;
+    symbol.validation_state = .validating;
 
     if (symbol.kind == ._fn) {
         symbol._type.? = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
@@ -55,6 +55,8 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             unreachable;
         }
     }
+
+    symbol.validation_state = .valid;
 }
 
 /// Errors out if `ast` is not the expected type
@@ -140,13 +142,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 else => return err,
             };
             try validateSymbol(symbol, errors, allocator);
-            if (symbol._type == null) {
+            if (symbol._type == null or symbol.validation_state != .valid) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "recursive definition detected", .stage = .typecheck } });
                 return _ast.poisoned;
             }
-            var symb_type_valid = symbol._type.?.getCommon().is_valid;
-            symbol._type.?.getCommon().is_valid = true;
-            defer symbol._type.?.getCommon().is_valid = symb_type_valid;
             if (expected != null and !try expected.?.typesMatch(symbol._type.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type.?, .stage = .typecheck } });
                 return _ast.poisoned;

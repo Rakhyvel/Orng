@@ -387,6 +387,7 @@ fn fuzzTests() !void {
             }
             try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
+            return;
         }
     }
 

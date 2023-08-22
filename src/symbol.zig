@@ -127,7 +127,11 @@ pub const Symbol = struct {
     decl: ?*AST,
 
     defined: bool,
-    valid: bool,
+    validation_state: enum {
+        unvalidated, // Has not attempted to validate to validate symbol yet
+        validating, // Symbol is currently being validated
+        valid, // Symbol has been validated and is valid
+    },
     /// When a local variable, whether or not the variable has been printed out or not
     decld: bool,
     param: bool,
@@ -148,7 +152,7 @@ pub const Symbol = struct {
         } else {
             retval.defined = false;
         }
-        retval.valid = false;
+        retval.validation_state = .unvalidated;
         retval.decld = false;
         return retval;
     }
