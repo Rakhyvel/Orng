@@ -16,20 +16,20 @@ static uint16_t $line_idx = 0;
 /* Interned Strings */
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _52_main();
 
 /* Function definitions */
-int64_t _2_main() {
-	int64_t _2_$retval;
+int64_t _52_main() {
+	int64_t _52_$retval;
 BB0:
-	_2_$retval = 24;
-	return _2_$retval;
+	_52_$retval = 24;
+	return _52_$retval;
 }
 
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_52_main());
   return 0;
 }
 

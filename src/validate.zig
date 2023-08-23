@@ -27,6 +27,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 
     if (symbol.kind == ._fn) {
         symbol._type.? = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
+        symbol.validation_state = .valid;
         if (symbol._type.?.* != .poison) {
             symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
         } else {
@@ -35,6 +36,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     } else {
         if (symbol.init != null and symbol._type != null) {
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
+            symbol.validation_state = .valid;
             if (symbol._type.?.* != .poison) {
                 symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
             } else {
@@ -43,11 +45,13 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         } else if (symbol.init == null) {
             // Default value (probably done at the IR side?) OR function parameter
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
+            symbol.validation_state = .valid;
         } else if (symbol._type == null) {
             // Infer type
             symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
             if (symbol.init.?.* != .poison) {
                 symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), _ast.typeType, symbol.scope, errors, allocator);
+                symbol.validation_state = .valid;
             } else {
                 symbol._type = _ast.poisoned;
             }
@@ -55,8 +59,6 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             unreachable;
         }
     }
-
-    symbol.validation_state = .valid;
 }
 
 /// Errors out if `ast` is not the expected type
@@ -282,6 +284,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast.assign.lhs.* == .poison or ast.assign.rhs.* == .poison) {
                 return _ast.poisoned;
             }
+            assertMutable(ast.assign.lhs, scope, errors, allocator) catch |err| switch (err) {
+                error.typeError => return _ast.poisoned,
+                else => return err,
+            };
             retval = ast;
         },
         ._or => {
@@ -427,6 +433,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .call => {
             ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
+            if (ast.call.lhs.* == .poison) {
+                return _ast.poisoned;
+            }
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
             if (expanded_lhs_type.* == .function) {
@@ -446,14 +455,26 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .index => {
+            // BIG SLOPPY TODO: Check to see if lhs is even indexable, no matter if expected is null
             var lhs_span = ast.index.lhs.getToken().span; // Used for error reporting
-            ast.index.lhs = try validateAST(ast.index.lhs, null, scope, errors, allocator);
+            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                ast.index.lhs = try validateAST(ast.index.lhs, _ast.typeType, scope, errors, allocator);
+            } else {
+                ast.index.lhs = try validateAST(ast.index.lhs, null, scope, errors, allocator);
+            }
             ast.index.rhs = try validateAST(ast.index.rhs, _ast.intType, scope, errors, allocator);
             if (ast.index.lhs.* == .poison or ast.index.rhs.* == .poison) {
                 return _ast.poisoned;
             }
 
             var lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
+            // TODO: Replace with check that lhs type implements Indexable
+            if (lhs_type.* == .poison) {
+                return _ast.poisoned;
+            } else if (lhs_type.* != .product or !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
+                errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "not indexable", .stage = .typecheck } });
+                return _ast.poisoned;
+            }
 
             // Implicit dereference
             if (lhs_type.* == .addrOf) {

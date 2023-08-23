@@ -130,7 +130,7 @@ pub const Symbol = struct {
     validation_state: enum {
         unvalidated, // Has not attempted to validate to validate symbol yet
         validating, // Symbol is currently being validated
-        valid, // Symbol has been validated and is valid
+        valid, // Symbol has been validated and is valid. Specifically, the type of the symbol is valid and may be used.
     },
     /// When a local variable, whether or not the variable has been printed out or not
     decld: bool,
