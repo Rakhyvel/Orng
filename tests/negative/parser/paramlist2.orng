@@ -1,0 +1,1 @@
+fn a (x : Int, y: fn () -> Int {}, z: Int) -> Int {}

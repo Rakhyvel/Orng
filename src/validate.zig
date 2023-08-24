@@ -806,8 +806,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (ast.sliceOf.kind == .ARRAY) {
                     // Inflate to product
                     var new_terms = std.ArrayList(*AST).init(allocator);
+                    // TODO: Compile-time evaluate array size
                     for (0..@as(usize, @intCast(ast.sliceOf.len.?.int.data))) |_| {
                         try new_terms.append(ast.sliceOf.expr);
+                    }
+                    if (ast.sliceOf.len.?.int.data <= 0) {
+                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is negative", .stage = .typecheck } });
+                        return _ast.poisoned;
                     }
                     ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
                 } else {

@@ -47,7 +47,7 @@ termExpr: prefixExpr {("*" | "/" | "%" | "||") prefixExpr}.
 prefixExpr: "not" hyperExpr                         # boolean not
           | "-" hyperExpr                           # negation
           | "&" ["mut"] prefixExpr                  # address-of
-          | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
+          | "[" ["mut" | int | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
           | "?" hyperExpr                           # optional
           | hyperExpr
           .

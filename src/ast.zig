@@ -1110,6 +1110,7 @@ pub const AST = union(enum) {
                 }
             },
             else => {
+                // TODO: May need to evaluate types, possibly done somewhere else though
                 std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(self.*)});
                 unreachable;
             },
