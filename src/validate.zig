@@ -1066,7 +1066,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             ast._while.condition = try validateAST(ast._while.condition, _ast.boolType, ast._while.scope.?, errors, allocator);
 
-            var optional_type = false;
+            var optional_type = false; //< Set if expected is an optional type
             if (expected != null) {
                 var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
                 if (expected_expanded.* == .sum and expected_expanded.sum.was_optional) {
@@ -1095,6 +1095,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var poisoned = false;
             var new_statements = std.ArrayList(*AST).init(allocator);
             if (ast.block.final) |final| {
+                // Has final
                 var i: usize = 0;
                 while (i < ast.block.statements.items.len) : (i += 1) {
                     var term = ast.block.statements.items[i];
@@ -1103,7 +1104,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     poisoned = poisoned or new_statement.* == .poison;
                 }
                 ast.block.statements = new_statements;
-                ast.block.final = try validateAST(final, null, ast.block.scope.?, errors, allocator);
+                ast.block.final = try validateAST(final, expected, ast.block.scope.?, errors, allocator);
                 poisoned = poisoned or ast.block.final.?.* == .poison;
             } else {
                 // block has no 'final' statement (return, continue, break, etc)
@@ -1151,6 +1152,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 } });
                 return _ast.poisoned;
             }
+            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
+                return _ast.poisoned;
+            }
             retval = ast;
         },
         ._continue => {
@@ -1160,6 +1166,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     .msg = "`continue` must be inside a loop",
                     .stage = .typecheck,
                 } });
+                return _ast.poisoned;
+            }
+            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
                 return _ast.poisoned;
             }
             retval = ast;
@@ -1179,6 +1190,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (ast._return.expr.?.* == .poison) {
                     return _ast.poisoned;
                 }
+            } else if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
+                return _ast.poisoned;
             }
             retval = ast;
         },
@@ -1191,12 +1206,22 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast._defer.statement.* == .poison) {
                 return _ast.poisoned;
             }
+            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
+                return _ast.poisoned;
+            }
             try scope.defers.append(ast._defer.statement);
             retval = ast;
         },
         ._errdefer => {
             ast._errdefer.statement = try validateAST(ast._errdefer.statement, null, scope, errors, allocator);
             if (ast._errdefer.statement.* == .poison) {
+                return _ast.poisoned;
+            }
+            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType, .stage = .typecheck } });
                 return _ast.poisoned;
             }
             try scope.errdefers.append(ast._errdefer.statement);

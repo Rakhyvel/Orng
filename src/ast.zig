@@ -790,6 +790,19 @@ pub const AST = union(enum) {
 
             // Not necessarily types, but may appear in a type definition
             .int => try out.print("{}", .{self.int.data}),
+            .block => {
+                try out.print("{{", .{});
+                for (self.block.statements.items, 0..) |statement, i| {
+                    try statement.printType(out);
+                    if (self.block.final != null or i > self.block.statements.items.len - 1) {
+                        try out.print("; ", .{});
+                    }
+                }
+                if (self.block.final) |final| {
+                    try final.printType(out);
+                }
+                try out.print("}}", .{});
+            },
             .poison => try out.print("<error>", .{}),
             else => {
                 try out.print("\nprintTypes(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});

@@ -215,7 +215,7 @@ pub const Errors = struct {
                     if (err.expected2Type.got.* != .poison) {
                         try out.print("expected a value of the type `", .{});
                         try err.expected2Type.expected.printType(out);
-                        try out.print("`, got a value of the type `", .{});
+                        try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
                         try err.expected2Type.got.printType(out);
                         try out.print("`\n", .{});
                     } else {
