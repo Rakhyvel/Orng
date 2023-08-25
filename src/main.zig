@@ -75,7 +75,9 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     };
     output(errors, &lines, file_root, uid, out_name, allocator) catch |err| {
         switch (err) {
-            error.typeError => {
+            error.symbolError,
+            error.typeError,
+            => {
                 try errors.printErrors(&lines, in_name);
                 return err;
             },

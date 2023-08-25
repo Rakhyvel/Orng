@@ -240,7 +240,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return _ast.poisoned;
             } else if (expected != null and !try expected.?.typesMatch(lhs_expanded_type.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
                 // lhs is error union, but .err field types don't match with expected
-                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = lhs_expanded_type, .stage = .typecheck } });
+                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type, .stage = .typecheck } });
                 return _ast.poisoned;
             } else if (scope.inner_function == null) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function", .stage = .typecheck } });

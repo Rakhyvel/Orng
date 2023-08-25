@@ -1,0 +1,4 @@
+// 138
+fn main() -> Int
+    let x: ?Int
+    x orelse 138

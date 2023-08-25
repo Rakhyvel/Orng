@@ -1,0 +1,7 @@
+// 131
+fn main() -> Int
+    let x: Int
+    if x == 0
+        131
+    else
+        4

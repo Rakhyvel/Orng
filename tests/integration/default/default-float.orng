@@ -1,0 +1,7 @@
+// 132
+fn main() -> Int
+    let x: Float
+    if x == 0.0
+        132
+    else
+        0

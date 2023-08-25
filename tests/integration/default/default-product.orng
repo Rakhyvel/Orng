@@ -1,0 +1,7 @@
+// 135
+fn main() -> Int
+    let x: (a: Int, b: Float)
+    if x.a == 0 and x.b == 0.0
+        135
+    else
+        0

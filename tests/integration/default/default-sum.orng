@@ -1,0 +1,7 @@
+// 133
+fn main() -> Int
+    let x: (a: Int | b | c)
+    if x.a == 0
+        133
+    else
+        0

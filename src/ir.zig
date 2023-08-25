@@ -631,7 +631,17 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, OutOfMemory, NotAnLValue, Unimplemented, InvalidRange, Utf8ExpectedContinuation, Utf8OverlongEncoding, Utf8EncodesSurrogateHalf, Utf8CodepointTooLarge }!?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{
+        typeError,
+        OutOfMemory,
+        NotAnLValue,
+        Unimplemented,
+        InvalidRange,
+        Utf8ExpectedContinuation,
+        Utf8OverlongEncoding,
+        Utf8EncodesSurrogateHalf,
+        Utf8CodepointTooLarge,
+    }!?*SymbolVersion {
         switch (ast.*) {
             // Literals
             .unit => return null,
@@ -1527,11 +1537,11 @@ pub const CFG = struct {
                 var def: ?*SymbolVersion = null;
                 if (ast.decl.symbol.?.init) |init| {
                     def = try self.flattenAST(ast.decl.symbol.?.scope, init, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (def == null) {
-                        return null;
-                    }
                 } else {
                     def = try self.generate_default(scope, ast.decl.symbol.?._type.?, errors, allocator);
+                }
+                if (def == null) {
+                    return null;
                 }
                 var ir = try IR.create(.copy, symbver, def, null, allocator);
                 symbver.def = ir;
@@ -1596,7 +1606,17 @@ pub const CFG = struct {
     }
 
     /// Takes in a type, generates the code to create the default value for that type, returns SymbolVersion
-    fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*SymbolVersion {
+    fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) error{
+        typeError,
+        OutOfMemory,
+        NotAnLValue,
+        Unimplemented,
+        InvalidRange,
+        Utf8ExpectedContinuation,
+        Utf8OverlongEncoding,
+        Utf8EncodesSurrogateHalf,
+        Utf8CodepointTooLarge,
+    }!?*SymbolVersion {
         switch (_type.*) {
             .identifier => {
                 if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
@@ -1620,7 +1640,7 @@ pub const CFG = struct {
                     return temp;
                 } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
                     var temp = try self.createTempSymbolVersion(_type, allocator);
-                    var ir = try IR.createInt(temp, 0, allocator);
+                    var ir = try IR.createFloat(temp, 0, allocator);
                     temp.def = ir;
                     self.appendInstruction(ir);
                     return temp;
@@ -1633,6 +1653,42 @@ pub const CFG = struct {
                 } else {
                     return self.generate_default(scope, _type.getCommon().expanded_type.?, errors, allocator);
                 }
+            },
+            .addrOf,
+            .function,
+            => {
+                var temp = try self.createTempSymbolVersion(_type, allocator);
+                var ir = try IR.createInt(temp, 0, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .sum => {
+                var index: usize = if (_type.sum.was_error) 1 else 0; // For errors, default value is the `ok` value, which is the 1th tag
+                var proper_term: *AST = _type.sum.terms.items[index];
+                var init: ?*SymbolVersion = try self.generate_default(scope, proper_term, errors, allocator);
+                var temp = try self.createTempSymbolVersion(_type, allocator);
+
+                var ir = try IR.createUnion(temp, init, index, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .product => {
+                var temp = try self.createTempSymbolVersion(_type, allocator);
+                var ir = try IR.createLoadStruct(temp, allocator);
+                for (_type.product.terms.items) |term| {
+                    try ir.data.symbverList.append((try self.generate_default(scope, term, errors, allocator)).?);
+                }
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .unit => return null,
+            .annotation => if (_type.annotation.init != null) {
+                return self.flattenAST(scope, _type.annotation.init.?, null, null, null, null, false, errors, allocator);
+            } else {
+                return self.generate_default(scope, _type.annotation.type, errors, allocator);
             },
             else => {
                 std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});

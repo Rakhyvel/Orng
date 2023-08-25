@@ -147,7 +147,7 @@
     - [x] proper fuzz tests
         > If a program ever compiles, make a log of what the orng program was
         > Fuzz testing will unfortunately crash if compiler crashes (maybe can be de-coupled?), so store latest orng program somewhere too
-    - [ ] default values
+    - [x] default values
     - [ ] explicit discarding with `_`
     - [ ] static index out of bounds
     - [ ] dynamic index out of bounds
