@@ -1,0 +1,7 @@
+// 130
+fn main() -> Int
+    let x: Bool
+    if not x
+        130
+    else 
+        4

@@ -111,6 +111,11 @@ pub const Error = union(enum) {
         symbol: *_symbol.Symbol,
         stage: Stage,
     },
+    notIndexable: struct {
+        span: Span,
+        _type: *AST,
+        stage: Stage,
+    },
 
     pub fn getStage(self: *const Error) Stage {
         switch (self.*) {
@@ -132,6 +137,7 @@ pub const Error = union(enum) {
             .undeclaredIdentifier => return self.undeclaredIdentifier.stage,
             .useBeforeDef => return self.useBeforeDef.stage,
             .modifyImmutable => return self.modifyImmutable.stage,
+            .notIndexable => return self.notIndexable.stage,
         }
     }
 
@@ -155,6 +161,7 @@ pub const Error = union(enum) {
             .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
             .useBeforeDef => return self.useBeforeDef.identifier.span,
             .modifyImmutable => return self.modifyImmutable.identifier.span,
+            .notIndexable => return self.notIndexable.span,
         }
     }
 };
@@ -249,6 +256,11 @@ pub const Errors = struct {
                 },
                 .modifyImmutable => {
                     try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
+                },
+                .notIndexable => {
+                    try out.print("the type `", .{});
+                    try err.notIndexable._type.printType(out);
+                    try out.print("` is not indexable\n", .{});
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);

@@ -455,7 +455,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .index => {
-            // BIG SLOPPY TODO: Check to see if lhs is even indexable, no matter if expected is null
             var lhs_span = ast.index.lhs.getToken().span; // Used for error reporting
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 ast.index.lhs = try validateAST(ast.index.lhs, _ast.typeType, scope, errors, allocator);
@@ -468,21 +467,21 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             var lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
-            // TODO: Replace with check that lhs type implements Indexable
-            if (lhs_type.* == .poison) {
-                return _ast.poisoned;
-            } else if (lhs_type.* != .product or !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
-                errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "not indexable", .stage = .typecheck } });
-                return _ast.poisoned;
-            }
-
-            // Implicit dereference
             if (lhs_type.* == .addrOf) {
+                // Implicit dereference
                 ast.index.lhs = try validateAST(try AST.createDereference(ast.getToken(), ast.index.lhs, allocator), null, scope, errors, allocator);
                 lhs_type = try ast.index.lhs.typeof(scope, errors, allocator);
                 if (ast.index.lhs.* == .poison) {
                     return _ast.poisoned;
                 }
+            } else if (lhs_type.* == .poison) {
+                return _ast.poisoned;
+            }
+
+            if (lhs_type.* != .product and !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
+                // TODO: Replace with check that lhs type implements Indexable
+                errors.addError(Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_type, .stage = .typecheck } });
+                return _ast.poisoned;
             }
 
             if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(scope, errors, allocator)) {

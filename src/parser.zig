@@ -194,9 +194,17 @@ pub const Parser = struct {
         if (self.peekKind(.CONST) or self.peekKind(.LET)) {
             return self.nonFnDeclaration();
         } else if (self.accept(.DEFER)) |token| {
-            return try AST.createDefer(token, try self.statement(), self.astAllocator);
+            if (self.peekKind(.CONST) or self.peekKind(.LET)) {
+                return try AST.createDefer(token, try self.nonFnDeclaration(), self.astAllocator);
+            } else {
+                return try AST.createDefer(token, try self.expr(), self.astAllocator);
+            }
         } else if (self.accept(.ERRDEFER)) |token| {
-            return try AST.createErrDefer(token, try self.statement(), self.astAllocator);
+            if (self.peekKind(.CONST) or self.peekKind(.LET)) {
+                return try AST.createErrDefer(token, try self.nonFnDeclaration(), self.astAllocator);
+            } else {
+                return try AST.createErrDefer(token, try self.expr(), self.astAllocator);
+            }
         } else {
             return self.expr();
         }

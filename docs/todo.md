@@ -194,6 +194,7 @@
         - [ ] block
         - [ ] if
         - [ ] case
+        - [ ] decl
     - [ ] `const` should actually likely be a type modifier
         > Should it actually? `const T` can represent all the values that `T` can, there's just an extra contraint that those values be known at compile-time. Idk if that's really a type.
     - [ ] array sizes are evaluated at compile-time

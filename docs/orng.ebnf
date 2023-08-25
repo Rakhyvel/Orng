@@ -15,8 +15,8 @@ const_declaration: "const" ident [":" arrowExpr] "=" expr.
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
 statement: non_fn_declaration
-         | "defer" statement
-         | "errdefer" statement
+         | "defer" (expr | non_fn_declaration)
+         | "errdefer" (expr | non_fn_declaration)
          | expr
          .
 

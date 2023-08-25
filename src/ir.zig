@@ -1531,7 +1531,7 @@ pub const CFG = struct {
                         return null;
                     }
                 } else {
-                    // self.defaultValue(ast.decl.symbol.type)
+                    def = try self.generate_default(scope, ast.decl.symbol.?._type.?, errors, allocator);
                 }
                 var ir = try IR.create(.copy, symbver, def, null, allocator);
                 symbver.def = ir;
@@ -1590,6 +1590,52 @@ pub const CFG = struct {
             },
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
+                return error.Unimplemented;
+            },
+        }
+    }
+
+    /// Takes in a type, generates the code to create the default value for that type, returns SymbolVersion
+    fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*SymbolVersion {
+        switch (_type.*) {
+            .identifier => {
+                if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
+                    // default is false
+                    var temp = try self.createTempSymbolVersion(_type, allocator);
+                    var ir = try IR.createInt(temp, 0, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    return temp;
+                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Byte")) {
+                    var temp = try self.createTempSymbolVersion(_type, allocator);
+                    var ir = try IR.createInt(temp, 0, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    return temp;
+                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
+                    var temp = try self.createTempSymbolVersion(_type, allocator);
+                    var ir = try IR.createInt(temp, 0, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    return temp;
+                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
+                    var temp = try self.createTempSymbolVersion(_type, allocator);
+                    var ir = try IR.createInt(temp, 0, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    return temp;
+                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
+                    var temp = try self.createTempSymbolVersion(_type, allocator);
+                    var ir = try IR.createInt(temp, 0, allocator);
+                    temp.def = ir;
+                    self.appendInstruction(ir);
+                    return temp;
+                } else {
+                    return self.generate_default(scope, _type.getCommon().expanded_type.?, errors, allocator);
+                }
+            },
+            else => {
+                std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
                 return error.Unimplemented;
             },
         }

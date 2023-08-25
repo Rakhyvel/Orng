@@ -2,6 +2,8 @@
 # used just to check for ambiguity
 # python3.10 ../rdgen/main.py create --input orng.ebnf --output parser.py && grep "AMBIGUOUS" parser.py
 
+prog_ram: program.
+
 program: top_level_declaration {"newline" top_level_declaration} "eof".
 
 top_level_declaration: fn_declaration 
@@ -15,8 +17,8 @@ const_declaration: "const" ident [":" arrowExpr] "=" expr.
 let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
 
 statement: non_fn_declaration
-         | "defer" statement
-         | "errdefer" statement
+         | "defer" (expr | non_fn_declaration)
+         | "errdefer" (expr | non_fn_declaration)
          | expr
          .
 
