@@ -863,13 +863,34 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and !ir.dest.?.symbol.is_temp) {
                 if (ir.dest.?.symbol.discards > 1) {
-                    errors.addError(Error{ .symbol_error = .{ .span = ir.dest.?.symbol.span, .name = ir.dest.?.symbol.name, .problem = "is discarded more than once", .stage = .typecheck } });
+                    errors.addError(Error{ .symbol_error = .{
+                        .span = ir.dest.?.symbol.discard_span.?,
+                        .context_span = ir.dest.?.symbol.span,
+                        .name = ir.dest.?.symbol.name,
+                        .problem = "is discarded more than once",
+                        .context_message = "defined here",
+                        .stage = .typecheck,
+                    } });
                     return error.typeError;
                 } else if (ir.dest.?.symbol.discards == 1 and ir.dest.?.symbol.uses > 1) {
-                    errors.addError(Error{ .symbol_error = .{ .span = ir.dest.?.symbol.span, .name = ir.dest.?.symbol.name, .problem = "is discarded when it is used", .stage = .typecheck } });
+                    errors.addError(Error{ .symbol_error = .{
+                        .span = ir.dest.?.symbol.discard_span.?,
+                        .context_span = ir.dest.?.symbol.span,
+                        .name = ir.dest.?.symbol.name,
+                        .problem = "is discarded when it is used",
+                        .context_message = "defined here",
+                        .stage = .typecheck,
+                    } });
                     return error.typeError;
                 } else if (ir.dest.?.symbol.discards == 0 and ir.dest.?.symbol.uses == 0) {
-                    errors.addError(Error{ .symbol_error = .{ .span = ir.dest.?.symbol.span, .name = ir.dest.?.symbol.name, .problem = "is never used", .stage = .typecheck } });
+                    errors.addError(Error{ .symbol_error = .{
+                        .span = ir.dest.?.symbol.span,
+                        .context_span = null,
+                        .name = ir.dest.?.symbol.name,
+                        .problem = "is never used",
+                        .context_message = "",
+                        .stage = .typecheck,
+                    } });
                     return error.typeError;
                 }
             }

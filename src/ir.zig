@@ -800,6 +800,7 @@ pub const CFG = struct {
                 if (expr == null) {
                     return null;
                 }
+                expr.?.symbol.discard_span = ast.getToken().span;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
 
                 var ir = try IR.createDiscard(expr.?, allocator);

@@ -124,6 +124,7 @@ pub const Symbol = struct {
     versions: u64 = 0,
     uses: u64 = 0,
     discards: u64 = 0, // May be 0 if symbol is uses > 0; may be 1 if uses = 0; may not be greater than 1
+    discard_span: ?Span,
     kind: SymbolKind,
     cfg: ?*CFG,
     decl: ?*AST,

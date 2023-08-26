@@ -148,8 +148,8 @@
         > If a program ever compiles, make a log of what the orng program was
         > Fuzz testing will unfortunately crash if compiler crashes (maybe can be de-coupled?), so store latest orng program somewhere too
     - [x] default values
-    - [ ] explicit discarding with `_`
-        - [ ] error if discard when it's used
+    - [x] explicit discarding with `_`
+        - [x] error if discard when it's used
     - [ ] static index out of bounds
     - [ ] dynamic index out of bounds
     - [ ] static slice lower > greater

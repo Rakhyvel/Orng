@@ -67,8 +67,10 @@ pub const Error = union(enum) {
     },
     symbol_error: struct {
         span: Span,
+        context_span: ?Span,
         name: []const u8,
         problem: []const u8,
+        context_message: []const u8 = "",
         stage: Stage,
     },
 
@@ -297,6 +299,16 @@ pub const Errors = struct {
                         try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
                         try (term.Attr{ .bold = false }).dump(out);
                         try printEpilude(err.redefinition.first_defined_span, lines);
+                    }
+                },
+                .symbol_error => {
+                    if (err.symbol_error.context_span != null) {
+                        try (term.Attr{ .bold = true }).dump(out);
+                        try print_note_prelude(err.symbol_error.context_span.?, filename);
+                        try (term.Attr{ .bold = true }).dump(out);
+                        try out.print("{s}\n", .{err.symbol_error.context_message});
+                        try (term.Attr{ .bold = false }).dump(out);
+                        try printEpilude(err.symbol_error.context_span.?, lines);
                     }
                 },
                 .sum_duplicate => {
