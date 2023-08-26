@@ -1,6 +1,7 @@
 // 64
 fn main() -> Int
     let x: [4]Int = get_array(15, 16)
+    _ = x
     let z = 64
     let y: (a: Int, b: &Int) = (z, &z)
     y.a

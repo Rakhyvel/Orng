@@ -121,7 +121,9 @@ pub const Symbol = struct {
     span: Span,
     _type: ?*ast.AST,
     init: ?*ast.AST,
-    versions: u64,
+    versions: u64 = 0,
+    uses: u64 = 0,
+    discards: u64 = 0, // May be 0 if symbol is uses > 0; may be 1 if uses = 0; may not be greater than 1
     kind: SymbolKind,
     cfg: ?*CFG,
     decl: ?*AST,
@@ -135,6 +137,7 @@ pub const Symbol = struct {
     /// When a local variable, whether or not the variable has been printed out or not
     decld: bool,
     param: bool,
+    is_temp: bool = false,
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
@@ -145,6 +148,8 @@ pub const Symbol = struct {
         retval.init = _init;
         retval.decl = decl;
         retval.versions = 0;
+        retval.discards = 0;
+        retval.uses = 0;
         retval.kind = kind;
         retval.cfg = null;
         if (kind == ._fn or kind == ._const) {
@@ -192,6 +197,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
         ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
         .optional => try symbolTableFromAST(definition.optional.expr, scope, errors, allocator),
+        .discard => try symbolTableFromAST(definition.discard.expr, scope, errors, allocator),
 
         .assign => {
             try symbolTableFromAST(definition.assign.lhs, scope, errors, allocator);

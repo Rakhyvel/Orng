@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1693022757773282140
-#define ORNG_1693022757773282140
+#ifndef ORNG_1693022762117226856
+#define ORNG_1693022762117226856
 
 #include <math.h>
 #include <stdio.h>
@@ -13,7 +13,7 @@ static uint16_t $line_idx = 0;
 
 /* Typedefs */
 typedef struct {
-	int64_t _2;
+	int64_t _1;
 } struct0;
 
 /* Interned Strings */
@@ -35,10 +35,10 @@ BB0:
 	_2_t1 = 0;
 	_2_t2 = 0;
 	_2_t3 = 0;
-	_3_x = (struct0) {_2_t3};
+	_3_x = (struct0) {_2_t2, };
 	_3_y = &_3_x;
 	_2_t5 = 140;
-	_2_t7 = (_3_y)->_2;
+	_2_t7 = (_3_y)->_1;
 	_2_$retval = _2_t5 + _2_t7;
 	return _2_$retval;
 }

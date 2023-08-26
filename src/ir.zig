@@ -18,7 +18,7 @@ pub const SymbolVersion = struct {
     def: ?*IR,
 
     lvalue: bool,
-    uses: usize,
+    uses: usize = 0,
 
     /// Type of the SymbolVersion. Temps use the same symbol, so can't use that for type info
     type: *AST,
@@ -26,6 +26,7 @@ pub const SymbolVersion = struct {
     fn createUnversioned(symbol: *Symbol, _type: *AST, allocator: std.mem.Allocator) !*SymbolVersion {
         var retval = try allocator.create(SymbolVersion);
         retval.symbol = symbol;
+        retval.uses = 0;
         retval.version = null;
         retval.type = _type;
         retval.lvalue = false;
@@ -161,6 +162,9 @@ pub const IRKind = enum {
     branchIfFalse,
     call,
 
+    // Non-Code Generating
+    discard, // Marks that a symbol isn't used, but that's OK
+
     // Errors
     pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
     panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
@@ -277,6 +281,12 @@ pub const IR = struct {
 
     fn createIndex(dest: *SymbolVersion, src1: *SymbolVersion, src2: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.index, dest, src1, src2, allocator);
+        retval.data = IRData.none;
+        return retval;
+    }
+
+    fn createDiscard(src1: *SymbolVersion, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.discard, null, src1, null, allocator);
         retval.data = IRData.none;
         return retval;
     }
@@ -608,6 +618,7 @@ pub const CFG = struct {
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
         var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, Span{ .filename = "", .line = 0, .col = 0 }, _type, null, null, .mut, allocator);
+        temp_symbol.is_temp = true;
         return temp_symbol;
     }
 
@@ -783,6 +794,18 @@ pub const CFG = struct {
 
                 self.appendInstruction(end);
                 return ok_symbver;
+            },
+            .discard => {
+                var expr = try self.flattenAST(scope, ast.discard.expr, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (expr == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
+
+                var ir = try IR.createDiscard(expr.?, allocator);
+                temp.def = ir;
+                self.appendInstruction(ir);
+                return temp;
             },
 
             // Binary operators

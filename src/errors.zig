@@ -65,6 +65,12 @@ pub const Error = union(enum) {
         name: []const u8,
         stage: Stage,
     },
+    symbol_error: struct {
+        span: Span,
+        name: []const u8,
+        problem: []const u8,
+        stage: Stage,
+    },
 
     // Typecheck
     expected2Type: struct {
@@ -129,6 +135,8 @@ pub const Error = union(enum) {
             .missing_close => return self.missing_close.stage,
 
             .redefinition => return self.redefinition.stage,
+            .symbol_error => return self.symbol_error.stage,
+
             .expected2Type => return self.expected2Type.stage,
             .expectedType => return self.expectedType.stage,
             .expectedGotString => return self.expectedGotString.stage,
@@ -153,6 +161,8 @@ pub const Error = union(enum) {
             .missing_close => return self.missing_close.got.span,
 
             .redefinition => return self.redefinition.redefined_span,
+            .symbol_error => return self.symbol_error.span,
+
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
             .expectedGotString => return self.expectedGotString.span,
@@ -214,6 +224,9 @@ pub const Errors = struct {
                 // Symbol
                 .redefinition => {
                     try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name});
+                },
+                .symbol_error => {
+                    try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem });
                 },
 
                 // Typecheck

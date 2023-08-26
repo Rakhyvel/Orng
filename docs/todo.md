@@ -149,6 +149,7 @@
         > Fuzz testing will unfortunately crash if compiler crashes (maybe can be de-coupled?), so store latest orng program somewhere too
     - [x] default values
     - [ ] explicit discarding with `_`
+        - [ ] error if discard when it's used
     - [ ] static index out of bounds
     - [ ] dynamic index out of bounds
     - [ ] static slice lower > greater
@@ -170,6 +171,7 @@
         > `let x', x' = (3, 4) // maybe this causes a panic, like an assert`
         > should likely be shallow equality, otherwise that gets tricky...
     - [ ] `match` statement
+        - [ ] Error if match isn't total
 - [ ] new optimizations
     - [ ] expand_types should only allocate if anything changes
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)

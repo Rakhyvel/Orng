@@ -63,7 +63,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
     } else if (dag.base.* == .product) {
         try out.writer().print("typedef struct {{\n", .{});
         for (dag.base.product.terms.items, 0..) |term, i| {
-            if (!term.annotation.type.c_typesMatch(_ast.unitType)) {
+            if (!term.c_typesMatch(_ast.unitType)) {
                 // Don't gen `void` structure fields
                 try out.writer().print("\t", .{});
                 try printType(term, out);
@@ -562,6 +562,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             }
             try out.writer().print(");\n", .{});
         },
+
+        // Non-Code Generating
+        .discard => {},
 
         // Errors
         .pushStackTrace => {

@@ -108,6 +108,7 @@ pub const AST = union(enum) {
     dereference: struct { common: ASTCommon, expr: *AST },
     _try: struct { common: ASTCommon, expr: *AST },
     optional: struct { common: ASTCommon, expr: *AST },
+    discard: struct { common: ASTCommon, expr: *AST },
 
     // Binary operators
     assign: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -291,6 +292,7 @@ pub const AST = union(enum) {
             .dereference => return &self.dereference.common,
             ._try => return &self._try.common,
             .optional => return &self.optional.common,
+            .discard => return &self.discard.common,
 
             .assign => return &self.assign.common,
             ._or => return &self._or.common,
@@ -402,6 +404,10 @@ pub const AST = union(enum) {
 
     pub fn createOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .optional = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    }
+
+    pub fn createDiscard(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .discard = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
@@ -858,6 +864,7 @@ pub const AST = union(enum) {
             .assign,
             ._defer,
             ._errdefer,
+            .discard,
             => retval = unitType,
 
             // Void type

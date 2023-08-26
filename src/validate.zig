@@ -274,6 +274,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = try AST.create_optional_type(ast.optional.expr, allocator);
         },
+        .discard => {
+            ast.discard.expr = try validateAST(ast.discard.expr, null, scope, errors, allocator);
+            if (ast.discard.expr.* == .poison) {
+                return _ast.poisoned;
+            }
+            retval = ast;
+        },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);
             validateLValue(ast.assign.lhs, scope, errors) catch |err| switch (err) {

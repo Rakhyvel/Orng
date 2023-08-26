@@ -1,8 +1,10 @@
+const errs = @import("errors.zig");
 const _ir = @import("ir.zig");
 const std = @import("std");
 
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
+const Error = errs.Error;
 const IR = _ir.IR;
 const SymbolVersion = _ir.SymbolVersion;
 
@@ -26,12 +28,15 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     }
 }
 
-pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
+pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
         log("\n\n");
     }
+
+    try findUnused(cfg, errors);
+
     while (try propagate(cfg) or
         try bbOptimizations(cfg, allocator) or
         removeUnusedDefs(cfg))
@@ -39,7 +44,7 @@ pub fn optimize(cfg: *CFG, allocator: std.mem.Allocator) !void {
     cfg.clearVisitedBBs();
 
     for (cfg.children.items) |child| {
-        try optimize(child, allocator);
+        try optimize(child, errors, allocator);
     }
 }
 
@@ -850,6 +855,28 @@ fn propagateIR(ir: *IR) bool {
     return retval;
 }
 
+fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
+    calculateUsage(cfg);
+
+    for (cfg.basic_blocks.items) |bb| {
+        var maybe_ir: ?*IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest != null and !ir.removed and !ir.dest.?.symbol.is_temp) {
+                if (ir.dest.?.symbol.discards > 1) {
+                    errors.addError(Error{ .symbol_error = .{ .span = ir.dest.?.symbol.span, .name = ir.dest.?.symbol.name, .problem = "is discarded more than once", .stage = .typecheck } });
+                    return error.typeError;
+                } else if (ir.dest.?.symbol.discards == 1 and ir.dest.?.symbol.uses > 1) {
+                    errors.addError(Error{ .symbol_error = .{ .span = ir.dest.?.symbol.span, .name = ir.dest.?.symbol.name, .problem = "is discarded when it is used", .stage = .typecheck } });
+                    return error.typeError;
+                } else if (ir.dest.?.symbol.discards == 0 and ir.dest.?.symbol.uses == 0) {
+                    errors.addError(Error{ .symbol_error = .{ .span = ir.dest.?.symbol.span, .name = ir.dest.?.symbol.name, .problem = "is never used", .stage = .typecheck } });
+                    return error.typeError;
+                }
+            }
+        }
+    }
+}
+
 fn removeUnusedDefs(cfg: *CFG) bool {
     var retval = false;
 
@@ -860,9 +887,6 @@ fn removeUnusedDefs(cfg: *CFG) bool {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and ir.dest.?.uses == 0) {
-                if (debug) {
-                    std.debug.print("removing {s}\n", .{ir.dest.?.symbol.name});
-                }
                 bb.removeInstruction(ir);
                 retval = true;
             }
@@ -916,9 +940,12 @@ fn calculateUsage(cfg: *CFG) void {
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest) |dest| {
                 dest.uses = 0;
+                dest.symbol.uses = 0;
             }
         }
+    }
 
+    for (cfg.basic_blocks.items) |bb| {
         // Arguments are default used
         for (bb.next_arguments.items) |symbver| {
             symbver.uses += 1;
@@ -928,24 +955,33 @@ fn calculateUsage(cfg: *CFG) void {
         }
 
         // Go through and see if each symbol is used
-        maybe_ir = bb.ir_head;
+        var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.kind == .discard) {
+                ir.src1.?.symbol.discards += 1;
+            }
             if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol or ir.kind == .call)) {
+                // dest aren't USUALLY considered a usage, but they are for derefCopy and call IRs
                 ir.dest.?.uses += 1;
+                ir.dest.?.symbol.uses += 1;
             }
             if (ir.src1 != null) {
                 ir.src1.?.uses += 1;
+                ir.src1.?.symbol.uses += 1;
             }
             if (ir.src2 != null) {
                 ir.src2.?.uses += 1;
+                ir.src2.?.symbol.uses += 1;
             }
-            if (ir.kind == .call or ir.kind == .loadStruct) {
-                for (ir.data.symbverList.items) |symbver| {
-                    symbver.uses += 1;
-                }
-            }
+
             if (ir.data == .symbver) {
                 ir.data.symbver.uses += 1;
+                ir.data.symbver.symbol.uses += 1;
+            } else if (ir.data == .symbverList) {
+                for (ir.data.symbverList.items) |item| {
+                    item.uses += 1;
+                    item.symbol.uses += 1;
+                }
             }
         }
 

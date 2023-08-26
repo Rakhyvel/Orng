@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1691899681449729182
-#define ORNG_1691899681449729182
+#ifndef ORNG_1693029152386386103
+#define ORNG_1693029152386386103
 
 #include <math.h>
 #include <stdio.h>
@@ -30,12 +30,14 @@ int64_t _2_main() {
 	int64_t _2_t1;
 	int64_t _2_t2;
 	struct0 _2_t0;
+	struct0 _3_x;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 15;
 	_2_t2 = 16;
     $lines[$line_idx++] = "tests/integration/tuples/mix.orng:3:31:\n    let x: [4]Int = get_array(15, 16)";
 	_2_t0 = _4_get_array(_2_t1, _2_t2);
+	_3_x = _2_t0;
 	_2_$retval = 64;
 	return _2_$retval;
 }

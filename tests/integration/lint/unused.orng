@@ -1,0 +1,5 @@
+// 141
+fn main() -> Int
+    let x: Int = 4
+    _ = x
+    141

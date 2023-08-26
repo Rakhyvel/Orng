@@ -143,7 +143,11 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         var cfg = try ir.CFG.create(msymb, null, &intered_strings, errors, allocator);
 
         // Optimize
-        try optimizations.optimize(cfg, allocator);
+        try optimizations.optimize(
+            cfg,
+            errors,
+            allocator,
+        );
 
         // C Code generation
         var program = try Program.init(cfg, uid, &intered_strings, try symbol.getPrelude(allocator), errors, allocator);
