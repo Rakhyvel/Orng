@@ -63,9 +63,12 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
     } else if (dag.base.* == .product) {
         try out.writer().print("typedef struct {{\n", .{});
         for (dag.base.product.terms.items, 0..) |term, i| {
-            try out.writer().print("\t", .{});
-            try printType(term, out);
-            try out.writer().print(" _{};\n", .{i});
+            if (!term.annotation.type.c_typesMatch(_ast.unitType)) {
+                // Don't gen `void` structure fields
+                try out.writer().print("\t", .{});
+                try printType(term, out);
+                try out.writer().print(" _{};\n", .{i});
+            }
         }
         try out.writer().print("}} struct{};\n", .{dag.uid});
     } else if (dag.base.* == .sum) {
@@ -74,6 +77,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
             try out.writer().print("\tunion {{\n", .{});
             for (dag.base.sum.terms.items, 0..) |term, i| {
                 if (!term.annotation.type.c_typesMatch(_ast.unitType)) {
+                    // Don't gen `void` structure fields
                     try out.writer().print("\t\t", .{});
                     try printType(term, out);
                     try out.writer().print(" _{};\n", .{i});
@@ -334,14 +338,17 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print(") {{", .{});
             for (ir.data.symbverList.items, ir.dest.?.symbol._type.?.product.terms.items, 1..) |symbver, expected, i| {
-                if (!expected.c_typesMatch(symbver.symbol._type.?)) {
-                    try out.writer().print("(", .{});
-                    try printType(expected, out);
-                    try out.writer().print(")", .{});
-                }
-                try printSymbolVersion(symbver, out);
-                if (i != ir.data.symbverList.items.len) {
-                    try out.writer().print(", ", .{});
+                if (!expected.c_typesMatch(_ast.unitType)) {
+                    // Don't values of type `void` (don't exist in C! (Goobersville!))
+                    if (!expected.c_typesMatch(symbver.symbol._type.?)) {
+                        try out.writer().print("(", .{});
+                        try printType(expected, out);
+                        try out.writer().print(")", .{});
+                    }
+                    try printSymbolVersion(symbver, out);
+                    if (i != ir.data.symbverList.items.len) {
+                        try out.writer().print(", ", .{});
+                    }
                 }
             }
             try out.writer().print("}};\n", .{});

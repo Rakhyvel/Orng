@@ -1,0 +1,5 @@
+// 140
+fn main() -> Int
+    let x: (a:(), b:Int, c:())
+    let y = &x
+    140 + y.b

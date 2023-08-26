@@ -1678,7 +1678,16 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(_type, allocator);
                 var ir = try IR.createLoadStruct(temp, allocator);
                 for (_type.product.terms.items) |term| {
-                    try ir.data.symbverList.append((try self.generate_default(scope, term, errors, allocator)).?);
+                    var term_symb_ver = try self.generate_default(scope, term, errors, allocator);
+                    if (term_symb_ver) |_| {
+                        try ir.data.symbverList.append(term_symb_ver.?);
+                    } else {
+                        var temp2 = try self.createTempSymbolVersion(_ast.intType, allocator);
+                        var ir2 = try IR.createInt(temp2, 0, allocator);
+                        temp2.def = ir2;
+                        self.appendInstruction(ir2);
+                        try ir.data.symbverList.append(temp2);
+                    }
                 }
                 temp.def = ir;
                 self.appendInstruction(ir);
