@@ -653,7 +653,7 @@ pub const AST = union(enum) {
         switch (self.*) {
             .identifier => {
                 var symbol = scope.lookup(self.getToken().data, false) orelse {
-                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .stage = .typecheck } });
+                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken() } });
                     return error.typeError;
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
@@ -926,7 +926,6 @@ pub const AST = union(enum) {
                         errors.addError(Error{ .basic = .{
                             .span = self.getToken().span,
                             .msg = "left-hand-side of select is not selectable",
-                            .stage = .typecheck,
                         } });
                         return error.typeError;
                     }
@@ -940,7 +939,6 @@ pub const AST = union(enum) {
                         .span = self.getToken().span,
                         .identifier = self.select.rhs.getToken().data,
                         .group_name = "tuple",
-                        .stage = .typecheck,
                     } });
                     return error.typeError;
                 }

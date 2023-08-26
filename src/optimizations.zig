@@ -37,7 +37,7 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !
 
     try findUnused(cfg, errors);
 
-    while (try propagate(cfg) or
+    while (try propagate(cfg, errors) or
         try bbOptimizations(cfg, allocator) or
         removeUnusedDefs(cfg))
     {}
@@ -231,7 +231,7 @@ fn findIR(bb: *BasicBlock, symbver: *SymbolVersion) ?*IR {
     return null;
 }
 
-fn propagate(cfg: *CFG) !bool {
+fn propagate(cfg: *CFG, errors: *errs.Errors) !bool {
     var retval = false;
 
     calculateVersions(cfg);
@@ -240,7 +240,7 @@ fn propagate(cfg: *CFG) !bool {
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            retval = propagateIR(ir) or retval;
+            retval = try propagateIR(ir, errors) or retval;
             if (ir.src1 != null and ir.src1.?.def == null) {
                 ir.src1.?.def = findIR(bb, ir.src1.?);
                 retval = ir.src1.?.def != null;
@@ -255,7 +255,7 @@ fn propagate(cfg: *CFG) !bool {
     return retval;
 }
 
-fn propagateIR(ir: *IR) bool {
+fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
     var retval = false;
 
     switch (ir.kind) {
@@ -802,6 +802,30 @@ fn propagateIR(ir: *IR) bool {
             }
         },
 
+        .index => {
+            // Statically check if index is within bounds
+            if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
+                if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
+                    var index = ir.src2.?.def.?.data.int;
+                    var length = ir.src1.?.symbol._type.?.product.terms.items.len;
+                    if (index < 0) {
+                        errors.addError(Error{ .negative_index = .{
+                            .span = ir.span,
+                            .index = index,
+                        } });
+                        return error.typeError;
+                    } else if (index >= length) {
+                        errors.addError(Error{ .out_of_bounds = .{
+                            .span = ir.span,
+                            .index = index,
+                            .length = length,
+                        } });
+                        return error.typeError;
+                    }
+                }
+            }
+        },
+
         .select => {
             // Known loadUnion value
             if (ir.src1.?.def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
@@ -869,7 +893,6 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
                         .name = ir.dest.?.symbol.name,
                         .problem = "is discarded more than once",
                         .context_message = "defined here",
-                        .stage = .typecheck,
                     } });
                     return error.typeError;
                 } else if (ir.dest.?.symbol.discards == 1 and ir.dest.?.symbol.uses > 1) {
@@ -879,7 +902,6 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
                         .name = ir.dest.?.symbol.name,
                         .problem = "is discarded when it is used",
                         .context_message = "defined here",
-                        .stage = .typecheck,
                     } });
                     return error.typeError;
                 } else if (ir.dest.?.symbol.discards == 0 and ir.dest.?.symbol.uses == 0) {
@@ -889,7 +911,6 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
                         .name = ir.dest.?.symbol.name,
                         .problem = "is never used",
                         .context_message = "",
-                        .stage = .typecheck,
                     } });
                     return error.typeError;
                 }

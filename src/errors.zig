@@ -9,22 +9,11 @@ const TokenKind = token.TokenKind;
 const Token = token.Token;
 const Span = @import("span.zig").Span;
 
-pub const Stage = enum {
-    tokenization,
-    layout,
-    parsing,
-    symbolTree,
-    typecheck,
-    ir,
-    codegen,
-};
-
 pub const Error = union(enum) {
     // General errors
     basic: struct {
         span: Span,
         msg: []const u8,
-        stage: Stage,
     },
 
     // Lexer errors
@@ -32,30 +21,25 @@ pub const Error = union(enum) {
         span: Span,
         digit: u8,
         base: []const u8,
-        stage: Stage,
     },
     invalid_escape: struct {
         span: Span,
         digit: u8,
-        stage: Stage,
     },
 
     // Parse errors
     expectedBasicToken: struct {
         expected: []const u8,
         got: Token,
-        stage: Stage,
     },
     expected2Token: struct {
         expected: TokenKind,
         got: Token,
-        stage: Stage,
     },
     missing_close: struct {
         expected: TokenKind,
         got: Token,
         open: Token,
-        stage: Stage,
     },
 
     // Symbol
@@ -63,15 +47,13 @@ pub const Error = union(enum) {
         first_defined_span: Span,
         redefined_span: Span,
         name: []const u8,
-        stage: Stage,
     },
     symbol_error: struct {
         span: Span,
         context_span: ?Span,
         name: []const u8,
         problem: []const u8,
-        context_message: []const u8 = "",
-        stage: Stage,
+        context_message: []const u8,
     },
 
     // Typecheck
@@ -79,77 +61,53 @@ pub const Error = union(enum) {
         span: Span,
         expected: *AST,
         got: *AST,
-        stage: Stage,
     },
     expectedType: struct {
         span: Span,
         expected: *AST,
         got: *AST,
-        stage: Stage,
     },
     expectedGotString: struct {
         span: Span,
         expected: *AST,
         got: []const u8,
-        stage: Stage,
     },
     sum_duplicate: struct {
         span: Span,
         identifier: []const u8,
         first: Span,
-        stage: Stage,
     },
     member_not_in: struct {
         span: Span,
         identifier: []const u8,
         group_name: []const u8,
-        stage: Stage,
     },
     undeclaredIdentifier: struct {
         identifier: Token,
-        stage: Stage,
     },
     useBeforeDef: struct {
         identifier: Token,
         symbol: *_symbol.Symbol,
-        stage: Stage,
     },
     modifyImmutable: struct {
         identifier: Token,
         symbol: *_symbol.Symbol,
-        stage: Stage,
     },
     notIndexable: struct {
         span: Span,
         _type: *AST,
-        stage: Stage,
     },
 
-    pub fn getStage(self: *const Error) Stage {
-        switch (self.*) {
-            .basic => return self.basic.stage,
-
-            .invalid_digit => return self.invalid_digit.stage,
-            .invalid_escape => return self.invalid_escape.stage,
-
-            .expectedBasicToken => return self.expectedBasicToken.stage,
-            .expected2Token => return self.expected2Token.stage,
-            .missing_close => return self.missing_close.stage,
-
-            .redefinition => return self.redefinition.stage,
-            .symbol_error => return self.symbol_error.stage,
-
-            .expected2Type => return self.expected2Type.stage,
-            .expectedType => return self.expectedType.stage,
-            .expectedGotString => return self.expectedGotString.stage,
-            .sum_duplicate => return self.sum_duplicate.stage,
-            .member_not_in => return self.member_not_in.stage,
-            .undeclaredIdentifier => return self.undeclaredIdentifier.stage,
-            .useBeforeDef => return self.useBeforeDef.stage,
-            .modifyImmutable => return self.modifyImmutable.stage,
-            .notIndexable => return self.notIndexable.stage,
-        }
-    }
+    // Optimizer
+    out_of_bounds: struct {
+        span: Span,
+        index: i128,
+        length: usize,
+    },
+    negative_index: struct {
+        span: Span,
+        index: i128,
+    },
 
     pub fn getSpan(self: *const Error) ?Span {
         switch (self.*) {
@@ -174,6 +132,9 @@ pub const Error = union(enum) {
             .useBeforeDef => return self.useBeforeDef.identifier.span,
             .modifyImmutable => return self.modifyImmutable.identifier.span,
             .notIndexable => return self.notIndexable.span,
+
+            .out_of_bounds => return self.out_of_bounds.span,
+            .negative_index => return self.negative_index.span,
         }
     }
 };
@@ -276,6 +237,14 @@ pub const Errors = struct {
                     try out.print("the type `", .{});
                     try err.notIndexable._type.printType(out);
                     try out.print("` is not indexable\n", .{});
+                },
+
+                // Optimizer
+                .out_of_bounds => {
+                    try out.print("index out of bounds; index {}, length {}`\n", .{ err.out_of_bounds.index, err.out_of_bounds.length });
+                },
+                .negative_index => {
+                    try out.print("index is negative; index {}`\n", .{err.negative_index.index});
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);

@@ -150,7 +150,7 @@
     - [x] default values
     - [x] explicit discarding with `_`
         - [x] error if discard when it's used
-    - [ ] static index out of bounds
+    - [x] static index out of bounds
     - [ ] dynamic index out of bounds
     - [ ] static slice lower > greater
     - [ ] dynamic slice lower > greater

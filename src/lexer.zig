@@ -17,7 +17,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     var start: usize = 0;
     var end: usize = 1;
     if (contents.len == 0) {
-        errors.addError(errs.Error{ .basic = .{ .span = Span{ .filename = "", .line = 0, .col = 0 }, .msg = "file is empty", .stage = .symbolTree } });
+        errors.addError(errs.Error{ .basic = .{ .span = Span{ .filename = "", .line = 0, .col = 0 }, .msg = "file is empty" } });
         return error.lexerError;
     }
     while (end < contents.len) : (end += 1) {
@@ -190,7 +190,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
 
             .string => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected `\"`, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected `\"`, got end-of-file" } });
                     return LexerErrors.lexerError;
                 } else switch (next_char) {
                     '"' => {
@@ -214,7 +214,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
 
             .escapedString => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
                     return LexerErrors.lexerError;
                 } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                     ix += 1;
@@ -225,7 +225,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .byteString1;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -236,7 +236,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .byteString2;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -247,14 +247,14 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .string;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                     return LexerErrors.lexerError;
                 }
             },
 
             .char => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a `'`, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a `'`, got end-of-file" } });
                     return LexerErrors.lexerError;
                 } else switch (next_char) {
                     '\'' => {
@@ -263,7 +263,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                         var num_codepoints = try std.unicode.utf8CountCodepoints(contents[slice_start + 1 .. ix - 1]);
                         var escaped = contents[slice_start + 1] == '\\';
                         if ((!escaped and num_codepoints > 1) or (escaped and num_codepoints > 2)) {
-                            errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal", .stage = .tokenization } });
+                            errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal" } });
                             return LexerErrors.lexerError;
                         }
                         try tokens.append(Token.create(contents[slice_start..ix], .CHAR, filename, line, col));
@@ -284,14 +284,14 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
 
             .escapedChar => {
                 if (ix == contents.len) {
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a character, got end-of-file", .stage = .tokenization } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
                     return LexerErrors.lexerError;
                 } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                     ix += 1;
                     col += 1;
                     state = .char;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -339,7 +339,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
 
             .integerDigit => {
                 if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal" } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -364,7 +364,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal", .stage = .tokenization } });
+                errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal" } });
                 return error.lexerError;
             } else {
                 ix += 1;
@@ -396,7 +396,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     state = .hex;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                     return error.lexerError;
                 },
             },
@@ -425,7 +425,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     state = .octal;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "octal", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "octal" } });
                     return error.lexerError;
                 },
             },
@@ -454,7 +454,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     state = .binary;
                 },
                 else => {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "binary", .stage = .tokenization } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "binary" } });
                     return error.lexerError;
                 },
             },

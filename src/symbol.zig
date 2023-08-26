@@ -371,7 +371,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
                     .first_defined_span = first.span,
                     .redefined_span = symbol.span,
                     .name = symbol.name,
-                    .stage = .symbolTree,
                 } });
                 return error.symbolError;
             } else {
@@ -387,7 +386,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
                     .first_defined_span = first.span,
                     .redefined_span = symbol.span,
                     .name = symbol.name,
-                    .stage = .symbolTree,
                 } });
                 return error.symbolError;
             } else {

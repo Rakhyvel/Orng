@@ -197,6 +197,7 @@ pub const IR = struct {
     prev: ?*IR,
 
     in_block: ?*BasicBlock,
+    span: Span,
 
     removed: bool,
 
@@ -1123,6 +1124,7 @@ pub const CFG = struct {
                 temp.lvalue = lvalue;
 
                 var ir = try IR.createIndex(temp, lhs, rhs, allocator);
+                ir.span = ast.getToken().span;
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;
@@ -1198,7 +1200,7 @@ pub const CFG = struct {
                 if (ast.inferredMember.init) |_init| {
                     init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, error_label, true, errors, allocator);
                 } else if (proper_term.annotation.init == null) {
-                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "no value provided, and no default value available", .stage = .typecheck } });
+                    errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "no value provided, and no default value available" } });
                     return error.typeError;
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);

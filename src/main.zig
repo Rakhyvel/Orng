@@ -132,7 +132,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, uid: i128, out_name: []const u8, allocator: std.mem.Allocator) !void {
     if (file_root.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
-            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function", .stage = .symbolTree } });
+            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
             return error.symbolError;
         }
         // IR translation
@@ -162,7 +162,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.
     } else {
-        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "no `main` function specified", .stage = .symbolTree } });
+        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "no `main` function specified" } });
         return error.symbolError;
     }
 }
