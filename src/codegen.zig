@@ -215,13 +215,13 @@ fn generateDebug(out: *std.fs.File) !void {
 }
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
-    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.identifier.common.token.data, "Int")) {
+    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int")) {
         try out.writer().print(
             \\int main()
             \\{{
             \\  printf("%ld",
         , .{});
-    } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.identifier.common.token.data, "String")) {
+    } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "String")) {
         try out.writer().print(
             \\int main()
             \\{{
@@ -235,7 +235,7 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
         , .{});
     }
     try printSymbol(callGraph.symbol, out);
-    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.identifier.common.token.data, "String")) {
+    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "String")) {
         try out.writer().print(
             \\()._0);
             \\  return 0;
@@ -637,15 +637,15 @@ fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
 fn printType(_type: *AST, out: *std.fs.File) !void {
     switch (_type.*) {
         .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
-            if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
+            if (std.mem.eql(u8, _type.getToken().data, "Bool")) {
                 try out.writer().print("uint8_t", .{});
-            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Byte")) {
+            } else if (std.mem.eql(u8, _type.getToken().data, "Byte")) {
                 try out.writer().print("uint8_t", .{});
-            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
+            } else if (std.mem.eql(u8, _type.getToken().data, "Int")) {
                 try out.writer().print("int64_t", .{});
-            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
+            } else if (std.mem.eql(u8, _type.getToken().data, "Float")) {
                 try out.writer().print("double", .{});
-            } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
+            } else if (std.mem.eql(u8, _type.getToken().data, "Char")) {
                 try out.writer().print("uint32_t", .{});
             } else {
                 try printType(_type.getCommon().expanded_type.?, out);

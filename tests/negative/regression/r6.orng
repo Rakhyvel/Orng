@@ -1,0 +1,1 @@
+fn () -> (_ = Bool, _ = String) {}

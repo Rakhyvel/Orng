@@ -402,7 +402,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
 
 fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     var kind: SymbolKind = undefined;
-    switch (definition.decl.common.token.kind) {
+    switch (definition.getToken().kind) {
         .CONST => kind = ._const,
         .LET => kind = .let,
         .MUT => kind = .mut,
@@ -411,7 +411,7 @@ fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocato
 
     var retval = try Symbol.create(
         scope,
-        definition.decl.pattern.identifier.common.token.data,
+        definition.decl.pattern.getToken().data,
         definition.decl.pattern.getToken().span,
         definition.decl.type,
         definition.decl.init,
@@ -460,7 +460,7 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     // Choose name (maybe anon)
     var buf: []const u8 = undefined;
     if (definition.fnDecl.name) |name| {
-        buf = name.identifier.common.token.data;
+        buf = name.getToken().data;
     } else {
         buf = try nextAnonFunctionName(allocator);
     }

@@ -13,8 +13,8 @@
     - `maybe_x` for an optional variant of a type
 - [ ] Errors should be capitalized
 - [ ] Everything should be snake_case
-- [ ] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
-- [ ] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
+- [x] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
+- [x] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in prefix order
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
@@ -197,6 +197,7 @@
         - [ ] if
         - [ ] case
         - [ ] decl
+        - [ ] defer
     - [ ] `const` should actually likely be a type modifier
         > Should it actually? `const T` can represent all the values that `T` can, there's just an extra contraint that those values be known at compile-time. Idk if that's really a type.
     - [ ] array sizes are evaluated at compile-time

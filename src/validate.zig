@@ -279,6 +279,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast.discard.expr.* == .poison) {
                 return _ast.poisoned;
             }
+            if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType, .stage = .typecheck } });
+                return _ast.poisoned;
+            }
             retval = ast;
         },
         .assign => {
@@ -289,6 +293,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             };
             ast.assign.rhs = try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors, allocator), scope, errors, allocator);
             if (ast.assign.lhs.* == .poison or ast.assign.rhs.* == .poison) {
+                return _ast.poisoned;
+            }
+            if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType, .stage = .typecheck } });
                 return _ast.poisoned;
             }
             assertMutable(ast.assign.lhs, scope, errors, allocator) catch |err| switch (err) {
@@ -672,7 +680,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 ast.product.terms = new_terms;
             } else {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator), .stage = .typecheck } });
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.poisoned, .stage = .typecheck } });
                 return _ast.poisoned;
             }
             if (poisoned) {
@@ -1459,12 +1467,12 @@ fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *err
 }
 
 pub fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
-    var symbol = scope.lookup(ast.identifier.common.token.data, false) orelse {
-        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.identifier.common.token, .stage = .typecheck } });
+    var symbol = scope.lookup(ast.getToken().data, false) orelse {
+        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .stage = .typecheck } });
         return error.typeError;
     };
     if (!symbol.defined) {
-        errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.identifier.common.token, .symbol = symbol, .stage = .typecheck } });
+        errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.getToken(), .symbol = symbol, .stage = .typecheck } });
         return error.typeError;
     }
     return symbol;
@@ -1508,7 +1516,7 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
             var symbol = try findSymbol(ast, scope, errors);
             if (symbol.kind != .mut) {
                 errors.addError(Error{ .modifyImmutable = .{
-                    .identifier = ast.identifier.common.token,
+                    .identifier = ast.getToken(),
                     .symbol = symbol,
                     .stage = .typecheck,
                 } });

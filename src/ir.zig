@@ -702,7 +702,7 @@ pub const CFG = struct {
                 return temp;
             },
             .identifier => {
-                var symbol = scope.lookup(ast.identifier.common.token.data, false).?;
+                var symbol = scope.lookup(ast.getToken().data, false).?;
                 if (symbol.kind == ._fn) {
                     _ = try create(symbol, self, self.interned_strings, errors, allocator);
                 }
@@ -812,7 +812,7 @@ pub const CFG = struct {
             // Binary operators
             .assign => {
                 if (ast.assign.lhs.* == .identifier) {
-                    var symbol = scope.lookup(ast.assign.lhs.identifier.common.token.data, false).?;
+                    var symbol = scope.lookup(ast.assign.lhs.getToken().data, false).?;
                     var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                     symbver.lvalue = true;
                     var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
@@ -1643,32 +1643,32 @@ pub const CFG = struct {
     }!?*SymbolVersion {
         switch (_type.*) {
             .identifier => {
-                if (std.mem.eql(u8, _type.identifier.common.token.data, "Bool")) {
+                if (std.mem.eql(u8, _type.getToken().data, "Bool")) {
                     // default is false
                     var temp = try self.createTempSymbolVersion(_type, allocator);
                     var ir = try IR.createInt(temp, 0, allocator);
                     temp.def = ir;
                     self.appendInstruction(ir);
                     return temp;
-                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Byte")) {
+                } else if (std.mem.eql(u8, _type.getToken().data, "Byte")) {
                     var temp = try self.createTempSymbolVersion(_type, allocator);
                     var ir = try IR.createInt(temp, 0, allocator);
                     temp.def = ir;
                     self.appendInstruction(ir);
                     return temp;
-                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Int")) {
+                } else if (std.mem.eql(u8, _type.getToken().data, "Int")) {
                     var temp = try self.createTempSymbolVersion(_type, allocator);
                     var ir = try IR.createInt(temp, 0, allocator);
                     temp.def = ir;
                     self.appendInstruction(ir);
                     return temp;
-                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Float")) {
+                } else if (std.mem.eql(u8, _type.getToken().data, "Float")) {
                     var temp = try self.createTempSymbolVersion(_type, allocator);
                     var ir = try IR.createFloat(temp, 0, allocator);
                     temp.def = ir;
                     self.appendInstruction(ir);
                     return temp;
-                } else if (std.mem.eql(u8, _type.identifier.common.token.data, "Char")) {
+                } else if (std.mem.eql(u8, _type.getToken().data, "Char")) {
                     var temp = try self.createTempSymbolVersion(_type, allocator);
                     var ir = try IR.createInt(temp, 0, allocator);
                     temp.def = ir;

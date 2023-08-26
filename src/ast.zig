@@ -721,7 +721,7 @@ pub const AST = union(enum) {
                 try out.print("()", .{});
             },
             .identifier => {
-                try out.print("{s}", .{self.identifier.common.token.data});
+                try out.print("{s}", .{self.getToken().data});
             },
             .addrOf => {
                 try out.print("&", .{});
@@ -790,7 +790,7 @@ pub const AST = union(enum) {
                 try self._union.rhs.printType(out);
             },
             .annotation => {
-                try out.print("{s}: ", .{self.annotation.pattern.identifier.common.token.data});
+                try out.print("{s}: ", .{self.annotation.pattern.getToken().data});
                 try self.annotation.type.printType(out);
             },
 
@@ -1056,10 +1056,10 @@ pub const AST = union(enum) {
             .identifier => {
                 if (other.* != .identifier) {
                     return false;
-                } else if (std.mem.eql(u8, "Float", self.identifier.common.token.data) and std.mem.eql(u8, "Int", other.identifier.common.token.data)) {
+                } else if (std.mem.eql(u8, "Float", self.getToken().data) and std.mem.eql(u8, "Int", other.getToken().data)) {
                     return true;
                 } else {
-                    return std.mem.eql(u8, self.identifier.common.token.data, other.identifier.common.token.data);
+                    return std.mem.eql(u8, self.getToken().data, other.getToken().data);
                 }
             },
             .addrOf => {
@@ -1137,10 +1137,10 @@ pub const AST = union(enum) {
             .identifier => {
                 if (other.* != .identifier) {
                     return false;
-                } else if (std.mem.eql(u8, "Float", self.identifier.common.token.data) and std.mem.eql(u8, "Int", other.identifier.common.token.data)) {
+                } else if (std.mem.eql(u8, "Float", self.getToken().data) and std.mem.eql(u8, "Int", other.getToken().data)) {
                     return true;
                 } else {
-                    return std.mem.eql(u8, self.identifier.common.token.data, other.identifier.common.token.data);
+                    return std.mem.eql(u8, self.getToken().data, other.getToken().data);
                 }
             },
             .addrOf => {
