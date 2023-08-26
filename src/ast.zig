@@ -922,6 +922,14 @@ pub const AST = union(enum) {
                     unreachable;
                 }
                 for (annot_list.items, 0..) |term, i| {
+                    if (term.* != .annotation) {
+                        errors.addError(Error{ .basic = .{
+                            .span = self.getToken().span,
+                            .msg = "left-hand-side of select is not selectable",
+                            .stage = .typecheck,
+                        } });
+                        return error.typeError;
+                    }
                     if (std.mem.eql(u8, term.annotation.pattern.getToken().data, self.select.rhs.getToken().data)) {
                         self.select.pos = i;
                         retval = term.annotation.type;
