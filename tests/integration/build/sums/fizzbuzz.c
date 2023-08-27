@@ -40,7 +40,7 @@ struct1 _2_main() {
 	struct1 _2_$retval;
 BB0:
 	_2_t1 = 30;
-    $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string";
+    $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n              ^";
 	_2_t0 = _4_fizzbuzz(_2_t1);
 	_2_$retval = (&_2_t0)->_0;
 	return _2_$retval;

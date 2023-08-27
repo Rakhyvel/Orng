@@ -73,7 +73,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             for (bb.next_arguments.items) |argument| {
                 if (argument.findSymbolVersionSet(&bb.next.?.parameters)) |parameter| {
                     if (parameter.version != argument.version) {
-                        end = bb.appendInstruction(try IR.create(.copy, parameter, argument, null, allocator));
+                        end = bb.appendInstruction(try IR.create(.copy, parameter, argument, null, end.span, allocator));
                         parameter.def = end;
                         parameter.makeUnique();
                     }
@@ -810,13 +810,37 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
                     var length = ir.src1.?.symbol._type.?.product.terms.items.len;
                     if (index < 0) {
                         errors.addError(Error{ .negative_index = .{
-                            .span = ir.span,
+                            .span = ir.src2.?.def.?.span,
                             .index = index,
                         } });
                         return error.typeError;
                     } else if (index >= length) {
                         errors.addError(Error{ .out_of_bounds = .{
-                            .span = ir.span,
+                            .span = ir.src2.?.def.?.span,
+                            .index = index,
+                            .length = length,
+                        } });
+                        return error.typeError;
+                    }
+                }
+            }
+        },
+
+        .indexCopy => {
+            // Statically check if index is within bounds
+            if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
+                if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
+                    var index = ir.src2.?.def.?.data.int;
+                    var length = ir.src1.?.symbol._type.?.product.terms.items.len;
+                    if (index < 0) {
+                        errors.addError(Error{ .negative_index = .{
+                            .span = ir.src2.?.def.?.span,
+                            .index = index,
+                        } });
+                        return error.typeError;
+                    } else if (index >= length) {
+                        errors.addError(Error{ .out_of_bounds = .{
+                            .span = ir.src2.?.def.?.span,
                             .index = index,
                             .length = length,
                         } });

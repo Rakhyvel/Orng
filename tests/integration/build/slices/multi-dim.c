@@ -43,28 +43,36 @@ int64_t _2_main() {
 	int64_t _2_t3;
 	struct0 _3_x;
 	int64_t _2_t6;
-	int64_t* _2_t8;
-	int64_t _2_t9;
+	int64_t* _2_t12;
+	int64_t _2_t13;
 	struct1 _2_t5;
-	int64_t _2_t11;
-	int64_t* _2_t13;
-	int64_t _2_t14;
-	struct1 _2_t10;
-	int64_t _2_t16;
-	int64_t* _2_t18;
-	int64_t _2_t19;
-	struct1 _2_t15;
-	struct2 _3_y;
-	int64_t _2_t21;
-	struct1* _2_t23;
+	int64_t _2_t15;
+	int64_t* _2_t21;
+	int64_t _2_t22;
+	struct1 _2_t14;
 	int64_t _2_t24;
-	struct3 _3_z;
-	int64_t _2_t25;
-	int64_t _2_t27;
-	int64_t _2_t28;
-	int64_t _2_t29;
+	int64_t* _2_t30;
 	int64_t _2_t31;
-	int64_t _2_t32;
+	struct1 _2_t23;
+	struct2 _3_y;
+	int64_t _2_t33;
+	struct1* _2_t39;
+	int64_t _2_t40;
+	struct3 _3_z;
+	int64_t _2_t41;
+	int64_t _2_t45;
+	uint8_t _2_t46;
+	int64_t _2_t47;
+	int64_t _2_t48;
+	int64_t _2_t51;
+	uint8_t _2_t52;
+	int64_t _2_t53;
+	int64_t _2_t57;
+	uint8_t _2_t58;
+	int64_t _2_t59;
+	int64_t _2_t63;
+	uint8_t _2_t64;
+	int64_t _2_t60;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 1;
@@ -72,31 +80,95 @@ BB0:
 	_2_t3 = 3;
 	_3_x = (struct0) {_2_t1, _2_t2, _2_t3};
 	_2_t6 = 0;
-	_2_t8 = (((int64_t*)(&_3_x))+_2_t6);
-	_2_t9 = 3;
-	_2_t5 = (struct1) {_2_t8, _2_t9};
-	_2_t11 = 0;
-	_2_t13 = (((int64_t*)(&_3_x))+_2_t11);
-	_2_t14 = 3;
-	_2_t10 = (struct1) {_2_t13, _2_t14};
-	_2_t16 = 0;
-	_2_t18 = (((int64_t*)(&_3_x))+_2_t16);
-	_2_t19 = 3;
-	_2_t15 = (struct1) {_2_t18, _2_t19};
-	_3_y = (struct2) {_2_t5, _2_t10, _2_t15};
-	_2_t21 = 0;
-	_2_t23 = (((struct1*)(&_3_y))+_2_t21);
-	_2_t24 = 3;
-	_3_z = (struct3) {_2_t23, _2_t24};
-	_2_t25 = 1;
-	_2_t27 = 1;
-	_2_t28 = 82;
-	*(((int64_t*)(((((struct1*)((&_3_z)->_0))+_2_t25))->_0))+_2_t27) = _2_t28;
-	_2_t29 = 1;
-	_2_t31 = 1;
-	_2_t32 = *(((int64_t*)(((((struct1*)((&_3_z)->_0))+_2_t29))->_0))+_2_t31);
-	_2_$retval = _2_t32;
+	_2_t12 = (((int64_t*)(&_3_x))+_2_t6);
+	_2_t13 = 3;
+	_2_t5 = (struct1) {_2_t12, _2_t13};
+	_2_t15 = 0;
+	_2_t21 = (((int64_t*)(&_3_x))+_2_t15);
+	_2_t22 = 3;
+	_2_t14 = (struct1) {_2_t21, _2_t22};
+	_2_t24 = 0;
+	_2_t30 = (((int64_t*)(&_3_x))+_2_t24);
+	_2_t31 = 3;
+	_2_t23 = (struct1) {_2_t30, _2_t31};
+	_3_y = (struct2) {_2_t5, _2_t14, _2_t23};
+	_2_t33 = 0;
+	_2_t39 = (((struct1*)(&_3_y))+_2_t33);
+	_2_t40 = 3;
+	_3_z = (struct3) {_2_t39, _2_t40};
+	_2_t41 = 1;
+	_2_t45 = (&_3_z)->_1;
+	_2_t46 = _2_t41 >= _2_t45;
+	if (_2_t46) {
+		goto BB19;
+	} else {
+		goto BB20;
+	}
+BB20:
+	_2_t47 = 1;
+	_2_t48 = 82;
+	_2_t51 = ((((struct1*)((&_3_z)->_0))+_2_t41))->_1;
+	_2_t52 = _2_t47 >= _2_t51;
+	if (_2_t52) {
+		goto BB23;
+	} else {
+		goto BB24;
+	}
+BB24:
+	*(((int64_t*)(((((struct1*)((&_3_z)->_0))+_2_t41))->_0))+_2_t47) = _2_t48;
+	_2_t53 = 1;
+	_2_t57 = (&_3_z)->_1;
+	_2_t58 = _2_t53 >= _2_t57;
+	if (_2_t58) {
+		goto BB27;
+	} else {
+		goto BB28;
+	}
+BB28:
+	_2_t59 = 1;
+	_2_t63 = ((((struct1*)((&_3_z)->_0))+_2_t53))->_1;
+	_2_t64 = _2_t59 >= _2_t63;
+	if (_2_t64) {
+		goto BB31;
+	} else {
+		goto BB32;
+	}
+BB32:
+	_2_t60 = *(((int64_t*)(((((struct1*)((&_3_z)->_0))+_2_t53))->_0))+_2_t59);
+	_2_$retval = _2_t60;
 	return _2_$retval;
+BB31:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][1]\n          ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+	goto BB32;
+BB27:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:7:\n    z[1][1]\n       ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+	goto BB28;
+BB23:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][1] = 82\n          ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+	goto BB24;
+BB19:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][1] = 82\n       ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+	goto BB20;
 }
 
 

@@ -28,7 +28,7 @@ int64_t _2_main() {
 BB0:
 	_2_t1 = 4;
 	_2_t2 = 50;
-    $lines[$line_idx++] = "tests/integration/functions/default-named.orng:2:23:\nfn main() -> Int {add(x = 4)}";
+    $lines[$line_idx++] = "tests/integration/functions/default-named.orng:2:23:\nfn main() -> Int {add(x = 4)}\n                       ^";
 	_2_t0 = _4_add(_2_t1, _2_t2);
 	_2_$retval = _2_t0;
 	return _2_$retval;

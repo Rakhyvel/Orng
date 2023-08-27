@@ -44,7 +44,7 @@ BB0:
 	_2_t4 = 4;
 	_3_x = (struct0) {_2_t1, _2_t2, _2_t3, _2_t4};
 	_2_t6 = &_3_x;
-    $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]";
+    $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n       ^";
 	_2_t5 = _4_f(_2_t6);
 	_2_t8 = 3;
 	_2_t9 = *(((int64_t*)(_2_t5))+_2_t8);

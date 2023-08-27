@@ -39,7 +39,7 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t2 = 1;
-    $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)";
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n        ^";
 	_2_t1 = _4_f(_2_t2);
 	_2_t3 = _2_t1.tag;
 	if (_2_t3) {
@@ -52,7 +52,7 @@ BB7:
 	goto BB2;
 BB2:
 	_2_t8 = 0;
-    $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)";
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                              ^";
 	_2_t7 = _4_f(_2_t8);
 	_2_t9 = _2_t7.tag;
 	if (_2_t9) {
@@ -95,7 +95,7 @@ BB6:
 	_4_$retval = _4_t0;
 	return _4_$retval;
 BB1:
-    $lines[$line_idx++] = "tests/integration/errors/try.orng:7:23:\n        let x = try g()";
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:7:23:\n        let x = try g()\n                       ^";
 	_4_t1 = _9_g();
 	_4_t2 = _4_t1.tag;
 	if (_4_t2) {

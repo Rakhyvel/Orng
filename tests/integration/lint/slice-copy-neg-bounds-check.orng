@@ -1,0 +1,8 @@
+// 
+fn main() -> Int
+    let mut x: [4]Int
+    let y = [mut]x
+    y[f()] = 0
+    0
+
+fn f() -> Int {-100}

@@ -1,0 +1,4 @@
+fn main() -> Int
+    let mut x: [4]Int
+    x[100] = 0
+    0

@@ -2,6 +2,7 @@ const _ast = @import("ast.zig");
 const _ir = @import("ir.zig");
 const _program = @import("program.zig");
 const std = @import("std");
+const strings = @import("zig-string/zig-string.zig");
 const _symbol = @import("symbol.zig");
 
 const AST = _ast.AST;
@@ -10,6 +11,7 @@ const CFG = _ir.CFG;
 const IR = _ir.IR;
 const Program = _program.Program;
 const Scope = _symbol.Scope;
+const String = strings.String;
 const Symbol = _symbol.Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
@@ -568,21 +570,27 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 
         // Errors
         .pushStackTrace => {
+            var spaces = String.init(std.heap.page_allocator);
+            defer spaces.deinit();
+            for (0..ir.span.col) |i| {
+                _ = i;
+                try spaces.insert(" ", spaces.size);
+            }
             try out.writer().print(
-                \\    $lines[$line_idx++] = "{s}:{}:{}:\n{s}";
+                \\    $lines[$line_idx++] = "{s}:{}:{}:\n{s}\n{s}^";
                 \\
-            , .{ ir.data.span.filename, ir.data.span.line, ir.data.span.col, program.lines.items[ir.data.span.line - 1] });
+            , .{ ir.span.filename, ir.span.line, ir.span.col, program.lines.items[ir.span.line - 1], spaces.str() });
         },
         .panic => {
             try out.writer().print(
-                \\    fprintf(stderr, "panic: reached unreachable code\n");
+                \\    fprintf(stderr, "panic: {s}\n");
                 \\    for(uint16_t $i = 0; $i < $line_idx; $i++) {{
                 \\        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
                 \\    }}
                 \\    exit(1);
                 \\
             ,
-                .{},
+                .{ir.data.string},
             );
         },
     }

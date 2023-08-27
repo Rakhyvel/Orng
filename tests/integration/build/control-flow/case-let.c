@@ -67,7 +67,7 @@ BB21:
 		goto BB20;
 	}
 BB20:
-    $lines[$line_idx++] = "tests/integration/control-flow/case-let.orng:7:32:\n    | else       => unreachable";
+    $lines[$line_idx++] = "tests/integration/control-flow/case-let.orng:7:32:\n    | else       => unreachable\n                                ^";
     fprintf(stderr, "panic: reached unreachable code\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

@@ -278,8 +278,7 @@ pub const Parser = struct {
     fn assignExpr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.UNDERSCORE)) |token| {
             _ = try self.expect(.EQUALS);
-            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
-            return try AST.createDiscard(token, ident, self.astAllocator);
+            return try AST.createDiscard(token, try self.assignExpr(), self.astAllocator);
         } else {
             var exp = try self.arrowExpr();
             if (self.accept(.EQUALS)) |token| {

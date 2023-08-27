@@ -1,0 +1,6 @@
+// 
+fn main() -> Int
+    let x: [4]Int
+    x[f()]
+
+fn f() -> Int {-100}

@@ -33,32 +33,32 @@ int64_t _2_main() {
 	struct0 _3_x;
 	int64_t _2_t3;
 	int64_t _2_t4;
-	int64_t _2_t5;
-	int64_t _2_t6;
-	int64_t _2_t7;
-	int64_t _2_t8;
 	int64_t _2_t9;
 	int64_t _2_t10;
-	int64_t _2_t11;
-	int64_t _2_t12;
+	int64_t _2_t15;
+	int64_t _2_t16;
+	int64_t _2_t17;
+	int64_t _2_t22;
+	int64_t _2_t23;
+	int64_t _2_t24;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 15;
 	_2_t2 = 16;
-    $lines[$line_idx++] = "tests/integration/arrays/index.orng:3:32:\n    let x: [4]Int  = get_array(15, 16)";
+    $lines[$line_idx++] = "tests/integration/arrays/index.orng:3:32:\n    let x: [4]Int  = get_array(15, 16)\n                                ^";
 	_2_t0 = _4_get_array(_2_t1, _2_t2);
 	_3_x = _2_t0;
 	_2_t3 = 0;
 	_2_t4 = *(((int64_t*)(&_3_x))+_2_t3);
-	_2_t5 = 1;
-	_2_t6 = *(((int64_t*)(&_3_x))+_2_t5);
-	_2_t7 = _2_t4 + _2_t6;
-	_2_t8 = 2;
-	_2_t9 = *(((int64_t*)(&_3_x))+_2_t8);
-	_2_t10 = _2_t7 + _2_t9;
-	_2_t11 = 3;
-	_2_t12 = *(((int64_t*)(&_3_x))+_2_t11);
-	_2_$retval = _2_t10 + _2_t12;
+	_2_t9 = 1;
+	_2_t10 = *(((int64_t*)(&_3_x))+_2_t9);
+	_2_t15 = _2_t4 + _2_t10;
+	_2_t16 = 2;
+	_2_t17 = *(((int64_t*)(&_3_x))+_2_t16);
+	_2_t22 = _2_t15 + _2_t17;
+	_2_t23 = 3;
+	_2_t24 = *(((int64_t*)(&_3_x))+_2_t23);
+	_2_$retval = _2_t22 + _2_t24;
 	return _2_$retval;
 }
 

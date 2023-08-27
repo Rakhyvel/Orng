@@ -30,7 +30,7 @@ productExpr: annotExpr {"," annotExpr}.
 
 annotExpr: assignExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
 
-assignExpr: "_" "=" ident
+assignExpr: "_" "=" assignExpr
           | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignExpr]
           .
 
