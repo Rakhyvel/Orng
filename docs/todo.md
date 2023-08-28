@@ -152,12 +152,18 @@
         - [x] error if discard when it's used
     - [x] static index out of bounds
     - [x] dynamic index out of bounds
-    - [ ] static slice lower <= upper
-    - [ ] dynamic slice lower <= upper
+    - [x] static slice lower <= upper
+    - [x] dynamic slice lower <= upper
     - [ ] static checked arithmetic
+        - [ ] addition doesn't exceed type limits
+        - [ ] subtraction doesn't exceed type limits
+        - [ ] multiplication doesn't exceed type limits
+        - [ ] divide by zero
     - [ ] dynamic checked arithmetic
-    - [ ] static divide by zero
-    - [ ] dynamic divide by zero
+        - [ ] addition doesn't exceed type limits
+        - [ ] subtraction doesn't exceed type limits
+        - [ ] multiplication doesn't exceed type limits
+        - [ ] divide by zero
     - [ ] static union tag check
     - [ ] dynaminc union tag check
 - [ ] pattern matching

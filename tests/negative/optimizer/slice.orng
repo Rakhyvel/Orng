@@ -1,0 +1,5 @@
+fn main() -> Int
+    let x: [4]Int
+    let y = []x
+    let z = y[2..1]
+    z[0]

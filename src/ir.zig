@@ -150,7 +150,6 @@ pub const IRKind = enum {
     exponent,
     index, // dest = src1[src2]
     indexCopy, // src1[src2] = data.symbver
-    subSlice,
     select, // dest = src1._${data.int}
     selectCopy,
     get_tag,
@@ -1182,7 +1181,11 @@ pub const CFG = struct {
                 var lower = (try self.flattenAST(scope, ast.subSlice.lower.?, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var upper = (try self.flattenAST(scope, ast.subSlice.upper.?, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
 
-                { // Confirm that lower <= upper
+                // Statically confirm that lower <= upper
+                if (lower.def.?.data == .int and upper.def.?.data == .int and lower.def.?.data.int > upper.def.?.data.int) {
+                    errors.addError(Error{ .basic = .{ .span = lower.def.?.span, .msg = "subslice lower bound is greater than upper bound" } });
+                    return error.typeError;
+                } else { // Dynamically confirm that lower <= upper
                     var end_label = try IR.createLabel(ast.getToken().span, allocator);
                     var compare = try self.createTempSymbolVersion(_ast.boolType, allocator);
                     var ir = try IR.create(.greater, compare, lower, upper, ast.getToken().span, allocator);
