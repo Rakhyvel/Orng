@@ -44,10 +44,10 @@ int64_t _2_main() {
 	int64_t* _2_t14;
 	int64_t _2_t16;
 	int64_t _2_t17;
-	int64_t _2_t18;
-	int64_t* _2_t20;
+	int64_t _2_t19;
+	int64_t* _2_t21;
 	struct1 _3_z;
-	int64_t _2_t22;
+	int64_t _2_t23;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 100;
@@ -61,12 +61,12 @@ BB0:
 	_2_t14 = (((int64_t*)(&_3_x))+_2_t8);
 	_2_t16 = 0;
 	_2_t17 = 3;
-	_2_t18 = _2_t17 - _2_t16;
-	_2_t20 = _2_t14 + _2_t16;
-	_3_z = (struct1) {_2_t20, _2_t18};
+	_2_t19 = _2_t17 - _2_t16;
+	_2_t21 = _2_t14 + _2_t16;
+	_3_z = (struct1) {_2_t21, _2_t19};
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n            ^";
-	_2_t22 = _4_sum_up(_3_z);
-	_2_$retval = _2_t22;
+	_2_t23 = _4_sum_up(_3_z);
+	_2_$retval = _2_t23;
 	return _2_$retval;
 }
 

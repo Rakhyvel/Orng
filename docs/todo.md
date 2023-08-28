@@ -151,16 +151,15 @@
     - [x] explicit discarding with `_`
         - [x] error if discard when it's used
     - [x] static index out of bounds
-    - [ ] dynamic index out of bounds
-    - [ ] static slice lower > greater
-    - [ ] dynamic slice lower > greater
+    - [x] dynamic index out of bounds
+    - [ ] static slice lower <= upper
+    - [ ] dynamic slice lower <= upper
     - [ ] static checked arithmetic
     - [ ] dynamic checked arithmetic
     - [ ] static divide by zero
     - [ ] dynamic divide by zero
     - [ ] static union tag check
     - [ ] dynaminc union tag check
-    - [ ] compile-time const check
 - [ ] pattern matching
     - [ ] product destructuring
     - [ ] sum-type destructuring
@@ -192,6 +191,7 @@
     - [ ] prepend `>>`
     - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
+    - [ ] compile-time const check
     - [ ] `comptime` expression, evaluated at compile time
         - [ ] block
         - [ ] if
@@ -230,6 +230,7 @@
         - [ ] `is_null()`
     > How to do exponentiation without libc?
     - [ ] debug mode which enables checks for UB
+        - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
 - [ ] refinement types
     - [ ] `where` should only check for things at runtime, unless specified with `where const`
 - [ ] generic type unification
@@ -243,3 +244,4 @@
         - [ ] Inlining will hopefully remove vtable lookups for things like integer math, which would stink!
     - [ ] derive
     - [ ] dot prepend `.>`
+    - [ ] `id` function in prelude

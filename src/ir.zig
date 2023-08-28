@@ -334,6 +334,10 @@ pub const IR = struct {
                 .symbol => {
                     std.debug.print("\tsymbol:{s}", .{self.data.symbol.name});
                 },
+                .symbver => {
+                    std.debug.print("\tsymbver:", .{});
+                    self.data.symbver.pprint();
+                },
                 .symbverList => {
                     std.debug.print("\tsymbverList:[", .{});
                     for (self.data.symbverList.items, 1..) |symbver, i| {
@@ -834,17 +838,22 @@ pub const CFG = struct {
                     self.appendInstruction(ir);
                     return null;
                 } else if (ast.assign.lhs.* == .index) {
-                    var index_lhs = try self.flattenAST(scope, ast.assign.lhs.index.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator);
+                    var index_lhs = try self.flattenAST(scope, ast.assign.lhs.index.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
                     var index_rhs = try self.flattenAST(scope, ast.assign.lhs.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
                     if (index_lhs == null or index_rhs == null) {
                         return null;
                     }
+
+                    try self.generate_bounds_check(scope, ast.assign.lhs, index_lhs.?, index_rhs.?, errors, allocator);
+
+                    var new_lhs = try SymbolVersion.createUnversioned(index_lhs.?.symbol, index_lhs.?.type, allocator);
+                    var new_rhs = try SymbolVersion.createUnversioned(index_rhs.?.symbol, index_rhs.?.type, allocator);
                     var assign_rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
                     if (assign_rhs == null) {
                         return null;
                     }
-                    try self.generate_bounds_check(scope, ast.assign.lhs, index_lhs.?, index_rhs.?, errors, allocator);
-                    var ir = try IR.create(.indexCopy, null, index_lhs, index_rhs, ast.getToken().span, allocator);
+
+                    var ir = try IR.create(.indexCopy, null, new_lhs, new_rhs, ast.getToken().span, allocator);
                     ir.data = IRData{ .symbver = assign_rhs.? };
                     self.appendInstruction(ir);
                     return null;
@@ -1119,14 +1128,16 @@ pub const CFG = struct {
                 return temp;
             },
             .index => {
-                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 temp.lvalue = lvalue;
 
                 try self.generate_bounds_check(scope, ast, lhs, rhs, errors, allocator);
 
-                var ir = try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator);
+                var new_lhs = try SymbolVersion.createUnversioned(lhs.symbol, lhs.type, allocator);
+                var new_rhs = try SymbolVersion.createUnversioned(rhs.symbol, rhs.type, allocator);
+                var ir = try IR.createIndex(temp, new_lhs, new_rhs, ast.getToken().span, allocator);
                 ir.span = ast.getToken().span;
                 temp.def = ir;
                 self.appendInstruction(ir);
@@ -1170,6 +1181,19 @@ pub const CFG = struct {
                 var arr = (try self.flattenAST(scope, ast.subSlice.super, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var lower = (try self.flattenAST(scope, ast.subSlice.lower.?, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var upper = (try self.flattenAST(scope, ast.subSlice.upper.?, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
+
+                { // Confirm that lower <= upper
+                    var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                    var compare = try self.createTempSymbolVersion(_ast.boolType, allocator);
+                    var ir = try IR.create(.greater, compare, lower, upper, ast.getToken().span, allocator);
+                    compare.def = ir;
+                    self.appendInstruction(ir);
+                    var branch = try IR.createBranch(compare, end_label, ast.getToken().span, allocator);
+                    self.appendInstruction(branch);
+                    self.appendInstruction(try IR.createStackPush(ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.createPanic("subslice lower bound is greater than upper bound", ast.getToken().span, allocator));
+                    self.appendInstruction(end_label);
+                }
 
                 var new_size = try self.createTempSymbolVersion(_ast.intType, allocator);
                 var new_size_ir = try IR.create(.sub, new_size, upper, lower, ast.getToken().span, allocator);
@@ -1739,6 +1763,7 @@ pub const CFG = struct {
     fn generate_bounds_check(self: *CFG, scope: *Scope, ast: *AST, lhs: *SymbolVersion, rhs: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
         var upper_label = try IR.createLabel(ast.getToken().span, allocator);
         var end_label = try IR.createLabel(ast.getToken().span, allocator);
+        var new_rhs = try SymbolVersion.createUnversioned(rhs.symbol, rhs.type, allocator);
 
         { // Test that index is positive
             var zero = try self.createTempSymbolVersion(_ast.intType, allocator);
@@ -1747,7 +1772,7 @@ pub const CFG = struct {
             self.appendInstruction(zero_ir);
 
             var compare = try self.createTempSymbolVersion(_ast.boolType, allocator);
-            var ir = try IR.create(.lesser, compare, rhs, zero, ast.getToken().span, allocator);
+            var ir = try IR.create(.lesser, compare, new_rhs, zero, ast.getToken().span, allocator);
             compare.def = ir;
             self.appendInstruction(ir);
             var branch = try IR.createBranch(compare, upper_label, ast.getToken().span, allocator);
@@ -1775,7 +1800,7 @@ pub const CFG = struct {
         }
         { // Test that index is less than length
             var compare = try self.createTempSymbolVersion(_ast.boolType, allocator);
-            var ir = try IR.create(.greaterEqual, compare, rhs, length, ast.getToken().span, allocator);
+            var ir = try IR.create(.greaterEqual, compare, new_rhs, length, ast.getToken().span, allocator);
             compare.def = ir;
             self.appendInstruction(ir);
             var branch = try IR.createBranch(compare, end_label, ast.getToken().span, allocator);
@@ -1894,22 +1919,28 @@ pub const CFG = struct {
             // Parameters are symbols used by IR without a definition for the symbol before the IR
             var maybe_ir: ?*IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                // If src1 version is null, and is not defined in this BB, request it as a parameter
                 if (ir.src1 != null) {
+                    // If src1 version is not null, and is not defined in this BB, request it as a parameter
                     ir.src1 = ir.src1.?.findVersion(bb.ir_head, ir);
                     if (ir.src1.?.version == null) {
                         _ = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
                     }
                 }
-                // If src2 version is null, and is not defined in this BB, request it as a parameter
                 if (ir.src2 != null) {
+                    // If src2 version is not null, and is not defined in this BB, request it as a parameter
                     ir.src2 = ir.src2.?.findVersion(bb.ir_head, ir);
                     if (ir.src2.?.version == null) {
                         _ = try ir.src2.?.putSymbolVersionSet(&bb.parameters);
                     }
                 }
 
-                if (ir.data == .symbverList) {
+                if (ir.data == .symbver) {
+                    ir.data.symbver = ir.data.symbver.findVersion(bb.ir_head, ir);
+                    if (ir.data.symbver.version == null) {
+                        _ = try ir.data.symbver.putSymbolVersionSet(&bb.parameters);
+                    }
+                } else if (ir.data == .symbverList) {
+                    // Do the same as above for each symbver in a symbver list, if there is one
                     for (ir.data.symbverList.items, 0..) |symbver, i| {
                         var symbol_find = symbver.findVersion(bb.ir_head, ir);
                         var slice: [1]*SymbolVersion = undefined;
@@ -1922,16 +1953,14 @@ pub const CFG = struct {
                 }
             }
 
-            // Do the same for the condition of a branch, if there is one
             if (bb.has_branch) {
+                // Do the same as above for the condition of a branch, if there is one
                 bb.condition = bb.condition.?.findVersion(bb.ir_head, null);
                 if (bb.condition.?.version == null) {
                     _ = try bb.condition.?.putSymbolVersionSet(&bb.parameters);
                 }
             }
         }
-        // Add function parameters as basic block symbol version parameters
-        // TODO: When functions
 
         // Find phi arguments
         self.clearVisitedBBs();
@@ -1943,6 +1972,7 @@ pub const CFG = struct {
         self.clearVisitedBBs();
     }
 
+    /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters*.
     fn childrenArgPropagation(self: *CFG, bb: *BasicBlock, allocator: std.mem.Allocator) !bool {
         var retval: bool = false;
         if (bb.visited) {
@@ -1970,13 +2000,15 @@ pub const CFG = struct {
         if (bb.has_branch) {
             if (bb.branch) |branch| {
                 retval = try self.childrenArgPropagation(branch, allocator) or retval;
-                for (branch.parameters.items) |param| {
-                    var symbver = param.findVersion(bb.ir_head, null);
-                    if (symbver == param) { // Could not find param def in this block, require it as a parameter for this own block
-                        var myParam = param.findSymbolVersionSet(&bb.parameters);
+                for (branch.parameters.items) |param| { // go through branch BB's params
+                    var symbver = param.findVersion(bb.ir_head, null); // look for definition of param in this block
+                    if (symbver == param) {
+                        // Could not find param def in this block, require it as a parameter for this own block
+                        var myParam = param.findSymbolVersionSet(&bb.parameters); // see if param is already in block paramlist
                         if (myParam) |_myParam| {
-                            symbver = _myParam;
+                            symbver = _myParam; // if so, we will add param to arglist
                         } else {
+                            // else, create a new param and add to paramlist. (will later be added to arglist too)
                             symbver = try SymbolVersion.createUnversioned(param.symbol, param.type, allocator);
                             _ = try symbver.putSymbolVersionSet(&bb.parameters);
                         }

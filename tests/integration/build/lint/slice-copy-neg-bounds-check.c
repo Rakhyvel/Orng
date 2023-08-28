@@ -42,10 +42,10 @@ int64_t _2_main() {
 	struct1 _3_y;
 	int64_t _2_t14;
 	int64_t _2_t15;
-	int64_t _2_t16;
-	uint8_t _2_t17;
-	int64_t _2_t18;
-	uint8_t _2_t19;
+	uint8_t _2_t16;
+	int64_t _2_t17;
+	uint8_t _2_t18;
+	int64_t _2_t19;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 0;
@@ -60,23 +60,23 @@ BB0:
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n         ^";
 	_2_t14 = _4_f();
 	_2_t15 = 0;
-	_2_t16 = 0;
-	_2_t17 = _2_t14 < _2_t16;
-	if (_2_t17) {
+	_2_t16 = _2_t14 < _2_t15;
+	if (_2_t16) {
 		goto BB5;
 	} else {
 		goto BB6;
 	}
 BB6:
-	_2_t18 = (&_3_y)->_1;
-	_2_t19 = _2_t14 >= _2_t18;
-	if (_2_t19) {
+	_2_t17 = (&_3_y)->_1;
+	_2_t18 = _2_t14 >= _2_t17;
+	if (_2_t18) {
 		goto BB7;
 	} else {
 		goto BB8;
 	}
 BB8:
-	*(((int64_t*)((&_3_y)->_0))+_2_t14) = _2_t15;
+	_2_t19 = 0;
+	*(((int64_t*)((&_3_y)->_0))+_2_t14) = _2_t19;
 	_2_$retval = 0;
 	return _2_$retval;
 BB7:

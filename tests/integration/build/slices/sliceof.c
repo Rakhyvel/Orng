@@ -42,6 +42,8 @@ int64_t _2_main() {
 	int64_t _2_t14;
 	struct1 _3_y;
 	int64_t _2_t15;
+	int64_t _2_t19;
+	uint8_t _2_t20;
 	int64_t _2_t16;
 	int64_t _2_t21;
 	int64_t _2_$retval;
@@ -57,10 +59,26 @@ BB0:
 	_2_t14 = 5;
 	_3_y = (struct1) {_2_t13, _2_t14};
 	_2_t15 = 2;
+	_2_t19 = (&_3_y)->_1;
+	_2_t20 = _2_t15 >= _2_t19;
+	if (_2_t20) {
+		goto BB7;
+	} else {
+		goto BB8;
+	}
+BB8:
 	_2_t16 = *(((int64_t*)((&_3_y)->_0))+_2_t15);
 	_2_t21 = 77;
 	_2_$retval = _2_t16 + _2_t21;
 	return _2_$retval;
+BB7:
+    $lines[$line_idx++] = "tests/integration/slices/sliceof.orng:5:7:\n    y[2] + 77\n       ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+	goto BB8;
 }
 
 

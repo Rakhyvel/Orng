@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1691899681449729182
-#define ORNG_1691899681449729182
+#ifndef ORNG_1693179849387768403
+#define ORNG_1693179849387768403
 
 #include <math.h>
 #include <stdio.h>
@@ -62,13 +62,15 @@ int64_t _2_main() {
 	int64_t _2_t41;
 	int64_t _2_t45;
 	uint8_t _2_t46;
+	struct1 _2_t42;
 	int64_t _2_t47;
-	int64_t _2_t48;
-	int64_t _2_t51;
-	uint8_t _2_t52;
+	int64_t _2_t50;
+	uint8_t _2_t51;
+	int64_t _2_t52;
 	int64_t _2_t53;
 	int64_t _2_t57;
 	uint8_t _2_t58;
+	struct1 _2_t54;
 	int64_t _2_t59;
 	int64_t _2_t63;
 	uint8_t _2_t64;
@@ -105,17 +107,18 @@ BB0:
 		goto BB20;
 	}
 BB20:
-	_2_t47 = 1;
-	_2_t48 = 82;
-	_2_t51 = ((((struct1*)((&_3_z)->_0))+_2_t41))->_1;
-	_2_t52 = _2_t47 >= _2_t51;
-	if (_2_t52) {
+	_2_t42 = *(((struct1*)((&_3_z)->_0))+_2_t41);
+	_2_t47 = 2;
+	_2_t50 = ((((struct1*)((&_3_z)->_0))+_2_t41))->_1;
+	_2_t51 = _2_t47 >= _2_t50;
+	if (_2_t51) {
 		goto BB23;
 	} else {
 		goto BB24;
 	}
 BB24:
-	*(((int64_t*)(((((struct1*)((&_3_z)->_0))+_2_t41))->_0))+_2_t47) = _2_t48;
+	_2_t52 = 82;
+	*(((int64_t*)((&_2_t42)->_0))+_2_t47) = _2_t52;
 	_2_t53 = 1;
 	_2_t57 = (&_3_z)->_1;
 	_2_t58 = _2_t53 >= _2_t57;
@@ -125,7 +128,8 @@ BB24:
 		goto BB28;
 	}
 BB28:
-	_2_t59 = 1;
+	_2_t54 = *(((struct1*)((&_3_z)->_0))+_2_t53);
+	_2_t59 = 2;
 	_2_t63 = ((((struct1*)((&_3_z)->_0))+_2_t53))->_1;
 	_2_t64 = _2_t59 >= _2_t63;
 	if (_2_t64) {
@@ -134,11 +138,11 @@ BB28:
 		goto BB32;
 	}
 BB32:
-	_2_t60 = *(((int64_t*)(((((struct1*)((&_3_z)->_0))+_2_t53))->_0))+_2_t59);
+	_2_t60 = *(((int64_t*)((&_2_t54)->_0))+_2_t59);
 	_2_$retval = _2_t60;
 	return _2_$retval;
 BB31:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][1]\n          ^";
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][2]\n          ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -146,7 +150,7 @@ BB31:
     exit(1);
 	goto BB32;
 BB27:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:7:\n    z[1][1]\n       ^";
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:7:\n    z[1][2]\n       ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -154,7 +158,7 @@ BB27:
     exit(1);
 	goto BB28;
 BB23:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][1] = 82\n          ^";
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n          ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -162,7 +166,7 @@ BB23:
     exit(1);
 	goto BB24;
 BB19:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][1] = 82\n       ^";
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][2] = 82\n       ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

@@ -6,6 +6,7 @@ const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const Error = errs.Error;
 const IR = _ir.IR;
+const String = @import("zig-string/zig-string.zig").String;
 const SymbolVersion = _ir.SymbolVersion;
 
 const debug = false;
@@ -21,6 +22,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
         if (cfg.block_graph_head) |block_head| {
             block_head.pprint();
+            cfg.clearVisitedBBs();
             log("\n\n");
         } else {
             std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
@@ -66,7 +68,10 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
     for (cfg.basic_blocks.items) |bb| {
         // Adopt basic blocks with only one incoming block
         if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
-            defer log_optimization_pass("adopt block", cfg);
+            var log_msg = String.init(allocator);
+            defer log_msg.deinit();
+            try log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid });
+            defer log_optimization_pass(log_msg.str(), cfg);
             var end: *IR = bb.ir_head.?.getTail();
 
             // Join next block at the end of this block
@@ -117,8 +122,11 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // Remove jump chains
         if (bb.next) |next| {
-            defer log_optimization_pass("remove jump chains", cfg);
             if (next.ir_head == null and !next.has_branch) {
+                var s = String.init(allocator);
+                try s.writer().print("remove jump chain BB{}", .{next.uid});
+                defer s.deinit();
+                defer log_optimization_pass(s.str(), cfg);
                 bb.next = next.next;
                 retval = true;
             }
@@ -138,8 +146,8 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
         // If next is a branch that depends on a known arugment
         if (bb.next) |next| {
-            defer log_optimization_pass("next depends on known argument", cfg);
             if (next.has_branch and next.ir_head == null) {
+                defer log_optimization_pass("next depends on known argument", cfg);
                 var def = bb.findInstruction(next.condition.?.symbol);
                 if (def != null and def.?.kind == .loadInt) {
                     if (def.?.data.int == 0) {
@@ -167,8 +175,8 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
 
     // Rebase block graph if jump chain
     if (cfg.block_graph_head) |head| {
-        defer log_optimization_pass("rebase block", cfg);
         if (head.ir_head == null and !head.has_branch) {
+            defer log_optimization_pass("rebase block", cfg);
             cfg.block_graph_head = head.next;
             retval = true;
         }
@@ -244,6 +252,7 @@ fn propagate(cfg: *CFG, errors: *errs.Errors) !bool {
             if (ir.src1 != null and ir.src1.?.def == null) {
                 ir.src1.?.def = findIR(bb, ir.src1.?);
                 retval = ir.src1.?.def != null;
+                log_optimization_pass(">1 IR propagations", cfg);
             }
         }
         if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .copy) {
@@ -262,14 +271,17 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .copy => {
             // Unit-copy elimination
             if (ir.src1 == null) {
+                log("unit-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
             }
             // Self-copy elimination
             else if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null) {
+                log("self-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
             }
             // Integer constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
+                log("integer constant propagation");
                 ir.kind = .loadInt;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = null;
@@ -279,6 +291,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Float constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadFloat) {
+                log("float constant propagation");
                 ir.kind = .loadFloat;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = null;
@@ -288,6 +301,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // String constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadString) {
+                log("string constant propagation");
                 ir.kind = .loadString;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = null;
@@ -296,7 +310,8 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
                 retval = true;
             }
             // Struct constant propagation
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadStruct) {
+            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadStruct and ir.src1.?.uses == 1) {
+                log("struct constant propagation");
                 ir.kind = .loadStruct;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = null;
@@ -306,6 +321,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Union constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadUnion) {
+                log("union constant propagation");
                 ir.kind = .loadUnion;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = ir.src1.?.def.?.src1;
@@ -315,11 +331,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Copy propagation
             else if (ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
+                log("copy propagation");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Addrof propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .addrOf) {
+                log("addrof propagation");
                 ir.kind = .addrOf;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = ir.src1.?.def.?.src1;
@@ -329,6 +347,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Dereference propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .dereference) {
+                log("dereference propagation");
                 ir.kind = .dereference;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src1 = ir.src1.?.def.?.src1;
@@ -338,6 +357,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Add propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .add) {
+                log("add propagation");
                 ir.kind = .add;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
@@ -347,6 +367,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Sub propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .sub) {
+                log("sub propagation");
                 ir.kind = .sub;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
@@ -356,6 +377,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Mult propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .mult) {
+                log("mult propagation");
                 ir.kind = .mult;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
@@ -365,6 +387,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Div propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .div) {
+                log("div propagation");
                 ir.kind = .div;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
@@ -374,6 +397,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Mod propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .mod) {
+                log("mod propagation");
                 ir.kind = .mod;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
@@ -383,6 +407,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Exponent propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .exponent) {
+                log("exponent");
                 ir.kind = .exponent;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
@@ -392,6 +417,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Select propagation
             else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .select) {
+                log("select");
                 ir.kind = .select;
                 ir.dest.?.lvalue = ir.src1.?.def.?.dest.?.lvalue;
                 ir.data = ir.src1.?.def.?.data;
@@ -413,6 +439,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .not => {
             // Known int value
             if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
+                log("not; known int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int == 0) 1 else 0 };
                 ir.src1 = null;
@@ -421,6 +448,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("not; short circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
@@ -429,6 +457,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .negate => {
             // Known int value
             if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
+                log("negate; known int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = -ir.src1.?.def.?.data.int };
                 ir.src1 = null;
@@ -437,6 +466,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float value
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadFloat) {
+                log("negate; known float value");
                 ir.kind = .loadFloat;
                 ir.data = _ir.IRData{ .float = -ir.src1.?.def.?.data.float };
                 ir.src1 = null;
@@ -448,6 +478,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .dereference => {
             // Short-circuit src1 copy
             if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("dereference; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
@@ -456,6 +487,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .derefCopy => {
             // Copy propagation
             if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
+                log("deref-copy propagation");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
@@ -464,6 +496,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .equal => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("equal; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int == ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
@@ -472,6 +505,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("equal; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float == ir.src2.?.def.?.data.float) 1 else 0 };
                 ir.src1 = null;
@@ -480,11 +514,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("equal; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("equal; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -493,6 +529,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .notEqual => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("notEqual; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int != ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
@@ -501,6 +538,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("notEqual; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float != ir.src2.?.def.?.data.float) 1 else 0 };
                 ir.src1 = null;
@@ -509,11 +547,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("notEqual; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("notEqual; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -522,6 +562,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .greater => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("greater; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int > ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
@@ -530,6 +571,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("greater; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float > ir.src2.?.def.?.data.float) 1 else 0 };
                 ir.src1 = null;
@@ -538,11 +580,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("greater; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("greater; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -551,6 +595,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .lesser => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("lesser; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int < ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
@@ -559,6 +604,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("lesser; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float < ir.src2.?.def.?.data.float) 1 else 0 };
                 ir.src1 = null;
@@ -567,11 +613,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("lesser; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("lesser; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -580,6 +628,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .greaterEqual => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("greaterEqual; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int >= ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
@@ -588,6 +637,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("greaterEqual; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float >= ir.src2.?.def.?.data.float) 1 else 0 };
                 ir.src1 = null;
@@ -596,11 +646,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("greaterEqual; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("greaterEqual; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -609,6 +661,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .lesserEqual => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("lesserEqual; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int <= ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
@@ -617,6 +670,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("lesserEqual; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float <= ir.src2.?.def.?.data.float) 1 else 0 };
                 ir.src1 = null;
@@ -625,11 +679,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("lesserEqual; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("lesserEqual; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -638,6 +694,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .add => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("add; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int + ir.src2.?.def.?.data.int };
                 ir.src1 = null;
@@ -646,6 +703,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("add; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float + ir.src2.?.def.?.data.float };
                 ir.src1 = null;
@@ -654,11 +712,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("add; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("add; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -667,6 +727,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .sub => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                log("sub; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int - ir.src2.?.def.?.data.int };
                 ir.src1 = null;
@@ -675,6 +736,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+                log("sub; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float - ir.src2.?.def.?.data.float };
                 ir.src1 = null;
@@ -683,11 +745,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Short-circuit src1 copy
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+                log("sub; short-circuit src1 copy");
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+                log("sub; short-circuit src2 copy");
                 ir.src2 = ir.src2.?.def.?.src1;
                 retval = true;
             }
@@ -805,6 +869,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .index => {
             // Statically check if index is within bounds
             if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
+                log("index btw");
                 if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
                     var index = ir.src2.?.def.?.data.int;
                     var length = ir.src1.?.symbol._type.?.product.terms.items.len;
@@ -900,6 +965,8 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         else => {},
     }
 
+    if (retval) {}
+
     return retval;
 }
 
@@ -953,6 +1020,9 @@ fn removeUnusedDefs(cfg: *CFG) bool {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and ir.dest.?.uses == 0) {
+                if (debug) {
+                    std.debug.print("removing {s}\n", .{ir.dest.?.symbol.name});
+                }
                 bb.removeInstruction(ir);
                 retval = true;
             }

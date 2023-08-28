@@ -34,10 +34,10 @@ int64_t _2_main() {
 	struct0 _3_x;
 	int64_t _2_t5;
 	int64_t _2_t6;
-	int64_t _2_t7;
-	uint8_t _2_t8;
-	int64_t _2_t9;
-	uint8_t _2_t10;
+	uint8_t _2_t7;
+	int64_t _2_t8;
+	uint8_t _2_t9;
+	int64_t _2_t10;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 0;
@@ -48,23 +48,23 @@ BB0:
     $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n         ^";
 	_2_t5 = _4_f();
 	_2_t6 = 0;
-	_2_t7 = 0;
-	_2_t8 = _2_t5 < _2_t7;
-	if (_2_t8) {
+	_2_t7 = _2_t5 < _2_t6;
+	if (_2_t7) {
 		goto BB1;
 	} else {
 		goto BB2;
 	}
 BB2:
-	_2_t9 = 4;
-	_2_t10 = _2_t5 >= _2_t9;
-	if (_2_t10) {
+	_2_t8 = 4;
+	_2_t9 = _2_t5 >= _2_t8;
+	if (_2_t9) {
 		goto BB3;
 	} else {
 		goto BB4;
 	}
 BB4:
-	*(((int64_t*)(&_3_x))+_2_t5) = _2_t6;
+	_2_t10 = 0;
+	*(((int64_t*)(&_3_x))+_2_t5) = _2_t10;
 	_2_$retval = 0;
 	return _2_$retval;
 BB3:

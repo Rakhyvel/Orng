@@ -44,14 +44,14 @@ int64_t _2_main() {
 	int64_t* _2_t14;
 	int64_t _2_t16;
 	int64_t _2_t17;
-	int64_t _2_t18;
-	int64_t* _2_t20;
+	int64_t _2_t19;
+	int64_t* _2_t21;
 	struct1 _3_z;
-	int64_t _2_t22;
 	int64_t _2_t23;
 	int64_t _2_t26;
 	uint8_t _2_t27;
 	int64_t _2_t28;
+	int64_t _2_t29;
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 1;
@@ -65,32 +65,32 @@ BB0:
 	_2_t14 = (((int64_t*)(&_3_x))+_2_t8);
 	_2_t16 = 1;
 	_2_t17 = 5;
-	_2_t18 = _2_t17 - _2_t16;
-	_2_t20 = _2_t14 + _2_t16;
-	_3_z = (struct1) {_2_t20, _2_t18};
-	_2_t22 = 2;
-	_2_t23 = 10;
+	_2_t19 = _2_t17 - _2_t16;
+	_2_t21 = _2_t14 + _2_t16;
+	_3_z = (struct1) {_2_t21, _2_t19};
+	_2_t23 = 2;
 	_2_t26 = (&_3_z)->_1;
-	_2_t27 = _2_t22 >= _2_t26;
+	_2_t27 = _2_t23 >= _2_t26;
 	if (_2_t27) {
-		goto BB7;
+		goto BB9;
 	} else {
-		goto BB8;
+		goto BB10;
 	}
-BB8:
-	*(((int64_t*)((&_3_z)->_0))+_2_t22) = _2_t23;
+BB10:
+	_2_t28 = 10;
+	*(((int64_t*)((&_3_z)->_0))+_2_t23) = _2_t28;
     $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n            ^";
-	_2_t28 = _4_sum_up(_3_z);
-	_2_$retval = _2_t28;
+	_2_t29 = _4_sum_up(_3_z);
+	_2_$retval = _2_t29;
 	return _2_$retval;
-BB7:
+BB9:
     $lines[$line_idx++] = "tests/integration/slices/subslice.orng:6:7:\n    z[2] = 10\n       ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-	goto BB8;
+	goto BB10;
 }
 
 int64_t _4_sum_up(struct1 _4_xs) {
