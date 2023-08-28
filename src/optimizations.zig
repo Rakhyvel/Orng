@@ -696,7 +696,15 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 log("add; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int + ir.src2.?.def.?.data.int };
+                ir.data = _ir.IRData{
+                    .int = if (std.math.add(i64, @intCast(ir.src1.?.def.?.data.int), @intCast(ir.src2.?.def.?.data.int))) |res| res else |_| {
+                        errors.addError(Error{ .basic = .{
+                            .span = ir.span,
+                            .msg = "addition integer overflow",
+                        } });
+                        return error.typeError;
+                    },
+                };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -729,7 +737,15 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 log("sub; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int - ir.src2.?.def.?.data.int };
+                ir.data = _ir.IRData{
+                    .int = if (std.math.sub(i64, @intCast(ir.src1.?.def.?.data.int), @intCast(ir.src2.?.def.?.data.int))) |res| res else |_| {
+                        errors.addError(Error{ .basic = .{
+                            .span = ir.span,
+                            .msg = "subtraction integer overflow",
+                        } });
+                        return error.typeError;
+                    },
+                };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -761,7 +777,15 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = ir.src1.?.def.?.data.int * ir.src2.?.def.?.data.int };
+                ir.data = _ir.IRData{
+                    .int = if (std.math.mul(i64, @intCast(ir.src1.?.def.?.data.int), @intCast(ir.src2.?.def.?.data.int))) |res| res else |_| {
+                        errors.addError(Error{ .basic = .{
+                            .span = ir.span,
+                            .msg = "multiplication integer overflow",
+                        } });
+                        return error.typeError;
+                    },
+                };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -787,9 +811,15 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         },
 
         .div => {
-            // TODO: Compile error if divide by 0
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                if (ir.src2.?.def.?.data.int == 0) {
+                    errors.addError(Error{ .basic = .{
+                        .span = ir.src2.?.def.?.span,
+                        .msg = "divide by 0",
+                    } });
+                    return error.typeError;
+                }
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = @divTrunc(ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
                 ir.src1 = null;
@@ -798,7 +828,14 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
-                ir.kind = .loadInt;
+                if (ir.src2.?.def.?.data.float == 0.0) {
+                    errors.addError(Error{ .basic = .{
+                        .span = ir.src2.?.def.?.span,
+                        .msg = "divide by 0",
+                    } });
+                    return error.typeError;
+                }
+                ir.kind = .loadFloat;
                 ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float / ir.src2.?.def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
@@ -819,6 +856,13 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .mod => {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+                if (ir.src2.?.def.?.data.int == 0) {
+                    errors.addError(Error{ .basic = .{
+                        .span = ir.src2.?.def.?.span,
+                        .msg = "divide by 0",
+                    } });
+                    return error.typeError;
+                }
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = @rem(ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
                 ir.src1 = null;
@@ -841,7 +885,15 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
             // Known int, int value
             if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = std.math.pow(i128, ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
+                ir.data = _ir.IRData{
+                    .int = if (std.math.powi(i128, ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int)) |res| res else |_| {
+                        errors.addError(Error{ .basic = .{
+                            .span = ir.src2.?.def.?.span,
+                            .msg = "exponent is undefined",
+                        } });
+                        return error.typeError;
+                    },
+                };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;

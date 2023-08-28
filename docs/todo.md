@@ -154,11 +154,7 @@
     - [x] dynamic index out of bounds
     - [x] static slice lower <= upper
     - [x] dynamic slice lower <= upper
-    - [ ] static checked arithmetic
-        - [ ] addition doesn't exceed type limits
-        - [ ] subtraction doesn't exceed type limits
-        - [ ] multiplication doesn't exceed type limits
-        - [ ] divide by zero
+    - [x] static checked arithmetic (actually easy since optimizer already does these automatically)
     - [ ] dynamic checked arithmetic
         - [ ] addition doesn't exceed type limits
         - [ ] subtraction doesn't exceed type limits
@@ -251,3 +247,4 @@
     - [ ] derive
     - [ ] dot prepend `.>`
     - [ ] `id` function in prelude
+    - [ ] wrap and saturate math operators (not too important tbh)
