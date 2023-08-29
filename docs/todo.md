@@ -155,12 +155,7 @@
     - [x] static slice lower <= upper
     - [x] dynamic slice lower <= upper
     - [x] static checked arithmetic (actually easy since optimizer already does these automatically)
-    - [ ] dynamic checked arithmetic
-        - [ ] addition doesn't exceed type limits
-        - [ ] subtraction doesn't exceed type limits
-        - [ ] multiplication doesn't exceed type limits
-        - [ ] divide by zero
-    - [ ] static union tag check
+    - [x] static union tag check
     - [ ] dynaminc union tag check
 - [ ] pattern matching
     - [ ] product destructuring
@@ -244,6 +239,7 @@
         - [ ] multi-loops, ranges like zig
     - [ ] Eq, Ord, Num, Bits, Convertible
         - [ ] Inlining will hopefully remove vtable lookups for things like integer math, which would stink!
+        - [ ] Default for arithmetic should be checked arithmetic
     - [ ] derive
     - [ ] dot prepend `.>`
     - [ ] `id` function in prelude

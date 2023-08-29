@@ -116,7 +116,7 @@ pub const IRKind = enum {
     loadInt,
     loadFloat,
     loadStruct,
-    loadUnion,
+    loadUnion, // src1 is init, data.int is tag id
     loadString,
     decl,
 
@@ -152,7 +152,7 @@ pub const IRKind = enum {
     indexCopy, // src1[src2] = data.symbver
     select, // dest = src1._${data.int}
     selectCopy,
-    get_tag,
+    get_tag, // dest = src1.tag
     cast,
 
     // Control-flow
@@ -1147,6 +1147,8 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 temp.lvalue = lvalue;
 
+                //
+
                 var ir = try IR.createSelect(temp, lhs, ast.select.pos.?, ast.getToken().span, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
@@ -1182,8 +1184,12 @@ pub const CFG = struct {
                 var upper = (try self.flattenAST(scope, ast.subSlice.upper.?, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
 
                 // Statically confirm that lower <= upper
-                if (lower.def.?.data == .int and upper.def.?.data == .int and lower.def.?.data.int > upper.def.?.data.int) {
-                    errors.addError(Error{ .basic = .{ .span = lower.def.?.span, .msg = "subslice lower bound is greater than upper bound" } });
+                if (lower.def.?.kind == .loadInt and upper.def.?.kind == .loadInt and lower.def.?.data.int > upper.def.?.data.int) {
+                    errors.addError(Error{ .slice_lower_upper = .{
+                        .span = lower.def.?.span,
+                        .lower = lower.def.?.data.int,
+                        .upper = upper.def.?.data.int,
+                    } });
                     return error.typeError;
                 } else { // Dynamically confirm that lower <= upper
                     var end_label = try IR.createLabel(ast.getToken().span, allocator);
@@ -1229,7 +1235,7 @@ pub const CFG = struct {
                 var proper_term: *AST = (try ast.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
                 if (ast.inferredMember.init) |_init| {
                     init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                } else if (proper_term.annotation.init == null) {
+                } else if (proper_term.annotation.init == null and proper_term.annotation.type.* != .unit) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "no value provided, and no default value available" } });
                     return error.typeError;
                 }

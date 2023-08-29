@@ -970,6 +970,14 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .select => {
             // Known loadUnion value
             if (ir.src1.?.def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
+                if (ir.data.int != ir.src1.?.def.?.data.int) {
+                    errors.addError(Error{ .sum_select_inactive = .{
+                        .span = ir.span,
+                        .inactive = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.data.int))].annotation.pattern.getToken().data,
+                        .active = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.src1.?.def.?.data.int))].annotation.pattern.getToken().data,
+                    } });
+                    return error.typeError;
+                }
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
                 ir.src1 = ir.src1.?.def.?.src1;

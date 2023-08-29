@@ -108,6 +108,16 @@ pub const Error = union(enum) {
         span: Span,
         index: i128,
     },
+    slice_lower_upper: struct {
+        span: Span,
+        lower: i128,
+        upper: i128,
+    },
+    sum_select_inactive: struct {
+        span: Span,
+        active: []const u8,
+        inactive: []const u8,
+    },
 
     pub fn getSpan(self: *const Error) ?Span {
         switch (self.*) {
@@ -135,6 +145,8 @@ pub const Error = union(enum) {
 
             .out_of_bounds => return self.out_of_bounds.span,
             .negative_index => return self.negative_index.span,
+            .slice_lower_upper => return self.slice_lower_upper.span,
+            .sum_select_inactive => return self.sum_select_inactive.span,
         }
     }
 };
@@ -241,10 +253,16 @@ pub const Errors = struct {
 
                 // Optimizer
                 .out_of_bounds => {
-                    try out.print("index out of bounds; index {}, length {}`\n", .{ err.out_of_bounds.index, err.out_of_bounds.length });
+                    try out.print("index out of bounds; index {}, length {}\n", .{ err.out_of_bounds.index, err.out_of_bounds.length });
                 },
                 .negative_index => {
-                    try out.print("index is negative; index {}`\n", .{err.negative_index.index});
+                    try out.print("index is negative; index {}\n", .{err.negative_index.index});
+                },
+                .slice_lower_upper => {
+                    try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{ err.slice_lower_upper.lower, err.slice_lower_upper.upper });
+                },
+                .sum_select_inactive => {
+                    try out.print("access of sum field '{s}' while field '{s}' is active\n", .{ err.sum_select_inactive.inactive, err.sum_select_inactive.active });
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);
