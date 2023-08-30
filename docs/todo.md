@@ -156,18 +156,23 @@
     - [x] dynamic slice lower <= upper
     - [x] static checked arithmetic (actually easy since optimizer already does these automatically)
     - [x] static union tag check
-    - [ ] dynaminc union tag check
+    - [x] dynaminc union tag check
 - [ ] pattern matching
-    - [ ] product destructuring
-    - [ ] sum-type destructuring
-    - [ ] constant-equality checks
-        > `let four = 4`
-        > `let four, four = (4, 4) // huh...`
-    - [ ] self-equality checks
-        > `let x', x' = (3, 4) // maybe this causes a panic, like an assert`
-        > should likely be shallow equality, otherwise that gets tricky...
-    - [ ] `match` statement
-        - [ ] Error if match isn't total
+    - [ ] `let` product destructuring
+        - [ ] Just so that it isn't confusing wrt `mut` (like `*` problems in C), destructure requires paren of idents, `mut` is before paren list
+        - [ ] Identifiers define new symbols, having a name repeat is a redefinition error
+    - [ ] assign product destructuring
+        ```
+        let mut (x, y): (Int, Int) = {4, 5}
+        (x, y) = {y, x}
+        ```
+    - [ ] `match` expression
+        - [ ] Value matching
+            > In the future, the type of the matched-on expr MUST implement Eq. It's this == that is 'called' (and hopefully easily inlined!)
+        - [ ] Product destructuring
+        - [ ] Sum destructuring
+            - [ ] Make sure it's recursive! So `| .sum(lhs', rhs') => lhs' + rhs'`
+        - [ ] Error if match is not total
 - [ ] new optimizations
     - [ ] expand_types should only allocate if anything changes
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)

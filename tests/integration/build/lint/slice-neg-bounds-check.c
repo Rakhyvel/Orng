@@ -57,8 +57,9 @@ BB0:
 	_2_t12 = (((int64_t*)(&_3_x))+_2_t6);
 	_2_t13 = 4;
 	_3_y = (struct1) {_2_t12, _2_t13};
-    $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:9:\n    y[f()]\n         ^";
+    $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:9:\n    y[f()]\n       ^";
 	_2_t14 = _4_f();
+    $line_idx--;
 	_2_t16 = 0;
 	_2_t17 = _2_t14 < _2_t16;
 	if (_2_t17) {
@@ -79,7 +80,7 @@ BB8:
 	_2_$retval = _2_t15;
 	return _2_$retval;
 BB7:
-    $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:7:\n    y[f()]\n       ^";
+    $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:7:\n    y[f()]\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -87,7 +88,7 @@ BB7:
     exit(1);
 	goto BB8;
 BB5:
-    $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:7:\n    y[f()]\n       ^";
+    $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:7:\n    y[f()]\n     ^";
     fprintf(stderr, "panic: index is negative\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

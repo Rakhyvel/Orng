@@ -12,6 +12,12 @@ static const char* $lines[1024];
 static uint16_t $line_idx = 0;
 
 /* Typedefs */
+typedef struct {
+	uint64_t tag;
+	union {
+		int64_t _0;
+	};
+} struct0;
 
 /* Interned Strings */
 
@@ -20,10 +26,34 @@ int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
+	int64_t _2_t0;
+	struct0 _3_x;
+	int64_t _2_t3;
+	int64_t _2_t4;
+	uint8_t _2_t5;
 	int64_t _2_$retval;
 BB0:
-	_2_$retval = 134;
+	_2_t0 = 134;
+	_3_x = (struct0) {.tag=0, ._0=_2_t0};
+	_2_t3 = 0;
+	_2_t4 = _3_x.tag;
+	_2_t5 = _2_t4 != _2_t3;
+	if (_2_t5) {
+		goto BB1;
+	} else {
+		goto BB2;
+	}
+BB2:
+	_2_$retval = (&_3_x)->_0;
 	return _2_$retval;
+BB1:
+    $lines[$line_idx++] = "tests/integration/default/default-sum-init.orng:4:7:\n    x.a\n       ^";
+    fprintf(stderr, "panic: access of inactive sum field\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+	goto BB2;
 }
 
 

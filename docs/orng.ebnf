@@ -12,7 +12,7 @@ non_fn_declaration: let_declaration | const_declaration.
 
 const_declaration: "const" ident [":" arrowExpr] "=" expr.
 
-let_declaration: "let" ["mut"] ident (":" arrowExpr ["=" expr] | "=" expr).
+let_declaration: "let" ["mut"] (ident | "(" ident {"," ident} ")") (":" arrowExpr ["=" expr] | "=" expr).
 
 statement: non_fn_declaration
          | "defer" (expr | non_fn_declaration)

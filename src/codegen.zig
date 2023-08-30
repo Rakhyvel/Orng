@@ -572,7 +572,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .pushStackTrace => {
             var spaces = String.init(std.heap.page_allocator);
             defer spaces.deinit();
-            for (0..ir.span.col) |i| {
+            for (1..ir.span.col - 1) |i| {
                 _ = i;
                 try spaces.insert(" ", spaces.size);
             }
@@ -580,6 +580,12 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
                 \\    $lines[$line_idx++] = "{s}:{}:{}:\n{s}\n{s}^";
                 \\
             , .{ ir.span.filename, ir.span.line, ir.span.col, program.lines.items[ir.span.line - 1], spaces.str() });
+        },
+        .popStackTrace => {
+            try out.writer().print(
+                \\    $line_idx--;
+                \\
+            , .{});
         },
         .panic => {
             try out.writer().print(

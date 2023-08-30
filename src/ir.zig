@@ -166,6 +166,7 @@ pub const IRKind = enum {
 
     // Errors
     pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
+    popStackTrace, // Pops a message off the stack after a function is successfully called
     panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
 };
 
@@ -293,6 +294,12 @@ pub const IR = struct {
 
     fn createStackPush(span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.pushStackTrace, null, null, null, span, allocator);
+        retval.data = IRData.none;
+        return retval;
+    }
+
+    fn createStackPop(span: Span, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.popStackTrace, null, null, null, span, allocator);
         retval.data = IRData.none;
         return retval;
     }
@@ -1124,6 +1131,7 @@ pub const CFG = struct {
                 temp.def = ir;
                 self.appendInstruction(try IR.createStackPush(ast.getToken().span, allocator));
                 self.appendInstruction(ir);
+                self.appendInstruction(try IR.createStackPop(ast.getToken().span, allocator));
                 return temp;
             },
             .index => {
@@ -1143,13 +1151,34 @@ pub const CFG = struct {
                 return temp;
             },
             .select => {
-                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator)).?;
+                var do_check = (try ast.select.lhs.typeof(scope, errors, allocator)).* == .sum;
+                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, error_label, !do_check, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 temp.lvalue = lvalue;
 
-                //
+                if (do_check) {
+                    var all_good_label = try IR.createLabel(ast.getToken().span, allocator);
+                    var sel = try self.createTempSymbolVersion(_ast.intType, allocator);
+                    var sel_ir = try IR.createInt(sel, ast.select.pos.?, ast.getToken().span, allocator);
+                    sel.def = sel_ir;
+                    self.appendInstruction(sel_ir);
+                    var tag = try self.createTempSymbolVersion(_ast.intType, allocator);
+                    var tag_ir = try IR.createGetTag(tag, lhs, ast.getToken().span, allocator);
+                    tag.def = tag_ir;
+                    self.appendInstruction(tag_ir);
+                    var neql = try self.createTempSymbolVersion(_ast.boolType, allocator);
+                    var neql_ir = try IR.create(.notEqual, neql, tag, sel, ast.getToken().span, allocator);
+                    neql.def = neql_ir;
+                    self.appendInstruction(neql_ir);
+                    var branch = try IR.createBranch(neql, all_good_label, ast.getToken().span, allocator);
+                    self.appendInstruction(branch);
+                    self.appendInstruction(try IR.createStackPush(ast.select.rhs.getToken().span, allocator));
+                    self.appendInstruction(try IR.createPanic("access of inactive sum field", ast.select.rhs.getToken().span, allocator));
+                    self.appendInstruction(all_good_label);
+                }
 
-                var ir = try IR.createSelect(temp, lhs, ast.select.pos.?, ast.getToken().span, allocator);
+                var new_lhs = try SymbolVersion.createUnversioned(lhs.symbol, lhs.type, allocator);
+                var ir = try IR.createSelect(temp, new_lhs, ast.select.pos.?, ast.getToken().span, allocator);
                 temp.def = ir;
                 self.appendInstruction(ir);
                 return temp;

@@ -45,8 +45,9 @@ BB0:
 	_2_t3 = 0;
 	_2_t4 = 0;
 	_3_x = (struct0) {_2_t1, _2_t2, _2_t3, _2_t4};
-    $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n         ^";
+    $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
 	_2_t5 = _4_f();
+    $line_idx--;
 	_2_t6 = 0;
 	_2_t7 = _2_t5 < _2_t6;
 	if (_2_t7) {
@@ -68,7 +69,7 @@ BB4:
 	_2_$retval = 0;
 	return _2_$retval;
 BB3:
-    $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:7:\n    x[f()] = 0\n       ^";
+    $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:7:\n    x[f()] = 0\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -76,7 +77,7 @@ BB3:
     exit(1);
 	goto BB4;
 BB1:
-    $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:7:\n    x[f()] = 0\n       ^";
+    $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:7:\n    x[f()] = 0\n     ^";
     fprintf(stderr, "panic: index is negative\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
