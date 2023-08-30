@@ -134,7 +134,7 @@
     - [ ] inferred errors
         > Investigate. Seems problematic to implement well
     - [x] remove `throw`
-- [ ] more compile errors
+- [x] more compile errors
     - [x] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
         - [x] negative tests up to type checking
         - [x] `.poison` AST node which represents apart of the program with errors that should not be re-validated
@@ -245,6 +245,7 @@
     - [ ] Eq, Ord, Num, Bits, Convertible
         - [ ] Inlining will hopefully remove vtable lookups for things like integer math, which would stink!
         - [ ] Default for arithmetic should be checked arithmetic
+            > Each numeric type knows it's limits, so it makes more sense to implement checking in the trait
     - [ ] derive
     - [ ] dot prepend `.>`
     - [ ] `id` function in prelude
