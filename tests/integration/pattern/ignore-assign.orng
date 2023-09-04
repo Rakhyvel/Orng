@@ -1,0 +1,5 @@
+// 165
+fn main() -> Int
+    let (mut x, mut y): [2]Int
+    (x, _, y) = (5, 19, 33)
+    x * y

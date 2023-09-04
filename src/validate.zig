@@ -1544,7 +1544,7 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
     switch (ast.*) {
         .identifier => {
             var symbol = try findSymbol(ast, scope, errors);
-            if (symbol.kind != .mut) {
+            if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
                 errors.addError(Error{ .modifyImmutable = .{
                     .identifier = ast.getToken(),
                     .symbol = symbol,

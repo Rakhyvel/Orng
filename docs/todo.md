@@ -166,12 +166,12 @@
         - [x] recursive pattern matching
         - [x] `_` to ignore
             - [x] error if `_` is marked as `mut` or `const`
-    - [ ] assign product destructuring
+    - [x] assign product destructuring
         ```
         let (mut x, mut y): (Int, Int) = {4, 5}
         (x, y) = {y, x}
         ```
-        - [ ] `_` to ignore
+        - [x] `_` to ignore
     - [ ] `match` expression
         - [ ] Value matching
             > In the future, the type of the matched-on expr MUST implement Eq. It's this == that is 'called' (and hopefully easily inlined!)

@@ -632,6 +632,18 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
         ._const,
         std.heap.page_allocator,
     ));
+    var discard = try Symbol.create(
+        prelude.?,
+        "_",
+        Span{ .filename = "", .col = 0, .line = 0 },
+        ast.poisoned,
+        null,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    );
+    discard.is_temp = true;
+    try prelude.?.symbols.put("_", discard);
     return prelude.?;
 }
 pub fn resetPrelude() void {
