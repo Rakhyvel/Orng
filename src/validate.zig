@@ -48,7 +48,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             symbol.validation_state = .valid;
         } else if (symbol.init != null and symbol._type == null) {
             // Infer type
-            symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
+            symbol.init = try validateAST(symbol.init.?, null, symbol.scope, errors, allocator);
             if (symbol.init.?.* != .poison) {
                 symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), _ast.typeType, symbol.scope, errors, allocator);
                 symbol.validation_state = .valid;
@@ -493,7 +493,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return _ast.poisoned;
             }
 
-            if (try lhs_type.typesMatch(_ast.typeType, scope, errors, allocator) and ast.index.lhs.* == .product and ast.index.rhs.* == .int) {
+            if (try lhs_type.typesMatch(_ast.typeType, scope, errors, allocator) and ast.index.lhs.* == .product and ast.index.rhs.* == .int and ast.index.lhs.product.terms.items.len > ast.index.rhs.int.data) {
                 // Index a product type, resolve immediately
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
                 retval = ast.index.lhs.product.terms.items[@as(usize, @intCast(ast.index.rhs.int.data))];
@@ -849,11 +849,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 // Slice-of value, expected must be an slice, inner must match with expected's inner
                 // ast.sliceOf.expr must be homotypical product type of expected
                 var expr_type = try ast.sliceOf.expr.typeof(scope, errors, allocator);
-                ast.getCommon().is_valid = true;
                 if (expr_type.* != .product or !try expr_type.product.is_homotypical(scope, errors, allocator)) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "attempt to take slice-of something that is not an array" } });
                     return _ast.poisoned;
-                } else if (expected != null and !try expected.?.typesMatch(try ast.typeof(scope, errors, allocator), scope, errors, allocator)) {
+                }
+
+                ast.getCommon().is_valid = true;
+                if (expected != null and !try expected.?.typesMatch(try ast.typeof(scope, errors, allocator), scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return _ast.poisoned;
                 }

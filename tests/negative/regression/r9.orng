@@ -1,1 +1,1 @@
-let x : 2 ( ) % & mut ? fn main ( ) -> unreachable { }
+let x : unreachable = 3
