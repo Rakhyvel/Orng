@@ -160,8 +160,8 @@
     - [x] dynaminc union tag check
 - [ ] pattern matching
     - [ ] `let` product destructuring
-        - [ ] `mut` applies before symbols
-        - [ ] Identifiers define new symbols, having a name repeat is a redefinition error
+        - [x] `mut` applies before symbols
+        - [x] Identifiers define new symbols, having a name repeat is a redefinition error
         - [ ] recursive pattern matching
         - [ ] `_` to ignore
         - [ ] `@` to alias

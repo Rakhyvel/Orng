@@ -252,6 +252,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         name: []const u8,
         kind: _symbol.SymbolKind,
+        symbol: *Symbol = undefined,
     },
     decl: struct {
         common: ASTCommon,

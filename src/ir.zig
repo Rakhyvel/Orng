@@ -1633,19 +1633,7 @@ pub const CFG = struct {
                 if (def == null) {
                     return null;
                 }
-                if (ast.decl.symbols.items.len == 1) {
-                    var symbver = try SymbolVersion.createUnversioned(ast.decl.symbols.items[0], ast.decl.type.?, allocator);
-                    var ir = try IR.create(.copy, symbver, def, null, ast.getToken().span, allocator);
-                    symbver.def = ir;
-                    self.appendInstruction(ir);
-                } else {
-                    for (ast.decl.symbols.items, 0..) |symbol, i| {
-                        var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                        var ir = try IR.createSelect(symbver, def.?, i, symbol.span, allocator);
-                        symbver.def = ir;
-                        self.appendInstruction(ir);
-                    }
-                }
+                try self.generate_pattern(scope, ast.decl.pattern, try ast.decl.type.?.exapnd_type(scope, errors, allocator), def.?, errors, allocator);
                 return null;
             },
             .fnDecl => {
@@ -1803,6 +1791,35 @@ pub const CFG = struct {
                 std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
                 return error.Unimplemented;
             },
+        }
+    }
+
+    fn generate_pattern(self: *CFG, scope: *Scope, pattern: *AST, _type: *AST, def: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) error{
+        typeError,
+        OutOfMemory,
+        NotAnLValue,
+        Unimplemented,
+        InvalidRange,
+        Utf8ExpectedContinuation,
+        Utf8OverlongEncoding,
+        Utf8EncodesSurrogateHalf,
+        Utf8CodepointTooLarge,
+    }!void {
+        if (pattern.* == .symbol) {
+            var symbver = try SymbolVersion.createUnversioned(pattern.symbol.symbol, pattern.symbol.symbol._type.?, allocator);
+            var ir = try IR.create(.copy, symbver, def, null, pattern.getToken().span, allocator);
+            symbver.def = ir;
+            self.appendInstruction(ir);
+        } else if (pattern.* == .product) {
+            for (pattern.product.terms.items, 0..) |term, i| {
+                var subscript_type = _type.product.terms.items[i];
+                var symbver = try self.createTempSymbolVersion(subscript_type, allocator);
+                var ir = try IR.createSelect(symbver, def, i, term.getToken().span, allocator);
+                symbver.def = ir;
+                symbver.lvalue = term.* != .symbol;
+                self.appendInstruction(ir);
+                try self.generate_pattern(scope, term, subscript_type, symbver, errors, allocator);
+            }
         }
     }
 
