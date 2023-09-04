@@ -12,7 +12,7 @@ let_declaration: "let" let_pattern_atom (":" arrowExpr ["=" expr] | "=" expr).
 
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] identifier ["@" let_pattern_atom]
-                | "(" let_product_product ")"
+                | "(" let_pattern_product ")"
                 .
 
 statement: let_declaration
@@ -59,7 +59,7 @@ prefixExpr: "not" hyperExpr                         # boolean not
 
 hyperExpr: postfixExpr {(".>" | "**") postfixExpr}.
 
-postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | (".?") | (".!") | ("^")}.
+postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
 
 factor: ident
       | "true"

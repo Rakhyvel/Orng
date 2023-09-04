@@ -840,6 +840,9 @@ pub const AST = union(enum) {
                 try self.index.rhs.printType(out);
                 try out.print("]", .{});
             },
+            ._unreachable => {
+                try out.print("unreachable", .{});
+            },
             .poison => try out.print("<error>", .{}),
             else => {
                 try out.print("\nprintTypes(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});

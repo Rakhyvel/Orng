@@ -782,7 +782,7 @@ pub const Parser = struct {
         errdefer params.deinit();
 
         var token = try self.expect(.L_PAREN);
-        if (self.peekKind(.MUT) or self.peekKind(.IDENTIFIER)) {
+        if (self.peekKind(.MUT) or self.peekKind(.CONST) or self.peekKind(.L_PAREN) or self.peekKind(.IDENTIFIER)) {
             try params.append(try self.param());
             while (self.accept(.COMMA)) |_| {
                 try params.append(try self.param());

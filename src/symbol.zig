@@ -447,8 +447,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
                 try AST.createIndex(init.?.getToken(), init.?, index, allocator)
             else
                 null;
-            _ = new_init;
-            try create_symbol(symbols, term, new_type, null, scope, errors, allocator);
+            try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
         }
     } else {
         std.debug.print("{s}\n", .{pattern.getToken().data});

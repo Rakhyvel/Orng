@@ -42,11 +42,11 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             } else {
                 symbol.init = _ast.poisoned;
             }
-        } else if (symbol.init == null) {
+        } else if (symbol.init == null and symbol._type != null) {
             // Default value
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
             symbol.validation_state = .valid;
-        } else if (symbol._type == null) {
+        } else if (symbol.init != null and symbol._type == null) {
             // Infer type
             symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
             if (symbol.init.?.* != .poison) {
@@ -56,6 +56,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
                 symbol._type = _ast.poisoned;
             }
         } else {
+            std.debug.print("symbol `{s}` has null type and null init value\n", .{symbol.name});
             unreachable;
         }
     }
@@ -1215,6 +1216,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         ._unreachable => {
+            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType } });
+                return _ast.poisoned;
+            }
             retval = ast;
         },
 

@@ -1,0 +1,4 @@
+// 158
+fn main()->Int 
+    let (a, b) = 100, 58
+    a + b

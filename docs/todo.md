@@ -46,6 +46,7 @@
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [x] find out if GCC supports UBSan! enable it
 - [x] allow more than one command line argument
+- [ ] Ignore empty files all together
 - [ ] exclude files or directories with a prefix `~`
 
 ### In-House rdgen
@@ -54,7 +55,7 @@
 - [ ] Rejects if grammar is not LL(1) ("ambiguity" but not exactly)
 - [ ] Generates JSON files of example programs, with identifiers, numbers, etc replaced with random values
 
-### Features
+### Language Features
 - [x] addresses
     - [x] addr-of operator
     - [x] dereference operator
@@ -159,7 +160,7 @@
     - [x] static union tag check
     - [x] dynaminc union tag check
 - [ ] pattern matching
-    - [ ] `let` product destructuring
+    - [x] `let` product destructuring
         - [x] `mut` applies before symbols
         - [x] Identifiers define new symbols, having a name repeat is a redefinition error
         - [x] recursive pattern matching
@@ -260,6 +261,20 @@
     - [ ] dot prepend `.>`
     - [ ] `id` function in prelude
     - [ ] wrap and saturate math operators (not too important tbh)
+
+### Standard Library
+- [ ] Collections
+    - [ ] List
+        - [ ] `map`, `filter`, `reduce`
+    - [ ] HashMap
+- [ ] IO
+- [ ] Debug (?)
+- [ ] Memory
+- [ ] Strings
+    - [ ] Ascii and Unicode stuff
+- [ ] Testing
+- [ ] Process
+- [ ] Threads
 
 ### Language Server
 - [ ] Highlighting
