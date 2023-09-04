@@ -48,9 +48,9 @@ int64_t _2_main() {
 	int64_t* _2_t21;
 	struct1 _3_z;
 	int64_t _2_t23;
-	int64_t _2_t26;
-	uint8_t _2_t27;
-	int64_t _2_t28;
+	int64_t _2_t24;
+	int64_t _2_t27;
+	uint8_t _2_t28;
 	int64_t _2_t29;
 	int64_t _2_$retval;
 BB0:
@@ -68,17 +68,17 @@ BB0:
 	_2_t19 = _2_t17 - _2_t16;
 	_2_t21 = _2_t14 + _2_t16;
 	_3_z = (struct1) {_2_t21, _2_t19};
-	_2_t23 = 2;
-	_2_t26 = (&_3_z)->_1;
-	_2_t27 = _2_t23 >= _2_t26;
-	if (_2_t27) {
+	_2_t23 = 10;
+	_2_t24 = 2;
+	_2_t27 = (&_3_z)->_1;
+	_2_t28 = _2_t24 >= _2_t27;
+	if (_2_t28) {
 		goto BB9;
 	} else {
 		goto BB10;
 	}
 BB10:
-	_2_t28 = 10;
-	*(((int64_t*)((&_3_z)->_0))+_2_t23) = _2_t28;
+	*(((int64_t*)((&_3_z)->_0))+_2_t24) = _2_t23;
     $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
 	_2_t29 = _4_sum_up(_3_z);
     $line_idx--;

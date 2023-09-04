@@ -56,15 +56,15 @@ BB0:
 }
 
 struct0* _4_f(struct0* _4_x) {
-	struct0 _4_t0;
-	int64_t _4_t1;
-	int64_t _4_t6;
+	int64_t _4_t0;
+	struct0 _4_t1;
+	int64_t _4_t2;
 	struct0* _4_$retval;
 BB0:
-	_4_t0 = *_4_x;
-	_4_t1 = 3;
-	_4_t6 = 78;
-	*(((int64_t*)(_4_x))+_4_t1) = _4_t6;
+	_4_t0 = 78;
+	_4_t1 = *_4_x;
+	_4_t2 = 3;
+	*(((int64_t*)(_4_x))+_4_t2) = _4_t0;
 	_4_$retval = _4_x;
 	return _4_$retval;
 }

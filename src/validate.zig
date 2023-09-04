@@ -1524,6 +1524,12 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
             try validateLValue(ast.select.lhs, scope, errors);
         },
 
+        .product => {
+            for (ast.product.terms.items) |term| {
+                try validateLValue(term, scope, errors);
+            }
+        },
+
         else => {
             errors.addError(Error{ .basic = .{
                 .span = ast.getToken().span,
@@ -1572,6 +1578,12 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
                 }
             } else {
                 try assertMutable(ast.index.lhs, scope, errors, allocator);
+            }
+        },
+
+        .product => {
+            for (ast.product.terms.items) |term| {
+                try assertMutable(term, scope, errors, allocator);
             }
         },
 

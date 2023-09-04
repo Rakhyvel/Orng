@@ -283,7 +283,9 @@
 - [ ] Formatter
     - [ ] Takes in code and formats it
 - [ ] Linter
-    - [ ] Warn if line is too long
+    - [ ] Warn if line is too long (140, after being whitespace stripped, not including comments, is excessive)
+    - [ ] Warn about code such as `y, x = x, y` which is parsed as `y, (x = x), y`
+        > Warn when non-unit expressions are in the middle of a block?
 - [ ] Documentation generator
     - [ ] `///` Comment blocks are documentation
     - [ ] `\<attribute>` to mark attributes

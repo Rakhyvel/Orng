@@ -1,2 +1,8 @@
 // 159
-fn main()->Int {159}
+fn main()->Int
+    let (mut x, mut y) = 1, 2
+    (y, x) = (x, y)
+    if y == 1 and x == 2
+        159
+    else
+        unreachable

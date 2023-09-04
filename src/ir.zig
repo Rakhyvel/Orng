@@ -822,61 +822,11 @@ pub const CFG = struct {
 
             // Binary operators
             .assign => {
-                if (ast.assign.lhs.* == .identifier) {
-                    var symbol = scope.lookup(ast.assign.lhs.getToken().data, false).?;
-                    var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                    symbver.lvalue = true;
-                    var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (rhs == null) {
-                        return null;
-                    }
-                    var ir = try IR.create(.copy, symbver, rhs, null, ast.getToken().span, allocator);
-                    symbver.def = ir;
-                    self.appendInstruction(ir);
-                    return symbver;
-                } else if (ast.assign.lhs.* == .dereference) {
-                    var lhs = try self.flattenAST(scope, ast.assign.lhs.dereference.expr, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                    var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (lhs == null or rhs == null) {
-                        return null;
-                    }
-                    var ir = try IR.create(.derefCopy, null, lhs, rhs, ast.getToken().span, allocator);
-                    self.appendInstruction(ir);
+                var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                if (rhs == null) {
                     return null;
-                } else if (ast.assign.lhs.* == .index) {
-                    var index_lhs = try self.flattenAST(scope, ast.assign.lhs.index.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    var index_rhs = try self.flattenAST(scope, ast.assign.lhs.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (index_lhs == null or index_rhs == null) {
-                        return null;
-                    }
-
-                    try self.generate_bounds_check(scope, ast.assign.lhs, index_lhs.?, index_rhs.?, errors, allocator);
-
-                    var new_lhs = try SymbolVersion.createUnversioned(index_lhs.?.symbol, index_lhs.?.type, allocator);
-                    var new_rhs = try SymbolVersion.createUnversioned(index_rhs.?.symbol, index_rhs.?.type, allocator);
-                    var assign_rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (assign_rhs == null) {
-                        return null;
-                    }
-
-                    var ir = try IR.create(.indexCopy, null, new_lhs, new_rhs, ast.getToken().span, allocator);
-                    ir.data = IRData{ .symbver = assign_rhs.? };
-                    self.appendInstruction(ir);
-                    return null;
-                } else if (ast.assign.lhs.* == .select) {
-                    var lhs = try self.flattenAST(scope, ast.assign.lhs.select.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                    lhs.?.lvalue = true;
-                    var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (lhs == null or rhs == null) {
-                        return null;
-                    }
-                    var ir = try IR.create(.selectCopy, null, lhs, rhs, ast.getToken().span, allocator);
-                    ir.data = IRData{ .int = ast.assign.lhs.select.pos.? };
-                    self.appendInstruction(ir);
-                    return null;
-                } else {
-                    return error.NotAnLValue;
                 }
+                return try self.generate_assign(scope, ast.assign.lhs, rhs.?, return_label, break_label, continue_label, error_label, errors, allocator);
             },
             ._or => {
                 // Create the result symbol and IR
@@ -1791,6 +1741,84 @@ pub const CFG = struct {
                 std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
                 return error.Unimplemented;
             },
+        }
+    }
+
+    fn generate_assign(self: *CFG, scope: *Scope, lhs: *AST, rhs: *SymbolVersion, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) error{
+        typeError,
+        OutOfMemory,
+        NotAnLValue,
+        Unimplemented,
+        InvalidRange,
+        Utf8ExpectedContinuation,
+        Utf8OverlongEncoding,
+        Utf8EncodesSurrogateHalf,
+        Utf8CodepointTooLarge,
+    }!?*SymbolVersion {
+        switch (lhs.*) {
+            .identifier => {
+                // Lookup identifier's symbol, create a new version and assign rhs to it
+                var symbol = scope.lookup(lhs.getToken().data, false).?;
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                symbver.lvalue = true;
+                var ir = try IR.create(.copy, symbver, rhs, null, lhs.getToken().span, allocator);
+                symbver.def = ir;
+                self.appendInstruction(ir);
+                return symbver;
+            },
+            .dereference => {
+                var deref_lhs = try self.flattenAST(scope, lhs.dereference.expr, return_label, break_label, continue_label, error_label, true, errors, allocator);
+                if (deref_lhs == null) {
+                    return null;
+                }
+                var ir = try IR.create(.derefCopy, null, deref_lhs, rhs, lhs.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return null;
+            },
+            .index => {
+                var index_lhs = try self.flattenAST(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var index_rhs = try self.flattenAST(scope, lhs.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                if (index_lhs == null or index_rhs == null) {
+                    return null;
+                }
+
+                try self.generate_bounds_check(scope, lhs, index_lhs.?, index_rhs.?, errors, allocator);
+
+                var new_lhs = try SymbolVersion.createUnversioned(index_lhs.?.symbol, index_lhs.?.type, allocator);
+                var new_rhs = try SymbolVersion.createUnversioned(index_rhs.?.symbol, index_rhs.?.type, allocator);
+
+                var ir = try IR.create(.indexCopy, null, new_lhs, new_rhs, lhs.getToken().span, allocator);
+                ir.data = IRData{ .symbver = rhs };
+                self.appendInstruction(ir);
+                return null;
+            },
+            .product => {
+                for (lhs.product.terms.items, 0..) |term, i| {
+                    var product_lhs = try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, true, errors, allocator);
+                    if (product_lhs == null) {
+                        continue;
+                    }
+                    product_lhs.?.lvalue = true;
+                    var select = try self.createTempSymbolVersion(rhs.type.product.terms.items[i], allocator);
+                    var ir = try IR.createSelect(select, rhs, i, lhs.getToken().span, allocator);
+                    select.def = ir;
+                    self.appendInstruction(ir);
+                    _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
+                }
+                return null;
+            },
+            .select => {
+                var select_lhs = try self.flattenAST(scope, lhs.select.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator);
+                if (select_lhs == null) {
+                    return null;
+                }
+                select_lhs.?.lvalue = true;
+                var ir = try IR.create(.selectCopy, null, select_lhs, rhs, lhs.getToken().span, allocator);
+                ir.data = IRData{ .int = lhs.select.pos.? };
+                self.appendInstruction(ir);
+                return null;
+            },
+            else => return error.NotAnLValue,
         }
     }
 
