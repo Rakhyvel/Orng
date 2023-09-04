@@ -164,7 +164,7 @@
         - [x] Identifiers define new symbols, having a name repeat is a redefinition error
         - [x] recursive pattern matching
         - [x] `_` to ignore
-        - [ ] `@` to alias
+            - [x] error if `_` is marked as `mut` or `const`
     - [ ] assign product destructuring
         ```
         let (mut x, mut y): (Int, Int) = {4, 5}
@@ -178,7 +178,6 @@
         - [ ] Sum destructuring
         - [ ] Value matching with `{ }` blocks
         - [ ] `_` to ignore value 
-        - [ ] `@` to alias
         - [ ] Error if match is not total
 - [ ] new optimizations
     - [ ] expand_types should only allocate if anything changes

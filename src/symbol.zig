@@ -113,7 +113,20 @@ pub const Scope = struct {
     }
 };
 
-pub const SymbolKind = enum { _fn, _const, let, mut };
+pub const SymbolKind = enum {
+    _fn,
+    _const,
+    let,
+    mut,
+    pub fn to_string(self: SymbolKind) []const u8 {
+        return switch (self) {
+            ._fn => "fn",
+            ._const => "const",
+            .let => "let",
+            .mut => "mut",
+        };
+    }
+};
 
 pub const Symbol = struct {
     scope: *Scope,
@@ -366,7 +379,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         ._return => try symbolTableFromAST(definition._return.expr, scope, errors, allocator),
         .decl => {
             // Both put a Symbol in the current scope, and recurse
-            try create_symbol(&definition.decl.symbols, definition.decl.pattern, definition.decl.type, definition.decl.init, scope, allocator);
+            try create_symbol(&definition.decl.symbols, definition.decl.pattern, definition.decl.type, definition.decl.init, scope, errors, allocator);
             for (definition.decl.symbols.items) |symbol| {
                 if (scope.lookup(symbol.name, false)) |first| {
                     errors.addError(Error{ .redefinition = .{
@@ -401,7 +414,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
     }
 }
 
-fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     if (pattern.* == .symbol) {
         if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
             var symbol = try Symbol.create(
@@ -416,6 +429,12 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
             );
             pattern.symbol.symbol = symbol;
             try symbols.append(symbol);
+        } else if (pattern.symbol.kind != .let) {
+            errors.addError(Error{ .discard_marked = .{
+                .span = pattern.getToken().span,
+                .kind = pattern.symbol.kind,
+            } });
+            return error.symbolError;
         }
     } else if (pattern.* == .product) {
         for (pattern.product.terms.items, 0..) |term, i| {
@@ -429,7 +448,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
             else
                 null;
             _ = new_init;
-            try create_symbol(symbols, term, new_type, null, scope, allocator);
+            try create_symbol(symbols, term, new_type, null, scope, errors, allocator);
         }
     } else {
         std.debug.print("{s}\n", .{pattern.getToken().data});

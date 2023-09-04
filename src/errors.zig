@@ -55,6 +55,10 @@ pub const Error = union(enum) {
         problem: []const u8,
         context_message: []const u8,
     },
+    discard_marked: struct {
+        span: Span,
+        kind: _symbol.SymbolKind,
+    },
 
     // Typecheck
     expected2Type: struct {
@@ -132,6 +136,7 @@ pub const Error = union(enum) {
 
             .redefinition => return self.redefinition.redefined_span,
             .symbol_error => return self.symbol_error.span,
+            .discard_marked => return self.discard_marked.span,
 
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
@@ -203,6 +208,9 @@ pub const Errors = struct {
                 },
                 .symbol_error => {
                     try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem });
+                },
+                .discard_marked => {
+                    try out.print("discarded symbol marked as `{s}`\n", .{_symbol.SymbolKind.to_string(err.discard_marked.kind)});
                 },
 
                 // Typecheck
