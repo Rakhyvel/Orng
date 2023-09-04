@@ -403,18 +403,20 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
 
 fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     if (pattern.* == .symbol) {
-        var symbol = try Symbol.create(
-            scope,
-            pattern.symbol.name,
-            pattern.getToken().span,
-            _type,
-            init,
-            null,
-            pattern.symbol.kind,
-            allocator,
-        );
-        pattern.symbol.symbol = symbol;
-        try symbols.append(symbol);
+        if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
+            var symbol = try Symbol.create(
+                scope,
+                pattern.symbol.name,
+                pattern.getToken().span,
+                _type,
+                init,
+                null,
+                pattern.symbol.kind,
+                allocator,
+            );
+            pattern.symbol.symbol = symbol;
+            try symbols.append(symbol);
+        }
     } else if (pattern.* == .product) {
         for (pattern.product.terms.items, 0..) |term, i| {
             var index = try AST.createInt(pattern.getToken(), i, allocator);

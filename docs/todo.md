@@ -162,12 +162,12 @@
     - [ ] `let` product destructuring
         - [x] `mut` applies before symbols
         - [x] Identifiers define new symbols, having a name repeat is a redefinition error
-        - [ ] recursive pattern matching
-        - [ ] `_` to ignore
+        - [x] recursive pattern matching
+        - [x] `_` to ignore
         - [ ] `@` to alias
     - [ ] assign product destructuring
         ```
-        let mut (x, y): (Int, Int) = {4, 5}
+        let (mut x, mut y): (Int, Int) = {4, 5}
         (x, y) = {y, x}
         ```
         - [ ] `_` to ignore
@@ -242,7 +242,8 @@
     - [ ] debug mode which enables checks for UB
         - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
 - [ ] refinement types
-    - [ ] `where` should only check for things at runtime, unless specified with `where const`
+    - [ ] `where` which checks at runtime if a condition is true, panics if it's not
+    - [ ] `where comptime` checks a condition at compiletime. If a condition is false at compile-time, error
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free
     - [ ] error if an identifier contains a `'` in the middle of itself
@@ -260,3 +261,16 @@
     - [ ] dot prepend `.>`
     - [ ] `id` function in prelude
     - [ ] wrap and saturate math operators (not too important tbh)
+
+### Language Server
+- [ ] Highlighting
+    - [ ] Goto definition
+    - [ ] Show types
+- [ ] Formatter
+    - [ ] Takes in code and formats it
+- [ ] Linter
+    - [ ] Warn if line is too long
+- [ ] Documentation generator
+    - [ ] `///` Comment blocks are documentation
+    - [ ] `\<attribute>` to mark attributes
+    - [ ] error if attributes aren't documented or if they are but aren't present in the function

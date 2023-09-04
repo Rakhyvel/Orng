@@ -1,0 +1,6 @@
+// 155
+fn main() -> Int
+    let _ :Int = 4
+    let _ :Char
+    let _ = 4.5
+    155

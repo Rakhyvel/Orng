@@ -1626,7 +1626,7 @@ pub const CFG = struct {
             .decl => {
                 var def: ?*SymbolVersion = null;
                 if (ast.decl.init) |init| {
-                    def = try self.flattenAST(ast.decl.symbols.items[0].scope, init, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                    def = try self.flattenAST(scope, init, return_label, break_label, continue_label, error_label, false, errors, allocator);
                 } else {
                     def = try self.generate_default(scope, ast.decl.type.?, errors, allocator);
                 }
@@ -1806,10 +1806,12 @@ pub const CFG = struct {
         Utf8CodepointTooLarge,
     }!void {
         if (pattern.* == .symbol) {
-            var symbver = try SymbolVersion.createUnversioned(pattern.symbol.symbol, pattern.symbol.symbol._type.?, allocator);
-            var ir = try IR.create(.copy, symbver, def, null, pattern.getToken().span, allocator);
-            symbver.def = ir;
-            self.appendInstruction(ir);
+            if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
+                var symbver = try SymbolVersion.createUnversioned(pattern.symbol.symbol, pattern.symbol.symbol._type.?, allocator);
+                var ir = try IR.create(.copy, symbver, def, null, pattern.getToken().span, allocator);
+                symbver.def = ir;
+                self.appendInstruction(ir);
+            }
         } else if (pattern.* == .product) {
             for (pattern.product.terms.items, 0..) |term, i| {
                 var subscript_type = _type.product.terms.items[i];
