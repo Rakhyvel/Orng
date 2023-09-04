@@ -1,10 +1,10 @@
 // 121
 fn main() -> Int
-    let mut x = 10
+    let mut z = 10
     let mut y = 10
-    f(&mut x, true)
+    f(&mut z, true)
     f(&mut y, false)
-    x + y
+    z + y
 
 fn f(x: &mut Int, fail: Bool)->()!()
     errdefer x^ += 9

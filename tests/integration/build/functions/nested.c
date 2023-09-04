@@ -28,8 +28,9 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 10;
-    $lines[$line_idx++] = "tests/integration/functions/nested.orng:3:17:\n    let n = fib(10) - 10\n                 ^";
+    $lines[$line_idx++] = "tests/integration/functions/nested.orng:3:17:\n    let n = fib(10) - 10\n               ^";
 	_2_t0 = _4_fib(_2_t1);
+    $line_idx--;
 	_2_t2 = 10;
 	_2_$retval = _2_t0 - _2_t2;
 	return _2_$retval;
@@ -68,14 +69,17 @@ BB16:
 BB15:
 	_4_t8 = 1;
 	_4_t9 = _4_n - _4_t8;
-    $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:29:\n        | else   => add(fib(n - 1), fib(n - 2))\n                             ^";
+    $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:29:\n        | else   => add(fib(n - 1), fib(n - 2))\n                           ^";
 	_4_t7 = _4_fib(_4_t9);
+    $line_idx--;
 	_4_t11 = 2;
 	_4_t12 = _4_n - _4_t11;
-    $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:41:\n        | else   => add(fib(n - 1), fib(n - 2))\n                                         ^";
+    $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:41:\n        | else   => add(fib(n - 1), fib(n - 2))\n                                       ^";
 	_4_t10 = _4_fib(_4_t12);
-    $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:25:\n        | else   => add(fib(n - 1), fib(n - 2))\n                         ^";
+    $line_idx--;
+    $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:25:\n        | else   => add(fib(n - 1), fib(n - 2))\n                       ^";
 	_4_t6 = _7_add(_4_t7, _4_t10);
+    $line_idx--;
 	_4_t0 = _4_t6;
 	goto BB7;
 BB7:

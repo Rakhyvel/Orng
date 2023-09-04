@@ -46,6 +46,7 @@
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [x] find out if GCC supports UBSan! enable it
 - [x] allow more than one command line argument
+- [ ] exclude files or directories with a prefix `~`
 
 ### In-House rdgen
 - [ ] Written in Zig
@@ -159,19 +160,25 @@
     - [x] dynaminc union tag check
 - [ ] pattern matching
     - [ ] `let` product destructuring
-        - [ ] Just so that it isn't confusing wrt `mut` (like `*` problems in C), destructure requires paren of idents, `mut` is before paren list
+        - [ ] `mut` applies before symbols
         - [ ] Identifiers define new symbols, having a name repeat is a redefinition error
+        - [ ] recursive pattern matching
+        - [ ] `_` to ignore
+        - [ ] `@` to alias
     - [ ] assign product destructuring
         ```
         let mut (x, y): (Int, Int) = {4, 5}
         (x, y) = {y, x}
         ```
+        - [ ] `_` to ignore
     - [ ] `match` expression
         - [ ] Value matching
             > In the future, the type of the matched-on expr MUST implement Eq. It's this == that is 'called' (and hopefully easily inlined!)
         - [ ] Product destructuring
         - [ ] Sum destructuring
-            - [ ] Make sure it's recursive! So `| .sum(lhs', rhs') => lhs' + rhs'`
+        - [ ] Value matching with `{ }` blocks
+        - [ ] `_` to ignore value 
+        - [ ] `@` to alias
         - [ ] Error if match is not total
 - [ ] new optimizations
     - [ ] expand_types should only allocate if anything changes
@@ -184,6 +191,7 @@
     - [ ] better select optimizations
     - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
         > At the *very* least, add a flag to symbols to see if they're aliased with & at all
+        > OR: be able to tell that, say, src1 symbver is not updated between it's last update and now. Tough to do with BBs I think
     - [ ] ! inlining
     - [ ] ? loop invariant lifting
     - [ ] temporary combining (basically register allocation) (do this one last!)
@@ -193,18 +201,18 @@
     - [ ] prepend `>>`
     - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
-    - [ ] compile-time const check
-    - [ ] `comptime` expression, evaluated at compile time
+    - [ ] `const` is an annotation and symbol modifier
+    - [ ] eval type annotations
+    - [ ] eval default inits
+    - [ ] eval symbol defs defined as const
+    - [ ] expressions marked `comptime`
         - [ ] block
         - [ ] if
         - [ ] case
         - [ ] decl
         - [ ] defer
-    - [ ] `const` should actually likely be a type modifier
-        > Should it actually? `const T` can represent all the values that `T` can, there's just an extra contraint that those values be known at compile-time. Idk if that's really a type.
-    - [ ] array sizes are evaluated at compile-time
-    - [ ] first-class types based generics
-    - [ ] if a function has all `const` arguments, evaluate at compile-time 
+    - [ ] eval array sizes
+    - [ ] first-class types based generics (stamp)
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
@@ -238,7 +246,9 @@
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free
     - [ ] error if an identifier contains a `'` in the middle of itself
+    - [ ] error if identifier is defined with `let` or `match` with apostrophe
 - [ ] type classes / interfaces / traits
+    - [ ] `lhs<:rhs` operator with lhs being a capture pattern and rhs being a class
     - [ ] allocators
     - [ ] iterators & for loops
         - [ ] multi-loops, ranges like zig

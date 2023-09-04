@@ -1,7 +1,7 @@
 // 108
-const A = aa: Int | ab: String
-const B = ba: Int | bb: String
-const Union = A || B
+let const A = aa: Int | ab: String
+let const B = ba: Int | bb: String
+let const Union = A || B
 
 fn main()->Int
     let mut x: Union = .aa <- 3

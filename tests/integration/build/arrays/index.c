@@ -45,8 +45,9 @@ int64_t _2_main() {
 BB0:
 	_2_t1 = 15;
 	_2_t2 = 16;
-    $lines[$line_idx++] = "tests/integration/arrays/index.orng:3:32:\n    let x: [4]Int  = get_array(15, 16)\n                                ^";
+    $lines[$line_idx++] = "tests/integration/arrays/index.orng:3:32:\n    let x: [4]Int  = get_array(15, 16)\n                              ^";
 	_2_t0 = _4_get_array(_2_t1, _2_t2);
+    $line_idx--;
 	_3_x = _2_t0;
 	_2_t3 = 0;
 	_2_t4 = *(((int64_t*)(&_3_x))+_2_t3);

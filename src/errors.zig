@@ -163,7 +163,8 @@ pub const Errors = struct {
         self.errors_list.deinit();
     }
     pub fn addError(self: *Errors, err: Error) void {
-        self.errors_list.append(err) catch unreachable; // TODO: Should this try?
+        self.errors_list.append(err) catch unreachable;
+        // unreachable; // uncomment if you want to see where errors come from
     }
 
     pub fn printErrors(self: *Errors, lines: *std.ArrayList([]const u8), filename: []const u8) !void {

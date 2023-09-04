@@ -1,0 +1,4 @@
+// 151
+fn main() -> Int
+    let (x, y): (Int, Int) = {5, 30}
+    x * y + 1

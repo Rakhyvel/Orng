@@ -46,7 +46,7 @@ BB4:
 	_2_$retval = _2_t2;
 	return _2_$retval;
 BB3:
-    $lines[$line_idx++] = "tests/integration/strings/string-return.orng:4:7:\n    x[1]\n       ^";
+    $lines[$line_idx++] = "tests/integration/strings/string-return.orng:4:7:\n    x[1]\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

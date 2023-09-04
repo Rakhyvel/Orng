@@ -28,11 +28,13 @@ int64_t _2_main() {
 	int64_t _2_t1;
 	int64_t _2_$retval;
 BB0:
-    $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n       ^";
+    $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
 	_2_t0 = _4_f();
+    $line_idx--;
 	_2_t2 = 45;
-    $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n         ^";
+    $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n       ^";
 	_2_t1 = _2_t0(_2_t2);
+    $line_idx--;
 	_2_$retval = _2_t1;
 	return _2_$retval;
 }

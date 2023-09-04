@@ -75,16 +75,6 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             var end: *IR = bb.ir_head.?.getTail();
 
             // Join next block at the end of this block
-            for (bb.next_arguments.items) |argument| {
-                if (argument.findSymbolVersionSet(&bb.next.?.parameters)) |parameter| {
-                    if (parameter.version != argument.version) {
-                        end = bb.appendInstruction(try IR.create(.copy, parameter, argument, null, end.span, allocator));
-                        parameter.def = end;
-                        parameter.makeUnique();
-                    }
-                }
-            }
-            // Join next block at the end of this block
             end.next = bb.next.?.ir_head;
             if (bb.next.?.ir_head != null) {
                 bb.next.?.ir_head.?.prev = end;
@@ -275,9 +265,10 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
                 ir.in_block.?.removeInstruction(ir);
             }
             // Self-copy elimination
-            else if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null) {
+            else if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null and ir.dest.?.version == ir.src1.?.version) {
                 log("self-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
+                retval = true;
             }
             // Integer constant propagation
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
@@ -999,7 +990,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
 
         .get_tag => {
             // Known loadUnion value
-            if (ir.src1.?.def != null and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
+            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadUnion) {
                 ir.kind = .loadInt;
                 ir.data = ir.src1.?.def.?.data; // Copy the src's tag (in data.int)
                 ir.src1 = null;

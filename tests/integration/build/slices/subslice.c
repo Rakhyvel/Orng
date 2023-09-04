@@ -79,12 +79,13 @@ BB0:
 BB10:
 	_2_t28 = 10;
 	*(((int64_t*)((&_3_z)->_0))+_2_t23) = _2_t28;
-    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n            ^";
+    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
 	_2_t29 = _4_sum_up(_3_z);
+    $line_idx--;
 	_2_$retval = _2_t29;
 	return _2_$retval;
 BB9:
-    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:6:7:\n    z[2] = 10\n       ^";
+    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:6:7:\n    z[2] = 10\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -143,7 +144,7 @@ BB8:
 	_6_i = _6_i + _4_t11;
 	goto BB1;
 BB7:
-    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:12:19:\n        sum += xs[i]\n                   ^";
+    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:12:19:\n        sum += xs[i]\n                 ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -151,7 +152,7 @@ BB7:
     exit(1);
 	goto BB8;
 BB5:
-    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:12:19:\n        sum += xs[i]\n                   ^";
+    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:12:19:\n        sum += xs[i]\n                 ^";
     fprintf(stderr, "panic: index is negative\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

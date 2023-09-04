@@ -85,7 +85,7 @@ BB12:
 	_2_$retval = _2_t22;
 	return _2_$retval;
 BB11:
-    $lines[$line_idx++] = "tests/integration/slices/mut-sliceof.orng:6:7:\n    y[2]\n       ^";
+    $lines[$line_idx++] = "tests/integration/slices/mut-sliceof.orng:6:7:\n    y[2]\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -93,7 +93,7 @@ BB11:
     exit(1);
 	goto BB12;
 BB7:
-    $lines[$line_idx++] = "tests/integration/slices/mut-sliceof.orng:5:7:\n    y[2] = 81\n       ^";
+    $lines[$line_idx++] = "tests/integration/slices/mut-sliceof.orng:5:7:\n    y[2] = 81\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

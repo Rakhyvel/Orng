@@ -52,8 +52,9 @@ BB0:
 	_2_t12 = (((int64_t*)(&_3_x))+_2_t6);
 	_2_t13 = 4;
 	_3_y = (struct1) {_2_t12, _2_t13};
-    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n       ^";
+    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
 	_2_t14 = _4_f(_3_y);
+    $line_idx--;
 	_2_$retval = _2_t14;
 	return _2_$retval;
 }
@@ -80,7 +81,7 @@ BB4:
 	_4_$retval = _4_t1 + _4_t6;
 	return _4_$retval;
 BB3:
-    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:7:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                        ^";
+    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:7:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                      ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

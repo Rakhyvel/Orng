@@ -43,7 +43,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
                 symbol.init = _ast.poisoned;
             }
         } else if (symbol.init == null) {
-            // Default value (probably done at the IR side?) OR function parameter
+            // Default value
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
             symbol.validation_state = .valid;
         } else if (symbol._type == null) {
@@ -492,18 +492,18 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return _ast.poisoned;
             }
 
-            if (lhs_type.* != .product and !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
+            if (try lhs_type.typesMatch(_ast.typeType, scope, errors, allocator) and ast.index.lhs.* == .product and ast.index.rhs.* == .int) {
+                // Index a product type, resolve immediately
+                // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
+                retval = ast.index.lhs.product.terms.items[@as(usize, @intCast(ast.index.rhs.int.data))];
+            } else if (lhs_type.* != .product and !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
                 // TODO: Replace with check that lhs type implements Indexable
                 errors.addError(Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_type } });
                 return _ast.poisoned;
-            }
-
-            if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(scope, errors, allocator)) {
+            } else if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(scope, errors, allocator)) {
                 errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "array is not homotypical" } });
                 return _ast.poisoned;
-            }
-
-            if (expected != null) {
+            } else if (expected != null) {
                 if (lhs_type.* == .product and !lhs_type.product.was_slice and !try expected.?.typesMatch(lhs_type.product.terms.items[0], scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.product.terms.items[0] } });
                     return _ast.poisoned;
@@ -647,6 +647,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var poisoned = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                // Expecting ast to be a product type
                 for (ast.product.terms.items) |term| {
                     var new_term = try validateAST(term, _ast.typeType, scope, errors, allocator);
                     try new_terms.append(new_term);
@@ -656,6 +657,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 ast.product.terms = new_terms;
             } else if (expected != null and expected.?.* == .product) {
+                // Expecting ast to be a product value
                 if (expected.?.product.terms.items.len != ast.product.terms.items.len) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return _ast.poisoned;
@@ -669,6 +671,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 ast.product.terms = new_terms;
             } else if (expected == null) {
+                // Not expecting anything
                 for (ast.product.terms.items) |term| {
                     var new_term = try validateAST(term, null, scope, errors, allocator);
                     try new_terms.append(new_term);
@@ -1257,8 +1260,34 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .decl => {
-            ast.decl.symbol.?.defined = true;
-            try validateSymbol(ast.decl.symbol.?, errors, allocator);
+            if (ast.decl.type != null and ast.decl.init != null) {
+                // Normal decl
+                ast.decl.type = try validateAST(ast.decl.type.?, _ast.typeType, scope, errors, allocator);
+                if (ast.decl.type.?.* != .poison) {
+                    ast.decl.init = try validateAST(ast.decl.init.?, ast.decl.type, scope, errors, allocator);
+                } else {
+                    return _ast.poisoned;
+                }
+            } else if (ast.decl.init == null) {
+                // Default value
+                ast.decl.type = try validateAST(ast.decl.type.?, _ast.typeType, scope, errors, allocator);
+            } else if (ast.decl.type == null) {
+                // Infer type
+                ast.decl.init = try validateAST(ast.decl.init.?, ast.decl.type, scope, errors, allocator);
+                if (ast.decl.init.?.* != .poison) {
+                    ast.decl.type = try validateAST(try ast.decl.init.?.typeof(scope, errors, allocator), _ast.typeType, scope, errors, allocator);
+                } else {
+                    ast.decl.type = _ast.poisoned;
+                }
+            } else {
+                unreachable;
+            }
+
+            for (ast.decl.symbols.items) |symbol| {
+                symbol.defined = true;
+                try validateSymbol(symbol, errors, allocator);
+            }
+
             // statement, no type
             if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast } });

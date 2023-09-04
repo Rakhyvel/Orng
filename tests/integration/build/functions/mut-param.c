@@ -27,8 +27,9 @@ int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
 	_2_t1 = 8;
-    $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:27:\nfn main() -> Int {sumDown(8) + 2}\n                           ^";
+    $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:27:\nfn main() -> Int {sumDown(8) + 2}\n                         ^";
 	_2_t0 = _4_sumDown(_2_t1);
+    $line_idx--;
 	_2_t2 = 2;
 	_2_$retval = _2_t0 + _2_t2;
 	return _2_$retval;

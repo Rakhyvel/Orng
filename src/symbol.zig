@@ -191,6 +191,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         ._continue,
         .inferredMember,
         .poison,
+        .symbol,
         => {},
 
         .not => try symbolTableFromAST(definition.not.expr, scope, errors, allocator),
@@ -365,16 +366,18 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         ._return => try symbolTableFromAST(definition._return.expr, scope, errors, allocator),
         .decl => {
             // Both put a Symbol in the current scope, and recurse
-            var symbol = try createSymbol(definition, scope, allocator);
-            if (scope.lookup(symbol.name, false)) |first| {
-                errors.addError(Error{ .redefinition = .{
-                    .first_defined_span = first.span,
-                    .redefined_span = symbol.span,
-                    .name = symbol.name,
-                } });
-                return error.symbolError;
-            } else {
-                try scope.symbols.put(symbol.name, symbol);
+            try create_symbol(&definition.decl.symbols, definition.decl.pattern, definition.decl.type, definition.decl.init, scope, allocator);
+            for (definition.decl.symbols.items) |symbol| {
+                if (scope.lookup(symbol.name, false)) |first| {
+                    errors.addError(Error{ .redefinition = .{
+                        .first_defined_span = first.span,
+                        .redefined_span = symbol.span,
+                        .name = symbol.name,
+                    } });
+                    return error.symbolError;
+                } else {
+                    try scope.symbols.put(symbol.name, symbol);
+                }
             }
             try symbolTableFromAST(definition.decl.type, scope, errors, allocator);
             try symbolTableFromAST(definition.decl.init, scope, errors, allocator);
@@ -398,27 +401,37 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
     }
 }
 
-fn createSymbol(definition: *ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
-    var kind: SymbolKind = undefined;
-    switch (definition.getToken().kind) {
-        .CONST => kind = ._const,
-        .LET => kind = .let,
-        .MUT => kind = .mut,
-        else => unreachable,
+fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+    if (pattern.* == .symbol) {
+        try symbols.append(try Symbol.create(
+            scope,
+            pattern.symbol.name,
+            pattern.getToken().span,
+            _type,
+            init,
+            null,
+            pattern.symbol.kind,
+            allocator,
+        ));
+    } else if (pattern.* == .product) {
+        for (pattern.product.terms.items, 0..) |term, i| {
+            var index = try AST.createInt(pattern.getToken(), i, allocator);
+            var new_type: ?*AST = if (_type != null)
+                try AST.createIndex(_type.?.getToken(), _type.?, index, allocator)
+            else
+                null;
+            var new_init: ?*AST = if (init != null)
+                try AST.createIndex(init.?.getToken(), init.?, index, allocator)
+            else
+                null;
+            _ = new_init;
+            try create_symbol(symbols, term, new_type, null, scope, allocator);
+        }
+    } else {
+        std.debug.print("{s}\n", .{pattern.getToken().data});
+        std.debug.print("create_symbol unimplemented for ast {s}\n", .{@tagName(pattern.*)});
+        unreachable;
     }
-
-    var retval = try Symbol.create(
-        scope,
-        definition.decl.pattern.getToken().data,
-        definition.decl.pattern.getToken().span,
-        definition.decl.type,
-        definition.decl.init,
-        null,
-        kind,
-        allocator,
-    );
-    definition.decl.symbol = retval;
-    return retval;
 }
 
 fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
@@ -444,6 +457,12 @@ fn createFunctionSymbol(definition: *ast.AST, scope: *Scope, errors: *errs.Error
     // Recurse parameters and init
     try symbolTableFromASTList(definition.fnDecl.params, fnScope, errors, allocator);
     try symbolTableFromAST(definition.fnDecl.retType, fnScope, errors, allocator);
+
+    // Put the param symbols in the param symbols list
+    for (definition.fnDecl.params.items) |param| {
+        var symbol = param.decl.symbols.items[0];
+        try definition.fnDecl.param_symbols.append(symbol);
+    }
 
     var keySet = fnScope.symbols.keys();
     var i: usize = 0;

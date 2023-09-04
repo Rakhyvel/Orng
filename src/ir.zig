@@ -1624,19 +1624,28 @@ pub const CFG = struct {
 
             // Control-flow statements
             .decl => {
-                var symbver = try SymbolVersion.createUnversioned(ast.decl.symbol.?, ast.decl.symbol.?._type.?, allocator);
                 var def: ?*SymbolVersion = null;
-                if (ast.decl.symbol.?.init) |init| {
-                    def = try self.flattenAST(ast.decl.symbol.?.scope, init, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                if (ast.decl.init) |init| {
+                    def = try self.flattenAST(ast.decl.symbols.items[0].scope, init, return_label, break_label, continue_label, error_label, false, errors, allocator);
                 } else {
-                    def = try self.generate_default(scope, ast.decl.symbol.?._type.?, errors, allocator);
+                    def = try self.generate_default(scope, ast.decl.type.?, errors, allocator);
                 }
                 if (def == null) {
                     return null;
                 }
-                var ir = try IR.create(.copy, symbver, def, null, ast.getToken().span, allocator);
-                symbver.def = ir;
-                self.appendInstruction(ir);
+                if (ast.decl.symbols.items.len == 1) {
+                    var symbver = try SymbolVersion.createUnversioned(ast.decl.symbols.items[0], ast.decl.type.?, allocator);
+                    var ir = try IR.create(.copy, symbver, def, null, ast.getToken().span, allocator);
+                    symbver.def = ir;
+                    self.appendInstruction(ir);
+                } else {
+                    for (ast.decl.symbols.items, 0..) |symbol, i| {
+                        var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                        var ir = try IR.createSelect(symbver, def.?, i, symbol.span, allocator);
+                        symbver.def = ir;
+                        self.appendInstruction(ir);
+                    }
+                }
                 return null;
             },
             .fnDecl => {

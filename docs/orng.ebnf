@@ -5,18 +5,17 @@
 program: top_level_declaration {"newline" top_level_declaration} "eof".
 
 top_level_declaration: fn_declaration 
-                     | const_declaration
+                     | let_declaration
                      .
 
-non_fn_declaration: let_declaration | const_declaration.
+let_declaration: "let" let_pattern_atom (":" arrowExpr ["=" expr] | "=" expr).
+let_pattern_atom: ["mut" | "const"] identifier
+       | "(" let_product_pattern ")".
+let_product_pattern: let_pattern_atom {"," let_pattern_atom}.
 
-const_declaration: "const" ident [":" arrowExpr] "=" expr.
-
-let_declaration: "let" ["mut"] (ident | "(" ident {"," ident} ")") (":" arrowExpr ["=" expr] | "=" expr).
-
-statement: non_fn_declaration
-         | "defer" (expr | non_fn_declaration)
-         | "errdefer" (expr | non_fn_declaration)
+statement: let_declaration
+         | "defer" (expr | let_declaration)
+         | "errdefer" (expr | let_declaration)
          | expr
          .
 
@@ -84,24 +83,23 @@ indentBlockExpr: indent { statement "newline" } [("return" [expr] "newline") | (
 braceBlockExpr: "{" [ statement { ";" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
 blockExpr: indentBlockExpr | braceBlockExpr.
 
-ifExpr: "if" [non_fn_declaration ";"] expr blockExpr ["else" blockExpr].
+ifExpr: "if" [let_declaration ";"] expr blockExpr ["else" blockExpr].
 
-whileExpr: "while" [non_fn_declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
+whileExpr: "while" [let_declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
 
 forExpr: "for" ["mut"] ident "in" expr blockExpr ["else" blockExpr]. # TODO: Perhaps specify type of element?
 
 fn_declaration: "fn" [ident] paramlist "->" ["!"] arrowExpr ["where" arrowExpr] blockExpr.
 paramlist: "(" [param {"," param}] ")".
-param: ["mut"] ident ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
-                                                    # essentially an annotExpr that gaurantees pattern is an ident, type is given, and an optional `mut` modifier
+param: let_pattern_atom ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
 
 barClause: annotExpr ["=>" annotExpr]. # for barClauses in match statements, if the lhs of has a pattern, => must be present
 barElse: "else" "=>" annotExpr.
 barListMiddle: barClause ["|" (barElse | barListMiddle)].
 barList: "|" barListMiddle.
 
-caseExpr: [non_fn_declaration ";"] barList.
-matchExpr: [non_fn_declaration ";"] productExpr barList.
+caseExpr: [let_declaration ";"] barList.
+matchExpr: [let_declaration ";"] productExpr barList.
 caseMatchExpr: "case" caseExpr
              | "match" matchExpr
              .

@@ -69,12 +69,13 @@ BB6:
 	_2_t17 = (&_3_y)->_0;
 	_2_t18 = _2_t17 + _2_t13;
 	_3_z = (struct1) {_2_t18, _2_t16};
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n            ^";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
 	_2_t20 = _4_sum_up(_3_z);
+    $line_idx--;
 	_2_$retval = _2_t20;
 	return _2_$retval;
 BB5:
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                         ^";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                       ^";
     fprintf(stderr, "panic: subslice lower bound is greater than upper bound\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -133,7 +134,7 @@ BB8:
 	_6_i = _6_i + _4_t11;
 	goto BB1;
 BB7:
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:11:19:\n        sum += xs[i]\n                   ^";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:11:19:\n        sum += xs[i]\n                 ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -141,7 +142,7 @@ BB7:
     exit(1);
 	goto BB8;
 BB5:
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:11:19:\n        sum += xs[i]\n                   ^";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:11:19:\n        sum += xs[i]\n                 ^";
     fprintf(stderr, "panic: index is negative\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

@@ -38,12 +38,14 @@ BB0:
 	_3_y = 10;
 	_2_t3 = &_3_x;
 	_2_t4 = 1;
-    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:7:\n    f(&mut x, true)\n       ^";
+    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:7:\n    f(&mut x, true)\n     ^";
 	_2_t2 = _4_f(_2_t3, _2_t4);
+    $line_idx--;
 	_2_t6 = &_3_y;
 	_2_t7 = 0;
-    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:7:\n    f(&mut y, false)\n       ^";
+    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:7:\n    f(&mut y, false)\n     ^";
 	_2_t5 = _4_f(_2_t6, _2_t7);
+    $line_idx--;
 	_2_$retval = _3_x + _3_y;
 	return _2_$retval;
 }

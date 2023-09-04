@@ -23,8 +23,9 @@ void _4_void();
 int64_t _2_main() {
 	int64_t _2_$retval;
 BB0:
-    $lines[$line_idx++] = "tests/integration/functions/void-return.orng:3:10:\n    void()\n          ^";
+    $lines[$line_idx++] = "tests/integration/functions/void-return.orng:3:10:\n    void()\n        ^";
 	_4_void();
+    $line_idx--;
 	_2_$retval = 65;
 	return _2_$retval;
 }

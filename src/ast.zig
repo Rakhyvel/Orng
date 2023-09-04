@@ -248,17 +248,23 @@ pub const AST = union(enum) {
     _continue: struct { common: ASTCommon },
     _unreachable: struct { common: ASTCommon },
     _return: struct { common: ASTCommon, expr: ?*AST },
+    symbol: struct {
+        common: ASTCommon,
+        name: []const u8,
+        kind: _symbol.SymbolKind,
+    },
     decl: struct {
         common: ASTCommon,
-        symbol: ?*Symbol,
-        pattern: *AST,
+        symbols: std.ArrayList(*Symbol), // List of symbols that are defined with this statement
+        pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
         type: ?*AST,
         init: ?*AST,
     },
     fnDecl: struct {
         common: ASTCommon,
         name: ?*AST,
-        params: std.ArrayList(*AST),
+        params: std.ArrayList(*AST), // List of the AST declarations for the parameters
+        param_symbols: std.ArrayList(*Symbol), // List of the actual symbols for the parameters
         retType: *AST,
         refinement: ?*AST,
         init: *AST,
@@ -335,6 +341,7 @@ pub const AST = union(enum) {
             ._break => return &self._break.common,
             ._continue => return &self._continue.common,
             ._return => return &self._return.common,
+            .symbol => return &self.symbol.common,
             .decl => return &self.decl.common,
             .fnDecl => return &self.fnDecl.common,
             ._defer => return &self._defer.common,
@@ -568,12 +575,25 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
+    pub fn createSymbol(token: Token, kind: _symbol.SymbolKind, name: []const u8, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .symbol = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .name = name } }, allocator);
+    }
+
     pub fn createDecl(token: Token, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbol = null, .pattern = pattern, .type = _type, .init = init } }, allocator);
+        return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbols = std.ArrayList(*Symbol).init(allocator), .pattern = pattern, .type = _type, .init = init } }, allocator);
     }
 
     pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, infer_error: bool, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .fnDecl = .{ .common = ASTCommon{ .token = token, ._type = null }, .name = name, .params = params, .retType = retType, .refinement = refinement, .init = init, .infer_error = infer_error } }, allocator);
+        return try AST.box(AST{ .fnDecl = .{
+            .common = ASTCommon{ .token = token, ._type = null },
+            .name = name,
+            .params = params,
+            .param_symbols = std.ArrayList(*Symbol).init(allocator),
+            .retType = retType,
+            .refinement = refinement,
+            .init = init,
+            .infer_error = infer_error,
+        } }, allocator);
     }
 
     pub fn createDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
@@ -683,6 +703,10 @@ pub const AST = union(enum) {
             .annotation => {
                 var expr = try self.annotation.type.exapnd_type(scope, errors, allocator);
                 retval = try AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
+            },
+            .index => {
+                var expr = try self.index.lhs.exapnd_type(scope, errors, allocator);
+                retval = expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
             },
             .poison,
             .unit,
@@ -809,6 +833,12 @@ pub const AST = union(enum) {
                 }
                 try out.print("}}", .{});
             },
+            .index => {
+                try self.index.lhs.printType(out);
+                try out.print("[", .{});
+                try self.index.rhs.printType(out);
+                try out.print("]", .{});
+            },
             .poison => try out.print("<error>", .{}),
             else => {
                 try out.print("\nprintTypes(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});
@@ -895,7 +925,9 @@ pub const AST = union(enum) {
 
             .index => {
                 var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
-                if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
+                if (try lhs_type.typesMatch(typeType, scope, errors, allocator) and self.index.lhs.* == .product) {
+                    retval = self.index.lhs.product.terms.items[0];
+                } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
                     if (lhs_type.product.was_slice) {
                         retval = lhs_type.product.terms.items[0].annotation.type.addrOf.expr;
                     } else {

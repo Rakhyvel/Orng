@@ -152,9 +152,10 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(" ", .{});
     try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
-    for (callGraph.symbol.decl.?.fnDecl.params.items, 0..) |param, i| {
-        try printVarDecl(param.decl.symbol.?, out, true);
-        if (i + 1 < callGraph.symbol.decl.?.fnDecl.params.items.len) {
+    for (callGraph.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
+        // Print out parameter declarations
+        try printVarDecl(param, out, true);
+        if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
             try out.writer().print(",", .{});
         }
     }
@@ -171,9 +172,10 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(" ", .{});
     try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
-    for (callGraph.symbol.decl.?.fnDecl.params.items, 0..) |param, i| {
-        try printVarDecl(param.decl.symbol.?, out, true);
-        if (i + 1 < callGraph.symbol.decl.?.fnDecl.params.items.len) {
+    for (callGraph.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
+        // Print out parameter declarations
+        try printVarDecl(param, out, true);
+        if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
             try out.writer().print(",", .{});
         }
     }
