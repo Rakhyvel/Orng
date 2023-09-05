@@ -217,7 +217,8 @@ pub const AST = union(enum) {
         common: ASTCommon,
         kind: MappingKind,
         lhs: ?*AST,
-        rhs: ?*AST, // TODO: Shouldn't this have it's own scope for match mappings?
+        rhs: ?*AST,
+        scope: ?*Scope, // Scope used for `match` mappings. Captures live in this scope, rhs of mapping lives in this scope. Lives in `match`'s scope
     },
     _while: struct {
         common: ASTCommon,
@@ -550,7 +551,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createMapping(token: Token, kind: MappingKind, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .mapping = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .lhs = lhs, .rhs = rhs } }, allocator);
+        return try AST.box(AST{ .mapping = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .lhs = lhs, .rhs = rhs, .scope = null } }, allocator);
     }
 
     pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
@@ -1028,22 +1029,26 @@ pub const AST = union(enum) {
 
             // Control-flow expressions
             ._if => {
-                var body_type = try self._if.bodyBlock.typeof(scope, errors, allocator);
+                var body_type = try self._if.bodyBlock.typeof(self._if.scope.?, errors, allocator);
                 if (self._if.elseBlock) |_| {
                     retval = body_type;
                 } else {
                     retval = try create_optional_type(body_type, allocator);
                 }
             },
-            .case => retval = try self.case.mappings.items[0].typeof(scope, errors, allocator),
-            .match => retval = try self.match.mappings.items[0].typeof(scope, errors, allocator),
+            .case => retval = try self.case.mappings.items[0].typeof(self.match.scope.?, errors, allocator),
+            .match => retval = try self.match.mappings.items[0].typeof(self.match.scope.?, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
-                retval = try rhs.typeof(scope, errors, allocator);
+                if (self.mapping.scope) |new_scope| {
+                    retval = try rhs.typeof(new_scope, errors, allocator);
+                } else {
+                    retval = try rhs.typeof(scope, errors, allocator);
+                }
             } else {
                 retval = unitType;
             },
             ._while => {
-                var body_type = try self._while.bodyBlock.typeof(scope, errors, allocator);
+                var body_type = try self._while.bodyBlock.typeof(self._while.scope.?, errors, allocator);
                 if (self._while.elseBlock) |_| {
                     retval = body_type;
                 } else {

@@ -341,12 +341,16 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             var new_scope = try Scope.init(scope, "", allocator);
             definition.match.scope = new_scope;
             try symbolTableFromAST(definition.match.let, scope, errors, allocator);
-            try symbolTableFromAST(definition.match.expr, scope, errors, allocator);
-            try create_match_pattern_symbol(definition, scope, errors, allocator);
+            try symbolTableFromAST(definition.match.expr, new_scope, errors, allocator);
+            try create_match_pattern_symbol(definition, new_scope, errors, allocator);
         },
         .mapping => {
-            try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.mapping.rhs, scope, errors, allocator);
+            if (definition.mapping.kind == .case) {
+                try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
+                try symbolTableFromAST(definition.mapping.rhs, scope, errors, allocator);
+            } else {
+                unreachable; // Matches do they own thang
+            }
         },
         ._while => {
             var new_scope = try Scope.init(scope, "", allocator);
@@ -468,14 +472,18 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
 fn create_match_pattern_symbol(match: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     for (match.match.mappings.items) |mapping| {
         if (mapping.mapping.lhs != null) {
+            var new_scope = try Scope.init(scope, "", allocator);
+            mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*Symbol).init(allocator);
-            try create_symbol(&symbols, mapping.mapping.lhs.?, null, match.match.expr, scope, errors, allocator);
+            try create_symbol(&symbols, mapping.mapping.lhs.?, null, match.match.expr, new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;
             }
-            try put_all_symbols(&symbols, scope, errors);
+            try put_all_symbols(&symbols, new_scope, errors);
+            try symbolTableFromAST(mapping.mapping.rhs, new_scope, errors, allocator);
+        } else {
+            try symbolTableFromAST(mapping.mapping.rhs, scope, errors, allocator);
         }
-        try symbolTableFromAST(mapping.mapping.rhs, scope, errors, allocator);
     }
 }
 

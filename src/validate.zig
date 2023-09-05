@@ -1128,7 +1128,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 },
                 .match => {
                     // lhs for match mappings is done elsewhere
-                    ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, scope, errors, allocator);
+                    if (ast.mapping.scope) |mapping_scope| {
+                        // non-else mappings have their own scope
+                        ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, mapping_scope, errors, allocator);
+                    } else {
+                        // else mappings use the scope of the surrounding match statement
+                        ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, scope, errors, allocator);
+                    }
                     if ((ast.mapping.lhs != null and ast.mapping.lhs.?.* == .poison) or ast.mapping.rhs.?.* == .poison) {
                         return _ast.poisoned;
                     }

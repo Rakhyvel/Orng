@@ -1492,7 +1492,14 @@ pub const CFG = struct {
                 label_index = 0;
                 for (ast.match.mappings.items) |mapping| {
                     self.appendInstruction(rhs_label_list.items[label_index]);
-                    if (try self.flattenAST(ast.match.scope.?, mapping.mapping.rhs.?, return_label, break_label, continue_label, error_label, false, errors, allocator)) |rhs_symbver| {
+                    if (mapping.mapping.lhs) |lhs| {
+                        // Generate initialization for patterns before the rhs
+                        try self.generate_pattern(ast.match.scope.?, lhs, expr.?.type, expr.?, errors, allocator);
+                    }
+
+                    // Generate the rhs, copy result to symbver
+                    var mapping_scope = if (mapping.mapping.scope != null) mapping.mapping.scope.? else ast.match.scope.?;
+                    if (try self.flattenAST(mapping_scope, mapping.mapping.rhs.?, return_label, break_label, continue_label, error_label, false, errors, allocator)) |rhs_symbver| {
                         var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                         var rhs_copy: *IR = undefined;
                         if (ast.match.has_else) {
@@ -1960,6 +1967,9 @@ pub const CFG = struct {
                 self.appendInstruction(condition_ir);
                 var branch = try IR.createBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
                 self.appendInstruction(branch);
+            },
+            .symbol => {
+                // Infallible check, do not branch to next pattern
             },
             else => unreachable,
         }

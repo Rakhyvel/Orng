@@ -176,7 +176,7 @@
         - [x] Value matching
             > expr equals value
             - [x] compile-time check that value is same type as expr
-        - [ ] Symbol capture
+        - [x] Symbol capture
             > infallible match, declare symbol before rhs
         - [ ] Product destructuring
             > all of terms match
