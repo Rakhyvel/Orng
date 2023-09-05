@@ -1699,7 +1699,24 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
         },
         .select => {
             var new_pattern = try validateAST(pattern, expr_type, scope, errors, allocator);
+            if (new_pattern.* == .poison) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.poisoned } });
+                return error.typeError;
+            }
             pattern.select.pos = @as(usize, @intCast(new_pattern.inferredMember.pos.?));
+            var pattern_type = try new_pattern.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(pattern_type, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern_type } });
+                return error.typeError;
+            }
+        },
+        .inferredMember => {
+            var new_pattern = try validateAST(pattern, expr_type, scope, errors, allocator);
+            if (new_pattern.* == .poison) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.poisoned } });
+                return error.typeError;
+            }
+            pattern.inferredMember.pos = new_pattern.inferredMember.pos.?;
             var pattern_type = try new_pattern.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(pattern_type, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern_type } });

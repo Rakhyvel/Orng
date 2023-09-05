@@ -2008,6 +2008,27 @@ pub const CFG = struct {
                 var branch = try IR.createBranch(neql, next_pattern, pattern.?.getToken().span, allocator);
                 self.appendInstruction(branch);
             },
+            .inferredMember => {
+                // Get tag of pattern
+                var sel = try self.createTempSymbolVersion(_ast.intType, allocator);
+                var sel_ir = try IR.createInt(sel, pattern.?.inferredMember.pos.?, pattern.?.getToken().span, allocator);
+                sel.def = sel_ir;
+                self.appendInstruction(sel_ir);
+
+                // Get tag of expr
+                var tag = try self.createTempSymbolVersion(_ast.intType, allocator);
+                var tag_ir = try IR.createGetTag(tag, expr, pattern.?.getToken().span, allocator);
+                tag.def = tag_ir;
+                self.appendInstruction(tag_ir);
+
+                // Compare them, jump to next pattern if they are not equal
+                var neql = try self.createTempSymbolVersion(_ast.boolType, allocator);
+                var neql_ir = try IR.create(.equal, neql, tag, sel, pattern.?.getToken().span, allocator);
+                neql.def = neql_ir;
+                self.appendInstruction(neql_ir);
+                var branch = try IR.createBranch(neql, next_pattern, pattern.?.getToken().span, allocator);
+                self.appendInstruction(branch);
+            },
             else => {
                 std.debug.print("Unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)});
                 unreachable;

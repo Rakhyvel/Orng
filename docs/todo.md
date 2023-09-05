@@ -176,6 +176,7 @@
         - [x] Value matching
             > expr equals value
             - [x] compile-time check that value is same type as expr
+        - [ ] Block values
         - [x] Symbol capture
             > infallible match, declare symbol before rhs
         - [x] Product destructuring
@@ -184,6 +185,7 @@
         - [x] Sum destructuring
             > tag of expr matches tag of pattern
             - [x] check that expr is of the same sum type at compile-time
+        - [ ] Inferred members
         - [ ] Injection
             > lhs sum matches, rhs pattern matches
             - [ ] validate injection is valid for type, of course
