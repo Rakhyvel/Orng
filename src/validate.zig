@@ -1101,7 +1101,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     poisoned = poisoned or new_mapping.* == .poison;
                 }
                 if (mapping.mapping.lhs) |lhs| {
-                    try assert_pattern_matches(lhs, ast.match.expr, ast.match.scope.?, errors, allocator);
+                    var expr_type = try ast.match.expr.typeof(ast.match.scope.?, errors, allocator);
+                    try assert_pattern_matches(lhs, expr_type, ast.match.scope.?, errors, allocator);
                 }
             }
             if (poisoned) {
@@ -1658,50 +1659,58 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
 }
 
 /// Validates that `pattern` is valid given a match's `expr`
-fn assert_pattern_matches(pattern: *AST, expr: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     switch (pattern.*) {
         .unit => {
-            var expr_type = try expr.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(_ast.unitType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.unitType } });
                 return error.typeError;
             }
         },
         .int => {
-            var expr_type = try expr.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(_ast.intType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.intType } });
                 return error.typeError;
             }
         },
         .char => {
-            var expr_type = try expr.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(_ast.charType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.charType } });
                 return error.typeError;
             }
         },
         .string => {
-            var expr_type = try expr.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(_ast.stringType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.stringType } });
                 return error.typeError;
             }
         },
         .float => {
-            var expr_type = try expr.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(_ast.floatType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.floatType } });
                 return error.typeError;
             }
         },
         ._true, ._false => {
-            var expr_type = try expr.typeof(scope, errors, allocator);
             if (!try expr_type.typesMatch(_ast.boolType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.boolType } });
                 return error.typeError;
             }
         },
-        else => {},
+        .product => {
+            var expanded_expr = try expr_type.exapnd_type(scope, errors, allocator);
+            if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.poisoned } });
+                return error.typeError;
+            }
+            for (pattern.product.terms.items, expanded_expr.product.terms.items) |term, expanded_term| {
+                try assert_pattern_matches(term, expanded_term, scope, errors, allocator);
+            }
+        },
+        .symbol => {},
+        else => {
+            std.debug.print("unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
+            unreachable;
+        },
     }
 }

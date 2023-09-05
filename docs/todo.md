@@ -178,9 +178,9 @@
             - [x] compile-time check that value is same type as expr
         - [x] Symbol capture
             > infallible match, declare symbol before rhs
-        - [ ] Product destructuring
+        - [x] Product destructuring
             > all of terms match
-            - [ ] check product arity at compile-time, must match
+            - [x] check product arity at compile-time, must match
         - [ ] Sum destructuring
             > tag of expr matches tag of pattern
             - [ ] check that expr is of the same sum type at compile-time

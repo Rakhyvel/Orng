@@ -1971,7 +1971,21 @@ pub const CFG = struct {
             .symbol => {
                 // Infallible check, do not branch to next pattern
             },
-            else => unreachable,
+            .product => {
+                for (pattern.?.product.terms.items, 0..) |term, i| {
+                    var subscript_type = expr.type.product.terms.items[i];
+                    var symbver = try self.createTempSymbolVersion(subscript_type, allocator);
+                    var ir = try IR.createSelect(symbver, expr, i, term.getToken().span, allocator);
+                    symbver.def = ir;
+                    symbver.lvalue = term.* != .symbol;
+                    self.appendInstruction(ir);
+                    try self.generate_match_pattern_check(scope, term, symbver, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
+                }
+            },
+            else => {
+                std.debug.print("Unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)});
+                unreachable;
+            },
         }
     }
 

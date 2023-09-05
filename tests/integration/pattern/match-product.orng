@@ -1,0 +1,5 @@
+// 168
+fn main() -> Int
+    match 100, 60, 8
+    | (100, x, y) => 100 + x + y
+    | else => unreachable
