@@ -460,7 +460,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
                 try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
             }
         },
-        .int => {},
+        .int, .select => {},
         else => {
             std.debug.print("{s}\n", .{pattern.getToken().data});
             std.debug.print("create_symbol unimplemented for ast {s}\n", .{@tagName(pattern.*)});

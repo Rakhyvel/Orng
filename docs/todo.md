@@ -181,9 +181,9 @@
         - [x] Product destructuring
             > all of terms match
             - [x] check product arity at compile-time, must match
-        - [ ] Sum destructuring
+        - [x] Sum destructuring
             > tag of expr matches tag of pattern
-            - [ ] check that expr is of the same sum type at compile-time
+            - [x] check that expr is of the same sum type at compile-time
         - [ ] Injection
             > lhs sum matches, rhs pattern matches
             - [ ] validate injection is valid for type, of course

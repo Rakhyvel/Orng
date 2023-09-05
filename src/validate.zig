@@ -1697,6 +1697,15 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
                 return error.typeError;
             }
         },
+        .select => {
+            var new_pattern = try validateAST(pattern, expr_type, scope, errors, allocator);
+            pattern.select.pos = @as(usize, @intCast(new_pattern.inferredMember.pos.?));
+            var pattern_type = try new_pattern.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(pattern_type, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern_type } });
+                return error.typeError;
+            }
+        },
         .product => {
             var expanded_expr = try expr_type.exapnd_type(scope, errors, allocator);
             if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {

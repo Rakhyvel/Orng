@@ -1476,6 +1476,7 @@ pub const CFG = struct {
                             none_label;
                         try self.generate_match_pattern_check(ast.match.scope.?, lhs, expr.?, next_label, return_label, break_label, continue_label, error_label, errors, allocator);
                     }
+                    self.appendInstruction(try IR.createJump(rhs_label_list.items[label_index], mapping.getToken().span, allocator));
                     label_index += 1;
                 }
 
@@ -1718,6 +1719,10 @@ pub const CFG = struct {
                 }
                 return null;
             },
+
+            // Types?
+            .sum => return null,
+
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
                 return error.Unimplemented;
@@ -1962,7 +1967,7 @@ pub const CFG = struct {
             => {
                 var value = try self.flattenAST(scope, pattern.?, return_label, break_label, continue_label, error_label, false, errors, allocator);
                 var condition = try self.createTempSymbolVersion(_ast.boolType, allocator);
-                var condition_ir = try IR.create(.notEqual, condition, new_expr, value.?, pattern.?.getToken().span, allocator);
+                var condition_ir = try IR.create(.equal, condition, new_expr, value.?, pattern.?.getToken().span, allocator);
                 condition.def = condition_ir;
                 self.appendInstruction(condition_ir);
                 var branch = try IR.createBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
@@ -1973,14 +1978,35 @@ pub const CFG = struct {
             },
             .product => {
                 for (pattern.?.product.terms.items, 0..) |term, i| {
-                    var subscript_type = expr.type.product.terms.items[i];
+                    var subscript_type = new_expr.type.product.terms.items[i];
                     var symbver = try self.createTempSymbolVersion(subscript_type, allocator);
-                    var ir = try IR.createSelect(symbver, expr, i, term.getToken().span, allocator);
+                    var ir = try IR.createSelect(symbver, new_expr, i, term.getToken().span, allocator);
                     symbver.def = ir;
-                    symbver.lvalue = term.* != .symbol;
+                    symbver.lvalue = false;
                     self.appendInstruction(ir);
                     try self.generate_match_pattern_check(scope, term, symbver, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
+            },
+            .select => {
+                // Get tag of pattern
+                var sel = try self.createTempSymbolVersion(_ast.intType, allocator);
+                var sel_ir = try IR.createInt(sel, pattern.?.select.pos.?, pattern.?.getToken().span, allocator);
+                sel.def = sel_ir;
+                self.appendInstruction(sel_ir);
+
+                // Get tag of expr
+                var tag = try self.createTempSymbolVersion(_ast.intType, allocator);
+                var tag_ir = try IR.createGetTag(tag, expr, pattern.?.getToken().span, allocator);
+                tag.def = tag_ir;
+                self.appendInstruction(tag_ir);
+
+                // Compare them, jump to next pattern if they are not equal
+                var neql = try self.createTempSymbolVersion(_ast.boolType, allocator);
+                var neql_ir = try IR.create(.equal, neql, tag, sel, pattern.?.getToken().span, allocator);
+                neql.def = neql_ir;
+                self.appendInstruction(neql_ir);
+                var branch = try IR.createBranch(neql, next_pattern, pattern.?.getToken().span, allocator);
+                self.appendInstruction(branch);
             },
             else => {
                 std.debug.print("Unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)});

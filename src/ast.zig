@@ -1036,7 +1036,7 @@ pub const AST = union(enum) {
                     retval = try create_optional_type(body_type, allocator);
                 }
             },
-            .case => retval = try self.case.mappings.items[0].typeof(self.match.scope.?, errors, allocator),
+            .case => retval = try self.case.mappings.items[0].typeof(self.case.scope.?, errors, allocator),
             .match => retval = try self.match.mappings.items[0].typeof(self.match.scope.?, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
                 if (self.mapping.scope) |new_scope| {
@@ -1153,7 +1153,9 @@ pub const AST = union(enum) {
                     }
                     var retval = true;
                     for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
-                        retval = retval and try term.typesMatch(other_term, scope, errors, allocator);
+                        var this_name = term.annotation.pattern.getToken().data;
+                        var other_name = other_term.annotation.pattern.getToken().data;
+                        retval = retval and std.mem.eql(u8, this_name, other_name) and try term.typesMatch(other_term, scope, errors, allocator);
                     }
                     return retval;
                 }
