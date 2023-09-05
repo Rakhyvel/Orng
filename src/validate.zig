@@ -1061,6 +1061,56 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
+        .match => {
+            var poisoned = false;
+            if (ast.match.let) |let| {
+                ast.match.let = try validateAST(let, null, scope, errors, allocator);
+                poisoned = ast.match.let.?.* == .poison or poisoned;
+            }
+            ast.match.expr = try validateAST(ast.match.expr, null, ast.match.scope.?, errors, allocator);
+            poisoned = ast.match.expr.* == .poison or poisoned;
+
+            var new_mappings = std.ArrayList(*AST).init(allocator);
+            for (ast.match.mappings.items) |mapping| {
+                if (expected != null) {
+                    var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
+                    var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
+                    var has_else = ast.match.has_else;
+                    if (has_else) {
+                        // match has `else` => validate regular expected type
+                        var new_mapping = try validateAST(mapping, expected, ast.match.scope.?, errors, allocator);
+                        try new_mappings.append(new_mapping);
+                        poisoned = poisoned or new_mapping.* == .poison;
+                    } else if (is_expected_optional) {
+                        // match has no `else`, expecting an optional type => validate mappings w/ base of optional expected type
+                        var full_type = expected_expanded.sum.terms.items[1];
+                        var new_mapping = try validateAST(mapping, full_type, ast.match.scope.?, errors, allocator);
+                        try new_mappings.append(new_mapping);
+                        poisoned = poisoned or new_mapping.* == .poison;
+                    } else {
+                        // match has no else, not expecting an optional type => type error
+                        var new_map = try validateAST(mapping, expected.?, ast.match.scope.?, errors, allocator);
+                        ast.getCommon().is_valid = true;
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try new_map.typeof(scope, errors, allocator) } });
+                        return _ast.poisoned;
+                    }
+                } else {
+                    // Not expecting anything => validate mappings with null type
+                    var new_mapping = try validateAST(mapping, null, ast.match.scope.?, errors, allocator);
+                    try new_mappings.append(new_mapping);
+                    poisoned = poisoned or new_mapping.* == .poison;
+                }
+                if (mapping.mapping.lhs) |lhs| {
+                    try assert_pattern_matches(lhs, ast.match.expr, ast.match.scope.?, errors, allocator);
+                }
+            }
+            if (poisoned) {
+                return _ast.poisoned;
+            } else {
+                ast.match.mappings = new_mappings;
+                retval = ast;
+            }
+        },
         .mapping => {
             switch (ast.mapping.kind) {
                 .case => {
@@ -1076,7 +1126,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         return _ast.poisoned;
                     }
                 },
-                .match => {},
+                .match => {
+                    // lhs for match mappings is done elsewhere
+                    ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, scope, errors, allocator);
+                    if ((ast.mapping.lhs != null and ast.mapping.lhs.?.* == .poison) or ast.mapping.rhs.?.* == .poison) {
+                        return _ast.poisoned;
+                    }
+                },
             }
             retval = ast;
         },
@@ -1592,5 +1648,54 @@ fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.
         },
 
         else => unreachable,
+    }
+}
+
+/// Validates that `pattern` is valid given a match's `expr`
+fn assert_pattern_matches(pattern: *AST, expr: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+    switch (pattern.*) {
+        .unit => {
+            var expr_type = try expr.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(_ast.unitType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.unitType } });
+                return error.typeError;
+            }
+        },
+        .int => {
+            var expr_type = try expr.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(_ast.intType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.intType } });
+                return error.typeError;
+            }
+        },
+        .char => {
+            var expr_type = try expr.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(_ast.charType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.charType } });
+                return error.typeError;
+            }
+        },
+        .string => {
+            var expr_type = try expr.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(_ast.stringType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.stringType } });
+                return error.typeError;
+            }
+        },
+        .float => {
+            var expr_type = try expr.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(_ast.floatType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.floatType } });
+                return error.typeError;
+            }
+        },
+        ._true, ._false => {
+            var expr_type = try expr.typeof(scope, errors, allocator);
+            if (!try expr_type.typesMatch(_ast.boolType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.boolType } });
+                return error.typeError;
+            }
+        },
+        else => {},
     }
 }

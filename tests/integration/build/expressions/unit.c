@@ -21,13 +21,13 @@ void _4_f();
 
 /* Function definitions */
 int64_t _2_main() {
-	int64_t _2_$retval;
+    int64_t _2_$retval;
 BB0:
     $lines[$line_idx++] = "tests/integration/expressions/unit.orng:3:7:\n    f()\n     ^";
-	_4_f();
+    _4_f();
     $line_idx--;
-	_2_$retval = 48;
-	return _2_$retval;
+    _2_$retval = 48;
+    return _2_$retval;
 }
 
 void _4_f() {

@@ -173,14 +173,24 @@
         ```
         - [x] `_` to ignore
     - [ ] `match` expression
-        - [ ] Value matching
-            > In the future, the type of the matched-on expr MUST implement Eq. It's this == that is 'called' (and hopefully easily inlined!)
+        - [x] Value matching
+            > expr equals value
+            - [x] compile-time check that value is same type as expr
+        - [ ] Symbol capture
+            > infallible match, declare symbol before rhs
         - [ ] Product destructuring
+            > all of terms match
+            - [ ] check product arity at compile-time, must match
         - [ ] Sum destructuring
-        - [ ] Value matching with `{ }` blocks
+            > tag of expr matches tag of pattern
+            - [ ] check that expr is of the same sum type at compile-time
+        - [ ] Injection
+            > lhs sum matches, rhs pattern matches
+            - [ ] validate injection is valid for type, of course
         - [ ] `_` to ignore value 
-        - [ ] Error if match is not total
+        - [ ] Error (warning?) if match is not total (can maybe do for sums, but is undecidable for general values of course)
 - [ ] new optimizations
+    - [ ] measure source-to-output ratio
     - [ ] expand_types should only allocate if anything changes
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
     - [x] avoid struct copies on select
@@ -243,6 +253,8 @@
         - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
 - [ ] refinement types
     - [ ] `where` which checks at runtime if a condition is true, panics if it's not
+    - [ ] `==>` implies boolean operator might be handy
+        > `ast^ == .match ==> mappings_have_rhs(ast)`
     - [ ] `where comptime` checks a condition at compiletime. If a condition is false at compile-time, error
 - [ ] generic type unification
     > Identifiers that end in a `'` are considered free

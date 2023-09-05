@@ -67,25 +67,25 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         for (dag.base.product.terms.items, 0..) |term, i| {
             if (!term.c_typesMatch(_ast.unitType)) {
                 // Don't gen `void` structure fields
-                try out.writer().print("\t", .{});
+                try out.writer().print("    ", .{});
                 try printType(term, out);
                 try out.writer().print(" _{};\n", .{i});
             }
         }
         try out.writer().print("}} struct{};\n", .{dag.uid});
     } else if (dag.base.* == .sum) {
-        try out.writer().print("typedef struct {{\n\tuint64_t tag;\n", .{});
+        try out.writer().print("typedef struct {{\n    uint64_t tag;\n", .{});
         if (!dag.base.sum.is_all_unit()) {
-            try out.writer().print("\tunion {{\n", .{});
+            try out.writer().print("    union {{\n", .{});
             for (dag.base.sum.terms.items, 0..) |term, i| {
                 if (!term.annotation.type.c_typesMatch(_ast.unitType)) {
                     // Don't gen `void` structure fields
-                    try out.writer().print("\t\t", .{});
+                    try out.writer().print("        ", .{});
                     try printType(term, out);
                     try out.writer().print(" _{};\n", .{i});
                 }
             }
-            try out.writer().print("\t}};\n", .{});
+            try out.writer().print("    }};\n", .{});
         }
         try out.writer().print("}} struct{};\n", .{dag.uid});
     }
@@ -272,27 +272,27 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
 
     if (bb.has_branch) {
         // Generate the if
-        try out.writer().print("\tif (", .{});
+        try out.writer().print("    if (", .{});
         try printSymbolVersion(bb.condition.?, out);
         try out.writer().print(") {{\n", .{});
 
         // Generate branch `if-else`
         if (bb.next) |next| {
-            try out.writer().print("\t\tgoto BB{};\n\t}} else {{\n", .{next.uid});
+            try out.writer().print("        goto BB{};\n    }} else {{\n", .{next.uid});
         } else {
-            try out.writer().print("\t", .{});
+            try out.writer().print("    ", .{});
             try printReturn(symbol, out);
-            try out.writer().print("\t}} else {{\n", .{});
+            try out.writer().print("    }} else {{\n", .{});
         }
 
         // Generate the `branch` BB
         if (bb.branch) |branch| {
-            try out.writer().print("\t\tgoto BB{};\n\t}}\n", .{branch.uid});
+            try out.writer().print("        goto BB{};\n    }}\n", .{branch.uid});
             try generateBasicBlock(branch, symbol, out);
         } else {
-            try out.writer().print("\t", .{});
+            try out.writer().print("    ", .{});
             try printReturn(symbol, out);
-            try out.writer().print("\t}}\n", .{});
+            try out.writer().print("    }}\n", .{});
         }
 
         // Generate the `next` BB
@@ -301,7 +301,7 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
         }
     } else {
         if (bb.next) |next| {
-            try out.writer().print("\tgoto BB{};\n", .{next.uid});
+            try out.writer().print("    goto BB{};\n", .{next.uid});
             try generateBasicBlock(next, symbol, out);
         } else {
             try printReturn(symbol, out);
@@ -399,7 +399,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print(";\n", .{});
         },
         .derefCopy => {
-            try out.writer().print("\t**", .{});
+            try out.writer().print("    **", .{});
             try generateLValueIR(ir.src1.?, out);
             try out.writer().print(" = ", .{});
             try printSymbolVersion(ir.src2.?, out);
@@ -407,7 +407,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .indexCopy => if (!ir.src1.?.symbol._type.?.product.was_slice) {
             // store(lval(index(src1, src2)), rval(data.symbver))
-            try out.writer().print("\t*(((", .{});
+            try out.writer().print("    *(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
             try out.writer().print("*)(", .{});
             try generateLValueIR(ir.src1.?, out);
@@ -417,7 +417,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printSymbolVersion(ir.data.symbver, out);
             try out.writer().print(";\n", .{});
         } else {
-            try out.writer().print("\t*(((", .{});
+            try out.writer().print("    *(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
             try out.writer().print("*)((", .{});
             try generateLValueIR(ir.src1.?, out);
@@ -428,7 +428,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print(";\n", .{});
         },
         .selectCopy => {
-            try out.writer().print("\t(", .{});
+            try out.writer().print("    (", .{});
             try generateLValueIR(ir.src1.?, out);
             try out.writer().print(")->_{} = ", .{ir.data.int});
             try printSymbolVersion(ir.src2.?, out);
@@ -554,7 +554,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             if (!void_fn) {
                 try printVarAssign(ir.dest.?, out);
             } else {
-                try out.writer().print("\t", .{});
+                try out.writer().print("    ", .{});
             }
             try printSymbolVersion(ir.src1.?, out);
             try out.writer().print("(", .{});
@@ -693,14 +693,14 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
 }
 
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
-    try out.writer().print("\t", .{});
+    try out.writer().print("    ", .{});
     try printSymbol(symbver.symbol, out);
     try out.writer().print(" = ", .{});
 }
 
 fn printVarDecl(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     if (!param) {
-        try out.writer().print("\t", .{});
+        try out.writer().print("    ", .{});
     }
     try printType(symbol._type.?, out);
     try out.writer().print(" ", .{});
@@ -720,7 +720,7 @@ fn printSymbolVersion(symbver: *SymbolVersion, out: *std.fs.File) !void {
 
 fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
     if (return_symbol.versions > 0) { // To fix errors when function ends in `unreachable`
-        try out.writer().print("\treturn ", .{});
+        try out.writer().print("    return ", .{});
         try printSymbol(return_symbol, out);
         try out.writer().print(";\n", .{});
     }

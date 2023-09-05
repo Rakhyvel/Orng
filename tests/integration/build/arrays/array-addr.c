@@ -13,10 +13,10 @@ static uint16_t $line_idx = 0;
 
 /* Typedefs */
 typedef struct {
-	int64_t* _0;
-	int64_t* _1;
-	int64_t* _2;
-	int64_t* _3;
+    int64_t* _0;
+    int64_t* _1;
+    int64_t* _2;
+    int64_t* _3;
 } struct0;
 
 /* Interned Strings */
@@ -26,37 +26,37 @@ int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
-	int64_t _3_a;
-	int64_t _3_b;
-	int64_t _3_c;
-	int64_t _3_d;
-	int64_t* _2_t5;
-	int64_t* _2_t6;
-	int64_t* _2_t7;
-	int64_t* _2_t8;
-	struct0 _3_x;
-	int64_t _2_t9;
-	int64_t _2_t10;
-	int64_t _2_t16;
-	int64_t* _2_t17;
-	int64_t _2_$retval;
+    int64_t _3_a;
+    int64_t _3_b;
+    int64_t _3_c;
+    int64_t _3_d;
+    int64_t* _2_t5;
+    int64_t* _2_t6;
+    int64_t* _2_t7;
+    int64_t* _2_t8;
+    struct0 _3_x;
+    int64_t _2_t9;
+    int64_t _2_t10;
+    int64_t _2_t16;
+    int64_t* _2_t17;
+    int64_t _2_$retval;
 BB0:
-	_3_a = 1;
-	_3_b = 2;
-	_3_c = 3;
-	_3_d = 4;
-	_2_t5 = &_3_a;
-	_2_t6 = &_3_b;
-	_2_t7 = &_3_c;
-	_2_t8 = &_3_d;
-	_3_x = (struct0) {_2_t5, _2_t6, _2_t7, _2_t8};
-	_2_t9 = 71;
-	_2_t10 = 2;
-	**(((int64_t**)(&_3_x))+_2_t10) = _2_t9;
-	_2_t16 = 2;
-	_2_t17 = *(((int64_t**)(&_3_x))+_2_t16);
-	_2_$retval = *_2_t17;
-	return _2_$retval;
+    _3_a = 1;
+    _3_b = 2;
+    _3_c = 3;
+    _3_d = 4;
+    _2_t5 = &_3_a;
+    _2_t6 = &_3_b;
+    _2_t7 = &_3_c;
+    _2_t8 = &_3_d;
+    _3_x = (struct0) {_2_t5, _2_t6, _2_t7, _2_t8};
+    _2_t9 = 71;
+    _2_t10 = 2;
+    **(((int64_t**)(&_3_x))+_2_t10) = _2_t9;
+    _2_t16 = 2;
+    _2_t17 = *(((int64_t**)(&_3_x))+_2_t16);
+    _2_$retval = *_2_t17;
+    return _2_$retval;
 }
 
 

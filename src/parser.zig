@@ -819,53 +819,6 @@ pub const Parser = struct {
         );
     }
 
-    fn barClause(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
-        var lhs = try self.annotExpr();
-        var rhs: ?*AST = null;
-
-        if (self.accept(.RIGHT_FAT_ARROW)) |_| {
-            rhs = try self.annotExpr();
-        }
-
-        return try AST.createMapping(lhs.getToken(), kind, lhs, rhs, self.astAllocator);
-    }
-
-    fn barElse(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
-        var token = try self.expect(.ELSE);
-        if (self.peekKind(.RIGHT_FAT_ARROW)) {
-            _ = self.expect(.RIGHT_FAT_ARROW) catch {};
-        } else {
-            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`=>` after `else`", .got = self.peek() } });
-            return error.parserError;
-        }
-        var rhs = try self.annotExpr();
-
-        return try AST.createMapping(token, kind, null, rhs, self.astAllocator);
-    }
-
-    /// returns whether the bar list has an else
-    fn barListMiddle(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
-        try mappings.append(try self.barClause(kind));
-        if (self.accept(.BAR)) |_| {
-            if (self.peekKind(.ELSE)) {
-                try mappings.append(try self.barElse(kind));
-                return true;
-            } else if (self.nextIsExpr()) {
-                return try self.barListMiddle(mappings, kind);
-            } else {
-                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `|`", .got = self.peek() } });
-                return error.parserError;
-            }
-        } else {
-            return false;
-        }
-    }
-
-    fn barList(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
-        _ = try self.expect(.BAR);
-        return try self.barListMiddle(mappings, kind);
-    }
-
     fn caseExpr(self: *Parser) ParserErrorEnum!*AST {
         var token = try self.expect(.CASE);
         var mappings = std.ArrayList(*AST).init(self.astAllocator);
@@ -881,9 +834,56 @@ pub const Parser = struct {
             } // Has to be here, otherwise the init expr of the let confuses the case's |'s with a sum expr
         }
 
-        var has_else = try self.barList(&mappings, .case);
+        var has_else = try self.caseBarList(&mappings, .case);
 
         return try AST.createCase(token, let, mappings, has_else, self.astAllocator);
+    }
+
+    fn caseBarClause(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
+        var lhs = try self.annotExpr();
+        var rhs: ?*AST = null;
+
+        if (self.accept(.RIGHT_FAT_ARROW)) |_| {
+            rhs = try self.annotExpr();
+        }
+
+        return try AST.createMapping(lhs.getToken(), kind, lhs, rhs, self.astAllocator);
+    }
+
+    fn caseBarElse(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
+        var token = try self.expect(.ELSE);
+        if (self.peekKind(.RIGHT_FAT_ARROW)) {
+            _ = self.expect(.RIGHT_FAT_ARROW) catch {};
+        } else {
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`=>` after `else`", .got = self.peek() } });
+            return error.parserError;
+        }
+        var rhs = try self.annotExpr();
+
+        return try AST.createMapping(token, kind, null, rhs, self.astAllocator);
+    }
+
+    /// returns whether the bar list has an else
+    fn caseBarListMiddle(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
+        try mappings.append(try self.caseBarClause(kind));
+        if (self.accept(.BAR)) |_| {
+            if (self.peekKind(.ELSE)) {
+                try mappings.append(try self.caseBarElse(kind));
+                return true;
+            } else if (self.nextIsExpr()) {
+                return try self.caseBarListMiddle(mappings, kind);
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `|`", .got = self.peek() } });
+                return error.parserError;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    fn caseBarList(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
+        _ = try self.expect(.BAR);
+        return try self.caseBarListMiddle(mappings, kind);
     }
 
     fn matchExpr(self: *Parser) ParserErrorEnum!*AST {
@@ -901,9 +901,152 @@ pub const Parser = struct {
             }
         }
         var exp = try self.productExpr();
-        _ = try self.barList(&mappings, .match);
+        var has_else = try self.matchBarList(&mappings, .match);
 
-        return try AST.createMatch(token, let, exp, mappings, self.astAllocator);
+        return try AST.createMatch(token, let, exp, mappings, has_else, self.astAllocator);
+    }
+
+    fn matchBarClause(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
+        var lhs = try self.match_pattern_inject();
+        var rhs: ?*AST = null;
+
+        if (self.accept(.RIGHT_FAT_ARROW)) |_| {
+            rhs = try self.annotExpr();
+        }
+
+        return try AST.createMapping(lhs.getToken(), kind, lhs, rhs, self.astAllocator);
+    }
+
+    fn matchBarElse(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
+        var token = try self.expect(.ELSE);
+        if (self.peekKind(.RIGHT_FAT_ARROW)) {
+            _ = self.expect(.RIGHT_FAT_ARROW) catch {};
+        } else {
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`=>` after `else`", .got = self.peek() } });
+            return error.parserError;
+        }
+        var rhs = try self.annotExpr();
+
+        return try AST.createMapping(token, kind, null, rhs, self.astAllocator);
+    }
+
+    /// returns true when the bar list has an else, otherwise false
+    fn matchBarListMiddle(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
+        try mappings.append(try self.matchBarClause(kind));
+        if (self.accept(.BAR)) |_| {
+            if (self.peekKind(.ELSE)) {
+                try mappings.append(try self.matchBarElse(kind));
+                return true;
+            } else if (self.nextIsExpr()) {
+                return try self.matchBarListMiddle(mappings, kind);
+            } else {
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "an expression after `|`", .got = self.peek() } });
+                return error.parserError;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    fn matchBarList(self: *Parser, mappings: *std.ArrayList(*AST), kind: ast.MappingKind) ParserErrorEnum!bool {
+        _ = try self.expect(.BAR);
+        return try self.matchBarListMiddle(mappings, kind);
+    }
+
+    fn match_pattern_product(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.match_pattern_inject();
+        var terms: ?std.ArrayList(*AST) = null;
+        var first_token: ?Token = null;
+        while (self.accept(.COMMA)) |token| {
+            if (terms == null) {
+                terms = std.ArrayList(*AST).init(self.astAllocator);
+                first_token = token;
+                try terms.?.append(exp);
+            }
+            try terms.?.append(try self.match_pattern_inject());
+        }
+        if (terms) |terms_list| {
+            return AST.createProduct(first_token.?, terms_list, self.astAllocator);
+        } else {
+            return exp;
+        }
+    }
+
+    fn match_pattern_inject(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.match_pattern_atom();
+        if (self.accept(.LEFT_SKINNY_ARROW)) |token| {
+            var rhs = try self.match_pattern_atom();
+            return AST.createInject(token, exp, rhs, self.astAllocator);
+        } else {
+            return exp;
+        }
+    }
+
+    fn match_pattern_atom(self: *Parser) ParserErrorEnum!*AST {
+        if (self.accept(.MUT)) |_| {
+            var identifier = try self.expect(.IDENTIFIER);
+            return try AST.createSymbol(identifier, .mut, identifier.data, self.astAllocator);
+        } else if (self.accept(.IDENTIFIER)) |token| {
+            if (self.peekKind(.PERIOD)) {
+                var exp = try AST.createIdentifier(token, self.astAllocator);
+                while (self.accept(.PERIOD)) |_| {
+                    exp = try AST.createSelect(
+                        token,
+                        exp,
+                        try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator),
+                        self.astAllocator,
+                    );
+                }
+                return exp;
+            } else {
+                return try AST.createSymbol(token, .let, token.data, self.astAllocator);
+            }
+        } else if (self.accept(.TRUE)) |token| {
+            return try AST.createTrue(token, self.astAllocator);
+        } else if (self.accept(.FALSE)) |token| {
+            return try AST.createFalse(token, self.astAllocator);
+        } else if (self.accept(.DECIMAL_INTEGER)) |token| {
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped, 10), self.astAllocator);
+        } else if (self.accept(.HEX_INTEGER)) |token| {
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 16), self.astAllocator);
+        } else if (self.accept(.OCT_INTEGER)) |token| {
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 8), self.astAllocator);
+        } else if (self.accept(.BIN_INTEGER)) |token| {
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 2), self.astAllocator);
+        } else if (self.accept(.FLOAT)) |token| {
+            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
+            defer apostropheAllocator.deinit();
+            var stripped = try stripApostrophes(token.data, apostropheAllocator.allocator());
+            return try AST.createFloat(token, try std.fmt.parseFloat(f64, stripped), self.astAllocator);
+        } else if (self.accept(.CHAR)) |token| {
+            return try AST.createChar(token, self.astAllocator);
+        } else if (self.accept(.STRING)) |token| {
+            return try AST.createString(token, self.astAllocator);
+        } else if (self.peekKind(.L_BRACE)) {
+            return try self.braceBlockExpr();
+        } else if (self.accept(.PERIOD)) |token| {
+            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+            return try AST.createInferredMember(token, ident, self.astAllocator);
+        } else if (self.accept(.L_PAREN)) |_| {
+            var pattern = try self.match_pattern_product();
+            _ = try self.expect(.R_PAREN);
+            return pattern;
+        } else {
+            self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a pattern", .got = self.peek() } });
+            return ParserErrorEnum.parserError;
+        }
     }
 
     fn caseMatchExpr(self: *Parser) ParserErrorEnum!*AST {

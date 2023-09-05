@@ -13,8 +13,8 @@ static uint16_t $line_idx = 0;
 
 /* Typedefs */
 typedef struct {
-	uint8_t* _0;
-	int64_t _1;
+    uint8_t* _0;
+    int64_t _1;
 } struct0;
 
 /* Interned Strings */
@@ -25,10 +25,10 @@ struct0 _2_main();
 
 /* Function definitions */
 struct0 _2_main() {
-	struct0 _2_$retval;
+    struct0 _2_$retval;
 BB0:
-	_2_$retval = (struct0) {string_0, 18};
-	return _2_$retval;
+    _2_$retval = (struct0) {string_0, 18};
+    return _2_$retval;
 }
 
 

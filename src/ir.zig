@@ -1416,7 +1416,6 @@ pub const CFG = struct {
                     if (mapping.mapping.rhs) |rhs| {
                         self.appendInstruction(rhs_label_list.items[rhs_label_index]);
                         if (try self.flattenAST(ast.case.scope.?, rhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) |rhs_symbver| {
-                            if (ast.case.has_else) {} else {}
                             var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                             var rhs_copy: *IR = undefined;
                             if (ast.case.has_else) {
@@ -1430,6 +1429,82 @@ pub const CFG = struct {
                         self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
                         rhs_label_index += 1;
                     }
+                }
+                self.appendInstruction(end_label);
+
+                return symbver;
+            },
+            .match => {
+                // Create the result symbol and IR
+                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), allocator);
+                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+
+                // Exit label of match
+                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                // Label jumped to if all tests fail and no `else` mapping
+                var none_label = try IR.createLabel(ast.getToken().span, allocator);
+                // List of labels to branch to on an unsuccessful test (ie "next pattern")
+                var lhs_label_list = std.ArrayList(*IR).init(allocator);
+                defer lhs_label_list.deinit();
+                // List of labels to branch to on a successful test (ie "code for the mapping")
+                var rhs_label_list = std.ArrayList(*IR).init(allocator);
+                defer rhs_label_list.deinit();
+                for (ast.match.mappings.items) |_| {
+                    try lhs_label_list.append(try IR.createLabel(ast.getToken().span, allocator));
+                    try rhs_label_list.append(try IR.createLabel(ast.getToken().span, allocator));
+                }
+                std.debug.assert(lhs_label_list.items.len == ast.match.mappings.items.len);
+
+                // If there's a let, then do it, dumby!
+                if (ast.match.let) |let| {
+                    _ = try self.flattenAST(ast.match.scope.?, let, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                }
+
+                var expr = try self.flattenAST(scope, ast.match.expr, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                if (expr == null) {
+                    return null;
+                }
+
+                var label_index: usize = 0;
+                for (ast.match.mappings.items) |mapping| {
+                    var lhs_label = lhs_label_list.items[label_index];
+                    self.appendInstruction(lhs_label);
+                    if (mapping.mapping.lhs) |lhs| {
+                        var next_label = if (label_index < lhs_label_list.items.len - 1)
+                            lhs_label_list.items[label_index + 1]
+                        else
+                            none_label;
+                        try self.generate_match_pattern_check(ast.match.scope.?, lhs, expr.?, next_label, return_label, break_label, continue_label, error_label, errors, allocator);
+                    }
+                    label_index += 1;
+                }
+
+                if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
+                    self.appendInstruction(none_label);
+                    var else_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    var else_copy = try IR.createUnion(else_copy_symbver, null, 0, ast.getToken().span, allocator);
+                    else_copy_symbver.def = else_copy;
+                    self.appendInstruction(else_copy);
+                    self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
+                }
+
+                // Write the labels and the rhs of the mappings
+                label_index = 0;
+                for (ast.match.mappings.items) |mapping| {
+                    self.appendInstruction(rhs_label_list.items[label_index]);
+                    if (try self.flattenAST(ast.match.scope.?, mapping.mapping.rhs.?, return_label, break_label, continue_label, error_label, false, errors, allocator)) |rhs_symbver| {
+                        var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                        var rhs_copy: *IR = undefined;
+                        if (ast.match.has_else) {
+                            rhs_copy = try IR.create(.copy, rhs_copy_symbver, rhs_symbver, null, ast.getToken().span, allocator);
+                        } else {
+                            rhs_copy = try IR.createUnion(rhs_copy_symbver, rhs_symbver, 1, ast.getToken().span, allocator);
+                        }
+                        rhs_copy_symbver.def = rhs_copy;
+                        self.appendInstruction(rhs_copy);
+                    }
+                    self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
+                    label_index += 1;
                 }
                 self.appendInstruction(end_label);
 
@@ -1850,6 +1925,43 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 try self.generate_pattern(scope, term, subscript_type, symbver, errors, allocator);
             }
+        }
+    }
+
+    fn generate_match_pattern_check(self: *CFG, scope: *Scope, pattern: ?*AST, expr: *SymbolVersion, next_pattern: *IR, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) error{
+        typeError,
+        OutOfMemory,
+        NotAnLValue,
+        Unimplemented,
+        InvalidRange,
+        Utf8ExpectedContinuation,
+        Utf8OverlongEncoding,
+        Utf8EncodesSurrogateHalf,
+        Utf8CodepointTooLarge,
+    }!void {
+        if (pattern == null) {
+            // Implies `else` branch, infallible.
+            return;
+        }
+        var new_expr = try SymbolVersion.createUnversioned(expr.symbol, expr.type, allocator);
+        switch (pattern.?.*) {
+            .int,
+            .float,
+            ._true,
+            ._false,
+            .char,
+            .string,
+            .block,
+            => {
+                var value = try self.flattenAST(scope, pattern.?, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var condition = try self.createTempSymbolVersion(_ast.boolType, allocator);
+                var condition_ir = try IR.create(.notEqual, condition, new_expr, value.?, pattern.?.getToken().span, allocator);
+                condition.def = condition_ir;
+                self.appendInstruction(condition_ir);
+                var branch = try IR.createBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
+                self.appendInstruction(branch);
+            },
+            else => unreachable,
         }
     }
 

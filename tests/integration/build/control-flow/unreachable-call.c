@@ -22,25 +22,25 @@ int64_t _6_g();
 
 /* Function definitions */
 int64_t _2_main() {
-	int64_t _2_t0;
-	int64_t _2_$retval;
+    int64_t _2_t0;
+    int64_t _2_$retval;
 BB0:
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:3:7:\n    f()\n     ^";
-	_2_t0 = _4_f();
+    _2_t0 = _4_f();
     $line_idx--;
-	_2_$retval = _2_t0;
-	return _2_$retval;
+    _2_$retval = _2_t0;
+    return _2_$retval;
 }
 
 int64_t _4_f() {
-	int64_t _4_t0;
-	int64_t _4_$retval;
+    int64_t _4_t0;
+    int64_t _4_$retval;
 BB0:
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:6:7:\n    g()\n     ^";
-	_4_t0 = _6_g();
+    _4_t0 = _6_g();
     $line_idx--;
-	_4_$retval = _4_t0;
-	return _4_$retval;
+    _4_$retval = _4_t0;
+    return _4_$retval;
 }
 
 int64_t _6_g() {

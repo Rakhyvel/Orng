@@ -342,7 +342,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             definition.match.scope = new_scope;
             try symbolTableFromAST(definition.match.let, scope, errors, allocator);
             try symbolTableFromAST(definition.match.expr, scope, errors, allocator);
-            try symbolTableFromASTList(definition.match.mappings, scope, errors, allocator);
+            try create_match_pattern_symbol(definition, scope, errors, allocator);
         },
         .mapping => {
             try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
@@ -380,18 +380,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .decl => {
             // Both put a Symbol in the current scope, and recurse
             try create_symbol(&definition.decl.symbols, definition.decl.pattern, definition.decl.type, definition.decl.init, scope, errors, allocator);
-            for (definition.decl.symbols.items) |symbol| {
-                if (scope.lookup(symbol.name, false)) |first| {
-                    errors.addError(Error{ .redefinition = .{
-                        .first_defined_span = first.span,
-                        .redefined_span = symbol.span,
-                        .name = symbol.name,
-                    } });
-                    return error.symbolError;
-                } else {
-                    try scope.symbols.put(symbol.name, symbol);
-                }
-            }
+            try put_all_symbols(&definition.decl.symbols, scope, errors);
             try symbolTableFromAST(definition.decl.type, scope, errors, allocator);
             try symbolTableFromAST(definition.decl.init, scope, errors, allocator);
         },
@@ -414,45 +403,79 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
     }
 }
 
-fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
-    if (pattern.* == .symbol) {
-        if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
-            var symbol = try Symbol.create(
-                scope,
-                pattern.symbol.name,
-                pattern.getToken().span,
-                _type,
-                init,
-                null,
-                pattern.symbol.kind,
-                allocator,
-            );
-            pattern.symbol.symbol = symbol;
-            try symbols.append(symbol);
-        } else if (pattern.symbol.kind != .let) {
-            errors.addError(Error{ .discard_marked = .{
-                .span = pattern.getToken().span,
-                .kind = pattern.symbol.kind,
+fn put_all_symbols(symbols: *std.ArrayList(*Symbol), scope: *Scope, errors: *errs.Errors) !void {
+    for (symbols.items) |symbol| {
+        if (scope.lookup(symbol.name, false)) |first| {
+            errors.addError(Error{ .redefinition = .{
+                .first_defined_span = first.span,
+                .redefined_span = symbol.span,
+                .name = symbol.name,
             } });
             return error.symbolError;
+        } else {
+            try scope.symbols.put(symbol.name, symbol);
         }
-    } else if (pattern.* == .product) {
-        for (pattern.product.terms.items, 0..) |term, i| {
-            var index = try AST.createInt(pattern.getToken(), i, allocator);
-            var new_type: ?*AST = if (_type != null)
-                try AST.createIndex(_type.?.getToken(), _type.?, index, allocator)
-            else
-                null;
-            var new_init: ?*AST = if (init != null)
-                try AST.createIndex(init.?.getToken(), init.?, index, allocator)
-            else
-                null;
-            try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
+    }
+}
+
+fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+    switch (pattern.*) {
+        .symbol => {
+            if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
+                var symbol = try Symbol.create(
+                    scope,
+                    pattern.symbol.name,
+                    pattern.getToken().span,
+                    _type,
+                    init,
+                    null,
+                    pattern.symbol.kind,
+                    allocator,
+                );
+                pattern.symbol.symbol = symbol;
+                try symbols.append(symbol);
+            } else if (pattern.symbol.kind != .let) {
+                errors.addError(Error{ .discard_marked = .{
+                    .span = pattern.getToken().span,
+                    .kind = pattern.symbol.kind,
+                } });
+                return error.symbolError;
+            }
+        },
+        .product => {
+            for (pattern.product.terms.items, 0..) |term, i| {
+                var index = try AST.createInt(pattern.getToken(), i, allocator);
+                var new_type: ?*AST = if (_type != null)
+                    try AST.createIndex(_type.?.getToken(), _type.?, index, allocator)
+                else
+                    null;
+                var new_init: ?*AST = if (init != null)
+                    try AST.createIndex(init.?.getToken(), init.?, index, allocator)
+                else
+                    null;
+                try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
+            }
+        },
+        .int => {},
+        else => {
+            std.debug.print("{s}\n", .{pattern.getToken().data});
+            std.debug.print("create_symbol unimplemented for ast {s}\n", .{@tagName(pattern.*)});
+            unreachable;
+        },
+    }
+}
+
+fn create_match_pattern_symbol(match: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+    for (match.match.mappings.items) |mapping| {
+        if (mapping.mapping.lhs != null) {
+            var symbols = std.ArrayList(*Symbol).init(allocator);
+            try create_symbol(&symbols, mapping.mapping.lhs.?, null, match.match.expr, scope, errors, allocator);
+            for (symbols.items) |symbol| {
+                symbol.defined = true;
+            }
+            try put_all_symbols(&symbols, scope, errors);
         }
-    } else {
-        std.debug.print("{s}\n", .{pattern.getToken().data});
-        std.debug.print("create_symbol unimplemented for ast {s}\n", .{@tagName(pattern.*)});
-        unreachable;
+        try symbolTableFromAST(mapping.mapping.rhs, scope, errors, allocator);
     }
 }
 

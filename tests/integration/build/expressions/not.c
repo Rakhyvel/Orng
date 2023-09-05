@@ -20,10 +20,10 @@ uint8_t _2_main();
 
 /* Function definitions */
 uint8_t _2_main() {
-	uint8_t _2_$retval;
+    uint8_t _2_$retval;
 BB0:
-	_2_$retval = 0;
-	return _2_$retval;
+    _2_$retval = 0;
+    return _2_$retval;
 }
 
 

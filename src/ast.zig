@@ -211,12 +211,13 @@ pub const AST = union(enum) {
         let: ?*AST,
         expr: *AST,
         mappings: std.ArrayList(*AST),
+        has_else: bool,
     },
     mapping: struct {
         common: ASTCommon,
         kind: MappingKind,
         lhs: ?*AST,
-        rhs: ?*AST,
+        rhs: ?*AST, // TODO: Shouldn't this have it's own scope for match mappings?
     },
     _while: struct {
         common: ASTCommon,
@@ -544,8 +545,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .case = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings, .has_else = has_else } }, allocator);
     }
 
-    pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .expr = expr, .mappings = mappings } }, allocator);
+    pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .expr = expr, .mappings = mappings, .has_else = has_else } }, allocator);
     }
 
     pub fn createMapping(token: Token, kind: MappingKind, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
@@ -1035,6 +1036,7 @@ pub const AST = union(enum) {
                 }
             },
             .case => retval = try self.case.mappings.items[0].typeof(scope, errors, allocator),
+            .match => retval = try self.match.mappings.items[0].typeof(scope, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
                 retval = try rhs.typeof(scope, errors, allocator);
             } else {

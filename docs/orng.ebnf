@@ -11,7 +11,7 @@ top_level_declaration: fn_declaration
 let_declaration: "let" let_pattern_atom (":" arrowExpr ["=" expr] | "=" expr).
 
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
-let_pattern_atom: ["mut" | "const"] identifier ["@" let_pattern_atom]
+let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
                 .
 
@@ -95,15 +95,38 @@ fn_declaration: "fn" [ident] paramlist "->" ["!"] arrowExpr ["where" arrowExpr] 
 paramlist: "(" [param {"," param}] ")".
 param: let_pattern_atom ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
 
-barClause: annotExpr ["=>" annotExpr]. # for barClauses in match statements, if the lhs of has a pattern, => must be present
-barElse: "else" "=>" annotExpr.
-barListMiddle: barClause ["|" (barElse | barListMiddle)].
-barList: "|" barListMiddle.
-
-caseExpr: [let_declaration ";"] barList.
-matchExpr: [let_declaration ";"] productExpr barList.
 caseMatchExpr: "case" caseExpr
              | "match" matchExpr
              .
+
+caseExpr: [let_declaration ";"] caseBarList.
+caseBarList: "|" caseBarListMiddle.
+caseBarListMiddle: caseBarClause ["|" (caseBarElse | caseBarListMiddle)].
+caseBarClause: annotExpr ["=>" annotExpr].
+caseBarElse: "else" "=>" annotExpr.
+
+matchExpr: [let_declaration ";"] productExpr matchBarList.
+matchBarList: "|" matchBarListMiddle.
+matchBarListMiddle: matchBarClause ["|" (matchBarElse | matchBarListMiddle)].
+matchBarClause: match_pattern_brace "=>" annotExpr.
+matchBarElse: "else" "=>" annotExpr.
+
+match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
+match_pattern_inject: match_pattern_atom ["<-" match_pattern_atom].
+match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol otherwise
+                  | "true"
+                  | "false"
+                  | int
+                  | hex
+                  | octal
+                  | bin
+                  | float
+                  | char
+                  | string
+                  | braceBlockExpr
+                  | "." ident
+                  | "(" match_pattern_product ")"
+                  .
+
 
 parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens
