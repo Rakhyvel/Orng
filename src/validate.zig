@@ -285,6 +285,37 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
+        .domainOf => {
+            var inject = ast.domainOf.expr.inject;
+            if (inject.lhs.* == .inferredMember) {
+                // Pass expected so that base can be inferred call
+                inject.lhs = try validateAST(inject.lhs, expected, scope, errors, allocator);
+            } else {
+                inject.lhs = try validateAST(inject.lhs, null, scope, errors, allocator);
+            }
+            if (inject.lhs.* == .poison) { // Don't bother moving on...
+                return _ast.poisoned;
+            }
+            var lhs_type = try inject.lhs.typeof(scope, errors, allocator);
+            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+            if (expanded_lhs_type.* == .sum and inject.lhs.* == .inferredMember) {
+                var pos: i128 = inject.lhs.inferredMember.pos.?;
+                var proper_term: *AST = (try inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+
+                retval = proper_term.annotation.type;
+            } else {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });
+                return _ast.poisoned;
+            }
+        },
+        ._typeOf => {
+            ast._typeOf.expr = try validateAST(ast._typeOf.expr, null, scope, errors, allocator);
+            if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
+                return _ast.poisoned;
+            }
+            retval = try ast._typeOf.expr.typeof(scope, errors, allocator);
+        },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);
             validateLValue(ast.assign.lhs, scope, errors) catch |err| switch (err) {
@@ -1365,7 +1396,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
-
         else => {
             std.debug.print("validateAST() unimplemented for {s}\n", .{@tagName(ast.*)});
             unreachable;
@@ -1723,6 +1753,32 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
                 return error.typeError;
             }
         },
+        .inject => {
+            if (pattern.inject.lhs.* == .inferredMember) {
+                // Pass expected so that base can be inferred call
+                pattern.inject.lhs = try validateAST(pattern.inject.lhs, expr_type, scope, errors, allocator);
+            } else {
+                pattern.inject.lhs = try validateAST(pattern.inject.lhs, null, scope, errors, allocator);
+            }
+            if (pattern.inject.lhs.* == .poison) { // Don't bother moving on...
+                return error.typeError;
+            }
+            var lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
+            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+            if (expanded_lhs_type.* == .sum and pattern.inject.lhs.* == .inferredMember) {
+                if (!try expr_type.typesMatch(lhs_type, scope, errors, allocator)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern.inject.lhs.inferredMember.base.? } });
+                    return error.typeError;
+                }
+                var pos: i128 = pattern.inject.lhs.inferredMember.pos.?;
+                var proper_term: *AST = (try pattern.inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+
+                try assert_pattern_matches(pattern.inject.rhs, proper_term.annotation.type, scope, errors, allocator);
+            } else {
+                errors.addError(Error{ .basic = .{ .span = pattern.getToken().span, .msg = "inject is not to a sum" } });
+                return error.typeError;
+            }
+        },
         .product => {
             var expanded_expr = try expr_type.exapnd_type(scope, errors, allocator);
             if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {
@@ -1738,5 +1794,28 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
             std.debug.print("unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
             unreachable;
         },
+    }
+}
+
+pub fn domainof(ast: *AST, sum_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    var inject = ast.inject;
+    if (inject.lhs.* == .inferredMember) {
+        // Pass sum_type so that base can be inferred call
+        inject.lhs = try validateAST(inject.lhs, sum_type, scope, errors, allocator);
+    } else {
+        inject.lhs = try validateAST(inject.lhs, null, scope, errors, allocator);
+    }
+    if (inject.lhs.* == .poison) { // Don't bother moving on...
+        return _ast.poisoned;
+    }
+    var lhs_type = try inject.lhs.typeof(scope, errors, allocator);
+    var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+    if (expanded_lhs_type.* == .sum and inject.lhs.* == .inferredMember) {
+        var pos: i128 = inject.lhs.inferredMember.pos.?;
+        var proper_term: *AST = (try inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+        return proper_term.annotation.type;
+    } else {
+        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });
+        return _ast.poisoned;
     }
 }

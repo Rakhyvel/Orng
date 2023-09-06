@@ -413,6 +413,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
                 ir.dest.?.lvalue = ir.src1.?.def.?.dest.?.lvalue;
                 ir.data = ir.src1.?.def.?.data;
                 ir.src2 = ir.src1.?.def.?.src2;
+                ir.safe = ir.src1.?.def.?.safe;
                 ir.src1 = ir.src1.?.def.?.src1;
                 retval = true;
             }
@@ -961,7 +962,7 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
         .select => {
             // Known loadUnion value
             if (ir.src1.?.def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
-                if (ir.data.int != ir.src1.?.def.?.data.int) {
+                if (ir.data.int != ir.src1.?.def.?.data.int and !ir.safe) {
                     errors.addError(Error{ .sum_select_inactive = .{
                         .span = ir.span,
                         .inactive = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.data.int))].annotation.pattern.getToken().data,
@@ -1175,6 +1176,7 @@ fn calculateUsage(cfg: *CFG) void {
         // Conditions are used
         if (bb.has_branch) {
             bb.condition.?.uses += 1;
+            bb.condition.?.symbol.uses += 1;
         }
     }
 }

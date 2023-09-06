@@ -188,6 +188,14 @@ pub const AST = union(enum) {
         base: ?*AST = null, // This should ideally be kept in unexpanded form. typeof(inferredMember) returns inferredMember.base.?.exapnd_type()
         pos: ?i128 = null,
     },
+    _typeOf: struct {
+        common: ASTCommon,
+        expr: *AST,
+    },
+    domainOf: struct {
+        common: ASTCommon,
+        expr: *AST,
+    },
 
     // Control-flow expressions
     _if: struct {
@@ -302,6 +310,8 @@ pub const AST = union(enum) {
             ._try => return &self._try.common,
             .optional => return &self.optional.common,
             .discard => return &self.discard.common,
+            ._typeOf => return &self._typeOf.common,
+            .domainOf => return &self.domainOf.common,
 
             .assign => return &self.assign.common,
             ._or => return &self._or.common,
@@ -418,6 +428,14 @@ pub const AST = union(enum) {
 
     pub fn createDiscard(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .discard = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    }
+
+    pub fn createTypeOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._typeOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    }
+
+    pub fn createDomainOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .domainOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

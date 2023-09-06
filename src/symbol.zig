@@ -205,6 +205,8 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .inferredMember,
         .poison,
         .symbol,
+        ._typeOf,
+        .domainOf,
         => {},
 
         .not => try symbolTableFromAST(definition.not.expr, scope, errors, allocator),
@@ -460,12 +462,17 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
                 try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
             }
         },
+        .inject => {
+            var lhs_type = try AST.createTypeOf(pattern.getToken(), pattern.inject.lhs, allocator);
+            var rhs_type = try AST.createDomainOf(pattern.getToken(), pattern, allocator);
+            try create_symbol(symbols, pattern.inject.lhs, lhs_type, null, scope, errors, allocator);
+            try create_symbol(symbols, pattern.inject.rhs, rhs_type, null, scope, errors, allocator);
+        },
         .int,
         .select,
         .inferredMember,
         => {},
         else => {
-            std.debug.print("{s}\n", .{pattern.getToken().data});
             std.debug.print("create_symbol unimplemented for ast {s}\n", .{@tagName(pattern.*)});
             unreachable;
         },

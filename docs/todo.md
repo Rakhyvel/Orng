@@ -11,6 +11,7 @@
     - `ir` for an arbitrary IR node
     - `symbver` for an arbitrary SymbolVersion
     - `maybe_x` for an optional variant of a type
+- [ ] Errors should be given a type name
 - [ ] Errors should be capitalized
 - [ ] Everything should be snake_case
 - [x] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
@@ -185,11 +186,12 @@
         - [x] Sum destructuring
             > tag of expr matches tag of pattern
             - [x] check that expr is of the same sum type at compile-time
-        - [ ] Inferred members
+        - [x] Inferred members
         - [ ] Injection
             > lhs sum matches, rhs pattern matches
             - [ ] validate injection is valid for type, of course
-        - [ ] `_` to ignore value 
+            - [ ] fix injection cruft with domainOf
+        - [x] `_` to ignore value 
         - [ ] Error (warning?) if match is not total (can maybe do for sums, but is undecidable for general values of course)
 - [ ] new optimizations
     - [ ] measure source-to-output ratio
