@@ -1,24 +1,28 @@
-const std = import_package("std")
+let const std = import_package("std")
 
-const RationalNumber: Type = 
+let const RationalNumber: Type = 
     ( numerator: Int
     , denominator: Int where denominator > 0
     )
 
-impl Eq for RationalNumber
-    fn equals: (a: RationalNumber, b: RationalNumber)->Bool =
+impl Eq for RationalNumber {
+    fn equals: (a: RationalNumber, b: RationalNumber)->Bool {
         (a.numerator * b.denominator) = (b.numerator * a.denominator)
+    }
+}
 
-fn main: (sys: System)->!() =
+fn main: (sys: System)->!() {
     let x: [5]Int = (1, 2, 3, 4, 5)
     std.debug.expect(contains([]x, 4))
 
     let y: [5]RationalNumber = ((1, 1), (4, 5), (-3, 6), (2, 5), (1, 65))
     std.debug.expect(contains([]y, (-3, 6)))
+}
 
 fn contains: (haystack: []T', needle: T')->Bool
-where T' <: Eq =
+where T' <: Eq {
     case
     | haystack.len == 0     => false
     | haystack[0] == needle => true
     | else                  => contains(haystack[1..], needle)
+}
