@@ -1,4 +1,5 @@
 // 139
-fn main() -> Int
+fn main() -> Int {
     let x: Float!(a: Int=139)
     x.ok
+}

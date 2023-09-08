@@ -1,7 +1,0 @@
-// 10
-fn main()->Int
-    case
-    | 0 == 3 => 6
-    | 1 != 4 => 10
-    | 2 == 5 => 25
-    | else   => unreachable

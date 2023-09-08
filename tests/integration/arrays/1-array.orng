@@ -1,4 +1,5 @@
 // 120
-fn main() -> Int 
+fn main() -> Int {
     let x: [1]Int = 120
     x[0]
+}

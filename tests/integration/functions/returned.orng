@@ -1,6 +1,7 @@
 // 49
-fn main() -> Int 
+fn main() -> Int {
     f()(45)
+}
 
 fn f()->Int->Int {addFour}
 

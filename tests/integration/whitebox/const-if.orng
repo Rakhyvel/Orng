@@ -1,6 +1,8 @@
 // 107
-fn main() -> Int
-    if let const x = 4; x == 4
+fn main() -> Int {
+    if let const x = 4; x == 4 {
         107
-    else
+    } else {
         4
+    }
+}

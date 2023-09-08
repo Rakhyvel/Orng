@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1691899681449729182
-#define ORNG_1691899681449729182
+#ifndef ORNG_1694154027513491522
+#define ORNG_1694154027513491522
 
 #include <math.h>
 #include <stdio.h>
@@ -81,7 +81,7 @@ BB4:
     _4_$retval = _4_t1 + _4_t6;
     return _4_$retval;
 BB3:
-    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:7:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                      ^";
+    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:8:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                      ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

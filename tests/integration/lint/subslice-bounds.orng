@@ -1,8 +1,9 @@
 // 
-fn main() -> Int
+fn main() -> Int {
     let x: [4]Int
     let y = []x
     let z = y[f()..1]
     z[0]
+}
 
 fn f()->Int {2}

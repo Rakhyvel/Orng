@@ -1,4 +1,5 @@
 // 117
-fn main() -> Int
+fn main() -> Int {
     let x: Int ! Char = .err <- 117
     x.err
+}

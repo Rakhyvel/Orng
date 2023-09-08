@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1693781964666405240
-#define ORNG_1693781964666405240
+#ifndef ORNG_1694154283266167218
+#define ORNG_1694154283266167218
 
 #include <math.h>
 #include <stdio.h>
@@ -48,71 +48,67 @@ BB0:
 }
 
 struct0 _4_fizzbuzz(int64_t _4_n) {
+    int64_t _4_t1;
     int64_t _4_t2;
     int64_t _4_t3;
-    int64_t _4_t4;
-    uint8_t _4_t1;
-    struct1 _4_t13;
+    uint8_t _4_t4;
+    struct1 _4_t11;
     struct0 _4_t0;
     struct0 _4_$retval;
-    struct1 _4_t15;
-    struct1 _4_t17;
-    int64_t _4_t10;
-    int64_t _4_t11;
-    int64_t _4_t12;
-    uint8_t _4_t9;
+    int64_t _4_t5;
     int64_t _4_t6;
-    int64_t _4_t7;
+    uint8_t _4_t7;
+    struct1 _4_t13;
     int64_t _4_t8;
-    uint8_t _4_t5;
-BB1:
+    int64_t _4_t9;
+    uint8_t _4_t10;
+    struct1 _4_t15;
+BB0:
+    _4_t1 = 0;
     _4_t2 = 15;
     _4_t3 = _4_n % _4_t2;
-    _4_t4 = 0;
-    _4_t1 = _4_t3 == _4_t4;
-    if (_4_t1) {
-        goto BB2;
+    _4_t4 = _4_t1 == _4_t3;
+    if (_4_t4) {
+        goto BB4;
     } else {
-        goto BB22;
+        goto BB7;
     }
-BB22:
-    _4_t6 = 5;
-    _4_t7 = _4_n % _4_t6;
-    _4_t8 = 0;
-    _4_t5 = _4_t7 == _4_t8;
-    if (_4_t5) {
-        goto BB9;
+BB7:
+    _4_t5 = 5;
+    _4_t6 = _4_n % _4_t5;
+    _4_t7 = _4_t1 == _4_t6;
+    if (_4_t7) {
+        goto BB10;
     } else {
-        goto BB21;
+        goto BB11;
     }
-BB21:
-    _4_t10 = 3;
-    _4_t11 = _4_n % _4_t10;
-    _4_t12 = 0;
-    _4_t9 = _4_t11 == _4_t12;
-    if (_4_t9) {
+BB11:
+    _4_t8 = 3;
+    _4_t9 = _4_n % _4_t8;
+    _4_t10 = _4_t1 == _4_t9;
+    if (_4_t10) {
         goto BB14;
     } else {
-        goto BB20;
+        goto BB16;
     }
-BB20:
+BB16:
     _4_t0 = (struct0) {.tag=1, ._1=_4_n};
-    goto BB7;
-BB7:
+    goto BB6;
+BB6:
     _4_$retval = _4_t0;
     return _4_$retval;
 BB14:
-    _4_t17 = (struct1) {string_2, 5};
-    _4_t0 = (struct0) {.tag=0, ._0=_4_t17};
-    goto BB7;
-BB9:
-    _4_t15 = (struct1) {string_1, 5};
+    _4_t15 = (struct1) {string_2, 5};
     _4_t0 = (struct0) {.tag=0, ._0=_4_t15};
-    goto BB7;
-BB2:
-    _4_t13 = (struct1) {string_0, 9};
+    goto BB6;
+BB10:
+    _4_t13 = (struct1) {string_1, 5};
     _4_t0 = (struct0) {.tag=0, ._0=_4_t13};
-    goto BB7;
+    goto BB6;
+BB4:
+    _4_t11 = (struct1) {string_0, 9};
+    _4_t0 = (struct0) {.tag=0, ._0=_4_t11};
+    goto BB6;
 }
 
 

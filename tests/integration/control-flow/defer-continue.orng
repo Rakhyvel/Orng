@@ -1,8 +1,10 @@
 // 37
-fn main() -> Int
+fn main() -> Int {
     let mut x = 17
-    while x < 36
+    while x < 36 {
         defer x += 9
         if x % 2 == 0 {continue}
         x += 1
+    }
     x
+}

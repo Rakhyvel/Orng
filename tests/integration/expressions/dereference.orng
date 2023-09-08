@@ -1,7 +1,8 @@
 // 29
-fn main()->Int
+fn main()->Int {
     let mut x: Int = 29
     let y: &Int = &x
     &x // eliminated
     y^ // eliminated
     y^
+}

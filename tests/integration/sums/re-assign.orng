@@ -1,7 +1,8 @@
 // 103
 let const Int_Or_Bool = int: Int = 102 | bool: Bool = false
 
-fn main() -> Int
+fn main() -> Int {
     let mut x: Int_Or_Bool = .int <- 4
     x.int = 103
     x.int
+}

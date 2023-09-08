@@ -1,10 +1,12 @@
 // 169
-fn main() -> Int
+fn main() -> Int {
     let const The_Type = a | b | c
     let x: The_Type = The_Type.b
 
-    match x
-    | The_Type.a => 168
-    | The_Type.b => 169
-    | The_Type.c => 170
-    | else => unreachable
+    match x {
+        The_Type.a => 168
+        The_Type.b => 169
+        The_Type.c => 170
+        else => unreachable
+    }
+}

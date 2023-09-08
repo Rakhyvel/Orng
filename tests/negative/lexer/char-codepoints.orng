@@ -1,3 +1,4 @@
-fn main() -> Int
+fn main() -> Int {
     let x = 'this character has too many unicode codepoints in it'
     0
+}

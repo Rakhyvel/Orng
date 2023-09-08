@@ -1,3 +1,4 @@
-fn main() -> Int
-    const A = (x | y) || Int
+fn main() -> Int {
+    let const A = (x | y) || Int
     0
+}

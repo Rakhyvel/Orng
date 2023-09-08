@@ -1,6 +1,7 @@
 // 48
-fn main() -> Int
+fn main() -> Int {
     f()
     48
+}
 
 fn f()->() {}

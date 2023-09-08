@@ -1,3 +1,4 @@
 // 0
-fn main()->Bool
+fn main()->Bool {
     4 != 4
+}

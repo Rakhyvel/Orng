@@ -1,4 +1,5 @@
 // 57
-fn main() -> Int
+fn main() -> Int {
     let x: (a: Int = 50, b: Int = 7) = ()
     x.a + x.b
+}

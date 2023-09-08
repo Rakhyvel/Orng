@@ -1,5 +1,5 @@
 // 71
-fn main() -> Int
+fn main() -> Int {
     let a = 1
     let b = 2
     let c = 3
@@ -7,3 +7,4 @@ fn main() -> Int
     let x = (&mut a, &mut b, &mut c, &mut d)
     x[2]^ = 71
     x[2]^
+}

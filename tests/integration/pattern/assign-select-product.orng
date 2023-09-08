@@ -1,5 +1,6 @@
 // 163
-fn main() -> Int
+fn main() -> Int {
     let mut x: (a: Int, b:Int, c:Int) = (1, 2, 3)
     (x.b, x.c, x.a) = (60, 23, 200)
     x.a - x.b + x.c
+}

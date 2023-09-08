@@ -1,4 +1,5 @@
 // 25
-fn main()->Int
+fn main()->Int {
     while false {} else {}
     25
+}

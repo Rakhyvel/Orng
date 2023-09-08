@@ -1,4 +1,5 @@
-fn main() -> Int
+fn main() -> Int {
     let x: (a | b) = .a
     x.b
     0
+}

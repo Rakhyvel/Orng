@@ -1,8 +1,8 @@
 // 0
-fn main ()->Int
+fn main ()->Int {
     let x: Int = 0
     let y: &Int = &x
-    if y^ == 0
+    if y^ == 0 {
         let mut z = y^
         (&mut z)^ = z + z 
         z = z - z 
@@ -12,5 +12,7 @@ fn main ()->Int
         z = z ** (z + 1)
         z = z * (-1.0)
         z
-    else
+    } else {
         1000
+    }
+}

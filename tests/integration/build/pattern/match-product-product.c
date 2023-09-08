@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1693887375870986616
-#define ORNG_1693887375870986616
+#ifndef ORNG_1694153971314222346
+#define ORNG_1694153971314222346
 
 #include <math.h>
 #include <stdio.h>
@@ -79,7 +79,7 @@ BB7:
         goto BB12;
     }
 BB12:
-    $lines[$line_idx++] = "tests/integration/pattern/match-product-product.orng:6:26:\n    | else => unreachable\n                        ^";
+    $lines[$line_idx++] = "tests/integration/pattern/match-product-product.orng:6:28:\n        else => unreachable\n                          ^";
     fprintf(stderr, "panic: reached unreachable code\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

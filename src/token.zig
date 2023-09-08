@@ -149,7 +149,7 @@ pub const binaryOperators = [_]TokenKind{
     .D_BAR,
     .D_STAR,
     .PERIOD_GTR,
-    .PERIOD,
+    // .PERIOD,
     .LEFT_SKINNY_ARROW,
     .WHERE,
 };

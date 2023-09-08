@@ -1,6 +1,7 @@
 // 
-fn main() -> Int
+fn main() -> Int {
     let x = f()
     x.b
+}
 
 fn f()->(a: Int | b: Int) {.a <- 4}

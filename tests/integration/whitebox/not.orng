@@ -1,11 +1,13 @@
 // 31
-fn main()->Int
+fn main()->Int {
     let x = 0
     let y = &x
     let mut b = not (y^ == 1)
     b = not b
     b = not b
-    if b
+    if b {
         31
-    else
+    } else {
         10
+    }
+}

@@ -1,4 +1,5 @@
 // 39
-fn main() -> Byte 
+fn main() -> Byte {
     let x = "\n\r\t\'\""
     x[3]
+}

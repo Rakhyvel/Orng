@@ -1,5 +1,0 @@
-fn main() -> Int
-    case
-    | false
-    | false
-    | true

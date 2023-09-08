@@ -1,4 +1,5 @@
 // 118
-fn main() -> Int
+fn main() -> Int {
     let x: Char!Int = .err <- 'd'
     x catch 118
+}

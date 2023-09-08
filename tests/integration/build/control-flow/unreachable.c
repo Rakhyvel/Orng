@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1692153840433787011
-#define ORNG_1692153840433787011
+#ifndef ORNG_1694153064094038551
+#define ORNG_1694153064094038551
 
 #include <math.h>
 #include <stdio.h>
@@ -21,7 +21,7 @@ int64_t _2_main();
 /* Function definitions */
 int64_t _2_main() {
 BB0:
-    $lines[$line_idx++] = "tests/integration/control-flow/unreachable.orng:3:16:\n    unreachable + 4\n              ^";
+    $lines[$line_idx++] = "tests/integration/control-flow/unreachable.orng:2:30:\nfn main() -> Int {unreachable + 4}\n                            ^";
     fprintf(stderr, "panic: reached unreachable code\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

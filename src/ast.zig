@@ -75,11 +75,6 @@ pub const SliceKind = union(enum) {
     }
 };
 
-pub const MappingKind = enum {
-    match,
-    case,
-};
-
 const Errors = error{ InvalidRange, OutOfMemory };
 
 const ASTCommon = struct {
@@ -207,13 +202,6 @@ pub const AST = union(enum) {
         bodyBlock: *AST,
         elseBlock: ?*AST,
     },
-    case: struct {
-        common: ASTCommon,
-        scope: ?*Scope,
-        let: ?*AST,
-        mappings: std.ArrayList(*AST),
-        has_else: bool,
-    },
     match: struct {
         common: ASTCommon,
         scope: ?*Scope,
@@ -224,7 +212,6 @@ pub const AST = union(enum) {
     },
     mapping: struct {
         common: ASTCommon,
-        kind: MappingKind,
         lhs: ?*AST,
         rhs: ?*AST,
         scope: ?*Scope, // Scope used for `match` mappings. Captures live in this scope, rhs of mapping lives in this scope. Lives in `match`'s scope
@@ -346,7 +333,6 @@ pub const AST = union(enum) {
             .inferredMember => return &self.inferredMember.common,
 
             ._if => return &self._if.common,
-            .case => return &self.case.common,
             .match => return &self.match.common,
             .mapping => return &self.mapping.common,
             ._while => return &self._while.common,
@@ -561,16 +547,12 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._if = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
-    pub fn createCase(token: Token, let: ?*AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .case = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .mappings = mappings, .has_else = has_else } }, allocator);
-    }
-
     pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .expr = expr, .mappings = mappings, .has_else = has_else } }, allocator);
     }
 
-    pub fn createMapping(token: Token, kind: MappingKind, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .mapping = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .lhs = lhs, .rhs = rhs, .scope = null } }, allocator);
+    pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .mapping = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs, .scope = null } }, allocator);
     }
 
     pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
@@ -1055,7 +1037,6 @@ pub const AST = union(enum) {
                     retval = try create_optional_type(body_type, allocator);
                 }
             },
-            .case => retval = try self.case.mappings.items[0].typeof(self.case.scope.?, errors, allocator),
             .match => retval = try self.match.mappings.items[0].typeof(self.match.scope.?, errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
                 if (self.mapping.scope) |new_scope| {

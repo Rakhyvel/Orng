@@ -1,3 +1,4 @@
-fn main() -> Int
+fn main() -> Int {
     let x = "\xZ0" // This is invalid because the first character of Z0 is not a valid hex digit
     0
+}

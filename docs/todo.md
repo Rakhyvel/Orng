@@ -25,7 +25,7 @@
 - [ ] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
 
-### Pipeline
+### Small fixes
 - [x] Errors should print lines
     - [x] Errors print to stderr instead of debug
     - [x] Lexer fills lines array
@@ -42,6 +42,7 @@
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
 - [ ] Comparison operators should not be chainable
+- [ ] Parens (and only parens) should be one 'line', like in Python
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -49,6 +50,7 @@
 - [x] allow more than one command line argument
 - [ ] Ignore empty files all together
 - [ ] exclude files or directories with a prefix `~`
+- [ ] `count` instruction which just counts the number of .orng files
 
 ### In-House rdgen
 - [ ] Written in Zig

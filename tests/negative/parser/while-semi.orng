@@ -1,3 +1,4 @@
-fn main() -> Int
+fn main() -> Int {
     while let x = 4 true {}
     0
+}

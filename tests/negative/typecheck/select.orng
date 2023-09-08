@@ -1,3 +1,4 @@
-fn main() -> Int
+fn main() -> Int {
     let x: (a: Int, b: Char) = (1, '2')
     x.b
+}

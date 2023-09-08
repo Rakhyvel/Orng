@@ -1,1 +1,1 @@
-const a: a.Float() = 0
+let const a: a.Float() = 0

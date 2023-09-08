@@ -1,4 +1,5 @@
 // 91
-fn main() -> Byte
+fn main() -> Byte {
     let x = "\x5B"
     x[0]
+}

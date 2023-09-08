@@ -1,2 +1,2 @@
-fn main() -> Int
+fn main() -> Int {
     let x = 'this character doesnt have an end!\

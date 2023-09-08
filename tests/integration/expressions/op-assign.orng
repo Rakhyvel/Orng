@@ -1,5 +1,5 @@
 // 64
-fn main()->Int 
+fn main()->Int {
     let mut x: Int = 8
     x += 2
     x -= 2
@@ -8,3 +8,4 @@ fn main()->Int
     x %= 15
     x **= 2
     x
+}

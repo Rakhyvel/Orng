@@ -1,4 +1,5 @@
 // 158
-fn main()->Int 
+fn main()->Int {
     let (a, b) = 100, 58
     a + b
+}

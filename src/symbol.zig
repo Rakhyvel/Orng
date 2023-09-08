@@ -333,26 +333,16 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition._if.bodyBlock, scope, errors, allocator);
             try symbolTableFromAST(definition._if.elseBlock, scope, errors, allocator);
         },
-        .case => {
-            var new_scope = try Scope.init(scope, "", allocator);
-            definition.case.scope = new_scope;
-            try symbolTableFromAST(definition.case.let, scope, errors, allocator);
-            try symbolTableFromASTList(definition.case.mappings, scope, errors, allocator);
-        },
         .match => {
             var new_scope = try Scope.init(scope, "", allocator);
             definition.match.scope = new_scope;
             try symbolTableFromAST(definition.match.let, scope, errors, allocator);
             try symbolTableFromAST(definition.match.expr, new_scope, errors, allocator);
             try create_match_pattern_symbol(definition, new_scope, errors, allocator);
+            try symbolTableFromASTList(definition.match.mappings, new_scope, errors, allocator);
         },
         .mapping => {
-            if (definition.mapping.kind == .case) {
-                try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
-                try symbolTableFromAST(definition.mapping.rhs, scope, errors, allocator);
-            } else {
-                unreachable; // Matches do they own thang
-            }
+            try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
         },
         ._while => {
             var new_scope = try Scope.init(scope, "", allocator);
@@ -468,14 +458,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
             try create_symbol(symbols, pattern.inject.lhs, lhs_type, null, scope, errors, allocator);
             try create_symbol(symbols, pattern.inject.rhs, rhs_type, null, scope, errors, allocator);
         },
-        .int,
-        .select,
-        .inferredMember,
-        => {},
-        else => {
-            std.debug.print("create_symbol unimplemented for ast {s}\n", .{@tagName(pattern.*)});
-            unreachable;
-        },
+        else => {},
     }
 }
 

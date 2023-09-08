@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1691899681449729182
-#define ORNG_1691899681449729182
+#ifndef ORNG_1694153422173370302
+#define ORNG_1694153422173370302
 
 #include <math.h>
 #include <stdio.h>
@@ -48,7 +48,7 @@ int64_t _6_apply(function0 _6_f,int64_t _6_x) {
     int64_t _6_t0;
     int64_t _6_$retval;
 BB0:
-    $lines[$line_idx++] = "tests/integration/functions/anon.orng:6:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
+    $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
     _6_t0 = _6_f(_6_x);
     $line_idx--;
     _6_$retval = _6_t0;

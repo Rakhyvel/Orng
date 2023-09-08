@@ -1,6 +1,7 @@
 // 102
 let const Int_Or_Bool = int: Int = 102 | bool: Bool = false
 
-fn main() -> Int
+fn main() -> Int {
     let x: Int_Or_Bool = .int
     x.int
+}

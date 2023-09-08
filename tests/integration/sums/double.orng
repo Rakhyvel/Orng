@@ -1,5 +1,6 @@
 // 104
-fn main() -> Int
+fn main() -> Int {
     let mut x: (sum: (int: Int | bool: Bool) | not_sum) = .sum <- .int <- 4
     x.sum.int = 104
     x.sum.int
+}

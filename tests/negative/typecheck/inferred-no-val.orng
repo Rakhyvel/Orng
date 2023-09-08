@@ -1,3 +1,4 @@
-fn main() -> Int
+fn main() -> Int {
     let x: (a: Int | b: Int) = .a
     x.a
+}

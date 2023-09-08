@@ -1,8 +1,0 @@
-// 25
-fn main()->Int
-    case
-    | false => {}
-    | false => {}
-    | true  => {}
-    | else  => {}
-    25

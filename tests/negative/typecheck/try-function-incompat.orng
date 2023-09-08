@@ -1,9 +1,12 @@
-fn main() -> Int
+fn main() -> Int {
     f() catch 0
+}
 
-fn f() -> Char!Int
+fn f() -> Char!Int {
     let x = try g()
     (.ok <- 0)
+}
 
-fn g() -> ()!Int
+fn g() -> ()!Int {
     return .err
+}

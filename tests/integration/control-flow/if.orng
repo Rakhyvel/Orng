@@ -1,6 +1,8 @@
 // 11
-fn main()->Int 
-    if let x: Int = 4; true
+fn main()->Int {
+    if let x: Int = 4; true {
         x + 7
-    else
+    } else {
         3
+    }
+}

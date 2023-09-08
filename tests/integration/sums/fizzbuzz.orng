@@ -1,14 +1,17 @@
 // fizzbuzz
-fn main()-> String
+fn main()-> String {
     fizzbuzz(30).string
+}
 
-let const FizzBuzzResult: Type
-    = string: String
-    | integer: Int
+let const FizzBuzzResult: Type = (
+    string: String
+    | integer: Int)
 
-fn fizzbuzz(n: Int) -> FizzBuzzResult
-    case
-    | n % 15 == 0 => .string <- "fizzbuzz"
-    | n % 5 == 0  => .string <- "buzz"
-    | n % 3 == 0  => .string <- "fizz"
-    | else        => .integer <- n
+fn fizzbuzz(n: Int) -> FizzBuzzResult {
+    match 0 {
+        {n % 15} => .string <- "fizzbuzz"
+        {n % 5}  => .string <- "buzz"
+        {n % 3}  => .string <- "fizz"
+        else     => .integer <- n
+    }
+}

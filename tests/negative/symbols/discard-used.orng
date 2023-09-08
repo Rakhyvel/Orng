@@ -1,4 +1,5 @@
-fn main() -> Int
+fn main() -> Int {
     let x = 4
     _ = x
     x
+}

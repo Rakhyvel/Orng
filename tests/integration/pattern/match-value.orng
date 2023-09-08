@@ -1,5 +1,7 @@
 // 166
-fn main() -> Int
-    match 100
-    | 100  => 166
-    | else => unreachable
+fn main() -> Int {
+    match 100 {
+        100  => 166
+        else => unreachable
+    }
+}

@@ -1,7 +1,9 @@
 // 130
-fn main() -> Int
+fn main() -> Int {
     let x: Bool
-    if not x
+    if not x {
         130
-    else 
+    } else {
         4
+    }
+}

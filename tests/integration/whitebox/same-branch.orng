@@ -1,6 +1,7 @@
 // 40
-fn main()->Int
+fn main()->Int {
     let x = true
     let mut z = 40
     if (&x)^ {}
     z
+}

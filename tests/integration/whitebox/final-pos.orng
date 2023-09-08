@@ -1,8 +1,11 @@
 // 41
-fn main() -> Int
+fn main() -> Int {
     let mut x = 0
-    while x < 100; x += 1
-        if x == 40
+    while x < 100; x += 1 {
+        if x == 40 {
             x += 1
             break
+        }
+    }
     x
+}

@@ -1,3 +1,2 @@
 // 
-fn main() -> Int
-    unreachable + 4
+fn main() -> Int {unreachable + 4}

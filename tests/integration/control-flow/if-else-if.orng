@@ -1,0 +1,12 @@
+// 10
+fn main()->Int {
+    if (0 == 3) {
+        6
+    } else if (1 != 4) {
+        10
+    } else if (2 == 5) {
+        25
+    } else {
+        unreachable
+    }
+}

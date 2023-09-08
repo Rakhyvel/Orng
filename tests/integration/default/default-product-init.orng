@@ -1,4 +1,5 @@
 // 137
-fn main() -> Int
+fn main() -> Int {
     let x: (a: Int=137, b: Float)
     x.a
+}

@@ -1,2 +1,3 @@
-fn main() -> Float
+fn main() -> Float {
     1.0 / 0.0
+}

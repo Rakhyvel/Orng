@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1691899681449729182
-#define ORNG_1691899681449729182
+#ifndef ORNG_1694153350410305387
+#define ORNG_1694153350410305387
 
 #include <math.h>
 #include <stdio.h>
@@ -97,7 +97,7 @@ BB6:
     _4_$retval = _4_t0;
     return _4_$retval;
 BB1:
-    $lines[$line_idx++] = "tests/integration/errors/try.orng:7:23:\n        let x = try g()\n                     ^";
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
     _4_t1 = _9_g();
     $line_idx--;
     _4_t2 = _4_t1.tag;

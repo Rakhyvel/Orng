@@ -1,6 +1,0 @@
-// 129
-fn main() -> Int
-    let x: ?Int = case
-    | false => 1
-    | false => 2
-    x orelse 129

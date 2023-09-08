@@ -1,1 +1,1 @@
-const x = {return}
+let const x = {return}

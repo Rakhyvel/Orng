@@ -1,3 +1,4 @@
-fn main() -> Int
+fn main() -> Int {
     let mut _ : Int = 4
     4
+}

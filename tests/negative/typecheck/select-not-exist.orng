@@ -1,4 +1,5 @@
-fn main() -> Int
+fn main() -> Int {
     let x: (a: Int, b: Int) = (3, 4)
     x.c
     0
+}

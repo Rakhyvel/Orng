@@ -1,2 +1,3 @@
-fn main() -> Int
+fn main() -> Int {
     let 5 = 3
+}

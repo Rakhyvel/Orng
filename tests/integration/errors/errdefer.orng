@@ -1,15 +1,18 @@
 // 119
-fn main() -> Int
+fn main() -> Int {
     let mut x = 10
     let mut y = 10
     f(&mut x, true)
     f(&mut y, false)
     x + y
+}
 
-fn f(x: &mut Int, fail: Bool)->()!()
+fn f(x: &mut Int, fail: Bool)->()!() {
     errdefer x^ = 115
     x^ = 4
-    if fail
+    if fail {
         return .err <- ()
-    else    
+    } else {
         return .ok <- ()
+    }
+}

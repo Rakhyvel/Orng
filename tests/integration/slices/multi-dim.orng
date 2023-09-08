@@ -1,7 +1,8 @@
 // 82
-fn main() -> Int
+fn main() -> Int {
     let mut x: [3]Int = (1, 2, 3)
     let mut y: [3][mut]Int = ([mut]x, [mut]x, [mut]x)
     let z: [mut][mut]Int = [mut]y
     z[1][2] = 82
     z[1][2]
+}

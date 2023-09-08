@@ -110,6 +110,28 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
         try layout.doLayout(&tokens);
     }
 
+    if (false) { // Print out tokens after layout
+        var indent: usize = 0;
+        for (0..tokens.items.len - 1) |j| {
+            var token = tokens.items[j];
+            var next_token = tokens.items[j + 1];
+            if (next_token.kind == .INDENT) {
+                indent += 1;
+            }
+            if (next_token.kind == .DEDENT) {
+                indent -= 1;
+            }
+            std.debug.print("{s} ", .{token.repr()});
+            if (token.kind == .NEWLINE or token.kind == .INDENT or token.kind == .DEDENT) {
+                std.debug.print("\n", .{});
+                for (0..indent) |_| {
+                    std.debug.print("    ", .{});
+                }
+            }
+        }
+        std.debug.print("\n", .{});
+    }
+
     // Parse
     try ast.initTypes();
     var parser = try Parser.create(&tokens, errors, allocator);

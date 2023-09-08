@@ -1,6 +1,8 @@
 // 167
-fn main() -> Int
-    match 167
-    | x => x
-    | x => x
-    | else => unreachable
+fn main() -> Int {
+    match 167 {
+        x => x
+        x => x
+        else => unreachable
+    }
+}

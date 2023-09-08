@@ -1,5 +1,5 @@
 // 10
-fn main() -> Int
+fn main() -> Int {
     // These are
     // Many line
 // Comments
@@ -11,3 +11,4 @@ fn main() -> Int
 
 
     // But they shouldn't affect the program!
+}

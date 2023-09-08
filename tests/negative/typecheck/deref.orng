@@ -1,3 +1,4 @@
-fn main () -> Int
+fn main () -> Int {
     0^
     0
+}

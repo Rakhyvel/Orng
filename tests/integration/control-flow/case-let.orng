@@ -1,7 +1,0 @@
-// 23
-fn main()->Int
-    case let x: Int = 4;
-    | x - 4 == 1 => 10
-    | x - 3 == 1 => 23
-    | x - 2 == 1 => 10
-    | else       => unreachable

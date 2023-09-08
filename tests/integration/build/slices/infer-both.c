@@ -1,6 +1,6 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1691899681449729182
-#define ORNG_1691899681449729182
+#ifndef ORNG_1694154041145314270
+#define ORNG_1694154041145314270
 
 #include <math.h>
 #include <stdio.h>
@@ -134,7 +134,7 @@ BB8:
     _6_i = _6_i + _4_t11;
     goto BB1;
 BB7:
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:11:19:\n        sum += xs[i]\n                 ^";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:12:19:\n        sum += xs[i]\n                 ^";
     fprintf(stderr, "panic: index is greater than length\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -142,7 +142,7 @@ BB7:
     exit(1);
     goto BB8;
 BB5:
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:11:19:\n        sum += xs[i]\n                 ^";
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:12:19:\n        sum += xs[i]\n                 ^";
     fprintf(stderr, "panic: index is negative\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);

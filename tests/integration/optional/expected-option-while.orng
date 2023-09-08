@@ -1,4 +1,5 @@
 // 116
-fn main() -> Int
+fn main() -> Int {
     let y: ?Int = while false {45}
     y orelse 116
+}

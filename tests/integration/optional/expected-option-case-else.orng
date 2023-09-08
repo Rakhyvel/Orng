@@ -1,7 +1,9 @@
 // 128
-fn main() -> Int
-    let x: ?Int = case
-    | false => .some <- 15
-    | false => .some <- 15
-    | else  => .some <- 128
+fn main() -> Int {
+    let x: ?Int = match true {
+        false => .some <- 15
+        false => .some <- 15
+        else  => .some <- 128
+    }
     x.some
+}

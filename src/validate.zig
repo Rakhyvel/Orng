@@ -1045,54 +1045,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             retval = ast;
         },
-        .case => {
-            var poisoned = false;
-            if (ast.case.let) |let| {
-                ast.case.let = try validateAST(let, null, scope, errors, allocator);
-                poisoned = poisoned or ast.case.let.?.* == .poison;
-            }
-            var new_mappings = std.ArrayList(*AST).init(allocator);
-            var num_rhs: usize = 0;
-            for (ast.case.mappings.items) |mapping| {
-                if (mapping.mapping.rhs) |_| {
-                    num_rhs += 1;
-                }
-
-                if (expected != null) {
-                    var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
-                    var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
-                    var has_else = ast.case.has_else;
-                    if (has_else) {
-                        var new_mapping = try validateAST(mapping, expected, ast.case.scope.?, errors, allocator);
-                        try new_mappings.append(new_mapping);
-                        poisoned = poisoned or new_mapping.* == .poison;
-                    } else if (is_expected_optional) {
-                        var full_type = expected_expanded.sum.terms.items[1];
-                        var new_mapping = try validateAST(mapping, full_type, ast.case.scope.?, errors, allocator);
-                        try new_mappings.append(new_mapping);
-                        poisoned = poisoned or new_mapping.* == .poison;
-                    } else {
-                        var new_map = try validateAST(mapping, expected.?, ast.case.scope.?, errors, allocator);
-                        ast.getCommon().is_valid = true;
-                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try new_map.typeof(scope, errors, allocator) } });
-                        return _ast.poisoned;
-                    }
-                } else {
-                    var new_mapping = try validateAST(mapping, null, ast.case.scope.?, errors, allocator);
-                    try new_mappings.append(new_mapping);
-                    poisoned = poisoned or new_mapping.* == .poison;
-                }
-            }
-            if (num_rhs == 0) {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "case does not have a prong with `=>`" } });
-                return _ast.poisoned;
-            } else if (poisoned) {
-                return _ast.poisoned;
-            } else {
-                ast.case.mappings = new_mappings;
-                retval = ast;
-            }
-        },
         .match => {
             var poisoned = false;
             if (ast.match.let) |let| {
@@ -1145,33 +1097,16 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .mapping => {
-            switch (ast.mapping.kind) {
-                .case => {
-                    if (ast.mapping.lhs) |lhs| {
-                        ast.mapping.lhs = try validateAST(lhs, _ast.boolType, scope, errors, allocator);
-                    }
-                    if (ast.mapping.rhs) |rhs| {
-                        ast.mapping.rhs = try validateAST(rhs, expected, scope, errors, allocator);
-                    }
-                    if ((ast.mapping.lhs != null and ast.mapping.lhs.?.* == .poison) or
-                        (ast.mapping.rhs != null and ast.mapping.rhs.?.* == .poison))
-                    {
-                        return _ast.poisoned;
-                    }
-                },
-                .match => {
-                    // lhs for match mappings is done elsewhere
-                    if (ast.mapping.scope) |mapping_scope| {
-                        // non-else mappings have their own scope
-                        ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, mapping_scope, errors, allocator);
-                    } else {
-                        // else mappings use the scope of the surrounding match statement
-                        ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, scope, errors, allocator);
-                    }
-                    if ((ast.mapping.lhs != null and ast.mapping.lhs.?.* == .poison) or ast.mapping.rhs.?.* == .poison) {
-                        return _ast.poisoned;
-                    }
-                },
+            // lhs for match mappings is done elsewhere
+            if (ast.mapping.scope) |mapping_scope| {
+                // non-else mappings have their own scope
+                ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, mapping_scope, errors, allocator);
+            } else {
+                // else mappings use the scope of the surrounding match statement
+                ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, scope, errors, allocator);
+            }
+            if ((ast.mapping.lhs != null and ast.mapping.lhs.?.* == .poison) or ast.mapping.rhs.?.* == .poison) {
+                return _ast.poisoned;
             }
             retval = ast;
         },
@@ -1725,6 +1660,13 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
         ._true, ._false => {
             if (!try expr_type.typesMatch(_ast.boolType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.boolType } });
+                return error.typeError;
+            }
+        },
+        .block => {
+            var new_pattern = try validateAST(pattern, expr_type, scope, errors, allocator);
+            if (!try expr_type.typesMatch(try new_pattern.typeof(scope, errors, allocator), scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.intType } });
                 return error.typeError;
             }
         },

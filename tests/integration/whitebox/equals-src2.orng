@@ -1,9 +1,11 @@
 // 42
-fn main() -> Int
+fn main() -> Int {
     let x = 10
     let y = 10
     let z = y
-    if x == z
+    if x == z {
         42
-    else
+    } else {
         10434
+    }
+}
