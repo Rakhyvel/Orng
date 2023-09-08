@@ -908,11 +908,8 @@ pub const Parser = struct {
 
     fn matchBarClause(self: *Parser, kind: ast.MappingKind) ParserErrorEnum!*AST {
         var lhs = try self.match_pattern_inject();
-        var rhs: ?*AST = null;
-
-        if (self.accept(.RIGHT_FAT_ARROW)) |_| {
-            rhs = try self.annotExpr();
-        }
+        _ = try self.expect(.RIGHT_FAT_ARROW);
+        var rhs = try self.annotExpr();
 
         return try AST.createMapping(lhs.getToken(), kind, lhs, rhs, self.astAllocator);
     }

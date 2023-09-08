@@ -463,8 +463,8 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
             }
         },
         .inject => {
-            var lhs_type = try AST.createTypeOf(pattern.getToken(), pattern.inject.lhs, allocator);
-            var rhs_type = try AST.createDomainOf(pattern.getToken(), pattern, allocator);
+            var lhs_type = try AST.createTypeOf(pattern.getToken(), init.?, allocator);
+            var rhs_type = try AST.createDomainOf(pattern.getToken(), lhs_type, pattern, allocator);
             try create_symbol(symbols, pattern.inject.lhs, lhs_type, null, scope, errors, allocator);
             try create_symbol(symbols, pattern.inject.rhs, rhs_type, null, scope, errors, allocator);
         },

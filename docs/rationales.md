@@ -2,6 +2,13 @@
 # Rationales
 > Because it is easy for little monkeys to forget!
 
+## Injective mapping from syntax to behavior
+Probably the biggest gripe I have with languages like C++ is that it's near impossible to tell where side effects happen. Code can throw exceptions out from under you, functions can be called implicitly, there's no way to ctrl+f your way through a file to find where a variable is declared, type conversions are entirely implicit, etc.
+
+Orng shall have a one-to-one correspondance between syntax and behavior. The way to model syntax is with ASTs, and the way to model behavior is through the codegen of an IR. So, for example, a call IR shall only be generated from a call AST. 
+
+This does not necessarily go the other way, though. Through inlining optimizations, a call AST might not actually generate a call IR. I think this is fine.
+
 ## No `backtick identifiers`.
 I thought it might be a cool idea if backticks could delimit the bounds of identifiers, so that you could have anything as an identifier. Keywords, spaces, symbols, all of it. However, now I am not so sure this is a good idea. Not only would this be rather unreadable, it would be trickier to codegen.
 

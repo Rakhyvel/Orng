@@ -286,10 +286,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .domainOf => {
+            var sum_expr_type = try validateAST(ast.domainOf.sum_expr, _ast.typeType, scope, errors, allocator);
             var inject = ast.domainOf.expr.inject;
             if (inject.lhs.* == .inferredMember) {
                 // Pass expected so that base can be inferred call
-                inject.lhs = try validateAST(inject.lhs, expected, scope, errors, allocator);
+                inject.lhs = try validateAST(inject.lhs, sum_expr_type, scope, errors, allocator);
             } else {
                 inject.lhs = try validateAST(inject.lhs, null, scope, errors, allocator);
             }

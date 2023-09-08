@@ -194,6 +194,7 @@ pub const AST = union(enum) {
     },
     domainOf: struct {
         common: ASTCommon,
+        sum_expr: *AST,
         expr: *AST,
     },
 
@@ -434,8 +435,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._typeOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createDomainOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .domainOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    pub fn createDomainOf(token: Token, sum_expr: *AST, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .domainOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .sum_expr = sum_expr, .expr = expr } }, allocator);
     }
 
     pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

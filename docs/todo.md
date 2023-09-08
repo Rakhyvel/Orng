@@ -41,7 +41,7 @@
 - [x] immutability checking
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
-- [x] != should actually probably be chainable
+- [ ] Comparison operators should not be chainable
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -187,10 +187,11 @@
             > tag of expr matches tag of pattern
             - [x] check that expr is of the same sum type at compile-time
         - [x] Inferred members
-        - [ ] Injection
+        - [x] Injection
             > lhs sum matches, rhs pattern matches
             - [ ] validate injection is valid for type, of course
             - [ ] fix injection cruft with domainOf
+        - [ ] Fix syntax with nested matches
         - [x] `_` to ignore value 
         - [ ] Error (warning?) if match is not total (can maybe do for sums, but is undecidable for general values of course)
 - [ ] new optimizations
@@ -265,18 +266,15 @@
     - [ ] error if an identifier contains a `'` in the middle of itself
     - [ ] error if identifier is defined with `let` or `match` with apostrophe
 - [ ] type classes / interfaces / traits
+    > Do not use for operator overloading!
     - [ ] `lhs<:rhs` operator with lhs being a capture pattern and rhs being a class
     - [ ] allocators
     - [ ] iterators & for loops
         - [ ] multi-loops, ranges like zig
     - [ ] Eq, Ord, Num, Bits, Convertible
-        - [ ] Inlining will hopefully remove vtable lookups for things like integer math, which would stink!
-        - [ ] Default for arithmetic should be checked arithmetic
-            > Each numeric type knows it's limits, so it makes more sense to implement checking in the trait
     - [ ] derive
     - [ ] dot prepend `.>`
     - [ ] `id` function in prelude
-    - [ ] wrap and saturate math operators (not too important tbh)
 
 ### Standard Library
 - [ ] Collections
