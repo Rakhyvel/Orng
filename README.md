@@ -24,11 +24,13 @@ zig build
 ## Usage
 Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a "Hello, World" program in Orng:
 ```rs
-fn main(sys: System)->!()
+fn main(sys: System)->!() {
     greet("Orng! 🍊", sys.stdout)
+}
 
-fn greet(recipient: String, out: @Writer) -> !()
+fn greet(recipient: String, out:<:Writer) -> !() {
     out.>writeln("Hello, {s}", recipient)
+}
 ```
 
 To run this program, simply save it to a file with a ".orng" extension and then run the following command in the terminal:
@@ -59,54 +61,69 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 ### Factorial Function
 ```rs
 // A factorial function!
-fn factorial(n: Int) -> Int
-    if n < 2 {1} else {n * factorial(n - 1)}
+fn factorial(n: Int) -> Int {
+    if n < 2 (1) else (n * factorial(n - 1))
+}
 ```
 Lets break that down so we can understand how Orng works.
 ```rs
 fn factorial                      // Define a new function called `factorial`.
-    (n: Int) -> Int               // The type of `factorial` is a function, 
+    (n: Int) -> Int {             // The type of `factorial` is a function, 
                                   //     which takes an integer called `n` and 
                                   //     returns an integer.
-    if n < 2 {1}                  // The result of calling factorial is either 
+    if n < 2 (1)                  // The result of calling factorial is either 
                                   //     `1` if `n < 2`,
-      else {n * factorial(n - 1)} // Otherwise is `n * factorial(n-1)`.
+      else (n * factorial(n - 1))}// Otherwise is `n * factorial(n-1)`.
 ```
 ### Fizzbuzz
 ```rs
 // Define an Algebraic Data Type (ADT), similar to tagged unions
-const FizzBuzzResult 
-    = string: String
-    | integer: Int
+const FizzBuzzResult = (
+      string: String
+    | integer: Int)
 
-fn fizzbuzz(n: Int) -> FizzBuzzResult
-    case
-    | n % 15 == 0 => FizzBuzzResult.string("fizzbuzz") 
-    //               ^^^^^^^^^^^^^^
-    // We can either be explicit with the ADT we use...
-    | n % 5 == 0  => .string("buzz") 
-    //              ^
-    // ... Or we can let it be inferred, if possible
-    | n % 3 == 0  => .string("fizz")
-    | else        => .integer(n)
+fn fizzbuzz(n: Int) -> FizzBuzzResult {
+    match 0 {
+        {n % 15}      => FizzBuzzResult.string("fizzbuzz") 
+        //               ^^^^^^^^^^^^^^
+        // We can either be explicit with the ADT we use...
+        {n % 5} == 0  => .string("buzz") 
+        //               ^
+        // ... Or we can let it be inferred, if possible
+        {n % 3} == 0  => .string("fizz")
+        else          => .integer(n)
+    }
+}
 
-fn main(sys: System) -> !()
-    while let i = 0; i < 100; i += 1
+fn main(sys: System) -> !() {
+    while let i = 0; i < 100; i += 1 {
         // Can pattern match on ADTs! Again, can let it be inferred if possible
-        match fizzbuzz(i)
-        | .string(s')  => try sys.stdout.>println("{}", s')
-        | .integer(j') => try sys.stdout.>println("{}", j')
+        match fizzbuzz(i) {
+            .string  <- s => try sys.stdout.>println("{}", s)
+            .integer <- j => try sys.stdout.>println("{}", j)
+        }
+    }
+}
 ```
 ### Generic Type Unification
 Identifiers may end in a single apostrophe. When unification is done, apostrophe'd identifiers are considered to be free variables, and regular identifiers are terms.
 ```rs
-// Function that works for values of any type `T'` in the `Eq` type-class
-fn contains(haystack: []T', needle: T') -> Bool
-where T' <: Eq
-    case
-    | haystack.len == 0     => false
-    | haystack[0] == needle => true
-    | else                  => contains(haystack[1..], needle)
+// Define a type class
+class Eq of T {
+    equals: (T, T)->Bool = not<>not_equal
+    not_equal: (T, T)->Bool = not<>equals
+}
+
+// Function that works for slices of any type `T'` in the `Eq` type-class
+fn contains(haystack: [](T' <: Eq), needle: T') -> Bool {
+    if haystack.len == 0 {
+        false
+    } else if haystack[0].>equals(needle) {
+        true
+    } else {
+        contains(haystack[1..], needle)
+    }
+}
 ```
 
 
