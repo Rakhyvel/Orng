@@ -21,7 +21,7 @@ var program: *Program = undefined;
 pub fn generate(__program: *Program, file: *std.fs.File) !void {
     program = __program;
     try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
-    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n#include<stdlib.h>\n\n", .{ program.uid, program.uid });
+    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdlib.h>\n\n", .{ program.uid, program.uid });
 
     try file.writer().print("/* Debug information */\n", .{});
     try generateDebug(file);
