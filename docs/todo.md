@@ -140,7 +140,7 @@
     - [ ] inferred errors
         > Investigate. Seems problematic to implement well
     - [x] remove `throw`
-- [x] more compile errors
+- [ ] more compile errors
     - [x] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
         - [x] negative tests up to type checking
         - [x] `.poison` AST node which represents apart of the program with errors that should not be re-validated
@@ -163,6 +163,7 @@
     - [x] static checked arithmetic (actually easy since optimizer already does these automatically)
     - [x] static union tag check
     - [x] dynaminc union tag check
+    - [ ] sanitize call stack lines to escape " and \
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
@@ -199,7 +200,16 @@
         - [x] Error if match is not total
 - [ ] new optimizations
     - [x] measure source-to-output ratio
-    - [ ] string literals should be indexed at compile-time, dont do runtime check
+    - [x] string literals should be indexed at compile-time, dont do runtime check
+    - [x] remove ifndefs
+    - [ ] don't generate debug info if it isn't used
+    - [ ] don't generate section comments if the section is empty
+    - [ ] don't generate the label for a basic block if a CFG only has one basic block
+    - [ ] if a function is just one expression, just return that expression
+    - [ ] If a temporary is only used once, just inline it's definition with where it's used
+        > Will require parens if the surrounding def precedence is higher
+    - [ ] Panics shouldn't jump, call to panic function instead of just for loop
+    - [ ] Try and print lvaues better. `(&x)->_0` is just `x._0`
     - [ ] expand_types should only allocate if anything changes
     - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
@@ -214,7 +224,7 @@
         > OR: be able to tell that, say, src1 symbver is not updated between it's last update and now. Tough to do with BBs I think
     - [ ] ! inlining
     - [ ] ? loop invariant lifting
-    - [ ] temporary combining (basically register allocation) (do this one last!)
+    - [ ] temporary combining (basically register allocation) (do this one last!) (might not be needed...)
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`

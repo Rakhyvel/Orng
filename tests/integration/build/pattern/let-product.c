@@ -1,7 +1,4 @@
 /* Code generated using the Orng compiler https://ornglang.org */
-#ifndef ORNG_1694153897375184051
-#define ORNG_1694153897375184051
-
 #include <math.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -51,4 +48,3 @@ int main()
   return 0;
 }
 
-#endif

@@ -20,8 +20,15 @@ var program: *Program = undefined;
 /// Takes in a file handler and a program structure
 pub fn generate(__program: *Program, file: *std.fs.File) !void {
     program = __program;
-    try file.writer().print("/* Code generated using the Orng compiler https://ornglang.org */\n", .{});
-    try file.writer().print("#ifndef ORNG_{}\n#define ORNG_{}\n\n#include <math.h>\n#include <stdio.h>\n#include <stdint.h>\n#include <stdlib.h>\n\n", .{ program.uid, program.uid });
+    try file.writer().print(
+        \\/* Code generated using the Orng compiler https://ornglang.org */
+        \\#include <math.h>
+        \\#include <stdio.h>
+        \\#include <stdint.h>
+        \\#include <stdlib.h>
+        \\
+        \\
+    , .{});
 
     try file.writer().print("/* Debug information */\n", .{});
     try generateDebug(file);
@@ -36,8 +43,6 @@ pub fn generate(__program: *Program, file: *std.fs.File) !void {
     try generateFunctions(program.callGraph, file);
     try file.writer().print("\n", .{});
     try generateMainFunction(program.callGraph, file);
-
-    try file.writer().print("#endif\n", .{});
 }
 
 fn generateFunctionTypedefs(dags: *std.ArrayList(*_program.DAG), out: *std.fs.File) !void {

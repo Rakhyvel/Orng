@@ -197,7 +197,7 @@ def main():
         corresponding_orng_filename = integration_dir + file.file_name[24:-2] + ".orng"
         corresponding_orng = read_file(corresponding_orng_filename, "orng")
         if corresponding_orng:
-            file_list.append((corresponding_orng.file_name, file.tokens / corresponding_orng.tokens, file.file_name))
+            file_list.append((corresponding_orng.file_name, file.sloc / corresponding_orng.sloc, file.file_name))
     file_list.sort(key = lambda x: x[1])
     for file in file_list:
         print(file[2][24:-2], file[1])
