@@ -198,7 +198,8 @@
         - [x] `_` to ignore value 
         - [x] Error if match is not total
 - [ ] new optimizations
-    - [ ] measure source-to-output ratio
+    - [x] measure source-to-output ratio
+    - [ ] string literals should be indexed at compile-time, dont do runtime check
     - [ ] expand_types should only allocate if anything changes
     - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
@@ -220,6 +221,7 @@
     - [ ] prepend `>>`
     - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
+    > Switch to Karta just to get a feel for interpreters
     > Validate, IR, Optimize. Don't codegen, interpret!
     - [x] `const` is an annotation and symbol modifier
     - [ ] eval type annotations

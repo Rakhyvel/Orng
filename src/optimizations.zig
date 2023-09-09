@@ -30,7 +30,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     }
 }
 
-pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) !void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -39,14 +39,14 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !
 
     try findUnused(cfg, errors);
 
-    while (try propagate(cfg, errors) or
+    while (try propagate(cfg, interned_strings, errors) or
         try bbOptimizations(cfg, allocator) or
         removeUnusedDefs(cfg))
     {}
     cfg.clearVisitedBBs();
 
     for (cfg.children.items) |child| {
-        try optimize(child, errors, allocator);
+        try optimize(child, errors, interned_strings, allocator);
     }
 }
 
@@ -229,7 +229,7 @@ fn findIR(bb: *BasicBlock, symbver: *SymbolVersion) ?*IR {
     return null;
 }
 
-fn propagate(cfg: *CFG, errors: *errs.Errors) !bool {
+fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
     var retval = false;
 
     calculateVersions(cfg);
@@ -238,7 +238,7 @@ fn propagate(cfg: *CFG, errors: *errs.Errors) !bool {
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            retval = try propagateIR(ir, errors) or retval;
+            retval = try propagateIR(ir, interned_strings, errors) or retval;
             if (ir.src1 != null and ir.src1.?.def == null) {
                 ir.src1.?.def = findIR(bb, ir.src1.?);
                 retval = ir.src1.?.def != null;
@@ -254,7 +254,7 @@ fn propagate(cfg: *CFG, errors: *errs.Errors) !bool {
     return retval;
 }
 
-fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
+fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
     var retval = false;
 
     switch (ir.kind) {
@@ -984,6 +984,16 @@ fn propagateIR(ir: *IR, errors: *errs.Errors) !bool {
                     ir.src1 = field;
                     ir.src2 = null;
                     ir.data = _ir.IRData.none;
+                    retval = true;
+                }
+            }
+            // Known loadString value
+            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadString) {
+                if (ir.data.int == 1) {
+                    ir.kind = .loadInt;
+                    ir.data = _ir.IRData{ .int = interned_strings.items[ir.src1.?.def.?.data.string_id].len - 1 };
+                    ir.src1 = null;
+                    ir.src2 = null;
                     retval = true;
                 }
             }

@@ -160,19 +160,20 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         // IR translation
         var irAllocator = std.heap.ArenaAllocator.init(allocator);
         defer irAllocator.deinit();
-        var intered_strings = std.ArrayList([]const u8).init(allocator);
-        defer intered_strings.deinit();
-        var cfg = try ir.CFG.create(msymb, null, &intered_strings, errors, allocator);
+        var interned_strings = std.ArrayList([]const u8).init(allocator);
+        defer interned_strings.deinit();
+        var cfg = try ir.CFG.create(msymb, null, &interned_strings, errors, allocator);
 
         // Optimize
         try optimizations.optimize(
             cfg,
             errors,
+            &interned_strings,
             allocator,
         );
 
         // C Code generation
-        var program = try Program.init(cfg, uid, &intered_strings, try symbol.getPrelude(allocator), errors, allocator);
+        var program = try Program.init(cfg, uid, &interned_strings, try symbol.getPrelude(allocator), errors, allocator);
         program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
         var outputFile = try std.fs.cwd().createFile(
