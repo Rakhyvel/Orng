@@ -2,14 +2,13 @@
 # used just to check for ambiguity
 # python3.11 src/rdgen/main.py create --input docs/orng.ebnf --output parser.py && grep "AMBIGUOUS" parser.py
 
-program: top_level_declaration {"newline" top_level_declaration} "eof".
+program: top_level_declaration {"newline" {"newline"} top_level_declaration} "eof".
 
 top_level_declaration: fn_declaration 
                      | let_declaration
                      .
 
-let_declaration: "let" let_pattern_atom (":" arrowExpr ["=" expr] | "=" expr).
-
+let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" expr] | "=" expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
@@ -21,79 +20,94 @@ statement: let_declaration
          | expr
          .
 
-expr: caseMatchExpr
-    | sumExpr
-    .
+expr: sum_expr.
 
-sumExpr: productExpr {"|" annotExpr}. # (lhs of | must be ident or annotExpr with proper pattern left of the :)
+sum_expr: product_expr {"|" annotation_expr}. # (lhs of | must be ident or annotation_expr with proper pattern left of the :)
 
-productExpr: annotExpr {"," annotExpr}.
+product_expr: annotation_expr {"," annotation_expr}.
 
-annotExpr: assignExpr [":" arrowExpr ["where" arrowExpr] ["=" arrowExpr]]. # (lhs of : must be ident or other TBD patterns)
+annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" expr]]. # (lhs of : must be ident or other TBD patterns)
 
-assignExpr: "_" "=" assignExpr
-          | arrowExpr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignExpr]
+assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignment_expr].
+
+arrow_expr: bool_expr {"->" bool_expr}.
+
+bool_expr: comparison_expr {("and" | "or") comparison_expr}.
+
+comparison_expr: delta_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") delta_expr}.
+
+delta_expr: coalesce_expr. # (rhs must be a call expr)
+
+coalesce_expr: int_expr {("orelse" | "catch") int_expr}.
+
+int_expr: term_expr {("+" | "-" | "!") term_expr}.
+
+term_expr: prefix_expr {("*" | "/" | "%"| "||") prefix_expr}.
+
+prefix_expr: "not" hyper_expr                         # boolean not
+          | "-" hyper_expr                           # negation
+          | "&" ["mut"] prefix_expr                  # address-of
+          | "[" ["mut" | expr | "*"] "]" prefix_expr # slice-of/tuple-of/multi-pointer
+          | "?" hyper_expr                           # optional
+          | hyper_expr
           .
 
-arrowExpr: boolExpr {"->" boolExpr}.
+hyper_expr: postfix_expr {("**") postfix_expr}.
 
-boolExpr: conditionalExpr {("and" | "or") conditionalExpr}.
+postfix_expr: control_flow {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
 
-conditionalExpr: coalesceExpr {("==" | "!=" | "<" | "<=" | ">" | ">=") coalesceExpr}.
-
-coalesceExpr: intExpr {("orelse" | "catch") intExpr}.
-
-intExpr: termExpr {("+" | "-" | "!") termExpr}.
-
-termExpr: prefixExpr {("*" | "/" | "%" | "||") prefixExpr}.
-
-prefixExpr: "not" postfixExpr                         # boolean not
-          | "-" postfixExpr                           # negation
-          | "&" ["mut"] prefixExpr                  # address-of
-          | "[" ["mut" | expr | "*"] "]" prefixExpr # slice-of/tuple-of/multi-pointer
-          | "?" postfixExpr                           # optional
-          | postfixExpr
-          .
-
-postfixExpr: factor {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
+control_flow: if_expr
+            | while_expr
+            | match_expr
+            | factor
+            .
 
 factor: ident
       | "true"
       | "false"
       | int
       | hex
-      | octal
+      | oct
       | bin
       | float
       | char
       | string
-      | blockExpr
-      | ifExpr
-      | whileExpr
+      | block_expr
       | fn_declaration
       | "unreachable"
       | "." ident
       | parens
       .
 
-indentBlockExpr: indent { statement "newline" } [("return" [expr] "newline") | ("continue" "newline") | ("break" "newline")] dedent.
-braceBlockExpr: "{" [ statement { ";" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
-blockExpr: indentBlockExpr | braceBlockExpr.
+block_expr: "{" [ statement { "newline" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
 
-ifExpr: "if" [let_declaration ";"] expr blockExpr ["else" blockExpr].
+if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
 
-whileExpr: "while" [let_declaration ";"] expr [";" statement ] blockExpr ["else" blockExpr].
+while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["else" control_flow].
 
-fn_declaration: "fn" [ident] paramlist "->" arrowExpr ["where" arrowExpr] blockExpr.
+fn_declaration: "fn" [ident] paramlist "->" arrow_expr ["where" arrow_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" arrowExpr ["=" arrowExpr]. # must not be productExpr, or ambiguous with ,
+param: let_pattern_atom ":" arrow_expr ["=" assignment_expr]. # must not be product_expr, or ambiguous with ,
 
-barClause: annotExpr ["=>" annotExpr]. # for barClauses in match statements, if the lhs of has a pattern, => must be present
-barElse: "else" "=>" annotExpr.
-barListMiddle: barClause ["|" (barElse | barListMiddle)].
-barList: "|" barListMiddle.
+match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
+match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".
+match_bar_else: "else" "=>" assignment_expr "newline".
 
-caseExpr: [let_declaration ";"] barList.
-caseMatchExpr: "case" caseExpr.
+match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
+match_pattern_inject: match_pattern_atom ["<-" match_pattern_atom].
+match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol otherwise
+                  | "true"
+                  | "false"
+                  | int
+                  | hex
+                  | octal
+                  | bin
+                  | float
+                  | char
+                  | string
+                  | block_expr
+                  | "." ident
+                  | "(" match_pattern_product ")"
+                  .
 
-parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put exprs in parens
+parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put all exprs in parens

@@ -379,6 +379,15 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try put_all_symbols(&definition.decl.symbols, scope, errors);
             try symbolTableFromAST(definition.decl.type, scope, errors, allocator);
             try symbolTableFromAST(definition.decl.init, scope, errors, allocator);
+
+            if (definition.decl.top_level) {
+                for (definition.decl.symbols.items) |symbol| {
+                    if (symbol.kind != ._const) {
+                        errors.addError(Error{ .basic = .{ .span = symbol.span, .msg = "top level symbols must be marked `const`" } });
+                        return error.symbolError;
+                    }
+                }
+            }
         },
         .fnDecl => {
             var symbol = try createFunctionSymbol(definition, scope, errors, allocator);

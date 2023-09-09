@@ -42,7 +42,7 @@
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
 - [ ] Comparison operators should not be chainable
-- [ ] Parens (and only parens) should be one 'line', like in Python
+- [x] Parens (and only parens) should be one 'line', like in Python
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -117,6 +117,7 @@
         - [x] Error on invalid escapes (this should happen at lex-time)
         - [x] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
         > TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
+        - [ ] 
     - [ ] Character literals
         - [x] Character escapes (`\n`, `\r`, `\t`)
         - [ ] `\u<unicode code point, hex>`
@@ -162,7 +163,7 @@
     - [x] static checked arithmetic (actually easy since optimizer already does these automatically)
     - [x] static union tag check
     - [x] dynaminc union tag check
-- [ ] pattern matching
+- [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
         - [x] Identifiers define new symbols, having a name repeat is a redefinition error
@@ -175,11 +176,11 @@
         (x, y) = {y, x}
         ```
         - [x] `_` to ignore
-    - [ ] `match` expression
+    - [x] `match` expression
         - [x] Value matching
             > expr equals value
             - [x] compile-time check that value is same type as expr
-        - [ ] Block values
+        - [x] Block values
         - [x] Symbol capture
             > infallible match, declare symbol before rhs
         - [x] Product destructuring
@@ -191,14 +192,15 @@
         - [x] Inferred members
         - [x] Injection
             > lhs sum matches, rhs pattern matches
-            - [ ] validate injection is valid for type, of course
-            - [ ] fix injection cruft with domainOf
-        - [ ] Fix syntax with nested matches
+            - [x] validate injection is valid for type, of course
+            - [x] fix injection cruft with domainOf
+        - [x] Fix syntax with nested matches
         - [x] `_` to ignore value 
-        - [ ] Error (warning?) if match is not total (can maybe do for sums, but is undecidable for general values of course)
+        - [x] Error if match is not total
 - [ ] new optimizations
     - [ ] measure source-to-output ratio
     - [ ] expand_types should only allocate if anything changes
+    - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
     - [x] avoid struct copies on select
     - [ ] local value numbering
@@ -218,7 +220,8 @@
     - [ ] prepend `>>`
     - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
-    - [ ] `const` is an annotation and symbol modifier
+    > Validate, IR, Optimize. Don't codegen, interpret!
+    - [x] `const` is an annotation and symbol modifier
     - [ ] eval type annotations
     - [ ] eval default inits
     - [ ] eval symbol defs defined as const
@@ -229,10 +232,13 @@
         - [ ] decl
         - [ ] defer
     - [ ] eval array sizes
+    - [ ] should be able to index heterogenous tuples with a comptime value
+        > Is this undecidable?
     - [ ] first-class types based generics (stamp)
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
+    - [ ] 
 - [ ] build system (built upon compile-time evaluation)
     > Should be stateless, gosh dangit!
     > Read about philosophy of other build systems, what do users want/need to build Orng programs?
@@ -287,6 +293,7 @@
 - [ ] Debug (?)
 - [ ] Memory
 - [ ] Strings
+    - [ ] String Buffer
     - [ ] Ascii and Unicode stuff
 - [ ] Testing
 - [ ] Process
@@ -294,15 +301,28 @@
 
 ### Language Server
 - [ ] Highlighting
-    - [ ] Goto definition
-    - [ ] Show types
+- [ ] Goto definition
+- [ ] Show types when you hover
+- [ ] Show types when they're inferred
+- [ ] Show error messages
 - [ ] Formatter
     - [ ] Takes in code and formats it
 - [ ] Linter
     - [ ] Warn if line is too long (140, after being whitespace stripped, not including comments, is excessive)
     - [ ] Warn about code such as `y, x = x, y` which is parsed as `y, (x = x), y`
         > Warn when non-unit expressions are in the middle of a block?
+    - [ ] Warn if identifier is not in the right style
 - [ ] Documentation generator
     - [ ] `///` Comment blocks are documentation
     - [ ] `\<attribute>` to mark attributes
     - [ ] error if attributes aren't documented or if they are but aren't present in the function
+
+### Wishlist
+- [ ] Make matches have to be exhaustive over all product types too. Make it UB to not match. Don't return optional value for matches
+    > Generate all possible values (treat Ints and Floats as unit)
+    > Feed values to patterns in order (ignore {block} patterns). 
+    > If a pattern accepts, mark pattern, next value. 
+    > If no patterns accept, value is witness of a value not matched by match, emit error.
+    > After, if a pattern is not marked, it is a useless pattern, emit error.
+    > Just not sure on the details. How are values represented? How are they generated? How are they accepted?
+    > There's a better way to do this with matrices, but I didn't understand the papers.

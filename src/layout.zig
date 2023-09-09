@@ -72,20 +72,19 @@ fn paren_rules(tokens: *std.ArrayList(Token)) !void {
     // Loop through list of tokens...
     var i: usize = 0;
     while (i < tokens.items.len) : (i += 1) {
-        // If token at `i` is a newline, ...
         var token = tokens.items[i];
         if (token.kind == .L_PAREN or token.kind == .L_BRACE) {
             try stack.append(token.kind);
         } else if (token.kind == .R_PAREN or token.kind == .R_BRACE) {
             var popped = stack.pop();
             if (popped != token.kind) {
-                // TODO: Throw fit
+                // TODO: Throw a great big ol fit
             }
         } else if (token.kind == .NEWLINE) {
             // Remove if stack is not empty and l paren is on top of stack
-            if (stack.items.len > 0 and stack.getLast() == .L_PAREN) {
+            if (stack.items.len == 0 or stack.getLast() == .L_PAREN) {
                 _ = tokens.orderedRemove(i);
-                i -= 1;
+                i -|= 1;
             }
         }
     }

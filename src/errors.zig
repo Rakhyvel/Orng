@@ -101,6 +101,10 @@ pub const Error = union(enum) {
         span: Span,
         _type: *AST,
     },
+    nonExhaustiveSum: struct {
+        span: Span,
+        forgotten: std.ArrayList(*AST),
+    },
 
     // Optimizer
     out_of_bounds: struct {
@@ -147,6 +151,7 @@ pub const Error = union(enum) {
             .useBeforeDef => return self.useBeforeDef.identifier.span,
             .modifyImmutable => return self.modifyImmutable.identifier.span,
             .notIndexable => return self.notIndexable.span,
+            .nonExhaustiveSum => return self.nonExhaustiveSum.span,
 
             .out_of_bounds => return self.out_of_bounds.span,
             .negative_index => return self.negative_index.span,
@@ -259,6 +264,9 @@ pub const Errors = struct {
                     try err.notIndexable._type.printType(out);
                     try out.print("` is not indexable\n", .{});
                 },
+                .nonExhaustiveSum => {
+                    try out.print("match over sum type is not exhaustive\n", .{});
+                },
 
                 // Optimizer
                 .out_of_bounds => {
@@ -314,6 +322,16 @@ pub const Errors = struct {
                     try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
                     try (term.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.sum_duplicate.first, lines);
+                },
+                .nonExhaustiveSum => {
+                    for (err.nonExhaustiveSum.forgotten.items) |_type| {
+                        try (term.Attr{ .bold = true }).dump(out);
+                        try print_note_prelude(_type.getToken().span, filename);
+                        try (term.Attr{ .bold = true }).dump(out);
+                        try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.getToken().data});
+                        try (term.Attr{ .bold = false }).dump(out);
+                        try printEpilude(_type.getToken().span, lines);
+                    }
                 },
                 else => {},
             }

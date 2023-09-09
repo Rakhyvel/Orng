@@ -119,10 +119,11 @@ pub const Parser = struct {
         if (self.peek_kind(.FN)) {
             return try self.fn_declaration();
         } else if (self.peek_kind(.LET)) {
-            var decl = try self.let_declaration();
+            var decl: *AST = try self.let_declaration();
             if (!self.peek_kind(.EOF)) {
                 _ = try self.expect(.NEWLINE);
             }
+            decl.decl.top_level = true;
             return decl;
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`fn` or `let` declaration in the top level", .got = self.peek() } });
@@ -275,7 +276,7 @@ pub const Parser = struct {
                 predicate = try self.arrow_expr();
             }
             if (self.accept(.EQUALS)) |_| {
-                init = try self.arrow_expr();
+                init = try self.annotation_expr();
             }
             return try AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
         } else {
@@ -763,7 +764,7 @@ pub const Parser = struct {
         _type = try self.arrow_expr();
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
-            init = try self.arrow_expr();
+            init = try self.annotation_expr();
         }
 
         return try AST.createDecl(
@@ -789,7 +790,7 @@ pub const Parser = struct {
                 return error.parserError;
             }
         }
-        var exp = try self.product_expr();
+        var exp = try self.expr();
 
         _ = try self.expect(.L_BRACE);
         while (self.accept(.NEWLINE)) |_| {}
@@ -815,7 +816,7 @@ pub const Parser = struct {
     fn match_mapping(self: *Parser) ParserErrorEnum!*AST {
         var lhs = try self.match_pattern_inject();
         _ = try self.expect(.RIGHT_FAT_ARROW);
-        var rhs = try self.annotation_expr();
+        var rhs = try self.expr();
         _ = try self.expect(.NEWLINE);
 
         return try AST.createMapping(lhs.getToken(), lhs, rhs, self.astAllocator);
@@ -829,7 +830,7 @@ pub const Parser = struct {
             self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`=>` after `else`", .got = self.peek() } });
             return error.parserError;
         }
-        var rhs = try self.annotation_expr();
+        var rhs = try self.expr();
         _ = try self.expect(.NEWLINE);
 
         return try AST.createMapping(token, null, rhs, self.astAllocator);

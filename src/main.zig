@@ -98,7 +98,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     var tokens = try lexer.getTokens(contents, in_name, errors, fuzz_tokens, allocator);
     defer tokens.deinit(); // Make copies of tokens, never take their address
 
-    if (fuzz_tokens) {
+    if (false and fuzz_tokens) {
         for (tokens.items) |token| {
             std.debug.print("{s} ", .{token.data});
         }

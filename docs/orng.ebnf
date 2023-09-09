@@ -2,7 +2,7 @@
 # used just to check for ambiguity
 # python3.11 src/rdgen/main.py create --input docs/orng.ebnf --output parser.py && grep "AMBIGUOUS" parser.py
 
-program: top_level_declaration {{"newline"} top_level_declaration} "eof".
+program: top_level_declaration {"newline" {"newline"} top_level_declaration} "eof".
 
 top_level_declaration: fn_declaration 
                      | let_declaration
@@ -18,7 +18,6 @@ statement: let_declaration
          | "defer" (expr | let_declaration)
          | "errdefer" (expr | let_declaration)
          | expr
-         | "newline"
          .
 
 expr: sum_expr.
@@ -27,7 +26,7 @@ sum_expr: product_expr {"|" annotation_expr}. # (lhs of | must be ident or annot
 
 product_expr: annotation_expr {"," annotation_expr}.
 
-annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" arrow_expr]]. # (lhs of : must be ident or other TBD patterns)
+annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" annotation_expr]]. # (lhs of : must be ident or other TBD patterns)
 
 assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignment_expr].
 
@@ -69,7 +68,7 @@ factor: ident
       | "false"
       | int
       | hex
-      | octal
+      | oct
       | bin
       | float
       | char
@@ -83,7 +82,7 @@ factor: ident
 
 block_expr: "{" [ statement { "newline" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
 
-if_expr: "if" [let_declaration ";"] factor ["else" control_flow].
+if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
 
 while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["else" control_flow].
 
@@ -91,10 +90,10 @@ for_expr: "for" ["mut"] ident "in" expr block_expr ["else" control_flow]. # TODO
 
 fn_declaration: "fn" [ident] paramlist "->" ["!"] arrow_expr ["where" arrow_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
+param: let_pattern_atom ":" arrow_expr ["=" annotation_expr]. # must not be product_expr, or ambiguous with ,
 
 match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
-match_bar_clause: match_pattern_product "=>" expr "newline".
+match_bar_clause: match_pattern_inject "=>" expr "newline".
 match_bar_else: "else" "=>" expr "newline".
 
 match_pattern_product: match_pattern_inject {"," match_pattern_inject}.

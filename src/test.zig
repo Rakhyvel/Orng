@@ -330,21 +330,21 @@ fn fuzzTests() !void {
             defer lines.deinit();
             i += 1;
             var file_root = compiler.compileContents(&errors, &lines, "fuzz", program_text, true, allocator) catch |err| {
-                try errors.printErrors(&lines, "");
+                // try errors.printErrors(&lines, "");
                 switch (err) {
                     error.lexerError,
                     error.symbolError,
                     error.typeError,
                     => {
                         passed += 1;
-                        try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
-                        try out.print("Orng -> IR. {}\n", .{i});
+                        // try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        // try out.print("Orng -> IR. {}\n", .{i});
                         continue;
                     },
                     error.parserError => {
                         failed += 1;
                         try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-                        try out.print("Parsing mismatch!\n", .{});
+                        try out.print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
                         return;
                     },
                     else => {
@@ -359,8 +359,8 @@ fn fuzzTests() !void {
                 switch (err) {
                     error.symbolError => {
                         passed += 1;
-                        try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
-                        try out.print("Orng -> C. {}\n", .{i});
+                        // try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        // try out.print("Orng -> C. {}\n", .{i});
                         continue;
                     },
                     else => {
@@ -385,7 +385,7 @@ fn fuzzTests() !void {
             if (should_continue) {
                 continue;
             }
-            try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+            // try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
             return;
         }

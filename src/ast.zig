@@ -258,6 +258,7 @@ pub const AST = union(enum) {
         pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
         type: ?*AST,
         init: ?*AST,
+        top_level: bool,
     },
     fnDecl: struct {
         common: ASTCommon,
@@ -584,7 +585,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createDecl(token: Token, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbols = std.ArrayList(*Symbol).init(allocator), .pattern = pattern, .type = _type, .init = init } }, allocator);
+        return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbols = std.ArrayList(*Symbol).init(allocator), .pattern = pattern, .type = _type, .init = init, .top_level = false } }, allocator);
     }
 
     pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, infer_error: bool, allocator: std.mem.Allocator) !*AST {

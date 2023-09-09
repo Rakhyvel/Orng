@@ -1,0 +1,12 @@
+// 171
+fn main() -> Int {
+    let const The_Type = a | b | c
+    let x: The_Type = The_Type.b
+
+    match x {
+        The_Type.a => 168
+        The_Type.b => 171
+        y          => {_ = y; 0} // Sort of a 'catch all' match, even though its not a constructor
+        else => unreachable
+    }
+}

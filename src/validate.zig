@@ -6,6 +6,8 @@ const symbols = @import("symbol.zig");
 const AST = _ast.AST;
 const Error = errs.Error;
 const Scope = symbols.Scope;
+const Span = @import("span.zig").Span;
+const String = @import("zig-string/zig-string.zig").String;
 const Symbol = symbols.Symbol;
 const Token = @import("token.zig").Token;
 
@@ -73,21 +75,21 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         return old_ast;
     }
 
-    if (expected != null and (expected.?.* == .product or expected.?.* == .annotation)) {
-        // Attempt to modify ast to fit default values. This may not be possible, especially in the case of a type error
-        ast = defaultArgs(ast, expected.?, errors, allocator) catch |err| switch (err) {
-            error.NoDefault => ast,
-            error.typeError => return _ast.poisoned,
-            error.OutOfMemory => return error.OutOfMemory,
-        };
-    }
-
-    if (expected != null and expected.?.* == .annotation) {
-        expected = expected.?.annotation.type;
-    }
-    if (expected) |exp| {
-        std.debug.assert(exp.getCommon().is_valid);
-        var exp_type = try exp.typeof(scope, errors, allocator);
+    if (expected) |_| {
+        std.debug.assert(expected.?.* != .poison);
+        if (expected.?.* == .product or expected.?.* == .annotation) {
+            // Attempt to modify ast to fit default values. This may not be possible, especially in the case of a type error
+            ast = defaultArgs(ast, expected.?, errors, allocator) catch |err| switch (err) {
+                error.NoDefault => ast,
+                error.typeError => return _ast.poisoned,
+                error.OutOfMemory => return error.OutOfMemory,
+            };
+        }
+        if (expected.?.* == .annotation) {
+            expected = expected.?.annotation.type;
+        }
+        std.debug.assert(expected.?.getCommon().is_valid);
+        var exp_type = try expected.?.typeof(scope, errors, allocator);
         std.debug.assert(try exp_type.typesMatch(_ast.typeType, scope, errors, allocator));
     }
 
@@ -286,28 +288,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .domainOf => {
-            var sum_expr_type = try validateAST(ast.domainOf.sum_expr, _ast.typeType, scope, errors, allocator);
-            var inject = ast.domainOf.expr.inject;
-            if (inject.lhs.* == .inferredMember) {
-                // Pass expected so that base can be inferred call
-                inject.lhs = try validateAST(inject.lhs, sum_expr_type, scope, errors, allocator);
-            } else {
-                inject.lhs = try validateAST(inject.lhs, null, scope, errors, allocator);
-            }
-            if (inject.lhs.* == .poison) { // Don't bother moving on...
+            ast.domainOf.sum_expr = try validateAST(ast.domainOf.sum_expr, _ast.typeType, scope, errors, allocator);
+            if (ast.domainOf.sum_expr.* == .poison) {
                 return _ast.poisoned;
             }
-            var lhs_type = try inject.lhs.typeof(scope, errors, allocator);
-            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
-            if (expanded_lhs_type.* == .sum and inject.lhs.* == .inferredMember) {
-                var pos: i128 = inject.lhs.inferredMember.pos.?;
-                var proper_term: *AST = (try inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
-
-                retval = proper_term.annotation.type;
-            } else {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });
-                return _ast.poisoned;
-            }
+            retval = try domainof(ast.domainOf.expr, ast.domainOf.sum_expr, scope, errors, allocator);
         },
         ._typeOf => {
             ast._typeOf.expr = try validateAST(ast._typeOf.expr, null, scope, errors, allocator);
@@ -647,34 +632,15 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .inject => {
-            if (ast.inject.lhs.* == .inferredMember) {
-                // Pass expected so that base can be inferred call
-                ast.inject.lhs = try validateAST(ast.inject.lhs, expected, scope, errors, allocator);
-            } else {
-                ast.inject.lhs = try validateAST(ast.inject.lhs, null, scope, errors, allocator);
+            var domain = try domainof(ast, expected, scope, errors, allocator);
+            if (domain.* == .poison) {
+                return domain;
             }
-            if (ast.inject.lhs.* == .poison) { // Don't bother moving on...
+            ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, domain, scope, errors, allocator);
+            if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
                 return _ast.poisoned;
             }
-            var lhs_type = try ast.inject.lhs.typeof(scope, errors, allocator);
-            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
-            if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
-                if (expected != null and !try expected.?.typesMatch(lhs_type, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast.inject.lhs.inferredMember.base.? } });
-                    return _ast.poisoned;
-                }
-                var pos: i128 = ast.inject.lhs.inferredMember.pos.?;
-                var proper_term: *AST = (try ast.inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
-
-                ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, proper_term.annotation.type, scope, errors, allocator);
-                if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
-                    return _ast.poisoned;
-                }
-                retval = ast.inject.lhs;
-            } else {
-                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });
-                return _ast.poisoned;
-            }
+            retval = ast.inject.lhs;
         },
         .product => {
             var poisoned = false;
@@ -1054,9 +1020,22 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.match.expr = try validateAST(ast.match.expr, null, ast.match.scope.?, errors, allocator);
             poisoned = ast.match.expr.* == .poison or poisoned;
 
+            var expr_type = try ast.match.expr.typeof(scope, errors, allocator);
+            var expr_type_expanded = try expr_type.exapnd_type(scope, errors, allocator);
+            if (expr_type_expanded.* == .poison) {
+                return _ast.poisoned; // Can't do anything with this
+            }
+
+            if (ast.match.mappings.items.len == 0) {
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "match has no patterns" } });
+                return _ast.poisoned;
+            }
+
+            // Go through mappings, get their validated form
             var new_mappings = std.ArrayList(*AST).init(allocator);
             for (ast.match.mappings.items) |mapping| {
                 if (expected != null) {
+                    // Expecting a type from the match
                     var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
                     var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
                     var has_else = ast.match.has_else;
@@ -1085,10 +1064,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     poisoned = poisoned or new_mapping.* == .poison;
                 }
                 if (mapping.mapping.lhs) |lhs| {
-                    var expr_type = try ast.match.expr.typeof(ast.match.scope.?, errors, allocator);
-                    try assert_pattern_matches(lhs, expr_type, ast.match.scope.?, errors, allocator);
+                    try assert_pattern_matches(lhs, expr_type_expanded, ast.match.scope.?, errors, allocator);
                 }
             }
+            try exhaustive_check(expr_type_expanded, &ast.match.mappings, ast.getToken().span, errors, allocator);
             if (poisoned) {
                 return _ast.poisoned;
             } else {
@@ -1097,7 +1076,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .mapping => {
-            // lhs for match mappings is done elsewhere
+            // lhs for match mappings must be done elsewhere
             if (ast.mapping.scope) |mapping_scope| {
                 // non-else mappings have their own scope
                 ast.mapping.rhs = try validateAST(ast.mapping.rhs.?, expected, mapping_scope, errors, allocator);
@@ -1697,30 +1676,11 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
             }
         },
         .inject => {
-            if (pattern.inject.lhs.* == .inferredMember) {
-                // Pass expected so that base can be inferred call
-                pattern.inject.lhs = try validateAST(pattern.inject.lhs, expr_type, scope, errors, allocator);
-            } else {
-                pattern.inject.lhs = try validateAST(pattern.inject.lhs, null, scope, errors, allocator);
-            }
-            if (pattern.inject.lhs.* == .poison) { // Don't bother moving on...
+            var domain = try domainof(pattern, expr_type, scope, errors, allocator);
+            if (domain.* == .poison) {
                 return error.typeError;
             }
-            var lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
-            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
-            if (expanded_lhs_type.* == .sum and pattern.inject.lhs.* == .inferredMember) {
-                if (!try expr_type.typesMatch(lhs_type, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern.inject.lhs.inferredMember.base.? } });
-                    return error.typeError;
-                }
-                var pos: i128 = pattern.inject.lhs.inferredMember.pos.?;
-                var proper_term: *AST = (try pattern.inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
-
-                try assert_pattern_matches(pattern.inject.rhs, proper_term.annotation.type, scope, errors, allocator);
-            } else {
-                errors.addError(Error{ .basic = .{ .span = pattern.getToken().span, .msg = "inject is not to a sum" } });
-                return error.typeError;
-            }
+            try assert_pattern_matches(pattern.inject.rhs, domain, scope, errors, allocator);
         },
         .product => {
             var expanded_expr = try expr_type.exapnd_type(scope, errors, allocator);
@@ -1740,22 +1700,85 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
     }
 }
 
-pub fn domainof(ast: *AST, sum_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-    var inject = ast.inject;
-    if (inject.lhs.* == .inferredMember) {
-        // Pass sum_type so that base can be inferred call
-        inject.lhs = try validateAST(inject.lhs, sum_type, scope, errors, allocator);
-    } else {
-        inject.lhs = try validateAST(inject.lhs, null, scope, errors, allocator);
+fn indexof(list: *std.ArrayList(usize), elem: usize) ?usize {
+    for (list.items, 0..) |item, i| {
+        if (item == elem) {
+            return i;
+        }
     }
-    if (inject.lhs.* == .poison) { // Don't bother moving on...
+    return null;
+}
+
+fn exhaustive_check(_type: *AST, mappings: *std.ArrayList(*AST), match_span: Span, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+    if (_type.* == .sum) {
+        var ids = std.ArrayList(usize).init(allocator);
+        defer ids.deinit();
+
+        for (_type.sum.terms.items, 0..) |_, i| {
+            try ids.append(i);
+        }
+        for (mappings.items) |m| {
+            if (m.mapping.lhs == null) {
+                continue;
+            }
+            exhaustive_check_sub(m.mapping.lhs.?, &ids);
+        }
+        if (ids.items.len > 0) {
+            var forgotten = std.ArrayList(*AST).init(std.heap.page_allocator); // Not deallocated, lifetime should be until error emission
+            for (ids.items) |id| {
+                try forgotten.append(_type.sum.terms.items[id]);
+            }
+            errors.addError(Error{ .nonExhaustiveSum = .{ .span = match_span, .forgotten = forgotten } });
+            return error.typeError;
+        }
+    }
+}
+
+fn exhaustive_check_sub(ast: *AST, ids: *std.ArrayList(usize)) void {
+    switch (ast.*) {
+        .select => {
+            var id: ?usize = indexof(ids, @intCast(ast.select.pos.?));
+            if (id) |_id| {
+                _ = ids.swapRemove(_id);
+            }
+        },
+        .inferredMember => {
+            var id: ?usize = indexof(ids, @intCast(ast.inferredMember.pos.?));
+            if (id) |_id| {
+                _ = ids.swapRemove(_id);
+            }
+        },
+        .inject => {
+            exhaustive_check_sub(ast.inject.lhs, ids);
+        },
+        .symbol => {
+            ids.clearRetainingCapacity();
+        },
+        else => {},
+    }
+}
+
+// Takes in an inject AST (pattern or expr) of the form `lhs <- rhs` and returns the type that `rhs` should be.
+// Also validates the inject AST. Thus, if `lhs` is an inferred member, it will find out the sum type it belongs to.
+pub fn domainof(ast: *AST, sum_type: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    if (ast.inject.lhs.* == .inferredMember) {
+        // Pass sum_type so that base can be inferred call
+        ast.inject.lhs = try validateAST(ast.inject.lhs, sum_type, scope, errors, allocator);
+    } else {
+        ast.inject.lhs = try validateAST(ast.inject.lhs, null, scope, errors, allocator);
+    }
+    if (ast.inject.lhs.* == .poison) { // Don't bother moving on...
         return _ast.poisoned;
     }
-    var lhs_type = try inject.lhs.typeof(scope, errors, allocator);
+    var lhs_type = try ast.inject.lhs.typeof(scope, errors, allocator);
     var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
-    if (expanded_lhs_type.* == .sum and inject.lhs.* == .inferredMember) {
-        var pos: i128 = inject.lhs.inferredMember.pos.?;
-        var proper_term: *AST = (try inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+    if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
+        if (sum_type != null and !try sum_type.?.typesMatch(lhs_type, scope, errors, allocator)) {
+            errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = sum_type.?, .got = ast.inject.lhs.inferredMember.base.? } });
+            return _ast.poisoned;
+        }
+        var pos: i128 = ast.inject.lhs.inferredMember.pos.?;
+        var proper_term: *AST = (try ast.inject.lhs.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
         return proper_term.annotation.type;
     } else {
         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });
