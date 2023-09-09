@@ -308,7 +308,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 error.typeError => return _ast.poisoned,
                 else => return err,
             };
-            ast.assign.rhs = try validateAST(ast.assign.rhs, try ast.assign.lhs.typeof(scope, errors, allocator), scope, errors, allocator);
+            var lhs_type = try ast.assign.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return _ast.poisoned;
+            }
+            ast.assign.rhs = try validateAST(ast.assign.rhs, lhs_type, scope, errors, allocator);
             if (ast.assign.lhs.* == .poison or ast.assign.rhs.* == .poison) {
                 return _ast.poisoned;
             }

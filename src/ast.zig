@@ -924,7 +924,8 @@ pub const AST = union(enum) {
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
                     for (self.product.terms.items) |term| {
-                        try terms.append(try term.typeof(scope, errors, allocator));
+                        var term_type = try term.typeof(scope, errors, allocator);
+                        try terms.append(term_type);
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
                     retval.product.was_slice = self.product.was_slice;
@@ -985,7 +986,9 @@ pub const AST = union(enum) {
             },
 
             // Identifier
-            .identifier => {
+            .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
+                retval = voidType;
+            } else {
                 var symbol = try _validate.findSymbol(self, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
                 retval = symbol._type.?;
@@ -1097,6 +1100,9 @@ pub const AST = union(enum) {
             return true; // Whatever
         }
         if (other.* == .identifier and std.mem.eql(u8, "Void", other.getToken().data)) {
+            return true; // Bottom type
+        }
+        if (self.* == .identifier and std.mem.eql(u8, "Void", self.getToken().data)) {
             return true; // Bottom type
         }
         std.debug.assert(self.getCommon().is_valid);
