@@ -16,8 +16,6 @@ typedef struct {
     int64_t _3;
 } struct0;
 
-/* Interned Strings */
-
 /* Function forward definitions */
 int64_t _2_main();
 struct0 _4_get_array(int64_t _4_a,int64_t _4_b);
@@ -67,10 +65,8 @@ BB0:
     return _4_$retval;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

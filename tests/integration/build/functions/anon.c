@@ -11,8 +11,6 @@ static uint16_t $line_idx = 0;
 /* Typedefs */
 typedef int64_t(*function0)(int64_t);
 
-/* Interned Strings */
-
 /* Function forward definitions */
 int64_t _2_main();
 int64_t _4_$anon0(int64_t _4_x);
@@ -52,10 +50,8 @@ BB0:
     return _6_$retval;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

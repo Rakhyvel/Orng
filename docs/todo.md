@@ -202,7 +202,6 @@
     - [x] measure source-to-output ratio
     - [x] string literals should be indexed at compile-time, dont do runtime check
     - [x] remove ifndefs
-    - [ ] don't generate debug info if it isn't used
     - [ ] don't generate section comments if the section is empty
     - [ ] don't generate the label for a basic block if a CFG only has one basic block
     - [ ] if a function is just one expression, just return that expression
@@ -276,6 +275,8 @@
     > How to do exponentiation without libc?
     - [ ] debug mode which enables checks for UB
         - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
+    - [ ] Option to generate header and source file
+    - [ ] Options to add C system headers and regular header directories
 - [ ] refinement types
     - [ ] `where` which checks at runtime if a condition is true, panics if it's not
     - [ ] `==>` implies boolean operator might be handy

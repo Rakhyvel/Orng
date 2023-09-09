@@ -8,8 +8,6 @@
 static const char* $lines[1024];
 static uint16_t $line_idx = 0;
 
-/* Typedefs */
-
 /* Interned Strings */
 char* string_0 = "\x4C\x6D\x61\x6F\x21";
 char* string_1 = "\x6C\x6F\x6C";
@@ -25,10 +23,8 @@ BB0:
     return _2_$retval;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

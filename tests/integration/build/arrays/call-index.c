@@ -16,8 +16,6 @@ typedef struct {
     int64_t _3;
 } struct0;
 
-/* Interned Strings */
-
 /* Function forward definitions */
 int64_t _2_main();
 struct0* _4_f(struct0* _4_x);
@@ -66,10 +64,8 @@ BB0:
     return _4_$retval;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

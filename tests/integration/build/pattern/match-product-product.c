@@ -18,8 +18,6 @@ typedef struct {
     struct0 _1;
 } struct1;
 
-/* Interned Strings */
-
 /* Function forward definitions */
 int64_t _2_main();
 
@@ -112,10 +110,8 @@ BB3:
     goto BB6;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

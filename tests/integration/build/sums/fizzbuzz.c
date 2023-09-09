@@ -108,10 +108,8 @@ BB4:
     goto BB6;
 }
 
-
 int main()
 {
   printf("%s",_2_main()._0);
   return 0;
 }
-

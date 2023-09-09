@@ -22,8 +22,6 @@ typedef struct {
     int64_t _1;
 } struct1;
 
-/* Interned Strings */
-
 /* Function forward definitions */
 int64_t _2_main();
 int64_t _4_sum_up(struct1 _4_xs);
@@ -135,10 +133,8 @@ BB5:
     goto BB6;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

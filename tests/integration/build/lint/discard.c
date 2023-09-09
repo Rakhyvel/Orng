@@ -8,10 +8,6 @@
 static const char* $lines[1024];
 static uint16_t $line_idx = 0;
 
-/* Typedefs */
-
-/* Interned Strings */
-
 /* Function forward definitions */
 int64_t _2_main();
 
@@ -25,10 +21,8 @@ BB0:
     return _2_$retval;
 }
 
-
 int main()
 {
   printf("%ld",_2_main());
   return 0;
 }
-

@@ -28,10 +28,8 @@ BB0:
     return _2_$retval;
 }
 
-
 int main()
 {
   printf("%s",_2_main()._0);
   return 0;
 }
-

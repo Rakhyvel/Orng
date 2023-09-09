@@ -30,24 +30,25 @@ pub fn generate(__program: *Program, file: *std.fs.File) !void {
         \\
     , .{});
 
-    try file.writer().print("/* Debug information */\n", .{});
     try generateDebug(file);
-
-    try file.writer().print("/* Typedefs */\n", .{});
     try generateFunctionTypedefs(&program.types, file);
-    try file.writer().print("\n/* Interned Strings */\n", .{});
     try generateInternedStrings(program.interned_strings, file);
-    try file.writer().print("\n/* Function forward definitions */\n", .{});
+    try file.writer().print("/* Function forward definitions */\n", .{});
     try generateFowardFunctions(program.callGraph, file);
     try file.writer().print("\n/* Function definitions */\n", .{});
     try generateFunctions(program.callGraph, file);
-    try file.writer().print("\n", .{});
     try generateMainFunction(program.callGraph, file);
 }
 
 fn generateFunctionTypedefs(dags: *std.ArrayList(*_program.DAG), out: *std.fs.File) !void {
+    if (dags.items.len > 0) {
+        try out.writer().print("/* Typedefs */\n", .{});
+    }
     for (dags.items) |dag| {
         try generateTypedefs(dag, out);
+    }
+    if (dags.items.len > 0) {
+        try out.writer().print("\n", .{});
     }
 }
 
@@ -97,6 +98,9 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
 }
 
 fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *std.fs.File) !void {
+    if (interned_strings.items.len > 0) {
+        try out.writer().print("/* Interned Strings */\n", .{});
+    }
     for (interned_strings.items, 0..) |str, i| {
         try out.writer().print("char* string_{} = \"", .{i});
         var escape = false;
@@ -137,6 +141,9 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
             }
         }
         try out.writer().print("\";\n", .{});
+    }
+    if (interned_strings.items.len > 0) {
+        try out.writer().print("\n", .{});
     }
 }
 
@@ -215,6 +222,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 }
 
 fn generateDebug(out: *std.fs.File) !void {
+    try out.writer().print("/* Debug information */\n", .{});
     try out.writer().print(
         \\static const char* $lines[1024];
         \\static uint16_t $line_idx = 0;
@@ -250,14 +258,12 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
             \\  return 0;
             \\}}
             \\
-            \\
         , .{});
     } else {
         try out.writer().print(
             \\());
             \\  return 0;
             \\}}
-            \\
             \\
         , .{});
     }
