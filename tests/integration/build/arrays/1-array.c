@@ -23,7 +23,6 @@ int64_t _2_main() {
     int64_t _2_t2;
     int64_t _2_t3;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 120;
     _3_x = (struct0) {_2_t1};
     _2_t2 = 0;

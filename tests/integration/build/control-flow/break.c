@@ -24,7 +24,6 @@ int64_t _2_main() {
     int64_t _2_$retval;
     int64_t _2_t10;
     int64_t _2_t12;
-BB0:
     _3_x = 36;
     _4_i = 0;
     goto BB1;

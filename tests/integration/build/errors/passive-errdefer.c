@@ -28,7 +28,6 @@ int64_t _2_main() {
     uint8_t _2_t7;
     struct0 _2_t5;
     int64_t _2_$retval;
-BB0:
     _3_z = 10;
     _3_y = 10;
     _2_t3 = &_3_z;
@@ -54,7 +53,6 @@ struct0 _4_f(int64_t* _4_x,uint8_t _4_fail) {
     int64_t _4_t11;
     int64_t _4_t12;
     struct0 _4_$retval;
-BB0:
     _4_t0 = 6;
     **&_4_x = _4_t0;
     if (_4_fail) {

@@ -22,7 +22,6 @@ int64_t _2_main() {
     int64_t _2_t2;
     int64_t _2_t1;
     int64_t _2_$retval;
-BB0:
     _2_t0 = _4_$anon0;
     _2_t2 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
@@ -34,7 +33,6 @@ BB0:
 
 int64_t _4_$anon0(int64_t _4_x) {
     int64_t _4_$retval;
-BB1:
     _4_$retval = _4_x;
     return _4_$retval;
 }
@@ -42,7 +40,6 @@ BB1:
 int64_t _6_apply(function0 _6_f,int64_t _6_x) {
     int64_t _6_t0;
     int64_t _6_$retval;
-BB0:
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
     _6_t0 = _6_f(_6_x);
     $line_idx--;

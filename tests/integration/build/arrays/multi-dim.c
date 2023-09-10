@@ -52,7 +52,6 @@ int64_t _2_main() {
     int64_t _2_t44;
     int64_t _2_t45;
     int64_t _2_$retval;
-BB0:
     _2_t2 = 1;
     _2_t3 = 2;
     _2_t4 = 3;

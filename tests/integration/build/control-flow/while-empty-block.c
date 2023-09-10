@@ -14,7 +14,6 @@ int64_t _2_main();
 /* Function definitions */
 int64_t _2_main() {
     int64_t _2_$retval;
-BB1:
     _2_$retval = 25;
     return _2_$retval;
 }

@@ -22,7 +22,6 @@ int64_t _2_main() {
     int64_t _2_t2;
     int64_t _2_t1;
     int64_t _2_$retval;
-BB0:
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
     _2_t0 = _4_f();
     $line_idx--;
@@ -36,7 +35,6 @@ BB0:
 
 function0 _4_f() {
     function0 _4_$retval;
-BB1:
     _4_$retval = _6_addFour;
     return _4_$retval;
 }
@@ -44,7 +42,6 @@ BB1:
 int64_t _6_addFour(int64_t _6_x) {
     int64_t _6_t0;
     int64_t _6_$retval;
-BB0:
     _6_t0 = 4;
     _6_$retval = _6_x + _6_t0;
     return _6_$retval;

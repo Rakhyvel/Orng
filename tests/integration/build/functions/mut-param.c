@@ -18,7 +18,6 @@ int64_t _2_main() {
     int64_t _2_t0;
     int64_t _2_t2;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 8;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:27:\nfn main() -> Int {sumDown(8) + 2}\n                         ^";
     _2_t0 = _4_sumDown(_2_t1);
@@ -34,7 +33,6 @@ int64_t _4_sumDown(int64_t _4_x) {
     uint8_t _4_t1;
     int64_t _4_t4;
     int64_t _4_$retval;
-BB0:
     _6_i = _4_x;
     goto BB1;
 BB1:

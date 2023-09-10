@@ -209,7 +209,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Generate the basic-block graph, starting at the init basic block
     if (callGraph.block_graph_head) |block_graph_head| {
-        try generateBasicBlock(block_graph_head, callGraph.return_symbol, out);
+        try generateBasicBlock(callGraph, block_graph_head, callGraph.return_symbol, out);
         callGraph.clearVisitedBBs();
     }
 
@@ -269,13 +269,18 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     }
 }
 
-fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void {
+fn generateBasicBlock(callGraph: *CFG, bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void {
     if (bb.visited) {
         return;
     }
     bb.visited = true;
 
-    try out.writer().print("BB{}:\n", .{bb.uid});
+    const is_head_bb = callGraph.block_graph_head != null and callGraph.block_graph_head.? == bb;
+    const no_incoming = bb.number_predecessors <= 1;
+    if (!is_head_bb or !no_incoming) {
+        // Only print the label if this basic block isn't the first one in the graph
+        try out.writer().print("BB{}:\n", .{bb.uid});
+    }
     var maybe_ir = bb.ir_head;
     while (maybe_ir) |ir| : (maybe_ir = ir.next) {
         try generateIR(ir, out);
@@ -299,7 +304,7 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
         // Generate the `branch` BB
         if (bb.branch) |branch| {
             try out.writer().print("        goto BB{};\n    }}\n", .{branch.uid});
-            try generateBasicBlock(branch, symbol, out);
+            try generateBasicBlock(callGraph, branch, symbol, out);
         } else {
             try out.writer().print("    ", .{});
             try printReturn(symbol, out);
@@ -308,12 +313,12 @@ fn generateBasicBlock(bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void
 
         // Generate the `next` BB
         if (bb.next) |next| {
-            try generateBasicBlock(next, symbol, out);
+            try generateBasicBlock(callGraph, next, symbol, out);
         }
     } else {
         if (bb.next) |next| {
             try out.writer().print("    goto BB{};\n", .{next.uid});
-            try generateBasicBlock(next, symbol, out);
+            try generateBasicBlock(callGraph, next, symbol, out);
         } else {
             try printReturn(symbol, out);
         }

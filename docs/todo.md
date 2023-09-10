@@ -202,13 +202,14 @@
     - [x] measure source-to-output ratio
     - [x] string literals should be indexed at compile-time, dont do runtime check
     - [x] remove ifndefs
-    - [ ] don't generate section comments if the section is empty
-    - [ ] don't generate the label for a basic block if a CFG only has one basic block
-    - [ ] if a function is just one expression, just return that expression
+    - [x] don't generate section comments if the section is empty
+    - [x] don't generate the label for a basic block if a CFG only has one basic block
     - [ ] If a temporary is only used once, just inline it's definition with where it's used
         > Will require parens if the surrounding def precedence is higher
+    - [ ] if a function is just one expression, just return that expression
     - [ ] Panics shouldn't jump, call to panic function instead of just for loop
     - [ ] Try and print lvaues better. `(&x)->_0` is just `x._0`
+        - [ ] `**&x` is just `*x`
     - [ ] expand_types should only allocate if anything changes
     - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)

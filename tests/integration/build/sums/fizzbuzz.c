@@ -35,7 +35,6 @@ struct1 _2_main() {
     int64_t _2_t1;
     struct0 _2_t0;
     struct1 _2_$retval;
-BB0:
     _2_t1 = 30;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
     _2_t0 = _4_fizzbuzz(_2_t1);
@@ -60,7 +59,6 @@ struct0 _4_fizzbuzz(int64_t _4_n) {
     int64_t _4_t9;
     uint8_t _4_t10;
     struct1 _4_t15;
-BB0:
     _4_t1 = 0;
     _4_t2 = 15;
     _4_t3 = _4_n % _4_t2;

@@ -37,7 +37,6 @@ int64_t _2_main() {
     struct1 _3_y;
     int64_t _2_t14;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 1;
     _2_t2 = 2;
     _2_t3 = 3;
@@ -61,7 +60,6 @@ int64_t _4_f(struct1 _4_x) {
     int64_t _4_t1;
     int64_t _4_t6;
     int64_t _4_$retval;
-BB0:
     _4_t0 = 1;
     _4_t4 = (&_4_x)->_1;
     _4_t5 = _4_t0 >= _4_t4;

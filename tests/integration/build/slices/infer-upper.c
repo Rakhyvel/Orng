@@ -48,7 +48,6 @@ int64_t _2_main() {
     struct1 _3_z;
     int64_t _2_t23;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 34;
     _2_t2 = 25;
     _2_t3 = 34;
@@ -100,7 +99,6 @@ int64_t _4_sum_up(struct1 _4_xs) {
     int64_t _4_t5;
     int64_t _4_t11;
     int64_t _4_$retval;
-BB0:
     _5_sum = 0;
     _6_i = 0;
     goto BB1;

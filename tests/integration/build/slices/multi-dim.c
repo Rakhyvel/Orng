@@ -71,7 +71,6 @@ int64_t _2_main() {
     uint8_t _2_t64;
     int64_t _2_t60;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 1;
     _2_t2 = 2;
     _2_t3 = 3;

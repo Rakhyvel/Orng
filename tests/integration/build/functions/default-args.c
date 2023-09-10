@@ -22,7 +22,6 @@ int64_t _2_main() {
     int64_t _2_t4;
     int64_t _2_t0;
     int64_t _2_$retval;
-BB0:
     _2_t2 = 47;
     _2_t3 = 1;
     $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:27:\nfn main() -> Int {add(add(47), add())}\n                         ^";
@@ -42,7 +41,6 @@ BB0:
 
 int64_t _4_add(int64_t _4_x,int64_t _4_y) {
     int64_t _4_$retval;
-BB0:
     _4_$retval = _4_x + _4_y;
     return _4_$retval;
 }

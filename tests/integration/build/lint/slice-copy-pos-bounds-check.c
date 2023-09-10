@@ -42,7 +42,6 @@ int64_t _2_main() {
     int64_t _2_t18;
     uint8_t _2_t19;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 0;
     _2_t2 = 0;
     _2_t3 = 0;
@@ -95,7 +94,6 @@ BB5:
 
 int64_t _4_f() {
     int64_t _4_$retval;
-BB0:
     _4_$retval = 100;
     return _4_$retval;
 }

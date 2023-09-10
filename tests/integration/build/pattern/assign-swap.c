@@ -31,7 +31,6 @@ int64_t _2_main() {
     uint8_t _2_t12;
     int64_t _2_t8;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 1;
     _2_t2 = 2;
     _2_t0 = (struct0) {_2_t1, _2_t2};

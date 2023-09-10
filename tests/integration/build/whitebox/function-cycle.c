@@ -19,7 +19,6 @@ int64_t _2_main() {
     int64_t _2_t1;
     int64_t _2_t0;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 47;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:2:21:\nfn main() -> Int {a(47)}\n                   ^";
     _2_t0 = _4_a(_2_t1);
@@ -31,7 +30,6 @@ BB0:
 int64_t _4_a(int64_t _4_n) {
     int64_t _4_t0;
     int64_t _4_$retval;
-BB0:
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:4:24:\nfn a(n: Int) -> Int {b(n)}\n                      ^";
     _4_t0 = _6_b(_4_n);
     $line_idx--;
@@ -42,7 +40,6 @@ BB0:
 int64_t _6_b(int64_t _6_n) {
     int64_t _6_t0;
     int64_t _6_$retval;
-BB0:
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:6:24:\nfn b(n: Int) -> Int {c(n)}\n                      ^";
     _6_t0 = _8_c(_6_n);
     $line_idx--;
@@ -56,7 +53,6 @@ int64_t _8_c(int64_t _8_n) {
     int64_t _8_t0;
     int64_t _8_$retval;
     int64_t _8_t4;
-BB0:
     _8_t2 = 47;
     _8_t1 = _8_n == _8_t2;
     if (_8_t1) {

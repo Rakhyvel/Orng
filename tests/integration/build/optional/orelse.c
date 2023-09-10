@@ -16,7 +16,6 @@ int64_t _2_main() {
     int64_t _2_t1;
     int64_t _2_t8;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 100;
     _2_t8 = 14;
     _2_$retval = _2_t1 + _2_t8;

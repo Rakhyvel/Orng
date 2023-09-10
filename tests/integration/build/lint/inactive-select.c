@@ -29,7 +29,6 @@ int64_t _2_main() {
     int64_t _2_t3;
     uint8_t _2_t4;
     int64_t _2_$retval;
-BB0:
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
     _2_t0 = _4_f();
     $line_idx--;
@@ -58,7 +57,6 @@ BB1:
 struct0 _4_f() {
     int64_t _4_t0;
     struct0 _4_$retval;
-BB0:
     _4_t0 = 4;
     _4_$retval = (struct0) {.tag=0, ._0=_4_t0};
     return _4_$retval;

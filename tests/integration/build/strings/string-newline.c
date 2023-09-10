@@ -26,7 +26,6 @@ uint8_t _2_main() {
     int64_t _2_t1;
     uint8_t _2_t2;
     uint8_t _2_$retval;
-BB0:
     _3_x = (struct0) {string_0, 11};
     _2_t1 = 0;
     _2_t2 = *(((uint8_t*)((&_3_x)->_0))+_2_t1);

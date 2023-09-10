@@ -27,7 +27,6 @@ int64_t _2_main() {
     struct0 _2_t0;
     struct0 _3_x;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 15;
     _2_t2 = 16;
     $lines[$line_idx++] = "tests/integration/tuples/mix.orng:3:31:\n    let x: [4]Int = get_array(15, 16)\n                             ^";
@@ -40,7 +39,6 @@ BB0:
 
 struct0 _4_get_array(int64_t _4_a,int64_t _4_b) {
     struct0 _4_$retval;
-BB0:
     _4_$retval = (struct0) {_4_a, _4_b, _4_a, _4_b};
     return _4_$retval;
 }

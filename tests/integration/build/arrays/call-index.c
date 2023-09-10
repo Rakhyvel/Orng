@@ -33,7 +33,6 @@ int64_t _2_main() {
     int64_t _2_t8;
     int64_t _2_t9;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 1;
     _2_t2 = 2;
     _2_t3 = 3;
@@ -55,7 +54,6 @@ struct0* _4_f(struct0* _4_x) {
     struct0 _4_t1;
     int64_t _4_t2;
     struct0* _4_$retval;
-BB0:
     _4_t0 = 78;
     _4_t1 = *_4_x;
     _4_t2 = 3;

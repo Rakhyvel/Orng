@@ -26,7 +26,6 @@ int64_t _2_main() {
     int64_t _3_y;
     int64_t _2_t5;
     int64_t _2_$retval;
-BB0:
     _2_t1 = 3;
     _2_t2 = 40;
     _2_t0 = (struct0) {_2_t1, _2_t2};

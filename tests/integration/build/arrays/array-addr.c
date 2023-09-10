@@ -35,7 +35,6 @@ int64_t _2_main() {
     int64_t _2_t16;
     int64_t* _2_t17;
     int64_t _2_$retval;
-BB0:
     _3_a = 1;
     _3_b = 2;
     _3_c = 3;

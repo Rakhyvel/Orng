@@ -23,7 +23,6 @@ struct0 _2_main();
 /* Function definitions */
 struct0 _2_main() {
     struct0 _2_$retval;
-BB0:
     _2_$retval = (struct0) {string_0, 18};
     return _2_$retval;
 }

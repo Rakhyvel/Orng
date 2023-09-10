@@ -32,7 +32,6 @@ int64_t _2_main() {
     uint8_t _2_t9;
     int64_t _2_t6;
     int64_t _2_$retval;
-BB0:
     _2_t2 = 1;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n      ^";
     _2_t1 = _4_f(_2_t2);
@@ -78,7 +77,6 @@ struct0 _4_f(uint8_t _4_fail) {
     struct0 _4_t0;
     struct0 _4_$retval;
     int64_t _4_t5;
-BB0:
     if (_4_fail) {
         goto BB1;
     } else {
@@ -112,7 +110,6 @@ BB2:
 
 struct0 _9_g() {
     struct0 _9_$retval;
-BB0:
     _9_$retval = (struct0) {.tag=0};
     return _9_$retval;
 }

@@ -26,7 +26,6 @@ int64_t _2_main() {
     struct0 _3_x;
     int64_t _2_t2;
     int64_t _2_$retval;
-BB0:
     _2_t0 = 4;
     _3_x = (struct0) {.tag=0, ._0=_2_t0};
     _2_t2 = 103;

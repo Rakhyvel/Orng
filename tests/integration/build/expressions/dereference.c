@@ -16,7 +16,6 @@ int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
     int64_t _2_$retval;
-BB0:
     _3_x = 29;
     _3_y = &_3_x;
     _2_$retval = *_3_y;
