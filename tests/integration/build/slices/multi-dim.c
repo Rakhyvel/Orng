@@ -100,7 +100,6 @@ BB31:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB32;
 BB27:
     $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:7:\n    z[1][2]\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -108,7 +107,6 @@ BB27:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB28;
 BB23:
     $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n        ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -116,7 +114,6 @@ BB23:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB24;
 BB19:
     $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][2] = 82\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -124,7 +121,6 @@ BB19:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB20;
 }
 
 int main()

@@ -23,7 +23,6 @@ int64_t _2_main() {
     int64_t _3_x;
     int64_t _3_y;
     struct0 _2_t5;
-    int64_t _2_t8;
     int64_t _2_$retval;
     _2_t0 = (struct0) {1, 2};
     _3_x = (&_2_t0)->_0;
@@ -43,10 +42,6 @@ BB11:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB10;
-BB10:
-    _2_$retval = _2_t8;
-    return _2_$retval;
 BB1:
     if (_3_x == 2) {
         goto BB4;
@@ -54,8 +49,8 @@ BB1:
         goto BB11;
     }
 BB4:
-    _2_t8 = 159;
-    goto BB10;
+    _2_$retval = 159;
+    return _2_$retval;
 }
 
 int main()

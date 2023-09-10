@@ -474,6 +474,7 @@ pub const BasicBlock = struct {
     uid: u64,
     ir_head: ?*IR,
     has_branch: bool,
+    has_panic: bool,
     parameters: std.ArrayList(*SymbolVersion),
 
     /// If null, jump to function end label
@@ -671,6 +672,7 @@ pub const CFG = struct {
         var retval = try allocator.create(BasicBlock);
         retval.ir_head = null;
         retval.condition = null;
+        retval.has_panic = false;
         retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
         retval.next = null;
         retval.next_arguments = std.ArrayList(*SymbolVersion).init(allocator);
@@ -2126,13 +2128,14 @@ pub const CFG = struct {
                         ir.next = null;
                     }
                     break;
-                } else if (ir.kind == .jump) {
-                    // If you find a jump, end this block and start new block
+                } else if (ir.kind == .panic) {
+                    // If you find a panic, end this block with null jump and start new block
                     retval.has_branch = false;
                     retval.next = null;
-                    if (ir.next) |_| {
-                        ir.next.?.prev = null;
-                        ir.next = null;
+                    retval.has_panic = true;
+                    if (ir.next != null and ir.next.?.next != null) {
+                        ir.next.?.next.?.prev = null;
+                        ir.next.?.next = null;
                     }
                     break;
                 } else if (ir.kind == .branchIfFalse) {

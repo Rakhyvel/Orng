@@ -53,10 +53,6 @@ BB12:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB6;
-BB6:
-    _2_$retval = _2_t0;
-    return _2_$retval;
 BB8:
     if ((&_2_t16)->_1 == 100) {
         goto BB9;
@@ -66,6 +62,9 @@ BB8:
 BB9:
     _2_t0 = 170;
     goto BB6;
+BB6:
+    _2_$retval = _2_t0;
+    return _2_$retval;
 BB2:
     if ((&_2_t8)->_1 == 130) {
         goto BB3;

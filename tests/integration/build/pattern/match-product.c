@@ -23,7 +23,6 @@ int64_t _2_main() {
     struct0 _2_t1;
     int64_t _5_x;
     int64_t _5_y;
-    int64_t _2_t0;
     int64_t _2_$retval;
     _2_t1 = (struct0) {100, 60, 8};
     if ((&_2_t1)->_0 == 100) {
@@ -38,15 +37,11 @@ BB7:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB5;
-BB5:
-    _2_$retval = _2_t0;
-    return _2_$retval;
 BB2:
     _5_x = (&_2_t1)->_1;
     _5_y = (&_2_t1)->_2;
-    _2_t0 = 100 + _5_x + _5_y;
-    goto BB5;
+    _2_$retval = 100 + _5_x + _5_y;
+    return _2_$retval;
 }
 
 int main()

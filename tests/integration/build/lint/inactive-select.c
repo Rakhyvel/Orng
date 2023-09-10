@@ -45,7 +45,6 @@ BB1:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB2;
 }
 
 struct0 _4_f() {

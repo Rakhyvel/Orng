@@ -59,7 +59,6 @@ BB11:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB12;
 BB7:
     $lines[$line_idx++] = "tests/integration/slices/mut-sliceof.orng:5:7:\n    y[2] = 81\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -67,7 +66,6 @@ BB7:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB8;
 }
 
 int main()

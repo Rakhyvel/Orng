@@ -51,7 +51,6 @@ BB5:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB6;
 }
 
 int main()

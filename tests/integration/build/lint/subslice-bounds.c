@@ -68,7 +68,6 @@ BB9:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB10;
 BB5:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
     fprintf(stderr, "panic: subslice lower bound is greater than upper bound\n");
@@ -76,7 +75,6 @@ BB5:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB6;
 }
 
 int64_t _4_f() {

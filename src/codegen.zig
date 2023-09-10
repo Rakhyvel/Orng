@@ -290,41 +290,43 @@ fn generateBasicBlock(callGraph: *CFG, bb: *BasicBlock, symbol: *Symbol, out: *s
         try generateIR(ir, out);
     }
 
-    if (bb.has_branch) {
-        // Generate the if
-        try out.writer().print("    if (", .{});
-        try printSymbolVersion(bb.condition.?, HIGHEST_PRECEDENCE, out);
-        try out.writer().print(") {{\n", .{});
+    if (!bb.has_panic) {
+        if (bb.has_branch) {
+            // Generate the if
+            try out.writer().print("    if (", .{});
+            try printSymbolVersion(bb.condition.?, HIGHEST_PRECEDENCE, out);
+            try out.writer().print(") {{\n", .{});
 
-        // Generate branch `if-else`
-        if (bb.next) |next| {
-            try out.writer().print("        goto BB{};\n    }} else {{\n", .{next.uid});
-        } else {
-            try out.writer().print("    ", .{});
-            try printReturn(symbol, out);
-            try out.writer().print("    }} else {{\n", .{});
-        }
+            // Generate branch `if-else`
+            if (bb.next) |next| {
+                try out.writer().print("        goto BB{};\n    }} else {{\n", .{next.uid});
+            } else {
+                try out.writer().print("    ", .{});
+                try printReturn(symbol, out);
+                try out.writer().print("    }} else {{\n", .{});
+            }
 
-        // Generate the `branch` BB
-        if (bb.branch) |branch| {
-            try out.writer().print("        goto BB{};\n    }}\n", .{branch.uid});
-            try generateBasicBlock(callGraph, branch, symbol, out);
-        } else {
-            try out.writer().print("    ", .{});
-            try printReturn(symbol, out);
-            try out.writer().print("    }}\n", .{});
-        }
+            // Generate the `branch` BB
+            if (bb.branch) |branch| {
+                try out.writer().print("        goto BB{};\n    }}\n", .{branch.uid});
+                try generateBasicBlock(callGraph, branch, symbol, out);
+            } else {
+                try out.writer().print("    ", .{});
+                try printReturn(symbol, out);
+                try out.writer().print("    }}\n", .{});
+            }
 
-        // Generate the `next` BB
-        if (bb.next) |next| {
-            try generateBasicBlock(callGraph, next, symbol, out);
-        }
-    } else {
-        if (bb.next) |next| {
-            try out.writer().print("    goto BB{};\n", .{next.uid});
-            try generateBasicBlock(callGraph, next, symbol, out);
+            // Generate the `next` BB
+            if (bb.next) |next| {
+                try generateBasicBlock(callGraph, next, symbol, out);
+            }
         } else {
-            try printReturn(symbol, out);
+            if (bb.next) |next| {
+                try out.writer().print("    goto BB{};\n", .{next.uid});
+                try generateBasicBlock(callGraph, next, symbol, out);
+            } else {
+                try printReturn(symbol, out);
+            }
         }
     }
 }

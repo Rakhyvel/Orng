@@ -205,11 +205,11 @@
     - [x] remove ifndefs
     - [x] don't generate section comments if the section is empty
     - [x] don't generate the label for a basic block if a CFG only has one basic block
-    - [ ] If a temporary is only used once, just inline it's definition with where it's used
+    - [x] If a temporary is only used once, just inline it's definition with where it's used
         > Will require parens if the surrounding def precedence is higher
-    - [ ] if a function is just one expression, just return that expression
-    - [ ] Panics shouldn't jump, call to panic function instead of just for loop
+    - [x] Panics shouldn't jump, call to panic function instead of just for loop
     - [ ] Try and print lvaues better. `(&x)->_0` is just `x._0`
+        - [ ] Perhaps do precedence stuff too
         - [ ] `**&x` is just `*x`
         - [ ] `+0` in lvalue is kinda dumb
     - [ ] expand_types should only allocate if anything changes
@@ -227,6 +227,7 @@
     - [ ] ! inlining
     - [ ] ? loop invariant lifting
     - [ ] temporary combining (basically register allocation) (do this one last!) (might not be needed...)
+    - [ ] if a function is just one expression, just return that expression
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`

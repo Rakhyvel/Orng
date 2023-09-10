@@ -50,7 +50,6 @@ BB3:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB4;
 BB1:
     $lines[$line_idx++] = "tests/integration/lint/array-pos-bounds-check.orng:4:7:\n    x[f()]\n     ^";
     fprintf(stderr, "panic: index is negative\n");
@@ -58,7 +57,6 @@ BB1:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB2;
 }
 
 int64_t _4_f() {

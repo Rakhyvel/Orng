@@ -59,7 +59,6 @@ BB7:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB8;
 BB5:
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^";
     fprintf(stderr, "panic: index is negative\n");
@@ -67,7 +66,6 @@ BB5:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    goto BB6;
 }
 
 int64_t _4_f() {
