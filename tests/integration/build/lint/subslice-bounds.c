@@ -26,62 +26,40 @@ int64_t _4_f();
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
-    int64_t _2_t2;
-    int64_t _2_t3;
-    int64_t _2_t4;
     struct0 _3_x;
-    int64_t _2_t6;
     int64_t* _2_t12;
-    int64_t _2_t13;
     struct1 _3_y;
     int64_t _2_t14;
     int64_t _2_t15;
-    uint8_t _2_t16;
-    int64_t _2_t17;
     int64_t* _2_t18;
     int64_t* _2_t19;
     struct1 _3_z;
     int64_t _2_t21;
-    int64_t _2_t25;
-    uint8_t _2_t26;
-    int64_t _2_t22;
     int64_t _2_$retval;
-    _2_t1 = 0;
-    _2_t2 = 0;
-    _2_t3 = 0;
-    _2_t4 = 0;
-    _3_x = (struct0) {_2_t1, _2_t2, _2_t3, _2_t4};
-    _2_t6 = 0;
-    _2_t12 = (((int64_t*)(&_3_x))+_2_t6);
-    _2_t13 = 4;
-    _3_y = (struct1) {_2_t12, _2_t13};
+    _3_x = (struct0) {0, 0, 0, 0};
+    _2_t12 = (((int64_t*)(&_3_x))+0);
+    _3_y = (struct1) {_2_t12, 4};
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";
     _2_t14 = _4_f();
     $line_idx--;
     _2_t15 = 1;
-    _2_t16 = _2_t14 > _2_t15;
-    if (_2_t16) {
+    if (_2_t14 > _2_t15) {
         goto BB5;
     } else {
         goto BB6;
     }
 BB6:
-    _2_t17 = _2_t15 - _2_t14;
     _2_t18 = (&_3_y)->_0;
     _2_t19 = _2_t18 + _2_t14;
-    _3_z = (struct1) {_2_t19, _2_t17};
+    _3_z = (struct1) {_2_t19, (_2_t15 - _2_t14)};
     _2_t21 = 0;
-    _2_t25 = (&_3_z)->_1;
-    _2_t26 = _2_t21 >= _2_t25;
-    if (_2_t26) {
+    if (_2_t21 >= (&_3_z)->_1) {
         goto BB9;
     } else {
         goto BB10;
     }
 BB10:
-    _2_t22 = *(((int64_t*)((&_3_z)->_0))+_2_t21);
-    _2_$retval = _2_t22;
+    _2_$retval = (*(((int64_t*)((&_3_z)->_0))+_2_t21));
     return _2_$retval;
 BB9:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^";

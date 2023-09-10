@@ -23,21 +23,15 @@ struct0 _9_g();
 
 /* Function definitions */
 int64_t _2_main() {
-    uint8_t _2_t2;
     struct0 _2_t1;
-    uint8_t _2_t3;
     int64_t _2_t0;
-    uint8_t _2_t8;
     struct0 _2_t7;
-    uint8_t _2_t9;
     int64_t _2_t6;
     int64_t _2_$retval;
-    _2_t2 = 1;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n      ^";
-    _2_t1 = _4_f(_2_t2);
+    _2_t1 = _4_f(1);
     $line_idx--;
-    _2_t3 = _2_t1.tag;
-    if (_2_t3) {
+    if (_2_t1.tag) {
         goto BB1;
     } else {
         goto BB7;
@@ -46,12 +40,10 @@ BB7:
     _2_t0 = 122;
     goto BB2;
 BB2:
-    _2_t8 = 0;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
-    _2_t7 = _4_f(_2_t8);
+    _2_t7 = _4_f(0);
     $line_idx--;
-    _2_t9 = _2_t7.tag;
-    if (_2_t9) {
+    if (_2_t7.tag) {
         goto BB3;
     } else {
         goto BB6;
@@ -72,19 +64,16 @@ BB1:
 
 struct0 _4_f(uint8_t _4_fail) {
     struct0 _4_t1;
-    uint8_t _4_t2;
     int64_t _7_x;
     struct0 _4_t0;
     struct0 _4_$retval;
-    int64_t _4_t5;
     if (_4_fail) {
         goto BB1;
     } else {
         goto BB8;
     }
 BB8:
-    _4_t5 = 0;
-    _4_t0 = (struct0) {.tag=1, ._1=_4_t5};
+    _4_t0 = (struct0) {.tag=1, ._1=0};
     goto BB6;
 BB6:
     _4_$retval = _4_t0;
@@ -93,8 +82,7 @@ BB1:
     $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
     _4_t1 = _9_g();
     $line_idx--;
-    _4_t2 = _4_t1.tag;
-    if (_4_t2) {
+    if (_4_t1.tag) {
         goto BB2;
     } else {
         goto BB7;

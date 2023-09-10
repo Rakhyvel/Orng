@@ -14,12 +14,10 @@ int64_t _4_return53(int64_t _4_x);
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
     int64_t _2_t0;
     int64_t _2_$retval;
-    _2_t1 = 53;
     $lines[$line_idx++] = "tests/integration/functions/default-1arg.orng:2:28:\nfn main() -> Int {return53()}\n                          ^";
-    _2_t0 = _4_return53(_2_t1);
+    _2_t0 = _4_return53(53);
     $line_idx--;
     _2_$retval = _2_t0;
     return _2_$retval;

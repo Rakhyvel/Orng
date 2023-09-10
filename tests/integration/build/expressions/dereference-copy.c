@@ -15,12 +15,10 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
-    int64_t _2_t2;
     int64_t _2_$retval;
     _3_x = 4;
     _3_y = &_3_x;
-    _2_t2 = 28;
-    **&_3_y = _2_t2;
+    **&_3_y = 28;
     _2_$retval = *_3_y;
     return _2_$retval;
 }

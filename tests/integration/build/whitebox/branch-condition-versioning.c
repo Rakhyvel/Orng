@@ -15,20 +15,13 @@ int64_t _2_main();
 int64_t _2_main() {
     uint8_t _3_found;
     int64_t _4_n;
-    int64_t _2_t4;
-    uint8_t _2_t3;
-    int64_t _2_t9;
-    uint8_t _2_t8;
-    int64_t _2_t11;
     int64_t _2_t13;
     int64_t _2_$retval;
     _3_found = 0;
     _4_n = 0;
     goto BB1;
 BB1:
-    _2_t4 = 10;
-    _2_t3 = _4_n < _2_t4;
-    if (_2_t3) {
+    if (_4_n < 10) {
         goto BB2;
     } else {
         goto BB26;
@@ -55,16 +48,13 @@ BB2:
         goto BB7;
     }
 BB7:
-    _2_t9 = 6;
-    _2_t8 = _4_n == _2_t9;
-    if (_2_t8) {
+    if (_4_n == 6) {
         goto BB8;
     } else {
         goto BB13;
     }
 BB13:
-    _2_t11 = 1;
-    _4_n = _4_n + _2_t11;
+    _4_n = _4_n + 1;
     goto BB1;
 BB8:
     _3_found = 1;

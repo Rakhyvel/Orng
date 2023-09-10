@@ -16,12 +16,10 @@ int64_t _8_c(int64_t _8_n);
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
     int64_t _2_t0;
     int64_t _2_$retval;
-    _2_t1 = 47;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:2:21:\nfn main() -> Int {a(47)}\n                   ^";
-    _2_t0 = _4_a(_2_t1);
+    _2_t0 = _4_a(47);
     $line_idx--;
     _2_$retval = _2_t0;
     return _2_$retval;
@@ -48,14 +46,10 @@ int64_t _6_b(int64_t _6_n) {
 }
 
 int64_t _8_c(int64_t _8_n) {
-    int64_t _8_t2;
-    uint8_t _8_t1;
     int64_t _8_t0;
     int64_t _8_$retval;
     int64_t _8_t4;
-    _8_t2 = 47;
-    _8_t1 = _8_n == _8_t2;
-    if (_8_t1) {
+    if (_8_n == 47) {
         goto BB1;
     } else {
         goto BB9;

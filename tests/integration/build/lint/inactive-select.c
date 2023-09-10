@@ -25,18 +25,12 @@ struct0 _4_f();
 int64_t _2_main() {
     struct0 _2_t0;
     struct0 _3_x;
-    int64_t _2_t2;
-    int64_t _2_t3;
-    uint8_t _2_t4;
     int64_t _2_$retval;
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
     _2_t0 = _4_f();
     $line_idx--;
     _3_x = _2_t0;
-    _2_t2 = 1;
-    _2_t3 = _3_x.tag;
-    _2_t4 = _2_t3 != _2_t2;
-    if (_2_t4) {
+    if (_3_x.tag != 1) {
         goto BB1;
     } else {
         goto BB2;
@@ -55,10 +49,8 @@ BB1:
 }
 
 struct0 _4_f() {
-    int64_t _4_t0;
     struct0 _4_$retval;
-    _4_t0 = 4;
-    _4_$retval = (struct0) {.tag=0, ._0=_4_t0};
+    _4_$retval = (struct0) {.tag=0, ._0=4};
     return _4_$retval;
 }
 

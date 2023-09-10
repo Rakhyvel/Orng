@@ -19,15 +19,13 @@ int64_t _6_addFour(int64_t _6_x);
 /* Function definitions */
 int64_t _2_main() {
     function0 _2_t0;
-    int64_t _2_t2;
     int64_t _2_t1;
     int64_t _2_$retval;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
     _2_t0 = _4_f();
     $line_idx--;
-    _2_t2 = 45;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n       ^";
-    _2_t1 = _2_t0(_2_t2);
+    _2_t1 = _2_t0(45);
     $line_idx--;
     _2_$retval = _2_t1;
     return _2_$retval;
@@ -40,10 +38,8 @@ function0 _4_f() {
 }
 
 int64_t _6_addFour(int64_t _6_x) {
-    int64_t _6_t0;
     int64_t _6_$retval;
-    _6_t0 = 4;
-    _6_$retval = _6_x + _6_t0;
+    _6_$retval = _6_x + 4;
     return _6_$retval;
 }
 

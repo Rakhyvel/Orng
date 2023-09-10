@@ -32,12 +32,10 @@ struct0 _4_fizzbuzz(int64_t _4_n);
 
 /* Function definitions */
 struct1 _2_main() {
-    int64_t _2_t1;
     struct0 _2_t0;
     struct1 _2_$retval;
-    _2_t1 = 30;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
-    _2_t0 = _4_fizzbuzz(_2_t1);
+    _2_t0 = _4_fizzbuzz(30);
     $line_idx--;
     _2_$retval = (&_2_t0)->_0;
     return _2_$retval;
@@ -45,43 +43,22 @@ struct1 _2_main() {
 
 struct0 _4_fizzbuzz(int64_t _4_n) {
     int64_t _4_t1;
-    int64_t _4_t2;
-    int64_t _4_t3;
-    uint8_t _4_t4;
-    struct1 _4_t11;
     struct0 _4_t0;
     struct0 _4_$retval;
-    int64_t _4_t5;
-    int64_t _4_t6;
-    uint8_t _4_t7;
-    struct1 _4_t13;
-    int64_t _4_t8;
-    int64_t _4_t9;
-    uint8_t _4_t10;
-    struct1 _4_t15;
     _4_t1 = 0;
-    _4_t2 = 15;
-    _4_t3 = _4_n % _4_t2;
-    _4_t4 = _4_t1 == _4_t3;
-    if (_4_t4) {
+    if (_4_t1 == _4_n % 15) {
         goto BB4;
     } else {
         goto BB7;
     }
 BB7:
-    _4_t5 = 5;
-    _4_t6 = _4_n % _4_t5;
-    _4_t7 = _4_t1 == _4_t6;
-    if (_4_t7) {
+    if (_4_t1 == _4_n % 5) {
         goto BB10;
     } else {
         goto BB11;
     }
 BB11:
-    _4_t8 = 3;
-    _4_t9 = _4_n % _4_t8;
-    _4_t10 = _4_t1 == _4_t9;
-    if (_4_t10) {
+    if (_4_t1 == _4_n % 3) {
         goto BB14;
     } else {
         goto BB16;
@@ -93,16 +70,13 @@ BB6:
     _4_$retval = _4_t0;
     return _4_$retval;
 BB14:
-    _4_t15 = (struct1) {string_2, 5};
-    _4_t0 = (struct0) {.tag=0, ._0=_4_t15};
+    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_2, 5}};
     goto BB6;
 BB10:
-    _4_t13 = (struct1) {string_1, 5};
-    _4_t0 = (struct0) {.tag=0, ._0=_4_t13};
+    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_1, 5}};
     goto BB6;
 BB4:
-    _4_t11 = (struct1) {string_0, 9};
-    _4_t0 = (struct0) {.tag=0, ._0=_4_t11};
+    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_0, 9}};
     goto BB6;
 }
 

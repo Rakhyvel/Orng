@@ -28,25 +28,15 @@ int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t0;
     struct0 _2_t1;
     struct1 _3_x;
-    int64_t _2_t3;
     struct0 _2_t8;
-    int64_t _2_t13;
-    int64_t _2_t14;
-    uint8_t _2_t15;
     int64_t _2_$retval;
-    _2_t0 = 4;
-    _2_t1 = (struct0) {.tag=0, ._0=_2_t0};
+    _2_t1 = (struct0) {.tag=0, ._0=4};
     _3_x = (struct1) {.tag=0, ._0=_2_t1};
-    _2_t3 = 104;
-    (&((&_3_x)->_0))->_0 = _2_t3;
+    (&((&_3_x)->_0))->_0 = 104;
     _2_t8 = (&_3_x)->_0;
-    _2_t13 = 0;
-    _2_t14 = _2_t8.tag;
-    _2_t15 = _2_t14 != _2_t13;
-    if (_2_t15) {
+    if (_2_t8.tag != 0) {
         goto BB5;
     } else {
         goto BB6;

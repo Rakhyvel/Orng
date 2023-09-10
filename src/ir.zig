@@ -414,6 +414,60 @@ pub const IR = struct {
             try writer.print("\n", .{});
         }
     }
+
+    pub fn precedence(self: *IR) i64 {
+        return switch (self.kind) {
+            .loadSymbol,
+            .loadExtern,
+            .loadInt,
+            .loadFloat,
+            .loadStruct,
+            .loadUnion,
+            .loadString,
+            .copy,
+            => 0,
+
+            .call,
+            .exponent, // implemented as call to powf
+            .index,
+            .select,
+            .get_tag,
+            => 1,
+
+            .negate,
+            .not,
+            .dereference,
+            .addrOf,
+            .sizeOf,
+            => 2,
+
+            .mult,
+            .div,
+            .mod,
+            => 3,
+
+            .add,
+            .sub,
+            => 4,
+
+            // No bitshift operators, would be precedence 5
+
+            .greater,
+            .lesser,
+            .greaterEqual,
+            .lesserEqual,
+            => 6,
+
+            .equal,
+            .notEqual,
+            => 7,
+
+            else => {
+                std.debug.print("Unimplemented precedence for kind {s}\n", .{@tagName(self.kind)});
+                unreachable;
+            },
+        };
+    }
 };
 
 pub const BasicBlock = struct {

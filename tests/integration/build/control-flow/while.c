@@ -15,17 +15,12 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t _4_i;
-    int64_t _2_t4;
-    uint8_t _2_t3;
-    int64_t _2_t6;
     int64_t _2_$retval;
     _3_x = 0;
     _4_i = 0;
     goto BB1;
 BB1:
-    _2_t4 = 10;
-    _2_t3 = _4_i <= _2_t4;
-    if (_2_t3) {
+    if (_4_i <= 10) {
         goto BB2;
     } else {
         goto BB10;
@@ -35,8 +30,7 @@ BB10:
     return _2_$retval;
 BB2:
     _3_x = _3_x + _4_i;
-    _2_t6 = 1;
-    _4_i = _4_i + _2_t6;
+    _4_i = _4_i + 1;
     goto BB1;
 }
 

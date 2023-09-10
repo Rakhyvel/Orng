@@ -164,6 +164,7 @@
     - [x] static union tag check
     - [x] dynaminc union tag check
     - [ ] sanitize call stack lines to escape " and \
+    - [ ] suggest the most similar visible identifier when an unknown identifier is used
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
@@ -210,6 +211,7 @@
     - [ ] Panics shouldn't jump, call to panic function instead of just for loop
     - [ ] Try and print lvaues better. `(&x)->_0` is just `x._0`
         - [ ] `**&x` is just `*x`
+        - [ ] `+0` in lvalue is kinda dumb
     - [ ] expand_types should only allocate if anything changes
     - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)

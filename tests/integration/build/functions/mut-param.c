@@ -14,31 +14,22 @@ int64_t _4_sumDown(int64_t _4_x);
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
     int64_t _2_t0;
-    int64_t _2_t2;
     int64_t _2_$retval;
-    _2_t1 = 8;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:27:\nfn main() -> Int {sumDown(8) + 2}\n                         ^";
-    _2_t0 = _4_sumDown(_2_t1);
+    _2_t0 = _4_sumDown(8);
     $line_idx--;
-    _2_t2 = 2;
-    _2_$retval = _2_t0 + _2_t2;
+    _2_$retval = _2_t0 + 2;
     return _2_$retval;
 }
 
 int64_t _4_sumDown(int64_t _4_x) {
     int64_t _6_i;
-    int64_t _4_t2;
-    uint8_t _4_t1;
-    int64_t _4_t4;
     int64_t _4_$retval;
     _6_i = _4_x;
     goto BB1;
 BB1:
-    _4_t2 = 0;
-    _4_t1 = _6_i >= _4_t2;
-    if (_4_t1) {
+    if (_6_i >= 0) {
         goto BB2;
     } else {
         goto BB10;
@@ -48,8 +39,7 @@ BB10:
     return _4_$retval;
 BB2:
     _4_x = _4_x + _6_i;
-    _4_t4 = 1;
-    _6_i = _6_i - _4_t4;
+    _6_i = _6_i - 1;
     goto BB1;
 }
 

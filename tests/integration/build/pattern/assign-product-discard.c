@@ -20,17 +20,11 @@ int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t6;
-    int64_t _2_t7;
-    int64_t _2_t8;
     struct0 _2_t5;
     int64_t _3_x;
     int64_t _3_y;
     int64_t _2_$retval;
-    _2_t6 = 5;
-    _2_t7 = 19;
-    _2_t8 = 33;
-    _2_t5 = (struct0) {_2_t6, _2_t7, _2_t8};
+    _2_t5 = (struct0) {5, 19, 33};
     _3_x = (&_2_t5)->_0;
     _3_y = (&_2_t5)->_2;
     _2_$retval = _3_x * _3_y;

@@ -15,19 +15,11 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
-    int64_t _2_t4;
-    int64_t _2_t5;
-    int64_t _2_t7;
-    uint8_t _2_t3;
     int64_t _2_t2;
     int64_t _2_$retval;
     _3_x = 1;
     _3_y = &_3_x;
-    _2_t4 = *_3_y;
-    _2_t5 = -_2_t4;
-    _2_t7 = -1;
-    _2_t3 = _2_t5 == _2_t7;
-    if (_2_t3) {
+    if (-*_3_y == -1) {
         goto BB1;
     } else {
         goto BB9;

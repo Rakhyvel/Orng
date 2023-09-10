@@ -19,25 +19,15 @@ int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
-    int64_t _2_t2;
     struct0 _2_t0;
     int64_t _3_a;
     int64_t _3_b;
-    int64_t _2_t7;
-    int64_t _2_t8;
-    uint8_t _2_t6;
     int64_t _2_t5;
     int64_t _2_$retval;
-    _2_t1 = 0;
-    _2_t2 = 0;
-    _2_t0 = (struct0) {_2_t1, _2_t2};
+    _2_t0 = (struct0) {0, 0};
     _3_a = (&_2_t0)->_0;
     _3_b = (&_2_t0)->_1;
-    _2_t7 = _3_a + _3_b;
-    _2_t8 = 0;
-    _2_t6 = _2_t7 == _2_t8;
-    if (_2_t6) {
+    if (_3_a + _3_b == 0) {
         goto BB1;
     } else {
         goto BB9;

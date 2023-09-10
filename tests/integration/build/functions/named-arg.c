@@ -14,14 +14,10 @@ int64_t _4_div(int64_t _4_x,int64_t _4_y);
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
-    int64_t _2_t2;
     int64_t _2_t0;
     int64_t _2_$retval;
-    _2_t1 = 510;
-    _2_t2 = 10;
     $lines[$line_idx++] = "tests/integration/functions/named-arg.orng:2:23:\nfn main() -> Int {div(x = 510, y = 10)}\n                     ^";
-    _2_t0 = _4_div(_2_t1, _2_t2);
+    _2_t0 = _4_div(510, 10);
     $line_idx--;
     _2_$retval = _2_t0;
     return _2_$retval;

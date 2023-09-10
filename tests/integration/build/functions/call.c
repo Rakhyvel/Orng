@@ -14,14 +14,10 @@ int64_t _4_add(int64_t _4_x,int64_t _4_y);
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t1;
-    int64_t _2_t2;
     int64_t _2_t0;
     int64_t _2_$retval;
-    _2_t1 = 40;
-    _2_t2 = 3;
     $lines[$line_idx++] = "tests/integration/functions/call.orng:2:23:\nfn main() -> Int {add(40, 3)}\n                     ^";
-    _2_t0 = _4_add(_2_t1, _2_t2);
+    _2_t0 = _4_add(40, 3);
     $line_idx--;
     _2_$retval = _2_t0;
     return _2_$retval;
