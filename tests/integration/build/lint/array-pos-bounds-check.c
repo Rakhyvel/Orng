@@ -41,7 +41,7 @@ BB2:
         goto BB4;
     }
 BB4:
-    _2_$retval = (*(((int64_t*)(&_3_x))+_2_t5));
+    _2_$retval = (*(((int64_t*)&_3_x)+_2_t5));
     return _2_$retval;
 BB3:
     $lines[$line_idx++] = "tests/integration/lint/array-pos-bounds-check.orng:4:7:\n    x[f()]\n     ^";

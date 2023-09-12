@@ -32,7 +32,7 @@ int64_t _2_main() {
     int64_t _2_t14;
     int64_t _2_$retval;
     _3_x = (struct0) {0, 0, 0, 0};
-    _2_t12 = (((int64_t*)(&_3_x))+0);
+    _2_t12 = (((int64_t*)&_3_x)+0);
     _3_y = (struct1) {_2_t12, 4};
     $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:9:\n    y[f()]\n       ^";
     _2_t14 = _4_f();

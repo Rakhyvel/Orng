@@ -25,9 +25,9 @@ int64_t _2_main() {
     int64_t _2_$retval;
     _3_x = (struct0) {1, 2};
     _2_t4 = &_3_x;
-    (_2_t4)->_0 = 76;
+    _2_t4->_0 = 76;
     _2_t6 = &_3_x;
-    _2_$retval = (_2_t6)->_0;
+    _2_$retval = _2_t6->_0;
     return _2_$retval;
 }
 

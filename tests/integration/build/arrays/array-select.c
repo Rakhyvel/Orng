@@ -33,8 +33,8 @@ int64_t _2_main() {
     _2_t4 = (struct0) {3, 4};
     _2_t7 = (struct0) {5, 6};
     _3_x = (struct1) {_2_t1, _2_t4, _2_t7};
-    ((((struct0*)(&_3_x))+1))->_0 = 73;
-    _2_$retval = ((((struct0*)(&_3_x))+1))->_0;
+    (((struct0*)&_3_x)+1)->_0 = 73;
+    _2_$retval = (((struct0*)&_3_x)+1)->_0;
     return _2_$retval;
 }
 

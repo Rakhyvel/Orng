@@ -41,7 +41,7 @@ BB2:
         goto BB4;
     }
 BB4:
-    *(((int64_t*)(&_3_x))+_2_t6) = 0;
+    *(((int64_t*)&_3_x)+_2_t6) = 0;
     _2_$retval = 0;
     return _2_$retval;
 BB3:

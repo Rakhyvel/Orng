@@ -9,6 +9,7 @@ const AST = _ast.AST;
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const IR = _ir.IR;
+const IRKind = _ir.IRKind;
 const Program = _program.Program;
 const Scope = _symbol.Scope;
 const String = strings.String;
@@ -369,7 +370,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .dereference,
         => {
             try printVarAssign(ir.dest.?, out);
-            try generate_IR_RHS(ir, 100, out);
+            try generate_IR_RHS(ir, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
         },
 
@@ -386,7 +387,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
 
         .derefCopy => {
             try out.writer().print("    **", .{});
-            try generateLValueIR(ir.src1.?, out);
+            try generateLValueIR(ir.src1.?, IRKind.dereference.precedence(), out);
             try out.writer().print(" = ", .{});
             try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
@@ -395,10 +396,10 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             // store(lval(index(src1, src2)), rval(data.symbver))
             try out.writer().print("    *(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
-            try out.writer().print("*)(", .{});
-            try generateLValueIR(ir.src1.?, out);
-            try out.writer().print("))+", .{});
-            try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
+            try out.writer().print("*)", .{});
+            try generateLValueIR(ir.src1.?, IRKind.addrOf.precedence(), out);
+            try out.writer().print(")+", .{});
+            try printSymbolVersion(ir.src2.?, IRKind.add.precedence(), out);
             try out.writer().print(") = ", .{});
             try printSymbolVersion(ir.data.symbver, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
@@ -406,7 +407,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print("    *(((", .{});
             try printType(ir.data.symbver.symbol._type.?, out);
             try out.writer().print("*)((", .{});
-            try generateLValueIR(ir.src1.?, out);
+            try generateLValueIR(ir.src1.?, IRKind.select.precedence(), out);
             try out.writer().print(")->_0))+", .{});
             try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
             try out.writer().print(") = ", .{});
@@ -414,9 +415,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print(";\n", .{});
         },
         .selectCopy => {
-            try out.writer().print("    (", .{});
-            try generateLValueIR(ir.src1.?, out);
-            try out.writer().print(")->_{} = ", .{ir.data.int});
+            try out.writer().print("    ", .{});
+            try generateLValueIR(ir.src1.?, IRKind.selectCopy.precedence(), out);
+            try out.writer().print("->_{} = ", .{ir.data.int});
             try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
         },
@@ -502,7 +503,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
                         try printType(expected, out);
                         try out.writer().print(")", .{});
                     }
-                    try printSymbolVersion(symbver, ir.precedence(), out);
+                    try printSymbolVersion(symbver, ir.kind.precedence(), out);
                     if (i != ir.data.symbverList.items.len) {
                         try out.writer().print(", ", .{});
                     }
@@ -516,105 +517,104 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             try out.writer().print(") {{.tag={}", .{ir.data.int});
             if (ir.src1) |init| {
                 try out.writer().print(", ._{}=", .{ir.data.int});
-                try printSymbolVersion(init, ir.precedence(), out);
+                try printSymbolVersion(init, ir.kind.precedence(), out);
             }
             try out.writer().print("}}", .{});
         },
 
         // Monadic instructions
         .copy => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
         },
         .not => {
             try out.writer().print("!", .{});
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
         },
         .negate => {
             try out.writer().print("-", .{});
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
         },
         .addrOf => {
-            try generateLValueIR(ir.src1.?, out);
+            try generateLValueIR(ir.src1.?, ir.kind.precedence(), out);
         },
         .dereference => {
             try out.writer().print("*", .{});
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
         },
 
         // Diadic instructions
         .notEqual => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" != ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .equal => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" == ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .greater => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" > ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .greaterEqual => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" >= ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .lesser => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" < ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .lesserEqual => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" <= ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .add => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" + ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .sub => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" - ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .mult => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" * ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .div => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" / ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .mod => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" % ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .exponent => {
             try out.writer().print("powf(", .{});
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(", ", .{});
-            try printSymbolVersion(ir.src2.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
             try out.writer().print(")", .{});
         },
         .index => {
             try out.writer().print("*", .{});
-            try generateLValueIR(ir.dest.?, out);
+            try generateLValueIR(ir.dest.?, IRKind.dereference.precedence(), out);
         },
         .select => {
-            try out.writer().print("(", .{});
-            try generateLValueIR(ir.src1.?, out);
-            try out.writer().print(")->_{}", .{ir.data.int});
+            try generateLValueIR(ir.src1.?, ir.kind.precedence(), out);
+            try out.writer().print("->_{}", .{ir.data.int});
         },
         .get_tag => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(".tag", .{});
         },
 
@@ -630,7 +630,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             return error.Unimplemented;
         },
         .call => {
-            try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print("(", .{});
             for (ir.data.symbverList.items, 0..) |symbver, i| {
                 try printSymbolVersion(symbver, HIGHEST_PRECEDENCE, out);
@@ -644,48 +644,75 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
 }
 
 // Generates the C code to evaluate the l-value of a given AST
-fn generateLValueIR(symbver: *SymbolVersion, out: *std.fs.File) !void {
+fn generateLValueIR(symbver: *SymbolVersion, outer_precedence: i128, out: *std.fs.File) !void {
     if (symbver.def) |ir| {
         switch (ir.kind) {
             .dereference => {
                 // The lval of a dereference is the reference itself
-                try printSymbolVersion(ir.src1.?, ir.precedence(), out);
+                try printSymbolVersion(ir.src1.?, outer_precedence, out);
             },
             .index => {
                 var lhs_type = ir.src1.?.symbol._type.?;
                 if (lhs_type.* == .product and !lhs_type.product.was_slice) {
-                    try out.writer().print("(((", .{});
+                    if (outer_precedence < IRKind.add.precedence()) {
+                        try out.writer().print("(", .{});
+                    }
+                    try out.writer().print("((", .{});
+                    try printType(ir.dest.?.symbol._type.?, out);
+                    try out.writer().print("*)", .{});
+                    try generateLValueIR(ir.src1.?, IRKind.addrOf.precedence(), out);
+                    try out.writer().print(")+", .{});
+                    try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                    if (outer_precedence < IRKind.add.precedence()) {
+                        try out.writer().print(")", .{});
+                    }
+                } else {
+                    if (outer_precedence < IRKind.add.precedence()) {
+                        try out.writer().print("(", .{});
+                    }
+                    try out.writer().print("((", .{});
                     try printType(ir.dest.?.symbol._type.?, out);
                     try out.writer().print("*)(", .{});
-                    try generateLValueIR(ir.src1.?, out);
-                    try out.writer().print("))+", .{});
-                    try printSymbolVersion(ir.src2.?, ir.precedence(), out);
-                    try out.writer().print(")", .{});
-                } else {
-                    try out.writer().print("(((", .{});
-                    try printType(ir.dest.?.symbol._type.?, out);
-                    try out.writer().print("*)((", .{});
-                    try generateLValueIR(ir.src1.?, out);
-                    try out.writer().print(")->_0))+", .{});
-                    try printSymbolVersion(ir.src2.?, ir.precedence(), out);
-                    try out.writer().print(")", .{});
+                    try generateLValueIR(ir.src1.?, IRKind.select.precedence(), out);
+                    try out.writer().print("->_0))+", .{});
+                    try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                    if (outer_precedence < IRKind.add.precedence()) {
+                        try out.writer().print(")", .{});
+                    }
                 }
             },
             .select => {
-                try out.writer().print("&((", .{});
-                try generateLValueIR(ir.src1.?, out);
-                try out.writer().print(")->_{}", .{ir.data.int});
-                try out.writer().print(")", .{});
+                if (outer_precedence < IRKind.addrOf.precedence()) {
+                    try out.writer().print("(", .{});
+                }
+                try out.writer().print("&", .{});
+                try generateLValueIR(ir.src1.?, IRKind.select.precedence(), out);
+                try out.writer().print("->_{}", .{ir.data.int});
+                if (outer_precedence < IRKind.addrOf.precedence()) {
+                    try out.writer().print(")", .{});
+                }
             },
             else => {
+                if (outer_precedence < IRKind.addrOf.precedence()) {
+                    try out.writer().print("(", .{});
+                }
                 try out.writer().print("&", .{});
-                try printSymbolVersion(symbver, ir.precedence(), out);
+                try printSymbolVersion(symbver, ir.kind.precedence(), out);
+                if (outer_precedence < IRKind.addrOf.precedence()) {
+                    try out.writer().print(")", .{});
+                }
             },
         }
     } else {
         // Function parameters are a common example of symbol versions that do not have a definition
+        if (outer_precedence < IRKind.addrOf.precedence()) {
+            try out.writer().print("(", .{});
+        }
         try out.writer().print("&", .{});
-        try printSymbolVersion(symbver, HIGHEST_PRECEDENCE, out);
+        try printSymbolVersion(symbver, outer_precedence, out);
+        if (outer_precedence < IRKind.addrOf.precedence()) {
+            try out.writer().print(")", .{});
+        }
     }
 }
 
@@ -784,11 +811,11 @@ fn is_literal(ir: *IR) bool {
 
 fn printSymbolVersion(symbver: *SymbolVersion, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (hide_temporary(symbver)) {
-        if (precedence < symbver.def.?.precedence()) {
+        if (precedence < symbver.def.?.kind.precedence()) {
             try out.writer().print("(", .{});
         }
         try generate_IR_RHS(symbver.def.?, precedence, out);
-        if (precedence < symbver.def.?.precedence()) {
+        if (precedence < symbver.def.?.kind.precedence()) {
             try out.writer().print(")", .{});
         }
     } else {

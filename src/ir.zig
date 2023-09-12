@@ -169,6 +169,63 @@ pub const IRKind = enum {
     pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
     popStackTrace, // Pops a message off the stack after a function is successfully called
     panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
+
+    pub fn precedence(self: IRKind) i64 {
+        return switch (self) {
+            .loadSymbol,
+            .loadExtern,
+            .loadInt,
+            .loadFloat,
+            .loadStruct,
+            .loadUnion,
+            .loadString,
+            .copy,
+            => 0,
+
+            .call,
+            .exponent, // implemented as call to powf
+            .index,
+            .indexCopy,
+            .select,
+            .selectCopy,
+            .get_tag,
+            => 1,
+
+            .negate,
+            .not,
+            .dereference,
+            .derefCopy,
+            .addrOf,
+            .sizeOf,
+            => 2,
+
+            .mult,
+            .div,
+            .mod,
+            => 3,
+
+            .add,
+            .sub,
+            => 4,
+
+            // No bitshift operators, would be precedence 5
+
+            .greater,
+            .lesser,
+            .greaterEqual,
+            .lesserEqual,
+            => 6,
+
+            .equal,
+            .notEqual,
+            => 7,
+
+            else => {
+                std.debug.print("Unimplemented precedence for kind {s}\n", .{@tagName(self)});
+                unreachable;
+            },
+        };
+    }
 };
 
 pub const IRData = union(enum) {
@@ -414,60 +471,6 @@ pub const IR = struct {
             try writer.print("\n", .{});
         }
     }
-
-    pub fn precedence(self: *IR) i64 {
-        return switch (self.kind) {
-            .loadSymbol,
-            .loadExtern,
-            .loadInt,
-            .loadFloat,
-            .loadStruct,
-            .loadUnion,
-            .loadString,
-            .copy,
-            => 0,
-
-            .call,
-            .exponent, // implemented as call to powf
-            .index,
-            .select,
-            .get_tag,
-            => 1,
-
-            .negate,
-            .not,
-            .dereference,
-            .addrOf,
-            .sizeOf,
-            => 2,
-
-            .mult,
-            .div,
-            .mod,
-            => 3,
-
-            .add,
-            .sub,
-            => 4,
-
-            // No bitshift operators, would be precedence 5
-
-            .greater,
-            .lesser,
-            .greaterEqual,
-            .lesserEqual,
-            => 6,
-
-            .equal,
-            .notEqual,
-            => 7,
-
-            else => {
-                std.debug.print("Unimplemented precedence for kind {s}\n", .{@tagName(self.kind)});
-                unreachable;
-            },
-        };
-    }
 };
 
 pub const BasicBlock = struct {
@@ -712,7 +715,7 @@ pub const CFG = struct {
         }
     }
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) error{
+    const FlattenASTError = error{
         typeError,
         OutOfMemory,
         NotAnLValue,
@@ -722,7 +725,9 @@ pub const CFG = struct {
         Utf8OverlongEncoding,
         Utf8EncodesSurrogateHalf,
         Utf8CodepointTooLarge,
-    }!?*SymbolVersion {
+    };
+
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
         switch (ast.*) {
             // Literals
             .unit => return null,
@@ -1703,17 +1708,7 @@ pub const CFG = struct {
     }
 
     /// Takes in a type, generates the code to create the default value for that type, returns SymbolVersion
-    fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) error{
-        typeError,
-        OutOfMemory,
-        NotAnLValue,
-        Unimplemented,
-        InvalidRange,
-        Utf8ExpectedContinuation,
-        Utf8OverlongEncoding,
-        Utf8EncodesSurrogateHalf,
-        Utf8CodepointTooLarge,
-    }!?*SymbolVersion {
+    fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
         switch (_type.*) {
             .identifier => {
                 if (std.mem.eql(u8, _type.getToken().data, "Bool")) {
@@ -1803,17 +1798,7 @@ pub const CFG = struct {
         }
     }
 
-    fn generate_assign(self: *CFG, scope: *Scope, lhs: *AST, rhs: *SymbolVersion, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) error{
-        typeError,
-        OutOfMemory,
-        NotAnLValue,
-        Unimplemented,
-        InvalidRange,
-        Utf8ExpectedContinuation,
-        Utf8OverlongEncoding,
-        Utf8EncodesSurrogateHalf,
-        Utf8CodepointTooLarge,
-    }!?*SymbolVersion {
+    fn generate_assign(self: *CFG, scope: *Scope, lhs: *AST, rhs: *SymbolVersion, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
         switch (lhs.*) {
             .identifier => {
                 // Lookup identifier's symbol, create a new version and assign rhs to it
@@ -1882,17 +1867,7 @@ pub const CFG = struct {
         }
     }
 
-    fn generate_pattern(self: *CFG, scope: *Scope, pattern: *AST, _type: *AST, def: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) error{
-        typeError,
-        OutOfMemory,
-        NotAnLValue,
-        Unimplemented,
-        InvalidRange,
-        Utf8ExpectedContinuation,
-        Utf8OverlongEncoding,
-        Utf8EncodesSurrogateHalf,
-        Utf8CodepointTooLarge,
-    }!void {
+    fn generate_pattern(self: *CFG, scope: *Scope, pattern: *AST, _type: *AST, def: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!void {
         if (pattern.* == .symbol) {
             if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
                 var symbver = try SymbolVersion.createUnversioned(pattern.symbol.symbol, pattern.symbol.symbol._type.?, allocator);
@@ -1925,17 +1900,7 @@ pub const CFG = struct {
     }
 
     /// Generates the code which checks if the pattern matches the match expression
-    fn generate_match_pattern_check(self: *CFG, scope: *Scope, pattern: ?*AST, expr: *SymbolVersion, next_pattern: *IR, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) error{
-        typeError,
-        OutOfMemory,
-        NotAnLValue,
-        Unimplemented,
-        InvalidRange,
-        Utf8ExpectedContinuation,
-        Utf8OverlongEncoding,
-        Utf8EncodesSurrogateHalf,
-        Utf8CodepointTooLarge,
-    }!void {
+    fn generate_match_pattern_check(self: *CFG, scope: *Scope, pattern: ?*AST, expr: *SymbolVersion, next_pattern: *IR, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!void {
         if (pattern == null) {
             // Implies `else` branch, infallible.
             return;
@@ -2078,7 +2043,7 @@ pub const CFG = struct {
         self.appendInstruction(end_label);
     }
 
-    fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ InvalidRange, NotAnLValue, OutOfMemory, Unimplemented, typeError, Utf8ExpectedContinuation, Utf8OverlongEncoding, Utf8EncodesSurrogateHalf, Utf8CodepointTooLarge }!void {
+    fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!void {
         var i: usize = defers.items.len;
         while (i > 0) : (i -= 1) {
             self.appendInstruction(deferLabels.items[i - 1]);
