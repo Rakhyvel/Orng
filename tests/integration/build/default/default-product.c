@@ -23,7 +23,7 @@ int64_t _2_main() {
     int64_t _2_t3;
     int64_t _2_$retval;
     _3_x = (struct0) {0, 0.0e+00};
-    if ((&_3_x)->_0 == 0) {
+    if (_3_x._0 == 0) {
         goto BB1;
     } else {
         goto BB11;
@@ -35,7 +35,7 @@ BB10:
     _2_$retval = _2_t3;
     return _2_$retval;
 BB1:
-    if ((&_3_x)->_1 == 0.0e+00) {
+    if (_3_x._1 == 0.0e+00) {
         goto BB4;
     } else {
         goto BB11;

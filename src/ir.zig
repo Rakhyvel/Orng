@@ -179,7 +179,6 @@ pub const IRKind = enum {
             .loadStruct,
             .loadUnion,
             .loadString,
-            .copy,
             => 0,
 
             .call,
@@ -197,6 +196,7 @@ pub const IRKind = enum {
             .derefCopy,
             .addrOf,
             .sizeOf,
+            .cast,
             => 2,
 
             .mult,
@@ -219,6 +219,8 @@ pub const IRKind = enum {
             .equal,
             .notEqual,
             => 7,
+
+            .copy => 14,
 
             else => {
                 std.debug.print("Unimplemented precedence for kind {s}\n", .{@tagName(self)});

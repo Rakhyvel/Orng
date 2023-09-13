@@ -36,7 +36,7 @@ int64_t _2_main() {
         goto BB2;
     }
 BB2:
-    _2_$retval = (&_3_x)->_1;
+    _2_$retval = _3_x._1;
     return _2_$retval;
 BB1:
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:4:8:\n    x.b\n      ^";

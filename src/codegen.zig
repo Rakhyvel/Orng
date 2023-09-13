@@ -392,32 +392,17 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
         },
-        .indexCopy => if (!ir.src1.?.symbol._type.?.product.was_slice) {
-            // store(lval(index(src1, src2)), rval(data.symbver))
-            try out.writer().print("    *(((", .{});
-            try printType(ir.data.symbver.symbol._type.?, out);
-            try out.writer().print("*)", .{});
-            try generateLValueIR(ir.src1.?, IRKind.addrOf.precedence(), out);
-            try out.writer().print(")+", .{});
-            try printSymbolVersion(ir.src2.?, IRKind.add.precedence(), out);
-            try out.writer().print(") = ", .{});
-            try printSymbolVersion(ir.data.symbver, HIGHEST_PRECEDENCE, out);
-            try out.writer().print(";\n", .{});
-        } else {
-            try out.writer().print("    *(((", .{});
-            try printType(ir.data.symbver.symbol._type.?, out);
-            try out.writer().print("*)((", .{});
-            try generateLValueIR(ir.src1.?, IRKind.select.precedence(), out);
-            try out.writer().print(")->_0))+", .{});
-            try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
-            try out.writer().print(") = ", .{});
+        .indexCopy => {
+            try out.writer().print("    *", .{});
+            try generateIndexExpr(ir, IRKind.dereference.precedence(), out);
+            try out.writer().print(" = ", .{});
             try printSymbolVersion(ir.data.symbver, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
         },
         .selectCopy => {
             try out.writer().print("    ", .{});
-            try generateLValueIR(ir.src1.?, IRKind.selectCopy.precedence(), out);
-            try out.writer().print("->_{} = ", .{ir.data.int});
+            try generateSelectIR(ir, IRKind.selectCopy.precedence(), out);
+            try out.writer().print(" = ", .{});
             try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out);
             try out.writer().print(";\n", .{});
         },
@@ -610,8 +595,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             try generateLValueIR(ir.dest.?, IRKind.dereference.precedence(), out);
         },
         .select => {
-            try generateLValueIR(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print("->_{}", .{ir.data.int});
+            try generateSelectIR(ir, ir.kind.precedence(), out);
         },
         .get_tag => {
             try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
@@ -644,50 +628,18 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
 }
 
 // Generates the C code to evaluate the l-value of a given AST
-fn generateLValueIR(symbver: *SymbolVersion, outer_precedence: i128, out: *std.fs.File) !void {
+fn generateLValueIR(symbver: *SymbolVersion, outer_precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (symbver.def) |ir| {
         switch (ir.kind) {
-            .dereference => {
-                // The lval of a dereference is the reference itself
-                try printSymbolVersion(ir.src1.?, outer_precedence, out);
-            },
-            .index => {
-                var lhs_type = ir.src1.?.symbol._type.?;
-                if (lhs_type.* == .product and !lhs_type.product.was_slice) {
-                    if (outer_precedence < IRKind.add.precedence()) {
-                        try out.writer().print("(", .{});
-                    }
-                    try out.writer().print("((", .{});
-                    try printType(ir.dest.?.symbol._type.?, out);
-                    try out.writer().print("*)", .{});
-                    try generateLValueIR(ir.src1.?, IRKind.addrOf.precedence(), out);
-                    try out.writer().print(")+", .{});
-                    try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
-                    if (outer_precedence < IRKind.add.precedence()) {
-                        try out.writer().print(")", .{});
-                    }
-                } else {
-                    if (outer_precedence < IRKind.add.precedence()) {
-                        try out.writer().print("(", .{});
-                    }
-                    try out.writer().print("((", .{});
-                    try printType(ir.dest.?.symbol._type.?, out);
-                    try out.writer().print("*)(", .{});
-                    try generateLValueIR(ir.src1.?, IRKind.select.precedence(), out);
-                    try out.writer().print("->_0))+", .{});
-                    try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
-                    if (outer_precedence < IRKind.add.precedence()) {
-                        try out.writer().print(")", .{});
-                    }
-                }
-            },
+            // The lval of a dereference is the reference itself
+            .dereference => try printSymbolVersion(ir.src1.?, outer_precedence, out),
+            .indexCopy, .index => try generateIndexExpr(ir, outer_precedence, out),
             .select => {
                 if (outer_precedence < IRKind.addrOf.precedence()) {
                     try out.writer().print("(", .{});
                 }
                 try out.writer().print("&", .{});
-                try generateLValueIR(ir.src1.?, IRKind.select.precedence(), out);
-                try out.writer().print("->_{}", .{ir.data.int});
+                try generateSelectExpr(symbver, IRKind.addrOf.precedence(), out);
                 if (outer_precedence < IRKind.addrOf.precedence()) {
                     try out.writer().print(")", .{});
                 }
@@ -713,6 +665,75 @@ fn generateLValueIR(symbver: *SymbolVersion, outer_precedence: i128, out: *std.f
         if (outer_precedence < IRKind.addrOf.precedence()) {
             try out.writer().print(")", .{});
         }
+    }
+}
+
+fn generateIndexExpr(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen_Error!void {
+    // Do not add the index if it is `0`, since this is pointless
+    var do_add = ir.src2.?.def == null or ir.src2.?.def.?.kind != .loadInt or ir.src2.?.def.?.data.int != 0;
+    // Inner self precedence changes depending on if the index is non-zero
+    var self_precedence = if (do_add) IRKind.add.precedence() else IRKind.cast.precedence();
+    if (outer_precedence < self_precedence) {
+        try out.writer().print("(", .{});
+    }
+
+    // Generate reinterpret cast to pointer of elements
+    var elem_type = if (ir.dest != null) ir.dest.?.symbol._type.? else ir.data.symbver.type;
+    try out.writer().print("(", .{});
+    try printType(elem_type, out);
+    try out.writer().print("*)", .{});
+
+    var lhs_type = ir.src1.?.symbol._type.?;
+    if (lhs_type.* == .product and !lhs_type.product.was_slice) {
+        // Array index; dereference(lvalue + index)
+        try generateLValueIR(ir.src1.?, IRKind.cast.precedence(), out);
+    } else {
+        // Slice/String index; dereference(src1._0 + index)
+        try generateSelectExpr(ir.src1.?, IRKind.select.precedence(), out);
+        if (ir.src1.?.def != null and (ir.src1.?.def.?.kind == .dereference or ir.src1.?.def.?.kind == .index)) {
+            try out.writer().print("->_0", .{});
+        } else {
+            try out.writer().print("._0", .{});
+        }
+    }
+
+    if (do_add) {
+        // Only generate index add if index is non-zero
+        try out.writer().print(" + ", .{});
+        try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+    }
+
+    if (outer_precedence < self_precedence) {
+        try out.writer().print(")", .{});
+    }
+}
+
+// Generates the C code of a clean looking select expression.
+fn generateSelectExpr(symbver: *SymbolVersion, outer_precedence: i128, out: *std.fs.File) CodeGen_Error!void {
+    if (symbver.def) |ir| {
+        switch (ir.kind) {
+            .dereference => try printSymbolVersion(ir.src1.?, outer_precedence, out),
+            .index => try generateLValueIR(symbver, outer_precedence, out),
+            .select => try generateSelectIR(ir, outer_precedence, out),
+            else => try printSymbolVersion(symbver, outer_precedence, out),
+        }
+    } else {
+        try printSymbolVersion(symbver, outer_precedence, out);
+    }
+}
+
+fn generateSelectIR(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen_Error!void {
+    if (outer_precedence < IRKind.select.precedence()) {
+        try out.writer().print("(", .{});
+    }
+    try generateSelectExpr(ir.src1.?, IRKind.select.precedence(), out);
+    if (ir.src1.?.def != null and (ir.src1.?.def.?.kind == .dereference or ir.src1.?.def.?.kind == .index)) {
+        try out.writer().print("->_{}", .{ir.data.int});
+    } else {
+        try out.writer().print("._{}", .{ir.data.int});
+    }
+    if (outer_precedence < IRKind.select.precedence()) {
+        try out.writer().print(")", .{});
     }
 }
 

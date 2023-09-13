@@ -37,7 +37,7 @@ int64_t _2_main() {
     int64_t _2_t21;
     int64_t _2_$retval;
     _3_x = (struct0) {0, 0, 0, 0};
-    _2_t12 = (((int64_t*)&_3_x)+0);
+    _2_t12 = (int64_t*)&_3_x;
     _3_y = (struct1) {_2_t12, 4};
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";
     _2_t14 = _4_f();
@@ -49,17 +49,17 @@ int64_t _2_main() {
         goto BB6;
     }
 BB6:
-    _2_t18 = (&_3_y)->_0;
+    _2_t18 = _3_y._0;
     _2_t19 = _2_t18 + _2_t14;
     _3_z = (struct1) {_2_t19, (_2_t15 - _2_t14)};
     _2_t21 = 0;
-    if (_2_t21 >= (&_3_z)->_1) {
+    if (_2_t21 >= _3_z._1) {
         goto BB9;
     } else {
         goto BB10;
     }
 BB10:
-    _2_$retval = (*(((int64_t*)((&_3_z)->_0))+_2_t21));
+    _2_$retval = *((int64_t*)_3_z._0 + _2_t21);
     return _2_$retval;
 BB9:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^";

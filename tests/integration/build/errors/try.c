@@ -55,10 +55,10 @@ BB4:
     _2_$retval = _2_t0 + _2_t6;
     return _2_$retval;
 BB3:
-    _2_t6 = (&_2_t7)->_1;
+    _2_t6 = _2_t7._1;
     goto BB4;
 BB1:
-    _2_t0 = (&_2_t1)->_1;
+    _2_t0 = _2_t1._1;
     goto BB2;
 }
 
@@ -91,7 +91,7 @@ BB7:
     _4_$retval = _4_t1;
     return _4_$retval;
 BB2:
-    _7_x = (&_4_t1)->_1;
+    _7_x = _4_t1._1;
     _4_t0 = (struct0) {.tag=1, ._1=_7_x};
     goto BB6;
 }

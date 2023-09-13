@@ -33,7 +33,7 @@ int64_t _2_main() {
     _2_t5 = _4_f(_2_t6);
     $line_idx--;
     _2_t7 = *_2_t5;
-    _2_$retval = (*(((int64_t*)_2_t5)+3));
+    _2_$retval = *((int64_t*)_2_t5 + 3);
     return _2_$retval;
 }
 
@@ -41,7 +41,7 @@ struct0* _4_f(struct0* _4_x) {
     struct0 _4_t1;
     struct0* _4_$retval;
     _4_t1 = *_4_x;
-    *(((int64_t*)_4_x)+3) = 78;
+    *((int64_t*)_4_x + 3) = 78;
     _4_$retval = _4_x;
     return _4_$retval;
 }

@@ -32,16 +32,16 @@ int64_t _2_main() {
     int64_t _2_t15;
     int64_t _2_$retval;
     _3_x = (struct0) {1, 2, 3, 4, 5};
-    _2_t13 = (((int64_t*)&_3_x)+0);
+    _2_t13 = (int64_t*)&_3_x;
     _3_y = (struct1) {_2_t13, 5};
     _2_t15 = 2;
-    if (_2_t15 >= (&_3_y)->_1) {
+    if (_2_t15 >= _3_y._1) {
         goto BB7;
     } else {
         goto BB8;
     }
 BB8:
-    _2_$retval = *(((int64_t*)((&_3_y)->_0))+_2_t15) + 77;
+    _2_$retval = *((int64_t*)_3_y._0 + _2_t15) + 77;
     return _2_$retval;
 BB7:
     $lines[$line_idx++] = "tests/integration/slices/sliceof.orng:5:7:\n    y[2] + 77\n     ^";

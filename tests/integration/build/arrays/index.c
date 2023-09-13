@@ -29,7 +29,7 @@ int64_t _2_main() {
     _2_t0 = _4_get_array(15, 16);
     $line_idx--;
     _3_x = _2_t0;
-    _2_$retval = *(((int64_t*)&_3_x)+0) + *(((int64_t*)&_3_x)+1) + *(((int64_t*)&_3_x)+2) + *(((int64_t*)&_3_x)+3);
+    _2_$retval = *(int64_t*)&_3_x + *((int64_t*)&_3_x + 1) + *((int64_t*)&_3_x + 2) + *((int64_t*)&_3_x + 3);
     return _2_$retval;
 }
 

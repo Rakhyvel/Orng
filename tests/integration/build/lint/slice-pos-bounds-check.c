@@ -32,7 +32,7 @@ int64_t _2_main() {
     int64_t _2_t14;
     int64_t _2_$retval;
     _3_x = (struct0) {0, 0, 0, 0};
-    _2_t12 = (((int64_t*)&_3_x)+0);
+    _2_t12 = (int64_t*)&_3_x;
     _3_y = (struct1) {_2_t12, 4};
     $lines[$line_idx++] = "tests/integration/lint/slice-pos-bounds-check.orng:5:9:\n    y[f()]\n       ^";
     _2_t14 = _4_f();
@@ -43,13 +43,13 @@ int64_t _2_main() {
         goto BB6;
     }
 BB6:
-    if (_2_t14 >= (&_3_y)->_1) {
+    if (_2_t14 >= _3_y._1) {
         goto BB7;
     } else {
         goto BB8;
     }
 BB8:
-    _2_$retval = (*(((int64_t*)((&_3_y)->_0))+_2_t14));
+    _2_$retval = *((int64_t*)_3_y._0 + _2_t14);
     return _2_$retval;
 BB7:
     $lines[$line_idx++] = "tests/integration/lint/slice-pos-bounds-check.orng:5:7:\n    y[f()]\n     ^";

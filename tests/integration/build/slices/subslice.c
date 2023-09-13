@@ -37,18 +37,18 @@ int64_t _2_main() {
     int64_t _2_t29;
     int64_t _2_$retval;
     _3_x = (struct0) {1, 15, 24, 4, 35, 6};
-    _2_t14 = (((int64_t*)&_3_x)+0);
+    _2_t14 = (int64_t*)&_3_x;
     _2_t16 = 1;
     _2_t21 = _2_t14 + _2_t16;
     _3_z = (struct1) {_2_t21, (5 - _2_t16)};
     _2_t24 = 2;
-    if (_2_t24 >= (&_3_z)->_1) {
+    if (_2_t24 >= _3_z._1) {
         goto BB9;
     } else {
         goto BB10;
     }
 BB10:
-    *(((int64_t*)(((&_3_z))->_0))+_2_t24) = 10;
+    *((int64_t*)_3_z._0 + _2_t24) = 10;
     $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
     _2_t29 = _4_sum_up(_3_z);
     $line_idx--;
@@ -71,7 +71,7 @@ int64_t _4_sum_up(struct1 _4_xs) {
     _6_i = 0;
     goto BB1;
 BB1:
-    if (_6_i < (&_4_xs)->_1) {
+    if (_6_i < _4_xs._1) {
         goto BB2;
     } else {
         goto BB14;
@@ -86,13 +86,13 @@ BB2:
         goto BB6;
     }
 BB6:
-    if (_6_i >= (&_4_xs)->_1) {
+    if (_6_i >= _4_xs._1) {
         goto BB7;
     } else {
         goto BB8;
     }
 BB8:
-    _5_sum = _5_sum + *(((int64_t*)((&_4_xs)->_0))+_6_i);
+    _5_sum = _5_sum + *((int64_t*)_4_xs._0 + _6_i);
     _6_i = _6_i + 1;
     goto BB1;
 BB7:

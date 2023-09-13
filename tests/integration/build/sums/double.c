@@ -34,15 +34,15 @@ int64_t _2_main() {
     int64_t _2_$retval;
     _2_t1 = (struct0) {.tag=0, ._0=4};
     _3_x = (struct1) {.tag=0, ._0=_2_t1};
-    (&(&_3_x)->_0)->_0 = 104;
-    _2_t8 = (&_3_x)->_0;
+    _3_x._0._0 = 104;
+    _2_t8 = _3_x._0;
     if (_2_t8.tag != 0) {
         goto BB5;
     } else {
         goto BB6;
     }
 BB6:
-    _2_$retval = (&_2_t8)->_0;
+    _2_$retval = _2_t8._0;
     return _2_$retval;
 BB5:
     $lines[$line_idx++] = "tests/integration/sums/double.orng:5:14:\n    x.sum.int\n            ^";

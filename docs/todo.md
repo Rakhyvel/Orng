@@ -208,10 +208,10 @@
     - [x] If a temporary is only used once, just inline it's definition with where it's used
         > Will require parens if the surrounding def precedence is higher
     - [x] Panics shouldn't jump, call to panic function instead of just for loop
-    - [ ] Try and print lvaues better
-        - [ ] Try to optimize them. `*&x` is just `x`
-        - [ ] Perhaps do precedence stuff too. Too many parenthesis!
-        - [ ] `+0` in lvalue for indexing is kinda dumb
+    - [x] Try and print lvaues better
+        - [x] `*&x` is just `x`
+        - [x] Perhaps do precedence stuff too. Too many parenthesis!
+        - [x] `+0` in lvalue for indexing is kinda dumb
     - [ ] expand_types should only allocate if anything changes
     - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)

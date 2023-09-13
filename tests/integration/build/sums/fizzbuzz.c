@@ -37,7 +37,7 @@ struct1 _2_main() {
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
     _2_t0 = _4_fizzbuzz(30);
     $line_idx--;
-    _2_$retval = (&_2_t0)->_0;
+    _2_$retval = _2_t0._0;
     return _2_$retval;
 }
 
