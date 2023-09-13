@@ -690,11 +690,19 @@ pub const AST = union(enum) {
             },
             .product => {
                 var terms = std.ArrayList(*AST).init(allocator);
+                var change = false;
                 for (self.product.terms.items) |term| {
-                    try terms.append(try term.exapnd_type(scope, errors, allocator));
+                    var new_term = try term.exapnd_type(scope, errors, allocator);
+                    try terms.append(new_term);
+                    change = new_term != term or change;
                 }
-                retval = try AST.createProduct(self.getToken(), terms, allocator);
-                retval.product.was_slice = self.product.was_slice;
+                if (change) {
+                    retval = try AST.createProduct(self.getToken(), terms, allocator);
+                    retval.product.was_slice = self.product.was_slice;
+                } else {
+                    terms.deinit();
+                    retval = self;
+                }
             },
             .addrOf => {
                 var expr = try self.addrOf.expr.exapnd_type(scope, errors, allocator);

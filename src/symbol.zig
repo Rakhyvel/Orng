@@ -477,6 +477,7 @@ fn create_match_pattern_symbol(match: *AST, scope: *Scope, errors: *errs.Errors,
             var new_scope = try Scope.init(scope, "", allocator);
             mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*Symbol).init(allocator);
+            defer symbols.deinit();
             try create_symbol(&symbols, mapping.mapping.lhs.?, null, match.match.expr, new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;

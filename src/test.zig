@@ -158,6 +158,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     var buf_reader = std.io.bufferedReader(f.reader());
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
+    defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
     var expectedOut = contents[3..untilNewline(contents)];
@@ -254,6 +255,7 @@ fn negativeTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) 
     var buf_reader = std.io.bufferedReader(f.reader());
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
+    defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
 
     // Try to compile Orng (make sure no errors)
@@ -297,6 +299,7 @@ fn fuzzTests() !void {
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
+    defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
 

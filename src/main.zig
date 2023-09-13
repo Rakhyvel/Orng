@@ -54,6 +54,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     var buf_reader = std.io.bufferedReader(file.reader());
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
+    defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
 
@@ -73,6 +74,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
             else => return err,
         }
     };
+    // TODO: defer file_root.deinit()
     output(errors, &lines, file_root, uid, out_name, allocator) catch |err| {
         switch (err) {
             error.symbolError,
@@ -174,6 +176,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
 
         // C Code generation
         var program = try Program.init(cfg, uid, &interned_strings, try symbol.getPrelude(allocator), errors, allocator);
+        // TODO: defer program.deinit()
         program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
         var outputFile = try std.fs.cwd().createFile(

@@ -411,18 +411,22 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .exponent => {
-            var poisoned = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
+            var poisoned = false;
+            var changed = false;
             for (ast.exponent.terms.items) |term| {
                 var new_term = try validateAST(term, _ast.floatType, scope, errors, allocator);
                 try new_terms.append(new_term);
-                if (new_term.* == .poison) {
-                    poisoned = true;
-                }
+                changed = changed or new_term != term;
+                poisoned = poisoned or new_term.* == .poison;
             }
             if (poisoned) {
                 return _ast.poisoned;
-            } else ast.exponent.terms = new_terms;
+            } else if (changed) {
+                ast.exponent.terms = new_terms;
+            } else {
+                new_terms.deinit();
+            }
             if (expected != null and !try expected.?.typesMatch(_ast.intType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType } });
                 return _ast.poisoned;
@@ -592,6 +596,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .sum => {
             var poisoned = false;
+            var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
             var idents_seen = std.StringArrayHashMap(*AST).init(allocator);
             defer idents_seen.deinit();
@@ -599,6 +604,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 // Make sure identifiers aren't repeated
                 if (term.* == .annotation) {
                     var new_term = try validateAST(term, _ast.typeType, scope, errors, allocator);
+                    changed = changed or new_term != term;
                     try new_terms.append(new_term);
                     if (new_term.* == .poison) {
                         poisoned = true;
@@ -612,6 +618,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 } else if (term.* == .identifier) {
                     var new_annotation = try AST.createAnnotation(term.getToken(), term, _ast.unitType, null, null, allocator);
                     new_annotation.getCommon().is_valid = true;
+                    changed = true;
                     try new_terms.append(new_annotation);
                     var name = term.getToken().data;
                     var res = try idents_seen.fetchPut(name, term);
@@ -626,8 +633,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             if (poisoned) {
                 return _ast.poisoned;
+            } else if (changed) {
+                ast.sum.terms = new_terms;
+            } else {
+                new_terms.deinit();
             }
-            ast.sum.terms = new_terms;
             if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.typeType } });
                 return _ast.poisoned;
@@ -648,17 +658,18 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .product => {
             var poisoned = false;
+            var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 // Expecting ast to be a product type
                 for (ast.product.terms.items) |term| {
                     var new_term = try validateAST(term, _ast.typeType, scope, errors, allocator);
+                    changed = changed or new_term != term;
                     try new_terms.append(new_term);
                     if (new_term.* == .poison) {
                         poisoned = true;
                     }
                 }
-                ast.product.terms = new_terms;
             } else if (expected != null and expected.?.* == .product) {
                 // Expecting ast to be a product value
                 if (expected.?.product.terms.items.len != ast.product.terms.items.len) {
@@ -667,12 +678,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 for (ast.product.terms.items, expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
                     var new_term = try validateAST(term, expected_term, scope, errors, allocator);
+                    changed = changed or new_term != term;
                     try new_terms.append(new_term);
                     if (new_term.* == .poison) {
                         poisoned = true;
                     }
                 }
-                ast.product.terms = new_terms;
             } else if (expected == null) {
                 // Not expecting anything
                 for (ast.product.terms.items) |term| {
@@ -682,13 +693,16 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         poisoned = true;
                     }
                 }
-                ast.product.terms = new_terms;
             } else {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.poisoned } });
                 return _ast.poisoned;
             }
             if (poisoned) {
                 return _ast.poisoned;
+            } else if (changed) {
+                ast.product.terms = new_terms;
+            } else {
+                new_terms.deinit();
             }
             retval = ast;
         },
@@ -717,6 +731,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else {
                 var new_terms = std.ArrayList(*AST).init(allocator);
                 var names = std.StringArrayHashMap(*AST).init(allocator);
+                defer names.deinit();
 
                 for (expand_lhs.sum.terms.items) |term| {
                     putAnnotation(term, &names, errors) catch |err| switch (err) {
@@ -738,23 +753,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .conditional => {
             var poisoned = false;
+            var changed = false;
             var new_exprs = std.ArrayList(*AST).init(allocator);
             for (ast.conditional.exprs.items) |child| {
                 var new_term = try validateAST(child, _ast.floatType, scope, errors, allocator);
+                changed = changed or new_term != child;
                 try new_exprs.append(new_term);
                 if (new_term.* == .poison) {
                     poisoned = true;
                 }
             }
-            ast.conditional.exprs = new_exprs;
             if (expected != null and !try expected.?.typesMatch(_ast.boolType, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return _ast.poisoned;
             } else if (poisoned) {
                 return _ast.poisoned;
+            } else if (changed) {
+                ast.conditional.exprs = new_exprs;
             } else {
-                retval = ast;
+                new_exprs.deinit();
             }
+            retval = ast;
         },
         .addrOf => {
             if (expected == null) {
@@ -1036,6 +1055,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             // Go through mappings, get their validated form
+            var changed = false;
             var new_mappings = std.ArrayList(*AST).init(allocator);
             for (ast.match.mappings.items) |mapping| {
                 if (expected != null) {
@@ -1047,12 +1067,14 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         // match has `else` => validate regular expected type
                         var new_mapping = try validateAST(mapping, expected, ast.match.scope.?, errors, allocator);
                         try new_mappings.append(new_mapping);
+                        changed = changed or new_mapping != mapping;
                         poisoned = poisoned or new_mapping.* == .poison;
                     } else if (is_expected_optional) {
                         // match has no `else`, expecting an optional type => validate mappings w/ base of optional expected type
                         var full_type = expected_expanded.sum.terms.items[1];
                         var new_mapping = try validateAST(mapping, full_type, ast.match.scope.?, errors, allocator);
                         try new_mappings.append(new_mapping);
+                        changed = changed or new_mapping != mapping;
                         poisoned = poisoned or new_mapping.* == .poison;
                     } else {
                         // match has no else, not expecting an optional type => type error
@@ -1065,6 +1087,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     // Not expecting anything => validate mappings with null type
                     var new_mapping = try validateAST(mapping, null, ast.match.scope.?, errors, allocator);
                     try new_mappings.append(new_mapping);
+                    changed = changed or new_mapping != mapping;
                     poisoned = poisoned or new_mapping.* == .poison;
                 }
                 if (mapping.mapping.lhs) |lhs| {
@@ -1074,10 +1097,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             try exhaustive_check(expr_type_expanded, &ast.match.mappings, ast.getToken().span, errors, allocator);
             if (poisoned) {
                 return _ast.poisoned;
-            } else {
+            } else if (changed) {
                 ast.match.mappings = new_mappings;
-                retval = ast;
+            } else {
+                new_mappings.deinit();
             }
+            retval = ast;
         },
         .mapping => {
             // lhs for match mappings must be done elsewhere
@@ -1128,39 +1153,36 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .block => {
+            var changed = false;
             var poisoned = false;
             var new_statements = std.ArrayList(*AST).init(allocator);
             if (ast.block.final) |final| {
                 // Has final
-                var i: usize = 0;
-                while (i < ast.block.statements.items.len) : (i += 1) {
-                    var term = ast.block.statements.items[i];
-                    var new_statement = try validateAST(term, null, ast.block.scope.?, errors, allocator);
+                for (ast.block.statements.items) |statement| {
+                    var new_statement = try validateAST(statement, null, ast.block.scope.?, errors, allocator);
                     try new_statements.append(new_statement);
                     poisoned = poisoned or new_statement.* == .poison;
+                    changed = changed or new_statement != statement;
                 }
-                ast.block.statements = new_statements;
                 ast.block.final = try validateAST(final, expected, ast.block.scope.?, errors, allocator);
                 poisoned = poisoned or ast.block.final.?.* == .poison;
+                if (changed) {
+                    ast.block.statements = new_statements;
+                } else {
+                    new_statements.deinit();
+                }
             } else {
-                // block has no 'final' statement (return, continue, break, etc)
-                if (ast.block.statements.items.len > 1) {
-                    var i: usize = 0;
-                    while (i < ast.block.statements.items.len - 1) : (i += 1) {
-                        var term = ast.block.statements.items[i];
-                        var new_statement = try validateAST(term, null, ast.block.scope.?, errors, allocator);
-                        try new_statements.append(new_statement);
-                        poisoned = poisoned or new_statement.* == .poison;
-                    }
-                    var new_statement = try validateAST(ast.block.statements.items[ast.block.statements.items.len - 1], expected, ast.block.scope.?, errors, allocator);
+                for (ast.block.statements.items, 0..) |statement, i| {
+                    var expect_type: ?*AST = if (i == ast.block.statements.items.len - 1) expected else null;
+                    var new_statement = try validateAST(statement, expect_type, ast.block.scope.?, errors, allocator);
                     try new_statements.append(new_statement);
                     poisoned = poisoned or new_statement.* == .poison;
+                    changed = changed or new_statement != statement;
+                }
+                if (changed) {
                     ast.block.statements = new_statements;
-                } else if (ast.block.statements.items.len == 1) {
-                    var new_statement = try validateAST(ast.block.statements.items[0], expected, ast.block.scope.?, errors, allocator);
-                    try new_statements.append(new_statement);
-                    poisoned = poisoned or new_statement.* == .poison;
-                    ast.block.statements = new_statements;
+                } else {
+                    new_statements.deinit();
                 }
 
                 ast.getCommon().is_valid = true; // So that the typeof code can be reused. All children should be validated at this point
@@ -1409,6 +1431,7 @@ fn positionalArgs(ast: *AST, expected: *AST, allocator: std.mem.Allocator) !*AST
 fn namedArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
     // Maps assign.lhs name to assign.rhs
     var arg_map = std.StringArrayHashMap(*AST).init(allocator);
+    defer arg_map.deinit();
 
     // Associate argument names with their values
     switch (ast.*) { // Can assume ast is either assignment, or product of assignments

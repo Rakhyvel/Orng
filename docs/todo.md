@@ -215,6 +215,7 @@
     - [ ] expand_types should only allocate if anything changes
     - [ ] set retval to poison, don't just return from validateAST
     - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
+        > These aren't always reduced, especially if the other side is variable
     - [ ] multiplying by 0
     - [x] avoid struct copies on select
     - [ ] local value numbering
