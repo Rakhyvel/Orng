@@ -165,6 +165,10 @@
     - [x] dynaminc union tag check
     - [ ] sanitize call stack lines to escape " and \
     - [ ] suggest the most similar visible identifier when an unknown identifier is used
+    - [ ] Make Arithmetic (operators) Great, Allegedly
+        - [ ] Types on both sides should be equal. Expect proper type (No subtyping!)
+        - [ ] Define for Int8...Int64, Float32, Float64, Byte...Word64
+        - [ ] Add UB checking
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
@@ -212,24 +216,24 @@
         - [x] `*&x` is just `x`
         - [x] Perhaps do precedence stuff too. Too many parenthesis!
         - [x] `+0` in lvalue for indexing is kinda dumb
-    - [ ] expand_types should only allocate if anything changes
-    - [ ] set retval to poison, don't just return from validateAST
-    - [ ] identity optimizations (adding 0, multiplying by 1, etc..)
+    - [x] expand_types should only allocate if anything changes
+    - [x] set retval to poison, don't just return from validateAST
+    - [x] identity optimizations (adding 0, multiplying by 1, etc..)
         > These aren't always reduced, especially if the other side is variable
-    - [ ] multiplying by 0
+    - [x] multiplying by 0, 1 mod x
     - [x] avoid struct copies on select
+    - [ ] better select optimizations
+    - [ ] if a function is just one expression, just return that expression
     - [ ] local value numbering
     - [ ] partial redundancy elimination
-    - [ ] redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
-    - [ ] better select optimizations
+        - [ ] loop invariant lifting
     - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
         > At the *very* least, add a flag to symbols to see if they're aliased with & at all
         > OR: be able to tell that, say, src1 symbver is not updated between it's last update and now. Tough to do with BBs I think
     - [ ] ! inlining
-    - [ ] ? loop invariant lifting
-    - [ ] temporary combining (basically register allocation) (do this one last!) (might not be needed...)
-    - [ ] if a function is just one expression, just return that expression
+        > Incredibly important optimization
+    - [ ] ? temporary combining (basically register allocation) (do this one last!) (might not be needed...)
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`

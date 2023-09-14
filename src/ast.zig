@@ -1190,6 +1190,13 @@ pub const AST = union(enum) {
         }
     }
 
+    // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
+    pub fn enpoison(self: *AST) *AST {
+        self.getCommon().is_valid = true;
+        self.* = poisoned.*;
+        return self;
+    }
+
     pub fn c_typesMatch(self: *AST, other: *AST) bool {
         if (self.* == .annotation) {
             return c_typesMatch(self.annotation.type, other);
