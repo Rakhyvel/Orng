@@ -28,21 +28,18 @@ int64_t _2_main() {
     } else {
         goto BB11;
     }
-BB11:
-    _2_t3 = 0;
-    goto BB10;
-BB10:
-    _2_$retval = _2_t3;
-    return _2_$retval;
 BB1:
     if (_3_x._1 == 0.0e+00) {
         goto BB4;
-    } else {
-        goto BB11;
     }
+BB11:
+    _2_t3 = 0;
+    goto BB10;
 BB4:
     _2_t3 = 135;
-    goto BB10;
+BB10:
+    _2_$retval = _2_t3;
+    return _2_$retval;
 }
 
 int main()

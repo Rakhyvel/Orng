@@ -26,6 +26,9 @@ int64_t _2_main() {
     } else {
         goto BB16;
     }
+BB5:
+    _2_t2 = 33;
+    goto BB8;
 BB16:
     _2_t9 = *_3_y;
     _2_t7 = 4 > _2_t9;
@@ -34,9 +37,6 @@ BB16:
     } else {
         goto BB15;
     }
-BB15:
-    _2_t2 = 10;
-    goto BB8;
 BB8:
     _2_$retval = _2_t2;
     return _2_$retval;
@@ -44,11 +44,9 @@ BB12:
     _2_t7 = _2_t9 >= 3.0e+00;
     if (_2_t7) {
         goto BB5;
-    } else {
-        goto BB15;
     }
-BB5:
-    _2_t2 = 33;
+BB15:
+    _2_t2 = 10;
     goto BB8;
 }
 

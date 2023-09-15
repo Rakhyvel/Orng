@@ -222,9 +222,8 @@
         > These aren't always reduced, especially if the other side is variable
     - [x] multiplying by 0, 1 mod x
     - [x] avoid struct copies on select
-    - [ ] investigate optional/orelse.orng
-    - [ ] don't *ever* go to the first BB in a CFG, but do print its label if it's jumped to
-    - [ ] output BB breadth-first, use a queue, do not use recursion
+    - [x] output BB breadth-first, use a queue, do not use recursion
+        - [x] don't `goto` BB if it's the next one in the queue
     - [ ] if a branch depends on a symbver with a `negate` def IR, plunge `negate` and flip labels
     - [ ] replace `x != 0` with x, `x == 0` with `!x`
     - [ ] copy propagate `loadSymbol` IR
@@ -232,6 +231,7 @@
     - [ ] investigate `flow` for `and/or/not` IR generation
     - [ ] `printSymbolVersion` should collapse addrOf IR, etc
     - [ ] `derefCopy` should elide `*&`s
+    - [ ] instead of checking if def is null, do `what is the most recent definition in this bb`
     - [ ] better select optimizations
     - [ ] local value numbering
     - [ ] partial redundancy elimination

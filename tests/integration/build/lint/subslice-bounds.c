@@ -48,6 +48,13 @@ int64_t _2_main() {
     } else {
         goto BB6;
     }
+BB5:
+    $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
+    fprintf(stderr, "panic: subslice lower bound is greater than upper bound\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
 BB6:
     _2_t18 = _3_y._0;
     _2_t19 = _2_t18 + _2_t14;
@@ -58,9 +65,6 @@ BB6:
     } else {
         goto BB10;
     }
-BB10:
-    _2_$retval = *((int64_t*)_3_z._0 + _2_t21);
-    return _2_$retval;
 BB9:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -68,13 +72,9 @@ BB9:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-BB5:
-    $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
-    fprintf(stderr, "panic: subslice lower bound is greater than upper bound\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
+BB10:
+    _2_$retval = *((int64_t*)_3_z._0 + _2_t21);
+    return _2_$retval;
 }
 
 int64_t _4_f() {

@@ -41,9 +41,6 @@ int64_t _2_main() {
     } else {
         goto BB6;
     }
-BB6:
-    _2_$retval = _2_t8._0;
-    return _2_$retval;
 BB5:
     $lines[$line_idx++] = "tests/integration/sums/double.orng:5:14:\n    x.sum.int\n            ^";
     fprintf(stderr, "panic: access of inactive sum field\n");
@@ -51,6 +48,9 @@ BB5:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
+BB6:
+    _2_$retval = _2_t8._0;
+    return _2_$retval;
 }
 
 int main()

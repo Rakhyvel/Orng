@@ -30,6 +30,11 @@ int64_t _2_main() {
     } else {
         goto BB7;
     }
+BB2:
+    _5_x = _2_t1._1;
+    _5_y = _2_t1._2;
+    _2_$retval = 100 + _5_x + _5_y;
+    return _2_$retval;
 BB7:
     $lines[$line_idx++] = "tests/integration/pattern/match-product.orng:5:28:\n        else => unreachable\n                          ^";
     fprintf(stderr, "panic: reached unreachable code\n");
@@ -37,11 +42,6 @@ BB7:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-BB2:
-    _5_x = _2_t1._1;
-    _5_y = _2_t1._2;
-    _2_$retval = 100 + _5_x + _5_y;
-    return _2_$retval;
 }
 
 int main()

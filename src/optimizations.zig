@@ -45,6 +45,8 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     {}
     cfg.clearVisitedBBs();
 
+    log_optimization_pass("final", cfg);
+
     for (cfg.children.items) |child| {
         try optimize(child, errors, interned_strings, allocator);
     }

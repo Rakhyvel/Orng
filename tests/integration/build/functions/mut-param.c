@@ -27,20 +27,19 @@ int64_t _4_sumDown(int64_t _4_x) {
     int64_t _6_i;
     int64_t _4_$retval;
     _6_i = _4_x;
-    goto BB1;
 BB1:
     if (_6_i >= 0) {
         goto BB2;
     } else {
         goto BB10;
     }
-BB10:
-    _4_$retval = _4_x;
-    return _4_$retval;
 BB2:
     _4_x = _4_x + _6_i;
     _6_i = _6_i - 1;
     goto BB1;
+BB10:
+    _4_$retval = _4_x;
+    return _4_$retval;
 }
 
 int main()

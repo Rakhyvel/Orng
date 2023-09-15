@@ -26,12 +26,6 @@ int64_t _2_main() {
     } else {
         goto BB9;
     }
-BB9:
-    _2_t2 = 1000;
-    goto BB6;
-BB6:
-    _2_$retval = _2_t2;
-    return _2_$retval;
 BB1:
     _5_z = *_3_y;
     _2_t8 = _3_y;
@@ -44,6 +38,11 @@ BB1:
     _5_z = _5_z * -1.0e+00;
     _2_t2 = _5_z;
     goto BB6;
+BB9:
+    _2_t2 = 1000;
+BB6:
+    _2_$retval = _2_t2;
+    return _2_$retval;
 }
 
 int main()

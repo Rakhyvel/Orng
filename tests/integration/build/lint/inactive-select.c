@@ -35,9 +35,6 @@ int64_t _2_main() {
     } else {
         goto BB2;
     }
-BB2:
-    _2_$retval = _3_x._1;
-    return _2_$retval;
 BB1:
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:4:8:\n    x.b\n      ^";
     fprintf(stderr, "panic: access of inactive sum field\n");
@@ -45,6 +42,9 @@ BB1:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
+BB2:
+    _2_$retval = _3_x._1;
+    return _2_$retval;
 }
 
 struct0 _4_f() {

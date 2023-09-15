@@ -50,9 +50,6 @@ int64_t _4_f(struct1 _4_x) {
     } else {
         goto BB4;
     }
-BB4:
-    _4_$retval = *((int64_t*)_4_x._0 + _4_t0) + 80;
-    return _4_$retval;
 BB3:
     $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:8:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                      ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -60,6 +57,9 @@ BB3:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
+BB4:
+    _4_$retval = *((int64_t*)_4_x._0 + _4_t0) + 80;
+    return _4_$retval;
 }
 
 int main()

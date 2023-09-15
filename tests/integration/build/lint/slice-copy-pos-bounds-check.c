@@ -42,23 +42,6 @@ int64_t _2_main() {
     } else {
         goto BB6;
     }
-BB6:
-    if (_2_t15 >= _3_y._1) {
-        goto BB7;
-    } else {
-        goto BB8;
-    }
-BB8:
-    *((int64_t*)_3_y._0 + _2_t15) = 0;
-    _2_$retval = 0;
-    return _2_$retval;
-BB7:
-    $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^";
-    fprintf(stderr, "panic: index is greater than length\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
 BB5:
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^";
     fprintf(stderr, "panic: index is negative\n");
@@ -66,6 +49,23 @@ BB5:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
+BB6:
+    if (_2_t15 >= _3_y._1) {
+        goto BB7;
+    } else {
+        goto BB8;
+    }
+BB7:
+    $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+BB8:
+    *((int64_t*)_3_y._0 + _2_t15) = 0;
+    _2_$retval = 0;
+    return _2_$retval;
 }
 
 int64_t _4_f() {

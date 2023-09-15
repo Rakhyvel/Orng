@@ -16,29 +16,28 @@ int64_t _2_main() {
     int64_t _3_x;
     int64_t _2_$retval;
     _3_x = 0;
-    goto BB1;
 BB1:
     if (_3_x < 100) {
         goto BB2;
     } else {
         goto BB10;
     }
-BB10:
-    _2_$retval = _3_x;
-    return _2_$retval;
 BB2:
     if (_3_x >= 36) {
         goto BB5;
     } else {
         goto BB16;
     }
+BB10:
+    _2_$retval = _3_x;
+    return _2_$retval;
+BB5:
+    _3_x = _3_x + 2;
+    goto BB10;
 BB16:
     _3_x = _3_x + 2;
     _3_x = _3_x + 1;
     goto BB1;
-BB5:
-    _3_x = _3_x + 2;
-    goto BB10;
 }
 
 int main()

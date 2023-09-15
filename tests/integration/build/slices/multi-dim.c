@@ -66,6 +66,13 @@ int64_t _2_main() {
     } else {
         goto BB20;
     }
+BB19:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][2] = 82\n     ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
 BB20:
     _2_t43 = *((struct1*)_3_z._0 + _2_t42);
     _2_t48 = 2;
@@ -74,6 +81,13 @@ BB20:
     } else {
         goto BB24;
     }
+BB23:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n        ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
 BB24:
     *((int64_t*)_2_t43._0 + _2_t48) = 82;
     _2_t53 = 1;
@@ -82,6 +96,13 @@ BB24:
     } else {
         goto BB28;
     }
+BB27:
+    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:7:\n    z[1][2]\n     ^";
+    fprintf(stderr, "panic: index is greater than length\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
 BB28:
     _2_t54 = *((struct1*)_3_z._0 + _2_t53);
     _2_t59 = 2;
@@ -90,9 +111,6 @@ BB28:
     } else {
         goto BB32;
     }
-BB32:
-    _2_$retval = *((int64_t*)_2_t54._0 + _2_t59);
-    return _2_$retval;
 BB31:
     $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][2]\n        ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -100,27 +118,9 @@ BB31:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-BB27:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:7:7:\n    z[1][2]\n     ^";
-    fprintf(stderr, "panic: index is greater than length\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
-BB23:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n        ^";
-    fprintf(stderr, "panic: index is greater than length\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
-BB19:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][2] = 82\n     ^";
-    fprintf(stderr, "panic: index is greater than length\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
+BB32:
+    _2_$retval = *((int64_t*)_2_t54._0 + _2_t59);
+    return _2_$retval;
 }
 
 int main()

@@ -26,27 +26,25 @@ int64_t _2_main() {
     } else {
         goto BB9;
     }
+BB1:
+    _2_t2 = 1;
+    goto BB2;
 BB9:
     _2_t2 = 0;
-    goto BB2;
 BB2:
     if (!!!_2_t2) {
         goto BB3;
     } else {
         goto BB7;
     }
-BB7:
-    _2_t8 = 10;
-    goto BB6;
-BB6:
-    _2_$retval = _2_t8;
-    return _2_$retval;
 BB3:
     _2_t8 = 31;
     goto BB6;
-BB1:
-    _2_t2 = 1;
-    goto BB2;
+BB7:
+    _2_t8 = 10;
+BB6:
+    _2_$retval = _2_t8;
+    return _2_$retval;
 }
 
 int main()

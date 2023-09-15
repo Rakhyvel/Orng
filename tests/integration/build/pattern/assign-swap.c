@@ -35,6 +35,10 @@ int64_t _2_main() {
     } else {
         goto BB11;
     }
+BB1:
+    if (_3_x == 2) {
+        goto BB4;
+    }
 BB11:
     $lines[$line_idx++] = "tests/integration/pattern/assign-swap.orng:8:20:\n        unreachable\n                  ^";
     fprintf(stderr, "panic: reached unreachable code\n");
@@ -42,12 +46,6 @@ BB11:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-BB1:
-    if (_3_x == 2) {
-        goto BB4;
-    } else {
-        goto BB11;
-    }
 BB4:
     _2_$retval = 159;
     return _2_$retval;

@@ -54,18 +54,17 @@ int64_t _8_c(int64_t _8_n) {
     } else {
         goto BB9;
     }
+BB1:
+    _8_t0 = 47;
+    goto BB6;
 BB9:
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
     _8_t4 = _4_a(_8_n);
     $line_idx--;
     _8_t0 = _8_t4;
-    goto BB6;
 BB6:
     _8_$retval = _8_t0;
     return _8_$retval;
-BB1:
-    _8_t0 = 47;
-    goto BB6;
 }
 
 int main()

@@ -51,32 +51,32 @@ struct0 _4_fizzbuzz(int64_t _4_n) {
     } else {
         goto BB7;
     }
+BB4:
+    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_0, 9}};
+    goto BB6;
 BB7:
     if (_4_t1 == _4_n % 5) {
         goto BB10;
     } else {
         goto BB11;
     }
+BB6:
+    _4_$retval = _4_t0;
+    return _4_$retval;
+BB10:
+    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_1, 5}};
+    goto BB6;
 BB11:
     if (_4_t1 == _4_n % 3) {
         goto BB14;
     } else {
         goto BB16;
     }
-BB16:
-    _4_t0 = (struct0) {.tag=1, ._1=_4_n};
-    goto BB6;
-BB6:
-    _4_$retval = _4_t0;
-    return _4_$retval;
 BB14:
     _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_2, 5}};
     goto BB6;
-BB10:
-    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_1, 5}};
-    goto BB6;
-BB4:
-    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_0, 9}};
+BB16:
+    _4_t0 = (struct0) {.tag=1, ._1=_4_n};
     goto BB6;
 }
 

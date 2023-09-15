@@ -24,15 +24,14 @@ int64_t _2_main() {
     } else {
         goto BB9;
     }
-BB9:
-    _2_t2 = 10;
-    goto BB6;
-BB6:
-    _2_$retval = _2_t2;
-    return _2_$retval;
 BB1:
     _2_t2 = 32;
     goto BB6;
+BB9:
+    _2_t2 = 10;
+BB6:
+    _2_$retval = _2_t2;
+    return _2_$retval;
 }
 
 int main()

@@ -36,6 +36,9 @@ int64_t _2_main() {
     } else {
         goto BB40;
     }
+BB33:
+    _2_$retval = 162;
+    return _2_$retval;
 BB40:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     fprintf(stderr, "panic: reached unreachable code\n");
@@ -43,9 +46,6 @@ BB40:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    return _2_$retval;
-BB33:
-    _2_$retval = 162;
     return _2_$retval;
 }
 

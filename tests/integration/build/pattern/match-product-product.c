@@ -39,12 +39,23 @@ int64_t _2_main() {
     } else {
         goto BB7;
     }
+BB2:
+    if (_2_t8._1 == 130) {
+        goto BB3;
+    }
 BB7:
     _2_t16 = _2_t1._0;
     if (_2_t1._0._0 == 100) {
         goto BB8;
     } else {
         goto BB12;
+    }
+BB3:
+    _2_t0 = 4;
+    goto BB6;
+BB8:
+    if (_2_t16._1 == 100) {
+        goto BB9;
     }
 BB12:
     $lines[$line_idx++] = "tests/integration/pattern/match-product-product.orng:6:28:\n        else => unreachable\n                          ^";
@@ -53,26 +64,11 @@ BB12:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-BB8:
-    if (_2_t16._1 == 100) {
-        goto BB9;
-    } else {
-        goto BB12;
-    }
-BB9:
-    _2_t0 = 170;
-    goto BB6;
 BB6:
     _2_$retval = _2_t0;
     return _2_$retval;
-BB2:
-    if (_2_t8._1 == 130) {
-        goto BB3;
-    } else {
-        goto BB7;
-    }
-BB3:
-    _2_t0 = 4;
+BB9:
+    _2_t0 = 170;
     goto BB6;
 }
 

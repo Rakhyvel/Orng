@@ -40,9 +40,6 @@ int64_t _2_main() {
     } else {
         goto BB8;
     }
-BB8:
-    _2_$retval = *((int64_t*)_3_y._0 + _2_t15) + 77;
-    return _2_$retval;
 BB7:
     $lines[$line_idx++] = "tests/integration/slices/sliceof.orng:5:7:\n    y[2] + 77\n     ^";
     fprintf(stderr, "panic: index is greater than length\n");
@@ -50,6 +47,9 @@ BB7:
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
+BB8:
+    _2_$retval = *((int64_t*)_3_y._0 + _2_t15) + 77;
+    return _2_$retval;
 }
 
 int main()

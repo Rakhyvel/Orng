@@ -274,59 +274,75 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
     }
 }
 
-fn generateBasicBlock(callGraph: *CFG, bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void {
-    if (bb.visited) {
-        return;
-    }
-    bb.visited = true;
+fn generateBasicBlock(callGraph: *CFG, start_bb: *BasicBlock, symbol: *Symbol, out: *std.fs.File) !void {
+    var bb_queue = std.ArrayList(*BasicBlock).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
+    defer bb_queue.deinit();
+    try bb_queue.append(start_bb);
 
-    const is_head_bb = callGraph.block_graph_head != null and callGraph.block_graph_head.? == bb;
-    const no_incoming = bb.number_predecessors <= 1;
-    if (!is_head_bb or !no_incoming) {
-        // Only print the label if this basic block isn't the first one in the graph
-        try out.writer().print("BB{}:\n", .{bb.uid});
-    }
-    var maybe_ir = bb.ir_head;
-    while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-        try generateIR(ir, out);
-    }
+    var head: usize = 0;
+    while (head < bb_queue.items.len) {
+        var bb: *BasicBlock = bb_queue.items[head];
+        head += 1;
 
-    if (!bb.has_panic) {
-        if (bb.has_branch) {
-            // Generate the if
-            try out.writer().print("    if (", .{});
-            try printSymbolVersion(bb.condition.?, HIGHEST_PRECEDENCE, out);
-            try out.writer().print(") {{\n", .{});
+        const is_head_bb = callGraph.block_graph_head != null and callGraph.block_graph_head.? == bb;
+        const no_incoming = bb.number_predecessors <= 1;
+        if (!is_head_bb or !no_incoming) {
+            // Only print the label if this basic block isn't the first one in the graph
+            try out.writer().print("BB{}:\n", .{bb.uid});
+        }
+        var maybe_ir = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            try generateIR(ir, out);
+        }
 
-            // Generate branch `if-else`
-            if (bb.next) |next| {
-                try out.writer().print("        goto BB{};\n    }} else {{\n", .{next.uid});
+        if (!bb.has_panic) {
+            if (bb.has_branch) {
+                // Generate the if
+                try out.writer().print("    if (", .{});
+                try printSymbolVersion(bb.condition.?, HIGHEST_PRECEDENCE, out);
+                try out.writer().print(") {{\n", .{});
+
+                // Generate the `next` BB
+                if (bb.next) |next| {
+                    try out.writer().print("        goto BB{};\n    }}", .{next.uid});
+                    if (!next.visited) {
+                        try bb_queue.append(next);
+                        next.visited = true;
+                    }
+                } else {
+                    try out.writer().print("    ", .{});
+                    try printReturn(symbol, out);
+                    try out.writer().print("    }}", .{});
+                }
+
+                // Generate the `branch` BB if it isn't the next one up
+                if (bb.branch) |branch| {
+                    if (!branch.visited) {
+                        try bb_queue.append(branch);
+                        branch.visited = true;
+                    }
+                    if (head >= bb_queue.items.len or bb_queue.items[head].uid != branch.uid) {
+                        try out.writer().print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
+                    } else {
+                        try out.writer().print("\n", .{});
+                    }
+                } else {
+                    try out.writer().print("    ", .{});
+                    try printReturn(symbol, out);
+                    try out.writer().print("    }}\n", .{});
+                }
             } else {
-                try out.writer().print("    ", .{});
-                try printReturn(symbol, out);
-                try out.writer().print("    }} else {{\n", .{});
-            }
-
-            // Generate the `branch` BB
-            if (bb.branch) |branch| {
-                try out.writer().print("        goto BB{};\n    }}\n", .{branch.uid});
-                try generateBasicBlock(callGraph, branch, symbol, out);
-            } else {
-                try out.writer().print("    ", .{});
-                try printReturn(symbol, out);
-                try out.writer().print("    }}\n", .{});
-            }
-
-            // Generate the `next` BB
-            if (bb.next) |next| {
-                try generateBasicBlock(callGraph, next, symbol, out);
-            }
-        } else {
-            if (bb.next) |next| {
-                try out.writer().print("    goto BB{};\n", .{next.uid});
-                try generateBasicBlock(callGraph, next, symbol, out);
-            } else {
-                try printReturn(symbol, out);
+                if (bb.next) |next| {
+                    if (!next.visited) {
+                        try bb_queue.append(next);
+                        next.visited = true;
+                    }
+                    if (head >= bb_queue.items.len or bb_queue.items[head].uid != next.uid) {
+                        try out.writer().print("    goto BB{};\n", .{next.uid});
+                    }
+                } else {
+                    try printReturn(symbol, out);
+                }
             }
         }
     }

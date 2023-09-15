@@ -35,12 +35,21 @@ int64_t _4_fib(int64_t _4_n) {
     } else {
         goto BB6;
     }
+BB3:
+    _4_t0 = 0;
+    goto BB5;
 BB6:
     if (_4_n == 1) {
         goto BB8;
     } else {
         goto BB10;
     }
+BB5:
+    _4_$retval = _4_t0;
+    return _4_$retval;
+BB8:
+    _4_t0 = 1;
+    goto BB5;
 BB10:
     $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:29:\n            else => add(fib(n - 1), fib(n - 2))\n                           ^";
     _4_t8 = _4_fib(_4_n - 1);
@@ -52,15 +61,6 @@ BB10:
     _4_t7 = _9_add(_4_t8, _4_t11);
     $line_idx--;
     _4_t0 = _4_t7;
-    goto BB5;
-BB5:
-    _4_$retval = _4_t0;
-    return _4_$retval;
-BB8:
-    _4_t0 = 1;
-    goto BB5;
-BB3:
-    _4_t0 = 0;
     goto BB5;
 }
 
