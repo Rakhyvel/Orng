@@ -222,18 +222,28 @@
         > These aren't always reduced, especially if the other side is variable
     - [x] multiplying by 0, 1 mod x
     - [x] avoid struct copies on select
+    - [ ] investigate optional/orelse.orng
+    - [ ] don't *ever* go to the first BB in a CFG, but do print its label if it's jumped to
+    - [ ] output BB breadth-first, use a queue, do not use recursion
+    - [ ] if a branch depends on a symbver with a `negate` def IR, plunge `negate` and flip labels
+    - [ ] replace `x != 0` with x, `x == 0` with `!x`
+    - [ ] copy propagate `loadSymbol` IR
+    - [ ] copy propagate `retval` symbol versions
+    - [ ] investigate `flow` for `and/or/not` IR generation
+    - [ ] `printSymbolVersion` should collapse addrOf IR, etc
+    - [ ] `derefCopy` should elide `*&`s
     - [ ] better select optimizations
-    - [ ] if a function is just one expression, just return that expression
     - [ ] local value numbering
     - [ ] partial redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
         - [ ] loop invariant lifting
+    - [ ] ! inlining
+        > Incredibly important optimization
     - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
         > At the *very* least, add a flag to symbols to see if they're aliased with & at all
         > OR: be able to tell that, say, src1 symbver is not updated between it's last update and now. Tough to do with BBs I think
-    - [ ] ! inlining
-        > Incredibly important optimization
-    - [ ] ? temporary combining (basically register allocation) (do this one last!) (might not be needed...)
+    - [ ] register allocation (but only if it's easy)
+    - [ ] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] function programming stuff
     - [x] immutability
     - [ ] composition using `<>`
@@ -261,6 +271,7 @@
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
     - [ ] 
 - [ ] build system (built upon compile-time evaluation)
+    - [ ] **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     > Should be stateless, gosh dangit!
     > Read about philosophy of other build systems, what do users want/need to build Orng programs?
         > `orng build ?.orng` command takes in a file `?.orng` that has a `build` constant, which has fields for 
@@ -272,7 +283,6 @@
     - [ ] `pub` keyword
     - [ ] Specifies the entry function somehow
     - [ ] entry function takes a record of IO function pointers
-    - [ ] run a C compiler on the output
     - [ ] be able to parse C headers
     - [ ] be able to include C source files before generated C file
     - [ ] be able to link static and dynamic libraries

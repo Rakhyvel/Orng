@@ -480,7 +480,8 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             try out.writer().print("(", .{});
             try printType(ir.dest.?.symbol._type.?, out);
             try out.writer().print(") {{", .{});
-            for (ir.data.symbverList.items, ir.dest.?.symbol._type.?.product.terms.items, 1..) |symbver, expected, i| {
+            var product_list = ir.dest.?.symbol._type.?.product.terms;
+            for (ir.data.symbverList.items, product_list.items, 1..) |symbver, expected, i| {
                 if (!expected.c_typesMatch(_ast.unitType)) {
                     // Don't values of type `void` (don't exist in C! (Goobersville!))
                     if (!expected.c_typesMatch(symbver.symbol._type.?)) {
@@ -489,7 +490,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
                         try out.writer().print(")", .{});
                     }
                     try printSymbolVersion(symbver, ir.kind.precedence(), out);
-                    if (i != ir.data.symbverList.items.len) {
+                    if (i < product_list.items.len and !product_list.items[i].c_typesMatch(_ast.unitType)) {
                         try out.writer().print(", ", .{});
                     }
                 }
