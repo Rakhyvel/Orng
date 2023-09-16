@@ -23,20 +23,19 @@ BB1:
         goto BB17;
     }
 BB2:
-    if (_3_x % 2 == 0) {
-        goto BB8;
-    } else {
+    if (_3_x % 2) {
         goto BB13;
+    } else {
+        goto BB8;
     }
 BB17:
     _2_$retval = _3_x;
     return _2_$retval;
+BB13:
+    _3_x = _3_x + 1;
 BB8:
     _3_x = _3_x + 9;
     goto BB1;
-BB13:
-    _3_x = _3_x + 1;
-    goto BB8;
 }
 
 int main()

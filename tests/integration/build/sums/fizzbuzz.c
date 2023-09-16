@@ -46,23 +46,20 @@ struct0 _4_fizzbuzz(int64_t _4_n) {
     struct0 _4_t0;
     struct0 _4_$retval;
     _4_t1 = 0;
-    if (_4_t1 == _4_n % 15) {
-        goto BB4;
-    } else {
+    if (_4_n % 15) {
         goto BB7;
+    } else {
+        goto BB4;
     }
-BB4:
-    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_0, 9}};
-    goto BB6;
 BB7:
     if (_4_t1 == _4_n % 5) {
         goto BB10;
     } else {
         goto BB11;
     }
-BB6:
-    _4_$retval = _4_t0;
-    return _4_$retval;
+BB4:
+    _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_0, 9}};
+    goto BB6;
 BB10:
     _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_1, 5}};
     goto BB6;
@@ -72,6 +69,9 @@ BB11:
     } else {
         goto BB16;
     }
+BB6:
+    _4_$retval = _4_t0;
+    return _4_$retval;
 BB14:
     _4_t0 = (struct0) {.tag=0, ._0=(struct1) {string_2, 5}};
     goto BB6;

@@ -25,28 +25,25 @@ int64_t _2_main() {
 }
 
 int64_t _4_fib(int64_t _4_n) {
-    int64_t _4_t0;
-    int64_t _4_$retval;
     int64_t _4_t8;
     int64_t _4_t11;
     int64_t _4_t7;
-    if (_4_n == 0) {
-        goto BB3;
-    } else {
+    int64_t _4_t0;
+    int64_t _4_$retval;
+    if (_4_n) {
         goto BB6;
+    } else {
+        goto BB3;
     }
-BB3:
-    _4_t0 = 0;
-    goto BB5;
 BB6:
     if (_4_n == 1) {
         goto BB8;
     } else {
         goto BB10;
     }
-BB5:
-    _4_$retval = _4_t0;
-    return _4_$retval;
+BB3:
+    _4_t0 = 0;
+    goto BB5;
 BB8:
     _4_t0 = 1;
     goto BB5;
@@ -61,7 +58,9 @@ BB10:
     _4_t7 = _9_add(_4_t8, _4_t11);
     $line_idx--;
     _4_t0 = _4_t7;
-    goto BB5;
+BB5:
+    _4_$retval = _4_t0;
+    return _4_$retval;
 }
 
 int64_t _9_add(int64_t _9_x,int64_t _9_y) {

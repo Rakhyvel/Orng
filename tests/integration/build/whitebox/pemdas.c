@@ -21,11 +21,14 @@ int64_t _2_main() {
     int64_t _2_$retval;
     _3_x = 0;
     _3_y = &_3_x;
-    if (*_3_y == 0) {
-        goto BB1;
-    } else {
+    if (*_3_y) {
         goto BB9;
+    } else {
+        goto BB1;
     }
+BB9:
+    _2_t2 = 1000;
+    goto BB6;
 BB1:
     _5_z = *_3_y;
     _2_t8 = _3_y;
@@ -37,9 +40,6 @@ BB1:
     _5_z = powf(_5_z, (_5_z + 1));
     _5_z = _5_z * -1.0e+00;
     _2_t2 = _5_z;
-    goto BB6;
-BB9:
-    _2_t2 = 1000;
 BB6:
     _2_$retval = _2_t2;
     return _2_$retval;

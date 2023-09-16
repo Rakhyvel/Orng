@@ -15,10 +15,10 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
-    int64_t _2_t2;
-    int64_t _2_$retval;
     uint8_t _2_t7;
+    int64_t _2_t2;
     int64_t _2_t9;
+    int64_t _2_$retval;
     _3_x = 3;
     _3_y = &_3_x;
     if (*_3_y != 5) {

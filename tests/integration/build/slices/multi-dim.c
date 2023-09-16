@@ -44,9 +44,9 @@ int64_t _2_main() {
     struct1* _2_t39;
     struct3 _3_z;
     int64_t _2_t48;
+    int64_t _2_$retval;
     int64_t _2_t53;
     int64_t _2_t59;
-    int64_t _2_$retval;
     _3_x = (struct0) {1, 2, 3};
     _2_t12 = (int64_t*)&_3_x;
     _2_t5 = (struct1) {_2_t12, 3};

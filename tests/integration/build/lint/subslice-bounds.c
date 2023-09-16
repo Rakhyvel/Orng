@@ -31,11 +31,11 @@ int64_t _2_main() {
     struct1 _3_y;
     int64_t _2_t14;
     int64_t _2_t15;
+    int64_t _2_$retval;
     int64_t* _2_t18;
     int64_t* _2_t19;
     struct1 _3_z;
     int64_t _2_t21;
-    int64_t _2_$retval;
     _3_x = (struct0) {0, 0, 0, 0};
     _2_t12 = (int64_t*)&_3_x;
     _3_y = (struct1) {_2_t12, 4};

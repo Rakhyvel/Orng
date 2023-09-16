@@ -225,13 +225,14 @@ fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
             break;
         }
     }
-    _ = cfg.basic_blocks.orderedRemove(i);
+    _ = cfg.basic_blocks.swapRemove(i);
     if (wipeIR) {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.removed = true;
         }
     }
+    bb.removed = true;
 }
 
 fn findIR(bb: *BasicBlock, symbver: *SymbolVersion) ?*IR {
@@ -257,7 +258,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
             if (ir.src1 != null and ir.src1.?.def == null) {
                 ir.src1.?.def = findIR(bb, ir.src1.?);
                 retval = retval or ir.src1.?.def != null;
-                log_optimization_pass(">1 IR propagations", cfg);
+                // log_optimization_pass(">1 IR propagations", cfg);
             }
         }
         if (bb.has_branch) {
@@ -514,6 +515,24 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 ir.src2 = null;
                 retval = true;
             }
+            // `0 == x` => `!x`
+            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
+                log("equal; lhs 0");
+                ir.kind = .not;
+                ir.data = _ir.IRData.none;
+                ir.src1 = ir.src2;
+                ir.src2 = null;
+                retval = true;
+            }
+            // `x == 0` => `!x`
+            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
+                log("equal; rhs 0");
+                ir.kind = .not;
+                ir.data = _ir.IRData.none;
+                // ir.src1 is already ir.src1
+                ir.src2 = null;
+                retval = true;
+            }
             // Known float, float value
             else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
                 log("equal; known float,float value");
@@ -544,6 +563,24 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int != ir.src2.?.def.?.data.int) 1 else 0 };
                 ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
+            // `0 != x` => `x`
+            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
+                log("equal; lhs 0");
+                ir.kind = .copy;
+                ir.data = _ir.IRData.none;
+                ir.src1 = ir.src2;
+                ir.src2 = null;
+                retval = true;
+            }
+            // `x != 0` => `x`
+            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
+                log("equal; rhs 0");
+                ir.kind = .copy;
+                ir.data = _ir.IRData.none;
+                // ir.src1 is already ir.src1
                 ir.src2 = null;
                 retval = true;
             }

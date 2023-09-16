@@ -492,6 +492,7 @@ pub const BasicBlock = struct {
 
     visited: bool,
     number_predecessors: usize,
+    removed: bool,
 
     pub fn pprint(self: *BasicBlock) void {
         if (self.visited) {
