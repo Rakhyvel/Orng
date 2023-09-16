@@ -73,7 +73,7 @@ BB9:
     }
     exit(1);
 BB10:
-    _2_$retval = *((int64_t*)_3_z._0 + _2_t21);
+    _2_$retval = *(int64_t*)_3_z._0;
     return _2_$retval;
 }
 

@@ -25,22 +25,18 @@ int64_t _2_main() {
     struct0 _3_x;
     struct0* _2_t6;
     struct0* _2_t5;
-    struct0 _2_t7;
     int64_t _2_$retval;
     _3_x = (struct0) {1, 2, 3, 4};
     _2_t6 = &_3_x;
     $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n     ^";
     _2_t5 = _4_f(_2_t6);
     $line_idx--;
-    _2_t7 = *_2_t5;
     _2_$retval = *((int64_t*)_2_t5 + 3);
     return _2_$retval;
 }
 
 struct0* _4_f(struct0* _4_x) {
-    struct0 _4_t1;
     struct0* _4_$retval;
-    _4_t1 = *_4_x;
     *((int64_t*)_4_x + 3) = 78;
     _4_$retval = _4_x;
     return _4_$retval;

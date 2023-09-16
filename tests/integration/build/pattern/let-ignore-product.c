@@ -8,26 +8,13 @@
 static const char* $lines[1024];
 static uint16_t $line_idx = 0;
 
-/* Typedefs */
-typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
-} struct0;
-
 /* Function forward definitions */
 int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
-    struct0 _2_t0;
-    int64_t _3_a;
-    int64_t _3_c;
     int64_t _2_$retval;
-    _2_t0 = (struct0) {100, 300, 56};
-    _3_a = _2_t0._0;
-    _3_c = _2_t0._2;
-    _2_$retval = _3_a + _3_c;
+    _2_$retval = 156;
     return _2_$retval;
 }
 

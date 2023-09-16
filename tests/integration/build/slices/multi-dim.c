@@ -43,11 +43,8 @@ int64_t _2_main() {
     struct2 _3_y;
     struct1* _2_t39;
     struct3 _3_z;
-    int64_t _2_t42;
-    struct1 _2_t43;
     int64_t _2_t48;
     int64_t _2_t53;
-    struct1 _2_t54;
     int64_t _2_t59;
     int64_t _2_$retval;
     _3_x = (struct0) {1, 2, 3};
@@ -60,23 +57,8 @@ int64_t _2_main() {
     _3_y = (struct2) {_2_t5, _2_t14, _2_t23};
     _2_t39 = (struct1*)&_3_y;
     _3_z = (struct3) {_2_t39, 3};
-    _2_t42 = 1;
-    if (_2_t42 >= _3_z._1) {
-        goto BB19;
-    } else {
-        goto BB20;
-    }
-BB19:
-    $lines[$line_idx++] = "tests/integration/slices/multi-dim.orng:6:7:\n    z[1][2] = 82\n     ^";
-    fprintf(stderr, "panic: index is greater than length\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
-BB20:
-    _2_t43 = *((struct1*)_3_z._0 + _2_t42);
     _2_t48 = 2;
-    if (_2_t48 >= ((struct1*)_3_z._0 + _2_t42)->_1) {
+    if (_2_t48 >= ((struct1*)_3_z._0 + 1)->_1) {
         goto BB23;
     } else {
         goto BB24;
@@ -89,7 +71,7 @@ BB23:
     }
     exit(1);
 BB24:
-    *((int64_t*)_2_t43._0 + _2_t48) = 82;
+    *((int64_t*)((struct1*)_3_z._0 + 1)->_0 + _2_t48) = 82;
     _2_t53 = 1;
     if (_2_t53 >= _3_z._1) {
         goto BB27;
@@ -104,7 +86,6 @@ BB27:
     }
     exit(1);
 BB28:
-    _2_t54 = *((struct1*)_3_z._0 + _2_t53);
     _2_t59 = 2;
     if (_2_t59 >= ((struct1*)_3_z._0 + _2_t53)->_1) {
         goto BB31;
@@ -119,7 +100,7 @@ BB31:
     }
     exit(1);
 BB32:
-    _2_$retval = *((int64_t*)_2_t54._0 + _2_t59);
+    _2_$retval = *((int64_t*)((struct1*)_3_z._0 + _2_t53)->_0 + _2_t59);
     return _2_$retval;
 }
 

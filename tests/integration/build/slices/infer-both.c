@@ -28,7 +28,6 @@ int64_t _2_main() {
     struct0 _3_x;
     int64_t* _2_t11;
     struct1 _3_y;
-    int64_t _2_t14;
     int64_t* _2_t18;
     struct1 _3_z;
     int64_t _2_t20;
@@ -36,22 +35,8 @@ int64_t _2_main() {
     _3_x = (struct0) {100, 10, 1};
     _2_t11 = (int64_t*)&_3_x;
     _3_y = (struct1) {_2_t11, 3};
-    _2_t14 = _3_y._1;
-    if (0 > _2_t14) {
-        goto BB5;
-    } else {
-        goto BB6;
-    }
-BB5:
-    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                       ^";
-    fprintf(stderr, "panic: subslice lower bound is greater than upper bound\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
-BB6:
     _2_t18 = _3_y._0;
-    _3_z = (struct1) {_2_t18, (_2_t14)};
+    _3_z = (struct1) {_2_t18, 3};
     $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
     _2_t20 = _4_sum_up(_3_z);
     $line_idx--;

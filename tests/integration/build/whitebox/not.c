@@ -28,20 +28,15 @@ int64_t _2_main() {
     }
 BB1:
     _2_t2 = 1;
-    goto BB2;
+    goto BB7;
 BB9:
     _2_t2 = 0;
-BB2:
-    if (!!!_2_t2) {
-        goto BB3;
-    } else {
-        goto BB7;
-    }
-BB3:
-    _2_t8 = 31;
-    goto BB6;
+    goto BB3;
 BB7:
     _2_t8 = 10;
+    goto BB6;
+BB3:
+    _2_t8 = 31;
 BB6:
     _2_$retval = _2_t8;
     return _2_$retval;

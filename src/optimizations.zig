@@ -7,6 +7,7 @@ const CFG = _ir.CFG;
 const Error = errs.Error;
 const IR = _ir.IR;
 const String = @import("zig-string/zig-string.zig").String;
+const Symbol = @import("symbol.zig").Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
 const debug = false;
@@ -101,15 +102,27 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             break;
         }
 
-        // Convert constant true/false branches to jumps
-        if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .loadInt) {
-            defer log_optimization_pass("convert constant true/false to jumps", cfg);
-            bb.has_branch = false;
-            if (bb.condition.?.def.?.data.int == 0) {
-                bb.next = bb.branch;
-                bb.next_arguments = bb.branch_arguments;
+        if (bb.has_branch) {
+            var latest_condition = bb.get_latest_def(bb.condition.?.symbol, null);
+            // Convert constant true/false branches to jumps
+            if (latest_condition != null and latest_condition.?.kind == .loadInt) {
+                defer log_optimization_pass("convert constant true/false to jumps", cfg);
+                bb.has_branch = false;
+                if (bb.condition.?.def.?.data.int == 0) {
+                    bb.next = bb.branch;
+                    bb.next_arguments = bb.branch_arguments;
+                }
+                retval = true;
             }
-            retval = true;
+            // Flip labels if branch condition is negation, plunge negation
+            else if (latest_condition != null and latest_condition.?.kind == .not) {
+                defer log_optimization_pass("flip not condition", cfg);
+                var old_branch = bb.branch.?;
+                bb.branch = bb.next;
+                bb.next = old_branch;
+                bb.condition = bb.condition.?.def.?.src1;
+                retval = true;
+            }
         }
 
         // Remove jump chains
@@ -140,7 +153,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         if (bb.next) |next| {
             if (next.has_branch and next.ir_head == null) {
                 defer log_optimization_pass("next depends on known argument", cfg);
-                var def = bb.findInstruction(next.condition.?.symbol);
+                var def = bb.get_latest_def(next.condition.?.symbol, null);
                 if (def != null and def.?.kind == .loadInt) {
                     if (def.?.data.int == 0) {
                         bb.next = next.branch;
@@ -154,7 +167,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         // If branch is a branch that depends on a known arugment
         if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null) {
             defer log_optimization_pass("branch depends on known argument", cfg);
-            var def = bb.findInstruction(bb.branch.?.condition.?.symbol);
+            var def = bb.get_latest_def(bb.branch.?.condition.?.symbol, null);
             if (def != null and def.?.kind == .loadInt) {
                 if (def.?.data.int == 0) {
                     bb.branch = bb.branch.?.branch;
@@ -243,13 +256,16 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
             retval = try propagateIR(ir, interned_strings, errors) or retval;
             if (ir.src1 != null and ir.src1.?.def == null) {
                 ir.src1.?.def = findIR(bb, ir.src1.?);
-                retval = ir.src1.?.def != null;
+                retval = retval or ir.src1.?.def != null;
                 log_optimization_pass(">1 IR propagations", cfg);
             }
         }
-        if (bb.has_branch and bb.condition.?.def != null and bb.condition.?.def.?.kind == .copy) {
-            bb.condition = bb.condition.?.def.?.src1;
-            retval = true;
+        if (bb.has_branch) {
+            var cond_def = bb.get_latest_def(bb.condition.?.symbol, null);
+            if (cond_def != null and cond_def.?.kind == .copy) {
+                bb.condition = bb.condition.?.def.?.src1;
+                retval = true;
+            }
         }
     }
 
@@ -261,162 +277,163 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
 
     switch (ir.kind) {
         .copy => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Unit-copy elimination
             if (ir.src1 == null) {
                 log("unit-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
             }
             // Self-copy elimination
-            else if (ir.dest.?.symbol == ir.src1.?.symbol and ir.src1.?.def != null and ir.dest.?.version == ir.src1.?.version) {
+            else if (ir.dest.?.symbol == ir.src1.?.symbol and src1_def != null and ir.dest.?.version == ir.src1.?.version) {
                 log("self-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
                 retval = true;
             }
             // Integer constant propagation
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("integer constant propagation");
                 ir.kind = .loadInt;
-                ir.data = ir.src1.?.def.?.data;
+                ir.data = src1_def.?.data;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Float constant propagation
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src1_def.?.kind == .loadFloat) {
                 log("float constant propagation");
                 ir.kind = .loadFloat;
-                ir.data = ir.src1.?.def.?.data;
+                ir.data = src1_def.?.data;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // String constant propagation
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadString) {
+            else if (src1_def != null and src1_def.?.kind == .loadString) {
                 log("string constant propagation");
                 ir.kind = .loadString;
-                ir.data = ir.src1.?.def.?.data;
+                ir.data = src1_def.?.data;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Struct constant propagation
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadStruct and ir.src1.?.uses == 1) {
+            else if (src1_def != null and src1_def.?.kind == .loadStruct and ir.src1.?.uses == 1) {
                 log("struct constant propagation");
                 ir.kind = .loadStruct;
-                ir.data = ir.src1.?.def.?.data;
+                ir.data = src1_def.?.data;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Union constant propagation
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadUnion) {
+            else if (src1_def != null and src1_def.?.kind == .loadUnion) {
                 log("union constant propagation");
                 ir.kind = .loadUnion;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Copy propagation
-            else if (ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
                 log("copy propagation");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Addrof propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .addrOf) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .addrOf) {
                 log("addrof propagation");
                 ir.kind = .addrOf;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Dereference propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .dereference) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .dereference) {
                 log("dereference propagation");
                 ir.kind = .dereference;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Add propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .add) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .add) {
                 log("add propagation");
                 ir.kind = .add;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Sub propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .sub) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .sub) {
                 log("sub propagation");
                 ir.kind = .sub;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Mult propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .mult) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .mult) {
                 log("mult propagation");
                 ir.kind = .mult;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Div propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .div) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .div) {
                 log("div propagation");
                 ir.kind = .div;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Mod propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .mod) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .mod) {
                 log("mod propagation");
                 ir.kind = .mod;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Exponent propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .exponent) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .exponent) {
                 log("exponent");
                 ir.kind = .exponent;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Select propagation
-            else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .select) {
+            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .select) {
                 log("select");
                 ir.kind = .select;
-                ir.dest.?.lvalue = ir.src1.?.def.?.dest.?.lvalue;
-                ir.data = ir.src1.?.def.?.data;
-                ir.src2 = ir.src1.?.def.?.src2;
-                ir.safe = ir.src1.?.def.?.safe;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
+                ir.data = src1_def.?.data;
+                ir.src2 = src1_def.?.src2;
+                ir.safe = src1_def.?.safe;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Call propagation // Not the greatest... ?
@@ -1028,21 +1045,33 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .index => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
+            // Short-circuit src1 copy
+            if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
+                retval = true;
+            }
+            // Short-circuit src2 copy
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
+                retval = true;
+            }
             // Statically check if index is within bounds
-            if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
+            else if (src2_def != null and src2_def.?.kind == .loadInt) {
                 log("index btw");
                 if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
-                    var index = ir.src2.?.def.?.data.int;
+                    var index = src2_def.?.data.int;
                     var length = ir.src1.?.symbol._type.?.product.terms.items.len;
                     if (index < 0) {
                         errors.addError(Error{ .negative_index = .{
-                            .span = ir.src2.?.def.?.span,
+                            .span = src2_def.?.span,
                             .index = index,
                         } });
                         return error.typeError;
                     } else if (index >= length) {
                         errors.addError(Error{ .out_of_bounds = .{
-                            .span = ir.src2.?.def.?.span,
+                            .span = src2_def.?.span,
                             .index = index,
                             .length = length,
                         } });
@@ -1053,8 +1082,20 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .indexCopy => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
+            // Short-circuit src1 copy
+            if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
+                retval = true;
+            }
+            // Short-circuit src2 copy
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
+                retval = true;
+            }
             // Statically check if index is within bounds
-            if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
+            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
                 if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
                     var index = ir.src2.?.def.?.data.int;
                     var length = ir.src1.?.symbol._type.?.product.terms.items.len;
@@ -1077,26 +1118,44 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .select => {
+            var src1_def: ?*IR = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            // Short-circuit src1 copy
+            if (src1_def != null and src1_def.?.kind == .copy) {
+                log("select short-circuit");
+                ir.src1 = src1_def.?.src1;
+                retval = true;
+            }
             // Known loadUnion value
-            if (ir.src1.?.def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadUnion) {
-                if (ir.data.int != ir.src1.?.def.?.data.int and !ir.safe) {
+            else if (src1_def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and src1_def.?.kind == .loadUnion) {
+                log("select; known loadUnion value");
+                if (ir.data.int != src1_def.?.data.int and !ir.safe) {
                     errors.addError(Error{ .sum_select_inactive = .{
                         .span = ir.span,
                         .inactive = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.data.int))].annotation.pattern.getToken().data,
-                        .active = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.src1.?.def.?.data.int))].annotation.pattern.getToken().data,
+                        .active = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(src1_def.?.data.int))].annotation.pattern.getToken().data,
                     } });
                     return error.typeError;
                 }
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 retval = true;
             }
             // Known loadStruct value
-            else if (ir.src1.?.def != null and ir.src1.?.uses == 1 and ir.src1.?.def.?.kind == .loadStruct) {
-                var field = ir.src1.?.def.?.data.symbverList.items[@as(usize, @intCast(ir.data.int))]; // TODO: This should really be a check that the symbol version hasn't updated out from underneathe us
-                if (field.symbol.versions == 1) {
+            else if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadStruct) {
+                log("select; known loadStruct value");
+                // IR is of the form `dest = src1._{data.int}`, where src1_def is of the form: `src1 = {data.symbverList}`
+                // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
+                // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
+                var field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.int))];
+                var field_def = ir.in_block.?.get_latest_def(field.symbol, ir);
+                if (field_def != null and field_def.?.dest != null and field == field_def.?.dest and (field_def.?.kind == .loadInt or
+                    field_def.?.kind == .loadFloat or
+                    field_def.?.kind == .loadStruct or
+                    field_def.?.kind == .loadUnion or
+                    field_def.?.kind == .loadString))
+                {
                     ir.kind = .copy;
                     ir.src1 = field;
                     ir.src2 = null;
@@ -1105,10 +1164,10 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 }
             }
             // Known loadString value
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadString) {
+            else if (src1_def != null and src1_def.?.kind == .loadString) {
                 if (ir.data.int == 1) {
                     ir.kind = .loadInt;
-                    ir.data = _ir.IRData{ .int = interned_strings.items[ir.src1.?.def.?.data.string_id].len - 1 };
+                    ir.data = _ir.IRData{ .int = interned_strings.items[src1_def.?.data.string_id].len - 1 };
                     ir.src1 = null;
                     ir.src2 = null;
                     retval = true;

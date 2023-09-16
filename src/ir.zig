@@ -578,14 +578,20 @@ pub const BasicBlock = struct {
         }
     }
 
-    pub fn findInstruction(bb: *BasicBlock, symbol: *Symbol) ?*IR {
+    pub fn get_latest_def(bb: *BasicBlock, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
         var maybe_ir = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest.?.symbol == symbol) {
-                return ir;
+        var retval: ?*IR = null;
+        while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
+            var ir: *IR = maybe_ir.?;
+            if (ir.kind == .selectCopy and ir.src1.?.symbol == symbol) {
+                retval = null;
+            } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
+                retval = null;
+            } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
+                retval = ir;
             }
         }
-        return null;
+        return retval;
     }
 };
 
@@ -1151,16 +1157,14 @@ pub const CFG = struct {
                 return temp;
             },
             .index => {
-                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
+                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator)).?;
                 var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator)).?;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 temp.lvalue = lvalue;
 
                 try self.generate_bounds_check(scope, ast, lhs, rhs, errors, allocator);
 
-                var new_lhs = try SymbolVersion.createUnversioned(lhs.symbol, lhs.type, allocator);
-                var new_rhs = try SymbolVersion.createUnversioned(rhs.symbol, rhs.type, allocator);
-                var ir = try IR.createIndex(temp, new_lhs, new_rhs, ast.getToken().span, allocator);
+                var ir = try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator);
                 ir.span = ast.getToken().span;
                 temp.def = ir;
                 self.appendInstruction(ir);
@@ -1822,7 +1826,7 @@ pub const CFG = struct {
                 return null;
             },
             .index => {
-                var index_lhs = try self.flattenAST(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var index_lhs = try self.flattenAST(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator);
                 var index_rhs = try self.flattenAST(scope, lhs.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
                 if (index_lhs == null or index_rhs == null) {
                     return null;
@@ -1830,10 +1834,7 @@ pub const CFG = struct {
 
                 try self.generate_bounds_check(scope, lhs, index_lhs.?, index_rhs.?, errors, allocator);
 
-                var new_lhs = try SymbolVersion.createUnversioned(index_lhs.?.symbol, index_lhs.?.type, allocator);
-                var new_rhs = try SymbolVersion.createUnversioned(index_rhs.?.symbol, index_rhs.?.type, allocator);
-
-                var ir = try IR.create(.indexCopy, null, new_lhs, new_rhs, lhs.getToken().span, allocator);
+                var ir = try IR.create(.indexCopy, null, index_lhs, index_rhs, lhs.getToken().span, allocator);
                 ir.data = IRData{ .symbver = rhs };
                 self.appendInstruction(ir);
                 return null;

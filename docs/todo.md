@@ -167,6 +167,9 @@
     - [ ] suggest the most similar visible identifier when an unknown identifier is used
     - [ ] Make Arithmetic (operators) Great, Allegedly
         - [ ] Types on both sides should be equal. Expect proper type (No subtyping!)
+            - [ ] Most binops need types to be *identical*
+            - [ ] Comparison operators only need types to be *assignable*
+            - [ ] Define representability too for constants
         - [ ] Define for Int8...Int64, Float32, Float64, Byte...Word64
         - [ ] Add UB checking
 - [x] pattern matching
@@ -224,15 +227,13 @@
     - [x] avoid struct copies on select
     - [x] output BB breadth-first, use a queue, do not use recursion
         - [x] don't `goto` BB if it's the next one in the queue
-    - [ ] if a branch depends on a symbver with a `negate` def IR, plunge `negate` and flip labels
-    - [ ] replace `x != 0` with x, `x == 0` with `!x`
+    - [ ] replace `x != 0` with `x`, `x == 0` with `!x`
     - [ ] copy propagate `loadSymbol` IR
     - [ ] copy propagate `retval` symbol versions
     - [ ] investigate `flow` for `and/or/not` IR generation
-    - [ ] `printSymbolVersion` should collapse addrOf IR, etc
-    - [ ] `derefCopy` should elide `*&`s
     - [ ] instead of checking if def is null, do `what is the most recent definition in this bb`
-    - [ ] better select optimizations
+    - [x] better select optimizations
+    - [ ] look at how much IR things generate. Generate fewer IR!
     - [ ] local value numbering
     - [ ] partial redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
@@ -242,7 +243,11 @@
     - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
         > At the *very* least, add a flag to symbols to see if they're aliased with & at all
         > OR: be able to tell that, say, src1 symbver is not updated between it's last update and now. Tough to do with BBs I think
-    - [ ] register allocation (but only if it's easy)
+    - [ ] Codegen optimizations (less important)
+        - [x] if a branch depends on a symbver with a `negate` def IR, plunge `negate` and flip labels
+        - [ ] `derefCopy` should elide `*&`s
+        - [ ] `printSymbolVersion` should collapse addrOf IR, etc
+        - [ ] register allocation (but only if it's easy)
     - [ ] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] function programming stuff
     - [x] immutability
