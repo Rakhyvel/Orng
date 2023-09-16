@@ -268,8 +268,10 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
     return retval;
 }
 
+/// This function is O(n) in terms of # of IR in ir.in_block
 fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
     var retval = false;
+    // TODO: get_latest_def is currently O(n). Would be nice to have a better algorithm
     var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
     var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
 
@@ -347,14 +349,14 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Copy propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
+            else if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
                 log("copy propagation");
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
                 retval = true;
             }
             // Addrof propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .addrOf) {
+            else if (src1_def != null and src1_def.?.kind == .addrOf) {
                 log("addrof propagation");
                 ir.kind = .addrOf;
                 ir.data = src1_def.?.data;
@@ -364,7 +366,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Dereference propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .dereference) {
+            else if (src1_def != null and src1_def.?.kind == .dereference) {
                 log("dereference propagation");
                 ir.kind = .dereference;
                 ir.data = src1_def.?.data;
@@ -374,7 +376,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Add propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .add) {
+            else if (src1_def != null and src1_def.?.kind == .add) {
                 log("add propagation");
                 ir.kind = .add;
                 ir.data = src1_def.?.data;
@@ -384,7 +386,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Sub propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .sub) {
+            else if (src1_def != null and src1_def.?.kind == .sub) {
                 log("sub propagation");
                 ir.kind = .sub;
                 ir.data = src1_def.?.data;
@@ -394,7 +396,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mult propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .mult) {
+            else if (src1_def != null and src1_def.?.kind == .mult) {
                 log("mult propagation");
                 ir.kind = .mult;
                 ir.data = src1_def.?.data;
@@ -404,7 +406,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Div propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .div) {
+            else if (src1_def != null and src1_def.?.kind == .div) {
                 log("div propagation");
                 ir.kind = .div;
                 ir.data = src1_def.?.data;
@@ -414,7 +416,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mod propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .mod) {
+            else if (src1_def != null and src1_def.?.kind == .mod) {
                 log("mod propagation");
                 ir.kind = .mod;
                 ir.data = src1_def.?.data;
@@ -424,7 +426,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Exponent propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .exponent) {
+            else if (src1_def != null and src1_def.?.kind == .exponent) {
                 log("exponent");
                 ir.kind = .exponent;
                 ir.data = src1_def.?.data;
@@ -434,7 +436,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Select propagation
-            else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .select) {
+            else if (src1_def != null and src1_def.?.kind == .select) {
                 log("select");
                 ir.kind = .select;
                 ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
@@ -444,15 +446,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 ir.src1 = src1_def.?.src1;
                 retval = true;
             }
-            // Call propagation // Not the greatest... ?
-            // else if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .call) {
-            //     ir.kind = .call;
-            //     ir.data = ir.src1.?.def.?.data;
-            //     ir.src1 = ir.src1.?.def.?.src1;
-            //     ir.src2 = null;
-            //     ir.dest.?.lvalue = false;
-            //     retval = true;
-            // }
+            // DO NOT IMPLEMENT .call => propagation
         },
 
         .not => {
@@ -990,7 +984,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
 
         .select => {
             // Known loadUnion value
-            if (src1_def != null and ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and src1_def.?.kind == .loadUnion) {
+            if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadUnion) {
                 log("select; known loadUnion value");
                 if (ir.data.int != src1_def.?.data.int and !ir.safe) {
                     errors.addError(Error{ .sum_select_inactive = .{
@@ -1058,6 +1052,15 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
     }
 
     if (!retval) {
+        // Need to make sure src1_def.dest is not assigned to in between src1_def and ir.
+        //   srcn_def:        dest = ?
+        //   ...
+        //   recent_srcn_def: dest = ?
+        //   ...
+        //   ir:              ...
+        //
+        // TODO: any_def_after() is O(n), would be nice to have a better algorithm to
+        //       determine this.
         if (src1_def != null and src1_def.?.kind == .copy) {
             // src1 copy propagation
             var recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbol, ir);

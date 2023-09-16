@@ -474,6 +474,7 @@ pub const IR = struct {
         }
     }
 
+    /// This function is O(n) in terms of IR between start and stop
     pub fn get_latest_def_after(start_at_ir: *IR, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
         var maybe_ir: ?*IR = start_at_ir;
         var retval: ?*IR = null;
@@ -498,6 +499,7 @@ pub const IR = struct {
         return retval;
     }
 
+    // This function is O(n)
     pub fn any_def_after(start_at_ir: *IR, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
         var maybe_ir: ?*IR = start_at_ir;
         while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
@@ -626,6 +628,7 @@ pub const BasicBlock = struct {
         }
     }
 
+    /// This functions is O(n)
     pub fn get_latest_def(bb: *BasicBlock, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
         if (bb.ir_head == null) {
             return null;
