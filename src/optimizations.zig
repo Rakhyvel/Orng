@@ -568,7 +568,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
             }
             // `0 != x` => `x`
             else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
-                log("equal; lhs 0");
+                log("notEqual; lhs 0");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
                 ir.src1 = ir.src2;
@@ -577,7 +577,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
             }
             // `x != 0` => `x`
             else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
-                log("equal; rhs 0");
+                log("notEqual; rhs 0");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
                 // ir.src1 is already ir.src1

@@ -36,7 +36,7 @@ int64_t _2_main() {
     _3_x = (struct1) {.tag=0, ._0=_2_t1};
     _3_x._0._0 = 104;
     _2_t8 = _3_x._0;
-    if (_2_t8.tag != 0) {
+    if (_2_t8.tag) {
         goto BB5;
     } else {
         goto BB6;
