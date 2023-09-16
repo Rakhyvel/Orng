@@ -30,11 +30,24 @@ int64_t _2_main();
 int64_t _2_main() {
     struct0 _2_t1;
     struct1 _3_x;
-    struct0 _2_t8;
     int64_t _2_$retval;
+    struct0 _2_t8;
     _2_t1 = (struct0) {.tag=0, ._0=4};
     _3_x = (struct1) {.tag=0, ._0=_2_t1};
     _3_x._0._0 = 104;
+    if (_3_x.tag) {
+        goto BB3;
+    } else {
+        goto BB4;
+    }
+BB3:
+    $lines[$line_idx++] = "tests/integration/sums/double.orng:5:10:\n    x.sum.int\n        ^";
+    fprintf(stderr, "panic: access of inactive sum field\n");
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+BB4:
     _2_t8 = _3_x._0;
     if (_2_t8.tag) {
         goto BB5;

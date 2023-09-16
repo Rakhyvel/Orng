@@ -227,10 +227,8 @@
     - [x] avoid struct copies on select
     - [x] output BB breadth-first, use a queue, do not use recursion
         - [x] don't `goto` BB if it's the next one in the queue
-    - [ ] replace `x != 0` with `x`, `x == 0` with `!x`
-    - [ ] copy propagate `loadSymbol` IR
-    - [ ] copy propagate `retval` symbol versions
-    - [ ] investigate `flow` for `and/or/not` IR generation
+    - [x] replace `x != 0` with `x`, `x == 0` with `!x`
+    - [x] copy propagate `loadSymbol` IR
     - [ ] instead of checking if def is null, do `what is the most recent definition in this bb`
         > *might* be able to add a list of predecessors to BBs, check list of BBs for defs too, if they agree on a value
     - [x] better select optimizations

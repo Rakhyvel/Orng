@@ -120,7 +120,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
                 var old_branch = bb.branch.?;
                 bb.branch = bb.next;
                 bb.next = old_branch;
-                bb.condition = bb.condition.?.def.?.src1;
+                bb.condition = latest_condition.?.src1;
                 retval = true;
             }
         }
@@ -264,7 +264,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
         if (bb.has_branch) {
             var cond_def = bb.get_latest_def(bb.condition.?.symbol, null);
             if (cond_def != null and cond_def.?.kind == .copy) {
-                bb.condition = bb.condition.?.def.?.src1;
+                bb.condition = cond_def.?.src1;
                 retval = true;
             }
         }
@@ -340,10 +340,21 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
+            // Load symbol propagation
+            else if (src1_def != null and src1_def.?.kind == .loadSymbol) {
+                log("symbol constant propagation");
+                ir.kind = .loadSymbol;
+                ir.data = src1_def.?.data;
+                ir.src1 = src1_def.?.src1;
+                ir.src2 = null;
+                ir.dest.?.lvalue = false;
+                retval = true;
+            }
             // Copy propagation
             else if (ir.src1.?.symbol.versions == 1 and src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
                 log("copy propagation");
                 ir.src1 = src1_def.?.src1;
+                ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
                 retval = true;
             }
             // Addrof propagation
@@ -449,38 +460,40 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .not => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Known int value
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("not; known int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int == 0) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int == 0) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("not; short circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
         },
 
         .negate => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Known int value
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("negate; known int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = -ir.src1.?.def.?.data.int };
+                ir.data = _ir.IRData{ .int = -src1_def.?.data.int };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Known float value
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src1_def.?.kind == .loadFloat) {
                 log("negate; known float value");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = -ir.src1.?.def.?.data.float };
+                ir.data = _ir.IRData{ .float = -src1_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -488,35 +501,39 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .dereference => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Short-circuit src1 copy
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            if (src1_def != null and src1_def.?.kind == .copy) {
                 log("dereference; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
         },
 
         .derefCopy => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Copy propagation
-            if (ir.src1.?.symbol.versions == 1 and ir.src1.?.uses == 1 and ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy and ir.src1 != ir.src1.?.def.?.src1.?) {
+            if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
                 log("deref-copy propagation");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
         },
 
         .equal => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("equal; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int == ir.src2.?.def.?.data.int) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // `0 == x` => `!x`
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("equal; lhs 0");
                 ir.kind = .not;
                 ir.data = _ir.IRData.none;
@@ -525,7 +542,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // `x == 0` => `!x`
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
+            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("equal; rhs 0");
                 ir.kind = .not;
                 ir.data = _ir.IRData.none;
@@ -534,40 +551,45 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("equal; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float == ir.src2.?.def.?.data.float) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                log("equal; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
-                retval = true;
+            else if (src1_def != null and src1_def.?.kind == .copy and !src1_def.?.dest.?.lvalue) {
+                var recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbol, ir);
+                if (recent_src1_def == null) {
+                    log("equal; short-circuit src1 copy");
+                    ir.src1 = src1_def.?.src1;
+                    retval = true;
+                }
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("equal; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .notEqual => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("notEqual; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int != ir.src2.?.def.?.data.int) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // `0 != x` => `x`
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("notEqual; lhs 0");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -576,7 +598,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // `x != 0` => `x`
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
+            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("notEqual; rhs 0");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -585,167 +607,177 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("notEqual; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float != ir.src2.?.def.?.data.float) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("notEqual; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("notEqual; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .greater => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("greater; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int > ir.src2.?.def.?.data.int) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("greater; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float > ir.src2.?.def.?.data.float) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("greater; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("greater; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .lesser => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("lesser; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int < ir.src2.?.def.?.data.int) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("lesser; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float < ir.src2.?.def.?.data.float) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("lesser; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("lesser; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .greaterEqual => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("greaterEqual; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int >= ir.src2.?.def.?.data.int) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("greaterEqual; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float >= ir.src2.?.def.?.data.float) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("greaterEqual; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("greaterEqual; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .lesserEqual => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("lesserEqual; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.int <= ir.src2.?.def.?.data.int) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("lesserEqual; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (ir.src1.?.def.?.data.float <= ir.src2.?.def.?.data.float) 1 else 0 };
+                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("lesserEqual; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("lesserEqual; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .add => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("add; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{
-                    .int = if (std.math.add(i64, @intCast(ir.src1.?.def.?.data.int), @intCast(ir.src2.?.def.?.data.int))) |res| res else |_| {
+                    .int = if (std.math.add(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
                             .msg = "addition integer overflow",
@@ -758,16 +790,16 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("add; known float,float value");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float + ir.src2.?.def.?.data.float };
+                ir.data = _ir.IRData{ .float = src1_def.?.data.float + src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Add 0 lhs
-            else if (ir.src1.?.def != null and ((ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) or (ir.src1.?.def.?.kind == .loadFloat and ir.src1.?.def.?.data.float == 0.0))) {
+            else if (src1_def != null and ((src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) or (src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0))) {
                 log("add; add 0 lhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -776,7 +808,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Add 0 rhs
-            else if (ir.src2.?.def != null and ((ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) or (ir.src2.?.def.?.kind == .loadFloat and ir.src2.?.def.?.data.float == 0.0))) {
+            else if (src2_def != null and ((src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) or (src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0))) {
                 log("add; add 0 rhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -785,24 +817,26 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
+            else if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
-                ir.src2 = ir.src2.?.def.?.src1;
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .sub => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("sub; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{
-                    .int = if (std.math.sub(i64, @intCast(ir.src1.?.def.?.data.int), @intCast(ir.src2.?.def.?.data.int))) |res| res else |_| {
+                    .int = if (std.math.sub(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
                             .msg = "subtraction integer overflow",
@@ -815,16 +849,16 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("sub; known float,float value");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float - ir.src2.?.def.?.data.float };
+                ir.data = _ir.IRData{ .float = src1_def.?.data.float - src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Sub 0 lhs
-            else if (ir.src1.?.def != null and ((ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) or (ir.src1.?.def.?.kind == .loadFloat and ir.src1.?.def.?.data.float == 0.0))) {
+            else if (src1_def != null and ((src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) or (src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0))) {
                 log("sub; sub 0 lhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -833,7 +867,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Sub 0 rhs
-            else if (ir.src2.?.def != null and ((ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) or (ir.src2.?.def.?.kind == .loadFloat and ir.src2.?.def.?.data.float == 0.0))) {
+            else if (src2_def != null and ((src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) or (src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0))) {
                 log("sub; sub 0 rhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -842,25 +876,27 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
+            else if (src1_def != null and src1_def.?.kind == .copy) {
                 log("sub; short-circuit src1 copy");
-                ir.src1 = ir.src1.?.def.?.src1;
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
+            else if (src2_def != null and src2_def.?.kind == .copy) {
                 log("sub; short-circuit src2 copy");
-                ir.src2 = ir.src2.?.def.?.src1;
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .mult => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{
-                    .int = if (std.math.mul(i64, @intCast(ir.src1.?.def.?.data.int), @intCast(ir.src2.?.def.?.data.int))) |res| res else |_| {
+                    .int = if (std.math.mul(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
                             .msg = "multiplication integer overflow",
@@ -873,15 +909,15 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float * ir.src2.?.def.?.data.float };
+                ir.data = _ir.IRData{ .float = src1_def.?.data.float * src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Mult 1 lhs
-            else if (ir.src1.?.def != null and ((ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 1) or (ir.src1.?.def.?.kind == .loadFloat and ir.src1.?.def.?.data.float == 1.0))) {
+            else if (src1_def != null and ((src1_def.?.kind == .loadInt and src1_def.?.data.int == 1) or (src1_def.?.kind == .loadFloat and src1_def.?.data.float == 1.0))) {
                 log("mult; mult 1 lhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -890,7 +926,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mult 1 rhs
-            else if (ir.src2.?.def != null and ((ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 1) or (ir.src2.?.def.?.kind == .loadFloat and ir.src2.?.def.?.data.float == 1.0))) {
+            else if (src2_def != null and ((src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) or (src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0))) {
                 log("mult; mult 1 rhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -899,7 +935,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mult 0 lhs int
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("mult; mult 0 lhs int");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = 0 };
@@ -908,7 +944,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mult 0 lhs float
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src1.?.def.?.data.float == 0.0) {
+            else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
                 log("mult; mult 0 lhs float");
                 ir.kind = .loadFloat;
                 ir.data = _ir.IRData{ .float = 0.0 };
@@ -917,7 +953,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mult 0 rhs int
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
+            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("mult; mult 0 rhs int");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = 0 };
@@ -926,7 +962,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mult 0 rhs float
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadFloat and ir.src2.?.def.?.data.float == 0.0) {
+            else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
                 log("mult; mult 0 rhs float");
                 ir.kind = .loadFloat;
                 ir.data = _ir.IRData{ .float = 0.0 };
@@ -935,50 +971,52 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
+            else if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
-                ir.src2 = ir.src2.?.def.?.src1;
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .div => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
-                if (ir.src2.?.def.?.data.int == 0) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
+                if (src2_def.?.data.int == 0) {
                     errors.addError(Error{ .basic = .{
-                        .span = ir.src2.?.def.?.span,
+                        .span = src2_def.?.span,
                         .msg = "divide by 0",
                     } });
                     return error.typeError;
                 }
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = @divTrunc(ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
+                ir.data = _ir.IRData{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
-                if (ir.src2.?.def.?.data.float == 0.0) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
+                if (src2_def.?.data.float == 0.0) {
                     errors.addError(Error{ .basic = .{
-                        .span = ir.src2.?.def.?.span,
+                        .span = src2_def.?.span,
                         .msg = "divide by 0",
                     } });
                     return error.typeError;
                 }
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = ir.src1.?.def.?.data.float / ir.src2.?.def.?.data.float };
+                ir.data = _ir.IRData{ .float = src1_def.?.data.float / src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Div 1 rhs
-            else if (ir.src2.?.def != null and ((ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 1) or (ir.src2.?.def.?.kind == .loadFloat and ir.src2.?.def.?.data.float == 1.0))) {
+            else if (src2_def != null and ((src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) or (src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0))) {
                 log("div; div 1 rhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -987,35 +1025,37 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
+            else if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
-                ir.src2 = ir.src2.?.def.?.src1;
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .mod => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
-                if (ir.src2.?.def.?.data.int == 0) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
+                if (src2_def.?.data.int == 0) {
                     errors.addError(Error{ .basic = .{
-                        .span = ir.src2.?.def.?.span,
+                        .span = src2_def.?.span,
                         .msg = "divide by 0",
                     } });
                     return error.typeError;
                 }
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = @rem(ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int) };
+                ir.data = _ir.IRData{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Mod 0 lhs
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadInt and ir.src1.?.def.?.data.int == 0) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("mod; mod 0 lhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -1024,7 +1064,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Mod 1 rhs
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt and ir.src2.?.def.?.data.int == 0) {
+            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("mod; mod 1 rhs");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -1033,25 +1073,27 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
+            else if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
-                ir.src2 = ir.src2.?.def.?.src1;
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
 
         .exponent => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
+            var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
             // Known int, int value
-            if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.uses == 1 and ir.src2.?.uses == 1 and ir.src1.?.def.?.kind == .loadInt and ir.src2.?.def.?.kind == .loadInt) {
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{
-                    .int = if (std.math.powi(i128, ir.src1.?.def.?.data.int, ir.src2.?.def.?.data.int)) |res| res else |_| {
+                    .int = if (std.math.powi(i128, src1_def.?.data.int, src2_def.?.data.int)) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
-                            .span = ir.src2.?.def.?.span,
+                            .span = src2_def.?.span,
                             .msg = "exponent is undefined",
                         } });
                         return error.typeError;
@@ -1062,21 +1104,21 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Known float, float value
-            else if (ir.src1.?.def != null and ir.src2.?.def != null and ir.src1.?.def.?.kind == .loadFloat and ir.src2.?.def.?.kind == .loadFloat) {
+            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .float = std.math.pow(f64, ir.src1.?.def.?.data.float, ir.src2.?.def.?.data.float) };
+                ir.data = _ir.IRData{ .float = std.math.pow(f64, src1_def.?.data.float, src2_def.?.data.float) };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }
             // Short-circuit src1 copy
-            else if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
+            else if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             // Short-circuit src2 copy
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .copy) {
-                ir.src2 = ir.src2.?.def.?.src1;
+            else if (src2_def != null and src2_def.?.kind == .copy) {
+                ir.src2 = src2_def.?.src1;
                 retval = true;
             }
         },
@@ -1132,19 +1174,19 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 retval = true;
             }
             // Statically check if index is within bounds
-            else if (ir.src2.?.def != null and ir.src2.?.def.?.kind == .loadInt) {
+            else if (src2_def != null and src2_def.?.kind == .loadInt) {
                 if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
-                    var index = ir.src2.?.def.?.data.int;
+                    var index = src2_def.?.data.int;
                     var length = ir.src1.?.symbol._type.?.product.terms.items.len;
                     if (index < 0) {
                         errors.addError(Error{ .negative_index = .{
-                            .span = ir.src2.?.def.?.span,
+                            .span = src2_def.?.span,
                             .index = index,
                         } });
                         return error.typeError;
                     } else if (index >= length) {
                         errors.addError(Error{ .out_of_bounds = .{
-                            .span = ir.src2.?.def.?.span,
+                            .span = src2_def.?.span,
                             .index = index,
                             .length = length,
                         } });
@@ -1181,18 +1223,13 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
             }
             // Known loadStruct value
             else if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadStruct) {
-                log("select; known loadStruct value");
                 // IR is of the form `dest = src1._{data.int}`, where src1_def is of the form: `src1 = {data.symbverList}`
                 // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
                 // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
                 var field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.int))];
-                var field_def = ir.in_block.?.get_latest_def(field.symbol, ir);
-                if (field_def != null and field_def.?.dest != null and field == field_def.?.dest and (field_def.?.kind == .loadInt or
-                    field_def.?.kind == .loadFloat or
-                    field_def.?.kind == .loadStruct or
-                    field_def.?.kind == .loadUnion or
-                    field_def.?.kind == .loadString))
-                {
+                var field_def = src1_def.?.any_def_after(field.symbol, ir);
+                if (field_def == null and field.def.?.kind != .index) {
+                    log("select; known loadStruct value");
                     ir.kind = .copy;
                     ir.src1 = field;
                     ir.src2 = null;
@@ -1213,10 +1250,11 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .get_tag => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Known loadUnion value
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .loadUnion) {
+            if (src1_def != null and src1_def.?.kind == .loadUnion) {
                 ir.kind = .loadInt;
-                ir.data = ir.src1.?.def.?.data; // Copy the src's tag (in data.int)
+                ir.data = src1_def.?.data; // Copy the src's tag (in data.int)
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -1224,9 +1262,10 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
         },
 
         .call => {
+            var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
             // Short-circuit src1 copy
-            if (ir.src1.?.def != null and ir.src1.?.def.?.kind == .copy) {
-                ir.src1 = ir.src1.?.def.?.src1;
+            if (src1_def != null and src1_def.?.kind == .copy) {
+                ir.src1 = src1_def.?.src1;
                 retval = true;
             }
             for (ir.data.symbverList.items, 0..) |symbver, i| {

@@ -473,6 +473,53 @@ pub const IR = struct {
             try writer.print("\n", .{});
         }
     }
+
+    pub fn get_latest_def_after(start_at_ir: *IR, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
+        var maybe_ir: ?*IR = start_at_ir;
+        var retval: ?*IR = null;
+        while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
+            var ir: *IR = maybe_ir.?;
+            if (ir.kind == .selectCopy and ir.src1.?.symbol == symbol) {
+                retval = null;
+            } else if (ir.kind == .indexCopy and ir.src1.?.symbol == symbol) {
+                retval = null;
+            } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
+                retval = null;
+            }
+            // else if (ir.kind == .index and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
+            //     retval = null; // Needed? Maybe! Coverage
+            // }
+            else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
+                retval = null;
+            } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
+                retval = ir;
+            }
+        }
+        return retval;
+    }
+
+    pub fn any_def_after(start_at_ir: *IR, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
+        var maybe_ir: ?*IR = start_at_ir;
+        while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
+            var ir: *IR = maybe_ir.?;
+            if (ir.kind == .selectCopy and ir.src1.?.symbol == symbol) {
+                return ir;
+            } else if (ir.kind == .indexCopy and ir.src1.?.symbol == symbol) {
+                return ir;
+            } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
+                return ir;
+            }
+            // else if (ir.kind == .index and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
+            //     return ir; // Didn't seem to be needed. Figure it out when you do coverage
+            // }
+            else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
+                return ir;
+            } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
+                return ir;
+            }
+        }
+        return null;
+    }
 };
 
 pub const BasicBlock = struct {
@@ -580,19 +627,11 @@ pub const BasicBlock = struct {
     }
 
     pub fn get_latest_def(bb: *BasicBlock, symbol: *Symbol, stop_at_ir: ?*IR) ?*IR {
-        var maybe_ir = bb.ir_head;
-        var retval: ?*IR = null;
-        while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
-            var ir: *IR = maybe_ir.?;
-            if (ir.kind == .selectCopy and ir.src1.?.symbol == symbol) {
-                retval = null;
-            } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
-                retval = null;
-            } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
-                retval = ir;
-            }
+        if (bb.ir_head == null) {
+            return null;
+        } else {
+            return bb.ir_head.?.get_latest_def_after(symbol, stop_at_ir);
         }
-        return retval;
     }
 };
 

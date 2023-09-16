@@ -26,16 +26,12 @@ int64_t _4_sum_up(struct1 _4_xs);
 /* Function definitions */
 int64_t _2_main() {
     struct0 _3_x;
-    int64_t* _2_t11;
-    struct1 _3_y;
     int64_t* _2_t18;
     struct1 _3_z;
     int64_t _2_t20;
     int64_t _2_$retval;
     _3_x = (struct0) {100, 10, 1};
-    _2_t11 = (int64_t*)&_3_x;
-    _3_y = (struct1) {_2_t11, 3};
-    _2_t18 = _3_y._0;
+    _2_t18 = (int64_t*)&_3_x;
     _3_z = (struct1) {_2_t18, 3};
     $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
     _2_t20 = _4_sum_up(_3_z);

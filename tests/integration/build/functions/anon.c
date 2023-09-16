@@ -18,12 +18,12 @@ int64_t _6_apply(function0 _6_f,int64_t _6_x);
 
 /* Function definitions */
 int64_t _2_main() {
-    function0 _2_t0;
+    function0 _3_id;
     int64_t _2_t1;
     int64_t _2_$retval;
-    _2_t0 = _4_$anon0;
+    _3_id = _4_$anon0;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _2_t1 = _6_apply(_2_t0, 43);
+    _2_t1 = _6_apply(_3_id, 43);
     $line_idx--;
     _2_$retval = _2_t1;
     return _2_$retval;
