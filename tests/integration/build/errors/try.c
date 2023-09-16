@@ -62,7 +62,7 @@ BB4:
 
 struct0 _4_f(uint8_t _4_fail) {
     struct0 _4_t1;
-    int64_t _7_x;
+    int64_t _4_t3;
     struct0 _4_t0;
     struct0 _4_$retval;
     if (_4_fail) {
@@ -83,8 +83,8 @@ BB8:
     _4_t0 = (struct0) {.tag=1, ._1=0};
     goto BB6;
 BB2:
-    _7_x = _4_t1._1;
-    _4_t0 = (struct0) {.tag=1, ._1=_7_x};
+    _4_t3 = _4_t1._1;
+    _4_t0 = (struct0) {.tag=1, ._1=_4_t3};
     goto BB6;
 BB7:
     _4_$retval = _4_t1;

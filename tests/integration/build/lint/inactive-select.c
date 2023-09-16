@@ -30,7 +30,7 @@ int64_t _2_main() {
     _2_t0 = _4_f();
     $line_idx--;
     _3_x = _2_t0;
-    if (_3_x.tag != 1) {
+    if (_2_t0.tag != 1) {
         goto BB1;
     } else {
         goto BB2;
