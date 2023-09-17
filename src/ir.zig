@@ -510,11 +510,7 @@ pub const IR = struct {
                 return ir;
             } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
                 return ir;
-            }
-            // else if (ir.kind == .index and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
-            //     return ir; // Didn't seem to be needed. Figure it out when you do coverage
-            // }
-            else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
+            } else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
                 return ir;

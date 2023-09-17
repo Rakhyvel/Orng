@@ -40,7 +40,7 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
 
     try findUnused(cfg, errors);
 
-    while (try propagate(cfg, interned_strings, errors) or
+    while (try propagate(cfg, interned_strings, errors, allocator) or
         try bbOptimizations(cfg, allocator) or
         removeUnusedDefs(cfg))
     {}
@@ -64,7 +64,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         if (bb.number_predecessors == 0) {
             defer log_optimization_pass("remove unused block", cfg);
             removeBasicBlock(cfg, bb, true);
-            return true;
+            return true; // Perhaps mark these and remove them in a sweep pass?
         }
     }
 
@@ -103,7 +103,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         }
 
         if (bb.has_branch) {
-            var latest_condition = bb.get_latest_def(bb.condition.?.symbol, null);
+            var latest_condition = bb.condition.?.def; // This is set by propagate
             // Convert constant true/false branches to jumps
             if (latest_condition != null and latest_condition.?.kind == .loadInt) {
                 defer log_optimization_pass("convert constant true/false to jumps", cfg);
@@ -235,29 +235,38 @@ fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
     bb.removed = true;
 }
 
-fn findIR(bb: *BasicBlock, symbver: *SymbolVersion) ?*IR {
-    var maybe_ir = bb.ir_head;
-    while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-        if (ir.dest != null and ir.dest.?.symbol == symbver.symbol) {
-            return ir;
-        }
-    }
-    return null;
-}
-
-fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
+fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
     var retval = false;
 
     calculateVersions(cfg);
     calculateUsage(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
+        var def_map = std.AutoArrayHashMap(*SymbolVersion, ?*IR).init(allocator);
+        defer def_map.deinit();
+
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            retval = try propagateIR(ir, interned_strings, errors) or retval;
+            var src1_def: ?*IR = if (ir.src1) |src1| def_map.get(src1) orelse null else null;
+            var src2_def: ?*IR = if (ir.src2) |src2| def_map.get(src2) orelse null else null;
+            retval = try propagateIR(ir, src1_def, src2_def, interned_strings, errors) or retval;
+
+            if (ir.kind == .selectCopy) {
+                try def_map.put(ir.src1.?, null);
+            } else if (ir.kind == .indexCopy) {
+                try def_map.put(ir.src1.?, null);
+            } else if (ir.kind == .select and ir.dest.?.lvalue) {
+                try def_map.put(ir.src1.?, null);
+            } else if (ir.kind == .addrOf) {
+                try def_map.put(ir.src1.?, null);
+            }
+            if (ir.dest) |dest| {
+                try def_map.put(dest, ir);
+            }
         }
         if (bb.has_branch) {
-            var cond_def = bb.get_latest_def(bb.condition.?.symbol, null);
+            var cond_def: ?*IR = def_map.get(bb.condition.?) orelse null;
+            bb.condition.?.def = cond_def;
             if (cond_def != null and cond_def.?.kind == .copy) {
                 bb.condition = cond_def.?.src1;
                 retval = true;
@@ -268,12 +277,8 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
     return retval;
 }
 
-/// This function is O(n) in terms of # of IR in ir.in_block
-fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
+fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
     var retval = false;
-    // TODO: get_latest_def is currently O(n). Would be nice to have a better algorithm
-    var src1_def = if (ir.src1 != null) ir.in_block.?.get_latest_def(ir.src1.?.symbol, ir) else null;
-    var src2_def = if (ir.src2 != null) ir.in_block.?.get_latest_def(ir.src2.?.symbol, ir) else null;
 
     switch (ir.kind) {
         .copy => {
@@ -1005,6 +1010,7 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
                 // IR is of the form `dest = src1._{data.int}`, where src1_def is of the form: `src1 = {data.symbverList}`
                 // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
                 // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
+                // std.debug.print("{}{?}", .{ ir, src1_def });
                 var field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.int))];
                 var field_def = src1_def.?.any_def_after(field.symbol, ir);
                 if (field_def == null and field.def.?.kind != .index) {
@@ -1054,13 +1060,10 @@ fn propagateIR(ir: *IR, interned_strings: *std.ArrayList([]const u8), errors: *e
     if (!retval) {
         // Need to make sure src1_def.dest is not assigned to in between src1_def and ir.
         //   srcn_def:        dest = ?
-        //   ...
-        //   recent_srcn_def: dest = ?
-        //   ...
+        //             ...
+        //   recent_srcn_def: dest = ? // If this exists, then srcn_def is NOT the most up to date
+        //             ...
         //   ir:              ...
-        //
-        // TODO: any_def_after() is O(n), would be nice to have a better algorithm to
-        //       determine this.
         if (src1_def != null and src1_def.?.kind == .copy) {
             // src1 copy propagation
             var recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbol, ir);
