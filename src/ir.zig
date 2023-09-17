@@ -74,8 +74,8 @@ pub const SymbolVersion = struct {
         } else {
             out.concat(" ") catch unreachable;
         }
-        out.writer().print("{s}_{?}", .{ self.symbol.name, self.version }) catch unreachable;
-        try writer.print("{s:<10}", .{out.str()});
+        writer.print("{s}_{?}", .{ self.symbol.name, self.version }) catch unreachable;
+        // try writer.print("{s:<10}", .{out.str()});
     }
 
     fn findVersion(self: *SymbolVersion, ir: ?*IR, stop: ?*IR) *SymbolVersion {
@@ -378,100 +378,156 @@ pub const IR = struct {
         return mut_self;
     }
 
-    pub fn pprint(self: *IR) void {
-        if (self.kind == .label) {
-            std.debug.print("BB{}:\n", .{self.uid});
-        } else {
-            const kind_name = @tagName(self.kind);
-            std.debug.print("    {:<3}\t{s:<12}", .{ self.uid, kind_name });
-            SymbolVersion.pprint(self.dest);
-            SymbolVersion.pprint(self.src1);
-            SymbolVersion.pprint(self.src2);
-            switch (self.data) {
-                .branch => {
-                    if (self.data.branch) |branch| {
-                        std.debug.print("\tBB{}", .{branch.uid});
+    pub fn pprint(self: IR, allocator: std.mem.Allocator) ![]const u8 {
+        var out = _string.String.init(allocator);
+        defer out.deinit();
+
+        switch (self.kind) {
+            .label => try out.writer().print("BB{}:\n", .{self.uid}),
+
+            .loadInt => {
+                try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.int });
+            },
+            .loadFloat => {
+                try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.float });
+            },
+            .loadStruct => {
+                try out.writer().print("    {} := {{", .{self.dest.?});
+                var i: usize = 0;
+                while (i < self.data.symbverList.items.len) : (i += 1) {
+                    var symbver = self.data.symbverList.items[i];
+                    try out.writer().print("{}", .{symbver});
+                    if (i < self.data.symbverList.items.len - 1) {
+                        try out.writer().print(", ", .{});
                     }
-                },
-                .int => {
-                    std.debug.print("\tint:{}", .{self.data.int});
-                },
-                .float => {
-                    std.debug.print("\tfloat:{}", .{self.data.float});
-                },
-                .symbol => {
-                    std.debug.print("\tsymbol:{s}", .{self.data.symbol.name});
-                },
-                .symbver => {
-                    std.debug.print("\tsymbver:", .{});
-                    self.data.symbver.pprint();
-                },
-                .symbverList => {
-                    std.debug.print("\tsymbverList:[", .{});
-                    for (self.data.symbverList.items, 1..) |symbver, i| {
-                        symbver.pprint();
-                        if (i < self.data.symbverList.items.len) {
-                            std.debug.print(", ", .{});
-                        }
+                }
+                try out.writer().print("}}\n", .{});
+            },
+            .loadUnion => {
+                try out.writer().print("    {} := {{tag={}, init={}}}\n", .{ self.dest.?, self.data.int, self.src1.? });
+            },
+            .loadString => {
+                try out.writer().print("    {} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
+            },
+
+            .copy => {
+                try out.writer().print("    {} := {?}\n", .{ self.dest.?, self.src1 });
+            },
+            .not => {
+                try out.writer().print("    {} := !{}\n", .{ self.dest.?, self.src1.? });
+            },
+            .negate => {
+                try out.writer().print("    {} := -{}\n", .{ self.dest.?, self.src1.? });
+            },
+            .addrOf => {
+                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
+            },
+            .sizeOf => {
+                try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
+            },
+            .dereference => {
+                try out.writer().print("    {} := {}^\n", .{ self.dest.?, self.src1.? });
+            },
+            .derefCopy => {
+                try out.writer().print("    {}^ := {}\n", .{ self.src1.?, self.src2.? });
+            },
+
+            .equal => {
+                try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .notEqual => {
+                try out.writer().print("    {} := {} != {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .greater => {
+                try out.writer().print("    {} := {} > {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .lesser => {
+                try out.writer().print("    {} := {} < {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .greaterEqual => {
+                try out.writer().print("    {} := {} >= {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .lesserEqual => {
+                try out.writer().print("    {} := {} <= {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .add => {
+                try out.writer().print("    {} := {} + {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .sub => {
+                try out.writer().print("    {} := {} - {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .mult => {
+                try out.writer().print("    {} := {} * {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .div => {
+                try out.writer().print("    {} := {} / {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .mod => {
+                try out.writer().print("    {} := {} % {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .exponent => {
+                try out.writer().print("    {} := {} ** {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .index => {
+                try out.writer().print("    {} := {}[{}]\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .select => {
+                try out.writer().print("    {} := {}._{}\n", .{ self.dest.?, self.src1.?, self.data.int });
+            },
+
+            .indexCopy => {
+                try out.writer().print("    {}[{}] := {}\n", .{ self.src1.?, self.src2.?, self.data.symbver });
+            },
+            .selectCopy => {
+                try out.writer().print("    {}._{} := {}\n", .{ self.src1.?, self.data.int, self.src2.? });
+            },
+            .get_tag => {
+                try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
+            },
+
+            .call => {
+                try out.writer().print("    {} := {}(", .{ self.dest.?, self.src1.? });
+                var i: usize = 0;
+                while (i < self.data.symbverList.items.len) : (i += 1) {
+                    var symbver = self.data.symbverList.items[i];
+                    try out.writer().print("{}", .{symbver});
+                    if (i < self.data.symbverList.items.len - 1) {
+                        try out.writer().print(", ", .{});
                     }
-                    std.debug.print("]", .{});
-                },
-                else => {},
-            }
-            std.debug.print("\n", .{});
+                }
+                try out.writer().print(")\n", .{});
+            },
+
+            .discard => {
+                try out.writer().print("    _ := {}\n", .{self.src1.?});
+            },
+            .pushStackTrace => {
+                try out.writer().print("    push-stack-trace\n", .{});
+            },
+            .popStackTrace => {
+                try out.writer().print("    pop-stack-trace\n", .{});
+            },
+            .panic => {
+                try out.writer().print("    panic\n", .{});
+            },
+
+            else => {
+                try out.writer().print("<TODO: {s}>\n", .{@tagName(self.kind)});
+            },
         }
+
+        return (try out.toOwned()).?;
     }
 
     pub fn format(self: IR, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        if (self.kind == .label) {
-            try writer.print("BB{}:\n", .{self.uid});
-        } else {
-            const kind_name = @tagName(self.kind);
-            try writer.print("    {:<3}\t{s:<12}", .{ self.uid, kind_name });
-            if (self.dest) |dest| {
-                try SymbolVersion.format(dest.*, fmt, options, writer);
-            } else {
-                try writer.print("<null>    ", .{});
-            }
-            if (self.src1) |src1| {
-                try SymbolVersion.format(src1.*, fmt, options, writer);
-            } else {
-                try writer.print("<null>    ", .{});
-            }
-            if (self.src2) |src2| {
-                try SymbolVersion.format(src2.*, fmt, options, writer);
-            } else {
-                try writer.print("<null>    ", .{});
-            }
-            switch (self.data) {
-                .branch => {
-                    if (self.data.branch) |branch| {
-                        try writer.print("\tBB{}", .{branch.uid});
-                    }
-                },
-                .int => {
-                    try writer.print("\tint:{}", .{self.data.int});
-                },
-                .float => {
-                    try writer.print("\tfloat:{}", .{self.data.float});
-                },
-                .symbol => {
-                    try writer.print("\tsymbol:{s}", .{self.data.symbol.name});
-                },
-                .symbverList => {
-                    try writer.print("\tsymbverList:[", .{});
-                    for (self.data.symbverList.items, 1..) |symbver, i| {
-                        try symbver.format(fmt, options, writer);
-                        if (i < self.data.symbverList.items.len) {
-                            try writer.print(", ", .{});
-                        }
-                    }
-                    try writer.print("]", .{});
-                },
-                else => {},
-            }
-            try writer.print("\n", .{});
-        }
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+
+        var out = self.pprint(arena.allocator()) catch unreachable;
+
+        try writer.print("{s}", .{out});
     }
 
     /// This function is O(n) in terms of IR between start and stop
@@ -550,7 +606,7 @@ pub const BasicBlock = struct {
         std.debug.print(":\n", .{});
         var maybe_ir = self.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            ir.pprint();
+            std.debug.print("{}", .{ir});
         }
         if (self.has_branch) {
             if (self.next) |next| {
@@ -586,7 +642,7 @@ pub const BasicBlock = struct {
         }
     }
 
-    fn printSymbverList(list: *std.ArrayList(*SymbolVersion)) void {
+    pub fn printSymbverList(list: *std.ArrayList(*SymbolVersion)) void {
         std.debug.print("(", .{});
         var i: usize = 0;
         while (i < list.items.len) : (i += 1) {
@@ -696,6 +752,7 @@ pub const CFG = struct {
         //     bb.pprint();
         // }
         // retval.clearVisitedBBs();
+
         try retval.calculatePhiParamsAndArgs(allocator);
 
         return retval;

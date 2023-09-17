@@ -46,18 +46,18 @@ int64_t _6_b(int64_t _6_n) {
 }
 
 int64_t _8_c(int64_t _8_n) {
+    int64_t _8_t4;
     int64_t _8_t0;
     int64_t _8_$retval;
-    int64_t _8_t4;
     if (_8_n == 47) {
-        goto BB1;
+        goto BB3;
     } else {
-        goto BB9;
+        goto BB7;
     }
-BB1:
+BB3:
     _8_t0 = 47;
     goto BB6;
-BB9:
+BB7:
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
     _8_t4 = _4_a(_8_n);
     $line_idx--;

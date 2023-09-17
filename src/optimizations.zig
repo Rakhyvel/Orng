@@ -41,6 +41,7 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     try findUnused(cfg, errors);
 
     while (try propagate(cfg, interned_strings, errors, allocator) or
+        removeUnusedDefs(cfg) or
         try bbOptimizations(cfg, allocator) or
         removeUnusedDefs(cfg))
     {}

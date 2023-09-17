@@ -29,15 +29,15 @@ int64_t _4_sumDown(int64_t _4_x) {
     _6_i = _4_x;
 BB1:
     if (_6_i >= 0) {
-        goto BB2;
+        goto BB4;
     } else {
-        goto BB10;
+        goto BB9;
     }
-BB2:
+BB4:
     _4_x = _4_x + _6_i;
     _6_i = _6_i - 1;
     goto BB1;
-BB10:
+BB9:
     _4_$retval = _4_x;
     return _4_$retval;
 }

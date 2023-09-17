@@ -229,14 +229,13 @@
         - [x] don't `goto` BB if it's the next one in the queue
     - [x] replace `x != 0` with `x`, `x == 0` with `!x`
     - [x] copy propagate `loadSymbol` IR
-    - [ ] instead of checking if def is null, do `what is the most recent definition in this bb`
+    - [x] instead of checking if def is null, do `what is the most recent definition in this bb`
         > *might* be able to add a list of predecessors to BBs, check list of BBs for defs too, if they agree on a value
         > Currently theres a discontinuity with how the IR works and how codegen works.
         > IR is in SSA form, whereas C is flattened so that all symbvers of a same symbol share a same variable
         > This is the preferable way to gen C code, but it leads to tricky situations one must be careful of
     - [x] better select optimizations
-    - [ ] look at how much IR things generate. Generate fewer IR!
-    - [ ] local value numbering
+    - [ ] local value numbering (?)
     - [ ] partial redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
         - [ ] loop invariant lifting

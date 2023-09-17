@@ -44,11 +44,11 @@ struct0 _4_f(int64_t* _4_x,uint8_t _4_fail) {
     struct0 _4_$retval;
     **&_4_x = 6;
     if (_4_fail) {
-        goto BB1;
+        goto BB8;
     } else {
         goto BB9;
     }
-BB1:
+BB8:
     **&_4_x = *_4_x + 100;
     **&_4_x = *_4_x + 9;
     return _4_$retval;

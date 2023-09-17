@@ -20,20 +20,20 @@ int64_t _2_main() {
     _4_i = 0;
 BB1:
     if (_4_i < 70) {
-        goto BB2;
+        goto BB4;
     } else {
-        goto BB16;
+        goto BB15;
     }
-BB2:
+BB4:
     if (_4_i % 2) {
-        goto BB12;
+        goto BB10;
     } else {
         goto BB8;
     }
-BB16:
+BB15:
     _2_$retval = _3_x;
     return _2_$retval;
-BB12:
+BB10:
     _3_x = _3_x + 1;
 BB8:
     _4_i = _4_i + 1;

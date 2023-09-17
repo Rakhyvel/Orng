@@ -51,17 +51,17 @@ int64_t _4_sum_up(struct1 _4_xs) {
     _6_i = 0;
 BB1:
     if (_6_i < _4_xs._1) {
-        goto BB2;
+        goto BB4;
     } else {
-        goto BB14;
+        goto BB13;
     }
-BB2:
+BB4:
     if (_6_i < 0) {
         goto BB5;
     } else {
         goto BB6;
     }
-BB14:
+BB13:
     _4_$retval = _5_sum;
     return _4_$retval;
 BB5:

@@ -20,14 +20,14 @@ int64_t _2_main() {
     _3_x = 1;
     _3_y = &_3_x;
     if (-*_3_y == -1) {
-        goto BB1;
+        goto BB3;
     } else {
-        goto BB9;
+        goto BB7;
     }
-BB1:
+BB3:
     _2_t2 = 32;
     goto BB6;
-BB9:
+BB7:
     _2_t2 = 10;
 BB6:
     _2_$retval = _2_t2;

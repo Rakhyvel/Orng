@@ -32,21 +32,20 @@ int64_t _2_main() {
     *(int64_t*)&_3_x = _2_t4._0;
     *((int64_t*)&_3_x + 1) = _2_t4._1;
     if (*(int64_t*)&_3_x > *((int64_t*)&_3_x + 1)) {
-        goto BB33;
+        goto BB35;
     } else {
-        goto BB40;
+        goto BB39;
     }
-BB33:
+BB35:
     _2_$retval = 162;
     return _2_$retval;
-BB40:
+BB39:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     fprintf(stderr, "panic: reached unreachable code\n");
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
     }
     exit(1);
-    return _2_$retval;
 }
 
 int main()

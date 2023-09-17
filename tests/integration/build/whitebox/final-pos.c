@@ -18,23 +18,23 @@ int64_t _2_main() {
     _3_x = 0;
 BB1:
     if (_3_x < 100) {
-        goto BB2;
+        goto BB4;
     } else {
         goto BB9;
     }
-BB2:
+BB4:
     if (_3_x == 40) {
-        goto BB5;
+        goto BB7;
     } else {
-        goto BB14;
+        goto BB13;
     }
 BB9:
     _2_$retval = _3_x;
     return _2_$retval;
-BB5:
+BB7:
     _3_x = _3_x + 1;
     goto BB9;
-BB14:
+BB13:
     _3_x = _3_x + 1;
     goto BB1;
 }

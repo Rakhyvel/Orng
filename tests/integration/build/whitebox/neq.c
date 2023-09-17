@@ -15,27 +15,27 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
-    uint8_t _2_t7;
-    int64_t _2_t2;
     int64_t _2_t9;
+    uint8_t _2_t7;
     int64_t _2_$retval;
+    int64_t _2_t2;
     _3_x = 3;
     _3_y = &_3_x;
     if (*_3_y != 5) {
         goto BB5;
     } else {
-        goto BB16;
+        goto BB11;
     }
 BB5:
     _2_t2 = 33;
     goto BB8;
-BB16:
+BB11:
     _2_t9 = *_3_y;
     _2_t7 = 4 > _2_t9;
     if (_2_t7) {
         goto BB12;
     } else {
-        goto BB15;
+        goto BB9;
     }
 BB8:
     _2_$retval = _2_t2;
@@ -45,7 +45,7 @@ BB12:
     if (_2_t7) {
         goto BB5;
     }
-BB15:
+BB9:
     _2_t2 = 10;
     goto BB8;
 }
