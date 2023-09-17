@@ -244,6 +244,48 @@ pub const IRData = union(enum) {
     none,
 };
 
+pub const IRMeta = union(enum) {
+    bounds_check: struct {
+        length: *SymbolVersion, // lower bounds is always 0
+    },
+    active_field_check: struct {
+        tag: *SymbolVersion,
+        selection: usize,
+    },
+
+    none,
+
+    pub fn pprint(self: IRMeta, allocator: std.mem.Allocator) ![]const u8 {
+        var out = _string.String.init(allocator);
+        defer out.deinit();
+
+        switch (self) {
+            .bounds_check => {
+                try out.writer().print("// bounds_check: {}", .{self.bounds_check.length});
+            },
+
+            .active_field_check => {
+                try out.writer().print("// active_field_check: {{tag:{} selection:{}}}", .{ self.active_field_check.tag, self.active_field_check.selection });
+            },
+
+            .none => return "",
+        }
+
+        return (try out.toOwned()).?;
+    }
+
+    pub fn format(self: IRMeta, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+
+        var out = self.pprint(arena.allocator()) catch unreachable;
+
+        try writer.print("{s}", .{out});
+    }
+};
+
 pub const IR = struct {
     uid: u64,
     kind: IRKind,
@@ -252,6 +294,7 @@ pub const IR = struct {
     src2: ?*SymbolVersion,
 
     data: IRData,
+    meta: IRMeta,
     next: ?*IR,
     prev: ?*IR,
 
@@ -273,6 +316,7 @@ pub const IR = struct {
         retval.prev = null;
         retval.next = null;
         retval.data = IRData.none;
+        retval.meta = IRMeta.none;
         retval.span = span;
         ir_uid += 1;
         return retval;
@@ -404,7 +448,8 @@ pub const IR = struct {
                 try out.writer().print("}}\n", .{});
             },
             .loadUnion => {
-                try out.writer().print("    {} := {{tag={}, init={}}}\n", .{ self.dest.?, self.data.int, self.src1.? });
+                // init may be null, if it is unit
+                try out.writer().print("    {} := {{tag={}, init={?}}}\n", .{ self.dest.?, self.data.int, self.src1 });
             },
             .loadString => {
                 try out.writer().print("    {} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
@@ -469,14 +514,14 @@ pub const IR = struct {
                 try out.writer().print("    {} := {} ** {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
             .index => {
-                try out.writer().print("    {} := {}[{}]\n", .{ self.dest.?, self.src1.?, self.src2.? });
+                try out.writer().print("    {} := {}[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
             },
             .select => {
-                try out.writer().print("    {} := {}._{}\n", .{ self.dest.?, self.src1.?, self.data.int });
+                try out.writer().print("    {} := {}._{} {}\n", .{ self.dest.?, self.src1.?, self.data.int, self.meta });
             },
 
             .indexCopy => {
-                try out.writer().print("    {}[{}] := {}\n", .{ self.src1.?, self.src2.?, self.data.symbver });
+                try out.writer().print("    {}[{}] := {} {}\n", .{ self.src1.?, self.src2.?, self.data.symbver, self.meta });
             },
             .selectCopy => {
                 try out.writer().print("    {}._{} := {}\n", .{ self.src1.?, self.data.int, self.src2.? });
@@ -1231,9 +1276,8 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 temp.lvalue = lvalue;
 
-                try self.generate_bounds_check(scope, ast, lhs, rhs, errors, allocator);
-
                 var ir = try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator);
+                ir.meta = try self.generate_bounds_check(scope, ast, lhs, errors, allocator);
                 ir.span = ast.getToken().span;
                 self.appendInstruction(ir);
                 return temp;
@@ -1244,26 +1288,18 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), allocator);
                 temp.lvalue = lvalue;
 
+                var meta: IRMeta = IRMeta.none;
                 if (do_check) {
-                    var all_good_label = try IR.createLabel(ast.getToken().span, allocator);
-                    var sel = try self.createTempSymbolVersion(_ast.intType, allocator);
-                    var sel_ir = try IR.createInt(sel, ast.select.pos.?, ast.getToken().span, allocator);
-                    self.appendInstruction(sel_ir);
                     var tag = try self.createTempSymbolVersion(_ast.intType, allocator);
                     var tag_ir = try IR.createGetTag(tag, lhs, ast.getToken().span, allocator);
                     self.appendInstruction(tag_ir);
-                    var neql = try self.createTempSymbolVersion(_ast.boolType, allocator);
-                    var neql_ir = try IR.create(.notEqual, neql, tag, sel, ast.getToken().span, allocator);
-                    self.appendInstruction(neql_ir);
-                    var branch = try IR.createBranch(neql, all_good_label, ast.getToken().span, allocator);
-                    self.appendInstruction(branch);
-                    self.appendInstruction(try IR.createStackPush(ast.select.rhs.getToken().span, allocator));
-                    self.appendInstruction(try IR.createPanic("access of inactive sum field", ast.select.rhs.getToken().span, allocator));
-                    self.appendInstruction(all_good_label);
+
+                    meta = IRMeta{ .active_field_check = .{ .tag = tag, .selection = ast.select.pos.? } };
                 }
 
                 var new_lhs = try SymbolVersion.createUnversioned(lhs.symbol, lhs.type, allocator);
                 var ir = try IR.createSelect(temp, new_lhs, ast.select.pos.?, ast.getToken().span, allocator);
+                ir.meta = meta;
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1865,10 +1901,9 @@ pub const CFG = struct {
                     return null;
                 }
 
-                try self.generate_bounds_check(scope, lhs, index_lhs.?, index_rhs.?, errors, allocator);
-
                 var ir = try IR.create(.indexCopy, null, index_lhs, index_rhs, lhs.getToken().span, allocator);
                 ir.data = IRData{ .symbver = rhs };
+                ir.meta = try self.generate_bounds_check(scope, lhs, index_lhs.?, errors, allocator);
                 self.appendInstruction(ir);
                 return null;
             },
@@ -2015,51 +2050,19 @@ pub const CFG = struct {
     }
 
     /// \param ast The index AST
-    fn generate_bounds_check(self: *CFG, scope: *Scope, ast: *AST, lhs: *SymbolVersion, rhs: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
-        var upper_label = try IR.createLabel(ast.getToken().span, allocator);
-        var end_label = try IR.createLabel(ast.getToken().span, allocator);
-        var new_rhs = try SymbolVersion.createUnversioned(rhs.symbol, rhs.type, allocator);
-
-        { // Test that index is positive
-            var zero = try self.createTempSymbolVersion(_ast.intType, allocator);
-            var zero_ir = try IR.createInt(zero, 0, ast.getToken().span, allocator);
-            self.appendInstruction(zero_ir);
-
-            var compare = try self.createTempSymbolVersion(_ast.boolType, allocator);
-            var ir = try IR.create(.lesser, compare, new_rhs, zero, ast.getToken().span, allocator);
-            self.appendInstruction(ir);
-            var branch = try IR.createBranch(compare, upper_label, ast.getToken().span, allocator);
-            self.appendInstruction(branch);
-            self.appendInstruction(try IR.createStackPush(ast.getToken().span, allocator));
-            self.appendInstruction(try IR.createPanic("index is negative", ast.getToken().span, allocator));
-        }
-
-        self.appendInstruction(upper_label);
-
+    fn generate_bounds_check(self: *CFG, scope: *Scope, ast: *AST, lhs: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) !IRMeta {
         var length: *SymbolVersion = try self.createTempSymbolVersion(_ast.intType, allocator);
         var lhs_type = try lhs.type.exapnd_type(scope, errors, allocator);
-        { // Get the length
-            if (lhs_type.* == .product and lhs_type.product.was_slice) {
-                var ir = try IR.createSelect(length, lhs, 1, ast.index.lhs.getToken().span, allocator);
-                self.appendInstruction(ir);
-            } else if (lhs_type.* == .product and !lhs_type.product.was_slice) {
-                var ir = try IR.createInt(length, lhs_type.product.terms.items.len, ast.getToken().span, allocator);
-                self.appendInstruction(ir);
-            } else {
-                unreachable;
-            }
-        }
-        { // Test that index is less than length
-            var compare = try self.createTempSymbolVersion(_ast.boolType, allocator);
-            var ir = try IR.create(.greaterEqual, compare, new_rhs, length, ast.getToken().span, allocator);
+        if (lhs_type.* == .product and lhs_type.product.was_slice) {
+            var ir = try IR.createSelect(length, lhs, 1, ast.index.lhs.getToken().span, allocator);
             self.appendInstruction(ir);
-            var branch = try IR.createBranch(compare, end_label, ast.getToken().span, allocator);
-            self.appendInstruction(branch);
-            self.appendInstruction(try IR.createStackPush(ast.getToken().span, allocator));
-            self.appendInstruction(try IR.createPanic("index is greater than length", ast.index.lhs.getToken().span, allocator));
+        } else if (lhs_type.* == .product and !lhs_type.product.was_slice) {
+            var ir = try IR.createInt(length, lhs_type.product.terms.items.len, ast.getToken().span, allocator);
+            self.appendInstruction(ir);
+        } else {
+            unreachable;
         }
-
-        self.appendInstruction(end_label);
+        return IRMeta{ .bounds_check = .{ .length = length } };
     }
 
     fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!void {

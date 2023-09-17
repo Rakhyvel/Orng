@@ -299,6 +299,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("integer constant propagation");
                 ir.kind = .loadInt;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -309,6 +310,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("float constant propagation");
                 ir.kind = .loadFloat;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -319,6 +321,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("string constant propagation");
                 ir.kind = .loadString;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -329,6 +332,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("struct constant propagation");
                 ir.kind = .loadStruct;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -339,6 +343,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("union constant propagation");
                 ir.kind = .loadUnion;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -349,6 +354,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("symbol constant propagation");
                 ir.kind = .loadSymbol;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -366,6 +372,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("addrof propagation");
                 ir.kind = .addrOf;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -376,6 +383,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("dereference propagation");
                 ir.kind = .dereference;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -386,6 +394,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("add propagation");
                 ir.kind = .add;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -396,6 +405,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("sub propagation");
                 ir.kind = .sub;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -406,6 +416,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("mult propagation");
                 ir.kind = .mult;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -416,6 +427,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("div propagation");
                 ir.kind = .div;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -426,6 +438,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("mod propagation");
                 ir.kind = .mod;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -436,6 +449,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("exponent");
                 ir.kind = .exponent;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -447,6 +461,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .select;
                 ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
                 ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
                 ir.src2 = src1_def.?.src2;
                 ir.safe = src1_def.?.safe;
                 ir.src1 = src1_def.?.src1;
@@ -941,65 +956,72 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
 
         .index => {
             // Statically check if index is within bounds
-            if (src2_def != null and src2_def.?.kind == .loadInt) {
-                log("index btw");
-                if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
-                    var index = src2_def.?.data.int;
-                    var length = ir.src1.?.symbol._type.?.product.terms.items.len;
-                    if (index < 0) {
-                        errors.addError(Error{ .negative_index = .{
-                            .span = src2_def.?.span,
-                            .index = index,
-                        } });
-                        return error.typeError;
-                    } else if (index >= length) {
-                        errors.addError(Error{ .out_of_bounds = .{
-                            .span = src2_def.?.span,
-                            .index = index,
-                            .length = length,
-                        } });
-                        return error.typeError;
-                    }
+            if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
+                var index = src2_def.?.data.int;
+                var length = ir.meta.bounds_check.length.def.?.data.int;
+                if (index < 0) {
+                    errors.addError(Error{ .negative_index = .{
+                        .span = src2_def.?.span,
+                        .index = index,
+                    } });
+                    return error.typeError;
+                } else if (index >= length) {
+                    errors.addError(Error{ .out_of_bounds = .{
+                        .span = src2_def.?.span,
+                        .index = index,
+                        .length = @as(usize, @intCast(length)),
+                    } });
+                    return error.typeError;
+                } else {
+                    // Confirmed within bounds, remove bounds check
+                    ir.meta = .none;
                 }
             }
         },
 
         .indexCopy => {
             // Statically check if index is within bounds
-            if (src2_def != null and src2_def.?.kind == .loadInt) {
-                if (ir.src1.?.symbol._type.?.* == .product and !ir.src1.?.symbol._type.?.product.was_slice) {
-                    var index = src2_def.?.data.int;
-                    var length = ir.src1.?.symbol._type.?.product.terms.items.len;
-                    if (index < 0) {
-                        errors.addError(Error{ .negative_index = .{
-                            .span = src2_def.?.span,
-                            .index = index,
-                        } });
-                        return error.typeError;
-                    } else if (index >= length) {
-                        errors.addError(Error{ .out_of_bounds = .{
-                            .span = src2_def.?.span,
-                            .index = index,
-                            .length = length,
-                        } });
-                        return error.typeError;
-                    }
+            if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
+                var index = src2_def.?.data.int;
+                var length = ir.meta.bounds_check.length.def.?.data.int;
+                if (index < 0) {
+                    errors.addError(Error{ .negative_index = .{
+                        .span = src2_def.?.span,
+                        .index = index,
+                    } });
+                    return error.typeError;
+                } else if (index >= length) {
+                    errors.addError(Error{ .out_of_bounds = .{
+                        .span = src2_def.?.span,
+                        .index = index,
+                        .length = @as(usize, @intCast(length)),
+                    } });
+                    return error.typeError;
+                } else {
+                    // Confirmed within bounds, remove bounds check
+                    ir.meta = .none;
+                    retval = true;
                 }
             }
         },
 
         .select => {
-            // Known loadUnion value
-            if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadUnion) {
-                log("select; known loadUnion value");
-                if (ir.data.int != src1_def.?.data.int and !ir.safe) {
+            if (ir.meta == .active_field_check and ir.meta.active_field_check.tag.def.?.kind == .loadInt) {
+                if (ir.data.int != ir.meta.active_field_check.tag.def.?.data.int and !ir.safe) {
                     errors.addError(Error{ .sum_select_inactive = .{
                         .span = ir.span,
                         .inactive = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.data.int))].annotation.pattern.getToken().data,
                         .active = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(src1_def.?.data.int))].annotation.pattern.getToken().data,
                     } });
                     return error.typeError;
+                } else {
+                    ir.meta = .none;
+                    retval = true;
                 }
+            }
+            // Known loadUnion value
+            if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadUnion) {
+                log("select; known loadUnion value");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
                 ir.src1 = src1_def.?.src1;
@@ -1136,7 +1158,7 @@ fn removeUnusedDefs(cfg: *CFG) bool {
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and ir.dest.?.uses == 0) {
                 if (debug) {
-                    std.debug.print("removing {s}\n", .{ir.dest.?.symbol.name});
+                    std.debug.print("removing: {}", .{ir});
                 }
                 bb.removeInstruction(ir);
                 retval = true;
@@ -1234,6 +1256,14 @@ fn calculateUsage(cfg: *CFG) void {
                     item.uses += 1;
                     item.symbol.uses += 1;
                 }
+            }
+
+            if (ir.meta == .bounds_check) {
+                ir.meta.bounds_check.length.uses += 1;
+                ir.meta.bounds_check.length.symbol.uses += 1;
+            } else if (ir.meta == .active_field_check) {
+                ir.meta.active_field_check.tag.uses += 1;
+                ir.meta.active_field_check.tag.symbol.uses += 1;
             }
         }
 

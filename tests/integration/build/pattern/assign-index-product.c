@@ -8,12 +8,34 @@
 static const char* $lines[1024];
 static uint16_t $line_idx = 0;
 
+inline static void $panic(const char *restrict msg) {
+    fprintf(stderr, "panic: %s\n", msg);
+    for(uint16_t $i = 0; $i < $line_idx; $i++) {
+        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+    }
+    exit(1);
+}
+
+inline static void $bounds_check(const int64_t idx, const int64_t length, const char *restrict line) {
+    if (0 > idx || idx >= length) {
+        $lines[$line_idx++] = line;
+        $panic("bounds check failed");
+    }
+}
+
+inline static void $tag_check(const int64_t tag, const int64_t sel, const char *restrict line) {
+    if (tag != sel) {
+        $lines[$line_idx++] = line;
+        $panic("inactive field");
+    }
+}
 /* Typedefs */
 typedef struct {
     int64_t _0;
     int64_t _1;
     int64_t _2;
 } struct0;
+
 typedef struct {
     int64_t _0;
     int64_t _1;
@@ -32,20 +54,16 @@ int64_t _2_main() {
     *(int64_t*)&_3_x = _2_t4._0;
     *((int64_t*)&_3_x + 1) = _2_t4._1;
     if (*(int64_t*)&_3_x > *((int64_t*)&_3_x + 1)) {
-        goto BB35;
+        goto BB3;
     } else {
-        goto BB39;
+        goto BB7;
     }
-BB35:
+BB3:
     _2_$retval = 162;
     return _2_$retval;
-BB39:
+BB7:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
-    fprintf(stderr, "panic: reached unreachable code\n");
-    for(uint16_t $i = 0; $i < $line_idx; $i++) {
-        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-    }
-    exit(1);
+    $panic("reached unreachable code\n");
 }
 
 int main()

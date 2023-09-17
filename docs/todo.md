@@ -235,20 +235,18 @@
         > IR is in SSA form, whereas C is flattened so that all symbvers of a same symbol share a same variable
         > This is the preferable way to gen C code, but it leads to tricky situations one must be careful of
     - [x] better select optimizations
-    - [ ] local value numbering (?)
+    - [ ] local value numbering
     - [ ] partial redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
         - [ ] loop invariant lifting
     - [ ] ! inlining
         > Incredibly important optimization
     - [ ] ? pointer aliasing analysis (should squash most whitebox testing)
-        > At the *very* least, add a flag to symbols to see if they're aliased with & at all
-        > OR: be able to tell that, say, src1 symbver is not updated between it's last update and now. Tough to do with BBs I think
     - [ ] Codegen optimizations (less important)
         - [x] if a branch depends on a symbver with a `negate` def IR, plunge `negate` and flip labels
         - [ ] `derefCopy` should elide `*&`s
         - [ ] `printSymbolVersion` should collapse addrOf IR, etc
-        - [ ] register allocation (but only if it's easy)
+    - [ ] coverage!
     - [ ] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] function programming stuff
     - [x] immutability

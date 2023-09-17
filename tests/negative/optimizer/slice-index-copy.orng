@@ -1,0 +1,6 @@
+fn main() -> Int {
+    let mut x: [4]Int
+    let y = [mut]x
+    y[100] = 3
+    y[100]
+}

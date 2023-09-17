@@ -49,9 +49,6 @@ fn generateFunctionTypedefs(dags: *std.ArrayList(*_program.DAG), out: *std.fs.Fi
     for (dags.items) |dag| {
         try generateTypedefs(dag, out);
     }
-    if (dags.items.len > 0) {
-        try out.writer().print("\n", .{});
-    }
 }
 
 fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
@@ -69,7 +66,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         try printType(dag.base.function.rhs, out);
         try out.writer().print("(*function{})(", .{dag.uid});
         try printType(dag.base.function.lhs, out);
-        try out.writer().print(");\n", .{});
+        try out.writer().print(");\n\n", .{});
     } else if (dag.base.* == .product) {
         try out.writer().print("typedef struct {{\n", .{});
         for (dag.base.product.terms.items, 0..) |term, i| {
@@ -80,7 +77,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
                 try out.writer().print(" _{};\n", .{i});
             }
         }
-        try out.writer().print("}} struct{};\n", .{dag.uid});
+        try out.writer().print("}} struct{};\n\n", .{dag.uid});
     } else if (dag.base.* == .sum) {
         try out.writer().print("typedef struct {{\n    uint64_t tag;\n", .{});
         if (!dag.base.sum.is_all_unit()) {
@@ -95,7 +92,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
             }
             try out.writer().print("    }};\n", .{});
         }
-        try out.writer().print("}} struct{};\n", .{dag.uid});
+        try out.writer().print("}} struct{};\n\n", .{dag.uid});
     }
 }
 
@@ -232,6 +229,27 @@ fn generateDebug(out: *std.fs.File) !void {
         \\static const char* $lines[1024];
         \\static uint16_t $line_idx = 0;
         \\
+        \\inline static void $panic(const char *restrict msg) {{
+        \\    fprintf(stderr, "panic: %s\n", msg);
+        \\    for(uint16_t $i = 0; $i < $line_idx; $i++) {{
+        \\        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
+        \\    }}
+        \\    exit(1);
+        \\}}
+        \\
+        \\inline static void $bounds_check(const int64_t idx, const int64_t length, const char *restrict line) {{
+        \\    if (0 > idx || idx >= length) {{
+        \\        $lines[$line_idx++] = line;
+        \\        $panic("bounds check failed");
+        \\    }}
+        \\}}
+        \\
+        \\inline static void $tag_check(const int64_t tag, const int64_t sel, const char *restrict line) {{
+        \\    if (tag != sel) {{
+        \\        $lines[$line_idx++] = line;
+        \\        $panic("inactive field");
+        \\    }}
+        \\}}
         \\
     , .{});
 }
@@ -349,6 +367,43 @@ fn generateBasicBlock(callGraph: *CFG, start_bb: *BasicBlock, symbol: *Symbol, o
 }
 
 fn generateIR(ir: *IR, out: *std.fs.File) !void {
+    if (ir.meta == .bounds_check) {
+        var spaces = String.init(std.heap.page_allocator);
+        defer spaces.deinit();
+        for (1..ir.span.col - 1) |i| {
+            _ = i;
+            try spaces.insert(" ", spaces.size);
+        }
+        try out.writer().print("    $bounds_check(", .{});
+        try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out); // idx
+        try out.writer().print(", ", .{});
+        try printSymbolVersion(ir.meta.bounds_check.length, HIGHEST_PRECEDENCE, out); // length
+        try out.writer().print(", \"{s}:{}:{}:\\n{s}\\n{s}^\");\n", .{
+            ir.span.filename,
+            ir.span.line,
+            ir.span.col,
+            program.lines.items[ir.span.line - 1],
+            spaces.str(),
+        });
+    } else if (ir.meta == .active_field_check) {
+        var spaces = String.init(std.heap.page_allocator);
+        defer spaces.deinit();
+        for (1..ir.span.col - 1) |i| {
+            _ = i;
+            try spaces.insert(" ", spaces.size);
+        }
+        try out.writer().print("    $tag_check(", .{});
+        try printSymbolVersion(ir.meta.active_field_check.tag, HIGHEST_PRECEDENCE, out); // tag
+        try out.writer().print(", {}, \"{s}:{}:{}:\\n{s}\\n{s}^\");\n", .{
+            ir.meta.active_field_check.selection,
+            ir.span.filename,
+            ir.span.line,
+            ir.span.col,
+            program.lines.items[ir.span.line - 1],
+            spaces.str(),
+        });
+    }
+
     if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
         return;
     } else if (ir.dest != null and ir.dest.?.type.* == .unit and ir.kind != .call) {
@@ -456,11 +511,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         },
         .panic => {
             try out.writer().print(
-                \\    fprintf(stderr, "panic: {s}\n");
-                \\    for(uint16_t $i = 0; $i < $line_idx; $i++) {{
-                \\        fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
-                \\    }}
-                \\    exit(1);
+                \\    $panic("{s}\n");
                 \\
             ,
                 .{ir.data.string},
