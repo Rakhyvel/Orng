@@ -1,0 +1,13 @@
+// 194
+fn main() -> Int {
+    g(194)
+}
+
+fn g(x: Int) -> Int {
+    let z = x
+    f(z)
+}
+
+fn f(x: Int) -> Int {
+    x
+}

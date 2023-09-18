@@ -1,0 +1,12 @@
+// 192
+fn main() -> Int {
+    if f(4) {
+        192
+    } else {
+        4
+    }
+}
+
+fn f(x: Int) -> Bool {
+    x % 1 == 0
+}

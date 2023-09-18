@@ -1,0 +1,12 @@
+// 188
+fn main() -> Int {
+    if f(4.0) {
+        188
+    } else {
+        4
+    }
+}
+
+fn f(x: Float) -> Bool {
+    x * 0.0 == 0.0 and 0.0 == 0.0 * x
+}

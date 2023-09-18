@@ -1,0 +1,12 @@
+// 195
+fn main()->Int {
+    let mut x: Int = 4
+    let y: &mut Int = &mut x
+    f(y)
+    y^
+}
+
+fn f(y: &mut Int) -> () {
+    let z = y
+    z^ = 195
+}

@@ -1,0 +1,12 @@
+// 186
+fn main() -> Int {
+    if f(4) {
+        186
+    } else {
+        4
+    }
+}
+
+fn f(x: Int) -> Bool {
+    x * 1 == x and x == 1 * x
+}

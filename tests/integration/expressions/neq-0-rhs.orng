@@ -1,0 +1,12 @@
+// 173
+fn main() -> Int {
+    f(1)
+}
+
+fn f(x: Int) -> Int {
+    if x != 0 {
+        173
+    } else {
+        3
+    }
+}
