@@ -2,11 +2,9 @@
 # used just to check for ambiguity
 # python3.11 src/rdgen/main.py create --input docs/orng.ebnf --output parser.py && grep "AMBIGUOUS" parser.py
 
-program: top_level_declaration {"newline" {"newline"} top_level_declaration} "eof".
+program: top_level_declaration "eof".
 
-top_level_declaration: fn_declaration 
-                     | let_declaration
-                     .
+top_level_declaration: "fn main() -> Int" block_expr.
 
 let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" expr] | "=" expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.

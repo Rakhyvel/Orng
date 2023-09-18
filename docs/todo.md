@@ -235,7 +235,6 @@
         > IR is in SSA form, whereas C is flattened so that all symbvers of a same symbol share a same variable
         > This is the preferable way to gen C code, but it leads to tricky situations one must be careful of
     - [x] better select optimizations
-    - [ ] investigate expressions/exponent-float.orng. why does it bool-ify things?
     - [ ] local value numbering
     - [ ] partial redundancy elimination
     - [ ] induction variable identification/unrolling (this is a good one if possible)
@@ -247,7 +246,7 @@
         - [x] if a branch depends on a symbver with a `negate` def IR, plunge `negate` and flip labels
         - [ ] `derefCopy` should elide `*&`s
         - [ ] `printSymbolVersion` should collapse addrOf IR, etc
-    - [ ] coverage!
+    - [x] coverage!
     - [ ] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] function programming stuff
     - [x] immutability
