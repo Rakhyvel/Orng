@@ -9,4 +9,5 @@ fn main()->Int {
 fn f(y: &mut Int) -> () {
     let z = y
     z^ = 195
+    return
 }

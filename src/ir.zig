@@ -985,7 +985,7 @@ pub const CFG = struct {
                 var end = try IR.createLabel(ast.getToken().span, allocator);
                 var err = try IR.createLabel(ast.getToken().span, allocator);
 
-                var expanded_expr_type = try expr.type.exapnd_type(scope, errors, allocator);
+                var expanded_expr_type = try expr.type.expand_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
                 var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
                 var load_tag = try IR.createGetTag(condition, expr, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
@@ -1692,7 +1692,7 @@ pub const CFG = struct {
                     if (ast.block.final) |final| {
                         temp = try self.flattenAST(ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, current_error_label, lvalue, errors, allocator);
                     } else if (temp) |_temp| {
-                        var expanded_temp_type = try _temp.type.exapnd_type(scope, errors, allocator);
+                        var expanded_temp_type = try _temp.type.expand_type(scope, errors, allocator);
                         if (current_error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
                             // Returning error sum, runtime check if error, branch to error path
                             var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
@@ -1731,7 +1731,7 @@ pub const CFG = struct {
                 if (def == null) {
                     return null;
                 }
-                try self.generate_pattern(scope, ast.decl.pattern, try ast.decl.type.?.exapnd_type(scope, errors, allocator), def.?, errors, allocator);
+                try self.generate_pattern(scope, ast.decl.pattern, try ast.decl.type.?.expand_type(scope, errors, allocator), def.?, errors, allocator);
                 return null;
             },
             .fnDecl => {
@@ -1766,7 +1766,7 @@ pub const CFG = struct {
                     var retval_copy = try IR.create(.copy, retval_symbver, retval, null, ast.getToken().span, allocator);
                     self.appendInstruction(retval_copy);
 
-                    var expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+                    var expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                     if (expanded_expr_type.* == .sum and expanded_expr_type.sum.was_error) {
                         // Returning error sum, runtime check if error, branch to error path
                         var condition = try createTempSymbolVersion(self, _ast.boolType, allocator);
@@ -2052,7 +2052,7 @@ pub const CFG = struct {
     /// \param ast The index AST
     fn generate_bounds_check(self: *CFG, scope: *Scope, ast: *AST, lhs: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) !IRMeta {
         var length: *SymbolVersion = try self.createTempSymbolVersion(_ast.intType, allocator);
-        var lhs_type = try lhs.type.exapnd_type(scope, errors, allocator);
+        var lhs_type = try lhs.type.expand_type(scope, errors, allocator);
         if (lhs_type.* == .product and lhs_type.product.was_slice) {
             var ir = try IR.createSelect(length, lhs, 1, ast.index.lhs.getToken().span, allocator);
             self.appendInstruction(ir);

@@ -180,7 +180,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         ident: *AST,
         init: ?*AST = null,
-        base: ?*AST = null, // This should ideally be kept in unexpanded form. typeof(inferredMember) returns inferredMember.base.?.exapnd_type()
+        base: ?*AST = null, // This should ideally be kept in unexpanded form. typeof(inferredMember) returns inferredMember.base.?.expand_type()
         pos: ?i128 = null,
     },
     _typeOf: struct {
@@ -669,7 +669,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    pub fn exapnd_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    pub fn expand_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         if (self.getCommon().expanded_type) |expaned_type| {
             return expaned_type;
         }
@@ -683,7 +683,7 @@ pub const AST = union(enum) {
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
                 if (symbol.init) |init| {
-                    retval = try init.exapnd_type(scope, errors, allocator);
+                    retval = try init.expand_type(scope, errors, allocator);
                 } else {
                     retval = self;
                 }
@@ -692,7 +692,7 @@ pub const AST = union(enum) {
                 var terms = std.ArrayList(*AST).init(allocator);
                 var change = false;
                 for (self.product.terms.items) |term| {
-                    var new_term = try term.exapnd_type(scope, errors, allocator);
+                    var new_term = try term.expand_type(scope, errors, allocator);
                     try terms.append(new_term);
                     change = new_term != term or change;
                 }
@@ -705,20 +705,20 @@ pub const AST = union(enum) {
                 }
             },
             .addrOf => {
-                var expr = try self.addrOf.expr.exapnd_type(scope, errors, allocator);
+                var expr = try self.addrOf.expr.expand_type(scope, errors, allocator);
                 retval = try AST.createAddrOf(self.getToken(), expr, self.addrOf.mut, allocator);
             },
             .function => {
-                var lhs = try self.function.lhs.exapnd_type(scope, errors, allocator);
-                var rhs = try self.function.rhs.exapnd_type(scope, errors, allocator);
+                var lhs = try self.function.lhs.expand_type(scope, errors, allocator);
+                var rhs = try self.function.rhs.expand_type(scope, errors, allocator);
                 retval = try AST.createFunction(self.getToken(), lhs, rhs, allocator);
             },
             .annotation => {
-                var expr = try self.annotation.type.exapnd_type(scope, errors, allocator);
+                var expr = try self.annotation.type.expand_type(scope, errors, allocator);
                 retval = try AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
             },
             .index => {
-                var expr = try self.index.lhs.exapnd_type(scope, errors, allocator);
+                var expr = try self.index.lhs.expand_type(scope, errors, allocator);
                 retval = expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
             },
             .poison,
@@ -961,7 +961,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = try (try self.select.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+                var select_lhs_type = try (try self.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                 var annot_list: *std.ArrayList(*AST) = undefined;
                 if (select_lhs_type.* == .product) {
                     annot_list = &select_lhs_type.product.terms;
@@ -1027,7 +1027,7 @@ pub const AST = union(enum) {
                 }
             },
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
-            .inferredMember => retval = try self.inferredMember.base.?.exapnd_type(scope, errors, allocator),
+            .inferredMember => retval = try self.inferredMember.base.?.expand_type(scope, errors, allocator),
             ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).sum.terms.items[1],
 
             // Binary operators (TODO: Make polymorphic)
@@ -1099,10 +1099,10 @@ pub const AST = union(enum) {
         } else if (other.* == .annotation) {
             return try typesMatch(self, other.annotation.type, scope, errors, allocator);
         }
-        if (self.* == .identifier and other.* != .identifier and self != try self.exapnd_type(scope, errors, allocator)) {
-            return try typesMatch(try self.exapnd_type(scope, errors, allocator), other, scope, errors, allocator);
-        } else if (self.* != .identifier and other.* == .identifier and other != try other.exapnd_type(scope, errors, allocator)) {
-            return try typesMatch(self, try other.exapnd_type(scope, errors, allocator), scope, errors, allocator);
+        if (self.* == .identifier and other.* != .identifier and self != try self.expand_type(scope, errors, allocator)) {
+            return try typesMatch(try self.expand_type(scope, errors, allocator), other, scope, errors, allocator);
+        } else if (self.* != .identifier and other.* == .identifier and other != try other.expand_type(scope, errors, allocator)) {
+            return try typesMatch(self, try other.expand_type(scope, errors, allocator), scope, errors, allocator);
         }
         if (self.* == .poison or other.* == .poison) {
             return true; // Whatever

@@ -81,7 +81,7 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, e
 }
 
 fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
-    var ast = try old_ast.exapnd_type(scope, errors, allocator);
+    var ast = try old_ast.expand_type(scope, errors, allocator);
     if (try typeSetGet(ast, set, scope, errors, allocator)) |dag| {
         return dag;
     } else if (ast.* == .function) {
@@ -120,7 +120,7 @@ fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors
 }
 
 pub fn typeSetGet(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
-    var ast = try old_ast.exapnd_type(scope, errors, allocator);
+    var ast = try old_ast.expand_type(scope, errors, allocator);
     for (set.items) |dag| {
         if (dag.base.c_typesMatch(ast)) {
             return dag;

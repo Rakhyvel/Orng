@@ -211,7 +211,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return ast.enpoison();
             }
             var expr_type = try ast.dereference.expr.typeof(scope, errors, allocator);
-            var expanded_expr_type = try expr_type.exapnd_type(scope, errors, allocator);
+            var expanded_expr_type = try expr_type.expand_type(scope, errors, allocator);
             if (expanded_expr_type.* != .addrOf) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected an address" } });
                 return ast.enpoison();
@@ -237,7 +237,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast._try.expr.* == .poison) {
                 return ast.enpoison();
             }
-            var lhs_expanded_type = try (try ast._try.expr.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+            var lhs_expanded_type = try (try ast._try.expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
                 // lhs is not even an error type
                 errors.addError(Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
@@ -250,7 +250,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
                 return ast.enpoison();
             } else {
-                var expanded_function_return = try scope.inner_function.?._type.?.function.rhs.exapnd_type(scope, errors, allocator);
+                var expanded_function_return = try scope.inner_function.?._type.?.function.rhs.expand_type(scope, errors, allocator);
                 if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return an error" } });
                     return ast.enpoison();
@@ -438,7 +438,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         ._catch => {
             ast._catch.lhs = try validateAST(ast._catch.lhs, null, scope, errors, allocator);
             ast._catch.rhs = try validateAST(ast._catch.rhs, expected, scope, errors, allocator);
-            var lhs_expanded_type = try (try ast._catch.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+            var lhs_expanded_type = try (try ast._catch.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
                 errors.addError(Error{ .basic = .{ .span = ast._catch.lhs.getToken().span, .msg = "left-hand side of catch is not an error type" } });
                 return ast.enpoison();
@@ -458,7 +458,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         ._orelse => {
             ast._orelse.lhs = try validateAST(ast._orelse.lhs, null, scope, errors, allocator);
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, scope, errors, allocator);
-            var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+            var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
                 errors.addError(Error{ .basic = .{ .span = ast._orelse.lhs.getToken().span, .msg = "left-hand side of orelse is not an optional type" } });
                 return ast.enpoison();
@@ -478,7 +478,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return ast.enpoison();
             }
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
-            var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+            var expanded_lhs_type = try lhs_type.expand_type(scope, errors, allocator);
             if (expanded_lhs_type.* == .function) {
                 ast.call.rhs = try validateAST(ast.call.rhs, lhs_type.function.lhs, scope, errors, allocator);
                 if (ast.call.rhs.* == .poison) {
@@ -551,18 +551,18 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             var lhs_type = try ast.select.lhs.typeof(scope, errors, allocator);
-            var select_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+            var select_lhs_type = try lhs_type.expand_type(scope, errors, allocator);
 
             // Implicit dereference
             if (select_lhs_type.* == .addrOf) {
                 ast.select.lhs = try validateAST(try AST.createDereference(ast.getToken(), ast.select.lhs, allocator), null, scope, errors, allocator);
-                select_lhs_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).exapnd_type(scope, errors, allocator);
+                select_lhs_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                 if (ast.select.lhs.* == .poison) {
                     return ast.enpoison();
                 }
             }
 
-            if (try select_lhs_type.typesMatch(_ast.typeType, scope, errors, allocator) and (try ast.select.lhs.exapnd_type(scope, errors, allocator)).* == .sum) {
+            if (try select_lhs_type.typesMatch(_ast.typeType, scope, errors, allocator) and (try ast.select.lhs.expand_type(scope, errors, allocator)).* == .sum) {
                 var inferred_member = try AST.createInferredMember(ast.getToken(), ast.select.rhs, allocator);
                 retval = try validateAST(inferred_member, ast.select.lhs, scope, errors, allocator);
             } else if (select_lhs_type.* != .product and select_lhs_type.* != .sum) {
@@ -718,8 +718,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return ast.enpoison();
             }
 
-            var expand_lhs = try ast._union.lhs.exapnd_type(scope, errors, allocator);
-            var expand_rhs = try ast._union.rhs.exapnd_type(scope, errors, allocator);
+            var expand_lhs = try ast._union.lhs.expand_type(scope, errors, allocator);
+            var expand_rhs = try ast._union.rhs.expand_type(scope, errors, allocator);
             if (expand_lhs.* != .sum) {
                 errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type" } });
                 return ast.enpoison();
@@ -796,7 +796,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     }
                 } else {
                     // Address value, expected must be an address, inner must match with expected's inner
-                    var expanded_expected = try expected.?.exapnd_type(scope, errors, allocator); // Call is memoized
+                    var expanded_expected = try expected.?.expand_type(scope, errors, allocator); // Call is memoized
                     if (expanded_expected.* != .addrOf) {
                         // Didn't expect an address type. Validate expr and report error
                         ast.addrOf.expr = try validateAST(ast.addrOf.expr, null, scope, errors, allocator);
@@ -966,7 +966,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .inferredMember => {
             var expected_expanded: *AST = undefined;
             if (expected != null) {
-                expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
+                expected_expanded = try expected.?.expand_type(scope, errors, allocator);
             }
             if (expected == null) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot infer the sum type" } });
@@ -1004,7 +1004,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast._if.condition = try validateAST(ast._if.condition, _ast.boolType, ast._if.scope.?, errors, allocator);
             if (expected != null) {
                 // expecting a type
-                var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
+                var expected_expanded = try expected.?.expand_type(scope, errors, allocator);
                 var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
                 var has_else = ast._if.elseBlock != null;
                 if (has_else) {
@@ -1045,7 +1045,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             poisoned = ast.match.expr.* == .poison or poisoned;
 
             var expr_type = try ast.match.expr.typeof(scope, errors, allocator);
-            var expr_type_expanded = try expr_type.exapnd_type(scope, errors, allocator);
+            var expr_type_expanded = try expr_type.expand_type(scope, errors, allocator);
             if (expr_type_expanded.* == .poison) {
                 return ast.enpoison(); // Can't do anything with this
             }
@@ -1061,7 +1061,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             for (ast.match.mappings.items) |mapping| {
                 if (expected != null) {
                     // Expecting a type from the match
-                    var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
+                    var expected_expanded = try expected.?.expand_type(scope, errors, allocator);
                     var is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
                     var has_else = ast.match.has_else;
                     if (has_else) {
@@ -1130,7 +1130,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             var optional_type = false; //< Set if expected is an optional type
             if (expected != null) {
-                var expected_expanded = try expected.?.exapnd_type(scope, errors, allocator);
+                var expected_expanded = try expected.?.expand_type(scope, errors, allocator);
                 if (expected_expanded.* == .sum and expected_expanded.sum.was_optional) {
                     var full_type = expected_expanded.sum.terms.items[1];
                     ast._while.bodyBlock = try validateAST(ast._while.bodyBlock, full_type, ast._while.scope.?, errors, allocator);
@@ -1293,7 +1293,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return ast.enpoison();
             }
             if (expected) |_expected| {
-                var expected_expanded = try _expected.exapnd_type(scope, errors, allocator);
+                var expected_expanded = try _expected.expand_type(scope, errors, allocator);
                 var self_type = try ast.typeof(scope, errors, allocator);
                 if (!try expected_expanded.typesMatch(self_type, scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected_expanded, .got = self_type } });
@@ -1345,7 +1345,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
     }
 
     if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
-        _ = try retval.exapnd_type(scope, errors, allocator);
+        _ = try retval.expand_type(scope, errors, allocator);
     }
 
     retval.getCommon().is_valid = true;
@@ -1711,7 +1711,7 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
             try assert_pattern_matches(pattern.inject.rhs, domain, scope, errors, allocator);
         },
         .product => {
-            var expanded_expr = try expr_type.exapnd_type(scope, errors, allocator);
+            var expanded_expr = try expr_type.expand_type(scope, errors, allocator);
             if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.poisoned } });
                 return error.typeError;
@@ -1799,7 +1799,7 @@ pub fn domainof(ast: *AST, sum_type: ?*AST, scope: *Scope, errors: *errs.Errors,
         return _ast.poisoned;
     }
     var lhs_type = try ast.inject.lhs.typeof(scope, errors, allocator);
-    var expanded_lhs_type = try lhs_type.exapnd_type(scope, errors, allocator);
+    var expanded_lhs_type = try lhs_type.expand_type(scope, errors, allocator);
     if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
         if (sum_type != null and !try sum_type.?.typesMatch(lhs_type, scope, errors, allocator)) {
             errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = sum_type.?, .got = ast.inject.lhs.inferredMember.base.? } });
