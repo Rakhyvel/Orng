@@ -339,7 +339,7 @@ fn fuzzTests() !void {
                     error.symbolError,
                     error.typeError,
                     => {
-                        passed += 1;
+                        // passed += 1;
                         // try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
                         // try out.print("Orng -> IR. {}\n", .{i});
                         continue;
@@ -361,7 +361,7 @@ fn fuzzTests() !void {
             compiler.output(&errors, &lines, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch |err| {
                 switch (err) {
                     error.symbolError => {
-                        passed += 1;
+                        // passed += 1;
                         try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
                         try out.print("Orng -> C. {}\n", .{i});
                         continue;
@@ -388,15 +388,12 @@ fn fuzzTests() !void {
             if (should_continue) {
                 continue;
             }
-            // try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+            try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
-            return;
+            // return;
         }
     }
-
-    if (passed + failed != 0) {
-        std.debug.print("Fuzz test percentage: {d}%\n", .{100.0 * std.math.lossyCast(f64, passed) / std.math.lossyCast(f64, passed + failed)});
-    }
+    std.debug.print("Fuzz test percentage: {d}% ({} / {})\n", .{ 100.0 * std.math.lossyCast(f64, passed) / std.math.lossyCast(f64, passed + failed), passed, failed });
 }
 
 fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {

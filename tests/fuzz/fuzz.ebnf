@@ -77,7 +77,7 @@ factor: ident
       | parens
       .
 
-block_expr: "{" [ statement { "newline" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
+block_expr: "{" { statement "newline" } [("return" [expr]) | ("continue") | ("break")] "}".
 
 if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
 
