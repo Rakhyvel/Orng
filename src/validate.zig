@@ -100,6 +100,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         std.debug.assert(try exp_type.typesMatch(_ast.typeType, scope, errors, allocator));
     }
 
+    // std.debug.print("{s}\n", .{@tagName(ast.*)});
     switch (ast.*) {
         .poison => retval = ast,
         .unit => {
@@ -154,7 +155,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 else => return err,
             };
             try validateSymbol(symbol, errors, allocator);
-            if (symbol._type == null or symbol.validation_state != .valid) {
+            if (symbol._type == null or symbol.validation_state != .valid or symbol._type == null or symbol._type.?.getCommon().validation_state != .valid) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "recursive definition detected" } });
                 return ast.enpoison();
             }
@@ -1323,7 +1324,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.decl.type = try validateAST(ast.decl.type.?, _ast.typeType, scope, errors, allocator);
             } else if (ast.decl.type == null) {
                 // Infer type
-                ast.decl.init = try validateAST(ast.decl.init.?, ast.decl.type, scope, errors, allocator);
+                ast.decl.init = try validateAST(ast.decl.init.?, null, scope, errors, allocator);
                 if (ast.decl.init.?.* != .poison) {
                     ast.decl.type = try validateAST(try ast.decl.init.?.typeof(scope, errors, allocator), _ast.typeType, scope, errors, allocator);
                 } else {

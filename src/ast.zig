@@ -1006,7 +1006,10 @@ pub const AST = union(enum) {
             } else {
                 var symbol = try _validate.findSymbol(self, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
-                retval = symbol._type.?;
+                retval = symbol._type orelse {
+                    errors.addError(Error{ .basic = .{ .span = self.getToken().span, .msg = "recursive definition detected" } });
+                    return poisoned;
+                };
             },
 
             // Unary Operators (TODO: Make polymorphic)

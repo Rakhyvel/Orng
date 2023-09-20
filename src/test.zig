@@ -362,8 +362,8 @@ fn fuzzTests() !void {
                 switch (err) {
                     error.symbolError => {
                         passed += 1;
-                        // try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
-                        // try out.print("Orng -> C. {}\n", .{i});
+                        try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        try out.print("Orng -> C. {}\n", .{i});
                         continue;
                     },
                     else => {
