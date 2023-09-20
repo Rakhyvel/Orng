@@ -44,22 +44,22 @@ int64_t _2_main() {
     if (_2_t1) {
         goto BB1;
     } else {
-        goto BB3;
+        goto BB5;
     }
 BB1:
     _2_t0 = 193;
-    goto BB2;
-BB3:
+    goto BB4;
+BB5:
     _2_t0 = 4;
-BB2:
+BB4:
     _2_$retval = _2_t0;
     return _2_$retval;
 }
 
 uint8_t _7_close_enough(double _7_a,double _7_b,double _7_e) {
-    double _7_t3;
-    uint8_t _7_t7;
     uint8_t _7_$retval;
+    uint8_t _7_t7;
+    double _7_t3;
     if (_7_a == _7_b) {
         goto BB3;
     } else {
@@ -72,26 +72,26 @@ BB4:
     if (_7_a > _7_b) {
         goto BB7;
     } else {
-        goto BB13;
+        goto BB15;
     }
 BB7:
     _7_t3 = _7_a - _7_b;
-    goto BB8;
-BB13:
+    goto BB9;
+BB15:
     _7_t3 = _7_b - _7_a;
-BB8:
+BB9:
     _7_t7 = _7_t3 <= _7_e;
     if (_7_t7) {
-        goto BB10;
+        goto BB11;
     } else {
-        goto BB12;
+        goto BB14;
     }
-BB10:
-    _7_t7 = 1;
-    goto BB11;
-BB12:
-    _7_t7 = 0;
 BB11:
+    _7_t7 = 1;
+    goto BB13;
+BB14:
+    _7_t7 = 0;
+BB13:
     _7_$retval = _7_t7;
     return _7_$retval;
 }

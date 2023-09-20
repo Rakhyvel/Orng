@@ -38,15 +38,15 @@ pub fn initTypes() !void {
         poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         byteSliceType = try AST.create_slice_type(byteType, false, std.heap.page_allocator); // Slice types must be AFTER intType
-        boolType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = boolType } };
-        byteType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = byteType } };
-        charType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = charType } };
-        floatType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = floatType } };
-        intType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = intType } };
-        stringType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = stringType } };
-        typeType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = typeType } };
-        unitType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = unitType } };
-        voidType.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = voidType } };
+        boolType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = boolType } };
+        byteType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = byteType } };
+        charType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = charType } };
+        floatType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = floatType } };
+        intType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = intType } };
+        stringType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = stringType } };
+        typeType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = typeType } };
+        unitType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = unitType } };
+        voidType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = voidType } };
         typesInited = true;
     }
 }
@@ -88,7 +88,7 @@ const ASTCommon = struct {
     token: Token,
     _type: ?*AST,
     expanded_type: ?*AST = null,
-    validation_status: Validation_State = .unvalidated,
+    validation_state: Validation_State = .unvalidated,
 };
 
 pub const AST = union(enum) {
@@ -625,8 +625,8 @@ pub const AST = union(enum) {
             allocator,
         );
         var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", 0, 0), allocator), data_type, null, null, allocator);
-        data_type.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = data_type } };
-        annot_type.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = annot_type } };
+        data_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = data_type } };
+        annot_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = annot_type } };
         try term_types.append(annot_type);
         try term_types.append(try AST.createAnnotation(
             of.getToken(),
@@ -637,7 +637,7 @@ pub const AST = union(enum) {
             allocator,
         ));
         var retval = try AST.createProduct(of.getToken(), term_types, allocator);
-        retval.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = retval } };
+        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         retval.product.was_slice = true;
         return retval;
     }
@@ -646,15 +646,15 @@ pub const AST = union(enum) {
         var term_types = std.ArrayList(*AST).init(allocator);
 
         var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", 0, 0), allocator), unitType, null, unitType, allocator);
-        none_type.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = none_type } };
+        none_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = none_type } };
         try term_types.append(none_type);
 
         var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", 0, 0), allocator), of_type, null, null, allocator);
-        some_type.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = some_type } };
+        some_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = some_type } };
         try term_types.append(some_type);
 
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
-        retval.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = retval } };
+        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         retval.sum.was_optional = true;
         return retval;
     }
@@ -663,15 +663,15 @@ pub const AST = union(enum) {
         var term_types = std.ArrayList(*AST).init(allocator);
 
         var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, "", 0, 0), allocator), err_type, null, unitType, allocator);
-        none_type.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = none_type } };
+        none_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = none_type } };
         try term_types.append(none_type);
 
         var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
-        some_type.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = err_type } };
+        some_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = err_type } };
         try term_types.append(some_type);
 
         var retval = try AST.createSum(ok_type.getToken(), term_types, allocator);
-        retval.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = retval } };
+        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         retval.sum.was_error = true;
         return retval;
     }
@@ -734,7 +734,7 @@ pub const AST = union(enum) {
 
             else => retval = self,
         }
-        retval.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = retval } };
+        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         self.getCommon().expanded_type = retval;
         return retval;
     }
@@ -1101,7 +1101,7 @@ pub const AST = union(enum) {
             },
         }
         self.getCommon()._type = retval;
-        self.getCommon()._type.?.getCommon().validation_status = Validation_State{ .valid = .{ .valid_form = retval } };
+        self.getCommon()._type.?.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         return retval;
     }
 
@@ -1126,8 +1126,8 @@ pub const AST = union(enum) {
         if (self.* == .identifier and std.mem.eql(u8, "Void", self.getToken().data)) {
             return true; // Bottom type
         }
-        std.debug.assert(self.getCommon().validation_status == .valid);
-        std.debug.assert(other.getCommon().validation_status == .valid);
+        std.debug.assert(self.getCommon().validation_state == .valid);
+        std.debug.assert(other.getCommon().validation_state == .valid);
 
         switch (self.*) {
             .identifier => {
@@ -1205,7 +1205,7 @@ pub const AST = union(enum) {
 
     // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) *AST {
-        self.getCommon().validation_status = .invalid;
+        self.getCommon().validation_state = .invalid;
         // self.* = poisoned.*;
         return poisoned;
     }
@@ -1216,8 +1216,8 @@ pub const AST = union(enum) {
         } else if (other.* == .annotation) {
             return c_typesMatch(self, other.annotation.type);
         }
-        std.debug.assert(self.getCommon().validation_status == .valid);
-        std.debug.assert(other.getCommon().validation_status == .valid);
+        std.debug.assert(self.getCommon().validation_state == .valid);
+        std.debug.assert(other.getCommon().validation_state == .valid);
 
         switch (self.*) {
             .identifier => {
