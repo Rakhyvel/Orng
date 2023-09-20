@@ -1254,7 +1254,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (ast._return.expr.?.* == .poison) {
                     return ast.enpoison();
                 }
-            } else if (expected != null) {
+            } else if (expected != null and (try expected.?.expand_type(scope, errors, allocator)).* != .unit) {
                 // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.voidType } });
                 return ast.enpoison();
