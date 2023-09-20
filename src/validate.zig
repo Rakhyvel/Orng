@@ -68,17 +68,24 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 /// @param expected Should be null if `ast` can be any type
 pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!*AST {
     var retval: *AST = undefined;
-    var ast = old_ast;
     var expected = old_expected;
+    var ast = old_ast;
 
-    if (old_ast.getCommon().is_valid) {
-        return old_ast;
+    if (ast.getCommon().validation_status == .validating) {
+        std.debug.print("I'm validating here! {s}\n", .{@tagName(ast.*)});
+        unreachable;
+    } else if (ast.getCommon().validation_status == .invalid) {
+        return _ast.poisoned;
+    } else if (ast.getCommon().validation_status == .valid) {
+        return ast.getCommon().validation_status.valid.valid_form;
     }
+    ast.getCommon().validation_status = .validating;
 
     if (expected) |_| {
         std.debug.assert(expected.?.* != .poison);
         if (expected.?.* == .product or expected.?.* == .annotation) {
             // Attempt to modify ast to fit default values. This may not be possible, especially in the case of a type error
+            ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
             ast = defaultArgs(ast, expected.?, errors, allocator) catch |err| switch (err) {
                 error.NoDefault => ast,
                 error.typeError => return ast.enpoison(),
@@ -88,7 +95,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         if (expected.?.* == .annotation) {
             expected = expected.?.annotation.type;
         }
-        std.debug.assert(expected.?.getCommon().is_valid);
+        std.debug.assert(expected.?.getCommon().validation_status == .valid);
         var exp_type = try expected.?.typeof(scope, errors, allocator);
         std.debug.assert(try exp_type.typesMatch(_ast.typeType, scope, errors, allocator));
     }
@@ -202,7 +209,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .dereference => {
             if (expected != null) {
                 var addr_of = try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator);
-                addr_of.getCommon().is_valid = true;
+                addr_of.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = addr_of } };
                 ast.dereference.expr = try validateAST(ast.dereference.expr, addr_of, scope, errors, allocator);
             } else {
                 ast.dereference.expr = try validateAST(ast.dereference.expr, null, scope, errors, allocator);
@@ -572,7 +579,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 } });
                 return ast.enpoison();
             } else {
-                ast.getCommon().is_valid = true;
+                ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
                 var ast_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try expected.?.typesMatch(ast_type, scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
@@ -618,7 +625,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     }
                 } else if (term.* == .identifier) {
                     var new_annotation = try AST.createAnnotation(term.getToken(), term, _ast.unitType, null, null, allocator);
-                    new_annotation.getCommon().is_valid = true;
+                    new_annotation.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = new_annotation } };
                     changed = true;
                     try new_terms.append(new_annotation);
                     var name = term.getToken().data;
@@ -655,6 +662,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
                 return ast.enpoison();
             }
+            ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
             retval = ast.inject.lhs;
         },
         .product => {
@@ -812,7 +820,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     if (ast.addrOf.expr.* == .poison) {
                         return ast.enpoison();
                     }
-                    ast.getCommon().is_valid = true;
+                    ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
                     validateLValue(ast.addrOf.expr, scope, errors) catch |err| switch (err) {
                         error.typeError => return ast.enpoison(),
                         else => return err,
@@ -852,10 +860,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is negative" } });
                         return ast.enpoison();
                     }
-                    ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
+                    retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
                 } else {
                     // Regular slice type, change to product of data address and length
-                    ast = try AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
+                    retval = try AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
                 }
                 was_type = true;
             } else {
@@ -876,7 +884,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     return ast.enpoison();
                 }
 
-                ast.getCommon().is_valid = true;
+                ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
                 if (expected != null and !try expected.?.typesMatch(try ast.typeof(scope, errors, allocator), scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return ast.enpoison();
@@ -908,12 +916,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     allocator,
                 ));
                 try new_terms.append(try AST.createInt(ast.getToken(), expr_type.product.terms.items.len, allocator));
-                ast = try AST.createProduct(ast.getToken(), new_terms, allocator);
-                ast.product.was_slice = true;
-                ast.getCommon().is_valid = true;
-                ast.product.was_slice = true;
+                retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
+                retval.product.was_slice = true;
+                retval.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = retval } };
+                retval.product.was_slice = true;
             }
-            retval = ast;
         },
         .subSlice => {
             ast.subSlice.super = try validateAST(ast.subSlice.super, null, scope, errors, allocator);
@@ -1015,7 +1022,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
                 } else {
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
-                    ast.getCommon().is_valid = true;
+                    ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return ast.enpoison();
                 }
@@ -1080,7 +1087,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     } else {
                         // match has no else, not expecting an optional type => type error
                         var new_map = try validateAST(mapping, expected.?, ast.match.scope.?, errors, allocator);
-                        ast.getCommon().is_valid = true;
+                        ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
                         errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try new_map.typeof(scope, errors, allocator) } });
                         return ast.enpoison();
                     }
@@ -1186,7 +1193,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     new_statements.deinit();
                 }
 
-                ast.getCommon().is_valid = true; // So that the typeof code can be reused. All children should be validated at this point
+                ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = ast } }; // So that the typeof code can be reused. All children should be validated at this point
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try expected.?.typesMatch(block_type, scope, errors, allocator)) {
                     // std.debug.assert(ast.block.statements.items.len == 0); // this this true? what about a block that ends in a defer? or a decl?
@@ -1348,7 +1355,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         _ = try retval.expand_type(scope, errors, allocator);
     }
 
-    retval.getCommon().is_valid = true;
+    ast.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = retval } };
+    retval.getCommon().validation_status = _ast.Validation_State{ .valid = .{ .valid_form = retval } };
     return retval;
 }
 

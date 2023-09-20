@@ -325,7 +325,7 @@ fn fuzzTests() !void {
             // Found end of string
             var program_text: []const u8 = contents[start..end];
 
-            // std.debug.print("{s}\n", .{program_text});
+            std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
             var errors = errs.Errors.init(allocator);
             defer errors.deinit();

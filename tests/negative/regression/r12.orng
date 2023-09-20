@@ -1,0 +1,3 @@
+fn main() -> Int { 
+    if let const x: -x; true {}
+}
