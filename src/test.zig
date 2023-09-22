@@ -166,7 +166,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    compiler.compile(&errors, in_name.str(), out_name.str(), allocator) catch |err| {
+    compiler.compile(&errors, in_name.str(), out_name.str(), false, allocator) catch |err| {
         if (!coverage) {
             std.debug.print("{}\n", .{err});
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
@@ -261,7 +261,7 @@ fn negativeTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) 
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    compiler.compile(&errors, in_name.str(), "a.out", allocator) catch |err| {
+    compiler.compile(&errors, in_name.str(), "a.out", false, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.lexerError,

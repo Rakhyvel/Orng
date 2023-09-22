@@ -16,7 +16,7 @@ pub fn build(b: *std.Build) void {
     const optimize = b.standardOptimizeOption(.{});
 
     executable(b, optimize, target, "orng-test", "src/test.zig", "orng-test", "Runs the integration tests");
-    executable(b, optimize, target, "orng", "src/main.zig", "run", "Runs the compiler");
+    executable(b, optimize, target, "orng", "src/main.zig", "orng", "Runs the compiler");
 }
 
 fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, name: []const u8, path: []const u8, run: []const u8, run_desc: []const u8) void {

@@ -1,0 +1,12 @@
+fn main() -> Int { let mut ident : [ ] & [ unreachable ] ? ( ) newline } 
+fn main() -> Int { let ident : [ * ] [ - unreachable ] [ ] [ ] ident newline } 
+fn main() -> Int { - while let const ident : [ - oct ] ( ) ; not while not while not while ? while ? if not while ? false { } { } { } { } { } { } { } newline } 
+fn main() -> Int { defer let mut ident : [ ] [ - unreachable ] [ ] & ident newline } 
+fn main() -> Int { defer let ( ident ) : [ - unreachable ] ? ident newline } 
+fn main() -> Int { let ( ident ) : [ - int ] ident newline } 
+fn main() -> Int { errdefer let ident : [ - bin ] ( ) newline } 
+fn main() -> Int { let ident : [ unreachable ] [ ] [ ] ident newline } 
+fn main() -> Int { return - if let ident : [ - int ] ( ) ; not if - if [ ] while - ( ) { } { } { } { } } 
+fn main() -> Int { defer not while let ident : [ - int ] ? ( ) ; not match & ? match not float { } { } { } newline } 
+fn main() -> Int { defer let ident : [ * ] & [ - unreachable ] & ident newline } 
+fn main() -> Int { let const ident : [ unreachable ] ? ( ) newline } 

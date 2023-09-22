@@ -32,14 +32,29 @@ pub fn main() !void {
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
     const path: []u8 = try std.fs.realpath(arg, &path_buffer);
 
+    // Parse further args
+    var fuzz_tokens = false;
+    if (args.next()) |_arg| {
+        if (std.mem.eql(u8, "--fuzz", _arg)) {
+            fuzz_tokens = true;
+        } else {
+            std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{_arg});
+            return error.InvalidCliArgument;
+        }
+    }
+
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
 
-    try compile(&errors, path, "examples/out.c", allocator);
+    if (fuzz_tokens) {
+        compile(&errors, path, "examples/out.c", fuzz_tokens, allocator) catch {};
+    } else {
+        try compile(&errors, path, "examples/out.c", fuzz_tokens, allocator);
+    }
 }
 
 /// Compiles and outputs a file
-pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, allocator: std.mem.Allocator) !void {
+pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !void {
     // (Done for testing, where more than program is compiled one after another)
     symbol.resetPrelude();
 
@@ -61,14 +76,22 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     var lines = std.ArrayList([]const u8).init(allocator);
     defer lines.deinit();
 
-    var file_root = compileContents(errors, &lines, in_name, contents, false, allocator) catch |err| {
+    var file_root = compileContents(errors, &lines, in_name, contents, fuzz_tokens, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parserError,
+            => if (!fuzz_tokens) {
+                try errors.printErrors(&lines, in_name);
+                return err;
+            } else {
+                unreachable;
+            },
             error.symbolError,
             error.typeError,
-            => {
+            => if (!fuzz_tokens) {
                 try errors.printErrors(&lines, in_name);
+                return err;
+            } else {
                 return err;
             },
             else => return err,
@@ -79,7 +102,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
         switch (err) {
             error.symbolError,
             error.typeError,
-            => {
+            => if (!fuzz_tokens) {
                 try errors.printErrors(&lines, in_name);
                 return err;
             },

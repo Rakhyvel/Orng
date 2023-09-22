@@ -840,6 +840,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var was_type = false;
             if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 // Slice-of type, type of this ast must be a type, inner must be a type
+
                 ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, _ast.typeType, scope, errors, allocator);
                 if (ast.sliceOf.expr.* == .poison) {
                     return ast.enpoison();
@@ -853,7 +854,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (ast.sliceOf.kind == .ARRAY) {
                     // Inflate to product
                     var new_terms = std.ArrayList(*AST).init(allocator);
-                    // TODO: Compile-time evaluate array size
+                    if (ast.sliceOf.len.?.* != .int) {
+                        // TODO: Compile-time evaluate array size
+                        errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "not integer literal" } });
+                        return ast.enpoison();
+                    }
                     for (0..@as(usize, @intCast(ast.sliceOf.len.?.int.data))) |_| {
                         try new_terms.append(ast.sliceOf.expr);
                     }
@@ -1167,6 +1172,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var new_statements = std.ArrayList(*AST).init(allocator);
             if (ast.block.final) |final| {
                 // Has final
+
                 for (ast.block.statements.items) |statement| {
                     var new_statement = try validateAST(statement, null, ast.block.scope.?, errors, allocator);
                     try new_statements.append(new_statement);
@@ -1311,24 +1317,28 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             retval = ast;
         },
         .decl => {
+            var poisoned = false;
             if (ast.decl.type != null and ast.decl.init != null) {
                 // Normal decl
                 ast.decl.type = try validateAST(ast.decl.type.?, _ast.typeType, scope, errors, allocator);
                 if (ast.decl.type.?.* != .poison) {
                     ast.decl.init = try validateAST(ast.decl.init.?, ast.decl.type, scope, errors, allocator);
+                    poisoned = ast.decl.init.?.* == .poison;
                 } else {
                     return ast.enpoison();
                 }
             } else if (ast.decl.init == null) {
                 // Default value
                 ast.decl.type = try validateAST(ast.decl.type.?, _ast.typeType, scope, errors, allocator);
+                poisoned = ast.decl.type.?.* == .poison;
             } else if (ast.decl.type == null) {
                 // Infer type
                 ast.decl.init = try validateAST(ast.decl.init.?, null, scope, errors, allocator);
                 if (ast.decl.init.?.* != .poison) {
                     ast.decl.type = try validateAST(try ast.decl.init.?.typeof(scope, errors, allocator), _ast.typeType, scope, errors, allocator);
+                    poisoned = ast.decl.type.?.* == .poison;
                 } else {
-                    ast.decl.type = _ast.poisoned;
+                    return ast.enpoison();
                 }
             } else {
                 unreachable;
@@ -1340,7 +1350,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             // statement, no type
-            if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
+            if (poisoned) {
+                return ast.enpoison();
+            } else if (expected != null and !try expected.?.typesMatch(_ast.unitType, scope, errors, allocator)) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast } });
                 return ast.enpoison();
             }

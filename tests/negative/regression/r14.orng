@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let mut x : [unreachable] Int
+    0
+} 
