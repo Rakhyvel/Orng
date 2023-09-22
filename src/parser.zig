@@ -334,7 +334,7 @@ pub const Parser = struct {
     }
 
     fn comparison_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.prepend_expr();
+        var exp = try self.coalesce_expr();
         var tokens: ?std.ArrayList(Token) = null;
         var exprs: ?std.ArrayList(*AST) = null;
         while (self.accept(.D_EQUALS) orelse self.accept(.NOT_EQUALS) orelse self.accept(.GTR) orelse self.accept(.LSR) orelse self.accept(.GTE) orelse self.accept(.LTE)) |token| {
@@ -344,33 +344,13 @@ pub const Parser = struct {
                 try exprs.?.append(exp);
             }
             try tokens.?.append(token);
-            try exprs.?.append(try self.prepend_expr());
+            try exprs.?.append(try self.coalesce_expr());
         } else {
             if (tokens == null) {
                 return exp;
             } else {
                 return try AST.createConditional(tokens.?, exprs.?, self.astAllocator);
             }
-        }
-    }
-
-    fn prepend_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.coalesce_expr();
-        var terms: ?std.ArrayList(*AST) = null;
-        var first_token: ?Token = null;
-        while (self.accept(.PREPEND)) |token| {
-            if (terms == null) {
-                terms = std.ArrayList(*AST).init(self.astAllocator);
-                first_token = token;
-                try terms.?.append(exp);
-            }
-            try terms.?.append(try self.coalesce_expr());
-        }
-        if (terms) |_| {
-            var call = terms.?.orderedRemove(terms.?.items.len - 1);
-            return AST.createPrepend(first_token.?, terms.?, call, self.astAllocator);
-        } else {
-            return exp;
         }
     }
 

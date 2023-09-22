@@ -1,8 +1,0 @@
-// 196
-fn main() -> Int {
-    200 >> sub(9, 5)
-}
-
-fn sub(a: Int, b: Int, c: Int) -> Int {
-    a - (b - c)
-}

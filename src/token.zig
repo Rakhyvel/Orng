@@ -91,8 +91,7 @@ pub const TokenKind = enum(u32) {
     INDENT,
     DEDENT,
 
-    // Function stuff
-    PREPEND,
+    // Trait stuff
     INVOKE,
 
     // Whitespace
@@ -290,7 +289,6 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .R_SQUARE => "]",
 
         // Functional
-        .PREPEND => ">>",
         .INVOKE => ".>",
 
         // EOF

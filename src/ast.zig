@@ -128,7 +128,6 @@ pub const AST = union(enum) {
     index: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     select: struct { common: ASTCommon, lhs: *AST, rhs: *AST, pos: ?usize },
     function: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    prepend: struct { common: ASTCommon, args: std.ArrayList(*AST), call: *AST },
     invoke: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     sum: struct {
         common: ASTCommon,
@@ -324,7 +323,6 @@ pub const AST = union(enum) {
             .index => return &self.index.common,
             .select => return &self.select.common,
             .function => return &self.function.common,
-            .prepend => return &self.prepend.common,
             .invoke => return &self.invoke.common,
             .sum => return &self.sum.common,
             .inject => return &self.inject.common,
@@ -502,10 +500,6 @@ pub const AST = union(enum) {
 
     pub fn createFunction(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .function = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createPrepend(token: Token, args: std.ArrayList(*AST), call: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .prepend = .{ .common = ASTCommon{ .token = token, ._type = null }, .args = args, .call = call } }, allocator);
     }
 
     pub fn createInvoke(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

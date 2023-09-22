@@ -34,9 +34,7 @@ arrow_expr: bool_expr {"->" bool_expr}.
 
 bool_expr: comparison_expr {("and" | "or") comparison_expr}.
 
-comparison_expr: prepend_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") prepend_expr}.
-
-prepend_expr: coalesce_expr {">>" coalesce_expr}. # (rhs must be a call expr)
+comparison_expr: coalesce_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") coalesce_expr}.
 
 coalesce_expr: int_expr {("orelse" | "catch") int_expr}.
 

@@ -607,41 +607,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-        .prepend => {
-            std.debug.assert(ast.prepend.args.items.len > 0);
-            if (ast.prepend.call.* != .call) {
-                errors.addError(Error{ .basic = .{ .span = ast.prepend.call.getToken().span, .msg = "right-most term of `>>` chain must be a function call" } });
-                return ast.enpoison();
-            }
-            if (ast.prepend.call.call.rhs.* == .unit) {
-                if (ast.prepend.args.items.len == 1) {
-                    // Single prepend to unit-call, make the single prepend arg the call arg
-                    ast.prepend.call.call.rhs = ast.prepend.args.items[0];
-                } else {
-                    // Multiple prepend to unit-call, make a tuple around the prepend args, make that the call arg
-                    var product = try AST.createProduct(ast.getToken(), ast.prepend.args, allocator);
-                    ast.prepend.call.call.rhs = product;
-                }
-            } else if (ast.prepend.call.call.rhs.* == .product) {
-                // Product call arg, go through prepend arg list, prepend each arg to calls product arg
-                var args: *AST = ast.prepend.call.call.rhs;
-                for (ast.prepend.args.items) |arg| {
-                    try args.product.terms.insert(0, arg);
-                }
-            } else {
-                // Value call arg, create a list and prepend the prepend args to it, and append the call value
-                var new_list = std.ArrayList(*AST).init(allocator);
-                for (ast.prepend.args.items) |arg| {
-                    try new_list.insert(0, arg);
-                }
-                try new_list.append(ast.prepend.call.call.rhs);
-                var product = try AST.createProduct(ast.getToken(), new_list, allocator);
-                ast.prepend.call.call.rhs = product;
-            }
-
-            std.debug.print("{s}\n", .{@tagName(ast.prepend.call.getCommon().validation_state)});
-            retval = try validateAST(ast.prepend.call, expected, scope, errors, allocator);
-        },
         .sum => {
             var poisoned = false;
             var changed = false;

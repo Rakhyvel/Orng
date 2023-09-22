@@ -257,10 +257,6 @@
         - [ ] `printSymbolVersion` should collapse addrOf IR, etc
     - [x] coverage!
     - [x] fuzz with updated `fuzz.ebnf` to force a proper main function
-- [ ] function programming stuff
-    - [x] immutability
-    - [ ] prepend `>>`
-    - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
     > Switch to Karta just to get a feel for interpreters
     > Validate, IR, Optimize. Don't codegen, interpret!

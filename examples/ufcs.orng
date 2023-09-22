@@ -31,13 +31,6 @@ fn main(_: System) -> !() {
     // A `>>` counts as a function call, so you can chain them together
     std.debug.assert( rect_b >> rect_a >> aabb_collision() )
 
-    // You can also chain function calls together, similar to the `|>` operator
-    // found in many other languages
-    rect_b
-    >> rect_a
-    >> aabb_collision()
-    >> std.debug.assert()
-
     // Note that this is not partial function application. The following code
     // would result in an error if uncommented:
     //      std.debug.assert( rect_a >> aabb_collision() )
