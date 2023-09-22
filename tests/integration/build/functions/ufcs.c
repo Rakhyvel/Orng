@@ -29,26 +29,25 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
         $panic("inactive field");
     }
 }
-/* Typedefs */
-typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
-} struct0;
-
 /* Function forward definitions */
 int64_t _2_main();
+int64_t _4_sub(int64_t _4_a,int64_t _4_b,int64_t _4_c);
 
 /* Function definitions */
 int64_t _2_main() {
-    struct0 _3_x;
+    int64_t _2_t0;
     int64_t _2_$retval;
-    _3_x = (struct0) {1, 2, 3};
-    _3_x._1 = 60;
-    _3_x._2 = 23;
-    _3_x._0 = 200;
-    _2_$retval = (_3_x._0 - _3_x._1) + _3_x._2;
+    $lines[$line_idx++] = "tests/integration/functions/ufcs.orng:3:16:\n    200 >> sub(9, 5)\n              ^";
+    _2_t0 = _4_sub(200, 9, 5);
+    $line_idx--;
+    _2_$retval = _2_t0;
     return _2_$retval;
+}
+
+int64_t _4_sub(int64_t _4_a,int64_t _4_b,int64_t _4_c) {
+    int64_t _4_$retval;
+    _4_$retval = _4_a - (_4_b - _4_c);
+    return _4_$retval;
 }
 
 int main()

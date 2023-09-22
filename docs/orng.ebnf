@@ -34,15 +34,15 @@ arrow_expr: bool_expr {"->" bool_expr}.
 
 bool_expr: comparison_expr {("and" | "or") comparison_expr}.
 
-comparison_expr: delta_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") delta_expr}.
+comparison_expr: prepend_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") prepend_expr}.
 
-delta_expr: coalesce_expr {">>" coalesce_expr}. # (rhs must be a call expr)
+prepend_expr: coalesce_expr {">>" coalesce_expr}. # (rhs must be a call expr)
 
 coalesce_expr: int_expr {("orelse" | "catch") int_expr}.
 
 int_expr: term_expr {("+" | "-" | "!") term_expr}.
 
-term_expr: prefix_expr {("*" | "/" | "%" | "<>" | "||") prefix_expr}.
+term_expr: prefix_expr {("*" | "/" | "%" | "||") prefix_expr}.
 
 prefix_expr: "not" hyper_expr                         # boolean not
           | "-" hyper_expr                           # negation

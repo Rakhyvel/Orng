@@ -31,6 +31,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         symbol._type.? = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
         symbol.validation_state = .valid;
         if (symbol._type.?.* != .poison) {
+            symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
             symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
         } else {
             symbol.init = _ast.poisoned;
@@ -40,6 +41,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
             symbol.validation_state = .valid;
             if (symbol._type.?.* != .poison) {
+                symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
                 symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
             } else {
                 symbol.init = _ast.poisoned;
@@ -47,12 +49,14 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         } else if (symbol.init == null and symbol._type != null) {
             // Default value
             symbol._type = try validateAST(symbol._type.?, _ast.typeType, symbol.scope, errors, allocator);
+            symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
             symbol.validation_state = .valid;
         } else if (symbol.init != null and symbol._type == null) {
             // Infer type
             symbol.init = try validateAST(symbol.init.?, null, symbol.scope, errors, allocator);
             if (symbol.init.?.* != .poison) {
                 symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), _ast.typeType, symbol.scope, errors, allocator);
+                symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
                 symbol.validation_state = .valid;
             } else {
                 symbol._type = _ast.poisoned;
@@ -603,6 +607,41 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
+        .prepend => {
+            std.debug.assert(ast.prepend.args.items.len > 0);
+            if (ast.prepend.call.* != .call) {
+                errors.addError(Error{ .basic = .{ .span = ast.prepend.call.getToken().span, .msg = "right-most term of `>>` chain must be a function call" } });
+                return ast.enpoison();
+            }
+            if (ast.prepend.call.call.rhs.* == .unit) {
+                if (ast.prepend.args.items.len == 1) {
+                    // Single prepend to unit-call, make the single prepend arg the call arg
+                    ast.prepend.call.call.rhs = ast.prepend.args.items[0];
+                } else {
+                    // Multiple prepend to unit-call, make a tuple around the prepend args, make that the call arg
+                    var product = try AST.createProduct(ast.getToken(), ast.prepend.args, allocator);
+                    ast.prepend.call.call.rhs = product;
+                }
+            } else if (ast.prepend.call.call.rhs.* == .product) {
+                // Product call arg, go through prepend arg list, prepend each arg to calls product arg
+                var args: *AST = ast.prepend.call.call.rhs;
+                for (ast.prepend.args.items) |arg| {
+                    try args.product.terms.insert(0, arg);
+                }
+            } else {
+                // Value call arg, create a list and prepend the prepend args to it, and append the call value
+                var new_list = std.ArrayList(*AST).init(allocator);
+                for (ast.prepend.args.items) |arg| {
+                    try new_list.insert(0, arg);
+                }
+                try new_list.append(ast.prepend.call.call.rhs);
+                var product = try AST.createProduct(ast.getToken(), new_list, allocator);
+                ast.prepend.call.call.rhs = product;
+            }
+
+            std.debug.print("{s}\n", .{@tagName(ast.prepend.call.getCommon().validation_state)});
+            retval = try validateAST(ast.prepend.call, expected, scope, errors, allocator);
+        },
         .sum => {
             var poisoned = false;
             var changed = false;
@@ -670,7 +709,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             var poisoned = false;
             var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
-            if (expected != null and try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
+            var expanded_expected: ?*AST = if (expected == null) null else try expected.?.expand_type(scope, errors, allocator);
+            if (expanded_expected != null and try expanded_expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
                 // Expecting ast to be a product type
                 for (ast.product.terms.items) |term| {
                     var new_term = try validateAST(term, _ast.typeType, scope, errors, allocator);
@@ -680,13 +720,13 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         poisoned = true;
                     }
                 }
-            } else if (expected != null and expected.?.* == .product) {
+            } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value
-                if (expected.?.product.terms.items.len != ast.product.terms.items.len) {
+                if (expanded_expected.?.product.terms.items.len != ast.product.terms.items.len) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return ast.enpoison();
                 }
-                for (ast.product.terms.items, expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
+                for (ast.product.terms.items, expanded_expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
                     var new_term = try validateAST(term, expected_term, scope, errors, allocator);
                     changed = changed or new_term != term;
                     try new_terms.append(new_term);
@@ -694,7 +734,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         poisoned = true;
                     }
                 }
-            } else if (expected == null) {
+            } else if (expanded_expected == null) {
                 // Not expecting anything
                 for (ast.product.terms.items) |term| {
                     var new_term = try validateAST(term, null, scope, errors, allocator);

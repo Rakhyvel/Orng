@@ -1,4 +1,6 @@
 import subprocess
+import datetime
+
 
 def main():
     res = subprocess.run(["zig", "build", "orng"]).returncode
@@ -6,8 +8,9 @@ def main():
         return
     subprocess.run(["rm", "tests/fuzz/problems.txt"]).returncode
 
-    for i in range(0, 300):
-        print("{:,}".format(i * 10000))
+    for i in range(0, 4000):
+        now = datetime.datetime.now()
+        print("{} {:,}".format(now, i * 10000))
         subprocess.run(["./tests/create-fuzz.sh"]).returncode
         with open("tests/fuzz/fuzz.txt", "r") as f, open("tests/fuzz/problems.txt", "a") as problem_file:
             for line in f:

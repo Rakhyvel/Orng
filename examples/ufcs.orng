@@ -1,8 +1,8 @@
-const std = import_package("std")
+let const std = import("std")
 
 // Define types Point and Rectangle as named-tuples
-const Point: Type = (x: Float, y: Float)
-const Rectangle: Type = 
+let const Point: Type = (x: Float, y: Float)
+let const Rectangle: Type = 
     ( top_left: Point
     , width: Float
     , height: Float
@@ -43,20 +43,5 @@ fn main(_: System) -> !() {
     //      std.debug.assert( rect_a >> aabb_collision() )
     //                                                ^
     // error: aabb_collision takes 2 parameters, 1 provided
-
-    
-    // Related is the `?>` operator.
-    // The `?>` operator takes an optional-typed argument, and returns null if 
-    // it is null, otherwise behaves as the `>>` operator.
-    const rand = extern_function("rand", ()->Int)
-    fn maybe_get_rectangle() -> ?Rectangle
-        if rand() % 2
-            .some(rect_a)
-        else 
-            .null
-    let maybe_collided: ?Bool 
-        =  maybe_get_rectangle() 
-        ?> maybe_get_rectangle()
-        ?> aabb_collision()
 }
     

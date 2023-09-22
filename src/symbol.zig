@@ -133,6 +133,7 @@ pub const Symbol = struct {
     name: []const u8,
     span: Span,
     _type: ?*ast.AST,
+    expanded_type: ?*ast.AST,
     init: ?*ast.AST,
     versions: u64 = 0,
     uses: u64 = 0,
@@ -159,6 +160,7 @@ pub const Symbol = struct {
         retval.name = name;
         retval.span = span;
         retval._type = _type;
+        retval.expanded_type = null;
         retval.init = _init;
         retval.decl = decl;
         retval.versions = 0;
@@ -275,17 +277,12 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.function.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition.function.rhs, scope, errors, allocator);
         },
-        .delta => {
-            try symbolTableFromAST(definition.delta.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.delta.rhs, scope, errors, allocator);
-        },
-        .composition => {
-            try symbolTableFromAST(definition.composition.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.composition.rhs, scope, errors, allocator);
-        },
         .prepend => {
-            try symbolTableFromAST(definition.prepend.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.prepend.rhs, scope, errors, allocator);
+            try symbolTableFromASTList(definition.prepend.args, scope, errors, allocator);
+        },
+        .invoke => {
+            try symbolTableFromAST(definition.invoke.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.invoke.rhs, scope, errors, allocator);
         },
         .sum => {
             try symbolTableFromASTList(definition.sum.terms, scope, errors, allocator);

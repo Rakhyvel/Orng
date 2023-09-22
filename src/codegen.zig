@@ -159,7 +159,7 @@ fn get_nibble(c: u8) u8 {
 }
 
 fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
-    try printType(callGraph.symbol._type.?.function.rhs, out);
+    try printType(callGraph.symbol.expanded_type.?.function.rhs, out);
     try out.writer().print(" ", .{});
     try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
@@ -179,7 +179,7 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
 fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     // Print function return type, name, parameter list
-    try printType(callGraph.symbol._type.?.function.rhs, out);
+    try printType(callGraph.symbol.expanded_type.?.function.rhs, out);
     try out.writer().print(" ", .{});
     try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
@@ -540,18 +540,18 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
         },
         .loadString => {
             try out.writer().print("(", .{});
-            try printType(ir.dest.?.symbol._type.?, out);
+            try printType(ir.dest.?.symbol.expanded_type.?, out);
             try out.writer().print(") {{string_{}, {}}}", .{ ir.data.string_id, program.interned_strings.items[ir.data.string_id].len - 1 });
         },
         .loadStruct => {
             try out.writer().print("(", .{});
-            try printType(ir.dest.?.symbol._type.?, out);
+            try printType(ir.dest.?.symbol.expanded_type.?, out);
             try out.writer().print(") {{", .{});
-            var product_list = ir.dest.?.symbol._type.?.product.terms;
+            var product_list = ir.dest.?.symbol.expanded_type.?.product.terms;
             for (ir.data.symbverList.items, product_list.items, 1..) |symbver, expected, i| {
                 if (!expected.c_typesMatch(_ast.unitType)) {
                     // Don't values of type `void` (don't exist in C! (Goobersville!))
-                    if (!expected.c_typesMatch(symbver.symbol._type.?)) {
+                    if (!expected.c_typesMatch(symbver.symbol.expanded_type.?)) {
                         try out.writer().print("(", .{});
                         try printType(expected, out);
                         try out.writer().print(")", .{});
@@ -566,7 +566,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
         },
         .loadUnion => {
             try out.writer().print("(", .{});
-            try printType(ir.dest.?.symbol._type.?, out);
+            try printType(ir.dest.?.symbol.expanded_type.?, out);
             try out.writer().print(") {{.tag={}", .{ir.data.int});
             if (ir.src1) |init| {
                 try out.writer().print(", ._{}=", .{ir.data.int});
@@ -746,12 +746,12 @@ fn generateIndexExpr(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen
     }
 
     // Generate reinterpret cast to pointer of elements
-    var elem_type = if (ir.dest != null) ir.dest.?.symbol._type.? else ir.data.symbver.type;
+    var elem_type = if (ir.dest != null) ir.dest.?.symbol.expanded_type.? else ir.data.symbver.type;
     try out.writer().print("(", .{});
     try printType(elem_type, out);
     try out.writer().print("*)", .{});
 
-    var lhs_type = ir.src1.?.symbol._type.?;
+    var lhs_type = ir.src1.?.symbol.expanded_type.?;
     if (lhs_type.* == .product and !lhs_type.product.was_slice) {
         // Array index; dereference(lvalue + index)
         try generateLValueIR(ir.src1.?, IRKind.cast.precedence(), out);
@@ -857,7 +857,7 @@ fn printVarDecl(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
     if (!param) {
         try out.writer().print("    ", .{});
     }
-    try printType(symbol._type.?, out);
+    try printType(symbol.expanded_type.?, out);
     try out.writer().print(" ", .{});
     try printSymbol(symbol, out);
     if (!param) {
@@ -898,13 +898,17 @@ fn is_literal(ir: *IR) bool {
     return ir.kind == .loadSymbol or ir.kind == .loadInt or ir.kind == .loadFloat or ir.kind == .loadString or ir.kind == .loadStruct or ir.kind == .loadUnion or ir.kind == .copy or ir.kind == .exponent or ir.kind == .get_tag or ir.kind == .call;
 }
 
+fn commutative(ir: *IR) bool {
+    return ir.kind != .sub and ir.kind != .div;
+}
+
 fn printSymbolVersion(symbver: *SymbolVersion, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (hide_temporary(symbver)) {
-        if (precedence < symbver.def.?.kind.precedence()) {
+        if (precedence < symbver.def.?.kind.precedence() or (precedence == symbver.def.?.kind.precedence() and !commutative(symbver.def.?))) {
             try out.writer().print("(", .{});
         }
         try generate_IR_RHS(symbver.def.?, precedence, out);
-        if (precedence < symbver.def.?.kind.precedence()) {
+        if (precedence < symbver.def.?.kind.precedence() or (precedence == symbver.def.?.kind.precedence() and !commutative(symbver.def.?))) {
             try out.writer().print(")", .{});
         }
     } else {

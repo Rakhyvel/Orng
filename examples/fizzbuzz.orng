@@ -6,8 +6,8 @@ let const FizzBuzzResult
 fn main(sys: System) -> !() {
     while let i = 0; i < 100; i += 1 {
         match fizzbuzz(i) {
-            .string(s)  => try sys.stdout.>writeln("{s}", s)
-            .integer(j) => try sys.stdout.>writeln("{}", j)
+            .string  << s => try sys.stdout.>writeln("{s}", s)
+            .integer << j => try sys.stdout.>writeln("{}", j)
         }
     }
 }

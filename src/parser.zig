@@ -334,7 +334,7 @@ pub const Parser = struct {
     }
 
     fn comparison_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.delta_expr();
+        var exp = try self.prepend_expr();
         var tokens: ?std.ArrayList(Token) = null;
         var exprs: ?std.ArrayList(*AST) = null;
         while (self.accept(.D_EQUALS) orelse self.accept(.NOT_EQUALS) orelse self.accept(.GTR) orelse self.accept(.LSR) orelse self.accept(.GTE) orelse self.accept(.LTE)) |token| {
@@ -344,7 +344,7 @@ pub const Parser = struct {
                 try exprs.?.append(exp);
             }
             try tokens.?.append(token);
-            try exprs.?.append(try self.delta_expr());
+            try exprs.?.append(try self.prepend_expr());
         } else {
             if (tokens == null) {
                 return exp;
@@ -354,14 +354,23 @@ pub const Parser = struct {
         }
     }
 
-    fn delta_expr(self: *Parser) ParserErrorEnum!*AST {
+    fn prepend_expr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.coalesce_expr();
-        while (true) {
-            if (self.accept(.DELTA)) |token| {
-                exp = try AST.createDelta(token, exp, try self.coalesce_expr(), self.astAllocator);
-            } else {
-                return exp;
+        var terms: ?std.ArrayList(*AST) = null;
+        var first_token: ?Token = null;
+        while (self.accept(.PREPEND)) |token| {
+            if (terms == null) {
+                terms = std.ArrayList(*AST).init(self.astAllocator);
+                first_token = token;
+                try terms.?.append(exp);
             }
+            try terms.?.append(try self.coalesce_expr());
+        }
+        if (terms) |_| {
+            var call = terms.?.orderedRemove(terms.?.items.len - 1);
+            return AST.createPrepend(first_token.?, terms.?, call, self.astAllocator);
+        } else {
+            return exp;
         }
     }
 
@@ -402,8 +411,6 @@ pub const Parser = struct {
                 exp = try AST.createDiv(token, exp, try self.prefix_expr(), self.astAllocator);
             } else if (self.accept(.PERCENT)) |token| {
                 exp = try AST.createMod(token, exp, try self.prefix_expr(), self.astAllocator);
-            } else if (self.accept(.DIAMOND)) |token| {
-                exp = try AST.createComposition(token, exp, try self.prefix_expr(), self.astAllocator);
             } else if (self.accept(.D_BAR)) |token| {
                 exp = try AST.createUnion(token, exp, try self.prefix_expr(), self.astAllocator);
             } else {
@@ -414,9 +421,9 @@ pub const Parser = struct {
 
     fn prefix_expr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.NOT)) |token| {
-            return try AST.createNot(token, try self.prepend_expr(), self.astAllocator);
+            return try AST.createNot(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
-            return try AST.createNegate(token, try self.prepend_expr(), self.astAllocator);
+            return try AST.createNegate(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
             var mut = self.accept(.MUT);
             return try AST.createAddrOf(token, try self.prefix_expr(), mut != null, self.astAllocator);
@@ -441,18 +448,18 @@ pub const Parser = struct {
             }
             return try AST.createSliceOf(token, try self.prefix_expr(), len, sliceKind, self.astAllocator);
         } else if (self.accept(.Q_MARK)) |token| {
-            return try AST.createOptional(token, try self.prepend_expr(), self.astAllocator);
+            return try AST.createOptional(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.TRY)) |token| {
-            return try AST.createTry(token, try self.prepend_expr(), self.astAllocator);
+            return try AST.createTry(token, try self.invoke_expr(), self.astAllocator);
         } else {
-            return try self.prepend_expr();
+            return try self.invoke_expr();
         }
     }
 
-    fn prepend_expr(self: *Parser) ParserErrorEnum!*AST {
+    fn invoke_expr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.exponent_expr();
-        while (self.accept(.PERIOD_GTR)) |token| {
-            exp = try AST.createPrepend(token, exp, try self.exponent_expr(), self.astAllocator);
+        while (self.accept(.INVOKE)) |token| {
+            exp = try AST.createInvoke(token, exp, try self.exponent_expr(), self.astAllocator);
         }
         return exp;
     }

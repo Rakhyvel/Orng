@@ -92,9 +92,8 @@ pub const TokenKind = enum(u32) {
     DEDENT,
 
     // Function stuff
-    DELTA,
-    DIAMOND,
-    PERIOD_GTR,
+    PREPEND,
+    INVOKE,
 
     // Whitespace
     COMMENT,
@@ -145,10 +144,9 @@ pub const binaryOperators = [_]TokenKind{
     .STAR,
     .SLASH,
     .PERCENT,
-    .DIAMOND,
     .D_BAR,
     .D_STAR,
-    .PERIOD_GTR,
+    .INVOKE,
     // .PERIOD,
     .LEFT_SKINNY_ARROW,
     .WHERE,
@@ -292,9 +290,8 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .R_SQUARE => "]",
 
         // Functional
-        .DELTA => "|>",
-        .DIAMOND => "<>",
-        .PERIOD_GTR => ".>",
+        .PREPEND => ">>",
+        .INVOKE => ".>",
 
         // EOF
         .EOF => "(EOF)",

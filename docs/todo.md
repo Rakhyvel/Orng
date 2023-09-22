@@ -43,6 +43,13 @@
 - [x] rewrite [op]= assignments
 - [ ] Comparison operators should not be chainable
 - [x] Parens (and only parens) should be one 'line', like in Python
+- [ ] Remove `'` from integer and identifier token. Replace with `_` for integers.
+- [ ] Require named fields/args to have `.`
+- [ ] Enforce naming convetions
+    - [ ] Must be snake case
+    - [ ] Cannot define names that begin with `_` outside of prelude
+    - [ ] Types, traits, and functions that return types must be capitalized. Nothing else may be.
+- [ ] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -124,9 +131,11 @@
             > Seems non-trivial
         - [x] Error on invalid escapes
         - [x] Error if character literal contains more than one character
-- [x] Sum types
+- [ ] Sum types
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
+    - [ ] `.@tag`
+    - [ ] `.@tag_name`
 - [x] optionals
     - [x] `?` constructor
     - [x] remove `fromOptional`
@@ -247,10 +256,9 @@
         - [ ] `derefCopy` should elide `*&`s
         - [ ] `printSymbolVersion` should collapse addrOf IR, etc
     - [x] coverage!
-    - [ ] fuzz with updated `fuzz.ebnf` to force a proper main function
+    - [x] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] function programming stuff
     - [x] immutability
-    - [ ] composition using `<>`
     - [ ] prepend `>>`
     - [ ] optional prepend `?>`
 - [ ] compile-time evaluation
