@@ -54,14 +54,14 @@ int64_t _2_main() {
     *(int64_t*)&_3_x = _2_t4._0;
     *((int64_t*)&_3_x + 1) = _2_t4._1;
     if (*(int64_t*)&_3_x > *((int64_t*)&_3_x + 1)) {
-        goto BB3;
+        goto BB1;
     } else {
-        goto BB7;
+        goto BB5;
     }
-BB3:
+BB1:
     _2_$retval = 162;
     return _2_$retval;
-BB7:
+BB5:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }

@@ -335,23 +335,20 @@ pub const Parser = struct {
 
     fn comparison_expr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.coalesce_expr();
-        var tokens: ?std.ArrayList(Token) = null;
-        var exprs: ?std.ArrayList(*AST) = null;
-        while (self.accept(.D_EQUALS) orelse self.accept(.NOT_EQUALS) orelse self.accept(.GTR) orelse self.accept(.LSR) orelse self.accept(.GTE) orelse self.accept(.LTE)) |token| {
-            if (tokens == null) {
-                tokens = std.ArrayList(Token).init(self.astAllocator);
-                exprs = std.ArrayList(*AST).init(self.astAllocator);
-                try exprs.?.append(exp);
-            }
-            try tokens.?.append(token);
-            try exprs.?.append(try self.coalesce_expr());
-        } else {
-            if (tokens == null) {
-                return exp;
-            } else {
-                return try AST.createConditional(tokens.?, exprs.?, self.astAllocator);
-            }
+        if (self.accept(.D_EQUALS)) |token| {
+            exp = try AST.createEqual(token, exp, try self.coalesce_expr(), self.astAllocator);
+        } else if (self.accept(.NOT_EQUALS)) |token| {
+            exp = try AST.createNotEqual(token, exp, try self.coalesce_expr(), self.astAllocator);
+        } else if (self.accept(.GTR)) |token| {
+            exp = try AST.createGreater(token, exp, try self.coalesce_expr(), self.astAllocator);
+        } else if (self.accept(.LSR)) |token| {
+            exp = try AST.createLesser(token, exp, try self.coalesce_expr(), self.astAllocator);
+        } else if (self.accept(.GTE)) |token| {
+            exp = try AST.createGreaterEqual(token, exp, try self.coalesce_expr(), self.astAllocator);
+        } else if (self.accept(.LTE)) |token| {
+            exp = try AST.createLesserEqual(token, exp, try self.coalesce_expr(), self.astAllocator);
         }
+        return exp;
     }
 
     fn coalesce_expr(self: *Parser) ParserErrorEnum!*AST {

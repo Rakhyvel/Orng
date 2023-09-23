@@ -1176,6 +1176,78 @@ pub const CFG = struct {
                 }
                 return temp;
             },
+            .equal => {
+                var lhs = try self.flattenAST(scope, ast.equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (lhs == null or rhs == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                var ir = try IR.create(.equal, temp, lhs, rhs, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .not_equal => {
+                var lhs = try self.flattenAST(scope, ast.not_equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.not_equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (lhs == null or rhs == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                var ir = try IR.create(.notEqual, temp, lhs, rhs, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .greater => {
+                var lhs = try self.flattenAST(scope, ast.greater.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.greater.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (lhs == null or rhs == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                var ir = try IR.create(.greater, temp, lhs, rhs, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .lesser => {
+                var lhs = try self.flattenAST(scope, ast.lesser.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.lesser.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (lhs == null or rhs == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                var ir = try IR.create(.lesser, temp, lhs, rhs, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .greater_equal => {
+                var lhs = try self.flattenAST(scope, ast.greater_equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.greater_equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (lhs == null or rhs == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                var ir = try IR.create(.greaterEqual, temp, lhs, rhs, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return temp;
+            },
+            .lesser_equal => {
+                var lhs = try self.flattenAST(scope, ast.lesser_equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.lesser_equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                if (lhs == null or rhs == null) {
+                    return null;
+                }
+                var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                var ir = try IR.create(.lesserEqual, temp, lhs, rhs, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                return temp;
+            },
             ._catch => {
                 // Create the result symbol.
                 // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
@@ -1389,68 +1461,6 @@ pub const CFG = struct {
                 var ir = try IR.createUnion(temp, init, ast.inferredMember.pos.?, ast.getToken().span, allocator);
                 self.appendInstruction(ir);
                 return temp;
-            },
-            .conditional => {
-                std.debug.assert(ast.conditional.exprs.items.len == ast.conditional.tokens.items.len + 1);
-
-                // Create the result symbol and IR
-                var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-
-                var i: usize = 0;
-                var lhs = (try self.flattenAST(scope, ast.conditional.exprs.items[0], return_label, break_label, continue_label, error_label, false, errors, allocator));
-                while (i < ast.conditional.tokens.items.len) : (i += 1) {
-                    // Test lhs, branch
-                    var rhs = try self.flattenAST(scope, ast.conditional.exprs.items[i + 1], return_label, break_label, continue_label, error_label, false, errors, allocator);
-                    if (rhs == null) {
-                        return null;
-                    }
-                    var token = ast.conditional.tokens.items[i];
-                    var ir_kind: IRKind = undefined;
-                    switch (token.kind) {
-                        .D_EQUALS => {
-                            ir_kind = .equal;
-                        },
-                        .NOT_EQUALS => {
-                            ir_kind = .notEqual;
-                        },
-                        .GTR => {
-                            ir_kind = .greater;
-                        },
-                        .GTE => {
-                            ir_kind = .greaterEqual;
-                        },
-                        .LSR => {
-                            ir_kind = .lesser;
-                        },
-                        .LTE => {
-                            ir_kind = .lesserEqual;
-                        },
-                        else => unreachable,
-                    }
-                    var temp = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                    var ir = try IR.create(ir_kind, temp, lhs, rhs, ast.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    var branch = try IR.createBranch(temp, else_label, ast.getToken().span, allocator);
-                    self.appendInstruction(branch);
-                    lhs = rhs;
-                }
-                // all tests passed, store `true` in symbver
-                var load_true_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                var load_true = try IR.createInt(load_true_symbver, 1, ast.getToken().span, allocator);
-                self.appendInstruction(load_true);
-                self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
-                // at least one test failed, store `false` in symbver
-                self.appendInstruction(else_label);
-                var load_false_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                var load_false = try IR.createInt(load_false_symbver, 0, ast.getToken().span, allocator);
-                self.appendInstruction(load_false);
-                self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
-                self.appendInstruction(end_label);
-                return symbver;
             },
 
             // Control-flow expressions

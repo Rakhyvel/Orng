@@ -48,16 +48,16 @@ int64_t _4_f(int64_t _4_x) {
     int64_t _4_t0;
     int64_t _4_$retval;
     if (_4_x) {
-        goto BB3;
+        goto BB1;
     } else {
-        goto BB7;
+        goto BB5;
     }
-BB3:
+BB1:
     _4_t0 = 174;
-    goto BB6;
-BB7:
+    goto BB4;
+BB5:
     _4_t0 = 3;
-BB6:
+BB4:
     _4_$retval = _4_t0;
     return _4_$retval;
 }

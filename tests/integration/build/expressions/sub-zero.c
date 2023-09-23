@@ -57,36 +57,21 @@ BB4:
 }
 
 uint8_t _7_f(int64_t _7_x) {
-    uint8_t _7_t4;
-    uint8_t _7_$retval;
     uint8_t _7_t0;
+    uint8_t _7_$retval;
     if (_7_x == _7_x) {
-        goto BB3;
+        goto BB1;
     } else {
-        goto BB9;
-    }
-BB3:
-    _7_t4 = -_7_x == -_7_x;
-    if (_7_t4) {
         goto BB4;
-    } else {
-        goto BB8;
     }
-BB9:
-    _7_t0 = 0;
-    goto BB7;
+BB1:
+    _7_t0 = -_7_x == -_7_x;
+    goto BB3;
 BB4:
-    _7_t4 = 1;
-    goto BB5;
-BB8:
-    _7_t4 = 0;
-    goto BB5;
-BB7:
+    _7_t0 = 0;
+BB3:
     _7_$retval = _7_t0;
     return _7_$retval;
-BB5:
-    _7_t0 = _7_t4;
-    goto BB7;
 }
 
 int main()

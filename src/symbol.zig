@@ -253,6 +253,30 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .exponent => {
             try symbolTableFromASTList(definition.exponent.terms, scope, errors, allocator);
         },
+        .equal => {
+            try symbolTableFromAST(definition.equal.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.equal.rhs, scope, errors, allocator);
+        },
+        .not_equal => {
+            try symbolTableFromAST(definition.not_equal.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.not_equal.rhs, scope, errors, allocator);
+        },
+        .greater => {
+            try symbolTableFromAST(definition.greater.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.greater.rhs, scope, errors, allocator);
+        },
+        .lesser => {
+            try symbolTableFromAST(definition.lesser.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.lesser.rhs, scope, errors, allocator);
+        },
+        .greater_equal => {
+            try symbolTableFromAST(definition.greater_equal.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.greater_equal.rhs, scope, errors, allocator);
+        },
+        .lesser_equal => {
+            try symbolTableFromAST(definition.lesser_equal.lhs, scope, errors, allocator);
+            try symbolTableFromAST(definition.lesser_equal.rhs, scope, errors, allocator);
+        },
         ._catch => {
             try symbolTableFromAST(definition._catch.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition._catch.rhs, scope, errors, allocator);
@@ -299,9 +323,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
 
         .product => {
             try symbolTableFromASTList(definition.product.terms, scope, errors, allocator);
-        },
-        .conditional => {
-            try symbolTableFromASTList(definition.conditional.exprs, scope, errors, allocator);
         },
         .addrOf => try symbolTableFromAST(definition.addrOf.expr, scope, errors, allocator),
         .sliceOf => {

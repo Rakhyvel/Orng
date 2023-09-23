@@ -122,6 +122,12 @@ pub const AST = union(enum) {
     div: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     mod: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     exponent: struct { common: ASTCommon, terms: std.ArrayList(*AST) },
+    equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    not_equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    greater: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    lesser: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    greater_equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    lesser_equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _catch: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _orelse: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     call: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -176,7 +182,6 @@ pub const AST = union(enum) {
     _union: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
 
     // Fancy operators
-    conditional: struct { common: ASTCommon, tokens: std.ArrayList(Token), exprs: std.ArrayList(*AST) },
     addrOf: struct { common: ASTCommon, expr: *AST, mut: bool },
     sliceOf: struct { common: ASTCommon, expr: *AST, len: ?*AST, kind: SliceKind },
     subSlice: struct { common: ASTCommon, super: *AST, lower: ?*AST, upper: ?*AST },
@@ -310,13 +315,18 @@ pub const AST = union(enum) {
             .assign => return &self.assign.common,
             ._or => return &self._or.common,
             ._and => return &self._and.common,
-            .conditional => return &self.conditional.common,
             .add => return &self.add.common,
             .sub => return &self.sub.common,
             .mult => return &self.mult.common,
             .div => return &self.div.common,
             .mod => return &self.mod.common,
             .exponent => return &self.exponent.common,
+            .equal => return &self.equal.common,
+            .not_equal => return &self.not_equal.common,
+            .greater => return &self.greater.common,
+            .lesser => return &self.lesser.common,
+            .greater_equal => return &self.greater_equal.common,
+            .lesser_equal => return &self.lesser_equal.common,
             ._catch => return &self._catch.common,
             ._orelse => return &self._orelse.common,
             .call => return &self.call.common,
@@ -441,9 +451,28 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._and = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createConditional(_tokens: std.ArrayList(Token), exprs: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
-        std.debug.assert(_tokens.items.len > 0);
-        return try AST.box(AST{ .conditional = .{ .common = ASTCommon{ .token = _tokens.items[0], ._type = null }, .tokens = _tokens, .exprs = exprs } }, allocator);
+    pub fn createEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createNotEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .not_equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createGreater(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .greater = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createLesser(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .lesser = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createGreaterEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .greater_equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    }
+
+    pub fn createLesserEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+        return try AST.box(AST{ .lesser_equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createAdd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
@@ -875,7 +904,12 @@ pub const AST = union(enum) {
             .not,
             ._or,
             ._and,
-            .conditional,
+            .equal,
+            .not_equal,
+            .greater,
+            .lesser,
+            .greater_equal,
+            .lesser_equal,
             => retval = boolType,
 
             // Char type

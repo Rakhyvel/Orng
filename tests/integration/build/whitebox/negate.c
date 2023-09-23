@@ -41,16 +41,16 @@ int64_t _2_main() {
     _3_x = 1;
     _3_y = &_3_x;
     if (-*_3_y == -1) {
-        goto BB3;
+        goto BB1;
     } else {
-        goto BB7;
+        goto BB5;
     }
-BB3:
+BB1:
     _2_t2 = 32;
-    goto BB6;
-BB7:
+    goto BB4;
+BB5:
     _2_t2 = 10;
-BB6:
+BB4:
     _2_$retval = _2_t2;
     return _2_$retval;
 }

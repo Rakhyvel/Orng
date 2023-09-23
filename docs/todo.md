@@ -14,15 +14,16 @@
 - [ ] Errors should be given a type name
 - [ ] Errors should be capitalized
 - [ ] Everything should be snake_case
+    - [ ] Token Kinds should be snake_case, prefer not to use abbreviations
 - [x] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
 - [x] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
-- [ ] Organize functions declarations in prefix order
+- [ ] Organize functions declarations in BFS order
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
 - [ ] Change some while loops with counter to enhanced for loops
 - [ ] Go through files and find TODO comments
-- [ ] All inits have a corresponding deinit
-- [ ] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
+- [x] All inits have a corresponding deinit
+- [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
 
 ### Small fixes
@@ -41,15 +42,16 @@
 - [x] immutability checking
 - [x] Redo symbol versions, should probably just be symbols
 - [x] rewrite [op]= assignments
-- [ ] Comparison operators should not be chainable
+- [x] Comparison operators should not be chainable
 - [x] Parens (and only parens) should be one 'line', like in Python
-- [ ] Remove `'` from integer and identifier token. Replace with `_` for integers.
+- [ ] Remove `'` from integer and identifier token. Replace with `_` for integers, disallow for identifiers.
 - [ ] Require named fields/args to have `.`
 - [ ] Enforce naming convetions
     - [ ] Must be snake case
     - [ ] Cannot define names that begin with `_` outside of prelude
     - [ ] Types, traits, and functions that return types must be capitalized. Nothing else may be.
 - [ ] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
+- [ ] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

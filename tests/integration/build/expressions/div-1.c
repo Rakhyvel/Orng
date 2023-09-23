@@ -57,21 +57,8 @@ BB4:
 }
 
 uint8_t _7_f(double _7_x) {
-    uint8_t _7_t0;
     uint8_t _7_$retval;
-    _7_t0 = _7_x == _7_x;
-    if (_7_t0) {
-        goto BB1;
-    } else {
-        goto BB4;
-    }
-BB1:
-    _7_t0 = 1;
-    goto BB3;
-BB4:
-    _7_t0 = 0;
-BB3:
-    _7_$retval = _7_t0;
+    _7_$retval = _7_x == _7_x;
     return _7_$retval;
 }
 

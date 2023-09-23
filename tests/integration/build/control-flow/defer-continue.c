@@ -39,22 +39,22 @@ int64_t _2_main() {
     _3_x = 17;
 BB1:
     if (_3_x < 36) {
-        goto BB4;
+        goto BB2;
     } else {
-        goto BB16;
+        goto BB11;
     }
-BB4:
+BB2:
     if (_3_x % 2) {
-        goto BB12;
-    } else {
         goto BB8;
+    } else {
+        goto BB4;
     }
-BB16:
+BB11:
     _2_$retval = _3_x;
     return _2_$retval;
-BB12:
-    _3_x = _3_x + 1;
 BB8:
+    _3_x = _3_x + 1;
+BB4:
     _3_x = _3_x + 9;
     goto BB1;
 }

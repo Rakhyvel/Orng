@@ -36,21 +36,21 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
-    int64_t _2_t2;
-    int64_t _2_$retval;
     int64_t _5_z;
     int64_t* _2_t8;
+    int64_t _2_t2;
+    int64_t _2_$retval;
     _3_x = 0;
     _3_y = &_3_x;
     if (*_3_y) {
-        goto BB7;
+        goto BB5;
     } else {
-        goto BB3;
+        goto BB1;
     }
-BB7:
+BB5:
     _2_t2 = 1000;
-    goto BB6;
-BB3:
+    goto BB4;
+BB1:
     _5_z = *_3_y;
     _2_t8 = _3_y;
     **&_2_t8 = _5_z + _5_z;
@@ -60,7 +60,7 @@ BB3:
     _5_z = _5_z % (_5_z + 1);
     _5_z = powf(_5_z, (_5_z + 1));
     _2_t2 = _5_z * -1.0e+00;
-BB6:
+BB4:
     _2_$retval = _2_t2;
     return _2_$retval;
 }

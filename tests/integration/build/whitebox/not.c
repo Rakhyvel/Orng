@@ -36,29 +36,21 @@ int64_t _2_main();
 int64_t _2_main() {
     int64_t _3_x;
     int64_t* _3_y;
-    uint8_t _2_t2;
     int64_t _2_t8;
     int64_t _2_$retval;
     _3_x = 0;
     _3_y = &_3_x;
-    _2_t2 = *_3_y == 1;
-    if (_2_t2) {
-        goto BB1;
+    if (*_3_y == 1) {
+        goto BB5;
     } else {
-        goto BB9;
+        goto BB1;
     }
-BB1:
-    _2_t2 = 1;
-    goto BB7;
-BB9:
-    _2_t2 = 0;
-    goto BB3;
-BB7:
+BB5:
     _2_t8 = 10;
-    goto BB6;
-BB3:
+    goto BB4;
+BB1:
     _2_t8 = 31;
-BB6:
+BB4:
     _2_$retval = _2_t8;
     return _2_$retval;
 }

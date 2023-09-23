@@ -8,9 +8,9 @@ def main():
         return
     subprocess.run(["rm", "tests/fuzz/problems.txt"]).returncode
 
-    for i in range(0, 4000):
+    for i in range(0, 90_000_000): # 90,000,000 should be about 20 hours, enough for a 4HL fella
         now = datetime.datetime.now()
-        print("{} {:,}".format(now, i * 10000))
+        print("{} {:,}".format(now, i * 10_000))
         subprocess.run(["./tests/create-fuzz.sh"]).returncode
         with open("tests/fuzz/fuzz.txt", "r") as f, open("tests/fuzz/problems.txt", "a") as problem_file:
             for line in f:

@@ -75,16 +75,16 @@ int64_t _4_sum_up(struct1 _4_xs) {
     _6_i = 0;
 BB1:
     if (_6_i < _4_xs._1) {
-        goto BB4;
+        goto BB2;
     } else {
-        goto BB9;
+        goto BB7;
     }
-BB4:
+BB2:
     $bounds_check(_6_i, _4_xs._1, "tests/integration/slices/infer-upper.orng:12:19:\n        sum += xs[i]\n                 ^");
     _5_sum = _5_sum + *((int64_t*)_4_xs._0 + _6_i);
     _6_i = _6_i + 1;
     goto BB1;
-BB9:
+BB7:
     _4_$retval = _5_sum;
     return _4_$retval;
 }

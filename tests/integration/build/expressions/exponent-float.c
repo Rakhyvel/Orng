@@ -58,41 +58,28 @@ BB4:
 
 uint8_t _7_close_enough(double _7_a,double _7_b,double _7_e) {
     uint8_t _7_$retval;
-    uint8_t _7_t7;
     double _7_t3;
     if (_7_a == _7_b) {
-        goto BB3;
+        goto BB1;
     } else {
-        goto BB4;
+        goto BB2;
     }
-BB3:
+BB1:
     _7_$retval = 1;
     return _7_$retval;
-BB4:
+BB2:
     if (_7_a > _7_b) {
-        goto BB7;
+        goto BB3;
     } else {
-        goto BB15;
+        goto BB8;
     }
-BB7:
+BB3:
     _7_t3 = _7_a - _7_b;
-    goto BB9;
-BB15:
+    goto BB5;
+BB8:
     _7_t3 = _7_b - _7_a;
-BB9:
-    _7_t7 = _7_t3 <= _7_e;
-    if (_7_t7) {
-        goto BB11;
-    } else {
-        goto BB14;
-    }
-BB11:
-    _7_t7 = 1;
-    goto BB13;
-BB14:
-    _7_t7 = 0;
-BB13:
-    _7_$retval = _7_t7;
+BB5:
+    _7_$retval = _7_t3 <= _7_e;
     return _7_$retval;
 }
 

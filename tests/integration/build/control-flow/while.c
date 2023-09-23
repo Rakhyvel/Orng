@@ -41,15 +41,15 @@ int64_t _2_main() {
     _4_i = 0;
 BB1:
     if (_4_i <= 10) {
-        goto BB4;
+        goto BB2;
     } else {
-        goto BB9;
+        goto BB7;
     }
-BB4:
+BB2:
     _3_x = _3_x + _4_i;
     _4_i = _4_i + 1;
     goto BB1;
-BB9:
+BB7:
     _2_$retval = _3_x;
     return _2_$retval;
 }

@@ -41,22 +41,22 @@ int64_t _2_main() {
     _4_i = 0;
 BB1:
     if (_4_i < 70) {
-        goto BB4;
+        goto BB2;
     } else {
-        goto BB15;
-    }
-BB4:
-    if (_4_i % 2) {
         goto BB10;
-    } else {
-        goto BB8;
     }
-BB15:
+BB2:
+    if (_4_i % 2) {
+        goto BB6;
+    } else {
+        goto BB4;
+    }
+BB10:
     _2_$retval = _3_x;
     return _2_$retval;
-BB10:
+BB6:
     _3_x = _3_x + 1;
-BB8:
+BB4:
     _4_i = _4_i + 1;
     goto BB1;
 }
