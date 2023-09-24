@@ -130,7 +130,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .ident => {
-                if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_' and next_char != '\'') {
+                if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_') {
                     var token = Token.create(contents[slice_start..ix], null, filename, line, col);
                     if (fuzz_tokens) {
                         if (std.mem.eql(u8, token.data, "indent")) {
@@ -323,7 +323,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     ix += 1;
                     col += 1;
                     state = .binaryDigit;
-                } else if (next_char == '\'') {
+                } else if (next_char == '_') {
                     ix += 1;
                     col += 1;
                     state = .integerDigit;
@@ -349,7 +349,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .float => {
-                if (next_char == '\'') {
+                if (next_char == '_') {
                     ix += 1;
                     col += 1;
                     state = .floatDigit;
@@ -373,7 +373,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .hex => switch (next_char) {
-                '\'' => {
+                '_' => {
                     ix += 1;
                     col += 1;
                     state = .hexDigit;
@@ -402,7 +402,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .octal => switch (next_char) {
-                '\'' => {
+                '_' => {
                     ix += 1;
                     col += 1;
                     state = .octalDigit;
@@ -431,7 +431,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .binary => switch (next_char) {
-                '\'' => {
+                '_' => {
                     ix += 1;
                     col += 1;
                     state = .binaryDigit;

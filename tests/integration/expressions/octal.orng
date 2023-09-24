@@ -1,2 +1,2 @@
 // 511
-fn main()->Int {0o77'7}
+fn main()->Int {0o77_7}

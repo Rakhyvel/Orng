@@ -1,2 +1,2 @@
 // 2748
-fn main()->Int {0xAB'C}
+fn main()->Int {0xAB_C}
