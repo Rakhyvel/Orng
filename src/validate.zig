@@ -1582,7 +1582,14 @@ fn namedArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem
 }
 
 fn putAssign(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Errors) !void {
-    var name = ast.assign.lhs.getToken().data;
+    if (ast.assign.lhs.* != .inferredMember) {
+        errors.addError(Error{ .expectedBasicToken = .{
+            .expected = "an inferred member",
+            .got = ast.assign.lhs.getToken(),
+        } });
+        return error.typeError;
+    }
+    var name = ast.assign.lhs.inferredMember.ident.getToken().data;
     if (arg_map.get(name)) |_| {
         errors.addError(Error{ .basic = .{
             .span = ast.getToken().span,

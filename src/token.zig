@@ -101,6 +101,15 @@ pub const TokenKind = enum(u32) {
 
     // HACK: Used to count how many constructors are in the enum
     len,
+
+    pub fn is_binop(self: TokenKind) bool {
+        for (binaryOperators) |binop_kind| {
+            if (self == binop_kind) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 pub const unaryOperators = [_]TokenKind{
@@ -115,7 +124,7 @@ pub const unaryOperators = [_]TokenKind{
 };
 
 pub const binaryOperators = [_]TokenKind{
-    .R_PAREN,
+    // .R_PAREN,
     .EQUALS,
     .PLUS_EQUALS,
     .MINUS_EQUALS,

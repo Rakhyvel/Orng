@@ -45,7 +45,7 @@
 - [x] Comparison operators should not be chainable
 - [x] Parens (and only parens) should be one 'line', like in Python
 - [x] Remove `'` from integer and identifier token. Replace with `_` for integers, disallow for identifiers.
-- [ ] Require named fields/args to have `.`
+- [x] Require named fields/args to have `.`
 - [ ] Enforce naming convetions
     - [ ] Must be snake case
     - [ ] Cannot define names that begin with `_` outside of prelude

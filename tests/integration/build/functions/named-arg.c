@@ -37,7 +37,7 @@ int64_t _4_div(int64_t _4_x,int64_t _4_y);
 int64_t _2_main() {
     int64_t _2_t0;
     int64_t _2_$retval;
-    $lines[$line_idx++] = "tests/integration/functions/named-arg.orng:2:23:\nfn main() -> Int {div(x = 510, y = 10)}\n                     ^";
+    $lines[$line_idx++] = "tests/integration/functions/named-arg.orng:3:9:\n    div(.x = 510, .y = 10)\n       ^";
     _2_t0 = _4_div(510, 10);
     $line_idx--;
     _2_$retval = _2_t0;

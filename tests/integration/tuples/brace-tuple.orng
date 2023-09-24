@@ -1,0 +1,12 @@
+// 196
+let const My_Type = (a: (c: Int, d: Int), b: (e: Int, f: Int))
+
+fn main() -> Int {
+    // Parens allow for newlines, braces do not. Braces allow for multiple statements, parens do not.
+    let x: My_Type = (
+        {25, 75},
+        {6,  90}
+    )
+
+    x.a.c + x.a.d + x.b.e + x.b.f
+}

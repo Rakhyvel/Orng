@@ -29,25 +29,31 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
         $panic("inactive field");
     }
 }
+/* Typedefs */
+typedef struct {
+    int64_t _0;
+    int64_t _1;
+} struct0;
+
+typedef struct {
+    struct0 _0;
+    struct0 _1;
+} struct1;
+
 /* Function forward definitions */
 int64_t _2_main();
-int64_t _4_id(int64_t _4_x);
 
 /* Function definitions */
 int64_t _2_main() {
-    int64_t _2_t0;
+    struct0 _2_t1;
+    struct0 _2_t4;
+    struct1 _3_x;
     int64_t _2_$retval;
-    $lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:3:8:\n    id(.x = 52)\n      ^";
-    _2_t0 = _4_id(52);
-    $line_idx--;
-    _2_$retval = _2_t0;
+    _2_t1 = (struct0) {25, 75};
+    _2_t4 = (struct0) {5, 90};
+    _3_x = (struct1) {_2_t1, _2_t4};
+    _2_$retval = _3_x._0._0 + _3_x._0._1 + _3_x._1._0 + _3_x._1._1;
     return _2_$retval;
-}
-
-int64_t _4_id(int64_t _4_x) {
-    int64_t _4_$retval;
-    _4_$retval = _4_x;
-    return _4_$retval;
 }
 
 int main()

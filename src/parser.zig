@@ -120,9 +120,9 @@ pub const Parser = struct {
             return try self.fn_declaration();
         } else if (self.peek_kind(.LET)) {
             var decl: *AST = try self.let_declaration();
-            if (!self.peek_kind(.EOF)) {
-                _ = try self.expect(.NEWLINE);
-            }
+            // if (!self.peek_kind(.EOF)) {
+            //     _ = try self.expect(.NEWLINE);
+            // }
             decl.decl.top_level = true;
             return decl;
         } else {
