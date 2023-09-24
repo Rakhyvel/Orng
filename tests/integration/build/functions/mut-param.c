@@ -31,20 +31,20 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
 }
 /* Function forward definitions */
 int64_t _2_main();
-int64_t _4_sumDown(int64_t _4_x);
+int64_t _4_sum_down(int64_t _4_x);
 
 /* Function definitions */
 int64_t _2_main() {
     int64_t _2_t0;
     int64_t _2_$retval;
-    $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:27:\nfn main() -> Int {sumDown(8) + 2}\n                         ^";
-    _2_t0 = _4_sumDown(8);
+    $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
+    _2_t0 = _4_sum_down(8);
     $line_idx--;
     _2_$retval = _2_t0 + 2;
     return _2_$retval;
 }
 
-int64_t _4_sumDown(int64_t _4_x) {
+int64_t _4_sum_down(int64_t _4_x) {
     int64_t _6_i;
     int64_t _4_$retval;
     _6_i = _4_x;

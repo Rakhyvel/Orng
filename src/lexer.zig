@@ -34,7 +34,10 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
     const LexState = enum {
         none,
         whitespace,
-        ident,
+        underscore, //           => uncapitalized | capitalized
+        capitalized, //          => "_" | e | uncapitalized | all_caps
+        all_caps, //             => "_" | e
+        uncapitalized, //        => "_" | e
         string,
         escapedString,
         byteString1,
@@ -79,8 +82,12 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                         ix += 1;
                         col += 1;
                     }
-                } else if (std.ascii.isAlphabetic(next_char) or next_char == '_') {
-                    state = .ident;
+                } else if (std.ascii.isLower(next_char)) {
+                    state = .uncapitalized;
+                    ix += 1;
+                    col += 1;
+                } else if (std.ascii.isUpper(next_char)) {
+                    state = .all_caps;
                     ix += 1;
                     col += 1;
                 } else if (std.ascii.isDigit(next_char)) {
@@ -129,8 +136,85 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                 }
             },
 
-            .ident => {
-                if (ix == contents.len or !std.ascii.isAlphanumeric(next_char) and next_char != '_') {
+            .underscore => { // _ A-Z a-z 0-9 $
+                if (next_char == '_') {
+                    // => error on _
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .msg = "may not have more than one underscore in a row in an identifier" } });
+                    return LexerErrors.lexerError;
+                } else if (std.ascii.isUpper(next_char) or std.ascii.isDigit(next_char)) {
+                    // => all caps on [A-Z0-9]
+                    ix += 1;
+                    col += 1;
+                    state = .all_caps;
+                } else if (std.ascii.isLower(next_char)) {
+                    // => uncaps on [a-z]
+                    ix += 1;
+                    col += 1;
+                    state = .uncapitalized;
+                } else {
+                    // => error on $
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "identifiers may not end in an underscore" } });
+                    return LexerErrors.lexerError;
+                }
+            },
+
+            .all_caps => { // _ A-Z a-z 0-9 $
+                if (next_char == '_') {
+                    // => underscore on a-z
+                    ix += 1;
+                    col += 1;
+                    state = .underscore;
+                } else if (std.ascii.isLower(next_char)) {
+                    // => capitalized on a-z
+                    ix += 1;
+                    col += 1;
+                    state = .capitalized;
+                } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
+                    // Split on $
+                    try tokens.append(Token.create(contents[slice_start..ix], null, filename, line, col));
+                    slice_start = ix;
+                    state = .none;
+                } else {
+                    // Accept [A-Z0-9]
+                    ix += 1;
+                    col += 1;
+                }
+            },
+
+            .capitalized => { // _ A-Z a-z 0-9 $
+                if (next_char == '_') {
+                    // => underscore on _
+                    ix += 1;
+                    col += 1;
+                    state = .underscore;
+                } else if (std.ascii.isUpper(next_char)) {
+                    // => error on [A-Z]
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "camelCase is not supported" } });
+                    return LexerErrors.lexerError;
+                } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
+                    // Split on $
+                    try tokens.append(Token.create(contents[slice_start..ix], null, filename, line, col));
+                    slice_start = ix;
+                    state = .none;
+                } else {
+                    // Accept on [a-z0-9]
+                    ix += 1;
+                    col += 1;
+                }
+            },
+
+            .uncapitalized => { // _ A-Z a-z 0-9 $
+                if (next_char == '_') {
+                    // => underscore on _
+                    ix += 1;
+                    col += 1;
+                    state = .underscore;
+                } else if (std.ascii.isUpper(next_char)) {
+                    // => error on [A-Z]
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "camelCase is not supported" } });
+                    return LexerErrors.lexerError;
+                } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
+                    // Split on $
                     var token = Token.create(contents[slice_start..ix], null, filename, line, col);
                     if (fuzz_tokens) {
                         if (std.mem.eql(u8, token.data, "indent")) {
@@ -183,6 +267,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     slice_start = ix;
                     state = .none;
                 } else {
+                    // Accept on [a-z0-9]
                     ix += 1;
                     col += 1;
                 }
@@ -225,7 +310,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .byteString1;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -236,7 +321,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .byteString2;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal" } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -247,7 +332,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .string;
                 } else {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char, .base = "hexadecimal" } });
+                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                     return LexerErrors.lexerError;
                 }
             },
@@ -291,7 +376,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .char;
                 } else {
-                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .digit = next_char } });
+                    errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .col = col + 1, .line = line }, .digit = next_char } });
                     return LexerErrors.lexerError;
                 }
             },

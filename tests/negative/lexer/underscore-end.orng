@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let x_ = 0
+    x_
+}

@@ -78,6 +78,9 @@ factor: ident
       | parens
       .
 
+ident: ident_unit {"_" ident_unit}.
+ident_unit: (capitalized [uncapitalized]) | uncapitalized.
+
 block_expr: "{" [ statement { "newline" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
 
 if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].

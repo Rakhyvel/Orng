@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let x__lol = 4
+    x__lol
+}

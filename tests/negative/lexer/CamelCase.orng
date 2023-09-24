@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let CamelCase = 0
+    CamelCase
+}

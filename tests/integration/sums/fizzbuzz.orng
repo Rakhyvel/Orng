@@ -3,11 +3,11 @@ fn main()-> String {
     fizzbuzz(30).string
 }
 
-let const FizzBuzzResult: Type = (
+let const Fizz_Buzz_Result: Type = (
     string: String
     | integer: Int)
 
-fn fizzbuzz(n: Int) -> FizzBuzzResult {
+fn fizzbuzz(n: Int) -> Fizz_Buzz_Result {
     match 0 {
         {n % 15} => .string <- "fizzbuzz"
         {n % 5}  => .string <- "buzz"

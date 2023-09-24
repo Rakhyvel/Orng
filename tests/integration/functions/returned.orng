@@ -3,6 +3,6 @@ fn main() -> Int {
     f()(45)
 }
 
-fn f()->Int->Int {addFour}
+fn f()->Int->Int {add_four}
 
-fn addFour(x: Int)->Int {x + 4}
+fn add_four(x: Int)->Int {x + 4}

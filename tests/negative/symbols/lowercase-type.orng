@@ -1,0 +1,6 @@
+let const int: Type = (a: Int, b: Int)
+
+fn main() -> Int {
+    let x: int = (3, 4)
+    x.a
+}

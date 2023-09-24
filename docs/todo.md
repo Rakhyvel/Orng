@@ -46,12 +46,14 @@
 - [x] Parens (and only parens) should be one 'line', like in Python
 - [x] Remove `'` from integer and identifier token. Replace with `_` for integers, disallow for identifiers.
 - [x] Require named fields/args to have `.`
-- [ ] Enforce naming convetions
-    - [ ] Must be snake case
-    - [ ] Cannot define names that begin with `_` outside of prelude
-    - [ ] Types, traits, and functions that return types must be capitalized. Nothing else may be.
+- [x] Enforce naming convetions
+    - [x] Must be snake case
+        > `([A-Z]*[a-z0-9]*_)*[A-Z]*[a-z0-9]*`
+    - [x] Cannot define names that begin with `_` outside of prelude
+    - [x] Types, traits, and functions that return types must be capitalized. Nothing else may be.
 - [ ] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
 - [ ] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
+- [ ] Adopt Go's newline insertion rules
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

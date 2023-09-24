@@ -1,4 +1,4 @@
 fn main() -> Int {
-    0.1_abc
-    0
+    let X = 4
+    X
 }

@@ -66,6 +66,19 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             unreachable;
         }
     }
+
+    // Symbol's name must be capitalizes iff it type is Type
+    if (symbol.expanded_type != null) {
+        if (symbol.expanded_type.?.* == .identifier and std.mem.eql(u8, symbol.expanded_type.?.getToken().data, "Type")) {
+            if (!std.ascii.isUpper(symbol.name[0])) {
+                errors.addError(Error{ .basic = .{ .span = symbol.span, .msg = "symbol of type Type must start with an uppercase letter" } });
+            }
+        } else {
+            if (std.ascii.isUpper(symbol.name[0])) {
+                errors.addError(Error{ .basic = .{ .span = symbol.span, .msg = "symbol of type other than Type must not start with an uppercase letter" } });
+            }
+        }
+    }
 }
 
 /// Errors out if `ast` is not the expected type

@@ -29,39 +29,14 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
         $panic("inactive field");
     }
 }
-/* Typedefs */
-typedef int64_t(*function0)(int64_t);
-
 /* Function forward definitions */
 int64_t _2_main();
-function0 _4_f();
-int64_t _6_add_four(int64_t _6_x);
 
 /* Function definitions */
 int64_t _2_main() {
-    function0 _2_t0;
-    int64_t _2_t1;
     int64_t _2_$retval;
-    $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
-    _2_t0 = _4_f();
-    $line_idx--;
-    $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n       ^";
-    _2_t1 = _2_t0(45);
-    $line_idx--;
-    _2_$retval = _2_t1;
+    _2_$retval = _1_Enum._2;
     return _2_$retval;
-}
-
-function0 _4_f() {
-    function0 _4_$retval;
-    _4_$retval = _6_add_four;
-    return _4_$retval;
-}
-
-int64_t _6_add_four(int64_t _6_x) {
-    int64_t _6_$retval;
-    _6_$retval = _6_x + 4;
-    return _6_$retval;
 }
 
 int main()
