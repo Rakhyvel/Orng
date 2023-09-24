@@ -40,7 +40,7 @@ coalesce_expr: int_expr {("orelse" | "catch") int_expr}.
 
 int_expr: term_expr {("+" | "-" | "!") term_expr}.
 
-term_expr: prefix_expr {("*" | "/" | "%" | "||") prefix_expr}.
+term_expr: prefix_expr ({("*" | "/" | "||") prefix_expr} | "%" prefix_expr).
 
 prefix_expr: "not" hyper_expr                         # boolean not
           | "-" hyper_expr                           # negation

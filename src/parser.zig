@@ -381,13 +381,13 @@ pub const Parser = struct {
 
     fn term_expr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.prefix_expr();
-        while (true) {
+        if (self.accept(.PERCENT)) |token| {
+            return try AST.createMod(token, exp, try self.prefix_expr(), self.astAllocator);
+        } else while (true) {
             if (self.accept(.STAR)) |token| {
                 exp = try AST.createMult(token, exp, try self.prefix_expr(), self.astAllocator);
             } else if (self.accept(.SLASH)) |token| {
                 exp = try AST.createDiv(token, exp, try self.prefix_expr(), self.astAllocator);
-            } else if (self.accept(.PERCENT)) |token| {
-                exp = try AST.createMod(token, exp, try self.prefix_expr(), self.astAllocator);
             } else if (self.accept(.D_BAR)) |token| {
                 exp = try AST.createUnion(token, exp, try self.prefix_expr(), self.astAllocator);
             } else {
