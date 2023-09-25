@@ -464,7 +464,7 @@ pub const Parser = struct {
         var exp = try self.control_flow();
         while (true) {
             if (self.peek_kind(.L_PAREN)) {
-                exp = try AST.createCall(self.peek(), exp, try self.parens(), self.astAllocator);
+                exp = try AST.createCall(self.peek(), exp, try self.call_args(), self.astAllocator);
             } else if (self.accept(.L_SQUARE)) |token| {
                 var first: ?*AST = null;
                 if (self.next_is_expr()) {
@@ -505,6 +505,19 @@ pub const Parser = struct {
                 return exp;
             }
         }
+    }
+
+    fn call_args(self: *Parser) ParserErrorEnum!std.ArrayList(*AST) {
+        _ = try self.expect(.L_PAREN);
+        var retval = std.ArrayList(*AST).init(self.astAllocator);
+        if (!self.peek_kind(.R_PAREN)) {
+            try retval.append(try self.annotation_expr());
+            while (self.accept(.COMMA)) |_| {
+                try retval.append(try self.annotation_expr());
+            }
+        }
+        _ = try self.expect(.R_PAREN);
+        return retval;
     }
 
     fn control_flow(self: *Parser) ParserErrorEnum!*AST {

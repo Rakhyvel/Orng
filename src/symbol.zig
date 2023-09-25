@@ -287,7 +287,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         },
         .call => {
             try symbolTableFromAST(definition.call.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition.call.rhs, scope, errors, allocator);
+            try symbolTableFromASTList(definition.call.args, scope, errors, allocator);
         },
         .index => {
             try symbolTableFromAST(definition.index.lhs, scope, errors, allocator);

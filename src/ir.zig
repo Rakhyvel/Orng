@@ -1332,12 +1332,8 @@ pub const CFG = struct {
                 temp.symbol.span = ast.getToken().span;
 
                 var ir = try IR.createCall(temp, lhs, ast.getToken().span, allocator);
-                switch (ast.call.rhs.*) {
-                    .unit => {},
-                    .product => for (ast.call.rhs.product.terms.items) |term| {
-                        try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null);
-                    },
-                    else => try ir.data.symbverList.append((try self.flattenAST(scope, ast.call.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null),
+                for (ast.call.args.items) |term| {
+                    try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null);
                 }
                 self.appendInstruction(try IR.createStackPush(ast.getToken().span, allocator));
                 self.appendInstruction(ir);

@@ -51,8 +51,8 @@
         > `([A-Z]*[a-z0-9]*_)*[A-Z]*[a-z0-9]*`
     - [x] Cannot define names that begin with `_` outside of prelude
     - [x] Types, traits, and functions that return types must be capitalized. Nothing else may be.
-- [ ] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
-- [ ] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
+- [x] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
+- [x] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
 - [ ] Adopt Go's newline insertion rules
 
 ### Testing

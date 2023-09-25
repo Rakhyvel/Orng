@@ -67,6 +67,18 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, e
         return;
     }
     callGraph.visited = true;
+
+    // Add parameter types to type set
+    if (callGraph.symbol._type.?.function.lhs.* == .product) {
+        // Function has more than one parameter, add types of product terms
+        for (callGraph.symbol._type.?.function.lhs.product.terms.items) |param_type| {
+            _ = try typeSetAppend(param_type, set, scope, errors, allocator);
+        }
+    } else {
+        // Function has one parameter, add it's type
+        _ = try typeSetAppend(callGraph.symbol._type.?.function.lhs, set, scope, errors, allocator);
+    }
+
     for (callGraph.basic_blocks.items) |bb| {
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
@@ -83,6 +95,7 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, e
 fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
     var ast = try old_ast.expand_type(scope, errors, allocator);
     if (try typeSetGet(ast, set, scope, errors, allocator)) |dag| {
+        // Type is already in the set, return DAG entry for it
         return dag;
     } else if (ast.* == .function) {
         var dag = try DAG.init(ast, set.items.len, allocator);

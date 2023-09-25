@@ -130,7 +130,7 @@ pub const AST = union(enum) {
     lesser_equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _catch: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     _orelse: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    call: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
+    call: struct { common: ASTCommon, lhs: *AST, args: std.ArrayList(*AST) },
     index: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     select: struct { common: ASTCommon, lhs: *AST, rhs: *AST, pos: ?usize },
     function: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -507,8 +507,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._orelse = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createCall(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .call = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
+    pub fn createCall(token: Token, lhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .call = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .args = args } }, allocator);
     }
 
     pub fn createIndex(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {

@@ -1,4 +1,6 @@
 // 53
-fn main() -> Int {return53()}
+fn main() -> Int {
+    return53()
+}
 
 fn return53(x: Int = 53)->Int {x}

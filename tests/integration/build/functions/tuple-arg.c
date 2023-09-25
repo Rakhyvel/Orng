@@ -29,24 +29,33 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
         $panic("inactive field");
     }
 }
+/* Typedefs */
+typedef struct {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+} struct0;
+
 /* Function forward definitions */
 int64_t _2_main();
-int64_t _4_return53(int64_t _4_x);
+int64_t _4_add(struct0 _4_x);
 
 /* Function definitions */
 int64_t _2_main() {
+    struct0 _2_t1;
     int64_t _2_t0;
     int64_t _2_$retval;
-    $lines[$line_idx++] = "tests/integration/functions/default-1arg.orng:3:14:\n    return53()\n            ^";
-    _2_t0 = _4_return53(53);
+    _2_t1 = (struct0) {100, 90, 7};
+    $lines[$line_idx++] = "tests/integration/functions/tuple-arg.orng:3:9:\n    add((100, 90, 7))\n       ^";
+    _2_t0 = _4_add(_2_t1);
     $line_idx--;
     _2_$retval = _2_t0;
     return _2_$retval;
 }
 
-int64_t _4_return53(int64_t _4_x) {
+int64_t _4_add(struct0 _4_x) {
     int64_t _4_$retval;
-    _4_$retval = _4_x;
+    _4_$retval = *(int64_t*)&_4_x + *((int64_t*)&_4_x + 1) + *((int64_t*)&_4_x + 2);
     return _4_$retval;
 }
 

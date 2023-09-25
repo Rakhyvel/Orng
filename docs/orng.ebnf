@@ -52,7 +52,7 @@ prefix_expr: "not" hyper_expr                         # boolean not
 
 hyper_expr: postfix_expr {(".>" | "**") postfix_expr}.
 
-postfix_expr: control_flow {parens | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
+postfix_expr: control_flow {"(" product_expr ")" | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
 
 control_flow: if_expr
             | while_expr

@@ -100,14 +100,30 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
     if (expected) |_| {
         std.debug.assert(expected.?.* != .poison);
-        if (expected.?.* == .product or expected.?.* == .annotation) {
+        var expanded_expected = try expected.?.expand_type(scope, errors, allocator);
+        if (expanded_expected.* == .product or expanded_expected.* == .annotation) {
             // Attempt to modify ast to fit default values. This may not be possible, especially in the case of a type error
             ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
-            ast = defaultArgs(ast, expected.?, errors, allocator) catch |err| switch (err) {
-                error.NoDefault => ast,
+            var list = std.ArrayList(*AST).init(allocator);
+            if (ast.* == .product) {
+                for (ast.product.terms.items) |term| {
+                    try list.append(term);
+                }
+            } else if (ast.* != .unit) {
+                try list.append(ast);
+            }
+            var new_list = default_args(list, expanded_expected, errors, allocator) catch |err| switch (err) {
+                error.NoDefault => std.ArrayList(*AST).init(allocator),
                 error.typeError => return ast.enpoison(),
                 error.OutOfMemory => return error.OutOfMemory,
             };
+            if (new_list.items.len == 1) {
+                ast = new_list.items[0];
+            } else if (new_list.items.len > 1) {
+                ast = try AST.createProduct(ast.getToken(), new_list, allocator);
+            } else {
+                // ast = ast;
+            }
         }
         if (expected.?.* == .annotation) {
             expected = expected.?.annotation.type;
@@ -582,21 +598,72 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             var expanded_lhs_type = try lhs_type.expand_type(scope, errors, allocator);
-            if (expanded_lhs_type.* == .function) {
-                ast.call.rhs = try validateAST(ast.call.rhs, lhs_type.function.lhs, scope, errors, allocator);
-                if (ast.call.rhs.* == .poison) {
-                    return ast.enpoison();
-                }
-                if (expected != null and !try expected.?.typesMatch(lhs_type.function.rhs, scope, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.function.rhs } });
-                    return ast.enpoison();
-                } else {
-                    retval = ast;
-                }
-            } else {
+            if (expanded_lhs_type.* != .function) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function" } });
                 return ast.enpoison();
             }
+
+            // Apply default arguments
+            ast.call.args = default_args(ast.call.args, lhs_type.function.lhs, errors, allocator) catch |err| switch (err) {
+                error.NoDefault => ast.call.args,
+                error.typeError => return ast.enpoison(),
+                error.OutOfMemory => return error.OutOfMemory,
+            };
+
+            // Validate
+            var new_args = std.ArrayList(*AST).init(allocator);
+            var changed = false;
+            var poisoned = false;
+            if (expanded_lhs_type.function.lhs.* == .unit) {
+                if (ast.call.args.items.len > 0) {
+                    errors.addError(Error{ .mismatchCallArity = .{
+                        .span = ast.getToken().span,
+                        .takes = 0,
+                        .given = ast.call.args.items.len,
+                    } });
+                    return ast.enpoison();
+                }
+            } else if (expanded_lhs_type.function.lhs.* == .product) {
+                if (ast.call.args.items.len != expanded_lhs_type.function.lhs.product.terms.items.len) {
+                    errors.addError(Error{ .mismatchCallArity = .{
+                        .span = ast.getToken().span,
+                        .takes = expanded_lhs_type.function.lhs.product.terms.items.len,
+                        .given = ast.call.args.items.len,
+                    } });
+                    return ast.enpoison();
+                }
+                for (expanded_lhs_type.function.lhs.product.terms.items, ast.call.args.items) |param_type, arg| {
+                    var new_arg = try validateAST(arg, param_type, scope, errors, allocator);
+                    changed = changed or new_arg != arg;
+                    try new_args.append(new_arg);
+                    if (new_arg.* == .poison) {
+                        poisoned = true;
+                    }
+                }
+            } else {
+                if (ast.call.args.items.len != 1) {
+                    errors.addError(Error{ .mismatchCallArity = .{
+                        .span = ast.getToken().span,
+                        .takes = 1,
+                        .given = ast.call.args.items.len,
+                    } });
+                    return ast.enpoison();
+                }
+
+                ast.call.args.items[0] = try validateAST(ast.call.args.items[0], expanded_lhs_type.function.lhs, scope, errors, allocator);
+            }
+
+            if (expected != null and !try expected.?.typesMatch(lhs_type.function.rhs, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.function.rhs } });
+                return ast.enpoison();
+            } else if (poisoned) {
+                return ast.enpoison();
+            } else if (changed) {
+                ast.call.args = new_args;
+            } else {
+                new_args.deinit();
+            }
+            retval = ast;
         },
         .index => {
             var lhs_span = ast.index.lhs.getToken().span; // Used for error reporting
@@ -779,7 +846,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value
                 if (expanded_expected.?.product.terms.items.len != ast.product.terms.items.len) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
+                    errors.addError(Error{ .mismatchTupleArity = .{
+                        .span = ast.getToken().span,
+                        .takes = expanded_expected.?.product.terms.items.len,
+                        .given = ast.product.terms.items.len,
+                    } });
                     return ast.enpoison();
                 }
                 for (ast.product.terms.items, expanded_expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
@@ -938,7 +1009,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is negative" } });
                         return ast.enpoison();
                     }
-                    retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
+                    if (ast.sliceOf.len.?.int.data == 1) {
+                        retval = new_terms.items[0];
+                    } else {
+                        retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
+                    }
                 } else {
                     // Regular slice type, change to product of data address and length
                     retval = try AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
@@ -1445,153 +1520,160 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
     return retval;
 }
 
-fn defaultArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-    if (try argsAreNames(ast, errors)) {
-        return namedArgs(ast, expected, errors, allocator);
+fn default_args(asts: std.ArrayList(*AST), expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
+    if (try args_are_named(asts, errors)) {
+        return named_args(asts, expected, errors, allocator);
     } else {
-        return positionalArgs(ast, expected, allocator);
+        return positional_args(asts, expected, allocator);
     }
 }
 
-fn argsAreNames(ast: *AST, errors: *errs.Errors) !bool {
-    switch (ast.*) {
-        .assign => return true,
-        .product => {
-            var seen_named = false;
-            var seen_pos = false;
-            for (ast.product.terms.items) |term| {
-                if (term.* == .assign) {
-                    seen_named = true;
-                } else {
-                    seen_pos = true;
-                }
-            }
-            std.debug.assert(seen_named or seen_pos);
-            if (seen_named and seen_pos) {
-                errors.addError(Error{ .basic = .{
-                    .span = ast.getToken().span,
-                    .msg = "mixed positional and named arguments are not allowed",
-                } });
-                return error.typeError;
-            } else {
-                return seen_named;
-            }
-        },
-        else => return false,
+fn args_are_named(asts: std.ArrayList(*AST), errors: *errs.Errors) !bool {
+    if (asts.items.len == 0) {
+        return false;
+    }
+
+    var seen_named = false;
+    var seen_pos = false;
+    for (asts.items) |term| {
+        if (term.* == .assign) {
+            seen_named = true;
+        } else {
+            seen_pos = true;
+        }
+    }
+    std.debug.assert(seen_named or seen_pos);
+    if (seen_named and seen_pos) {
+        errors.addError(Error{ .basic = .{
+            .span = asts.items[0].getToken().span,
+            .msg = "mixed positional and named arguments are not allowed",
+        } });
+        return error.typeError;
+    } else {
+        return seen_named;
     }
 }
 
-fn positionalArgs(ast: *AST, expected: *AST, allocator: std.mem.Allocator) !*AST {
+fn positional_args(asts: std.ArrayList(*AST), expected: *AST, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
+    var retval = std.ArrayList(*AST).init(allocator);
+    errdefer retval.deinit();
+
     switch (expected.*) {
-        .poison => return ast,
-
         .annotation => {
-            if (ast.* == .unit and expected.annotation.init != null) {
-                return expected.annotation.init.?;
-            } else if (ast.* != .unit) {
-                return ast;
+            if (asts.items.len == 0 and expected.annotation.init != null) {
+                try retval.append(expected.annotation.init.?);
+            } else if (asts.items.len > 0) {
+                for (asts.items) |item| {
+                    try retval.append(item);
+                }
             } else {
                 return error.NoDefault;
             }
         },
 
         .product => {
-            var new_terms = std.ArrayList(*AST).init(allocator);
             for (expected.product.terms.items, 0..) |term, i| {
                 // ast is product, append ast's corresponding term
-                if (ast.* == .product and i < ast.product.terms.items.len) {
-                    try new_terms.append(ast.product.terms.items[i]);
+                if (asts.items.len > 1 and i < asts.items.len) {
+                    try retval.append(asts.items[i]);
                 }
                 // ast is unit or ast isn't a product and i > 0 or ast is a product and off the edge of ast's terms, try to fill with the default
-                else if (ast.* == .unit or (ast.* != .product and i > 0) or (ast.* == .product and i >= ast.product.terms.items.len)) {
+                else if (asts.items.len == 0 or (asts.items.len <= 1 and i > 0) or (asts.items.len > 1 and i >= asts.items.len)) {
                     if (term.* == .annotation and term.annotation.init != null) {
-                        try new_terms.append(term.annotation.init.?);
+                        try retval.append(term.annotation.init.?);
                     } else {
                         return error.NoDefault;
                     }
                 }
                 // ast is not product, i != 0, append ast as first term
                 else {
-                    try new_terms.append(ast);
+                    try retval.append(asts.items[0]);
                 }
             }
-            return try AST.createProduct(ast.getToken(), new_terms, allocator);
         },
 
-        else => unreachable,
+        .unit => {
+            retval = asts;
+        },
+
+        .identifier => {
+            retval = asts;
+        },
+
+        else => {
+            std.debug.print("unimplemented for {s}\n", .{@tagName(expected.*)});
+            unreachable;
+        },
     }
+    return retval;
 }
 
-fn namedArgs(ast: *AST, expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+fn named_args(asts: std.ArrayList(*AST), expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
+    std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
     var arg_map = std.StringArrayHashMap(*AST).init(allocator);
     defer arg_map.deinit();
 
     // Associate argument names with their values
-    switch (ast.*) { // Can assume ast is either assignment, or product of assignments
-        .assign => {
-            putAssign(ast, &arg_map, errors) catch |err| switch (err) {
-                error.typeError => return _ast.poisoned,
+    if (asts.items.len == 1) {
+        putAssign(asts.items[0], &arg_map, errors) catch |err| switch (err) {
+            error.typeError => return error.NoDefault,
+            else => return err,
+        };
+    } else {
+        for (asts.items) |term| {
+            putAssign(term, &arg_map, errors) catch |err| switch (err) {
+                error.typeError => return error.NoDefault,
                 else => return err,
             };
-        },
-
-        .product => {
-            for (ast.product.terms.items) |term| {
-                putAssign(term, &arg_map, errors) catch |err| switch (err) {
-                    error.typeError => return _ast.poisoned,
-                    else => return err,
-                };
-            }
-        },
-
-        else => unreachable,
+        }
     }
 
     // Construct positional args in the order specified by `expected`
+    var retval = std.ArrayList(*AST).init(allocator);
+    errdefer retval.deinit();
     switch (expected.*) {
         .annotation => {
             if (arg_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
                 errors.addError(Error{ .basic = .{
-                    .span = ast.getToken().span,
+                    .span = asts.items[0].getToken().span,
                     .msg = "too many arguments specifed",
                 } });
-                return _ast.poisoned;
+                return error.NoDefault;
             } else {
-                return arg_map.values()[0];
+                try retval.append(arg_map.values()[0]);
             }
         },
 
         .product => {
-            var new_terms = std.ArrayList(*AST).init(allocator);
             for (expected.product.terms.items) |term| {
                 if (term.* != .annotation) {
                     errors.addError(Error{ .basic = .{
-                        .span = ast.getToken().span,
+                        .span = asts.items[0].getToken().span,
                         .msg = "expected type does not accept named arugments",
                     } });
-                    return _ast.poisoned;
+                    return error.NoDefault;
                 }
                 var arg = arg_map.get(term.annotation.pattern.getToken().data);
                 if (arg == null) {
                     if (term.annotation.init != null) {
-                        try new_terms.append(term.annotation.init.?);
+                        try retval.append(term.annotation.init.?);
                     } else {
                         errors.addError(Error{ .basic = .{
-                            .span = ast.getToken().span,
+                            .span = asts.items[0].getToken().span,
                             .msg = "not all arguments are specified",
                         } });
-                        return _ast.poisoned;
+                        return error.NoDefault;
                     }
                 } else {
-                    try new_terms.append(arg.?);
+                    try retval.append(arg.?);
                 }
             }
-            return AST.createProduct(ast.getToken(), new_terms, allocator);
         },
 
         else => unreachable,
     }
+    return retval;
 }
 
 fn putAssign(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Errors) !void {

@@ -29,20 +29,13 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
         $panic("inactive field");
     }
 }
-/* Typedefs */
-typedef struct {
-    int64_t _0;
-} struct0;
-
 /* Function forward definitions */
 int64_t _2_main();
 
 /* Function definitions */
 int64_t _2_main() {
-    struct0 _3_x;
     int64_t _2_$retval;
-    _3_x = (struct0) {120};
-    _2_$retval = *(int64_t*)&_3_x;
+    _2_$retval = 120;
     return _2_$retval;
 }
 

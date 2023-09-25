@@ -105,6 +105,16 @@ pub const Error = union(enum) {
         span: Span,
         forgotten: std.ArrayList(*AST),
     },
+    mismatchCallArity: struct {
+        span: Span,
+        takes: usize,
+        given: usize,
+    },
+    mismatchTupleArity: struct {
+        span: Span,
+        takes: usize,
+        given: usize,
+    },
 
     // Optimizer
     out_of_bounds: struct {
@@ -152,6 +162,8 @@ pub const Error = union(enum) {
             .modifyImmutable => return self.modifyImmutable.identifier.span,
             .notIndexable => return self.notIndexable.span,
             .nonExhaustiveSum => return self.nonExhaustiveSum.span,
+            .mismatchCallArity => return self.mismatchCallArity.span,
+            .mismatchTupleArity => return self.mismatchTupleArity.span,
 
             .out_of_bounds => return self.out_of_bounds.span,
             .negative_index => return self.negative_index.span,
@@ -266,6 +278,22 @@ pub const Errors = struct {
                 },
                 .nonExhaustiveSum => {
                     try out.print("match over sum type is not exhaustive\n", .{});
+                },
+                .mismatchCallArity => {
+                    try out.print("function takes {} parameter{s}, {} argument{s} given\n", .{
+                        err.mismatchCallArity.takes,
+                        if (err.mismatchCallArity.takes == 1) "" else "s",
+                        err.mismatchCallArity.given,
+                        if (err.mismatchCallArity.given == 1) "" else "s",
+                    });
+                },
+                .mismatchTupleArity => {
+                    try out.print("expected tuple of {} term{s}, got tuple of {} term{s}\n", .{
+                        err.mismatchTupleArity.takes,
+                        if (err.mismatchTupleArity.takes == 1) "" else "s",
+                        err.mismatchTupleArity.given,
+                        if (err.mismatchTupleArity.given == 1) "" else "s",
+                    });
                 },
 
                 // Optimizer
