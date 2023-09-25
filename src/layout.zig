@@ -7,12 +7,12 @@ const std = @import("std");
 const PRINT_TOKENS = false;
 
 pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
-    commentPreempt(tokens);
-    preemptBinaryOperator(tokens);
-    try paren_rules(tokens);
+    strip_comments(tokens);
+    try newline_rules(tokens);
 }
 
-fn commentPreempt(tokens: *std.ArrayList(Token)) void {
+/// Removes comment tokens from token stream. This should be disabled for documentation generation.
+fn strip_comments(tokens: *std.ArrayList(Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
         var token = tokens.items[i];
@@ -33,45 +33,25 @@ fn commentPreempt(tokens: *std.ArrayList(Token)) void {
     }
 }
 
-// function where newlines are pre-empted by binary operators and other newlines
-fn preemptBinaryOperator(tokens: *std.ArrayList(Token)) void {
-    // Loop through list of tokens...
-    var i: usize = 0;
-    var prev_indent: i64 = 1;
-    var line_start: i64 = 1;
-    var do_line_start = true;
-    while (i < tokens.items.len - 1) : (i += 1) {
-        // If token at `i` is a newline, ...
-        var token = tokens.items[i];
-        if (token.kind != .NEWLINE) {
-            do_line_start = true;
-            continue;
-        }
-
-        var next = tokens.items[i + 1];
-        prev_indent = @as(i64, @intCast(next.span.col)) - @as(i64, @intCast(next.data.len)) - 1;
-        for (_token.binaryOperators) |binopKind| {
-            if (next.kind == binopKind and (prev_indent >= line_start)) {
-                // But the next token is a binary operator, remove the newline.
-                _ = tokens.orderedRemove(i);
-                i -= 1;
-                break;
-            }
-        } else if (do_line_start) {
-            do_line_start = false;
-            line_start = prev_indent;
-        }
-    }
-}
-
-// Remove newlines from within parenthesis, unless interrupted by a brace
-fn paren_rules(tokens: *std.ArrayList(Token)) !void {
+/// A newline token is removed if it is immediately surrounded by parenthesis. If
+/// it is immediately surrounded by braces, it is removed when not preceded by the
+/// following token kinds:
+///     1. identifier (including `true` or `false`)
+///     2. integer literal (decimal, hexadecimal, octal, or binary)
+///     3. floating point literal
+///     4. character literal
+///     5. string literal
+///     6. jump keywords (`unreachable`, `break`, `continue`, or `return`)
+///     7. closing delimiters (`)`, `]`, or `}`)
+///     8. postfix operators (`^`)
+/// Otherwise, the newline token is removed.
+fn newline_rules(tokens: *std.ArrayList(Token)) !void {
     var stack = std.ArrayList(TokenKind).init(tokens.allocator);
     defer stack.deinit();
 
-    // Loop through list of tokens...
     var i: usize = 0;
-    while (i < tokens.items.len) : (i += 1) {
+    while (i < tokens.items.len - 1) : (i += 1) {
+        // If token at `i` is a newline, ...
         var token = tokens.items[i];
         if (token.kind == .L_PAREN or token.kind == .L_BRACE) {
             try stack.append(token.kind);
@@ -81,8 +61,12 @@ fn paren_rules(tokens: *std.ArrayList(Token)) !void {
                 // TODO: Throw a great big ol fit
             }
         } else if (token.kind == .NEWLINE) {
-            // Remove if stack is not empty and l paren is on top of stack
             if (stack.items.len > 0 and stack.getLast() == .L_PAREN) {
+                // Remove if stack is not empty and l paren is on top of stack
+                _ = tokens.orderedRemove(i);
+                i -|= 1;
+            } else if (i == 0 or !tokens.items[i - 1].kind.is_end_token()) {
+                // Remove newline if previous token was not a line-ending token
                 _ = tokens.orderedRemove(i);
                 i -|= 1;
             }

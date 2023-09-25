@@ -1,8 +1,8 @@
 // 110
 fn main() -> Int {
-    let x = -10 
+    let x = (-10 
         - 50 // Continued binary operators 
         - 100
-        + 50
+        + 50)
     (-x) // Otherwise the newline isn't removed
 }

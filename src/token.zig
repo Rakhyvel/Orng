@@ -4,14 +4,16 @@ const String = @import("zig-string/zig-string.zig").String;
 
 pub const TokenKind = enum(u32) {
     // Literals
-    BIN_INTEGER,
-    CHAR,
+    IDENTIFIER,
     DECIMAL_INTEGER,
     HEX_INTEGER,
-    IDENTIFIER,
     OCT_INTEGER,
+    BIN_INTEGER,
     FLOAT,
+    CHAR,
     STRING,
+    TRUE,
+    FALSE,
 
     // Keywords
     AND,
@@ -24,7 +26,6 @@ pub const TokenKind = enum(u32) {
     DEFER,
     ELSE,
     ERRDEFER,
-    FALSE,
     FN,
     FOR,
     IF,
@@ -35,7 +36,6 @@ pub const TokenKind = enum(u32) {
     OR,
     ORELSE,
     RETURN,
-    TRUE,
     TRY,
     UNREACHABLE,
     WHERE,
@@ -110,6 +110,15 @@ pub const TokenKind = enum(u32) {
         }
         return false;
     }
+
+    pub fn is_end_token(self: TokenKind) bool {
+        for (end_tokens) |kind| {
+            if (self == kind) {
+                return true;
+            }
+        }
+        return false;
+    }
 };
 
 pub const unaryOperators = [_]TokenKind{
@@ -158,6 +167,27 @@ pub const binaryOperators = [_]TokenKind{
     // .PERIOD,
     .LEFT_SKINNY_ARROW,
     .WHERE,
+};
+
+pub const end_tokens = [_]TokenKind{
+    .IDENTIFIER,
+    .DECIMAL_INTEGER,
+    .HEX_INTEGER,
+    .OCT_INTEGER,
+    .BIN_INTEGER,
+    .FLOAT,
+    .CHAR,
+    .STRING,
+    .UNREACHABLE,
+    .BREAK,
+    .CONTINUE,
+    .RETURN,
+    .R_PAREN,
+    .R_SQUARE,
+    .R_BRACE,
+    .TRUE,
+    .FALSE,
+    .CARET,
 };
 
 pub const Token = struct {

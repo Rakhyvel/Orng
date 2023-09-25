@@ -53,7 +53,7 @@
     - [x] Types, traits, and functions that return types must be capitalized. Nothing else may be.
 - [x] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
 - [x] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
-- [ ] Adopt Go's newline insertion rules
+- [x] Adopt Go's newline insertion rules
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
