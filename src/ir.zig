@@ -10,6 +10,7 @@ const AST = _ast.AST;
 const Error = errs.Error;
 const Scope = _symbol.Scope;
 const Span = @import("span.zig").Span;
+const String = @import("zig-string/zig-string.zig").String;
 const Symbol = _symbol.Symbol;
 const Token = @import("token.zig").Token;
 
@@ -46,7 +47,7 @@ pub const SymbolVersion = struct {
         if (self) |symbver| {
             var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
             defer arena.deinit();
-            var out = _string.String.init(arena.allocator());
+            var out = String.init(arena.allocator());
             defer out.deinit();
 
             if (symbver.lvalue) {
@@ -66,7 +67,7 @@ pub const SymbolVersion = struct {
         _ = fmt;
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
-        var out = _string.String.init(arena.allocator());
+        var out = String.init(arena.allocator());
         defer out.deinit();
 
         if (self.lvalue) {
@@ -256,7 +257,7 @@ pub const IRMeta = union(enum) {
     none,
 
     pub fn pprint(self: IRMeta, allocator: std.mem.Allocator) ![]const u8 {
-        var out = _string.String.init(allocator);
+        var out = String.init(allocator);
         defer out.deinit();
 
         switch (self) {
@@ -423,7 +424,7 @@ pub const IR = struct {
     }
 
     pub fn pprint(self: IR, allocator: std.mem.Allocator) ![]const u8 {
-        var out = _string.String.init(allocator);
+        var out = String.init(allocator);
         defer out.deinit();
 
         switch (self.kind) {
@@ -837,7 +838,7 @@ pub const CFG = struct {
     }
 
     fn createTempSymbol(self: *CFG, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*Symbol {
-        var buf = try _string.String.init_with_contents(allocator, "t");
+        var buf = try String.init_with_contents(allocator, "t");
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
         var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, Span{ .filename = "", .line = 0, .col = 0 }, _type, null, null, .mut, allocator);

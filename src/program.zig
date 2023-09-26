@@ -148,6 +148,6 @@ pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8))
             return;
         }
     }
-    // str must not be in set, add it
+    // sanitized_str must not be in set, add it
     try set.append(str);
 }

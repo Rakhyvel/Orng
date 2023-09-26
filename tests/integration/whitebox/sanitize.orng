@@ -1,0 +1,8 @@
+// 
+fn main() -> Int {
+    f("make sure you sanitize me!\n")
+}
+
+fn f(x: String) -> Int {
+    unreachable
+}

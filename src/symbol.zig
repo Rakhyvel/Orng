@@ -111,6 +111,66 @@ pub const Scope = struct {
             return self;
         }
     }
+
+    /// This function collects all visible symbols from a scope that:
+    ///   1. have an identical expected type
+    ///   2. spelled similarly (levenshtein distance is less than half)
+    pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast.AST, allocator: std.mem.Allocator) !void {
+        var errors = errs.Errors.init(allocator);
+        defer errors.deinit();
+        for (self.symbols.keys()) |key| {
+            var symbol: *Symbol = self.symbols.get(key).?;
+            if (std.mem.eql(u8, symbol.name, "_")) {
+                continue; // never suggest `_`
+            }
+
+            if (symbol._type != null) {
+                var matches = expected == null or try symbol._type.?.typesMatch(expected.?, self, &errors, allocator);
+                var dist = try levenshteinDistance2(allocator, symbol.name, name);
+                if (matches and dist <= name.len / 2 + 1) {
+                    try out.append(key);
+                }
+            }
+        }
+        if (self.parent) |_parent| {
+            try _parent.collect_similar(name, out, expected, allocator);
+        }
+    }
+
+    inline fn idx(i: usize, j: usize, cols: usize) usize {
+        return i * cols + j;
+    }
+
+    pub fn levenshteinDistance2(allocator: std.mem.Allocator, a: []const u8, b: []const u8) !u16 {
+        const n = a.len;
+        const m = b.len;
+        const table = try allocator.alloc(u8, n * m);
+        defer allocator.free(table);
+        table[0] = 0;
+
+        for (0..n) |i| {
+            for (0..m) |j| {
+                table[idx(i, j, m)] = @min(
+                    (if (i == 0)
+                        @as(u8, @truncate(j))
+                    else
+                        table[idx(i - 1, j, m)]) + 1,
+                    (if (j == 0)
+                        @as(u8, @truncate(i))
+                    else
+                        table[idx(i, j - 1, m)]) + 1,
+                    (if (i == 0)
+                        @as(u8, @truncate(j))
+                    else if (j == 0)
+                        @as(u8, @truncate(i))
+                    else
+                        table[idx(i - 1, j - 1, m)]) +
+                        @intFromBool(a[i] != b[j]),
+                );
+            }
+        }
+        return table[table.len - 1];
+    }
 };
 
 pub const SymbolKind = enum {

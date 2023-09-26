@@ -382,7 +382,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             ir.span.filename,
             ir.span.line,
             ir.span.col,
-            program.lines.items[ir.span.line - 1],
+            try sanitize_string(program.lines.items[ir.span.line - 1], std.heap.page_allocator),
             spaces.str(),
         });
     } else if (ir.meta == .active_field_check) {
@@ -399,7 +399,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             ir.span.filename,
             ir.span.line,
             ir.span.col,
-            program.lines.items[ir.span.line - 1],
+            try sanitize_string(program.lines.items[ir.span.line - 1], std.heap.page_allocator),
             spaces.str(),
         });
     }
@@ -501,7 +501,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
             try out.writer().print(
                 \\    $lines[$line_idx++] = "{s}:{}:{}:\n{s}\n{s}^";
                 \\
-            , .{ ir.span.filename, ir.span.line, ir.span.col, program.lines.items[ir.span.line - 1], spaces.str() });
+            , .{ ir.span.filename, ir.span.line, ir.span.col, try sanitize_string(program.lines.items[ir.span.line - 1], std.heap.page_allocator), spaces.str() });
         },
         .popStackTrace => {
             try out.writer().print(
@@ -922,4 +922,16 @@ fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
         try printSymbol(return_symbol, out);
         try out.writer().print(";\n", .{});
     }
+}
+
+fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) ![]const u8 {
+    var builder = String.init(allocator);
+    for (str) |byte| {
+        if (byte == '\\' or byte == '"') {
+            try builder.insert("\\", builder.len());
+        }
+        const insert_me_daddy: [1]u8 = .{byte};
+        try builder.insert(&insert_me_daddy, builder.len());
+    }
+    return (try builder.toOwned()).?;
 }

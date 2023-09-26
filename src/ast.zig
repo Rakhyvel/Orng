@@ -702,7 +702,7 @@ pub const AST = union(enum) {
         switch (self.*) {
             .identifier => {
                 var symbol = scope.lookup(self.getToken().data, false) orelse {
-                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken() } });
+                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .scope = scope, .expected = null } });
                     return error.typeError;
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
@@ -1026,7 +1026,7 @@ pub const AST = union(enum) {
             .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
                 retval = voidType;
             } else {
-                var symbol = try _validate.findSymbol(self, scope, errors);
+                var symbol = try _validate.findSymbol(self, null, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
                 retval = symbol._type orelse {
                     errors.addError(Error{ .basic = .{ .span = self.getToken().span, .msg = "recursive definition detected" } });

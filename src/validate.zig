@@ -183,7 +183,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
         .identifier => {
             // look up symbol, that's the type
-            var symbol = findSymbol(ast, scope, errors) catch |err| switch (err) {
+            var symbol = findSymbol(ast, expected, scope, errors) catch |err| switch (err) {
                 error.typeError => return ast.enpoison(),
                 else => return err,
             };
@@ -1709,9 +1709,9 @@ fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *err
     }
 }
 
-pub fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
+pub fn findSymbol(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
     var symbol = scope.lookup(ast.getToken().data, false) orelse {
-        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken() } });
+        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .scope = scope, .expected = expected } });
         return error.typeError;
     };
     if (!symbol.defined) {
@@ -1724,7 +1724,7 @@ pub fn findSymbol(ast: *AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
 fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
     switch (ast.*) {
         .identifier => {
-            _ = try findSymbol(ast, scope, errors);
+            _ = try findSymbol(ast, null, scope, errors);
         },
 
         .dereference => {
@@ -1761,7 +1761,7 @@ fn validateLValue(ast: *AST, scope: *Scope, errors: *errs.Errors) !void {
 fn assertMutable(ast: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     switch (ast.*) {
         .identifier => {
-            var symbol = try findSymbol(ast, scope, errors);
+            var symbol = try findSymbol(ast, null, scope, errors);
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
                 errors.addError(Error{ .modifyImmutable = .{
                     .identifier = ast.getToken(),

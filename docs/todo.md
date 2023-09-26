@@ -20,6 +20,7 @@
 - [ ] Organize functions declarations in BFS order
 - [ ] Order switches on enums to the order they were declared in
 - [ ] Comments on each function and struct field
+- [ ] *probably* should only be one struct per file
 - [ ] Change some while loops with counter to enhanced for loops
 - [ ] Go through files and find TODO comments
 - [x] All inits have a corresponding deinit
@@ -169,6 +170,7 @@
     - [x] default values
     - [x] explicit discarding with `_`
         - [x] error if discard when it's used
+        - [ ] error if function parameter is not used
     - [x] static index out of bounds
     - [x] dynamic index out of bounds
     - [x] static slice lower <= upper
@@ -176,8 +178,8 @@
     - [x] static checked arithmetic (actually easy since optimizer already does these automatically)
     - [x] static union tag check
     - [x] dynaminc union tag check
-    - [ ] sanitize call stack lines to escape " and \
-    - [ ] suggest the most similar visible identifier when an unknown identifier is used
+    - [x] sanitize call stack lines to escape " and \
+    - [x] suggest the most similar visible identifier when an unknown identifier is used
     - [ ] Make Arithmetic (operators) Great, Allegedly
         - [ ] Types on both sides should be equal. Expect proper type (No subtyping!)
             - [ ] Most binops need types to be *identical*
