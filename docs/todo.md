@@ -184,6 +184,8 @@
         - [ ] Types on both sides should be equal. Expect proper type (No subtyping!)
             - [ ] Most binops need types to be *identical*
             - [ ] Comparison operators only need types to be *assignable*
+                > `x = 1 + 2 + 3` counterpoint: here there are two `+` operators, one performs identical, the other performs assignable
+                > Cannot not use an expected-style type validation, because of inferredMembers (is this true?)
             - [ ] Define representability too for constants
         - [ ] Define for Int8...Int64, Float32, Float64, Byte...Word64
         - [ ] Add UB checking
