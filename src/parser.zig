@@ -371,8 +371,8 @@ pub const Parser = struct {
                 exp = try AST.createAdd(token, exp, try self.term_expr(), self.astAllocator);
             } else if (self.accept(.MINUS)) |token| {
                 exp = try AST.createSub(token, exp, try self.term_expr(), self.astAllocator);
-            } else if (self.accept(.E_MARK)) |token| {
-                exp = try AST.createError(token, exp, try self.term_expr(), self.astAllocator);
+            } else if (self.accept(.E_MARK)) |_| {
+                exp = try AST.create_error_type(exp, try self.term_expr(), self.astAllocator);
             } else {
                 return exp;
             }
@@ -424,8 +424,8 @@ pub const Parser = struct {
                 return error.parserError;
             }
             return try AST.createSliceOf(token, try self.prefix_expr(), len, sliceKind, self.astAllocator);
-        } else if (self.accept(.Q_MARK)) |token| {
-            return try AST.createOptional(token, try self.invoke_expr(), self.astAllocator);
+        } else if (self.accept(.Q_MARK)) |_| {
+            return try AST.create_optional_type(try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.TRY)) |token| {
             return try AST.createTry(token, try self.invoke_expr(), self.astAllocator);
         } else {

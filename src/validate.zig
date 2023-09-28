@@ -260,18 +260,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-        ._error => {
-            if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
-                return ast.enpoison();
-            }
-            ast._error.lhs = try validateAST(ast._error.lhs, _ast.typeType, scope, errors, allocator);
-            ast._error.rhs = try validateAST(ast._error.rhs, _ast.typeType, scope, errors, allocator);
-            if (ast._error.lhs.* == .poison or ast._error.rhs.* == .poison) {
-                return ast.enpoison();
-            }
-            retval = try AST.create_error_type(ast._error.lhs, ast._error.rhs, allocator);
-        },
         ._try => {
             var expr_span = ast._try.expr.getToken().span;
             ast._try.expr = try validateAST(ast._try.expr, null, scope, errors, allocator);
@@ -306,17 +294,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
             }
             retval = ast;
-        },
-        .optional => {
-            if (expected != null and !try expected.?.typesMatch(_ast.typeType, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
-                return ast.enpoison();
-            }
-            ast.optional.expr = try validateAST(ast.optional.expr, _ast.typeType, scope, errors, allocator);
-            if (ast.optional.expr.* == .poison) {
-                return ast.enpoison();
-            }
-            retval = try AST.create_optional_type(ast.optional.expr, allocator);
         },
         .discard => {
             ast.discard.expr = try validateAST(ast.discard.expr, null, scope, errors, allocator);

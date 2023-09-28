@@ -109,7 +109,6 @@ pub const AST = union(enum) {
     negate: struct { common: ASTCommon, expr: *AST },
     dereference: struct { common: ASTCommon, expr: *AST },
     _try: struct { common: ASTCommon, expr: *AST },
-    optional: struct { common: ASTCommon, expr: *AST },
     discard: struct { common: ASTCommon, expr: *AST },
 
     // Binary operators
@@ -154,7 +153,6 @@ pub const AST = union(enum) {
         }
     },
     inject: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    _error: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     product: struct {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
@@ -307,7 +305,6 @@ pub const AST = union(enum) {
             .negate => return &self.negate.common,
             .dereference => return &self.dereference.common,
             ._try => return &self._try.common,
-            .optional => return &self.optional.common,
             .discard => return &self.discard.common,
             ._typeOf => return &self._typeOf.common,
             .domainOf => return &self.domainOf.common,
@@ -336,7 +333,6 @@ pub const AST = union(enum) {
             .invoke => return &self.invoke.common,
             .sum => return &self.sum.common,
             .inject => return &self.inject.common,
-            ._error => return &self._error.common,
             .product => return &self.product.common,
             ._union => return &self._union.common,
 
@@ -421,10 +417,6 @@ pub const AST = union(enum) {
 
     pub fn createTry(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._try = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
-    }
-
-    pub fn createOptional(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .optional = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createDiscard(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
@@ -533,10 +525,6 @@ pub const AST = union(enum) {
 
     pub fn createInvoke(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .invoke = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createError(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._error = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
     pub fn createProduct(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
@@ -663,15 +651,12 @@ pub const AST = union(enum) {
         var term_types = std.ArrayList(*AST).init(allocator);
 
         var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", 0, 0), allocator), unitType, null, unitType, allocator);
-        none_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = none_type } };
         try term_types.append(none_type);
 
         var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", 0, 0), allocator), of_type, null, null, allocator);
-        some_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = some_type } };
         try term_types.append(some_type);
 
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
-        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         retval.sum.was_optional = true;
         return retval;
     }
@@ -680,15 +665,12 @@ pub const AST = union(enum) {
         var term_types = std.ArrayList(*AST).init(allocator);
 
         var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, "", 0, 0), allocator), err_type, null, unitType, allocator);
-        none_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = none_type } };
         try term_types.append(none_type);
 
         var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
-        some_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = err_type } };
         try term_types.append(some_type);
 
         var retval = try AST.createSum(ok_type.getToken(), term_types, allocator);
-        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         retval.sum.was_error = true;
         return retval;
     }
@@ -801,10 +783,6 @@ pub const AST = union(enum) {
                 }
                 try out.print("]", .{});
                 try self.sliceOf.expr.printType(out);
-            },
-            .optional => {
-                try out.print("?", .{});
-                try self.optional.expr.printType(out);
             },
             .function => {
                 try out.print("(", .{});
@@ -928,8 +906,6 @@ pub const AST = union(enum) {
             .unit,
             .annotation,
             .sum,
-            .optional,
-            ._error,
             ._union,
             .function,
             => retval = typeType,

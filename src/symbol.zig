@@ -275,7 +275,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .negate => try symbolTableFromAST(definition.negate.expr, scope, errors, allocator),
         .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
         ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
-        .optional => try symbolTableFromAST(definition.optional.expr, scope, errors, allocator),
         .discard => try symbolTableFromAST(definition.discard.expr, scope, errors, allocator),
 
         .assign => {
@@ -371,10 +370,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .inject => {
             try symbolTableFromAST(definition.inject.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition.inject.rhs, scope, errors, allocator);
-        },
-        ._error => {
-            try symbolTableFromAST(definition._error.lhs, scope, errors, allocator);
-            try symbolTableFromAST(definition._error.rhs, scope, errors, allocator);
         },
         ._union => {
             try symbolTableFromAST(definition._union.lhs, scope, errors, allocator);
