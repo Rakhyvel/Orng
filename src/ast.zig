@@ -1000,7 +1000,7 @@ pub const AST = union(enum) {
 
             // Identifier
             .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
-                retval = voidType;
+                retval = unitType;
             } else {
                 var symbol = try _validate.findSymbol(self, null, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
@@ -1103,99 +1103,120 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    /// A poisoned AST matches with any other type
-    pub fn typesMatch(self: *AST, other: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        if (self.* == .annotation) {
-            return try typesMatch(self.annotation.type, other, scope, errors, allocator);
-        } else if (other.* == .annotation) {
-            return try typesMatch(self, other.annotation.type, scope, errors, allocator);
+    /// For two types `A` and `B`, we say `A <: B` iff for every value `a` belonging to
+    /// the type `A`, then `a` belongs to the type `B`.
+    ///
+    /// Another way to view this is if `(a: A) <: (b: B)`, then the assignment `b = a`
+    /// is permissible, since `a: B`.
+    ///
+    /// Since the type `Void` has no values, it is vacuously true that `Void <: X` where
+    /// `X` is any type.
+    ///
+    /// The unit type (`()`) acts like the top type. This means `X <: ()` where `X` is
+    /// any type.
+    ///
+    /// Thus, we have the following type map:
+    ///                        ( )
+    ///       /     /     /     |    \      \     \
+    ///     Bool  Byte  Char  Float  Int  String  ...
+    ///       \     \     \     |    /      /     /
+    ///                       Void
+    ///
+    /// Also, `&mut T <: &T`, because for every `t: &mut T`, `t: &T`.
+    pub fn typesMatch(A: *AST, B: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        if (A.* == .annotation) {
+            return try typesMatch(A.annotation.type, B, scope, errors, allocator);
+        } else if (B.* == .annotation) {
+            return try typesMatch(A, B.annotation.type, scope, errors, allocator);
         }
-        if (self.* == .identifier and other.* != .identifier and self != try self.expand_type(scope, errors, allocator)) {
-            return try typesMatch(try self.expand_type(scope, errors, allocator), other, scope, errors, allocator);
-        } else if (self.* != .identifier and other.* == .identifier and other != try other.expand_type(scope, errors, allocator)) {
-            return try typesMatch(self, try other.expand_type(scope, errors, allocator), scope, errors, allocator);
+        if (A.* == .identifier and B.* != .identifier and A != try A.expand_type(scope, errors, allocator)) {
+            // If only A is an identifier, and A isn't an atom type, dive
+            return try typesMatch(try A.expand_type(scope, errors, allocator), B, scope, errors, allocator);
+        } else if (A.* != .identifier and B.* == .identifier and B != try B.expand_type(scope, errors, allocator)) {
+            // If only B is an identifier, and B isn't an atom type, dive
+            return try typesMatch(A, try B.expand_type(scope, errors, allocator), scope, errors, allocator);
         }
-        if (self.* == .poison or other.* == .poison) {
+        if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }
-        if (other.* == .identifier and std.mem.eql(u8, "Void", other.getToken().data)) {
-            return true; // Bottom type
+        if (B.* == .unit) {
+            return true; // Top type - vacuously true
         }
-        if (self.* == .identifier and std.mem.eql(u8, "Void", self.getToken().data)) {
-            return true; // Bottom type
+        if (A.* == .identifier and std.mem.eql(u8, "Void", A.getToken().data)) {
+            return true; // Bottom type - vacuously true
         }
-        std.debug.assert(self.getCommon().validation_state == .valid);
-        std.debug.assert(other.getCommon().validation_state == .valid);
+        std.debug.assert(A.getCommon().validation_state == .valid);
+        std.debug.assert(B.getCommon().validation_state == .valid);
 
-        switch (self.*) {
+        switch (A.*) {
             .identifier => {
-                if (other.* != .identifier) {
+                if (B.* != .identifier) {
                     return false;
-                } else if (std.mem.eql(u8, "Float", self.getToken().data) and std.mem.eql(u8, "Int", other.getToken().data)) {
+                } else if (std.mem.eql(u8, "Float", A.getToken().data) and std.mem.eql(u8, "Int", B.getToken().data)) {
                     return true;
                 } else {
-                    return std.mem.eql(u8, self.getToken().data, other.getToken().data);
+                    return std.mem.eql(u8, A.getToken().data, B.getToken().data);
                 }
             },
             .addrOf => {
-                if (other.* != .addrOf) {
+                if (B.* != .addrOf) {
                     return false;
                 } else {
-                    return (self.addrOf.mut == false or self.addrOf.mut == other.addrOf.mut) and try typesMatch(self.addrOf.expr, other.addrOf.expr, scope, errors, allocator);
+                    return (B.addrOf.mut == false or B.addrOf.mut == A.addrOf.mut) and try typesMatch(A.addrOf.expr, B.addrOf.expr, scope, errors, allocator);
                 }
             },
             .sliceOf => {
-                if (other.* != .sliceOf) {
+                if (B.* != .sliceOf) {
                     return false;
                 } else {
-                    return (self.sliceOf.kind != .MUT or @intFromEnum(self.sliceOf.kind) == @intFromEnum(other.sliceOf.kind)) and try typesMatch(self.sliceOf.expr, other.sliceOf.expr, scope, errors, allocator);
+                    return (B.sliceOf.kind != .MUT or @intFromEnum(B.sliceOf.kind) == @intFromEnum(A.sliceOf.kind)) and try typesMatch(A.sliceOf.expr, B.sliceOf.expr, scope, errors, allocator);
                 }
             },
             .annotation => unreachable,
 
             .unit => {
-                return other.* == .unit;
+                return B.* == .unit;
             },
             .product => {
-                if (other.* != .product) {
+                if (B.* != .product) {
                     return false;
                 } else {
-                    if (other.product.terms.items.len != self.product.terms.items.len) {
+                    if (B.product.terms.items.len != A.product.terms.items.len) {
                         return false;
                     }
                     var retval = true;
-                    for (self.product.terms.items, other.product.terms.items) |term, other_term| {
-                        retval = retval and try term.typesMatch(other_term, scope, errors, allocator);
+                    for (A.product.terms.items, B.product.terms.items) |term, B_term| {
+                        retval = retval and try term.typesMatch(B_term, scope, errors, allocator);
                     }
                     return retval;
                 }
             },
             .sum => {
-                if (other.* != .sum) {
+                if (B.* != .sum) {
                     return false;
                 } else {
-                    if (other.sum.terms.items.len != self.sum.terms.items.len) {
+                    if (B.sum.terms.items.len != A.sum.terms.items.len) {
                         return false;
                     }
                     var retval = true;
-                    for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
+                    for (A.sum.terms.items, B.sum.terms.items) |term, B_term| {
                         var this_name = term.annotation.pattern.getToken().data;
-                        var other_name = other_term.annotation.pattern.getToken().data;
-                        retval = retval and std.mem.eql(u8, this_name, other_name) and try term.typesMatch(other_term, scope, errors, allocator);
+                        var B_name = B_term.annotation.pattern.getToken().data;
+                        retval = retval and std.mem.eql(u8, this_name, B_name) and try term.typesMatch(B_term, scope, errors, allocator);
                     }
                     return retval;
                 }
             },
             .function => {
-                if (other.* != .function) {
+                if (B.* != .function) {
                     return false;
                 } else {
-                    return try self.function.lhs.typesMatch(other.function.lhs, scope, errors, allocator) and try self.function.rhs.typesMatch(other.function.rhs, scope, errors, allocator);
+                    return try A.function.lhs.typesMatch(B.function.lhs, scope, errors, allocator) and try A.function.rhs.typesMatch(B.function.rhs, scope, errors, allocator);
                 }
             },
             else => {
                 // TODO: May need to evaluate types, possibly done somewhere else though
-                std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(self.*)});
+                std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(A.*)});
                 unreachable;
             },
         }
