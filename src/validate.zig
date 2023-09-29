@@ -375,9 +375,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.add.lhs = try validateAST(ast.add.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.add.lhs.typeof(scope, errors, allocator);
             ast.add.rhs = try validateAST(ast.add.rhs, lhs_type, scope, errors, allocator);
-            // TODO: Assert arithmetic type
 
             if (ast.add.lhs.* == .poison or ast.add.rhs.* == .poison) {
+                return ast.enpoison();
+            } else if (!try lhs_type.is_arithmetic_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try lhs_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
@@ -390,9 +392,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.sub.lhs = try validateAST(ast.sub.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.sub.lhs.typeof(scope, errors, allocator);
             ast.sub.rhs = try validateAST(ast.sub.rhs, lhs_type, scope, errors, allocator);
-            // TODO: Assert arithmetic type
 
             if (ast.sub.lhs.* == .poison or ast.sub.rhs.* == .poison) {
+                return ast.enpoison();
+            } else if (!try lhs_type.is_arithmetic_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try lhs_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
@@ -405,9 +409,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.mult.lhs = try validateAST(ast.mult.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.mult.lhs.typeof(scope, errors, allocator);
             ast.mult.rhs = try validateAST(ast.mult.rhs, lhs_type, scope, errors, allocator);
-            // TODO: Assert arithmetic type
 
             if (ast.mult.lhs.* == .poison or ast.mult.rhs.* == .poison) {
+                return ast.enpoison();
+            } else if (!try lhs_type.is_arithmetic_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try lhs_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
@@ -420,9 +426,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             ast.div.lhs = try validateAST(ast.div.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.div.lhs.typeof(scope, errors, allocator);
             ast.div.rhs = try validateAST(ast.div.rhs, lhs_type, scope, errors, allocator);
-            // TODO: Assert arithmetic type
 
             if (ast.div.lhs.* == .poison or ast.div.rhs.* == .poison) {
+                return ast.enpoison();
+            } else if (!try lhs_type.is_arithmetic_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try lhs_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
@@ -453,7 +461,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             ast.exponent.terms.items[0] = try validateAST(ast.exponent.terms.items[0], null, scope, errors, allocator);
             var lhs_type = try ast.exponent.terms.items[0].typeof(scope, errors, allocator);
-            // TODO: Assert arithmetic type
+            if (!try lhs_type.is_arithmetic_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
+                return ast.enpoison();
+            }
 
             for (ast.exponent.terms.items) |term| {
                 var new_term = try validateAST(term, lhs_type, scope, errors, allocator);
@@ -483,9 +494,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             var lhs_type = try ast.equal.lhs.typeof(scope, errors, allocator);
             var rhs_type = try ast.equal.rhs.typeof(scope, errors, allocator);
-            // TODO: Assert eq type
 
-            if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
+            if (!try lhs_type.is_eq_type(scope, errors, allocator) or !try rhs_type.is_eq_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "equalable", .got = lhs_type } });
+                return ast.enpoison();
+            } else if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
                 // Neither L <: R nor R <: L
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return ast.enpoison();
@@ -503,9 +516,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
             var lhs_type = try ast.not_equal.lhs.typeof(scope, errors, allocator);
             var rhs_type = try ast.not_equal.rhs.typeof(scope, errors, allocator);
-            // TODO: Assert eq type
 
-            if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
+            if (!try lhs_type.is_eq_type(scope, errors, allocator) or !try rhs_type.is_eq_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "equalable", .got = lhs_type } });
+                return ast.enpoison();
+            } else if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
                 // Neither L <: R nor R <: L
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return ast.enpoison();
@@ -524,9 +539,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             var lhs_type = try ast.greater.lhs.typeof(scope, errors, allocator);
             var rhs_type = try ast.greater.rhs.typeof(scope, errors, allocator);
-            // TODO: Assert ord type
 
-            if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
+            if (!try lhs_type.is_ord_type(scope, errors, allocator) or !try rhs_type.is_ord_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "orderable", .got = lhs_type } });
+                return ast.enpoison();
+            } else if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
                 // Neither L <: R nor R <: L
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return ast.enpoison();
@@ -545,9 +562,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             var lhs_type = try ast.lesser.lhs.typeof(scope, errors, allocator);
             var rhs_type = try ast.lesser.rhs.typeof(scope, errors, allocator);
-            // TODO: Assert ord type
 
-            if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
+            if (!try lhs_type.is_ord_type(scope, errors, allocator) or !try rhs_type.is_ord_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "orderable", .got = lhs_type } });
+                return ast.enpoison();
+            } else if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
                 // Neither L <: R nor R <: L
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return ast.enpoison();
@@ -566,9 +585,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             var lhs_type = try ast.greater_equal.lhs.typeof(scope, errors, allocator);
             var rhs_type = try ast.greater_equal.rhs.typeof(scope, errors, allocator);
-            // TODO: Assert ord type
 
-            if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
+            if (!try lhs_type.is_ord_type(scope, errors, allocator) or !try rhs_type.is_ord_type(scope, errors, allocator)) {
+                // this assumes ord < eq
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "orderable and equalable", .got = lhs_type } });
+                return ast.enpoison();
+            } else if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
                 // Neither L <: R nor R <: L
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return ast.enpoison();
@@ -587,9 +609,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             var lhs_type = try ast.lesser_equal.lhs.typeof(scope, errors, allocator);
             var rhs_type = try ast.lesser_equal.rhs.typeof(scope, errors, allocator);
-            // TODO: Assert ord type
 
-            if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
+            if (!try lhs_type.is_ord_type(scope, errors, allocator) or !try rhs_type.is_ord_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "orderable and equalable", .got = lhs_type } });
+                return ast.enpoison();
+            } else if (!try lhs_type.typesMatch(rhs_type, scope, errors, allocator) and !try rhs_type.typesMatch(lhs_type, scope, errors, allocator)) {
                 // Neither L <: R nor R <: L
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.boolType } });
                 return ast.enpoison();

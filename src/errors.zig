@@ -76,6 +76,11 @@ pub const Error = union(enum) {
         expected: *AST,
         got: []const u8,
     },
+    expectedBuiltinTypeclass: struct {
+        span: Span,
+        expected: []const u8, // name of the type class
+        got: *AST,
+    },
     sum_duplicate: struct {
         span: Span,
         identifier: []const u8,
@@ -156,6 +161,7 @@ pub const Error = union(enum) {
 
             .expected2Type => return self.expected2Type.span,
             .expectedType => return self.expectedType.span,
+            .expectedBuiltinTypeclass => return self.expectedBuiltinTypeclass.span,
             .expectedGotString => return self.expectedGotString.span,
             .sum_duplicate => return self.sum_duplicate.span,
             .member_not_in => return self.member_not_in.span,
@@ -192,7 +198,7 @@ pub const Errors = struct {
     }
     pub fn addError(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        unreachable; // uncomment if you want to see where errors come from
+        // unreachable; // uncomment if you want to see where errors come from
     }
 
     pub fn printErrors(self: *Errors, lines: *std.ArrayList([]const u8), filename: []const u8) !void {
@@ -255,6 +261,11 @@ pub const Errors = struct {
                     try out.print("expected a value of the type `", .{});
                     try err.expectedType.expected.printType(out);
                     try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
+                },
+                .expectedBuiltinTypeclass => {
+                    try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected}); // just so happens to work out that all builtin type classes start with a vowel
+                    try err.expectedBuiltinTypeclass.got.printType(out);
+                    try out.print("`\n", .{});
                 },
                 .expectedGotString => {
                     std.debug.assert(err.expectedGotString.expected.* != .poison);

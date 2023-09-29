@@ -1222,6 +1222,53 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn is_arithmetic_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        if (expanded.* != .identifier) {
+            return false;
+        }
+        if (std.mem.eql(u8, expanded.getToken().data, "Int") or
+            std.mem.eql(u8, expanded.getToken().data, "Float"))
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        if (expanded.* != .identifier) {
+            return false;
+        }
+
+        if (std.mem.eql(u8, expanded.getToken().data, "Bool") or
+            std.mem.eql(u8, expanded.getToken().data, "Byte") or
+            std.mem.eql(u8, expanded.getToken().data, "Char") or
+            std.mem.eql(u8, expanded.getToken().data, "Float") or
+            std.mem.eql(u8, expanded.getToken().data, "Int"))
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    pub fn is_ord_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        if (expanded.* != .identifier) {
+            return false;
+        }
+        if (std.mem.eql(u8, expanded.getToken().data, "Byte") or
+            std.mem.eql(u8, expanded.getToken().data, "Float") or
+            std.mem.eql(u8, expanded.getToken().data, "Int"))
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) *AST {
         self.getCommon().validation_state = .invalid;

@@ -8,7 +8,7 @@ fn main() -> Int {
 }
 
 fn close_enough(a: Float, b: Float, e: Float) -> Bool {
-    let diff = if a == b {
+    let diff: Float = if a == b {
         return true
     } else if a > b {
         a - b
