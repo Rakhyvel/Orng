@@ -185,13 +185,14 @@
     - [x] sanitize call stack lines to escape " and \
     - [x] suggest the most similar visible identifier when an unknown identifier is used
     - [ ] Make Arithmetic (operators) Great, Allegedly
-        - [ ] Types on both sides should be equal. Expect proper type (No subtyping!)
+        - [x] Types on both sides should be equal. Expect proper type (No subtyping!)
             - [x] Most binops need types to be *identical*
             - [x] Comparison operators only need types to be *assignable*
                 > `x = 1 + 2 + 3` counterpoint: here there are two `+` operators, one performs identical, the other performs assignable
             - [x] Define representability too for constants
-        - [ ] Add Int8, Int16, Int32, Int64, Float32, Float64, Byte, Word16, Word32, Word64
+        - [x] Add Int8, Int16, Int32, Int64, Float32, Float64, Byte, Word16, Word32, Word64
         - [ ] Add UB checking for signed integer arithmetic
+            > {Int8, Int16, Int32, Int64} x {negate, add, sub, mult, div, mod, exponent}
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols

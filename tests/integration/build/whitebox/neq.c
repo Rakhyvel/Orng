@@ -46,7 +46,7 @@ int64_t _2_main() {
         goto BB12;
     }
 BB3:
-    if (*_3_y >= 3.0e+00) {
+    if (*_3_y >= 3) {
         goto BB5;
     } else {
         goto BB9;

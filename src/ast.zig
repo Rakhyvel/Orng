@@ -1161,8 +1161,6 @@ pub const AST = union(enum) {
             .identifier => {
                 if (B.* != .identifier) {
                     return false;
-                } else if (std.mem.eql(u8, "Float", A.getToken().data) and std.mem.eql(u8, "Int", B.getToken().data)) {
-                    return true;
                 } else {
                     return std.mem.eql(u8, A.getToken().data, B.getToken().data);
                 }

@@ -2,7 +2,7 @@
 fn main ()->Int {
     let x = 3
     let y = &x
-    if y^ != 5 or 4 > y^ and y^ >= 3.0 {
+    if y^ != 5 or 4 > y^ and y^ >= 3 {
         33
     } else {
         10

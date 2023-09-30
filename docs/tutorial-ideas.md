@@ -1,0 +1,85 @@
+## Basic of the language
+- Basic types
+    - Math
+    - Booleans
+    - Chars
+    - Strings
+    - Words
+- Variables
+    - Immutability
+    - Type inference
+    - default value
+- Control Flow
+    - `if` / `else`
+    - `for` / `else`
+        - range for loops
+    - `while` / `else`
+    - `break`
+    - `continue`
+    - `defer`
+- Pattern matching
+    - How is it different from a switch
+- Addresses
+    - `&mut`
+- Tuples
+    - default fields
+    - implicit dereferencing
+- Arrays
+    - implicit dereferencing
+- Slices
+    - implicit dereferencing
+    - when to accept an array vs a slice for a function
+- Strings
+    - multiline string literals
+- Sum types
+    - how to do enums (how Orng is better than Go)
+    - inferred members
+- Functions
+    - `return`
+    - default function arguments
+- `()` vs `Void`
+- Optional types
+- Error handling
+    - How to `throw` an error
+    - `try`
+    - `catch`
+    - `errdefer` (maybe `defer if res != .ok {}`)
+- Compile-time execution
+    - When is it done?!
+    - Type reflection
+- Traits
+    - Implementing Iterable and Iterator for custom types
+    - Implementing generators
+    - Using traits as an interface for code
+    - Implementing compile-tile traits (`as` trait)
+- How to use the build system
+    - How to import other Orng modules
+        - How to encapsulate with `pub`
+    - How to use other Orng packages
+    - How to use C libraries
+        - Using externs
+        - Marking volatiles
+    - How to use a linear algebra library
+    - Debug, release modes
+
+## Standard library
+- Basic type conversions
+- Getting user input and printing it
+- `String`s, `String_Builder`
+    - Concatonate
+    - Parse an int from string
+    - `.>equals`
+    - Split a string into a words
+    - Iterate over the words of a string
+- Allocators and memory management
+    - `new`, `box`, `clone`, `make`, `delete`, `free`
+- Lists
+    - Sorting a list with a custom function
+    - Concatonating two lists
+- Hashmap
+- Debug
+- Accessing command line arguments
+- File
+    - Read a file line by line
+    - Read and parse CSV files
+- How to execute a terminal command and get the result
