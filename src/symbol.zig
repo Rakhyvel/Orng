@@ -660,11 +660,13 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     try create_prelude_symbol("Byte", ast.typeType, null, true);
     try create_prelude_symbol("Char", ast.typeType, null, true);
     try create_prelude_symbol("Float", ast.typeType, null, true);
+    try create_prelude_symbol("Float32", ast.typeType, null, true);
+    try create_prelude_symbol("Float64", ast.typeType, ast.floatType, true);
     try create_prelude_symbol("Int", ast.typeType, null, true);
     try create_prelude_symbol("Int8", ast.typeType, null, true);
     try create_prelude_symbol("Int16", ast.typeType, null, true);
     try create_prelude_symbol("Int32", ast.typeType, null, true);
-    try create_prelude_symbol("Int64", ast.typeType, null, true);
+    try create_prelude_symbol("Int64", ast.typeType, ast.intType, true);
     try create_prelude_symbol("String", ast.typeType, ast.byteSliceType, true);
     try create_prelude_symbol("Type", ast.typeType, null, true);
     try create_prelude_symbol("Void", ast.typeType, null, true);

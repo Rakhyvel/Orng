@@ -102,8 +102,12 @@ pub const AST = union(enum) {
         data: i128,
         represents: *AST, //< Type that this constant represents. Set on validation.
     },
+    float: struct {
+        common: ASTCommon,
+        data: f64,
+        represents: *AST, //< Type that this constant represents. Set on validation.
+    },
     char: struct { common: ASTCommon },
-    float: struct { common: ASTCommon, data: f64 },
     string: struct { common: ASTCommon },
     identifier: struct { common: ASTCommon },
     _true: struct { common: ASTCommon },
@@ -385,7 +389,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createFloat(token: Token, data: f64, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
+        return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = floatType } }, allocator);
     }
 
     pub fn createString(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -898,10 +902,10 @@ pub const AST = union(enum) {
             // Char type
             .char => retval = charType,
 
-            // Float64 type
-            .float => retval = floatType,
+            // Float constant type
+            .float => retval = self.float.represents,
 
-            // Int64 type
+            // Int constant type
             .int => retval = self.int.represents,
 
             // String type
@@ -929,6 +933,16 @@ pub const AST = union(enum) {
             ._return,
             ._unreachable,
             => retval = voidType,
+
+            // Binary operators
+            .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
+            .sub => retval = try self.sub.lhs.typeof(scope, errors, allocator),
+            .mult => retval = try self.mult.lhs.typeof(scope, errors, allocator),
+            .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
+            .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
+            .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors, allocator),
+            ._catch => retval = try self._catch.rhs.typeof(scope, errors, allocator),
+            ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
 
             .product => {
                 var first_type = try self.product.terms.items[0].typeof(scope, errors, allocator);
@@ -1045,16 +1059,6 @@ pub const AST = union(enum) {
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
             .inferredMember => retval = try self.inferredMember.base.?.expand_type(scope, errors, allocator),
             ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).sum.terms.items[1],
-
-            // Binary operators (TODO: Make polymorphic)
-            .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
-            .sub => retval = try self.sub.lhs.typeof(scope, errors, allocator),
-            .mult => retval = try self.mult.lhs.typeof(scope, errors, allocator),
-            .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
-            .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
-            .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors, allocator),
-            ._catch => retval = try self._catch.rhs.typeof(scope, errors, allocator),
-            ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
 
             // Control-flow expressions
             ._if => {
@@ -1266,18 +1270,22 @@ pub const AST = union(enum) {
         return false;
     }
 
-    pub fn is_arithmetic_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    const float_types = [_][]const u8{ "Float", "Float32", "Float64" };
+    pub fn can_represent_float(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
-        if (expanded.* != .identifier) {
-            return false;
-        }
-        if (std.mem.eql(u8, expanded.getToken().data, "Int") or
-            std.mem.eql(u8, expanded.getToken().data, "Float"))
-        {
+        if (expanded.* == .unit) {
+            // Top type
             return true;
-        } else {
+        } else if (expanded.* != .identifier) {
+            // Clearly not a float type
             return false;
         }
+        for (float_types) |name| {
+            if (std.mem.eql(u8, name, self.getToken().data)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
@@ -1287,10 +1295,8 @@ pub const AST = union(enum) {
         }
 
         if (std.mem.eql(u8, expanded.getToken().data, "Bool") or
-            std.mem.eql(u8, expanded.getToken().data, "Byte") or
             std.mem.eql(u8, expanded.getToken().data, "Char") or
-            std.mem.eql(u8, expanded.getToken().data, "Float") or
-            std.mem.eql(u8, expanded.getToken().data, "Int"))
+            try self.is_ord_type(scope, errors, allocator))
         {
             return true;
         } else {
@@ -1298,14 +1304,39 @@ pub const AST = union(enum) {
         }
     }
 
+    /// Ord <: Eq
     pub fn is_ord_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* != .identifier) {
             return false;
         }
         if (std.mem.eql(u8, expanded.getToken().data, "Byte") or
+            try self.is_arithmetic_type(scope, errors, allocator))
+        {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    /// Arithmetic <: Ord
+    pub fn is_arithmetic_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        if (expanded.* != .identifier) {
+            return false;
+        }
+        if (std.mem.eql(u8, expanded.getToken().data, "Int") or
+            std.mem.eql(u8, expanded.getToken().data, "Int8") or
+            std.mem.eql(u8, expanded.getToken().data, "Int16") or
+            std.mem.eql(u8, expanded.getToken().data, "Int32") or
+            std.mem.eql(u8, expanded.getToken().data, "Int64") or
+            std.mem.eql(u8, expanded.getToken().data, "Byte") or
+            std.mem.eql(u8, expanded.getToken().data, "Word16") or
+            std.mem.eql(u8, expanded.getToken().data, "Word32") or
+            std.mem.eql(u8, expanded.getToken().data, "Word64") or
             std.mem.eql(u8, expanded.getToken().data, "Float") or
-            std.mem.eql(u8, expanded.getToken().data, "Int"))
+            std.mem.eql(u8, expanded.getToken().data, "Float32") or
+            std.mem.eql(u8, expanded.getToken().data, "Float64"))
         {
             return true;
         } else {

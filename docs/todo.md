@@ -57,6 +57,8 @@
 - [x] Adopt Go's newline insertion rules
 - [ ] Allow trailing commas in parenthesis (`, nl )` => `nl )`)
 - [ ] Wrap up any calls to `AST.createX` outside of parser
+- [ ] Create a builtin module which contains info about builtin types
+    - [ ] Grep for every instance of `Int8` or something, extract that info to a file
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -187,7 +189,7 @@
             - [x] Most binops need types to be *identical*
             - [x] Comparison operators only need types to be *assignable*
                 > `x = 1 + 2 + 3` counterpoint: here there are two `+` operators, one performs identical, the other performs assignable
-            - [ ] Define representability too for constants
+            - [x] Define representability too for constants
         - [ ] Add Int8, Int16, Int32, Int64, Float32, Float64, Byte, Word16, Word32, Word64
         - [ ] Add UB checking for signed integer arithmetic
 - [x] pattern matching

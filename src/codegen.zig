@@ -255,11 +255,28 @@ fn generateDebug(out: *std.fs.File) !void {
 }
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
-    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int") or std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int64")) {
+    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int") or
+        std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int64"))
+    {
         try out.writer().print(
             \\int main()
             \\{{
             \\  printf("%ld",
+        , .{});
+    } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Word64")) {
+        try out.writer().print(
+            \\int main()
+            \\{{
+            \\  printf("%lu",
+        , .{});
+    } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Float64") or
+        std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Float32") or
+        std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Float"))
+    {
+        try out.writer().print(
+            \\int main()
+            \\{{
+            \\  printf("%f",
         , .{});
     } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "String")) {
         try out.writer().print(
@@ -830,10 +847,17 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
                 try out.writer().print("int64_t", .{});
             } else if (std.mem.eql(u8, _type.getToken().data, "Float")) {
                 try out.writer().print("double", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Float32")) {
+                try out.writer().print("float", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Float64")) {
+                try out.writer().print("double", .{});
             } else if (std.mem.eql(u8, _type.getToken().data, "Char")) {
                 try out.writer().print("uint32_t", .{});
-            } else {
+            } else if (_type.getCommon().expanded_type.? != _type) {
                 try printType(_type.getCommon().expanded_type.?, out);
+            } else {
+                std.debug.print("\n    Unknown primitive type `{s}`\n\n", .{_type.getToken().data});
+                unreachable;
             }
         },
         .addrOf => {

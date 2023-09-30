@@ -1,0 +1,11 @@
+// 208
+fn main() -> Int {
+    let x: Float64 = 4.5
+    let y: Float64 = 4.5
+    
+    if x == y {
+        208
+    } else {
+        -4
+    }
+}
