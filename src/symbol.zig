@@ -127,7 +127,7 @@ pub const Scope = struct {
             if (symbol._type != null) {
                 var matches = expected == null or try symbol._type.?.typesMatch(expected.?, self, &errors, allocator);
                 var dist = try levenshteinDistance2(allocator, symbol.name, name);
-                if (matches and dist <= name.len / 2 + 1) {
+                if (matches and dist <= name.len / 2) {
                     try out.append(key);
                 }
             }
@@ -656,100 +656,39 @@ pub fn getPrelude(allocator: std.mem.Allocator) !*Scope {
     }
     prelude = try Scope.init(null, "", std.heap.page_allocator);
 
-    try prelude.?.symbols.put("Bool", try Symbol.create(
-        prelude.?,
-        "Bool",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("Byte", try Symbol.create(
-        prelude.?,
-        "Byte",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("Char", try Symbol.create(
-        prelude.?,
-        "Char",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("Float", try Symbol.create(
-        prelude.?,
-        "Float",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("Int", try Symbol.create(
-        prelude.?,
-        "Int",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("String", try Symbol.create(
-        prelude.?,
-        "String",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        ast.byteSliceType,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("Type", try Symbol.create(
-        prelude.?,
-        "Type",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    try prelude.?.symbols.put("Void", try Symbol.create(
-        prelude.?,
-        "Void",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.typeType,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    ));
-    var discard = try Symbol.create(
-        prelude.?,
-        "_",
-        Span{ .filename = "", .col = 0, .line = 0 },
-        ast.poisoned,
-        null,
-        null,
-        ._const,
-        std.heap.page_allocator,
-    );
-    discard.is_temp = true;
-    try prelude.?.symbols.put("_", discard);
+    try create_prelude_symbol("Bool", ast.typeType, null, true);
+    try create_prelude_symbol("Byte", ast.typeType, null, true);
+    try create_prelude_symbol("Char", ast.typeType, null, true);
+    try create_prelude_symbol("Float", ast.typeType, null, true);
+    try create_prelude_symbol("Int", ast.typeType, null, true);
+    try create_prelude_symbol("Int8", ast.typeType, null, true);
+    try create_prelude_symbol("Int16", ast.typeType, null, true);
+    try create_prelude_symbol("Int32", ast.typeType, null, true);
+    try create_prelude_symbol("Int64", ast.typeType, null, true);
+    try create_prelude_symbol("String", ast.typeType, ast.byteSliceType, true);
+    try create_prelude_symbol("Type", ast.typeType, null, true);
+    try create_prelude_symbol("Void", ast.typeType, null, true);
+    try create_prelude_symbol("Word16", ast.typeType, null, true);
+    try create_prelude_symbol("Word32", ast.typeType, null, true);
+    try create_prelude_symbol("Word64", ast.typeType, null, true);
+    try create_prelude_symbol("_", ast.poisoned, null, true);
     return prelude.?;
 }
 pub fn resetPrelude() void {
     prelude = null;
+}
+
+fn create_prelude_symbol(name: []const u8, _type: *AST, init: ?*AST, is_temp: bool) !void {
+    var symbol = try Symbol.create(
+        prelude.?,
+        name,
+        Span{ .filename = "", .col = 0, .line = 0 },
+        _type,
+        init,
+        null,
+        ._const,
+        std.heap.page_allocator,
+    );
+    symbol.is_temp = is_temp;
+    try prelude.?.symbols.put(name, symbol);
 }

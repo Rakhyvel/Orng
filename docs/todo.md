@@ -27,7 +27,7 @@
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
 
-### Small fixes
+### Misc.
 - [x] Errors should print lines
     - [x] Errors print to stderr instead of debug
     - [x] Lexer fills lines array
@@ -55,6 +55,8 @@
 - [x] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
 - [x] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
 - [x] Adopt Go's newline insertion rules
+- [ ] Allow trailing commas in parenthesis (`, nl )` => `nl )`)
+- [ ] Wrap up any calls to `AST.createX` outside of parser
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -186,8 +188,8 @@
             - [x] Comparison operators only need types to be *assignable*
                 > `x = 1 + 2 + 3` counterpoint: here there are two `+` operators, one performs identical, the other performs assignable
             - [ ] Define representability too for constants
-        - [ ] Define for Int8...Int64, Float32, Float64, Byte...Word64
-        - [ ] Add UB checking
+        - [ ] Add Int8, Int16, Int32, Int64, Float32, Float64, Byte, Word16, Word32, Word64
+        - [ ] Add UB checking for signed integer arithmetic
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols

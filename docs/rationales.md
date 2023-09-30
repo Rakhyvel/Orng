@@ -2,6 +2,43 @@
 # Rationales
 > Because it is easy for little monkeys to forget!
 
+## Breadcrumb-ability
+Imagine you're working on a large C++ project, and you come across a file that looks something like this:
+```c++
+#include "file1.hpp"
+#include "file2.hpp"
+#include "file3.hpp"
+// ...
+#include "filen.hpp"
+
+void some_class::Foo() {
+    bar = baz.qux();
+}
+```
+Okay, now tell me where the definitions for `some_class`, `bar`, `baz`, and `qux` are located? If you're lucky enough to have a fancy editor, you can usualy just ctrl+click to go-to-definition. But if you're not so lucky, there's virtually no other way to figure it out than to grep around. You're also out of luck even with grep, since there is no "waypoint" for definitions. Lastly, class fields in C++ are implicit, so there is no need to use a `this->` before them.
+
+Thus, Orng shall:
+    1. make it explicit where definitions come from
+    2. make definitions match a simple regular expression
+    3. have *no* implicit fields    
+The same file above might look something like this in Orng:
+```rust
+let const file1 = import("package-a/file1.orng")
+let const file2 = import("package-a/file2.orng")
+let const file3 = import("package-b/file3.orng")
+// ...
+let const filen = import("package-c/filen.orng")
+
+let const Some_Struct = file2.Some_Struct
+
+fn foo(self: &mut Some_Struct) -> () {
+    self.bar = file1.qux()
+}
+```
+Here it is immediately clear where everything comes from. `Some_Struct` was actually from `file2`. `bar` was actually a field of `Some_Struct`, and `qux` is a function from `file1`. We can also immediately see that `file3` isn't even needed, something that isn't trivial to do in C++.
+
+Also notice that definitions *always* **always** ***always*** either start with an `fn` token for functions, or a `let` token for values. This makes it easy to grep for the definition of a function.
+
 ## Injective mapping from syntax to behavior
 Probably the biggest gripe I have with languages like C++ is that it's near impossible to tell where side effects happen. Code can throw exceptions out from under you, functions can be called implicitly, there's no way to ctrl+f your way through a file to find where a variable is declared, type conversions are entirely implicit, etc.
 

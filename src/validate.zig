@@ -146,6 +146,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
 
         .int => {
+            // Check if data fits in expected type bounds
+            // typeOf should be untyped int, matches any int type
             if (expected != null and !try _ast.intType.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.intType } });
                 return ast.enpoison();
@@ -231,9 +233,12 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .negate => {
             ast.negate.expr = try validateAST(ast.negate.expr, null, scope, errors, allocator);
-            // TODO: Assert arithmetic type
+            var expr_type = try ast.negate.expr.typeof(scope, errors, allocator);
 
             if (ast.negate.expr.* == .poison) {
+                return ast.enpoison();
+            } else if (!try expr_type.is_arithmetic_type(scope, errors, allocator)) {
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = expr_type } });
                 return ast.enpoison();
             } else if (expected != null and !try _ast.intType.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.floatType } });
@@ -1090,6 +1095,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 was_type = true;
             } else {
+                // Slice-of value, expected must be an slice, inner must match with expected's inner
                 if (ast.sliceOf.kind != .SLICE and ast.sliceOf.kind != .MUT) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is not allowed in slice-of operator" } });
                     return ast.enpoison();
@@ -1099,7 +1105,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     return ast.enpoison();
                 }
 
-                // Slice-of value, expected must be an slice, inner must match with expected's inner
                 // ast.sliceOf.expr must be homotypical product type of expected
                 var expr_type = try ast.sliceOf.expr.typeof(scope, errors, allocator);
                 if (expr_type.* != .product or !try expr_type.product.is_homotypical(scope, errors, allocator)) {
@@ -1126,22 +1131,29 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
                 // Restructrure as product
                 var new_terms = std.ArrayList(*AST).init(allocator);
+                var zero = try AST.createInt(ast.getToken(), 0, allocator);
+                zero.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = zero } };
                 var index = try AST.createIndex(
                     ast.getToken(),
                     ast.sliceOf.expr,
-                    try AST.createInt(ast.getToken(), 0, allocator),
+                    zero,
                     allocator,
                 );
-                try new_terms.append(try AST.createAddrOf(
+                index.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = index } };
+                var addr = try AST.createAddrOf(
                     ast.getToken(),
                     index,
                     ast.sliceOf.kind == .MUT,
                     allocator,
-                ));
-                try new_terms.append(try AST.createInt(ast.getToken(), expr_type.product.terms.items.len, allocator));
+                );
+                addr.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = addr } };
+                try new_terms.append(addr);
+
+                var length = try AST.createInt(ast.getToken(), expr_type.product.terms.items.len, allocator);
+                length.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = length } };
+                try new_terms.append(length);
+
                 retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
-                retval.product.was_slice = true;
-                retval.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = retval } };
                 retval.product.was_slice = true;
             }
         },
@@ -1160,14 +1172,17 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.subSlice.lower = try validateAST(lower, _ast.intType, scope, errors, allocator);
             } else {
                 ast.subSlice.lower = try AST.createInt(ast.getToken(), 0, allocator);
+                ast.subSlice.lower.?.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast.subSlice.lower.? } };
             }
             if (ast.subSlice.upper) |upper| {
                 ast.subSlice.upper = try validateAST(upper, _ast.intType, scope, errors, allocator);
             } else {
+                var length = try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator);
+                length.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = length } };
                 var index = try AST.createSelect(
                     ast.getToken(),
                     ast.subSlice.super,
-                    try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator),
+                    length,
                     allocator,
                 );
                 ast.subSlice.upper = try validateAST(index, _ast.intType, scope, errors, allocator);
@@ -1404,6 +1419,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     new_statements.deinit();
                 }
             } else {
+                // Hasn't final
+
                 for (ast.block.statements.items, 0..) |statement, i| {
                     var expect_type: ?*AST = if (i == ast.block.statements.items.len - 1) expected else null;
                     var new_statement = try validateAST(statement, expect_type, ast.block.scope.?, errors, allocator);
@@ -1978,6 +1995,7 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
             unreachable;
         },
     }
+    pattern.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = pattern } };
 }
 
 fn indexof(list: *std.ArrayList(usize), elem: usize) ?usize {

@@ -47,6 +47,7 @@ pub fn initTypes() !void {
         typeType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = typeType } };
         unitType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = unitType } };
         voidType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = voidType } };
+        poisoned.getCommon().validation_state = .invalid;
         typesInited = true;
     }
 }
@@ -96,7 +97,11 @@ pub const AST = union(enum) {
     poison: struct { common: ASTCommon },
     // Literals
     unit: struct { common: ASTCommon },
-    int: struct { common: ASTCommon, data: i128 },
+    int: struct {
+        common: ASTCommon,
+        data: i128,
+        represents: *AST, //< Type that this constant represents. Set on validation.
+    },
     char: struct { common: ASTCommon },
     float: struct { common: ASTCommon, data: f64 },
     string: struct { common: ASTCommon },
@@ -372,7 +377,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
+        return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = intType } }, allocator);
     }
 
     pub fn createChar(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -867,7 +872,7 @@ pub const AST = union(enum) {
 
     // Must always return a valid type!
     pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-        // std.debug.assert(self.getCommon().is_valid);
+        std.debug.assert(self.getCommon().validation_state != .unvalidated);
         if (self.getCommon()._type) |_type| {
             return _type;
         }
@@ -897,7 +902,7 @@ pub const AST = union(enum) {
             .float => retval = floatType,
 
             // Int64 type
-            .int => retval = intType,
+            .int => retval = self.int.represents,
 
             // String type
             .string => retval = stringType,
@@ -1272,7 +1277,6 @@ pub const AST = union(enum) {
     // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) *AST {
         self.getCommon().validation_state = .invalid;
-        // self.* = poisoned.*;
         return poisoned;
     }
 
