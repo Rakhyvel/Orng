@@ -30,12 +30,12 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int8_t _2_main();
+uint16_t _2_main();
 
 /* Function definitions */
-int8_t _2_main() {
-    int8_t _2_$retval;
-    _2_$retval = 99;
+uint16_t _2_main() {
+    uint16_t _2_$retval;
+    _2_$retval = 204;
     return _2_$retval;
 }
 

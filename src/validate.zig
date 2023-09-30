@@ -148,10 +148,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .int => {
             // Check if data fits in expected type bounds
             // typeOf should be untyped int, matches any int type
-            if (expected != null and !try _ast.intType.typesMatch(expected.?, scope, errors, allocator)) {
+            if (expected != null and !try expected.?.can_represent_integer(ast.int.data, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = _ast.intType } });
                 return ast.enpoison();
             } else {
+                ast.int.represents = expected orelse ast.int.represents;
                 retval = ast;
             }
         },

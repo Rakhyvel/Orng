@@ -255,7 +255,7 @@ fn generateDebug(out: *std.fs.File) !void {
 }
 
 fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
-    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int")) {
+    if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int") or std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int64")) {
         try out.writer().print(
             \\int main()
             \\{{
@@ -812,7 +812,21 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
                 try out.writer().print("uint8_t", .{});
             } else if (std.mem.eql(u8, _type.getToken().data, "Byte")) {
                 try out.writer().print("uint8_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Word16")) {
+                try out.writer().print("uint16_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Word32")) {
+                try out.writer().print("uint32_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Word64")) {
+                try out.writer().print("uint64_t", .{});
             } else if (std.mem.eql(u8, _type.getToken().data, "Int")) {
+                try out.writer().print("int64_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Int8")) {
+                try out.writer().print("int8_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Int16")) {
+                try out.writer().print("int16_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Int32")) {
+                try out.writer().print("int32_t", .{});
+            } else if (std.mem.eql(u8, _type.getToken().data, "Int64")) {
                 try out.writer().print("int64_t", .{});
             } else if (std.mem.eql(u8, _type.getToken().data, "Float")) {
                 try out.writer().print("double", .{});

@@ -1227,6 +1227,45 @@ pub const AST = union(enum) {
         }
     }
 
+    /// Record for different integer bound types. Bounds are inclusive.
+    const Integer_Bounds = struct {
+        name: []const u8,
+        lower: i128,
+        upper: i128,
+    };
+    const integer_bounds = [_]Integer_Bounds{
+        Integer_Bounds{ .name = "Int8", .lower = -0x80, .upper = 0x7F },
+        Integer_Bounds{ .name = "Int16", .lower = -0x8000, .upper = 0x7FFF },
+        Integer_Bounds{ .name = "Int32", .lower = -0x8000_000, .upper = 0x7FFF_FFFF },
+        Integer_Bounds{ .name = "Int64", .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF },
+        Integer_Bounds{ .name = "Int", .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF },
+
+        Integer_Bounds{ .name = "Byte", .lower = 0, .upper = 0xFF },
+        Integer_Bounds{ .name = "Word16", .lower = 0, .upper = 0xFFFF },
+        Integer_Bounds{ .name = "Word32", .lower = 0, .upper = 0xFFFF_FFFF },
+        Integer_Bounds{ .name = "Word64", .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
+    };
+    /// Determines if a given integer type can represent a given integer value.
+    pub fn can_represent_integer(self: *AST, value: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        if (expanded.* == .unit) {
+            // Top type
+            return true;
+        } else if (expanded.* != .identifier) {
+            // Clearly not an integer type
+            return false;
+        }
+        for (integer_bounds) |bound| {
+            if (std.mem.eql(u8, bound.name, self.getToken().data) and
+                value >= bound.lower and
+                value <= bound.upper)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
     pub fn is_arithmetic_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* != .identifier) {
