@@ -46,26 +46,26 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _2_t1;
-    struct1 _3_x;
-    struct0 _2_t6;
-    int64_t _2_$retval;
-    _2_t1 = (struct0) {.tag=0, ._0=4};
-    _3_x = (struct1) {.tag=0, ._0=_2_t1};
-    _3_x._0._0 = 104;
-    $tag_check(_3_x.tag, 0, "tests/integration/sums/double.orng:5:7:\n    x.sum.int\n     ^");
-    _2_t6 = _3_x._0;
-    $tag_check(_2_t6.tag, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
-    _2_$retval = _3_x._0._0;
-    return _2_$retval;
+int64_t _1_main() {
+    struct0 _1_t1;
+    struct1 _2_x;
+    struct0 _1_t6;
+    int64_t _1_$retval;
+    _1_t1 = (struct0) {.tag=0, ._0=4};
+    _2_x = (struct1) {.tag=0, ._0=_1_t1};
+    _2_x._0._0 = 104;
+    $tag_check(_2_x.tag, 0, "tests/integration/sums/double.orng:5:7:\n    x.sum.int\n     ^");
+    _1_t6 = _2_x._0;
+    $tag_check(_1_t6.tag, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = _2_x._0._0;
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

@@ -30,60 +30,60 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    uint8_t _3_found;
-    int64_t _4_n;
-    int64_t _2_$retval;
-    int64_t _2_t13;
-    _3_found = 0;
-    _4_n = 0;
+int64_t _1_main() {
+    uint8_t _2_found;
+    int64_t _3_n;
+    int64_t _1_$retval;
+    int64_t _1_t13;
+    _2_found = 0;
+    _3_n = 0;
 BB1:
-    if (_4_n < 10) {
+    if (_3_n < 10) {
         goto BB2;
     } else {
         goto BB14;
     }
 BB2:
-    if (_3_found) {
+    if (_2_found) {
         goto BB3;
     } else {
         goto BB5;
     }
 BB14:
-    if (_3_found) {
+    if (_2_found) {
         goto BB15;
     } else {
         goto BB19;
     }
 BB3:
-    _4_n = 100;
+    _3_n = 100;
 BB5:
-    if (_4_n == 6) {
+    if (_3_n == 6) {
         goto BB6;
     } else {
         goto BB10;
     }
 BB15:
-    _2_t13 = 15;
+    _1_t13 = 15;
     goto BB18;
 BB19:
-    _2_t13 = 4;
+    _1_t13 = 4;
     goto BB18;
 BB6:
-    _3_found = 1;
+    _2_found = 1;
 BB10:
-    _4_n = _4_n + 1;
+    _3_n = _3_n + 1;
     goto BB1;
 BB18:
-    _2_$retval = _2_t13;
-    return _2_$retval;
+    _1_$retval = _1_t13;
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

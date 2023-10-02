@@ -30,41 +30,41 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
-int64_t _4_sum_down(int64_t _4_x);
+int64_t _1_main();
+int64_t _3_sum_down(int64_t _3_x);
 
 /* Function definitions */
-int64_t _2_main() {
-    int64_t _2_t0;
-    int64_t _2_$retval;
+int64_t _1_main() {
+    int64_t _1_t0;
+    int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
-    _2_t0 = _4_sum_down(8);
+    _1_t0 = _3_sum_down(8);
     $line_idx--;
-    _2_$retval = _2_t0 + 2;
-    return _2_$retval;
+    _1_$retval = _1_t0 + 2;
+    return _1_$retval;
 }
 
-int64_t _4_sum_down(int64_t _4_x) {
-    int64_t _6_i;
-    int64_t _4_$retval;
-    _6_i = _4_x;
+int64_t _3_sum_down(int64_t _3_x) {
+    int64_t _5_i;
+    int64_t _3_$retval;
+    _5_i = _3_x;
 BB1:
-    if (_6_i >= 0) {
+    if (_5_i >= 0) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _4_x = _4_x + _6_i;
-    _6_i = _6_i - 1;
+    _3_x = _3_x + _5_i;
+    _5_i = _5_i - 1;
     goto BB1;
 BB7:
-    _4_$retval = _4_x;
-    return _4_$retval;
+    _3_$retval = _3_x;
+    return _3_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

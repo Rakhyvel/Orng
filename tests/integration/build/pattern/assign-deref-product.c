@@ -37,28 +37,28 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _3_x;
-    int64_t* _3_a;
-    int64_t* _3_b;
-    int64_t* _3_c;
-    int64_t _2_$retval;
-    _3_x = (struct0) {0, 0, 0};
-    _3_a = (int64_t*)&_3_x;
-    _3_b = ((int64_t*)&_3_x + 1);
-    _3_c = ((int64_t*)&_3_x + 2);
-    **&_3_a = 100;
-    **&_3_b = 30;
-    **&_3_c = 30;
-    _2_$retval = *_3_a + *_3_b + *_3_c;
-    return _2_$retval;
+int64_t _1_main() {
+    struct0 _2_x;
+    int64_t* _2_a;
+    int64_t* _2_b;
+    int64_t* _2_c;
+    int64_t _1_$retval;
+    _2_x = (struct0) {0, 0, 0};
+    _2_a = (int64_t*)&_2_x;
+    _2_b = ((int64_t*)&_2_x + 1);
+    _2_c = ((int64_t*)&_2_x + 2);
+    **&_2_a = 100;
+    **&_2_b = 30;
+    **&_2_c = 30;
+    _1_$retval = *_2_a + *_2_b + *_2_c;
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

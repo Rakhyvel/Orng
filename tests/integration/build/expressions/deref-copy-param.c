@@ -30,29 +30,29 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
-void _4_f(int64_t* _4_y);
+int64_t _1_main();
+void _3_f(int64_t* _3_y);
 
 /* Function definitions */
-int64_t _2_main() {
-    int64_t _3_x;
-    int64_t* _3_y;
-    int64_t _2_$retval;
-    _3_x = 4;
-    _3_y = &_3_x;
+int64_t _1_main() {
+    int64_t _2_x;
+    int64_t* _2_y;
+    int64_t _1_$retval;
+    _2_x = 4;
+    _2_y = &_2_x;
     $lines[$line_idx++] = "tests/integration/expressions/deref-copy-param.orng:5:7:\n    f(y)\n     ^";
-    _4_f(_3_y);
+    _3_f(_2_y);
     $line_idx--;
-    _2_$retval = *_3_y;
-    return _2_$retval;
+    _1_$retval = *_2_y;
+    return _1_$retval;
 }
 
-void _4_f(int64_t* _4_y) {
-    **&_4_y = 195;
+void _3_f(int64_t* _3_y) {
+    **&_3_y = 195;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

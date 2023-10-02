@@ -42,50 +42,50 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _2_main();
-int64_t _4_sum_up(struct1 _4_xs);
+int64_t _1_main();
+int64_t _3_sum_up(struct1 _3_xs);
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _3_x;
-    int64_t* _2_t15;
-    struct1 _3_z;
-    int64_t _2_t17;
-    int64_t _2_$retval;
-    _3_x = (struct0) {100, 10, 1};
-    _2_t15 = (int64_t*)&_3_x;
-    _3_z = (struct1) {_2_t15, 3};
+int64_t _1_main() {
+    struct0 _2_x;
+    int64_t* _1_t15;
+    struct1 _2_z;
+    int64_t _1_t17;
+    int64_t _1_$retval;
+    _2_x = (struct0) {100, 10, 1};
+    _1_t15 = (int64_t*)&_2_x;
+    _2_z = (struct1) {_1_t15, 3};
     $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
-    _2_t17 = _4_sum_up(_3_z);
+    _1_t17 = _3_sum_up(_2_z);
     $line_idx--;
-    _2_$retval = _2_t17;
-    return _2_$retval;
+    _1_$retval = _1_t17;
+    return _1_$retval;
 }
 
-int64_t _4_sum_up(struct1 _4_xs) {
-    int64_t _5_sum;
-    int64_t _6_i;
-    int64_t _4_$retval;
-    _5_sum = 0;
-    _6_i = 0;
+int64_t _3_sum_up(struct1 _3_xs) {
+    int64_t _4_sum;
+    int64_t _5_i;
+    int64_t _3_$retval;
+    _4_sum = 0;
+    _5_i = 0;
 BB1:
-    if (_6_i < _4_xs._1) {
+    if (_5_i < _3_xs._1) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    $bounds_check(_6_i, _4_xs._1, "tests/integration/slices/infer-both.orng:12:19:\n        sum += xs[i]\n                 ^");
-    _5_sum = _5_sum + *((int64_t*)_4_xs._0 + _6_i);
-    _6_i = _6_i + 1;
+    $bounds_check(_5_i, _3_xs._1, "tests/integration/slices/infer-both.orng:12:19:\n        sum += xs[i]\n                 ^");
+    _4_sum = _4_sum + *((int64_t*)_3_xs._0 + _5_i);
+    _5_i = _5_i + 1;
     goto BB1;
 BB7:
-    _4_$retval = _5_sum;
-    return _4_$retval;
+    _3_$retval = _4_sum;
+    return _3_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

@@ -42,25 +42,25 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _3_x;
-    struct1 _2_t4;
-    int64_t _2_$retval;
-    _3_x = (struct0) {0, 1, 2};
-    _2_t4 = (struct1) {(*((int64_t*)&_3_x + 1)), (*(int64_t*)&_3_x)};
-    *(int64_t*)&_3_x = _2_t4._0;
-    *((int64_t*)&_3_x + 1) = _2_t4._1;
-    if (*(int64_t*)&_3_x > *((int64_t*)&_3_x + 1)) {
+int64_t _1_main() {
+    struct0 _2_x;
+    struct1 _1_t4;
+    int64_t _1_$retval;
+    _2_x = (struct0) {0, 1, 2};
+    _1_t4 = (struct1) {(*((int64_t*)&_2_x + 1)), (*(int64_t*)&_2_x)};
+    *(int64_t*)&_2_x = _1_t4._0;
+    *((int64_t*)&_2_x + 1) = _1_t4._1;
+    if (*(int64_t*)&_2_x > *((int64_t*)&_2_x + 1)) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _2_$retval = 162;
-    return _2_$retval;
+    _1_$retval = 162;
+    return _1_$retval;
 BB5:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
@@ -68,6 +68,6 @@ BB5:
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

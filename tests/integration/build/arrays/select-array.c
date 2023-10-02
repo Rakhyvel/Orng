@@ -42,24 +42,24 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _2_t1;
-    struct0 _2_t5;
-    struct1 _3_x;
-    int64_t _2_$retval;
-    _2_t1 = (struct0) {1, 2, 3};
-    _2_t5 = (struct0) {4, 5, 6};
-    _3_x = (struct1) {_2_t1, _2_t5};
-    *((int64_t*)&_3_x._0 + 1) = 72;
-    _2_$retval = *((int64_t*)&_3_x._0 + 1);
-    return _2_$retval;
+int64_t _1_main() {
+    struct0 _1_t1;
+    struct0 _1_t5;
+    struct1 _2_x;
+    int64_t _1_$retval;
+    _1_t1 = (struct0) {1, 2, 3};
+    _1_t5 = (struct0) {4, 5, 6};
+    _2_x = (struct1) {_1_t1, _1_t5};
+    *((int64_t*)&_2_x._0 + 1) = 72;
+    _1_$retval = *((int64_t*)&_2_x._0 + 1);
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

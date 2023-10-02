@@ -6,6 +6,7 @@ const ir = @import("ir.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
+const primitives = @import("primitives.zig");
 const _program = @import("program.zig");
 const Program = _program.Program;
 const Span = @import("span.zig");
@@ -55,9 +56,6 @@ pub fn main() !void {
 
 /// Compiles and outputs a file
 pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !void {
-    // (Done for testing, where more than program is compiled one after another)
-    symbol.resetPrelude();
-
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -163,7 +161,7 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     var program_ast = try parser.parse();
 
     // Symbol tree construction
-    var file_root = try symbol.Scope.init(try symbol.getPrelude(allocator), name, allocator);
+    var file_root = try symbol.Scope.init(try primitives.init(), name, allocator);
     try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
 
     // Typecheck
@@ -198,7 +196,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         );
 
         // C Code generation
-        var program = try Program.init(cfg, uid, &interned_strings, try symbol.getPrelude(allocator), errors, allocator);
+        var program = try Program.init(cfg, uid, &interned_strings, try primitives.init(), errors, allocator);
         // TODO: defer program.deinit()
         program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);

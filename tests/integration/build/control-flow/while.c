@@ -30,32 +30,32 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    int64_t _3_x;
-    int64_t _4_i;
-    int64_t _2_$retval;
-    _3_x = 0;
-    _4_i = 0;
+int64_t _1_main() {
+    int64_t _2_x;
+    int64_t _3_i;
+    int64_t _1_$retval;
+    _2_x = 0;
+    _3_i = 0;
 BB1:
-    if (_4_i <= 10) {
+    if (_3_i <= 10) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _3_x = _3_x + _4_i;
-    _4_i = _4_i + 1;
+    _2_x = _2_x + _3_i;
+    _3_i = _3_i + 1;
     goto BB1;
 BB7:
-    _2_$retval = _3_x;
-    return _2_$retval;
+    _1_$retval = _2_x;
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

@@ -1,5 +1,6 @@
 const _ast = @import("ast.zig");
 const _ir = @import("ir.zig");
+const primitives = @import("primitives.zig");
 const _program = @import("program.zig");
 const std = @import("std");
 const strings = @import("zig-string/zig-string.zig");
@@ -70,7 +71,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
     } else if (dag.base.* == .product) {
         try out.writer().print("typedef struct {{\n", .{});
         for (dag.base.product.terms.items, 0..) |term, i| {
-            if (!term.c_typesMatch(_ast.unitType)) {
+            if (!term.c_typesMatch(primitives.unit_type)) {
                 // Don't gen `void` structure fields
                 try out.writer().print("    ", .{});
                 try printType(term, out);
@@ -83,7 +84,7 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         if (!dag.base.sum.is_all_unit()) {
             try out.writer().print("    union {{\n", .{});
             for (dag.base.sum.terms.items, 0..) |term, i| {
-                if (!term.annotation.type.c_typesMatch(_ast.unitType)) {
+                if (!term.annotation.type.c_typesMatch(primitives.unit_type)) {
                     // Don't gen `void` structure fields
                     try out.writer().print("        ", .{});
                     try printType(term, out);
@@ -566,7 +567,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             try out.writer().print(") {{", .{});
             var product_list = ir.dest.?.symbol.expanded_type.?.product.terms;
             for (ir.data.symbverList.items, product_list.items, 1..) |symbver, expected, i| {
-                if (!expected.c_typesMatch(_ast.unitType)) {
+                if (!expected.c_typesMatch(primitives.unit_type)) {
                     // Don't values of type `void` (don't exist in C! (Goobersville!))
                     if (!expected.c_typesMatch(symbver.symbol.expanded_type.?)) {
                         try out.writer().print("(", .{});
@@ -574,7 +575,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
                         try out.writer().print(")", .{});
                     }
                     try printSymbolVersion(symbver, ir.kind.precedence(), out);
-                    if (i < product_list.items.len and !product_list.items[i].c_typesMatch(_ast.unitType)) {
+                    if (i < product_list.items.len and !product_list.items[i].c_typesMatch(primitives.unit_type)) {
                         try out.writer().print(", ", .{});
                     }
                 }
@@ -825,39 +826,10 @@ fn generateSelectIR(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen_
 fn printType(_type: *AST, out: *std.fs.File) !void {
     switch (_type.*) {
         .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
-            if (std.mem.eql(u8, _type.getToken().data, "Bool")) {
-                try out.writer().print("uint8_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Byte")) {
-                try out.writer().print("uint8_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Word16")) {
-                try out.writer().print("uint16_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Word32")) {
-                try out.writer().print("uint32_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Word64")) {
-                try out.writer().print("uint64_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Int")) {
-                try out.writer().print("int64_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Int8")) {
-                try out.writer().print("int8_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Int16")) {
-                try out.writer().print("int16_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Int32")) {
-                try out.writer().print("int32_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Int64")) {
-                try out.writer().print("int64_t", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Float")) {
-                try out.writer().print("double", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Float32")) {
-                try out.writer().print("float", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Float64")) {
-                try out.writer().print("double", .{});
-            } else if (std.mem.eql(u8, _type.getToken().data, "Char")) {
-                try out.writer().print("uint32_t", .{});
-            } else if (_type.getCommon().expanded_type.? != _type) {
+            if (_type.getCommon().expanded_type.? != _type) {
                 try printType(_type.getCommon().expanded_type.?, out);
             } else {
-                std.debug.print("\n    Unknown primitive type `{s}`\n\n", .{_type.getToken().data});
-                unreachable;
+                try out.writer().print("{s}", .{primitives.get(_type.getToken().data).c_name});
             }
         },
         .addrOf => {

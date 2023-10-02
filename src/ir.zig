@@ -1,5 +1,6 @@
 const _ast = @import("ast.zig");
 const errs = @import("errors.zig");
+const primitives = @import("primitives.zig");
 const program = @import("program.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
@@ -990,7 +991,7 @@ pub const CFG = struct {
 
                 var expanded_expr_type = try expr.type.expand_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
-                var condition = try createTempSymbolVersion(self, _ast.boolType, errors, allocator);
+                var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
                 var load_tag = try IR.createGetTag(condition, expr, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
                 self.appendInstruction(load_tag);
                 self.appendInstruction(try IR.createBranch(condition, err, ast.getToken().span, allocator));
@@ -1262,7 +1263,7 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(ast.getToken().span, allocator);
 
                 // Test if lhs tag is 1 (some)
-                var condition = try createTempSymbolVersion(self, _ast.boolType, errors, allocator);
+                var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
                 var load_tag = try IR.createGetTag(condition, lhs, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
                 self.appendInstruction(load_tag);
 
@@ -1301,7 +1302,7 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(ast.getToken().span, allocator);
 
                 // Test if lhs tag is 1 (some)
-                var condition = try createTempSymbolVersion(self, _ast.boolType, errors, allocator);
+                var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
                 var load_tag = try IR.createGetTag(condition, lhs, ast.getToken().span, allocator); // Assumes `some` tag is nonzero, `none` tag is zero
                 self.appendInstruction(load_tag);
 
@@ -1361,7 +1362,7 @@ pub const CFG = struct {
 
                 var meta: IRMeta = IRMeta.none;
                 if (do_check) {
-                    var tag = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                    var tag = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                     var tag_ir = try IR.createGetTag(tag, lhs, ast.getToken().span, allocator);
                     self.appendInstruction(tag_ir);
 
@@ -1412,7 +1413,7 @@ pub const CFG = struct {
                 // } else
                 { // Dynamically confirm that lower <= upper
                     var end_label = try IR.createLabel(ast.getToken().span, allocator);
-                    var compare = try self.createTempSymbolVersion(_ast.boolType, errors, allocator);
+                    var compare = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
                     var ir = try IR.create(.greater, compare, lower, upper, ast.getToken().span, allocator);
                     self.appendInstruction(ir);
                     var branch = try IR.createBranch(compare, end_label, ast.getToken().span, allocator);
@@ -1422,7 +1423,7 @@ pub const CFG = struct {
                     self.appendInstruction(end_label);
                 }
 
-                var new_size = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                var new_size = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                 var new_size_ir = try IR.create(.sub, new_size, upper, lower, ast.getToken().span, allocator);
                 self.appendInstruction(new_size_ir);
 
@@ -1704,7 +1705,7 @@ pub const CFG = struct {
                         var expanded_temp_type = try _temp.type.expand_type(scope, errors, allocator);
                         if (current_error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
                             // Returning error sum, runtime check if error, branch to error path
-                            var condition = try createTempSymbolVersion(self, _ast.boolType, errors, allocator);
+                            var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
                             var load_tag = try IR.createGetTag(condition, _temp, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
                             self.appendInstruction(load_tag);
                             self.appendInstruction(try IR.createBranch(condition, current_error_label, ast.getToken().span, allocator));
@@ -1778,7 +1779,7 @@ pub const CFG = struct {
                     var expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                     if (expanded_expr_type.* == .sum and expanded_expr_type.sum.was_error) {
                         // Returning error sum, runtime check if error, branch to error path
-                        var condition = try createTempSymbolVersion(self, _ast.boolType, errors, allocator);
+                        var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
                         var load_tag = try IR.createGetTag(condition, retval, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
                         self.appendInstruction(load_tag);
                         self.appendInstruction(try IR.createBranch(condition, error_label.?, ast.getToken().span, allocator));
@@ -1805,28 +1806,7 @@ pub const CFG = struct {
     fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
         switch (_type.*) {
             .identifier => {
-                if (std.mem.eql(u8, _type.getToken().data, "Bool")) {
-                    // default is false
-                    var temp = try self.createTempSymbolVersion(_type, errors, allocator);
-                    var ir = try IR.createInt(temp, 0, _type.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    return temp;
-                } else if (std.mem.eql(u8, _type.getToken().data, "Byte")) {
-                    var temp = try self.createTempSymbolVersion(_type, errors, allocator);
-                    var ir = try IR.createInt(temp, 0, _type.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    return temp;
-                } else if (std.mem.eql(u8, _type.getToken().data, "Int")) {
-                    var temp = try self.createTempSymbolVersion(_type, errors, allocator);
-                    var ir = try IR.createInt(temp, 0, _type.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    return temp;
-                } else if (std.mem.eql(u8, _type.getToken().data, "Float")) {
-                    var temp = try self.createTempSymbolVersion(_type, errors, allocator);
-                    var ir = try IR.createFloat(temp, 0, _type.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    return temp;
-                } else if (std.mem.eql(u8, _type.getToken().data, "Char")) {
+                if (_type.getCommon().expanded_type.? == _type) {
                     var temp = try self.createTempSymbolVersion(_type, errors, allocator);
                     var ir = try IR.createInt(temp, 0, _type.getToken().span, allocator);
                     self.appendInstruction(ir);
@@ -1861,7 +1841,7 @@ pub const CFG = struct {
                     if (term_symb_ver) |_| {
                         try ir.data.symbverList.append(term_symb_ver.?);
                     } else {
-                        var temp2 = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                        var temp2 = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                         var ir2 = try IR.createInt(temp2, 0, _type.getToken().span, allocator);
                         self.appendInstruction(ir2);
                         try ir.data.symbverList.append(temp2);
@@ -1992,7 +1972,7 @@ pub const CFG = struct {
             .block,
             => {
                 var value = try self.flattenAST(scope, pattern.?, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                var condition = try self.createTempSymbolVersion(_ast.boolType, errors, allocator);
+                var condition = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
                 var condition_ir = try IR.create(.equal, condition, new_expr, value.?, pattern.?.getToken().span, allocator);
                 self.appendInstruction(condition_ir);
                 var branch = try IR.createBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
@@ -2014,17 +1994,17 @@ pub const CFG = struct {
             },
             .select => {
                 // Get tag of pattern
-                var sel = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                var sel = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                 var sel_ir = try IR.createInt(sel, pattern.?.select.pos.?, pattern.?.getToken().span, allocator);
                 self.appendInstruction(sel_ir);
 
                 // Get tag of expr
-                var tag = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                var tag = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                 var tag_ir = try IR.createGetTag(tag, expr, pattern.?.getToken().span, allocator);
                 self.appendInstruction(tag_ir);
 
                 // Compare them, jump to next pattern if they are not equal
-                var neql = try self.createTempSymbolVersion(_ast.boolType, errors, allocator);
+                var neql = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
                 var neql_ir = try IR.create(.equal, neql, tag, sel, pattern.?.getToken().span, allocator);
                 self.appendInstruction(neql_ir);
                 var branch = try IR.createBranch(neql, next_pattern, pattern.?.getToken().span, allocator);
@@ -2032,17 +2012,17 @@ pub const CFG = struct {
             },
             .inferredMember => {
                 // Get tag of pattern
-                var sel = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                var sel = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                 var sel_ir = try IR.createInt(sel, pattern.?.inferredMember.pos.?, pattern.?.getToken().span, allocator);
                 self.appendInstruction(sel_ir);
 
                 // Get tag of expr
-                var tag = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+                var tag = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
                 var tag_ir = try IR.createGetTag(tag, expr, pattern.?.getToken().span, allocator);
                 self.appendInstruction(tag_ir);
 
                 // Compare them, jump to next pattern if they are not equal
-                var neql = try self.createTempSymbolVersion(_ast.boolType, errors, allocator);
+                var neql = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
                 var neql_ir = try IR.create(.equal, neql, tag, sel, pattern.?.getToken().span, allocator);
                 self.appendInstruction(neql_ir);
                 var branch = try IR.createBranch(neql, next_pattern, pattern.?.getToken().span, allocator);
@@ -2060,7 +2040,7 @@ pub const CFG = struct {
 
     /// \param ast The index AST
     fn generate_bounds_check(self: *CFG, scope: *Scope, ast: *AST, lhs: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) !IRMeta {
-        var length: *SymbolVersion = try self.createTempSymbolVersion(_ast.intType, errors, allocator);
+        var length: *SymbolVersion = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
         var lhs_type = try lhs.type.expand_type(scope, errors, allocator);
         if (lhs_type.* == .product and lhs_type.product.was_slice) {
             var ir = try IR.createSelect(length, lhs, 1, ast.index.lhs.getToken().span, allocator);

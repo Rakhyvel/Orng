@@ -30,24 +30,24 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
-void _4_void();
+int64_t _1_main();
+void _3_void();
 
 /* Function definitions */
-int64_t _2_main() {
-    int64_t _2_$retval;
+int64_t _1_main() {
+    int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/void-return.orng:3:10:\n    void()\n        ^";
-    _4_void();
+    _3_void();
     $line_idx--;
-    _2_$retval = 65;
-    return _2_$retval;
+    _1_$retval = 65;
+    return _1_$retval;
 }
 
-void _4_void() {
+void _3_void() {
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

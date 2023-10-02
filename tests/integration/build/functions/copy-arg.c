@@ -30,39 +30,39 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
-int64_t _4_g(int64_t _4_x);
-int64_t _6_f(int64_t _6_x);
+int64_t _1_main();
+int64_t _3_g(int64_t _3_x);
+int64_t _5_f(int64_t _5_x);
 
 /* Function definitions */
-int64_t _2_main() {
-    int64_t _2_t0;
-    int64_t _2_$retval;
+int64_t _1_main() {
+    int64_t _1_t0;
+    int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:3:7:\n    g(194)\n     ^";
-    _2_t0 = _4_g(194);
+    _1_t0 = _3_g(194);
     $line_idx--;
-    _2_$retval = _2_t0;
-    return _2_$retval;
+    _1_$retval = _1_t0;
+    return _1_$retval;
 }
 
-int64_t _4_g(int64_t _4_x) {
-    int64_t _4_t0;
-    int64_t _4_$retval;
+int64_t _3_g(int64_t _3_x) {
+    int64_t _3_t0;
+    int64_t _3_$retval;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:8:7:\n    f(z)\n     ^";
-    _4_t0 = _6_f(_4_x);
+    _3_t0 = _5_f(_3_x);
     $line_idx--;
-    _4_$retval = _4_t0;
-    return _4_$retval;
+    _3_$retval = _3_t0;
+    return _3_$retval;
 }
 
-int64_t _6_f(int64_t _6_x) {
-    int64_t _6_$retval;
-    _6_$retval = _6_x;
-    return _6_$retval;
+int64_t _5_f(int64_t _5_x) {
+    int64_t _5_$retval;
+    _5_$retval = _5_x;
+    return _5_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

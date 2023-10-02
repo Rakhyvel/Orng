@@ -1,4 +1,5 @@
 const errs = @import("errors.zig");
+const primitives = @import("primitives.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 const tokens = @import("token.zig");
@@ -12,41 +13,12 @@ const Symbol = _symbol.Symbol;
 const Token = tokens.Token;
 const TokenKind = tokens.TokenKind;
 
-pub var typesInited = false;
-pub var boolType: *AST = undefined;
-pub var byteType: *AST = undefined;
-pub var byteSliceType: *AST = undefined;
-pub var charType: *AST = undefined;
-pub var floatType: *AST = undefined;
-pub var intType: *AST = undefined;
-pub var stringType: *AST = undefined;
-pub var typeType: *AST = undefined;
-pub var unitType: *AST = undefined;
-pub var voidType: *AST = undefined;
 pub var poisoned: *AST = undefined;
+var typesInited: bool = false;
 
 pub fn initTypes() !void {
     if (!typesInited) {
-        boolType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        byteType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Byte", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        charType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        floatType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        intType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        stringType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "String", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        typeType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        unitType = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        voidType = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        byteSliceType = try AST.create_slice_type(byteType, false, std.heap.page_allocator); // Slice types must be AFTER intType
-        boolType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = boolType } };
-        byteType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = byteType } };
-        charType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = charType } };
-        floatType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = floatType } };
-        intType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = intType } };
-        stringType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = stringType } };
-        typeType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = typeType } };
-        unitType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = unitType } };
-        voidType.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = voidType } };
+        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "NO BACKGROUND CHECKS", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         poisoned.getCommon().validation_state = .invalid;
         typesInited = true;
     }
@@ -155,7 +127,7 @@ pub const AST = union(enum) {
             }
             var res = true;
             for (self.terms.items) |term| {
-                res = res and term.c_typesMatch(unitType);
+                res = res and term.c_typesMatch(primitives.unit_type);
             }
             self.all_unit = res;
             return res;
@@ -381,7 +353,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = intType } }, allocator);
+        return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.int_type } }, allocator);
     }
 
     pub fn createChar(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -389,7 +361,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createFloat(token: Token, data: f64, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = floatType } }, allocator);
+        return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.float_type } }, allocator);
     }
 
     pub fn createString(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -645,7 +617,7 @@ pub const AST = union(enum) {
         try term_types.append(try AST.createAnnotation(
             of.getToken(),
             try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator),
-            intType,
+            primitives.int_type,
             null,
             null,
             allocator,
@@ -659,7 +631,7 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", 0, 0), allocator), unitType, null, unitType, allocator);
+        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
         try term_types.append(none_type);
 
         var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", 0, 0), allocator), of_type, null, null, allocator);
@@ -673,7 +645,7 @@ pub const AST = union(enum) {
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, "", 0, 0), allocator), err_type, null, unitType, allocator);
+        var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, "", 0, 0), allocator), err_type, null, primitives.unit_type, allocator);
         try term_types.append(none_type);
 
         var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
@@ -897,10 +869,10 @@ pub const AST = union(enum) {
             .lesser,
             .greater_equal,
             .lesser_equal,
-            => retval = boolType,
+            => retval = primitives.bool_type,
 
             // Char type
-            .char => retval = charType,
+            .char => retval = primitives.char_type,
 
             // Float constant type
             .float => retval = self.float.represents,
@@ -909,7 +881,7 @@ pub const AST = union(enum) {
             .int => retval = self.int.represents,
 
             // String type
-            .string => retval = stringType,
+            .string => retval = primitives.string_type,
 
             // Type type
             .unit,
@@ -917,7 +889,7 @@ pub const AST = union(enum) {
             .sum,
             ._union,
             .function,
-            => retval = typeType,
+            => retval = primitives.type_type,
 
             // Unit type
             .decl,
@@ -925,14 +897,14 @@ pub const AST = union(enum) {
             ._defer,
             ._errdefer,
             .discard,
-            => retval = unitType,
+            => retval = primitives.unit_type,
 
             // Void type
             ._continue,
             ._break,
             ._return,
             ._unreachable,
-            => retval = voidType,
+            => retval = primitives.void_type,
 
             // Binary operators
             .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
@@ -946,9 +918,9 @@ pub const AST = union(enum) {
 
             .product => {
                 var first_type = try self.product.terms.items[0].typeof(scope, errors, allocator);
-                if (try first_type.typesMatch(typeType, scope, errors, allocator)) {
+                if (try first_type.typesMatch(primitives.type_type, scope, errors, allocator)) {
                     // typeof product type is Type
-                    retval = typeType;
+                    retval = primitives.type_type;
                 } else if (self.product.was_slice) {
                     var addr: *AST = self.product.terms.items[0];
                     retval = try create_slice_type(try addr.addrOf.expr.typeof(scope, errors, allocator), addr.addrOf.mut, allocator);
@@ -966,7 +938,7 @@ pub const AST = union(enum) {
 
             .index => {
                 var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
-                if (try lhs_type.typesMatch(typeType, scope, errors, allocator) and self.index.lhs.* == .product) {
+                if (try lhs_type.typesMatch(primitives.type_type, scope, errors, allocator) and self.index.lhs.* == .product) {
                     retval = self.index.lhs.product.terms.items[0];
                 } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
                     if (lhs_type.product.was_slice) {
@@ -975,7 +947,7 @@ pub const AST = union(enum) {
                         retval = lhs_type.product.terms.items[0];
                     }
                 } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String")) {
-                    retval = byteType;
+                    retval = primitives.byte_type;
                 } else if (lhs_type.* == .poison) {
                     retval = poisoned;
                 } else {
@@ -1019,7 +991,7 @@ pub const AST = union(enum) {
 
             // Identifier
             .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
-                retval = unitType;
+                retval = primitives.unit_type;
             } else {
                 var symbol = try _validate.findSymbol(self, null, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
@@ -1037,8 +1009,8 @@ pub const AST = union(enum) {
             },
             .addrOf => {
                 var child_type = try self.addrOf.expr.typeof(scope, errors, allocator);
-                if (try child_type.typesMatch(typeType, scope, errors, allocator)) {
-                    retval = typeType;
+                if (try child_type.typesMatch(primitives.type_type, scope, errors, allocator)) {
+                    retval = primitives.type_type;
                 } else {
                     retval = try createAddrOf(self.getToken(), child_type, self.addrOf.mut, std.heap.page_allocator);
                 }
@@ -1049,8 +1021,8 @@ pub const AST = union(enum) {
                     retval = poisoned;
                 } else {
                     var child_type = expr_type.product.terms.items[0];
-                    if (try child_type.typesMatch(typeType, scope, errors, allocator)) {
-                        retval = typeType;
+                    if (try child_type.typesMatch(primitives.type_type, scope, errors, allocator)) {
+                        retval = primitives.type_type;
                     } else {
                         retval = try create_slice_type(expr_type.product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
                     }
@@ -1077,7 +1049,7 @@ pub const AST = union(enum) {
                     retval = try rhs.typeof(scope, errors, allocator);
                 }
             } else {
-                retval = unitType;
+                retval = primitives.unit_type;
             },
             ._while => {
                 var body_type = try self._while.bodyBlock.typeof(self._while.scope.?, errors, allocator);
@@ -1088,9 +1060,9 @@ pub const AST = union(enum) {
                 }
             },
             .block => if (self.block.final) |_| {
-                retval = voidType;
+                retval = primitives.void_type;
             } else if (self.block.statements.items.len == 0) {
-                retval = unitType;
+                retval = primitives.unit_type;
             } else {
                 retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors, allocator);
             },
@@ -1229,24 +1201,6 @@ pub const AST = union(enum) {
         }
     }
 
-    /// Record for different integer bound types. Bounds are inclusive.
-    const Integer_Bounds = struct {
-        name: []const u8,
-        lower: i128,
-        upper: i128,
-    };
-    const integer_bounds = [_]Integer_Bounds{
-        Integer_Bounds{ .name = "Int8", .lower = -0x80, .upper = 0x7F },
-        Integer_Bounds{ .name = "Int16", .lower = -0x8000, .upper = 0x7FFF },
-        Integer_Bounds{ .name = "Int32", .lower = -0x8000_000, .upper = 0x7FFF_FFFF },
-        Integer_Bounds{ .name = "Int64", .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF },
-        Integer_Bounds{ .name = "Int", .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF },
-
-        Integer_Bounds{ .name = "Byte", .lower = 0, .upper = 0xFF },
-        Integer_Bounds{ .name = "Word16", .lower = 0, .upper = 0xFFFF },
-        Integer_Bounds{ .name = "Word32", .lower = 0, .upper = 0xFFFF_FFFF },
-        Integer_Bounds{ .name = "Word64", .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
-    };
     /// Determines if a given integer type can represent a given integer value.
     pub fn can_represent_integer(self: *AST, value: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
@@ -1257,10 +1211,11 @@ pub const AST = union(enum) {
             // Clearly not an integer type
             return false;
         }
-        for (integer_bounds) |bound| {
-            if (std.mem.eql(u8, bound.name, self.getToken().data) and
-                value >= bound.lower and
-                value <= bound.upper)
+        for (primitives.keys()) |key| {
+            var info = primitives.get(key);
+            if (std.mem.eql(u8, info.name, self.getToken().data) and
+                value >= info.bounds.?.lower and
+                value <= info.bounds.?.upper)
             {
                 return true;
             }
@@ -1291,15 +1246,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-
-        if (std.mem.eql(u8, expanded.getToken().data, "Bool") or
-            std.mem.eql(u8, expanded.getToken().data, "Char") or
-            try self.is_ord_type(scope, errors, allocator))
-        {
-            return true;
-        } else {
-            return false;
-        }
+        return primitives.get(expanded.getToken().data).is_eq();
     }
 
     /// Ord <: Eq
@@ -1308,38 +1255,16 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        if (std.mem.eql(u8, expanded.getToken().data, "Byte") or
-            try self.is_arithmetic_type(scope, errors, allocator))
-        {
-            return true;
-        } else {
-            return false;
-        }
+        return primitives.get(expanded.getToken().data).is_ord();
     }
 
-    /// Arithmetic <: Ord
-    pub fn is_arithmetic_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    /// Num <: Ord
+    pub fn is_num_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* != .identifier) {
             return false;
         }
-        if (std.mem.eql(u8, expanded.getToken().data, "Int") or
-            std.mem.eql(u8, expanded.getToken().data, "Int8") or
-            std.mem.eql(u8, expanded.getToken().data, "Int16") or
-            std.mem.eql(u8, expanded.getToken().data, "Int32") or
-            std.mem.eql(u8, expanded.getToken().data, "Int64") or
-            std.mem.eql(u8, expanded.getToken().data, "Byte") or
-            std.mem.eql(u8, expanded.getToken().data, "Word16") or
-            std.mem.eql(u8, expanded.getToken().data, "Word32") or
-            std.mem.eql(u8, expanded.getToken().data, "Word64") or
-            std.mem.eql(u8, expanded.getToken().data, "Float") or
-            std.mem.eql(u8, expanded.getToken().data, "Float32") or
-            std.mem.eql(u8, expanded.getToken().data, "Float64"))
-        {
-            return true;
-        } else {
-            return false;
-        }
+        return primitives.get(expanded.getToken().data).is_num();
     }
 
     // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
@@ -1361,8 +1286,6 @@ pub const AST = union(enum) {
             .identifier => {
                 if (other.* != .identifier) {
                     return false;
-                } else if (std.mem.eql(u8, "Float", self.getToken().data) and std.mem.eql(u8, "Int", other.getToken().data)) {
-                    return true;
                 } else {
                     return std.mem.eql(u8, self.getToken().data, other.getToken().data);
                 }

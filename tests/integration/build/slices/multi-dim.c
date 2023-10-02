@@ -53,40 +53,40 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _3_x;
-    int64_t* _2_t9;
-    struct1 _2_t5;
-    int64_t* _2_t15;
-    struct1 _2_t11;
-    int64_t* _2_t21;
-    struct1 _2_t17;
-    struct2 _3_y;
-    struct1* _2_t27;
-    struct3 _3_z;
-    int64_t _2_$retval;
-    _3_x = (struct0) {1, 2, 3};
-    _2_t9 = (int64_t*)&_3_x;
-    _2_t5 = (struct1) {_2_t9, 3};
-    _2_t15 = (int64_t*)&_3_x;
-    _2_t11 = (struct1) {_2_t15, 3};
-    _2_t21 = (int64_t*)&_3_x;
-    _2_t17 = (struct1) {_2_t21, 3};
-    _3_y = (struct2) {_2_t5, _2_t11, _2_t17};
-    _2_t27 = (struct1*)&_3_y;
-    _3_z = (struct3) {_2_t27, 3};
-    $bounds_check(2, ((struct1*)_3_z._0 + 1)->_1, "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n        ^");
-    *((int64_t*)((struct1*)_3_z._0 + 1)->_0 + 2) = 82;
-    $bounds_check(2, ((struct1*)_3_z._0 + 1)->_1, "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][2]\n        ^");
-    _2_$retval = *((int64_t*)((struct1*)_3_z._0 + 1)->_0 + 2);
-    return _2_$retval;
+int64_t _1_main() {
+    struct0 _2_x;
+    int64_t* _1_t9;
+    struct1 _1_t5;
+    int64_t* _1_t15;
+    struct1 _1_t11;
+    int64_t* _1_t21;
+    struct1 _1_t17;
+    struct2 _2_y;
+    struct1* _1_t27;
+    struct3 _2_z;
+    int64_t _1_$retval;
+    _2_x = (struct0) {1, 2, 3};
+    _1_t9 = (int64_t*)&_2_x;
+    _1_t5 = (struct1) {_1_t9, 3};
+    _1_t15 = (int64_t*)&_2_x;
+    _1_t11 = (struct1) {_1_t15, 3};
+    _1_t21 = (int64_t*)&_2_x;
+    _1_t17 = (struct1) {_1_t21, 3};
+    _2_y = (struct2) {_1_t5, _1_t11, _1_t17};
+    _1_t27 = (struct1*)&_2_y;
+    _2_z = (struct3) {_1_t27, 3};
+    $bounds_check(2, ((struct1*)_2_z._0 + 1)->_1, "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n        ^");
+    *((int64_t*)((struct1*)_2_z._0 + 1)->_0 + 2) = 82;
+    $bounds_check(2, ((struct1*)_2_z._0 + 1)->_1, "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][2]\n        ^");
+    _1_$retval = *((int64_t*)((struct1*)_2_z._0 + 1)->_0 + 2);
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

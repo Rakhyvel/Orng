@@ -30,43 +30,43 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-int64_t _2_main();
+int64_t _1_main();
 
 /* Function definitions */
-int64_t _2_main() {
-    int64_t _3_x;
-    int64_t* _3_y;
-    int64_t _5_z;
-    int64_t* _2_t8;
-    int64_t _2_t2;
-    int64_t _2_$retval;
-    _3_x = 0;
-    _3_y = &_3_x;
-    if (*_3_y) {
+int64_t _1_main() {
+    int64_t _2_x;
+    int64_t* _2_y;
+    int64_t _4_z;
+    int64_t* _1_t8;
+    int64_t _1_t2;
+    int64_t _1_$retval;
+    _2_x = 0;
+    _2_y = &_2_x;
+    if (*_2_y) {
         goto BB5;
     } else {
         goto BB1;
     }
 BB5:
-    _2_t2 = 1000;
+    _1_t2 = 1000;
     goto BB4;
 BB1:
-    _5_z = *_3_y;
-    _2_t8 = _3_y;
-    **&_2_t8 = _5_z + _5_z;
-    _5_z = _5_z - _5_z;
-    _5_z = _5_z * _5_z;
-    _5_z = _5_z / (_5_z + 1);
-    _5_z = _5_z % (_5_z + 1);
-    _5_z = powf(_5_z, (_5_z + 1));
-    _2_t2 = _5_z * -1.0e+00;
+    _4_z = *_2_y;
+    _1_t8 = _2_y;
+    **&_1_t8 = _4_z + _4_z;
+    _4_z = _4_z - _4_z;
+    _4_z = _4_z * _4_z;
+    _4_z = _4_z / (_4_z + 1);
+    _4_z = _4_z % (_4_z + 1);
+    _4_z = powf(_4_z, (_4_z + 1));
+    _1_t2 = _4_z * -1.0e+00;
 BB4:
-    _2_$retval = _2_t2;
-    return _2_$retval;
+    _1_$retval = _1_t2;
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

@@ -30,17 +30,17 @@ inline static void $tag_check(const int64_t tag, const int64_t sel, const char *
     }
 }
 /* Function forward definitions */
-uint8_t _2_main();
+uint8_t _1_main();
 
 /* Function definitions */
-uint8_t _2_main() {
-    uint8_t _2_$retval;
-    _2_$retval = 1;
-    return _2_$retval;
+uint8_t _1_main() {
+    uint8_t _1_$retval;
+    _1_$retval = 1;
+    return _1_$retval;
 }
 
 int main()
 {
-  printf("%d",_2_main());
+  printf("%d",_1_main());
   return 0;
 }

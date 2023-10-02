@@ -38,32 +38,32 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _2_main();
-int64_t _4_f();
+int64_t _1_main();
+int64_t _3_f();
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _3_x;
-    int64_t _2_t6;
-    int64_t _2_$retval;
-    _3_x = (struct0) {0, 0, 0, 0};
+int64_t _1_main() {
+    struct0 _2_x;
+    int64_t _1_t6;
+    int64_t _1_$retval;
+    _2_x = (struct0) {0, 0, 0, 0};
     $lines[$line_idx++] = "tests/integration/lint/array-copy-neg-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
-    _2_t6 = _4_f();
+    _1_t6 = _3_f();
     $line_idx--;
-    $bounds_check(_2_t6, 4, "tests/integration/lint/array-copy-neg-bounds-check.orng:4:7:\n    x[f()] = 0\n     ^");
-    *((int64_t*)&_3_x + _2_t6) = 0;
-    _2_$retval = 0;
-    return _2_$retval;
+    $bounds_check(_1_t6, 4, "tests/integration/lint/array-copy-neg-bounds-check.orng:4:7:\n    x[f()] = 0\n     ^");
+    *((int64_t*)&_2_x + _1_t6) = 0;
+    _1_$retval = 0;
+    return _1_$retval;
 }
 
-int64_t _4_f() {
-    int64_t _4_$retval;
-    _4_$retval = -100;
-    return _4_$retval;
+int64_t _3_f() {
+    int64_t _3_$retval;
+    _3_$retval = -100;
+    return _3_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

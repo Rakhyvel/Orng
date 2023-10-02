@@ -37,30 +37,30 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _2_main();
-int64_t _4_add(struct0 _4_x);
+int64_t _1_main();
+int64_t _3_add(struct0 _3_x);
 
 /* Function definitions */
-int64_t _2_main() {
-    struct0 _2_t1;
-    int64_t _2_t0;
-    int64_t _2_$retval;
-    _2_t1 = (struct0) {100, 90, 7};
+int64_t _1_main() {
+    struct0 _1_t1;
+    int64_t _1_t0;
+    int64_t _1_$retval;
+    _1_t1 = (struct0) {100, 90, 7};
     $lines[$line_idx++] = "tests/integration/functions/tuple-arg.orng:3:9:\n    add((100, 90, 7))\n       ^";
-    _2_t0 = _4_add(_2_t1);
+    _1_t0 = _3_add(_1_t1);
     $line_idx--;
-    _2_$retval = _2_t0;
-    return _2_$retval;
+    _1_$retval = _1_t0;
+    return _1_$retval;
 }
 
-int64_t _4_add(struct0 _4_x) {
-    int64_t _4_$retval;
-    _4_$retval = *(int64_t*)&_4_x + *((int64_t*)&_4_x + 1) + *((int64_t*)&_4_x + 2);
-    return _4_$retval;
+int64_t _3_add(struct0 _3_x) {
+    int64_t _3_$retval;
+    _3_$retval = *(int64_t*)&_3_x + *((int64_t*)&_3_x + 1) + *((int64_t*)&_3_x + 2);
+    return _3_$retval;
 }
 
 int main()
 {
-  printf("%ld",_2_main());
+  printf("%ld",_1_main());
   return 0;
 }

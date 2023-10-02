@@ -22,6 +22,7 @@
 - [ ] Comments on each function and struct field
 - [ ] *probably* should only be one struct per file
 - [ ] Change some while loops with counter to enhanced for loops
+- [ ] See if things *really* need to be marked `pub`
 - [ ] Go through files and find TODO comments
 - [x] All inits have a corresponding deinit
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
