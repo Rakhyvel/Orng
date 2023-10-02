@@ -33,8 +33,7 @@ int64_t _1_main() {
     _2_x = (struct0) {0, 0, 0, 0};
     _1_t9 = (int64_t*)&_2_x;
     _2_y = (struct1) {_1_t9, 4};
-    $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
-    _1_t12 = _3_f();
+$lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";    _1_t12 = _3_f();
     $line_idx--;
     $bounds_check(_1_t12, 4, "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^");
     *((int64_t*)_2_y._0 + _1_t12) = 0;

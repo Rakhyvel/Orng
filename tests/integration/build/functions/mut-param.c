@@ -14,10 +14,9 @@ int64_t _3_sum_down(int64_t _3_x);
 int64_t _1_main() {
     int64_t _1_t0;
     int64_t _1_$retval;
-    $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
-    _1_t0 = _3_sum_down(8);
+$lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";    _1_t0 = _3_sum_down(8);
     $line_idx--;
-    _1_$retval = _1_t0 + 2;
+    _1_$retval = $add_int64_t(_1_t0, 2, "tests/integration/functions/mut-param.orng:2:3:\nfn main() -> Int {sum_down(8) + 2}\n ^");
     return _1_$retval;
 }
 
@@ -32,7 +31,7 @@ BB1:
         goto BB7;
     }
 BB2:
-    _3_x = _3_x + _5_i;
+    _3_x = $add_int64_t(_3_x, _5_i, "tests/integration/functions/mut-param.orng:6:10:\n        x += i\n        ^");
     _5_i = _5_i - 1;
     goto BB1;
 BB7:

@@ -13,6 +13,7 @@ const IR = _ir.IR;
 const IRKind = _ir.IRKind;
 const Program = _program.Program;
 const Scope = _symbol.Scope;
+const Span = @import("span.zig").Span;
 const String = strings.String;
 const Symbol = _symbol.Symbol;
 const SymbolVersion = _ir.SymbolVersion;
@@ -366,13 +367,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         try printSymbolVersion(ir.src2.?, HIGHEST_PRECEDENCE, out); // idx
         try out.writer().print(", ", .{});
         try printSymbolVersion(ir.meta.bounds_check.length, HIGHEST_PRECEDENCE, out); // length
-        try out.writer().print(", \"{s}:{}:{}:\\n{s}\\n{s}^\");\n", .{
-            ir.span.filename,
-            ir.span.line,
-            ir.span.col,
-            try sanitize_string(program.lines.items[ir.span.line - 1], std.heap.page_allocator),
-            spaces.str(),
-        });
+        try out.writer().print(", ", .{});
+        try print_debug_line(out, ir.span);
+        try out.writer().print(");\n", .{});
     } else if (ir.meta == .active_field_check) {
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
@@ -382,14 +379,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         }
         try out.writer().print("    $tag_check(", .{});
         try printSymbolVersion(ir.meta.active_field_check.tag, HIGHEST_PRECEDENCE, out); // tag
-        try out.writer().print(", {}, \"{s}:{}:{}:\\n{s}\\n{s}^\");\n", .{
-            ir.meta.active_field_check.selection,
-            ir.span.filename,
-            ir.span.line,
-            ir.span.col,
-            try sanitize_string(program.lines.items[ir.span.line - 1], std.heap.page_allocator),
-            spaces.str(),
-        });
+        try out.writer().print(", {}, ", .{ir.meta.active_field_check.selection});
+        try print_debug_line(out, ir.span);
+        try out.writer().print(");\n", .{});
     }
 
     if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
@@ -486,10 +478,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
                 _ = i;
                 try spaces.insert(" ", spaces.size);
             }
-            try out.writer().print(
-                \\    $lines[$line_idx++] = "{s}:{}:{}:\n{s}\n{s}^";
-                \\
-            , .{ ir.span.filename, ir.span.line, ir.span.col, try sanitize_string(program.lines.items[ir.span.line - 1], std.heap.page_allocator), spaces.str() });
+            try out.writer().print("$lines[$line_idx++] = ", .{});
+            try print_debug_line(out, ir.span);
+            try out.writer().print(";", .{});
         },
         .popStackTrace => {
             try out.writer().print(
@@ -508,7 +499,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
     }
 }
 
-fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
+fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     _ = precedence;
     if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
         return;
@@ -572,8 +563,16 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
         },
         .negate => {
-            try out.writer().print("-", .{});
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+            if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
+                try out.writer().print("$negate_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try print_debug_line(out, ir.span);
+                try out.writer().print(")", .{});
+            } else {
+                try out.writer().print("-", .{});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+            }
         },
         .addrOf => {
             try generateLValueIR(ir.src1.?, ir.kind.precedence(), out);
@@ -615,9 +614,19 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) !void {
             try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .add => {
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(" + ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
+                try out.writer().print("$add_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try print_debug_line(out, ir.span);
+                try out.writer().print(")", .{});
+            } else {
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(" + ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            }
         },
         .sub => {
             try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
@@ -868,6 +877,7 @@ const CodeGen_Error = error{
     OutOfMemory,
     typeError,
     Unimplemented,
+    InvalidRange,
 };
 
 fn hide_temporary(symbver: *SymbolVersion) bool {
@@ -902,6 +912,22 @@ fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
         try printSymbol(return_symbol, out);
         try out.writer().print(";\n", .{});
     }
+}
+
+/// Prints out a line string, with quotes and arrow.
+fn print_debug_line(out: *std.fs.File, span: Span) !void {
+    var spaces = String.init(std.heap.page_allocator);
+    defer spaces.deinit();
+    for (1..span.col - 1) |_| {
+        try spaces.insert(" ", spaces.size);
+    }
+    try out.writer().print("\"{s}:{}:{}:\\n{s}\\n{s}^\"", .{
+        span.filename,
+        span.line,
+        span.col,
+        try sanitize_string(program.lines.items[span.line - 1], std.heap.page_allocator),
+        spaces.str(),
+    });
 }
 
 fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) ![]const u8 {

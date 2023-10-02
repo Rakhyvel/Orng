@@ -37,7 +37,7 @@ int64_t _1_main() {
     _2_y = _1_t0._0._1;
     _2_a = _1_t0._1._0;
     _2_b = _1_t0._1._1;
-    _1_$retval = _2_x + _2_y + _2_a + _2_b;
+    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(_2_x, _2_y, "tests/integration/pattern/let-product-product.orng:4:8:\n    x + y + a + b\n      ^"), _2_a, "tests/integration/pattern/let-product-product.orng:4:12:\n    x + y + a + b\n          ^"), _2_b, "tests/integration/pattern/let-product-product.orng:2:3:\nfn main() -> Int {\n ^");
     return _1_$retval;
 }
 

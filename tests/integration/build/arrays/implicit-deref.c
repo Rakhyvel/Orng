@@ -25,7 +25,7 @@ int64_t _1_main() {
     int64_t _1_$retval;
     _2_x = (struct0) {1, 2, 3, 4, 5};
     _2_y = &_2_x;
-    _1_$retval = *((int64_t*)_2_y + 2) + 77;
+    _1_$retval = $add_int64_t(*((int64_t*)_2_y + 2), 77, "tests/integration/arrays/implicit-deref.orng:2:3:\nfn main() -> Int {\n ^");
     return _1_$retval;
 }
 

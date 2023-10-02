@@ -17,8 +17,7 @@ int64_t _1_main() {
     int64_t _1_$retval;
     _2_x = 4;
     _2_y = &_2_x;
-    $lines[$line_idx++] = "tests/integration/expressions/deref-copy-param.orng:5:7:\n    f(y)\n     ^";
-    _3_f(_2_y);
+$lines[$line_idx++] = "tests/integration/expressions/deref-copy-param.orng:5:7:\n    f(y)\n     ^";    _3_f(_2_y);
     $line_idx--;
     _1_$retval = *_2_y;
     return _1_$retval;

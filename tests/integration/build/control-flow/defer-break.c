@@ -30,11 +30,11 @@ BB6:
     _1_$retval = _2_x;
     return _1_$retval;
 BB4:
-    _2_x = _2_x + 2;
+    _2_x = $add_int64_t(_2_x, 2, "tests/integration/control-flow/defer-break.orng:5:16:\n        defer x += 2\n              ^");
     goto BB6;
 BB9:
-    _2_x = _2_x + 2;
-    _2_x = _2_x + 1;
+    _2_x = $add_int64_t(_2_x, 2, "tests/integration/control-flow/defer-break.orng:5:16:\n        defer x += 2\n              ^");
+    _2_x = $add_int64_t(_2_x, 1, "tests/integration/control-flow/defer-break.orng:4:21:\n    while x < 100; x += 1 {\n                   ^");
     goto BB1;
 }
 

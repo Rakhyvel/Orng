@@ -21,8 +21,8 @@ BB1:
         goto BB6;
     }
 BB2:
-    _3_x = _3_x + 1;
-    _3_x = _3_x + 1;
+    _3_x = $add_int64_t(_3_x, 1, "tests/integration/control-flow/while-else.orng:4:10:\n        x += 1\n        ^");
+    _3_x = $add_int64_t(_3_x, 1, "tests/integration/control-flow/while-else.orng:3:40:\n    while let mut x: Int = 0; x < 10; x += 1 {\n                                      ^");
     goto BB1;
 BB6:
     _1_$retval = _3_x;

@@ -33,7 +33,7 @@ int64_t _1_main() {
     _1_t5 = (struct0) {4, 5, 68};
     _1_t9 = (struct0) {7, 8, 9};
     _2_x = (struct1) {_1_t1, _1_t5, _1_t9};
-    *((int64_t*)((struct0*)&_2_x + 1) + 2) = *((int64_t*)((struct0*)&_2_x + 1) + 2) + 1;
+    *((int64_t*)((struct0*)&_2_x + 1) + 2) = $add_int64_t(*((int64_t*)((struct0*)&_2_x + 1) + 2), 1, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
     _1_$retval = *((int64_t*)((struct0*)&_2_x + 1) + 2);
     return _1_$retval;
 }

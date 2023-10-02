@@ -37,6 +37,7 @@ pub const Primitive_Info = struct {
     ast: *AST,
     symbol: *Symbol,
     type_class: Type_Class,
+    signed_integer: bool,
 
     pub fn is_eq(self: Primitive_Info) bool {
         return self.type_class == .eq or self.is_ord();
@@ -121,25 +122,25 @@ pub fn init() !*Scope {
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
-        try create_info("Bool", null, "uint8_t", bool_type, null, .eq);
-        try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num);
-        try create_info("Char", null, "uint32_t", char_type, null, .ord);
-        try create_info("Float", null, "double", float_type, null, .num);
-        try create_info("Float32", null, "float", float32_type, null, .num);
-        try create_info("Float64", null, "double", float64_type, float_type, .num);
-        try create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num);
-        try create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num);
-        try create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num);
-        try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num);
-        try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num);
-        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num);
-        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num);
-        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num);
+        try create_info("Bool", null, "uint8_t", bool_type, null, .eq, false);
+        try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num, false);
+        try create_info("Char", null, "uint32_t", char_type, null, .ord, false);
+        try create_info("Float", null, "double", float_type, null, .num, false);
+        try create_info("Float32", null, "float", float32_type, null, .num, false);
+        try create_info("Float64", null, "double", float64_type, float_type, .num, false);
+        try create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num, true);
+        try create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num, true);
+        try create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num, true);
+        try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, true);
+        try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, true);
+        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, false);
+        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, false);
+        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, false);
     }
     return prelude.?;
 }
 
-fn create_info(name: []const u8, bounds: ?Bounds, c_name: []const u8, _ast: *AST, alias: ?*AST, type_class: Type_Class) !void {
+fn create_info(name: []const u8, bounds: ?Bounds, c_name: []const u8, _ast: *AST, alias: ?*AST, type_class: Type_Class, signed_integer: bool) !void {
     var symbol = try create_prelude_symbol(name, type_type, alias, true);
     try primitives.put(name, Primitive_Info{
         .name = name,
@@ -148,6 +149,7 @@ fn create_info(name: []const u8, bounds: ?Bounds, c_name: []const u8, _ast: *AST
         .ast = _ast,
         .symbol = symbol,
         .type_class = type_class,
+        .signed_integer = signed_integer,
     });
 }
 
@@ -173,4 +175,17 @@ pub fn keys() [][]const u8 {
 
 pub fn get(name: []const u8) Primitive_Info {
     return primitives.get(name).?;
+}
+
+pub fn from_ast(_type: *AST) Primitive_Info {
+    std.debug.assert(_type.* == .identifier);
+    return primitives.get(_type.getToken().data).?;
+}
+
+pub fn represents_signed_primitive(_type: *AST) bool {
+    if (_type.* != .identifier) {
+        return false;
+    }
+    var info = from_ast(_type) orelse return false;
+    return info.signed_integer;
 }

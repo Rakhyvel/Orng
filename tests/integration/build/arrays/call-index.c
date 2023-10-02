@@ -26,8 +26,7 @@ int64_t _1_main() {
     int64_t _1_$retval;
     _2_x = (struct0) {1, 2, 3, 4};
     _1_t6 = &_2_x;
-    $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n     ^";
-    _1_t5 = _3_f(_1_t6);
+$lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n     ^";    _1_t5 = _3_f(_1_t6);
     $line_idx--;
     _1_$retval = *((int64_t*)_1_t5 + 3);
     return _1_$retval;

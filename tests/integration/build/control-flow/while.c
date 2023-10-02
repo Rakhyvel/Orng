@@ -23,8 +23,8 @@ BB1:
         goto BB7;
     }
 BB2:
-    _2_x = _2_x + _3_i;
-    _3_i = _3_i + 1;
+    _2_x = $add_int64_t(_2_x, _3_i, "tests/integration/control-flow/while.orng:5:10:\n        x = x + i\n        ^");
+    _3_i = $add_int64_t(_3_i, 1, "tests/integration/control-flow/while.orng:4:41:\n    while let mut i: Int = 0; i <= 10; i = i + 1 {\n                                       ^");
     goto BB1;
 BB7:
     _1_$retval = _2_x;

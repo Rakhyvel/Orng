@@ -32,9 +32,9 @@ BB10:
     _1_$retval = _2_x;
     return _1_$retval;
 BB6:
-    _2_x = _2_x + 1;
+    _2_x = $add_int64_t(_2_x, 1, "tests/integration/control-flow/continue.orng:8:10:\n        x += 1\n        ^");
 BB4:
-    _3_i = _3_i + 1;
+    _3_i = $add_int64_t(_3_i, 1, "tests/integration/control-flow/continue.orng:4:35:\n    while let mut i = 0; i < 70; i += 1 {\n                                 ^");
     goto BB1;
 }
 

@@ -17,7 +17,7 @@ int64_t _1_main() {
     int64_t _1_$retval;
     _2_x = 1;
     _2_y = &_2_x;
-    if (-*_2_y == -1) {
+    if ($negate_int64_t(*_2_y, "tests/integration/whitebox/negate.orng:5:9:\n    if -y^ == -1 {\n       ^") == -1) {
         goto BB1;
     } else {
         goto BB5;

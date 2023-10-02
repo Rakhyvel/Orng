@@ -1246,7 +1246,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives.get(expanded.getToken().data).is_eq();
+        return primitives.from_ast(expanded).is_eq();
     }
 
     /// Ord <: Eq
@@ -1255,7 +1255,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives.get(expanded.getToken().data).is_ord();
+        return primitives.from_ast(expanded).is_ord();
     }
 
     /// Num <: Ord
@@ -1264,7 +1264,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives.get(expanded.getToken().data).is_num();
+        return primitives.from_ast(expanded).is_num();
     }
 
     // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.

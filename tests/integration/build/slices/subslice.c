@@ -38,8 +38,7 @@ int64_t _1_main() {
     _1_t18 = _1_t11 + 1;
     _2_z = (struct1) {_1_t18, 4};
     *((int64_t*)_2_z._0 + 2) = 10;
-    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
-    _1_t23 = _3_sum_up(_2_z);
+$lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";    _1_t23 = _3_sum_up(_2_z);
     $line_idx--;
     _1_$retval = _1_t23;
     return _1_$retval;
@@ -59,8 +58,8 @@ BB1:
     }
 BB2:
     $bounds_check(_5_i, _3_xs._1, "tests/integration/slices/subslice.orng:13:19:\n        sum += xs[i]\n                 ^");
-    _4_sum = _4_sum + *((int64_t*)_3_xs._0 + _5_i);
-    _5_i = _5_i + 1;
+    _4_sum = $add_int64_t(_4_sum, *((int64_t*)_3_xs._0 + _5_i), "tests/integration/slices/subslice.orng:13:12:\n        sum += xs[i]\n          ^");
+    _5_i = $add_int64_t(_5_i, 1, "tests/integration/slices/subslice.orng:12:47:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                             ^");
     goto BB1;
 BB7:
     _3_$retval = _4_sum;

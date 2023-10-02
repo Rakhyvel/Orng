@@ -15,8 +15,7 @@ int64_t _1_main() {
     uint8_t _1_t1;
     int64_t _1_t0;
     int64_t _1_$retval;
-    $lines[$line_idx++] = "tests/integration/expressions/sub-zero.orng:3:10:\n    if f(4) {\n        ^";
-    _1_t1 = _6_f(4);
+$lines[$line_idx++] = "tests/integration/expressions/sub-zero.orng:3:10:\n    if f(4) {\n        ^";    _1_t1 = _6_f(4);
     $line_idx--;
     if (_1_t1) {
         goto BB1;
@@ -42,7 +41,7 @@ uint8_t _6_f(int64_t _6_x) {
         goto BB4;
     }
 BB1:
-    _6_t0 = -_6_x == -_6_x;
+    _6_t0 = $negate_int64_t(_6_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^") == $negate_int64_t(_6_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
     goto BB3;
 BB4:
     _6_t0 = 0;

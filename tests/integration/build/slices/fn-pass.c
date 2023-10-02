@@ -33,8 +33,7 @@ int64_t _1_main() {
     _2_x = (struct0) {1, 2, 3, 4};
     _1_t9 = (int64_t*)&_2_x;
     _2_y = (struct1) {_1_t9, 4};
-    $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
-    _1_t11 = _3_f(_2_y);
+$lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";    _1_t11 = _3_f(_2_y);
     $line_idx--;
     _1_$retval = _1_t11;
     return _1_$retval;
@@ -43,7 +42,7 @@ int64_t _1_main() {
 int64_t _3_f(struct1 _3_x) {
     int64_t _3_$retval;
     $bounds_check(1, _3_x._1, "tests/integration/slices/fn-pass.orng:8:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                      ^");
-    _3_$retval = *((int64_t*)_3_x._0 + 1) + 80;
+    _3_$retval = $add_int64_t(*((int64_t*)_3_x._0 + 1), 80, "tests/integration/slices/fn-pass.orng:8:3:\nfn f(x: []Int)->Int {x[1] + 80}\n ^");
     return _3_$retval;
 }
 

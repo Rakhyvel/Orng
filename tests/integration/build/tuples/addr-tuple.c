@@ -22,7 +22,7 @@ int64_t _1_main() {
     int64_t _1_$retval;
     _2_x = (struct0) {19, 39};
     _2_y = &_2_x;
-    _1_$retval = _2_y->_0 + _2_y->_1;
+    _1_$retval = $add_int64_t(_2_y->_0, _2_y->_1, "tests/integration/tuples/addr-tuple.orng:2:3:\nfn main() -> Int {\n ^");
     return _1_$retval;
 }
 

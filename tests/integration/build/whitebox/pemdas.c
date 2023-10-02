@@ -30,12 +30,12 @@ BB5:
 BB1:
     _4_z = *_2_y;
     _1_t8 = _2_y;
-    **&_1_t8 = _4_z + _4_z;
+    **&_1_t8 = $add_int64_t(_4_z, _4_z, "tests/integration/whitebox/pemdas.orng:7:24:\n        (&mut z)^ = z + z \n                      ^");
     _4_z = _4_z - _4_z;
     _4_z = _4_z * _4_z;
-    _4_z = _4_z / (_4_z + 1);
-    _4_z = _4_z % (_4_z + 1);
-    _4_z = powf(_4_z, (_4_z + 1));
+    _4_z = _4_z / ($add_int64_t(_4_z, 1, "tests/integration/whitebox/pemdas.orng:10:21:\n        z = z / (z + 1)\n                   ^"));
+    _4_z = _4_z % ($add_int64_t(_4_z, 1, "tests/integration/whitebox/pemdas.orng:11:21:\n        z = z % (z + 1) \n                   ^"));
+    _4_z = powf(_4_z, ($add_int64_t(_4_z, 1, "tests/integration/whitebox/pemdas.orng:12:22:\n        z = z ** (z + 1)\n                    ^")));
     _1_t2 = _4_z * -1.0e+00;
 BB4:
     _1_$retval = _1_t2;

@@ -35,8 +35,7 @@ int64_t _1_main() {
     _2_x = (struct0) {100, 8, 2, 4, 35, 6};
     _1_t18 = (int64_t*)&_2_x;
     _2_z = (struct1) {_1_t18, 3};
-    $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
-    _1_t20 = _3_sum_up(_2_z);
+$lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";    _1_t20 = _3_sum_up(_2_z);
     $line_idx--;
     _1_$retval = _1_t20;
     return _1_$retval;
@@ -56,8 +55,8 @@ BB1:
     }
 BB2:
     $bounds_check(_5_i, _3_xs._1, "tests/integration/slices/infer-lower.orng:12:19:\n        sum += xs[i]\n                 ^");
-    _4_sum = _4_sum + *((int64_t*)_3_xs._0 + _5_i);
-    _5_i = _5_i + 1;
+    _4_sum = $add_int64_t(_4_sum, *((int64_t*)_3_xs._0 + _5_i), "tests/integration/slices/infer-lower.orng:12:12:\n        sum += xs[i]\n          ^");
+    _5_i = $add_int64_t(_5_i, 1, "tests/integration/slices/infer-lower.orng:11:47:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                             ^");
     goto BB1;
 BB7:
     _3_$retval = _4_sum;
