@@ -1214,6 +1214,7 @@ pub const AST = union(enum) {
         for (primitives.keys()) |key| {
             var info = primitives.get(key);
             if (std.mem.eql(u8, info.name, self.getToken().data) and
+                info.bounds != null and
                 value >= info.bounds.?.lower and
                 value <= info.bounds.?.upper)
             {

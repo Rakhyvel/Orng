@@ -154,7 +154,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.int_type } });
                 return ast.enpoison();
             } else {
-                ast.int.represents = expected orelse ast.int.represents;
+                ast.int.represents = expected orelse primitives.int_type;
                 retval = ast;
             }
         },
@@ -182,7 +182,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.float_type } });
                 return ast.enpoison();
             } else {
-                ast.float.represents = expected orelse ast.float.represents;
+                ast.float.represents = expected orelse primitives.float_type;
                 retval = ast;
             }
         },
@@ -383,6 +383,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .add => {
             ast.add.lhs = try validateAST(ast.add.lhs, expected, scope, errors, allocator);
             var lhs_type = try ast.add.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.add.rhs = try validateAST(ast.add.rhs, lhs_type, scope, errors, allocator);
 
             if (ast.add.lhs.* == .poison or ast.add.rhs.* == .poison) {
@@ -400,6 +403,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .sub => {
             ast.sub.lhs = try validateAST(ast.sub.lhs, expected, scope, errors, allocator);
             var lhs_type = try ast.sub.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.sub.rhs = try validateAST(ast.sub.rhs, lhs_type, scope, errors, allocator);
 
             if (ast.sub.lhs.* == .poison or ast.sub.rhs.* == .poison) {
@@ -417,6 +423,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .mult => {
             ast.mult.lhs = try validateAST(ast.mult.lhs, expected, scope, errors, allocator);
             var lhs_type = try ast.mult.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.mult.rhs = try validateAST(ast.mult.rhs, lhs_type, scope, errors, allocator);
 
             if (ast.mult.lhs.* == .poison or ast.mult.rhs.* == .poison) {
@@ -434,6 +443,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .div => {
             ast.div.lhs = try validateAST(ast.div.lhs, expected, scope, errors, allocator);
             var lhs_type = try ast.div.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.div.rhs = try validateAST(ast.div.rhs, lhs_type, scope, errors, allocator);
 
             if (ast.div.lhs.* == .poison or ast.div.rhs.* == .poison) {
@@ -451,6 +463,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .mod => {
             ast.mod.lhs = try validateAST(ast.mod.lhs, primitives.int_type, scope, errors, allocator);
             var lhs_type = try ast.mod.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.mod.rhs = try validateAST(ast.mod.rhs, primitives.int_type, scope, errors, allocator);
 
             if (ast.mod.lhs.* == .poison or ast.mod.rhs.* == .poison) {
@@ -470,6 +485,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
 
             ast.exponent.terms.items[0] = try validateAST(ast.exponent.terms.items[0], expected, scope, errors, allocator);
             var lhs_type = try ast.exponent.terms.items[0].typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             if (!try lhs_type.is_num_type(scope, errors, allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
@@ -498,6 +516,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .equal => {
             ast.equal.lhs = try validateAST(ast.equal.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.equal.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.equal.rhs = try validateAST(ast.equal.rhs, lhs_type, scope, errors, allocator);
             if (ast.equal.lhs.* == .poison or ast.equal.rhs.* == .poison) {
                 return ast.enpoison();
@@ -515,6 +536,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .not_equal => {
             ast.not_equal.lhs = try validateAST(ast.not_equal.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.not_equal.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.not_equal.rhs = try validateAST(ast.not_equal.rhs, lhs_type, scope, errors, allocator);
             if (ast.not_equal.lhs.* == .poison or ast.not_equal.rhs.* == .poison) {
                 return ast.enpoison();
@@ -532,6 +556,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .greater => {
             ast.greater.lhs = try validateAST(ast.greater.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.greater.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.greater.rhs = try validateAST(ast.greater.rhs, lhs_type, scope, errors, allocator);
             if (ast.greater.lhs.* == .poison or ast.greater.rhs.* == .poison) {
                 return ast.enpoison();
@@ -549,6 +576,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .lesser => {
             ast.lesser.lhs = try validateAST(ast.lesser.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.lesser.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.lesser.rhs = try validateAST(ast.lesser.rhs, lhs_type, scope, errors, allocator);
             if (ast.lesser.lhs.* == .poison or ast.lesser.rhs.* == .poison) {
                 return ast.enpoison();
@@ -566,6 +596,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .greater_equal => {
             ast.greater_equal.lhs = try validateAST(ast.greater_equal.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.greater_equal.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.greater_equal.rhs = try validateAST(ast.greater_equal.rhs, lhs_type, scope, errors, allocator);
             if (ast.greater_equal.lhs.* == .poison or ast.greater_equal.rhs.* == .poison) {
                 return ast.enpoison();
@@ -586,6 +619,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         .lesser_equal => {
             ast.lesser_equal.lhs = try validateAST(ast.lesser_equal.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.lesser_equal.lhs.typeof(scope, errors, allocator);
+            if (lhs_type.* == .poison) {
+                return ast.enpoison();
+            }
             ast.lesser_equal.rhs = try validateAST(ast.lesser_equal.rhs, lhs_type, scope, errors, allocator);
             if (ast.lesser_equal.lhs.* == .poison or ast.lesser_equal.rhs.* == .poison) {
                 return ast.enpoison();

@@ -804,6 +804,7 @@ fn generateIndexExpr(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen
 
     if (do_add) {
         // Only generate index add if index is non-zero
+        // NOTE: Do not generate checked addition. The index is already checked.
         try out.writer().print(" + ", .{});
         try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
     }
