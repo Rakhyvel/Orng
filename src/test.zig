@@ -188,7 +188,21 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     }
 
     // compile C (make sure no errors)
-    var gcc_res = exec(&[_][]const u8{ "/bin/gcc", out_name.str(), "-lm", "-Istd", "-O3", "-g", "-Werror", "-Wformat=2", "-fsanitize=undefined,address" }) catch {
+    var gcc_res = exec(&[_][]const u8{
+        "/bin/gcc",
+        out_name.str(),
+        "-lm",
+        "-Istd",
+        "-O3",
+        "-g",
+        "-Werror",
+        "-Wfloat-conversion",
+        "-Wcast-qual",
+        "-Wlogical-op",
+        "-Wshadow",
+        "-Wformat=2",
+        "-fsanitize=undefined,address",
+    }) catch {
         std.debug.print("Error compiling with GCC", .{});
         return false;
     };

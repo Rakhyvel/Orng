@@ -434,30 +434,11 @@ pub const Parser = struct {
     }
 
     fn invoke_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.exponent_expr();
+        var exp = try self.postfix_expr();
         while (self.accept(.INVOKE)) |token| {
-            exp = try AST.createInvoke(token, exp, try self.exponent_expr(), self.astAllocator);
+            exp = try AST.createInvoke(token, exp, try self.postfix_expr(), self.astAllocator);
         }
         return exp;
-    }
-
-    fn exponent_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.postfix_expr();
-        var terms: ?std.ArrayList(*AST) = null;
-        var first_token: ?Token = null;
-        while (self.accept(.D_STAR)) |token| {
-            if (terms == null) {
-                terms = std.ArrayList(*AST).init(self.astAllocator);
-                first_token = token;
-                try terms.?.append(exp);
-            }
-            try terms.?.append(try self.postfix_expr());
-        }
-        if (terms) |terms_list| {
-            return AST.createExponent(first_token.?, terms_list, self.astAllocator);
-        } else {
-            return exp;
-        }
     }
 
     fn postfix_expr(self: *Parser) ParserErrorEnum!*AST {

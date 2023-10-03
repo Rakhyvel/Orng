@@ -444,17 +444,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.dest.?.lvalue = false;
                 retval = true;
             }
-            // Exponent propagation
-            else if (src1_def != null and src1_def.?.kind == .exponent) {
-                log("exponent");
-                ir.kind = .exponent;
-                ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
-                retval = true;
-            }
             // Select propagation
             else if (src1_def != null and src1_def.?.kind == .select) {
                 log("select");
@@ -925,33 +914,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = 0 };
                 ir.src1 = ir.src1;
-                ir.src2 = null;
-                retval = true;
-            }
-        },
-
-        .exponent => {
-            // Known int, int value
-            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
-                ir.kind = .loadInt;
-                ir.data = _ir.IRData{
-                    .int = if (std.math.powi(i128, src1_def.?.data.int, src2_def.?.data.int)) |res| res else |_| {
-                        errors.addError(Error{ .basic = .{
-                            .span = src2_def.?.span,
-                            .msg = "exponent is undefined",
-                        } });
-                        return error.typeError;
-                    },
-                };
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Known float, float value
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
-                ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = std.math.pow(f64, src1_def.?.data.float, src2_def.?.data.float) };
-                ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
             }

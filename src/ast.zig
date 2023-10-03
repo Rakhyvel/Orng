@@ -101,7 +101,6 @@ pub const AST = union(enum) {
     mult: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     div: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     mod: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    exponent: struct { common: ASTCommon, terms: std.ArrayList(*AST) },
     equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     not_equal: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     greater: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -298,7 +297,6 @@ pub const AST = union(enum) {
             .mult => return &self.mult.common,
             .div => return &self.div.common,
             .mod => return &self.mod.common,
-            .exponent => return &self.exponent.common,
             .equal => return &self.equal.common,
             .not_equal => return &self.not_equal.common,
             .greater => return &self.greater.common,
@@ -466,10 +464,6 @@ pub const AST = union(enum) {
 
     pub fn createMod(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .mod = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
-    }
-
-    pub fn createExponent(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
-        return try AST.box(AST{ .exponent = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
     pub fn createCatch(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
@@ -726,12 +720,6 @@ pub const AST = union(enum) {
             .STAR_EQUALS => return createMult(token, lhs, rhs, allocator),
             .SLASH_EQUALS => return createDiv(token, lhs, rhs, allocator),
             .PERCENT_EQUALS => return createMod(token, lhs, rhs, allocator),
-            .D_STAR_EQUALS => {
-                var terms = std.ArrayList(*AST).init(allocator);
-                try terms.append(lhs);
-                try terms.append(rhs);
-                return createExponent(token, terms, allocator);
-            },
             else => {
                 std.debug.print("not a operator-assign token\n", .{});
                 unreachable;
@@ -912,7 +900,6 @@ pub const AST = union(enum) {
             .mult => retval = try self.mult.lhs.typeof(scope, errors, allocator),
             .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
             .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
-            .exponent => retval = try self.exponent.terms.items[0].typeof(scope, errors, allocator),
             ._catch => retval = try self._catch.rhs.typeof(scope, errors, allocator),
             ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
 

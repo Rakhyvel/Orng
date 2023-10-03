@@ -309,9 +309,6 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.mod.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition.mod.rhs, scope, errors, allocator);
         },
-        .exponent => {
-            try symbolTableFromASTList(definition.exponent.terms, scope, errors, allocator);
-        },
         .equal => {
             try symbolTableFromAST(definition.equal.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition.equal.rhs, scope, errors, allocator);

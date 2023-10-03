@@ -35,7 +35,6 @@ BB1:
     _4_z = $mult_int64_t(_4_z, _4_z, "tests/integration/whitebox/pemdas.orng:9:10:\n        z = z * z \n        ^");
     _4_z = $div_int64_t(_4_z, ($add_int64_t(_4_z, 1, "tests/integration/whitebox/pemdas.orng:10:21:\n        z = z / (z + 1)\n                   ^")), "tests/integration/whitebox/pemdas.orng:10:10:\n        z = z / (z + 1)\n        ^");
     _4_z = $mod_int64_t(_4_z, ($add_int64_t(_4_z, 1, "tests/integration/whitebox/pemdas.orng:11:21:\n        z = z % (z + 1) \n                   ^")), "tests/integration/whitebox/pemdas.orng:11:10:\n        z = z % (z + 1) \n        ^");
-    _4_z = powf(_4_z, ($add_int64_t(_4_z, 1, "tests/integration/whitebox/pemdas.orng:12:22:\n        z = z ** (z + 1)\n                    ^")));
     _1_t2 = $mult_int64_t(_4_z, -1.0e+00, "tests/integration/whitebox/pemdas.orng:5:7:\n    if y^ == 0 {\n     ^");
 BB4:
     _1_$retval = _1_t2;

@@ -12,7 +12,7 @@ int64_t _1_main();
 /* Function definitions */
 int64_t _1_main() {
     int64_t _1_$retval;
-    _1_$retval = 0;
+    _1_$retval = 2;
     return _1_$retval;
 }
 

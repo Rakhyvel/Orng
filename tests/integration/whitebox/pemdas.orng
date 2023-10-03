@@ -9,7 +9,6 @@ fn main ()->Int {
         z = z * z 
         z = z / (z + 1)
         z = z % (z + 1) 
-        z = z ** (z + 1)
         z = z * (-1.0)
         z
     } else {

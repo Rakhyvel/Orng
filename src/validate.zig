@@ -477,42 +477,6 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
-        .exponent => {
-            std.debug.assert(ast.exponent.terms.items.len > 1);
-            var new_terms = std.ArrayList(*AST).init(allocator);
-            var poisoned = false;
-            var changed = false;
-
-            ast.exponent.terms.items[0] = try validateAST(ast.exponent.terms.items[0], expected, scope, errors, allocator);
-            var lhs_type = try ast.exponent.terms.items[0].typeof(scope, errors, allocator);
-            if (lhs_type.* == .poison) {
-                return ast.enpoison();
-            }
-            if (!try lhs_type.is_num_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
-                return ast.enpoison();
-            }
-
-            for (ast.exponent.terms.items) |term| {
-                var new_term = try validateAST(term, lhs_type, scope, errors, allocator);
-                try new_terms.append(new_term);
-                changed = changed or new_term != term;
-                poisoned = poisoned or new_term.* == .poison;
-            }
-            if (poisoned) {
-                return ast.enpoison();
-            } else if (changed) {
-                ast.exponent.terms = new_terms;
-            } else {
-                new_terms.deinit();
-            }
-            if (expected != null and !try lhs_type.typesMatch(expected.?, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
-                return ast.enpoison();
-            } else {
-                retval = ast;
-            }
-        },
         .equal => {
             ast.equal.lhs = try validateAST(ast.equal.lhs, null, scope, errors, allocator);
             var lhs_type = try ast.equal.lhs.typeof(scope, errors, allocator);

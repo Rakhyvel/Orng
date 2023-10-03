@@ -150,7 +150,6 @@ pub const IRKind = enum {
     mult,
     div,
     mod,
-    exponent,
     index, // dest = src1[src2]
     indexCopy, // src1[src2] = data.symbver
     select, // dest = src1._${data.int}
@@ -184,7 +183,6 @@ pub const IRKind = enum {
             => 0,
 
             .call,
-            .exponent, // implemented as call to powf
             .index,
             .indexCopy,
             .select,
@@ -511,9 +509,6 @@ pub const IR = struct {
             },
             .mod => {
                 try out.writer().print("    {} := {} % {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
-            },
-            .exponent => {
-                try out.writer().print("    {} := {} ** {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
             .index => {
                 try out.writer().print("    {} := {}[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
@@ -1157,25 +1152,6 @@ pub const CFG = struct {
 
                 var ir = try IR.create(.mod, temp, lhs, rhs, ast.getToken().span, allocator);
                 self.appendInstruction(ir);
-                return temp;
-            },
-            .exponent => {
-                std.debug.assert(ast.exponent.terms.items.len >= 2);
-                var lhs: *SymbolVersion = undefined;
-                var rhs: *SymbolVersion = undefined;
-                var temp: *SymbolVersion = undefined;
-                var terms_len = ast.exponent.terms.items.len;
-
-                rhs = (try self.flattenAST(scope, ast.exponent.terms.items[terms_len - 1], return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
-                var i: usize = ast.exponent.terms.items.len - 1;
-                while (i > 0) : (i -= 1) {
-                    lhs = (try self.flattenAST(scope, ast.exponent.terms.items[i - 1], return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
-                    temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-
-                    var ir = try IR.create(.exponent, temp, lhs, rhs, ast.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    rhs = temp;
-                }
                 return temp;
             },
             .equal => {

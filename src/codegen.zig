@@ -412,7 +412,6 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .mult,
         .div,
         .mod,
-        .exponent,
         .index,
         .select,
         .get_tag,
@@ -688,13 +687,6 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
                 try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
             }
         },
-        .exponent => {
-            try out.writer().print("powf(", .{});
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(", ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
-            try out.writer().print(")", .{});
-        },
         .index => {
             try out.writer().print("*", .{});
             try generateLValueIR(ir.dest.?, IRKind.dereference.precedence(), out);
@@ -926,7 +918,7 @@ fn hide_temporary(symbver: *SymbolVersion) bool {
 }
 
 fn is_literal(ir: *IR) bool {
-    return ir.kind == .loadSymbol or ir.kind == .loadInt or ir.kind == .loadFloat or ir.kind == .loadString or ir.kind == .loadStruct or ir.kind == .loadUnion or ir.kind == .copy or ir.kind == .exponent or ir.kind == .get_tag or ir.kind == .call;
+    return ir.kind == .loadSymbol or ir.kind == .loadInt or ir.kind == .loadFloat or ir.kind == .loadString or ir.kind == .loadStruct or ir.kind == .loadUnion or ir.kind == .copy or ir.kind == .get_tag or ir.kind == .call;
 }
 
 fn commutative(ir: *IR) bool {

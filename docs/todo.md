@@ -205,10 +205,10 @@
         - [ ] `-Wconversion`
         - [ ] `-Wsign-conversion`
         - [ ] `-Wfloat-conversion`
+            > Perhaps remove exponentiation as an operator?
         - [ ] `-Wcast-qual`
-        - [ ] `-Wdouble-promotion`
-        - [ ] `-Wlogical-op`
-        - [ ] `-Wshadow`
+        - [x] `-Wlogical-op`
+        - [x] `-Wshadow`
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
