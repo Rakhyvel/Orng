@@ -21,7 +21,7 @@ BB1:
         goto BB11;
     }
 BB2:
-    if (_2_x % 2) {
+    if ($mod_int64_t(_2_x, 2, "tests/integration/control-flow/defer-continue.orng:6:15:\n        if x % 2 == 0 {continue}\n             ^")) {
         goto BB8;
     } else {
         goto BB4;

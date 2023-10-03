@@ -32,7 +32,8 @@ int64_t _1_main() {
     _2_x = (struct0) {100, 10, 1};
     _1_t15 = (int64_t*)&_2_x;
     _2_z = (struct1) {_1_t15, 3};
-$lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";    _1_t17 = _3_sum_up(_2_z);
+    $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
+    _1_t17 = _3_sum_up(_2_z);
     $line_idx--;
     _1_$retval = _1_t17;
     return _1_$retval;

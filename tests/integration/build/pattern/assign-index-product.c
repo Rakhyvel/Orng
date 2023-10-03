@@ -39,7 +39,8 @@ BB1:
     _1_$retval = 162;
     return _1_$retval;
 BB5:
-$lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";    $panic("reached unreachable code\n");
+    $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
+    $panic("reached unreachable code\n");
 }
 
 int main()

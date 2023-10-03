@@ -23,7 +23,8 @@ int64_t _1_main() {
     int64_t _1_t0;
     int64_t _1_$retval;
     _1_t1 = (struct0) {100, 90, 7};
-$lines[$line_idx++] = "tests/integration/functions/tuple-arg.orng:3:9:\n    add((100, 90, 7))\n       ^";    _1_t0 = _3_add(_1_t1);
+    $lines[$line_idx++] = "tests/integration/functions/tuple-arg.orng:3:9:\n    add((100, 90, 7))\n       ^";
+    _1_t0 = _3_add(_1_t1);
     $line_idx--;
     _1_$retval = _1_t0;
     return _1_$retval;

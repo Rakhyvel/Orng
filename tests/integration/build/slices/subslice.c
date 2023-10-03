@@ -38,7 +38,8 @@ int64_t _1_main() {
     _1_t18 = _1_t11 + 1;
     _2_z = (struct1) {_1_t18, 4};
     *((int64_t*)_2_z._0 + 2) = 10;
-$lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";    _1_t23 = _3_sum_up(_2_z);
+    $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
+    _1_t23 = _3_sum_up(_2_z);
     $line_idx--;
     _1_$retval = _1_t23;
     return _1_$retval;

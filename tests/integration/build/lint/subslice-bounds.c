@@ -37,7 +37,8 @@ int64_t _1_main() {
     _2_x = (struct0) {0, 0, 0, 0};
     _1_t9 = (int64_t*)&_2_x;
     _2_y = (struct1) {_1_t9, 4};
-$lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";    _1_t11 = _3_f();
+    $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";
+    _1_t11 = _3_f();
     $line_idx--;
     _1_t12 = 1;
     if (_1_t11 > _1_t12) {
@@ -46,12 +47,13 @@ $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    le
         goto BB2;
     }
 BB1:
-$lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";    $panic("subslice lower bound is greater than upper bound\n");
+    $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
+    $panic("subslice lower bound is greater than upper bound\n");
 BB2:
     _1_t15 = _2_y._0;
     _1_t16 = _1_t15 + _1_t11;
-    _2_z = (struct1) {_1_t16, (_1_t12 - _1_t11)};
-    $bounds_check(0, _1_t12 - _1_t11, "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^");
+    _2_z = (struct1) {_1_t16, ($sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^"))};
+    $bounds_check(0, $sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:6:6:\n    z[0]\n    ^"), "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^");
     _1_$retval = *(int64_t*)_2_z._0;
     return _1_$retval;
 }

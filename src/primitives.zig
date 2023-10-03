@@ -186,6 +186,6 @@ pub fn represents_signed_primitive(_type: *AST) bool {
     if (_type.* != .identifier) {
         return false;
     }
-    var info = from_ast(_type) orelse return false;
+    var info = primitives.get(_type.getToken().data) orelse return false;
     return info.signed_integer;
 }

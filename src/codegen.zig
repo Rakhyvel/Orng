@@ -478,9 +478,9 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
                 _ = i;
                 try spaces.insert(" ", spaces.size);
             }
-            try out.writer().print("$lines[$line_idx++] = ", .{});
+            try out.writer().print("    $lines[$line_idx++] = ", .{});
             try print_debug_line(out, ir.span);
-            try out.writer().print(";", .{});
+            try out.writer().print(";\n", .{});
         },
         .popStackTrace => {
             try out.writer().print(
@@ -629,24 +629,64 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
             }
         },
         .sub => {
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(" - ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
+                try out.writer().print("$sub_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try print_debug_line(out, ir.span);
+                try out.writer().print(")", .{});
+            } else {
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(" - ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            }
         },
         .mult => {
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(" * ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
+                try out.writer().print("$mult_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try print_debug_line(out, ir.span);
+                try out.writer().print(")", .{});
+            } else {
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(" * ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            }
         },
         .div => {
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(" / ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
+                try out.writer().print("$div_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try print_debug_line(out, ir.span);
+                try out.writer().print(")", .{});
+            } else {
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(" / ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            }
         },
         .mod => {
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(" % ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
+                try out.writer().print("$mod_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+                try out.writer().print(", ", .{});
+                try print_debug_line(out, ir.span);
+                try out.writer().print(")", .{});
+            } else {
+                try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+                try out.writer().print(" % ", .{});
+                try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+            }
         },
         .exponent => {
             try out.writer().print("powf(", .{});

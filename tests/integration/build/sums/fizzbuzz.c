@@ -33,7 +33,8 @@ struct0 _3_fizzbuzz(int64_t _3_n);
 struct1 _1_main() {
     struct0 _1_t0;
     struct1 _1_$retval;
-$lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";    _1_t0 = _3_fizzbuzz(30);
+    $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
+    _1_t0 = _3_fizzbuzz(30);
     $line_idx--;
     _1_$retval = _1_t0._0;
     return _1_$retval;
@@ -44,13 +45,13 @@ struct0 _3_fizzbuzz(int64_t _3_n) {
     struct0 _3_t0;
     struct0 _3_$retval;
     _3_t1 = 0;
-    if (_3_n % 15) {
+    if ($mod_int64_t(_3_n, 15, "tests/integration/sums/fizzbuzz.orng:12:13:\n        {n % 15} => .string <- \"fizzbuzz\"\n           ^")) {
         goto BB7;
     } else {
         goto BB4;
     }
 BB7:
-    if (_3_t1 == _3_n % 5) {
+    if (_3_t1 == $mod_int64_t(_3_n, 5, "tests/integration/sums/fizzbuzz.orng:13:13:\n        {n % 5}  => .string <- \"buzz\"\n           ^")) {
         goto BB10;
     } else {
         goto BB11;
@@ -62,7 +63,7 @@ BB10:
     _3_t0 = (struct0) {.tag=0, ._0=(struct1) {string_1, 5}};
     goto BB6;
 BB11:
-    if (_3_t1 == _3_n % 3) {
+    if (_3_t1 == $mod_int64_t(_3_n, 3, "tests/integration/sums/fizzbuzz.orng:14:13:\n        {n % 3}  => .string <- \"fizz\"\n           ^")) {
         goto BB14;
     } else {
         goto BB16;

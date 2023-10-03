@@ -23,7 +23,7 @@ BB1:
         goto BB10;
     }
 BB2:
-    if (_3_i % 2) {
+    if ($mod_int64_t(_3_i, 2, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^")) {
         goto BB6;
     } else {
         goto BB4;

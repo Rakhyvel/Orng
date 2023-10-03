@@ -11,7 +11,8 @@ int64_t _1_main();
 
 /* Function definitions */
 int64_t _1_main() {
-$lines[$line_idx++] = "tests/integration/control-flow/unreachable.orng:2:30:\nfn main() -> Int {unreachable}\n                            ^";    $panic("reached unreachable code\n");
+    $lines[$line_idx++] = "tests/integration/control-flow/unreachable.orng:2:30:\nfn main() -> Int {unreachable}\n                            ^";
+    $panic("reached unreachable code\n");
 }
 
 int main()

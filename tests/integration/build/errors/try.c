@@ -26,7 +26,8 @@ int64_t _1_main() {
     struct0 _1_t7;
     int64_t _1_t6;
     int64_t _1_$retval;
-$lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n      ^";    _1_t1 = _3_f(1);
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n      ^";
+    _1_t1 = _3_f(1);
     $line_idx--;
     if (_1_t1.tag) {
         goto BB1;
@@ -39,7 +40,8 @@ BB1:
 BB7:
     _1_t0 = 122;
 BB2:
-$lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";    _1_t7 = _3_f(0);
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
+    _1_t7 = _3_f(0);
     $line_idx--;
     if (_1_t7.tag) {
         goto BB3;
@@ -67,7 +69,8 @@ struct0 _3_f(uint8_t _3_fail) {
         goto BB8;
     }
 BB1:
-$lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";    _3_t1 = _8_g();
+    $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
+    _3_t1 = _8_g();
     $line_idx--;
     if (_3_t1.tag) {
         goto BB2;

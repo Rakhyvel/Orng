@@ -14,7 +14,8 @@ int64_t _3_id(int64_t _3_x);
 int64_t _1_main() {
     int64_t _1_t0;
     int64_t _1_$retval;
-$lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:3:8:\n    id(.x = 52)\n      ^";    _1_t0 = _3_id(52);
+    $lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:3:8:\n    id(.x = 52)\n      ^";
+    _1_t0 = _3_id(52);
     $line_idx--;
     _1_$retval = _1_t0;
     return _1_$retval;

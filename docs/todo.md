@@ -194,6 +194,20 @@
         - [x] Add Int8, Int16, Int32, Int64, Float32, Float64, Byte, Word16, Word32, Word64
         - [ ] Add UB checking for signed integer arithmetic
             > {Int8, Int16, Int32, Int64} x {negate, add, sub, mult, div, mod, exponent}
+    - [ ] Enable the following warnings:
+        - [x] `-Wformat=2`
+        - [x] `-Werror`
+        - [ ] `-Wall`
+        - [ ] `-Wextra`
+        - [ ] `-Wpedantic`
+        - [ ] `-pedantic-errors`
+        - [ ] `-Wconversion`
+        - [ ] `-Wsign-conversion`
+        - [ ] `-Wfloat-conversion`
+        - [ ] `-Wcast-qual`
+        - [ ] `-Wdouble-promotion`
+        - [ ] `-Wlogical-op`
+        - [ ] `-Wshadow`
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
