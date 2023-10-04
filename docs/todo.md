@@ -56,7 +56,7 @@
 - [x] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
 - [x] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
 - [x] Adopt Go's newline insertion rules
-- [ ] Allow trailing commas in parenthesis (`, nl )` => `nl )`)
+- [x] Allow trailing commas in parenthesis (`, nl )` => `nl )`)
 - [ ] Wrap up any calls to `AST.createX` outside of parser
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
@@ -196,7 +196,7 @@
         - [x] Add Int8, Int16, Int32, Int64, Float32, Float64, Byte, Word16, Word32, Word64
         - [x] Add UB checking for signed integer arithmetic
             > {Int8, Int16, Int32, Int64} x {negate, add, sub, mult, div, mod, exponent}
-    - [ ] Enable the following warnings:
+    - [x] Enable the following warnings:
         - [x] `-Wformat=2`
         - [x] `-Werror`
         - [x] `-Wall`
@@ -206,7 +206,7 @@
             - [x] mark $panic() as _Noreturn
         - [x] `-Wextra`
         - [x] `-Wpedantic`
-        - [ ] `-pedantic-errors`
+        - [x] `-pedantic-errors`
         - [x] `-Wconversion`
         - [x] `-Wsign-conversion`
         - [x] `-Wfloat-conversion`

@@ -8,6 +8,7 @@ const PRINT_TOKENS = false;
 
 pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
     strip_comments(tokens);
+    try trailing_comma_rules(tokens);
     try newline_rules(tokens);
 }
 
@@ -30,6 +31,38 @@ fn strip_comments(tokens: *std.ArrayList(Token)) void {
             }
         }
         i = j;
+    }
+}
+
+/// THIS PASS MUST BE RUN BEFORE NEWLINES ARE REMOVED. It uses newlines and
+/// parentheses to detect and remove trailing commas.
+///
+/// Given an input token stream:
+///     [ ... X ',' '\n' ')' ... ]
+/// The trailing comma is removed, like so:
+///     [ ... X ')' ... ]
+/// When X is one of the following kind of tokens:
+///     1. identifier (including `true` or `false`)
+///     2. integer literal (decimal, hexadecimal, octal, or binary)
+///     3. floating point literal
+///     4. character literal
+///     5. string literal
+///     6. jump keyword ('unreachable', 'break', 'continue', or 'return')
+///     7. closing delimeters (`)`, `]`, or `}`)
+///     8. postfix operators (`^`)
+fn trailing_comma_rules(tokens: *std.ArrayList(Token)) !void {
+    var i: usize = 0;
+    while (i < tokens.items.len - 4) : (i += 1) {
+        if (tokens.items[i + 0].kind.is_end_token() and
+            tokens.items[i + 1].kind == .COMMA and
+            tokens.items[i + 2].kind == .NEWLINE and
+            tokens.items[i + 3].kind == .R_PAREN)
+        {
+            _ = tokens.orderedRemove(i + 1); // Remove comma
+            _ = tokens.orderedRemove(i + 1); // Remove newline
+            i += 1;
+            std.debug.assert(tokens.items[i].kind == .R_PAREN);
+        }
     }
 }
 
