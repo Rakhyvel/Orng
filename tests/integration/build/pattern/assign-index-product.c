@@ -19,10 +19,10 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     struct0 _2_x;
     struct1 _1_t4;
     int64_t _1_$retval;
@@ -43,7 +43,7 @@ BB5:
     $panic("reached unreachable code\n");
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

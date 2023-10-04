@@ -16,11 +16,11 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main();
-struct0 _3_f();
+int64_t _1_main(void);
+struct0 _3_f(void);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     struct0 _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
@@ -31,13 +31,13 @@ int64_t _1_main() {
     return _1_$retval;
 }
 
-struct0 _3_f() {
+struct0 _3_f(void) {
     struct0 _3_$retval;
     _3_$retval = (struct0) {.tag=0, ._0=4};
     return _3_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

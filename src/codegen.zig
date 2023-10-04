@@ -173,6 +173,10 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
             try out.writer().print(",", .{});
         }
     }
+    if (callGraph.symbol.decl.?.fnDecl.param_symbols.items.len == 0) {
+        // If there are no parameters, mark as void
+        try out.writer().print("void", .{});
+    }
     try out.writer().print(");\n", .{});
 
     for (callGraph.children.items) |child| {
@@ -193,6 +197,10 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
         if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
             try out.writer().print(",", .{});
         }
+    }
+    if (callGraph.symbol.decl.?.fnDecl.param_symbols.items.len == 0) {
+        // If there are no parameters, mark as void
+        try out.writer().print("void", .{});
     }
     try out.writer().print(") {{\n", .{});
 
@@ -243,13 +251,13 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
         std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Int64"))
     {
         try out.writer().print(
-            \\int main()
+            \\int main(void)
             \\{{
             \\  printf("%ld",
         , .{});
     } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Word64")) {
         try out.writer().print(
-            \\int main()
+            \\int main(void)
             \\{{
             \\  printf("%lu",
         , .{});
@@ -258,19 +266,19 @@ fn generateMainFunction(callGraph: *CFG, out: *std.fs.File) !void {
         std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "Float"))
     {
         try out.writer().print(
-            \\int main()
+            \\int main(void)
             \\{{
             \\  printf("%f",
         , .{});
     } else if (std.mem.eql(u8, callGraph.symbol._type.?.function.rhs.getToken().data, "String")) {
         try out.writer().print(
-            \\int main()
+            \\int main(void)
             \\{{
             \\  printf("%s",
         , .{});
     } else {
         try out.writer().print(
-            \\int main()
+            \\int main(void)
             \\{{
             \\  printf("%d",
         , .{});

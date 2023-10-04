@@ -7,12 +7,12 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main();
-int64_t _3_f();
-int64_t _5_g();
+int64_t _1_main(void);
+int64_t _3_f(void);
+int64_t _5_g(void);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:2:21:\nfn main() -> Int {f()}\n                   ^";
@@ -22,7 +22,7 @@ int64_t _1_main() {
     return _1_$retval;
 }
 
-int64_t _3_f() {
+int64_t _3_f(void) {
     int64_t _3_t0;
     int64_t _3_$retval;
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:4:18:\nfn f() -> Int {g()}\n                ^";
@@ -32,12 +32,12 @@ int64_t _3_f() {
     return _3_$retval;
 }
 
-int64_t _5_g() {
+int64_t _5_g(void) {
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:6:27:\nfn g() -> Int {unreachable}\n                         ^";
     $panic("reached unreachable code\n");
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

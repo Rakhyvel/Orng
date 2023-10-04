@@ -26,11 +26,11 @@ char* string_1 = "\x62\x75\x7A\x7A";
 char* string_2 = "\x66\x69\x7A\x7A";
 
 /* Function forward definitions */
-struct1 _1_main();
+struct1 _1_main(void);
 struct0 _3_fizzbuzz(int64_t _3_n);
 
 /* Function definitions */
-struct1 _1_main() {
+struct1 _1_main(void) {
     struct0 _1_t0;
     struct1 _1_$retval;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
@@ -79,7 +79,7 @@ BB16:
     goto BB6;
 }
 
-int main()
+int main(void)
 {
   printf("%s",_1_main()._0);
   return 0;

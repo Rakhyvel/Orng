@@ -7,10 +7,10 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     uint8_t _2_found;
     int64_t _3_n;
     int64_t _1_$retval;
@@ -59,7 +59,7 @@ BB18:
     return _1_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

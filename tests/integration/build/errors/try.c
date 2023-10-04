@@ -15,12 +15,12 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 struct0 _3_f(uint8_t _3_fail);
-struct0 _8_g();
+struct0 _8_g(void);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     struct0 _1_t1;
     int64_t _1_t0;
     struct0 _1_t7;
@@ -92,13 +92,13 @@ BB6:
     return _3_$retval;
 }
 
-struct0 _8_g() {
+struct0 _8_g(void) {
     struct0 _8_$retval;
     _8_$retval = (struct0) {.tag=0};
     return _8_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

@@ -18,10 +18,10 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     struct0 _1_t1;
     struct0 _1_t4;
     struct1 _2_x;
@@ -34,7 +34,7 @@ int64_t _1_main() {
     return _1_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

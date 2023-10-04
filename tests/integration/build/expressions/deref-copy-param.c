@@ -7,11 +7,11 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 void _3_f(int64_t* _3_y);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     int64_t _2_x;
     int64_t* _2_y;
     int64_t _1_$retval;
@@ -28,7 +28,7 @@ void _3_f(int64_t* _3_y) {
     **&_3_y = 195;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

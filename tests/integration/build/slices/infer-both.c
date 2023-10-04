@@ -19,11 +19,11 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 int64_t _3_sum_up(struct1 _3_xs);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     struct0 _2_x;
     int64_t* _1_t15;
     struct1 _2_z;
@@ -61,7 +61,7 @@ BB7:
     return _3_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

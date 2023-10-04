@@ -7,12 +7,12 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 int64_t _3_fib(int64_t _3_n);
 int64_t _8_add(int64_t _8_x,int64_t _8_y);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/nested.orng:3:17:\n    let n = fib(10) - 10\n               ^";
@@ -67,7 +67,7 @@ int64_t _8_add(int64_t _8_x,int64_t _8_y) {
     return _8_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

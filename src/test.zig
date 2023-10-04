@@ -208,6 +208,8 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
         "-Wshadow",
         "-Wformat=2",
         "-Wmisleading-indentation",
+        "-Wstrict-prototypes",
+        "-Wmissing-prototypes",
         "-fsanitize=undefined,address",
     }) catch {
         std.debug.print("Error compiling with GCC", .{});

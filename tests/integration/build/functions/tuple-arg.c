@@ -14,11 +14,11 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 int64_t _3_add(struct0 _3_x);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     struct0 _1_t1;
     int64_t _1_t0;
     int64_t _1_$retval;
@@ -36,7 +36,7 @@ int64_t _3_add(struct0 _3_x) {
     return _3_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

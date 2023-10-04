@@ -7,11 +7,11 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 int64_t _3_add(int64_t _3_x,int64_t _3_y);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/call.orng:2:23:\nfn main() -> Int {add(40, 3)}\n                     ^";
@@ -27,7 +27,7 @@ int64_t _3_add(int64_t _3_x,int64_t _3_y) {
     return _3_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

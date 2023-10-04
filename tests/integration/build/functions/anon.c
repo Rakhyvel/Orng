@@ -10,12 +10,12 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 int64_t _3_$anon0(int64_t _3_x);
 int64_t _5_apply(function0 _5_f,int64_t _5_x);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     function0 _2_id;
     int64_t _1_t1;
     int64_t _1_$retval;
@@ -43,7 +43,7 @@ int64_t _5_apply(function0 _5_f,int64_t _5_x) {
     return _5_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;

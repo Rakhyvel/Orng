@@ -7,12 +7,12 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main();
+int64_t _1_main(void);
 int64_t _3_g(int64_t _3_x);
 int64_t _5_f(int64_t _5_x);
 
 /* Function definitions */
-int64_t _1_main() {
+int64_t _1_main(void) {
     int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:3:7:\n    g(194)\n     ^";
@@ -38,7 +38,7 @@ int64_t _5_f(int64_t _5_x) {
     return _5_$retval;
 }
 
-int main()
+int main(void)
 {
   printf("%ld",_1_main());
   return 0;
