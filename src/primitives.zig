@@ -70,24 +70,24 @@ var prelude: ?*Scope = null;
 pub fn init() !*Scope {
     if (prelude == null) {
         // Create ASTs for primitives
-        bool_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Bool", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        byte_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Byte", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        char_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Char", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        float_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        float32_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float32", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        float64_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Float64", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        int_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        int8_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int8", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        int16_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int16", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        int32_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int32", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        int64_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Int64", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        string_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "String", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        type_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Type", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        unit_type = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        void_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Void", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        word16_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Word16", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        word32_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Word32", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
-        word64_type = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "Word64", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        bool_type = try create_identifier("Bool");
+        byte_type = try create_identifier("Byte");
+        char_type = try create_identifier("Char");
+        float_type = try create_identifier("Float");
+        float32_type = try create_identifier("Float32");
+        float64_type = try create_identifier("Float64");
+        int_type = try create_identifier("Int");
+        int8_type = try create_identifier("Int8");
+        int16_type = try create_identifier("Int16");
+        int32_type = try create_identifier("Int32");
+        int64_type = try create_identifier("Int64");
+        string_type = try create_identifier("String");
+        type_type = try create_identifier("Type");
+        unit_type = try create_unit();
+        void_type = try create_identifier("Void");
+        word16_type = try create_identifier("Word16");
+        word32_type = try create_identifier("Word32");
+        word64_type = try create_identifier("Word64");
         // Slice types must be AFTER intType
         byte_slice_type = try AST.create_slice_type(byte_type, false, std.heap.page_allocator);
 
@@ -138,6 +138,14 @@ pub fn init() !*Scope {
         try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, false);
     }
     return prelude.?;
+}
+
+fn create_identifier(name: []const u8) !*AST {
+    return try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = name, .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+}
+
+fn create_unit() !*AST {
+    return try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
 }
 
 fn create_info(name: []const u8, bounds: ?Bounds, c_name: []const u8, _ast: *AST, alias: ?*AST, type_class: Type_Class, signed_integer: bool) !void {

@@ -622,6 +622,35 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    pub fn create_slice_value(expr: *AST, mut: bool, expr_type: *AST, allocator: std.mem.Allocator) !*AST {
+        var new_terms = std.ArrayList(*AST).init(allocator);
+        var zero = try AST.createInt(expr.getToken(), 0, allocator);
+        zero.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = zero } };
+        var index = try AST.createIndex(
+            expr.getToken(),
+            expr,
+            zero,
+            allocator,
+        );
+        index.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = index } };
+        var addr = try AST.createAddrOf(
+            expr.getToken(),
+            index,
+            mut,
+            allocator,
+        );
+        addr.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = addr } };
+        try new_terms.append(addr);
+
+        var length = try AST.createInt(expr.getToken(), expr_type.product.terms.items.len, allocator);
+        length.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = length } };
+        try new_terms.append(length);
+
+        var retval = try AST.createProduct(expr.getToken(), new_terms, allocator);
+        retval.product.was_slice = true;
+        return retval;
+    }
+
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 

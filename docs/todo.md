@@ -57,7 +57,6 @@
 - [x] Make it so that calls take in a list, not necessarily a product, so you can do something like this: `f((1, 2, 3))`
 - [x] Adopt Go's newline insertion rules
 - [x] Allow trailing commas in parenthesis (`, nl )` => `nl )`)
-- [ ] Wrap up any calls to `AST.createX` outside of parser
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
 - [ ] Fix camelCase detector (post-check, either all letters are capped, or just first of block)

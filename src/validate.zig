@@ -1104,32 +1104,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     };
                 }
 
-                // Restructrure as product
-                var new_terms = std.ArrayList(*AST).init(allocator);
-                var zero = try AST.createInt(ast.getToken(), 0, allocator);
-                zero.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = zero } };
-                var index = try AST.createIndex(
-                    ast.getToken(),
-                    ast.sliceOf.expr,
-                    zero,
-                    allocator,
-                );
-                index.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = index } };
-                var addr = try AST.createAddrOf(
-                    ast.getToken(),
-                    index,
-                    ast.sliceOf.kind == .MUT,
-                    allocator,
-                );
-                addr.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = addr } };
-                try new_terms.append(addr);
-
-                var length = try AST.createInt(ast.getToken(), expr_type.product.terms.items.len, allocator);
-                length.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = length } };
-                try new_terms.append(length);
-
-                retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
-                retval.product.was_slice = true;
+                retval = try AST.create_slice_value(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, expr_type, allocator);
             }
         },
         .subSlice => {
