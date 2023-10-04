@@ -213,7 +213,7 @@
         - [x] `-Wcast-qual`
         - [x] `-Wlogical-op`
         - [x] `-Wshadow`
-        - [ ] `-Wmisleading-indentation`
+        - [x] `-Wmisleading-indentation`
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols

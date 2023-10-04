@@ -121,7 +121,7 @@ pub const IRKind = enum {
     loadStruct,
     loadUnion, // src1 is init, data.int is tag id
     loadString,
-    decl,
+    // decl,
 
     // Monadic instructions
     copy,

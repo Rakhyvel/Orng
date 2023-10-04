@@ -1230,6 +1230,10 @@ fn calculateVersions(cfg: *CFG) void {
 }
 
 fn calculateUsage(cfg: *CFG) void {
+    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
+        param_symbol.uses = 0;
+    }
+
     for (cfg.basic_blocks.items) |bb| {
         // Clear all used flags
         var maybe_ir: ?*IR = bb.ir_head;

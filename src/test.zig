@@ -197,6 +197,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
         "-g",
         "-Werror",
         "-Wall",
+        "-Wextra",
         "-Wconversion",
         "-Wsign-conversion",
         "-Wfloat-conversion",
@@ -204,6 +205,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
         "-Wlogical-op",
         "-Wshadow",
         "-Wformat=2",
+        "-Wmisleading-indentation",
         "-fsanitize=undefined,address",
     }) catch {
         std.debug.print("Error compiling with GCC", .{});

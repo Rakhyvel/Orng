@@ -21,7 +21,7 @@ inline static void $bounds_check(const int64_t idx, const int64_t length, const 
     }
 }
 
-inline static void $tag_check(const uint64_t tag, const int64_t sel, const char *restrict line) {
+inline static void $tag_check(const uint64_t tag, const uint64_t sel, const char *restrict line) {
     if (tag != sel) {
         $lines[$line_idx++] = line;
         $panic("inactive field");

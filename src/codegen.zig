@@ -189,11 +189,23 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     for (callGraph.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
         // Print out parameter declarations
         try printVarDecl(param, out, true);
+        if (param.uses == 0) {}
         if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
             try out.writer().print(",", .{});
         }
     }
     try out.writer().print(") {{\n", .{});
+
+    for (callGraph.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+        // Mark unused parameters as discarded
+        // Do this only if they aren't discarded in source
+        // Users can discard parameters, however used parameters may also become unused through optimizations
+        if (param.uses == 0 and param.discards == 0) {
+            try out.writer().print("    (void)", .{});
+            try printSymbol(param, out);
+            try out.writer().print(";\n", .{});
+        }
+    }
 
     // Collect and then declare all local variables
     for (callGraph.basic_blocks.items) |bb| {
@@ -461,7 +473,6 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .label,
         .jump,
         .branchIfFalse,
-        .decl,
         => {},
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
@@ -707,7 +718,6 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
         .label,
         .jump,
         .branchIfFalse,
-        .decl,
         => {},
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});

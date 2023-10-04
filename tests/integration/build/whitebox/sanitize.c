@@ -31,6 +31,7 @@ int64_t _1_main() {
 }
 
 int64_t _3_f(struct0 _3_x) {
+    (void)_3_x;
     $lines[$line_idx++] = "tests/integration/whitebox/sanitize.orng:7:16:\n    unreachable\n              ^";
     $panic("reached unreachable code\n");
 }
