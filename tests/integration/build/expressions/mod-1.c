@@ -34,8 +34,8 @@ BB4:
 }
 
 uint8_t _6_f(int64_t _6_x) {
-    (void)_6_x;
     uint8_t _6_$retval;
+    (void)_6_x;
     _6_$retval = 1;
     return _6_$retval;
 }

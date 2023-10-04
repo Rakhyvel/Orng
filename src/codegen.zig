@@ -204,17 +204,6 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     }
     try out.writer().print(") {{\n", .{});
 
-    for (callGraph.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-        // Mark unused parameters as discarded
-        // Do this only if they aren't discarded in source
-        // Users can discard parameters, however used parameters may also become unused through optimizations
-        if (param.uses == 0 and param.discards == 0) {
-            try out.writer().print("    (void)", .{});
-            try printSymbol(param, out);
-            try out.writer().print(";\n", .{});
-        }
-    }
-
     // Collect and then declare all local variables
     for (callGraph.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
@@ -229,6 +218,17 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
                 try printVarDecl(dest.symbol, out, false);
                 dest.symbol.decld = true;
             }
+        }
+    }
+
+    for (callGraph.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+        // Mark unused parameters as discarded
+        // Do this only if they aren't discarded in source
+        // Users can discard parameters, however used parameters may also become unused through optimizations
+        if (param.uses == 0 and param.discards == 0) {
+            try out.writer().print("    (void)", .{});
+            try printSymbol(param, out);
+            try out.writer().print(";\n", .{});
         }
     }
 
