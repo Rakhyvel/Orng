@@ -204,8 +204,8 @@
             - [x] `unsigned char*` strings
             - [x] self-comparison optimization
             - [x] mark $panic() as _Noreturn
-        - [ ] `-Wextra`
-        - [ ] `-Wpedantic`
+        - [x] `-Wextra`
+        - [x] `-Wpedantic`
         - [ ] `-pedantic-errors`
         - [x] `-Wconversion`
         - [x] `-Wsign-conversion`

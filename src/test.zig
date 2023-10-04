@@ -198,6 +198,8 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
         "-Werror",
         "-Wall",
         "-Wextra",
+        "-Wpedantic",
+        "-pedantic-errors",
         "-Wconversion",
         "-Wsign-conversion",
         "-Wfloat-conversion",
