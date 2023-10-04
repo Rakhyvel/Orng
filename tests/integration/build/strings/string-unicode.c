@@ -21,7 +21,7 @@ struct0 _1_main();
 /* Function definitions */
 struct0 _1_main() {
     struct0 _1_$retval;
-    _1_$retval = (struct0) {string_0, 18};
+    _1_$retval = (struct0) {(uint8_t*)string_0, 18};
     return _1_$retval;
 }
 

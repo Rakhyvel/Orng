@@ -177,6 +177,7 @@
     - [x] explicit discarding with `_`
         - [x] error if discard when it's used
         - [ ] error if function parameter is not used
+        - [ ] error if the result from a call is not used
     - [x] static index out of bounds
     - [x] dynamic index out of bounds
     - [x] static slice lower <= upper
@@ -198,17 +199,21 @@
     - [ ] Enable the following warnings:
         - [x] `-Wformat=2`
         - [x] `-Werror`
-        - [ ] `-Wall`
+        - [x] `-Wall`
+            - [x] variable set but not used
+            - [x] `unsigned char*` strings
+            - [x] self-comparison optimization
+            - [x] mark $panic() as _Noreturn
         - [ ] `-Wextra`
         - [ ] `-Wpedantic`
         - [ ] `-pedantic-errors`
-        - [ ] `-Wconversion`
-        - [ ] `-Wsign-conversion`
-        - [ ] `-Wfloat-conversion`
-            > Perhaps remove exponentiation as an operator?
-        - [ ] `-Wcast-qual`
+        - [x] `-Wconversion`
+        - [x] `-Wsign-conversion`
+        - [x] `-Wfloat-conversion`
+        - [x] `-Wcast-qual`
         - [x] `-Wlogical-op`
         - [x] `-Wshadow`
+        - [ ] `-Wmisleading-indentation`
 - [x] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
@@ -305,7 +310,6 @@
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
-    - [ ] 
 - [ ] build system (built upon compile-time evaluation)
     - [ ] **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     > Should be stateless, gosh dangit!

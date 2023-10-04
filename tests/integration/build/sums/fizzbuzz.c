@@ -57,10 +57,10 @@ BB7:
         goto BB11;
     }
 BB4:
-    _3_t0 = (struct0) {.tag=0, ._0=(struct1) {string_0, 9}};
+    _3_t0 = (struct0) {.tag=0, ._0=(struct1) {(uint8_t*)string_0, 9}};
     goto BB6;
 BB10:
-    _3_t0 = (struct0) {.tag=0, ._0=(struct1) {string_1, 5}};
+    _3_t0 = (struct0) {.tag=0, ._0=(struct1) {(uint8_t*)string_1, 5}};
     goto BB6;
 BB11:
     if (_3_t1 == $mod_int64_t(_3_n, 3, "tests/integration/sums/fizzbuzz.orng:14:13:\n        {n % 3}  => .string <- \"fizz\"\n           ^")) {
@@ -72,7 +72,7 @@ BB6:
     _3_$retval = _3_t0;
     return _3_$retval;
 BB14:
-    _3_t0 = (struct0) {.tag=0, ._0=(struct1) {string_2, 5}};
+    _3_t0 = (struct0) {.tag=0, ._0=(struct1) {(uint8_t*)string_2, 5}};
     goto BB6;
 BB16:
     _3_t0 = (struct0) {.tag=1, ._1=_3_n};

@@ -35,7 +35,7 @@ BB4:
 
 uint8_t _6_f(double _6_x) {
     uint8_t _6_$retval;
-    _6_$retval = _6_x == _6_x;
+    _6_$retval = 1;
     return _6_$retval;
 }
 

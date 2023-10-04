@@ -2,8 +2,8 @@
 fn main() -> Int {
     let mut x = 10
     let mut y = 10
-    f(&mut x, true)
-    f(&mut y, false)
+    _ = f(&mut x, true)
+    _ = f(&mut y, false)
     x + y
 }
 

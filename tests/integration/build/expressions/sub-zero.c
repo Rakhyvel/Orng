@@ -34,20 +34,8 @@ BB4:
 }
 
 uint8_t _6_f(int64_t _6_x) {
-    uint8_t _6_t0;
     uint8_t _6_$retval;
-    if (_6_x == _6_x) {
-        goto BB1;
-    } else {
-        goto BB4;
-    }
-BB1:
-    _6_t0 = $negate_int64_t(_6_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^") == $negate_int64_t(_6_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
-    goto BB3;
-BB4:
-    _6_t0 = 0;
-BB3:
-    _6_$retval = _6_t0;
+    _6_$retval = $negate_int64_t(_6_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^") == $negate_int64_t(_6_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
     return _6_$retval;
 }
 

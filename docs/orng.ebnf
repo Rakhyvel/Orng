@@ -50,7 +50,7 @@ prefix_expr: "not" hyper_expr                         # boolean not
           | hyper_expr
           .
 
-hyper_expr: postfix_expr {(".>" | "**") postfix_expr}.
+hyper_expr: postfix_expr {".>" postfix_expr}.
 
 postfix_expr: control_flow {call_expr | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
 call_expr: "(" [annotation_expr {"," annotation_expr}] ")".

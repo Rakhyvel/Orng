@@ -20,11 +20,10 @@ struct0 _3_get_array(int64_t _3_a,int64_t _3_b);
 
 /* Function definitions */
 int64_t _1_main() {
-    struct0 _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/tuples/mix.orng:3:31:\n    let x: [4]Int = get_array(15, 16)\n                             ^";
-    _1_t0 = _3_get_array(15, 16);
     $line_idx--;
+    (void)_3_get_array(15, 16);
     _1_$retval = 64;
     return _1_$retval;
 }

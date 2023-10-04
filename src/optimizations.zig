@@ -529,6 +529,15 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
+            // `x == x` => `true`
+            else if (ir.src1.?.symbol == ir.src2.?.symbol) {
+                log("equal; self equality");
+                ir.kind = .loadInt;
+                ir.data = _ir.IRData{ .int = 1 };
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
             // Known float, float value
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("equal; known float,float value");
@@ -568,6 +577,15 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
+            // `x != x` => `false`
+            else if (ir.src1.?.symbol == ir.src2.?.symbol) {
+                log("notEqual; self inequality");
+                ir.kind = .loadInt;
+                ir.data = _ir.IRData{ .int = 0 };
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
             // Known float, float value
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("notEqual; known float,float value");
@@ -598,6 +616,15 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
+            // `x > x` => `false`
+            else if (ir.src1.?.symbol == ir.src2.?.symbol) {
+                log("greater; self compare");
+                ir.kind = .loadInt;
+                ir.data = _ir.IRData{ .int = 0 };
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
         },
 
         .lesser => {
@@ -615,6 +642,15 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("lesser; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 };
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
+            // `x < x` => `false`
+            else if (ir.src1.?.symbol == ir.src2.?.symbol) {
+                log("lesser; self compare");
+                ir.kind = .loadInt;
+                ir.data = _ir.IRData{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -640,6 +676,15 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
+            // `x >= x` => `true`
+            else if (ir.src1.?.symbol == ir.src2.?.symbol) {
+                log("greater equal; self compare");
+                ir.kind = .loadInt;
+                ir.data = _ir.IRData{ .int = 1 };
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
         },
 
         .lesserEqual => {
@@ -657,6 +702,15 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("lesserEqual; known float,float value");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 };
+                ir.src1 = null;
+                ir.src2 = null;
+                retval = true;
+            }
+            // `x <= x` => `true`
+            else if (ir.src1.?.symbol == ir.src2.?.symbol) {
+                log("lesser equal; self compare");
+                ir.kind = .loadInt;
+                ir.data = _ir.IRData{ .int = 1 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -1121,6 +1175,9 @@ fn removeUnusedDefs(cfg: *CFG) bool {
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.kind == .discard) {
+                continue;
+            }
             if (ir.dest != null and !ir.removed and ir.dest.?.uses == 0) {
                 if (debug) {
                     std.debug.print("removing: {}", .{ir});

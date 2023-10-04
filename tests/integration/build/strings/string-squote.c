@@ -22,7 +22,7 @@ uint8_t _1_main();
 uint8_t _1_main() {
     struct0 _2_x;
     uint8_t _1_$retval;
-    _2_x = (struct0) {string_0, 11};
+    _2_x = (struct0) {(uint8_t*)string_0, 11};
     _1_$retval = *((uint8_t*)_2_x._0 + 3);
     return _1_$retval;
 }

@@ -20,20 +20,18 @@ int64_t _1_main() {
     int64_t _2_x;
     int64_t _2_y;
     int64_t* _1_t3;
-    struct0 _1_t2;
-    int64_t* _1_t6;
-    struct0 _1_t5;
+    int64_t* _1_t7;
     int64_t _1_$retval;
     _2_x = 10;
     _2_y = 10;
     _1_t3 = &_2_x;
-    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:7:\n    f(&mut x, true)\n     ^";
-    _1_t2 = _3_f(_1_t3, 1);
+    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:11:\n    _ = f(&mut x, true)\n         ^";
     $line_idx--;
-    _1_t6 = &_2_y;
-    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:7:\n    f(&mut y, false)\n     ^";
-    _1_t5 = _3_f(_1_t6, 0);
+    (void)_3_f(_1_t3, 1);
+    _1_t7 = &_2_y;
+    $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:11:\n    _ = f(&mut y, false)\n         ^";
     $line_idx--;
+    (void)_3_f(_1_t7, 0);
     _1_$retval = $add_int64_t(_2_x, _2_y, "tests/integration/errors/errdefer.orng:2:3:\nfn main() -> Int {\n ^");
     return _1_$retval;
 }

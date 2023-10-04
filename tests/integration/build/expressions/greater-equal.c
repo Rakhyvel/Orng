@@ -12,8 +12,7 @@ int64_t _1_main();
 /* Function definitions */
 int64_t _1_main() {
     int64_t _1_$retval;
-    (void)4;
-    _1_$retval = 141;
+    _1_$retval = 178;
     return _1_$retval;
 }
 

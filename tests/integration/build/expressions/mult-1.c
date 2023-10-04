@@ -34,20 +34,8 @@ BB4:
 }
 
 uint8_t _6_f(int64_t _6_x) {
-    uint8_t _6_t0;
     uint8_t _6_$retval;
-    if (_6_x == _6_x) {
-        goto BB1;
-    } else {
-        goto BB4;
-    }
-BB1:
-    _6_t0 = _6_x == _6_x;
-    goto BB3;
-BB4:
-    _6_t0 = 0;
-BB3:
-    _6_$retval = _6_t0;
+    _6_$retval = 1;
     return _6_$retval;
 }
 

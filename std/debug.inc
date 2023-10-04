@@ -1,10 +1,12 @@
 // debug utilities made use by the Orng compiler when in debug mode
 // © 2023 Joseph Shimel. All rights reserved.
 
+#include <stdnoreturn.h>
+
 static const char* $lines[1024];
 static uint16_t $line_idx = 0;
 
-inline static void $panic(const char *restrict msg) {
+_Noreturn inline static void $panic(const char *restrict msg) {
     fprintf(stderr, "panic: %s\n", msg);
     for(uint16_t $i = 0; $i < $line_idx; $i++) {
         fprintf(stderr, "%s\n", $lines[$line_idx - $i - 1]);
@@ -19,7 +21,7 @@ inline static void $bounds_check(const int64_t idx, const int64_t length, const 
     }
 }
 
-inline static void $tag_check(const int64_t tag, const int64_t sel, const char *restrict line) {
+inline static void $tag_check(const uint64_t tag, const int64_t sel, const char *restrict line) {
     if (tag != sel) {
         $lines[$line_idx++] = line;
         $panic("inactive field");
@@ -179,7 +181,7 @@ inline static int64_t $mult_int64_t(const int64_t lhs, const int64_t rhs, const 
 }
 
 inline static int8_t $div_int8_t(const int8_t lhs, const int8_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT8_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT8_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -188,7 +190,7 @@ inline static int8_t $div_int8_t(const int8_t lhs, const int8_t rhs, const char 
 }
 
 inline static int16_t $div_int16_t(const int16_t lhs, const int16_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT16_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT16_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -197,7 +199,7 @@ inline static int16_t $div_int16_t(const int16_t lhs, const int16_t rhs, const c
 }
 
 inline static int32_t $div_int32_t(const int32_t lhs, const int32_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT32_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT32_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -206,7 +208,7 @@ inline static int32_t $div_int32_t(const int32_t lhs, const int32_t rhs, const c
 }
 
 inline static int64_t $div_int64_t(const int64_t lhs, const int64_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT64_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT64_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -215,7 +217,7 @@ inline static int64_t $div_int64_t(const int64_t lhs, const int64_t rhs, const c
 }
 
 inline static int8_t $mod_int8_t(const int8_t lhs, const int8_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT8_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT8_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -224,7 +226,7 @@ inline static int8_t $mod_int8_t(const int8_t lhs, const int8_t rhs, const char 
 }
 
 inline static int16_t $mod_int16_t(const int16_t lhs, const int16_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT16_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT16_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -233,7 +235,7 @@ inline static int16_t $mod_int16_t(const int16_t lhs, const int16_t rhs, const c
 }
 
 inline static int32_t $mod_int32_t(const int32_t lhs, const int32_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT32_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT32_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }
@@ -242,7 +244,7 @@ inline static int32_t $mod_int32_t(const int32_t lhs, const int32_t rhs, const c
 }
 
 inline static int64_t $mod_int64_t(const int64_t lhs, const int64_t rhs, const char *restrict line) {
-    if (rhs == 0 || lhs == INT64_MIN && rhs == -1) {
+    if (rhs == 0 || (lhs == INT64_MIN && rhs == -1)) {
         $lines[$line_idx++] = line;
         $panic("division overflow");
     }

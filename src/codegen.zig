@@ -462,7 +462,6 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .jump,
         .branchIfFalse,
         .decl,
-        .discard,
         => {},
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
@@ -495,14 +494,19 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
                 .{ir.data.string},
             );
         },
+        .discard => {
+            try out.writer().print("    (void)", .{});
+            try printSymbolVersion(ir.src1.?, IRKind.cast.precedence(), out);
+            try out.writer().print(";\n", .{});
+        },
     }
 }
 
 fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     _ = precedence;
-    if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy) {
+    if (ir.dest != null and ir.dest.?.lvalue and ir.kind != .copy and ir.kind != .discard) {
         return;
-    } else if (ir.dest != null and ir.dest.?.type.* == .unit and ir.kind != .call) {
+    } else if (ir.dest != null and ir.dest.?.type.* == .unit and ir.kind != .call and ir.kind != .discard) {
         return;
     }
 
@@ -519,7 +523,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
         .loadString => {
             try out.writer().print("(", .{});
             try printType(ir.dest.?.symbol.expanded_type.?, out);
-            try out.writer().print(") {{string_{}, {}}}", .{ ir.data.string_id, program.interned_strings.items[ir.data.string_id].len - 1 });
+            try out.writer().print(") {{(uint8_t*)string_{}, {}}}", .{ ir.data.string_id, program.interned_strings.items[ir.data.string_id].len - 1 });
         },
         .loadStruct => {
             try out.writer().print("(", .{});
@@ -704,7 +708,6 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
         .jump,
         .branchIfFalse,
         .decl,
-        .discard,
         => {},
         else => {
             std.debug.print("Unimplemented generateIR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
@@ -914,6 +917,9 @@ const CodeGen_Error = error{
 };
 
 fn hide_temporary(symbver: *SymbolVersion) bool {
+    if (symbver.symbol.discards > 0) {
+        return true;
+    }
     return symbver.symbol.is_temp and !symbver.lvalue and symbver.uses == 1 and symbver.symbol.versions == 1 and symbver.def != null and symbver.type.* == .identifier;
 }
 
