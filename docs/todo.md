@@ -59,7 +59,7 @@
 - [x] Allow trailing commas in parenthesis (`, nl )` => `nl )`)
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
-- [ ] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
+- [x] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -119,11 +119,12 @@
     - [x] index-assign
         - [x] validate index lvalue
     - [x] when deref copy prop op is enabled, pemdas.orng emits type error
-- [x] slices
+- [ ] slices
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
     - [x] sublices with inferred lower bound (0)
     - [x] sublices with inferred upper bound (length)
+    - [ ] slice literals
 - [ ] UTF8
     - [x] Byte type
     - [ ] string literals
@@ -144,6 +145,8 @@
 - [ ] Sum types
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
+    - [ ] sum type of one type
+    - [ ] equality on sum type values
     - [ ] `.@tag`
     - [ ] `.@tag_name`
 - [x] optionals
@@ -306,6 +309,9 @@
     - [ ] should be able to index heterogenous tuples with a comptime value
         > Is this undecidable?
     - [ ] first-class types based generics (stamp)
+    - [ ] `as` which can do reinterpret casting
+    - [ ] `sizeof`
+    - [ ] bitwise psuedo functions
     - [ ] `typeof` prefix operator which returns type expression of expression
     - [ ] define `==` and `!=` operators for types, do at comptime
     - [ ] `default` prefix operator, which takes a type and returns the default value for that type
@@ -320,6 +326,7 @@
         > `fn extern_type(name: const String, backing: Type = ()) -> Type`
         > `fn c_include(path: const String) -> (a tuple of the definitions)`
     - [ ] `pub` keyword
+    - [ ] `fn main(sys: System)->!()`
     - [ ] Specifies the entry function somehow
     - [ ] entry function takes a record of IO function pointers
     - [ ] be able to parse C headers

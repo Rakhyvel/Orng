@@ -1031,6 +1031,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .sliceOf => {
             var was_type = false;
+            // TODO: This doesn't work if expected isn't set to type. It should.
             if (expected != null and try primitives.type_type.typesMatch(expected.?, scope, errors, allocator)) {
                 // Slice-of type, type of this ast must be a type, inner must be a type
 

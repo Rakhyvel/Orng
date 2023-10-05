@@ -165,10 +165,17 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     col += 1;
                     state = .underscore;
                 } else if (std.ascii.isLower(next_char)) {
-                    // => capitalized on a-z
-                    ix += 1;
-                    col += 1;
-                    state = .capitalized;
+                    if (ix - slice_start > 1 and contents[ix - 2] != '_') {
+                        std.debug.print("{c}\n", .{contents[ix]});
+                        // => error on $ if length is too long
+                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "camelCase is not supported; consider spliting with an underscore" } });
+                        return LexerErrors.lexerError;
+                    } else {
+                        // => capitalized on a-z
+                        ix += 1;
+                        col += 1;
+                        state = .capitalized;
+                    }
                 } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                     // Split on $
                     try tokens.append(Token.create(contents[slice_start..ix], null, filename, line, col));
@@ -189,7 +196,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                     state = .underscore;
                 } else if (std.ascii.isUpper(next_char)) {
                     // => error on [A-Z]
-                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "camelCase is not supported" } });
+                    errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .col = col, .line = line }, .msg = "camelCase is not supported; consider spliting with an underscore" } });
                     return LexerErrors.lexerError;
                 } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                     // Split on $

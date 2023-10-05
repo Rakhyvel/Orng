@@ -51,6 +51,9 @@ fn strip_comments(tokens: *std.ArrayList(Token)) void {
 ///     7. closing delimeters (`)`, `]`, or `}`)
 ///     8. postfix operators (`^`)
 fn trailing_comma_rules(tokens: *std.ArrayList(Token)) !void {
+    if (tokens.items.len < 4) {
+        return;
+    }
     var i: usize = 0;
     while (i < tokens.items.len - 4) : (i += 1) {
         if (tokens.items[i + 0].kind.is_end_token() and
