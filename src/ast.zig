@@ -1260,7 +1260,9 @@ pub const AST = union(enum) {
 
     pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
-        if (expanded.* != .identifier) {
+        if (expanded.* == .sum) {
+            return true;
+        } else if (expanded.* != .identifier) {
             return false;
         }
         return primitives.from_ast(expanded).is_eq();

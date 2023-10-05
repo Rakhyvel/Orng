@@ -1162,8 +1162,16 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.equal, temp, lhs, rhs, ast.getToken().span, allocator);
-                self.appendInstruction(ir);
+                var lhs_type = try ast.equal.lhs.typeof(scope, errors, allocator);
+                if (lhs_type.* == .sum) {
+                    var lhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
+                    var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
+                    self.appendInstruction(try IR.createGetTag(lhs_tag, lhs.?, ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.createGetTag(rhs_tag, rhs.?, ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.create(.equal, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
+                } else {
+                    self.appendInstruction(try IR.create(.equal, temp, lhs, rhs, ast.getToken().span, allocator));
+                }
                 return temp;
             },
             .not_equal => {
@@ -1174,8 +1182,16 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.notEqual, temp, lhs, rhs, ast.getToken().span, allocator);
-                self.appendInstruction(ir);
+                var lhs_type = try ast.not_equal.lhs.typeof(scope, errors, allocator);
+                if (lhs_type.* == .sum) {
+                    var lhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
+                    var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
+                    self.appendInstruction(try IR.createGetTag(lhs_tag, lhs.?, ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.createGetTag(rhs_tag, rhs.?, ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.create(.notEqual, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
+                } else {
+                    self.appendInstruction(try IR.create(.notEqual, temp, lhs, rhs, ast.getToken().span, allocator));
+                }
                 return temp;
             },
             .greater => {

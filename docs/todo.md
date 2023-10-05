@@ -145,9 +145,7 @@
 - [ ] Sum types
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
-    - [ ] sum type of one type
-    - [ ] equality on sum type values
-    - [ ] `.@tag`
+    - [x] equality on sum type values
     - [ ] `.@tag_name`
 - [x] optionals
     - [x] `?` constructor

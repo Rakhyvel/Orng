@@ -489,7 +489,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "equalable", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
@@ -509,7 +509,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "equalable", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.not_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
@@ -529,7 +529,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (!try lhs_type.is_ord_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "orderable", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.greater.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
@@ -549,7 +549,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (!try lhs_type.is_ord_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "orderable", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.lesser.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
@@ -569,10 +569,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (!try lhs_type.is_ord_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "ordered", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.greater_equal.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
             } else if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "equalable", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.greater_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
@@ -592,10 +592,10 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             if (!try lhs_type.is_ord_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "ordered", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.lesser_equal.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
             } else if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
-                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "equalable", .got = lhs_type } });
+                errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.lesser_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
