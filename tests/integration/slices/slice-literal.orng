@@ -1,0 +1,12 @@
+// 208
+fn main() -> Int {
+    sum([](200, 0, 8)) // Slice of product literal
+}
+
+fn sum(xs: []Int) -> Int {
+    if xs.length == 0 {
+        0
+    } else {
+        xs[0] + sum(xs[1..])
+    }
+}

@@ -119,12 +119,12 @@
     - [x] index-assign
         - [x] validate index lvalue
     - [x] when deref copy prop op is enabled, pemdas.orng emits type error
-- [ ] slices
+- [x] slices
     - [x] `[]` slice from array operator, with variants
     - [x] subslices
     - [x] sublices with inferred lower bound (0)
     - [x] sublices with inferred upper bound (length)
-    - [ ] slice literals
+    - [x] slice literals
 - [ ] UTF8
     - [x] Byte type
     - [ ] string literals

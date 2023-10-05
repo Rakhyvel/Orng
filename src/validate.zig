@@ -1015,10 +1015,15 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         return ast.enpoison();
                     }
                     ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
-                    validateLValue(ast.addrOf.expr, scope, errors) catch |err| switch (err) {
-                        error.typeError => return ast.enpoison(),
-                        else => return err,
-                    };
+                    if (ast.addrOf.expr.* != .product) {
+                        // Validate that expr is an L-value *only if* expr is not a product
+                        // It is possible to take a addr of a product. The address is the address of the temporary
+                        // This is mirrored with a slice_of a product.
+                        validateLValue(ast.addrOf.expr, scope, errors) catch |err| switch (err) {
+                            error.typeError => return ast.enpoison(),
+                            else => return err,
+                        };
+                    }
                     if (ast.addrOf.mut) {
                         assertMutable(ast.addrOf.expr, scope, errors, allocator) catch |err| switch (err) {
                             error.typeError => return ast.enpoison(), // Soft unreachable, will be caught early but is still good to have this here
@@ -1094,10 +1099,15 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     return ast.enpoison();
                 }
 
-                validateLValue(ast.sliceOf.expr, scope, errors) catch |err| switch (err) {
-                    error.typeError => return ast.enpoison(), // soft unreachable, will be rejected because not a slice type
-                    else => return err,
-                };
+                if (ast.sliceOf.expr.* != .product) {
+                    // Validate that expr is an L-value *only if* expr is not a product
+                    // It is possible to take a slice of a product. The slice is the sliceof the temporary
+                    // This is mirrored with addr_of a product.
+                    validateLValue(ast.sliceOf.expr, scope, errors) catch |err| switch (err) {
+                        error.typeError => return ast.enpoison(), // soft unreachable, will be rejected because not a slice type
+                        else => return err,
+                    };
+                }
                 if (ast.sliceOf.kind == .MUT) {
                     assertMutable(ast.sliceOf.expr, scope, errors, allocator) catch |err| switch (err) {
                         error.typeError => return ast.enpoison(), // soft unreachable, will be rejected because not a slice type
