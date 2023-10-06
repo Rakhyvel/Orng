@@ -1128,41 +1128,48 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
 
 fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
     calculateUsage(cfg);
+    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
+        try err_if_unused(param_symbol, errors);
+    }
 
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and !ir.dest.?.symbol.is_temp) {
-                if (ir.dest.?.symbol.discards > 1) {
-                    errors.addError(Error{ .symbol_error = .{
-                        .span = ir.dest.?.symbol.discard_span.?,
-                        .context_span = ir.dest.?.symbol.span,
-                        .name = ir.dest.?.symbol.name,
-                        .problem = "is discarded more than once",
-                        .context_message = "defined here",
-                    } });
-                    return error.typeError;
-                } else if (ir.dest.?.symbol.discards == 1 and ir.dest.?.symbol.uses > 1) {
-                    errors.addError(Error{ .symbol_error = .{
-                        .span = ir.dest.?.symbol.discard_span.?,
-                        .context_span = ir.dest.?.symbol.span,
-                        .name = ir.dest.?.symbol.name,
-                        .problem = "is discarded when it is used",
-                        .context_message = "defined here",
-                    } });
-                    return error.typeError;
-                } else if (ir.dest.?.symbol.discards == 0 and ir.dest.?.symbol.uses == 0) {
-                    errors.addError(Error{ .symbol_error = .{
-                        .span = ir.dest.?.symbol.span,
-                        .context_span = null,
-                        .name = ir.dest.?.symbol.name,
-                        .problem = "is never used",
-                        .context_message = "",
-                    } });
-                    return error.typeError;
-                }
+                try err_if_unused(ir.dest.?.symbol, errors);
             }
         }
+    }
+}
+
+fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
+    if (symbol.discards > 1) {
+        errors.addError(Error{ .symbol_error = .{
+            .span = symbol.discard_span.?,
+            .context_span = symbol.span,
+            .name = symbol.name,
+            .problem = "is discarded more than once",
+            .context_message = "defined here",
+        } });
+        return error.typeError;
+    } else if (symbol.discards == 1 and symbol.uses > 1) {
+        errors.addError(Error{ .symbol_error = .{
+            .span = symbol.discard_span.?,
+            .context_span = symbol.span,
+            .name = symbol.name,
+            .problem = "is discarded when it is used",
+            .context_message = "defined here",
+        } });
+        return error.typeError;
+    } else if (symbol.discards == 0 and symbol.uses == 0) {
+        errors.addError(Error{ .symbol_error = .{
+            .span = symbol.span,
+            .context_span = null,
+            .name = symbol.name,
+            .problem = "is never used",
+            .context_message = "",
+        } });
+        return error.typeError;
     }
 }
 

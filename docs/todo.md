@@ -176,7 +176,7 @@
     - [x] default values
     - [x] explicit discarding with `_`
         - [x] error if discard when it's used
-        - [ ] error if function parameter is not used
+        - [x] error if function parameter is not used
         - [ ] error if the result from a call is not used
     - [x] static index out of bounds
     - [x] dynamic index out of bounds

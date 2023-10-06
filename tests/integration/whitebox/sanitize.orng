@@ -4,5 +4,6 @@ fn main() -> Int {
 }
 
 fn f(x: String) -> Int {
+    _ = x
     unreachable
 }

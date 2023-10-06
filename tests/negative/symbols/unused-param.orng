@@ -1,0 +1,7 @@
+fn main() -> Int {
+    test(3, 4)
+}
+
+fn test(x: Int, y: Int) -> Int {
+    4
+}
