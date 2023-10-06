@@ -1068,7 +1068,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadString) {
                 if (ir.data.int == 1) {
                     ir.kind = .loadInt;
-                    ir.data = _ir.IRData{ .int = interned_strings.items[src1_def.?.data.string_id].len - 1 };
+                    ir.data = _ir.IRData{ .int = interned_strings.items[src1_def.?.data.string_id].len };
                     ir.src1 = null;
                     ir.src2 = null;
                     retval = true;

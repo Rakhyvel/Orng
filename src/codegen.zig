@@ -105,59 +105,13 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
     }
     for (interned_strings.items, 0..) |str, i| {
         try out.writer().print("char* string_{} = \"", .{i});
-        var escape = false;
-        var skip: i8 = 0;
-        for (str, 0..) |byte, j| {
-            if (skip > 0) {
-                skip -= 1;
-                continue;
-            } else if (j == 0 or j == str.len - 1) {
-                continue;
-            } else if (escape) {
-                escape = false;
-                if (byte == 'n') {
-                    try out.writer().print("\\x0A", .{});
-                } else if (byte == 'r') {
-                    try out.writer().print("\\x0D", .{});
-                } else if (byte == 't') {
-                    try out.writer().print("\\x09", .{});
-                } else if (byte == '\\') {
-                    try out.writer().print("\\x5C", .{});
-                } else if (byte == '\'') {
-                    try out.writer().print("\\x27", .{});
-                } else if (byte == '"') {
-                    try out.writer().print("\\x22", .{});
-                } else if (byte == 'x') {
-                    var res: usize = get_nibble(str[j + 1]) * 16 + get_nibble(str[j + 2]);
-                    try out.writer().print("\\x{X}", .{res});
-                    skip = 2;
-                } else {
-                    unreachable;
-                }
-            } else {
-                if (byte == '\\') {
-                    escape = true;
-                } else {
-                    try out.writer().print("\\x{X}", .{byte});
-                }
-            }
+        for (str) |byte| {
+            try out.writer().print("\\x{X:0>2}", .{byte});
         }
-        try out.writer().print("\";\n", .{});
+        try out.writer().print("\";", .{});
     }
     if (interned_strings.items.len > 0) {
         try out.writer().print("\n", .{});
-    }
-}
-
-fn get_nibble(c: u8) u8 {
-    if ('0' <= c and c <= '9') {
-        return c - '0';
-    } else if ('a' <= c and c <= 'f') {
-        return c - 'a' + 10;
-    } else if ('A' <= c and c <= 'F') {
-        return c - 'A' + 10;
-    } else {
-        unreachable;
     }
 }
 

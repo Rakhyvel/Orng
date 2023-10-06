@@ -14,6 +14,7 @@ pub const TokenKind = enum(u32) {
     STRING,
     TRUE,
     FALSE,
+    MULTI_LINE,
 
     // Keywords
     AND,
@@ -318,6 +319,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .PERIOD => ".",
         .Q_MARK => "?",
         .SEMICOLON => ";",
+        .MULTI_LINE => "<multi-line>",
 
         // Open/Close
         .L_BRACE => "{",

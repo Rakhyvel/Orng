@@ -1,4 +1,6 @@
 const errs = @import("errors.zig");
+const Span = @import("span.zig").Span;
+const String = @import("zig-string/zig-string.zig").String;
 const _token = @import("token.zig");
 const Token = _token.Token;
 const TokenKind = _token.TokenKind;
@@ -8,6 +10,7 @@ const PRINT_TOKENS = false;
 
 pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
     strip_comments(tokens);
+    try combine_multilines(tokens);
     try trailing_comma_rules(tokens);
     try newline_rules(tokens);
 }
@@ -31,6 +34,31 @@ fn strip_comments(tokens: *std.ArrayList(Token)) void {
             }
         }
         i = j;
+    }
+}
+
+fn combine_multilines(tokens: *std.ArrayList(Token)) !void {
+    var i: usize = 0;
+    while (i < tokens.items.len) : (i += 1) {
+        var out: ?String = null;
+        var span: ?Span = null;
+        while (i < tokens.items.len and tokens.items[i].kind == .MULTI_LINE) : (i += 1) {
+            if (out == null) {
+                out = String.init(std.heap.page_allocator);
+                span = tokens.items[i].span;
+            } else {
+                // out was not null => there must have been a multiline before this one => insert newline
+                try out.?.insert("\n", out.?.len());
+            }
+            var multiline: Token = tokens.orderedRemove(i); // Remove multiline
+            _ = tokens.orderedRemove(i); // Remove newline (do not compensate)
+            i -= 1; // Compensate for removed multiline
+            try out.?.insert(multiline.data, out.?.len()); // Append data to out
+        }
+        if (out != null) {
+            var token = Token.create((try out.?.toOwned()).?, .MULTI_LINE, span.?.filename, span.?.line, span.?.col);
+            try tokens.insert(i, token);
+        }
     }
 }
 

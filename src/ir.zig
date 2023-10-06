@@ -915,7 +915,7 @@ pub const CFG = struct {
                 return temp;
             },
             .string => {
-                try program.interned_string_set_add(ast.getToken().data, self.interned_strings);
+                try program.interned_string_set_add(ast.string.data, self.interned_strings);
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
                 var ir = try IR.createString(temp, self.interned_strings.items.len - 1, ast.getToken().span, allocator);
                 self.appendInstruction(ir);

@@ -80,7 +80,10 @@ pub const AST = union(enum) {
         represents: *AST, //< Type that this constant represents. Set on validation.
     },
     char: struct { common: ASTCommon },
-    string: struct { common: ASTCommon },
+    string: struct {
+        common: ASTCommon,
+        data: []const u8,
+    },
     identifier: struct { common: ASTCommon },
     _true: struct { common: ASTCommon },
     _false: struct { common: ASTCommon },
@@ -362,8 +365,8 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.float_type } }, allocator);
     }
 
-    pub fn createString(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .string = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
+    pub fn createString(token: Token, data: []const u8, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .string = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
     }
 
     pub fn createIdentifier(token: Token, allocator: std.mem.Allocator) !*AST {

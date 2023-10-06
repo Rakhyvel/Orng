@@ -73,6 +73,7 @@ pub const Parser = struct {
         or nextKind == .OCT_INTEGER //
         or nextKind == .FLOAT //
         or nextKind == .STRING //
+        or nextKind == .MULTI_LINE //
         or nextKind == .NOT;
     }
 
@@ -550,7 +551,9 @@ pub const Parser = struct {
         } else if (self.accept(.CHAR)) |token| {
             return try AST.createChar(token, self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
-            return try AST.createString(token, self.astAllocator);
+            return try AST.createString(token, try resolve_escapes(token.data[1 .. token.data.len - 1], self.astAllocator), self.astAllocator);
+        } else if (self.accept(.MULTI_LINE)) |token| {
+            return try AST.createString(token, token.data, self.astAllocator);
         } else if (self.peek_kind(.L_BRACE)) {
             return try self.block_expr();
         } else if (self.peek_kind(.FN)) {
@@ -894,7 +897,9 @@ pub const Parser = struct {
         } else if (self.accept(.CHAR)) |token| {
             return try AST.createChar(token, self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
-            return try AST.createString(token, self.astAllocator);
+            return try AST.createString(token, try resolve_escapes(token.data[1 .. token.data.len - 1], self.astAllocator), self.astAllocator);
+        } else if (self.accept(.MULTI_LINE)) |token| {
+            return try AST.createString(token, token.data, self.astAllocator);
         } else if (self.peek_kind(.L_BRACE)) {
             return try self.block_expr();
         } else if (self.accept(.PERIOD)) |token| {
@@ -926,6 +931,59 @@ pub const Parser = struct {
         return exp orelse try AST.createUnit(token, self.astAllocator);
     }
 };
+
+fn resolve_escapes(input: []const u8, allocator: std.mem.Allocator) ![]const u8 {
+    var retval = std.ArrayList(u8).init(allocator);
+    var escape = false;
+    var skip: i8 = 0;
+    for (input, 0..) |byte, j| {
+        if (skip > 0) {
+            skip -= 1;
+            continue;
+        } else if (escape) {
+            escape = false;
+            if (byte == 'n') {
+                try retval.append(0x0A);
+            } else if (byte == 'r') {
+                try retval.append(0x0D);
+            } else if (byte == 't') {
+                try retval.append(0x09);
+            } else if (byte == '\\') {
+                try retval.append(0x5C);
+            } else if (byte == '\'') {
+                try retval.append(0x27);
+            } else if (byte == '"') {
+                try retval.append(0x22);
+            } else if (byte == 'x') {
+                try retval.append(get_nibble(input[j + 1]) * 16 + get_nibble(input[j + 2]));
+                skip = 2;
+            } else {
+                std.debug.print("Unknown escape sequence '{c}'\n", .{byte});
+                unreachable;
+            }
+        } else {
+            if (byte == '\\') {
+                escape = true;
+            } else {
+                try retval.append(byte);
+            }
+        }
+    }
+
+    return retval.items;
+}
+
+fn get_nibble(c: u8) u8 {
+    if ('0' <= c and c <= '9') {
+        return c - '0';
+    } else if ('a' <= c and c <= 'f') {
+        return c - 'a' + 10;
+    } else if ('A' <= c and c <= 'F') {
+        return c - 'A' + 10;
+    } else {
+        unreachable;
+    }
+}
 
 /// This function takes an input array of unsigned 8-bit integers (`input`) and
 /// an allocator and returns a new array on the allocator with the apostrophes

@@ -1,0 +1,13 @@
+// 60
+fn main() -> Int {
+    let x = (
+        \\Hello, World!
+        \\ This
+        \\  Is
+        \\   A
+        \\    \\multi-line
+        \\     string!
+        \\
+    )
+    x.length
+}

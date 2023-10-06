@@ -55,6 +55,7 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
         binary,
         binaryDigit,
         symbol,
+        multiline,
         comment,
     };
 
@@ -552,7 +553,11 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
             },
 
             .symbol => {
-                if (ix - slice_start > 0 and contents[slice_start] == '/' and next_char == '/') {
+                if (ix - slice_start > 0 and contents[slice_start] == '\\' and next_char == '\\') {
+                    state = .multiline;
+                    ix += 1;
+                    col += 1;
+                } else if (ix - slice_start > 0 and contents[slice_start] == '/' and next_char == '/') {
                     // comment (because of the maximal munch thing I think this isnt even needed...)
                     state = .comment;
                     ix += 1;
@@ -560,6 +565,17 @@ pub fn getTokens(contents: []const u8, filename: []const u8, errors: *errs.Error
                 } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
                     var token = Token.create(contents[slice_start..ix], null, filename, line, col);
                     try tokens.append(token);
+                    slice_start = ix;
+                    state = .none;
+                } else {
+                    ix += 1;
+                    col += 1;
+                }
+            },
+
+            .multiline => {
+                if (next_char == '\n') {
+                    try tokens.append(Token.create(contents[slice_start + 2 .. ix], .MULTI_LINE, filename, line, col));
                     slice_start = ix;
                     state = .none;
                 } else {

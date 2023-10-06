@@ -14,7 +14,6 @@ typedef struct {
 
 /* Interned Strings */
 char* string_0 = "\x0A\x0D\x09\x27\x22";
-
 /* Function forward definitions */
 uint8_t _1_main(void);
 
@@ -22,7 +21,7 @@ uint8_t _1_main(void);
 uint8_t _1_main(void) {
     struct0 _2_x;
     uint8_t _1_$retval;
-    _2_x = (struct0) {(uint8_t*)string_0, 11};
+    _2_x = (struct0) {(uint8_t*)string_0, 4};
     _1_$retval = *((uint8_t*)_2_x._0 + 4);
     return _1_$retval;
 }

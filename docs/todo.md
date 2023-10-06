@@ -19,6 +19,7 @@
 - [x] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
 - [ ] Organize functions declarations in BFS order
 - [ ] Order switches on enums to the order they were declared in
+    - [ ] Order enums better too
 - [ ] Comments on each function and struct field
 - [ ] *probably* should only be one struct per file
 - [ ] Change some while loops with counter to enhanced for loops
@@ -50,7 +51,7 @@
 - [x] Require named fields/args to have `.`
 - [x] Enforce naming convetions
     - [x] Must be snake case
-        > `([A-Z]*[a-z0-9]*_)*[A-Z]*[a-z0-9]*`
+        <!-- `([A-Z]*[a-z0-9]*_)*[A-Z]*[a-z0-9]*`
     - [x] Cannot define names that begin with `_` outside of prelude
     - [x] Types, traits, and functions that return types must be capitalized. Nothing else may be.
 - [x] Make modulo not chainable (perhaps even replace it with `mod` and `rem` prelude functions)
@@ -60,6 +61,7 @@
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
 - [x] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
+- [ ] Enable coverage for subdirectories of integration
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -130,23 +132,18 @@
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [x] Character escapes (`\n`, `\r`, `\t`, `\x<hex byte>`)
-        - [ ] `\u<unicode code point, hex>`
-            > Incredibly non-trivial
         - [x] Error on invalid escapes (this should happen at lex-time)
         - [x] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
-        > TBD: `String_Buffer` type/module in stdlib which allows for manipulation of mutable strings
-        - [ ] 
-    - [ ] Character literals
+        - [ ] multiline string literals
+    - [x] Character literals
         - [x] Character escapes (`\n`, `\r`, `\t`)
-        - [ ] `\u<unicode code point, hex>`
-            > Seems non-trivial
         - [x] Error on invalid escapes
         - [x] Error if character literal contains more than one character
 - [ ] Sum types
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
     - [x] equality on sum type values
-    - [ ] `.@tag_name`
+    - [ ] Builtin-function (?) to get tag name as string from sum
 - [x] optionals
     - [x] `?` constructor
     - [x] remove `fromOptional`
@@ -160,7 +157,7 @@
     - [ ] inferred errors
         > Investigate. Seems problematic to implement well
     - [x] remove `throw`
-- [ ] more compile errors
+- [x] more compile errors
     - [x] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
         - [x] negative tests up to type checking
         - [x] `.poison` AST node which represents apart of the program with errors that should not be re-validated
@@ -177,7 +174,7 @@
     - [x] explicit discarding with `_`
         - [x] error if discard when it's used
         - [x] error if function parameter is not used
-        - [ ] error if the result from a call is not used
+        - [x] error if the result from a call is not used
     - [x] static index out of bounds
     - [x] dynamic index out of bounds
     - [x] static slice lower <= upper
