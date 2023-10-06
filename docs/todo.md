@@ -127,14 +127,14 @@
     - [x] sublices with inferred lower bound (0)
     - [x] sublices with inferred upper bound (length)
     - [x] slice literals
-- [ ] UTF8
+- [x] UTF8
     - [x] Byte type
     - [ ] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [x] Character escapes (`\n`, `\r`, `\t`, `\x<hex byte>`)
         - [x] Error on invalid escapes (this should happen at lex-time)
         - [x] `String` type in prelude, which is an alias for `[]Byte` (immutable byte array)
-        - [ ] multiline string literals
+        - [x] multiline string literals
     - [x] Character literals
         - [x] Character escapes (`\n`, `\r`, `\t`)
         - [x] Error on invalid escapes
@@ -288,7 +288,6 @@
     - [x] coverage!
     - [x] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] compile-time evaluation
-    > Switch to Karta just to get a feel for interpreters
     > Validate, IR, Optimize. Don't codegen, interpret!
     - [x] `const` is an annotation and symbol modifier
     - [ ] eval type annotations

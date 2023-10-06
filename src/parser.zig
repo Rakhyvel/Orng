@@ -524,30 +524,15 @@ pub const Parser = struct {
         } else if (self.accept(.FALSE)) |token| {
             return try AST.createFalse(token, self.astAllocator);
         } else if (self.accept(.DECIMAL_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped, 10), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.astAllocator);
         } else if (self.accept(.HEX_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 16), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 16), self.astAllocator);
         } else if (self.accept(.OCT_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 8), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.astAllocator);
         } else if (self.accept(.BIN_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 2), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.astAllocator);
         } else if (self.accept(.FLOAT)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createFloat(token, try std.fmt.parseFloat(f64, stripped), self.astAllocator);
+            return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
             return try AST.createChar(token, self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
@@ -870,30 +855,15 @@ pub const Parser = struct {
         } else if (self.accept(.FALSE)) |token| {
             return try AST.createFalse(token, self.astAllocator);
         } else if (self.accept(.DECIMAL_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped, 10), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.astAllocator);
         } else if (self.accept(.HEX_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 16), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 16), self.astAllocator);
         } else if (self.accept(.OCT_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 8), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.astAllocator);
         } else if (self.accept(.BIN_INTEGER)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createInt(token, try std.fmt.parseInt(i128, stripped[2..], 2), self.astAllocator);
+            return try AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.astAllocator);
         } else if (self.accept(.FLOAT)) |token| {
-            var apostropheAllocator = std.heap.ArenaAllocator.init(self.astAllocator);
-            defer apostropheAllocator.deinit();
-            var stripped = try strip_apostrophes(token.data, apostropheAllocator.allocator());
-            return try AST.createFloat(token, try std.fmt.parseFloat(f64, stripped), self.astAllocator);
+            return try AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.astAllocator);
         } else if (self.accept(.CHAR)) |token| {
             return try AST.createChar(token, self.astAllocator);
         } else if (self.accept(.STRING)) |token| {
@@ -983,23 +953,4 @@ fn get_nibble(c: u8) u8 {
     } else {
         unreachable;
     }
-}
-
-/// This function takes an input array of unsigned 8-bit integers (`input`) and
-/// an allocator and returns a new array on the allocator with the apostrophes
-/// removed.
-///
-/// Used to remove apostrophes from number literals before they are parsed by
-/// std.fmt parse functions, which cannot handle apostophes.
-fn strip_apostrophes(input: []const u8, allocator: std.mem.Allocator) ![]const u8 {
-    var retval = String.init(allocator);
-    defer retval.deinit();
-    for (input) |c| {
-        if (c != '\'') {
-            var c1: [1]u8 = undefined;
-            c1[0] = c;
-            try retval.insert(&c1, retval.size);
-        }
-    }
-    return (try retval.toOwned()).?;
 }
