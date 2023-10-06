@@ -12,12 +12,10 @@ int64_t _3_return53(int64_t _3_x);
 
 /* Function definitions */
 int64_t _1_main(void) {
-    int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/default-1arg.orng:3:14:\n    return53()\n            ^";
-    _1_t0 = _3_return53(53);
     $line_idx--;
-    _1_$retval = _1_t0;
+    _1_$retval = _3_return53(53);
     return _1_$retval;
 }
 

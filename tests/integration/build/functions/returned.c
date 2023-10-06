@@ -17,15 +17,13 @@ int64_t _5_add_four(int64_t _5_x);
 /* Function definitions */
 int64_t _1_main(void) {
     function0 _1_t0;
-    int64_t _1_t1;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
     _1_t0 = _3_f();
     $line_idx--;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n       ^";
-    _1_t1 = _1_t0(45);
     $line_idx--;
-    _1_$retval = _1_t1;
+    _1_$retval = _1_t0(45);
     return _1_$retval;
 }
 

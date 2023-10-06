@@ -41,9 +41,9 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     try findUnused(cfg, errors);
 
     while (try propagate(cfg, interned_strings, errors, allocator) or
-        removeUnusedDefs(cfg) or
+        try removeUnusedDefs(cfg, errors) or
         try bbOptimizations(cfg, allocator) or
-        removeUnusedDefs(cfg))
+        try removeUnusedDefs(cfg, errors))
     {}
     cfg.clearVisitedBBs();
 
@@ -1173,7 +1173,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
     }
 }
 
-fn removeUnusedDefs(cfg: *CFG) bool {
+fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
     var retval = false;
 
     calculateUsage(cfg);
@@ -1189,8 +1189,20 @@ fn removeUnusedDefs(cfg: *CFG) bool {
                 if (debug) {
                     std.debug.print("removing: {}", .{ir});
                 }
-                bb.removeInstruction(ir);
-                retval = true;
+                if (ir.kind == .call) {
+                    if (ir.src1.?.symbol.expanded_type.?.function.rhs.* != .unit) {
+                        // It is an error for the return val of a non-unit-returning function to not be used
+                        // DO NOT remove an unused call for a unit function
+                        errors.addError(Error{ .basic = .{
+                            .span = ir.span,
+                            .msg = "value of call is never used",
+                        } });
+                        return error.typeError;
+                    }
+                } else {
+                    bb.removeInstruction(ir);
+                    retval = true;
+                }
             }
         }
     }
@@ -1267,7 +1279,7 @@ fn calculateUsage(cfg: *CFG) void {
             if (ir.kind == .discard) {
                 ir.src1.?.symbol.discards += 1;
             }
-            if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol or ir.kind == .call)) {
+            if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol)) {
                 // dest aren't USUALLY considered a usage, but they are for derefCopy and call IRs
                 ir.dest.?.uses += 1;
                 ir.dest.?.symbol.uses += 1;

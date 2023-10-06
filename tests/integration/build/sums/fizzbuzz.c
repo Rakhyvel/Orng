@@ -31,12 +31,10 @@ struct0 _3_fizzbuzz(int64_t _3_n);
 
 /* Function definitions */
 struct1 _1_main(void) {
-    struct0 _1_t0;
     struct1 _1_$retval;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
-    _1_t0 = _3_fizzbuzz(30);
     $line_idx--;
-    _1_$retval = _1_t0._0;
+    _1_$retval = _3_fizzbuzz(30)._0;
     return _1_$retval;
 }
 

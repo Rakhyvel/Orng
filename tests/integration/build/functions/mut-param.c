@@ -12,12 +12,10 @@ int64_t _3_sum_down(int64_t _3_x);
 
 /* Function definitions */
 int64_t _1_main(void) {
-    int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
-    _1_t0 = _3_sum_down(8);
     $line_idx--;
-    _1_$retval = $add_int64_t(_1_t0, 2, "tests/integration/functions/mut-param.orng:2:3:\nfn main() -> Int {sum_down(8) + 2}\n ^");
+    _1_$retval = $add_int64_t(_3_sum_down(8), 2, "tests/integration/functions/mut-param.orng:2:3:\nfn main() -> Int {sum_down(8) + 2}\n ^");
     return _1_$retval;
 }
 

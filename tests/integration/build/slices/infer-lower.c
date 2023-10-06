@@ -30,15 +30,13 @@ int64_t _1_main(void) {
     struct0 _2_x;
     int64_t* _1_t18;
     struct1 _2_z;
-    int64_t _1_t20;
     int64_t _1_$retval;
     _2_x = (struct0) {100, 8, 2, 4, 35, 6};
     _1_t18 = (int64_t*)&_2_x;
     _2_z = (struct1) {_1_t18, 3};
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
-    _1_t20 = _3_sum_up(_2_z);
     $line_idx--;
-    _1_$retval = _1_t20;
+    _1_$retval = _3_sum_up(_2_z);
     return _1_$retval;
 }
 

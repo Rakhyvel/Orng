@@ -12,12 +12,10 @@ int64_t _3_div(int64_t _3_x,int64_t _3_y);
 
 /* Function definitions */
 int64_t _1_main(void) {
-    int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/named-arg.orng:3:9:\n    div(.x = 510, .y = 10)\n       ^";
-    _1_t0 = _3_div(510, 10);
     $line_idx--;
-    _1_$retval = _1_t0;
+    _1_$retval = _3_div(510, 10);
     return _1_$retval;
 }
 

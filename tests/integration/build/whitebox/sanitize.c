@@ -21,12 +21,10 @@ int64_t _3_f(struct0 _3_x);
 
 /* Function definitions */
 int64_t _1_main(void) {
-    int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/whitebox/sanitize.orng:3:7:\n    f(\"make sure you sanitize me!\\n\")\n     ^";
-    _1_t0 = _3_f((struct0) {(uint8_t*)string_0, 29});
     $line_idx--;
-    _1_$retval = _1_t0;
+    _1_$retval = _3_f((struct0) {(uint8_t*)string_0, 29});
     return _1_$retval;
 }
 

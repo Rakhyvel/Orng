@@ -161,7 +161,7 @@ pub const IRKind = enum {
     label,
     jump,
     branchIfFalse,
-    call,
+    call, // dest = src1(symbver_list...)
 
     // Non-Code Generating
     discard, // Marks that a symbol isn't used, but that's OK

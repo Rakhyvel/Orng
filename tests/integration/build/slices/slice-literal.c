@@ -27,15 +27,13 @@ int64_t _1_main(void) {
     struct0 _1_t2;
     int64_t* _1_t9;
     struct1 _1_t1;
-    int64_t _1_t0;
     int64_t _1_$retval;
     _1_t2 = (struct0) {200, 0, 8};
     _1_t9 = (int64_t*)&_1_t2;
     _1_t1 = (struct1) {_1_t9, 3};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:3:9:\n    sum([](200, 0, 8)) // Slice of product literal\n       ^";
-    _1_t0 = _3_sum(_1_t1);
     $line_idx--;
-    _1_$retval = _1_t0;
+    _1_$retval = _3_sum(_1_t1);
     return _1_$retval;
 }
 
@@ -44,7 +42,6 @@ int64_t _3_sum(struct1 _3_xs) {
     int64_t* _3_t13;
     int64_t* _3_t14;
     struct1 _3_t15;
-    int64_t _3_t8;
     int64_t _3_$retval;
     int64_t _3_t9;
     int64_t _3_t10;
@@ -73,9 +70,8 @@ BB7:
     _3_t14 = _3_t13 + _3_t9;
     _3_t15 = (struct1) {_3_t14, ($sub_int64_t(_3_t10, _3_t9, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^"))};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:21:\n        xs[0] + sum(xs[1..])\n                   ^";
-    _3_t8 = _3_sum(_3_t15);
     $line_idx--;
-    _3_t0 = $add_int64_t(*(int64_t*)_3_xs._0, _3_t8, "tests/integration/slices/slice-literal.orng:7:7:\n    if xs.length == 0 {\n     ^");
+    _3_t0 = $add_int64_t(*(int64_t*)_3_xs._0, _3_sum(_3_t15), "tests/integration/slices/slice-literal.orng:7:7:\n    if xs.length == 0 {\n     ^");
 BB4:
     _3_$retval = _3_t0;
     return _3_$retval;

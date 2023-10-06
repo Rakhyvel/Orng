@@ -28,16 +28,14 @@ int64_t _1_main(void) {
     struct0 _2_x;
     int64_t* _1_t9;
     struct1 _2_y;
-    int64_t _1_t12;
     int64_t _1_$retval;
     _2_x = (struct0) {0, 0, 0, 0};
     _1_t9 = (int64_t*)&_2_x;
     _2_y = (struct1) {_1_t9, 4};
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
-    _1_t12 = _3_f();
     $line_idx--;
-    $bounds_check(_1_t12, 4, "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^");
-    *((int64_t*)_2_y._0 + _1_t12) = 0;
+    $bounds_check(_3_f(), 4, "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^");
+    *((int64_t*)_2_y._0 + _3_f()) = 0;
     _1_$retval = 0;
     return _1_$retval;
 }
