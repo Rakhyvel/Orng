@@ -47,15 +47,24 @@ pub fn main() !void {
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
 
+    var prelude = try primitives.init();
+
     if (fuzz_tokens) {
-        compile(&errors, path, "examples/out.c", fuzz_tokens, allocator) catch {};
+        compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator) catch {};
     } else {
-        try compile(&errors, path, "examples/out.c", fuzz_tokens, allocator);
+        try compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator);
     }
 }
 
 /// Compiles and outputs a file
-pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !void {
+pub fn compile(
+    errors: *errs.Errors,
+    in_name: []const u8,
+    out_name: []const u8,
+    prelude: *symbol.Scope,
+    fuzz_tokens: bool,
+    allocator: std.mem.Allocator,
+) !void {
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -74,7 +83,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
     var lines = std.ArrayList([]const u8).init(allocator);
     defer lines.deinit();
 
-    var file_root = compileContents(errors, &lines, in_name, contents, fuzz_tokens, allocator) catch |err| {
+    var file_root = compileContents(errors, &lines, in_name, contents, prelude, fuzz_tokens, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parserError,
@@ -96,7 +105,7 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
         }
     };
     // TODO: defer file_root.deinit()
-    output(errors, &lines, file_root, uid, out_name, allocator) catch |err| {
+    output(errors, &lines, prelude, file_root, uid, out_name, allocator) catch |err| {
         switch (err) {
             error.symbolError,
             error.typeError,
@@ -110,7 +119,15 @@ pub fn compile(errors: *errs.Errors, in_name: []const u8, out_name: []const u8, 
 }
 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree
-pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), in_name: []const u8, contents: []const u8, fuzz_tokens: bool, allocator: std.mem.Allocator) !*symbol.Scope {
+pub fn compileContents(
+    errors: *errs.Errors,
+    lines: *std.ArrayList([]const u8),
+    in_name: []const u8,
+    contents: []const u8,
+    prelude: *symbol.Scope,
+    fuzz_tokens: bool,
+    allocator: std.mem.Allocator,
+) !*symbol.Scope {
     // Construct the name
     var i: usize = 0;
     while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
@@ -156,12 +173,12 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
     }
 
     // Parse
-    try ast.initTypes();
+    try ast.init_structures();
     var parser = try Parser.create(&tokens, errors, allocator);
     var program_ast = try parser.parse();
 
     // Symbol tree construction
-    var file_root = try symbol.Scope.init(try primitives.init(), name, allocator);
+    var file_root = try symbol.Scope.init(prelude, name, allocator);
     try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
 
     // Typecheck
@@ -174,7 +191,15 @@ pub fn compileContents(errors: *errs.Errors, lines: *std.ArrayList([]const u8), 
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
-pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root: *symbol.Scope, uid: i128, out_name: []const u8, allocator: std.mem.Allocator) !void {
+pub fn output(
+    errors: *errs.Errors,
+    lines: *std.ArrayList([]const u8),
+    prelude: *symbol.Scope,
+    file_root: *symbol.Scope,
+    uid: i128,
+    out_name: []const u8,
+    allocator: std.mem.Allocator,
+) !void {
     if (file_root.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
             errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
@@ -196,7 +221,7 @@ pub fn output(errors: *errs.Errors, lines: *std.ArrayList([]const u8), file_root
         );
 
         // C Code generation
-        var program = try Program.init(cfg, uid, &interned_strings, try primitives.init(), errors, allocator);
+        var program = try Program.init(cfg, uid, &interned_strings, prelude, errors, allocator);
         // TODO: defer program.deinit()
         program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);

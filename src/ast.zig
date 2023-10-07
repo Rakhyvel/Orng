@@ -14,13 +14,13 @@ const Token = tokens.Token;
 const TokenKind = tokens.TokenKind;
 
 pub var poisoned: *AST = undefined;
-var typesInited: bool = false;
+var inited: bool = false;
 
-pub fn initTypes() !void {
-    if (!typesInited) {
+pub fn init_structures() !void {
+    if (!inited) {
         poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "NO BACKGROUND CHECKS", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         poisoned.getCommon().validation_state = .invalid;
-        typesInited = true;
+        inited = true;
     }
 }
 

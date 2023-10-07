@@ -1,7 +1,7 @@
 // 173
 fn main() -> Int {
-    let const The_Type = a: (aa: Int | ab: Int) | b: (ba: Int | bb: Int)
-    let x: The_Type = The_Type.b <- .ba <- 173
+    let const The_Type = (a: (aa: Int | ab: Int) | b: (ba: Int | bb: Int))
+    let x: The_Type = The_Type.b <- (.ba <- 173)
 
     match x {
         .a <- y => match y {

@@ -140,13 +140,13 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         if (self.accept(.COLON)) |_| {
-            _type = try self.arrow_expr();
+            _type = try self.inject_expr();
             if (self.peek_kind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
-                init = try self.expr();
+                init = try self.inject_expr();
             }
         } else if (self.accept(.EQUALS)) |_| {
-            init = try self.expr();
+            init = try self.inject_expr();
         } else {
             self.errors.addError(Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value" } });
             return error.parserError;
@@ -218,7 +218,7 @@ pub const Parser = struct {
                 return try AST.createErrDefer(token, try self.expr(), self.astAllocator);
             }
         } else if (self.next_is_expr()) {
-            return self.expr();
+            return self.assignment_expr();
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a statement", .got = self.peek() } });
             return ParserErrorEnum.parserError;
@@ -270,14 +270,14 @@ pub const Parser = struct {
     fn annotation_expr(self: *Parser) ParserErrorEnum!*AST {
         var exp = try self.assignment_expr();
         if (self.accept(.COLON)) |token| {
-            var _type = try self.arrow_expr();
+            var _type = try self.inject_expr();
             var predicate: ?*AST = null;
             var init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
-                predicate = try self.arrow_expr();
+                predicate = try self.inject_expr();
             }
             if (self.accept(.EQUALS)) |_| {
-                init = try self.annotation_expr();
+                init = try self.inject_expr();
             }
             return try AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
         } else {
@@ -286,31 +286,37 @@ pub const Parser = struct {
     }
 
     fn assignment_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.arrow_expr();
+        var exp = try self.inject_expr();
         if (self.accept(.EQUALS)) |token| {
             if (exp.* == .identifier and std.mem.eql(u8, exp.getToken().data, "_")) {
                 // TODO: With new pattern matching is this needed?
-                return try AST.createDiscard(token, try self.assignment_expr(), self.astAllocator);
+                return try AST.createDiscard(token, try self.inject_expr(), self.astAllocator);
             } else {
-                return try AST.createAssign(token, exp, try self.assignment_expr(), self.astAllocator);
+                return try AST.createAssign(token, exp, try self.inject_expr(), self.astAllocator);
             }
         } else if (self.accept(.PLUS_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignment_expr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.MINUS_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignment_expr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.STAR_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignment_expr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.SLASH_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignment_expr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.PERCENT_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignment_expr(), self.astAllocator), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.D_STAR_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.assignment_expr(), self.astAllocator), self.astAllocator);
-        } else if (self.accept(.LEFT_SKINNY_ARROW)) |token| {
-            return try AST.createInject(token, exp, try self.assignment_expr(), self.astAllocator);
+            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else {
             return exp;
         }
+    }
+
+    fn inject_expr(self: *Parser) ParserErrorEnum!*AST {
+        var exp = try self.arrow_expr();
+        if (self.accept(.LEFT_SKINNY_ARROW)) |token| {
+            return try AST.createInject(token, exp, try self.arrow_expr(), self.astAllocator);
+        }
+        return exp;
     }
 
     fn arrow_expr(self: *Parser) ParserErrorEnum!*AST {
@@ -679,11 +685,11 @@ pub const Parser = struct {
         _ = try self.expect(.RIGHT_SKINNY_ARROW);
         // var infer_token = self.accept(.E_MARK);
         // _ = infer_token;
-        var retType = try self.arrow_expr();
+        var retType = try self.inject_expr();
 
         var refinement: ?*AST = null;
         if (self.accept(.WHERE)) |_| {
-            _ = try self.arrow_expr();
+            _ = try self.inject_expr();
         }
 
         var init = try self.block_expr();
@@ -727,10 +733,10 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         _ = try self.expect(.COLON);
-        _type = try self.arrow_expr();
+        _type = try self.inject_expr();
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
-            init = try self.annotation_expr();
+            init = try self.inject_expr();
         }
 
         return try AST.createDecl(

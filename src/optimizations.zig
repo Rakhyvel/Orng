@@ -1099,7 +1099,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
         else => {},
     }
 
-    if (!retval) {
+    if (!retval and ir.kind != .selectCopy) {
         // Need to make sure src1_def.dest is not assigned to in between src1_def and ir.
         //   srcn_def:        dest = ?
         //             ...

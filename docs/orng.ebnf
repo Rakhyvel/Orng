@@ -8,7 +8,7 @@ top_level_declaration: fn_declaration
                      | let_declaration
                      .
 
-let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" expr] | "=" expr).
+let_declaration: "let" let_pattern_atom (":" inject_expr ["=" inject_expr] | "=" inject_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
@@ -17,18 +17,26 @@ let_pattern_atom: ["mut" | "const"] ident
 statement: let_declaration
          | "defer" (expr | let_declaration)
          | "errdefer" (expr | let_declaration)
-         | expr
+         | assignment_expr
          .
 
+
+
+# Reachable only by parens
 expr: sum_expr.
 
 sum_expr: product_expr {"|" annotation_expr}. # (lhs of | must be ident or annotation_expr with proper pattern left of the :)
 
 product_expr: annotation_expr {"," annotation_expr}.
 
-annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" annotation_expr]]. # (lhs of : must be ident or other TBD patterns)
+annotation_expr: assignment_expr [":" inject_expr ["where" inject_expr] ["=" inject_expr]].
 
-assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignment_expr].
+
+
+# Reachable by statement/expression
+assignment_expr: inject_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") inject_expr].
+
+inject_expr: arrow_expr ["<-" arrow_expr].
 
 arrow_expr: bool_expr {"->" bool_expr}.
 
@@ -90,9 +98,9 @@ while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["els
 
 for_expr: "for" ["mut"] ident "in" expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
 
-fn_declaration: "fn" [ident] paramlist "->" ["!"] arrow_expr ["where" arrow_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" ["!"] arrow_expr ["where" inject_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" arrow_expr ["=" annotation_expr]. # must not be product_expr, or ambiguous with ,
+param: let_pattern_atom ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
 
 match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
 match_bar_clause: match_pattern_inject "=>" expr "newline".
@@ -116,3 +124,4 @@ match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol o
                   .
 
 parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put all exprs in parens
+                        # This also makes it so that tuples, sums, and annotations are always parenthized, which helps with landmarking

@@ -69,14 +69,26 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     }
 
     // Symbol's name must be capitalizes iff it type is Type
-    if (symbol.expanded_type != null) {
+    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_")) {
         if (symbol.expanded_type.?.* == .identifier and std.mem.eql(u8, symbol.expanded_type.?.getToken().data, "Type")) {
             if (!std.ascii.isUpper(symbol.name[0])) {
-                errors.addError(Error{ .basic = .{ .span = symbol.span, .msg = "symbol of type Type must start with an uppercase letter" } });
+                errors.addError(Error{ .symbol_error = .{
+                    .span = symbol.span,
+                    .context_span = null,
+                    .name = symbol.name,
+                    .problem = "of type `Type` must start with an uppercase letter",
+                    .context_message = "",
+                } });
             }
         } else {
             if (std.ascii.isUpper(symbol.name[0])) {
-                errors.addError(Error{ .basic = .{ .span = symbol.span, .msg = "symbol of type other than Type must not start with an uppercase letter" } });
+                errors.addError(Error{ .symbol_error = .{
+                    .span = symbol.span,
+                    .context_span = null,
+                    .name = symbol.name,
+                    .problem = "of type other than `Type` must start with a lowercase letter",
+                    .context_message = "",
+                } });
             }
         }
     }
@@ -113,10 +125,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             } else if (ast.* != .unit) {
                 try list.append(ast);
             }
-            var new_list = default_args(list, expanded_expected, errors, allocator) catch |err| switch (err) {
+            var new_list = default_args(list, expanded_expected, scope, errors, allocator) catch |err| switch (err) {
                 error.NoDefault => std.ArrayList(*AST).init(allocator),
                 error.typeError => return ast.enpoison(),
                 error.OutOfMemory => return error.OutOfMemory,
+                error.Unimplemented => return error.Unimplemented,
             };
             if (new_list.items.len == 1) {
                 ast = new_list.items[0];
@@ -653,10 +666,11 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
 
             // Apply default arguments
-            ast.call.args = default_args(ast.call.args, lhs_type.function.lhs, errors, allocator) catch |err| switch (err) {
+            ast.call.args = default_args(ast.call.args, lhs_type.function.lhs, scope, errors, allocator) catch |err| switch (err) {
                 error.NoDefault => ast.call.args,
                 error.typeError => return ast.enpoison(),
                 error.OutOfMemory => return error.OutOfMemory,
+                error.Unimplemented => return error.Unimplemented,
             };
 
             // Validate
@@ -1568,9 +1582,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
     return retval;
 }
 
-fn default_args(asts: std.ArrayList(*AST), expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
+fn default_args(asts: std.ArrayList(*AST), expected: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
     if (try args_are_named(asts, errors)) {
-        return named_args(asts, expected, errors, allocator);
+        return named_args(asts, expected, scope, errors, allocator);
     } else {
         return positional_args(asts, expected, allocator);
     }
@@ -1656,7 +1670,7 @@ fn positional_args(asts: std.ArrayList(*AST), expected: *AST, allocator: std.mem
     return retval;
 }
 
-fn named_args(asts: std.ArrayList(*AST), expected: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
+fn named_args(asts: std.ArrayList(*AST), expected: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !std.ArrayList(*AST) {
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
     var arg_map = std.StringArrayHashMap(*AST).init(allocator);
@@ -1680,21 +1694,26 @@ fn named_args(asts: std.ArrayList(*AST), expected: *AST, errors: *errs.Errors, a
     // Construct positional args in the order specified by `expected`
     var retval = std.ArrayList(*AST).init(allocator);
     errdefer retval.deinit();
-    switch (expected.*) {
+    var new_expected = expected;
+    if (expected.* == .annotation and (try expected.annotation.type.expand_type(scope, errors, allocator)).* == .product) {
+        new_expected = try expected.annotation.type.expand_type(scope, errors, allocator);
+    }
+    switch (new_expected.*) {
         .annotation => {
             if (arg_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
                 errors.addError(Error{ .basic = .{
                     .span = asts.items[0].getToken().span,
-                    .msg = "too many arguments specifed",
+                    .msg = "too many arguments/fields specifed",
                 } });
-                return error.NoDefault;
+                // return error.NoDefault;
+                unreachable;
             } else {
                 try retval.append(arg_map.values()[0]);
             }
         },
 
         .product => {
-            for (expected.product.terms.items) |term| {
+            for (new_expected.product.terms.items) |term| {
                 if (term.* != .annotation) {
                     errors.addError(Error{ .basic = .{
                         .span = asts.items[0].getToken().span,

@@ -6,7 +6,7 @@ program: top_level_declaration "eof".
 
 top_level_declaration: "fn main() -> Int" block_expr.
 
-let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" expr] | "=" expr).
+let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" arrow_expr] | "=" arrow_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
@@ -24,9 +24,9 @@ sum_expr: product_expr {"|" annotation_expr}. # (lhs of | must be ident or annot
 
 product_expr: annotation_expr {"," annotation_expr}.
 
-annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" expr]]. # (lhs of : must be ident or other TBD patterns)
+annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" arrow_expr]]. # (lhs of : must be ident or other TBD patterns)
 
-assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "**=" | "<-") assignment_expr].
+assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") arrow_expr].
 
 arrow_expr: bool_expr {"->" bool_expr}.
 
@@ -50,7 +50,7 @@ prefix_expr: "not" hyper_expr                         # boolean not
           | hyper_expr
           .
 
-hyper_expr: postfix_expr {("**") postfix_expr}.
+hyper_expr: postfix_expr.
 
 postfix_expr: control_flow {call_expr | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
 call_expr: "(" [annotation_expr {"," annotation_expr}] ")".
@@ -86,7 +86,7 @@ while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["els
 
 fn_declaration: "fn" [ident] paramlist "->" arrow_expr ["where" arrow_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" arrow_expr ["=" assignment_expr]. # must not be product_expr, or ambiguous with ,
+param: let_pattern_atom ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
 
 match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
 match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".

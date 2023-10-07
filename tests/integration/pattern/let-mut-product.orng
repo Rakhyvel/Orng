@@ -1,6 +1,6 @@
 // 143
 fn main() -> Int {
-    let (x, mut y): [2]Int = 3, 40
+    let (x, mut y): [2]Int = (3, 40)
     y += 100
     x + y
 }

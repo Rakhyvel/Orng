@@ -1,8 +1,10 @@
 const std = @import("std");
 const errs = @import("errors.zig");
 const compiler = @import("main.zig");
-const term = @import("term.zig");
+const primitives = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
+const symbol = @import("symbol.zig");
+const term = @import("term.zig");
 
 const allocator = std.heap.page_allocator;
 const revert = term.Attr{};
@@ -46,9 +48,10 @@ fn parse_args(old_args: std.process.ArgIterator, root: []const u8, comptime test
 
     var results = Results{ .passed = 0, .failed = 0 };
     if (args.inner.index < args.inner.count) {
+        var prelude = try primitives.init();
         while (args.next()) |next| {
             if (indexOf(next, '.')) |_| {
-                _ = try test_file("", next, false);
+                _ = try test_file("", next, prelude, false);
             } else {
                 var open_dir_name = try String.init_with_contents(allocator, "/");
                 defer open_dir_name.deinit();
@@ -79,6 +82,7 @@ fn testDir(dir_name: []const u8, results: ?*Results, coverage: bool, start: []co
     // Add all files names in the src folder to `files`
     var dir = try std.fs.cwd().openIterableDir(open_dir_name.str(), .{});
     defer dir.close();
+    var prelude = try primitives.init();
 
     var it = dir.iterate();
     while (try it.next()) |file| {
@@ -87,7 +91,7 @@ fn testDir(dir_name: []const u8, results: ?*Results, coverage: bool, start: []co
         }
         switch (file.kind) {
             .file => {
-                var res = try test_file_fn(dir_name, file.name, coverage);
+                var res = try test_file_fn(dir_name, file.name, prelude, coverage);
                 if (!coverage) {
                     if (res) {
                         results.?.passed += 1;
@@ -109,7 +113,7 @@ fn testDir(dir_name: []const u8, results: ?*Results, coverage: bool, start: []co
     }
 }
 
-fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) !bool {
+fn integrateTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -166,7 +170,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    compiler.compile(&errors, in_name.str(), out_name.str(), false, allocator) catch |err| {
+    compiler.compile(&errors, in_name.str(), out_name.str(), prelude, false, allocator) catch |err| {
         if (!coverage) {
             std.debug.print("{}\n", .{err});
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
@@ -246,7 +250,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, coverage: bool)
     return true;
 }
 
-fn negativeTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) !bool {
+fn negativeTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -291,7 +295,7 @@ fn negativeTestFile(dir_name: []const u8, filename: []const u8, coverage: bool) 
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    compiler.compile(&errors, in_name.str(), "a.out", false, allocator) catch |err| {
+    compiler.compile(&errors, in_name.str(), "a.out", prelude, false, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.lexerError,
@@ -337,6 +341,8 @@ fn fuzzTests() !void {
     var failed: usize = 0;
     var i: usize = 0;
 
+    var prelude = try primitives.init();
+
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"').? + 1;
     var end: usize = start + 1;
@@ -362,7 +368,7 @@ fn fuzzTests() !void {
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            var file_root = compiler.compileContents(&errors, &lines, "fuzz", program_text, true, allocator) catch |err| {
+            var file_root = compiler.compileContents(&errors, &lines, "fuzz", program_text, prelude, true, allocator) catch |err| {
                 // try errors.printErrors(&lines, "");
                 switch (err) {
                     error.lexerError,
@@ -388,7 +394,7 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            compiler.output(&errors, &lines, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch |err| {
+            compiler.output(&errors, &lines, prelude, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch |err| {
                 switch (err) {
                     error.symbolError => {
                         // passed += 1;

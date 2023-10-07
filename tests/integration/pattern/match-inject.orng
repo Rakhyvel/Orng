@@ -1,6 +1,6 @@
 // 171
 fn main() -> Int {
-    let const The_Type = a: Int | b: Bool | c: Char
+    let const The_Type = (a: Int | b: Bool | c: Char)
     let x: The_Type = The_Type.a <- 171
 
     match x {

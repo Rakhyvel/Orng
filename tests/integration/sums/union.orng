@@ -1,6 +1,6 @@
 // 108
-let const A = aa: Int | ab: String
-let const B = ba: Int | bb: String
+let const A = (aa: Int | ab: String)
+let const B = (ba: Int | bb: String)
 let const Union = A || B
 
 fn main()->Int {
