@@ -25,16 +25,15 @@ pub fn main() !void {
             arg = args.next().?;
         }
         if (std.mem.eql(u8, "integration", arg)) {
-            try parse_args(args, "tests/integration", integrateTestFile);
+            try parse_args(args, false, integrateTestFile);
         } else if (std.mem.eql(u8, "coverage", arg)) {
-            _ = try testDir("", null, true, "tests/integration", integrateTestFile);
+            try parse_args(args, true, integrateTestFile);
+        } else if (std.mem.eql(u8, "negative", arg)) {
+            try parse_args(args, false, negativeTestFile);
         } else if (std.mem.eql(u8, "negative-coverage", arg)) {
-            _ = try testDir("", null, true, "tests/integration", integrateTestFile);
-            _ = try testDir("", null, true, "tests/negative", negativeTestFile);
+            try parse_args(args, true, negativeTestFile);
         } else if (std.mem.eql(u8, "fuzz", arg)) {
             try fuzzTests();
-        } else if (std.mem.eql(u8, "negative", arg)) {
-            try parse_args(args, "tests/negative", negativeTestFile);
         } else {
             std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{arg});
             return error.InvalidCliArgument;
@@ -42,78 +41,38 @@ pub fn main() !void {
     }
 }
 
-fn parse_args(old_args: std.process.ArgIterator, root: []const u8, comptime test_file: Test_File_Fn) !void {
+/// kcov can't handle child processes for some reason and freezes.
+/// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
+/// When `coverage` is true, no child processes are spawned, and no output is given.
+const Results = struct { passed: usize, failed: usize };
+fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void {
     var args = old_args;
-    try term.outputColor(succeed_color, "[============]\n", out);
+    if (!coverage) {
+        try term.outputColor(succeed_color, "[============]\n", out);
+    }
 
     var results = Results{ .passed = 0, .failed = 0 };
-    if (args.inner.index < args.inner.count) {
-        var prelude = try primitives.init();
-        while (args.next()) |next| {
-            if (indexOf(next, '.')) |_| {
-                _ = try test_file("", next, prelude, false);
-            } else {
-                var open_dir_name = try String.init_with_contents(allocator, "/");
-                defer open_dir_name.deinit();
-                try open_dir_name.concat(next);
-                _ = try testDir(open_dir_name.str(), &results, false, root, test_file);
-            }
+    var prelude = try primitives.init();
+    while (args.next()) |next| {
+        var res = try test_file(next, prelude, coverage);
+        if (res) {
+            results.passed += 1;
+        } else {
+            results.failed += 1;
         }
-    } else {
-        try testDir("", &results, false, root, test_file);
+    }
+
+    if (!coverage) {
         try term.outputColor(succeed_color, "[============]\n", out);
         try out.print("Passed tests: {}\n", .{results.passed});
         try out.print("Failed tests: {}\n", .{results.failed});
         if (results.failed > 0) {
             return error.TestsFailed;
         }
-        std.debug.print("Coverage output to kcov-out/index.html\n", .{});
     }
 }
 
-/// kcov can't handle child processes for some reason and freezes.
-/// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
-/// When `coverage` is true, no child processes are spawned, and no output is given.
-const Results = struct { passed: i64, failed: i64 };
-fn testDir(dir_name: []const u8, results: ?*Results, coverage: bool, start: []const u8, comptime test_file_fn: Test_File_Fn) !void {
-    var open_dir_name = try String.init_with_contents(allocator, start);
-    defer open_dir_name.deinit();
-    try open_dir_name.concat(dir_name);
-    // Add all files names in the src folder to `files`
-    var dir = try std.fs.cwd().openIterableDir(open_dir_name.str(), .{});
-    defer dir.close();
-    var prelude = try primitives.init();
-
-    var it = dir.iterate();
-    while (try it.next()) |file| {
-        if (std.mem.eql(u8, file.name, "build") or std.mem.eql(u8, file.name, "README.md")) {
-            continue;
-        }
-        switch (file.kind) {
-            .file => {
-                var res = try test_file_fn(dir_name, file.name, prelude, coverage);
-                if (!coverage) {
-                    if (res) {
-                        results.?.passed += 1;
-                    } else {
-                        results.?.failed += 1;
-                    }
-                }
-            },
-            .directory => {
-                var new_dir_name = try String.init_with_contents(allocator, "");
-                defer new_dir_name.deinit();
-                try new_dir_name.concat(dir_name);
-                try new_dir_name.concat("/");
-                try new_dir_name.concat(file.name);
-                try testDir(new_dir_name.str(), results, coverage, start, test_file_fn);
-            },
-            else => continue,
-        }
-    }
-}
-
-fn integrateTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
+fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -121,37 +80,25 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbo
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return error.InvalidFilename;
     };
-    var test_name = filename[0..dot_index];
-
-    // Input .orng file
-    var in_name: String = try String.init_with_contents(allocator, "tests/integration");
-    defer in_name.deinit();
-    try in_name.concat(dir_name);
-    try in_name.concat("/");
-    try in_name.concat(filename);
+    var test_name = filename[17..dot_index];
 
     // Output .c file
     var out_name: String = try String.init_with_contents(allocator, "tests/integration/build");
     defer out_name.deinit();
-    try out_name.concat(dir_name);
-    if (!coverage) { // Create output directory if it doesn't exist
-        _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str() }) catch {};
-    }
-    try out_name.concat("/");
     try out_name.concat(test_name);
+    if (!coverage) { // Create output directory if it doesn't exist
+        var slash_index = last_index_of(out_name.str(), '/').?;
+        _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str()[0..slash_index] }) catch {};
+    }
     try out_name.concat(".c");
 
     if (!coverage) {
         try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
-        if (dir_name.len > 1) {
-            try out.print("{s}/{s}\n", .{ dir_name[1..], filename });
-        } else {
-            try out.print("{s}\n", .{filename});
-        }
+        try out.print("{s}.orng\n", .{test_name[1..]});
     }
 
     // Read in the expected value and stdout
-    var f = std.fs.cwd().openFile(in_name.str(), .{}) catch |err| switch (err) {
+    var f = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
         error.FileNotFound => {
             std.debug.print("filename {s} doesn't exist\n", .{filename});
             return err;
@@ -170,7 +117,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbo
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    compiler.compile(&errors, in_name.str(), out_name.str(), prelude, false, allocator) catch |err| {
+    compiler.compile(&errors, filename, out_name.str(), prelude, false, allocator) catch |err| {
         if (!coverage) {
             std.debug.print("{}\n", .{err});
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
@@ -250,7 +197,7 @@ fn integrateTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbo
     return true;
 }
 
-fn negativeTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
+fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -261,24 +208,13 @@ fn negativeTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbol
     var test_name = filename[0..dot_index];
     _ = test_name;
 
-    // Input .orng file
-    var in_name: String = try String.init_with_contents(allocator, "tests/negative");
-    defer in_name.deinit();
-    try in_name.concat(dir_name);
-    try in_name.concat("/");
-    try in_name.concat(filename);
-
     if (!coverage) {
         try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
-        if (dir_name.len > 1) {
-            try out.print("{s}/{s}\n", .{ dir_name[1..], filename });
-        } else {
-            try out.print("{s}\n", .{filename});
-        }
+        try out.print("{s}\n", .{filename});
     }
 
     // Read in the expected value and stdout
-    var f = std.fs.cwd().openFile(in_name.str(), .{}) catch |err| switch (err) {
+    var f = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
         error.FileNotFound => {
             std.debug.print("filename {s} doesn't exist\n", .{filename});
             return err;
@@ -295,7 +231,7 @@ fn negativeTestFile(dir_name: []const u8, filename: []const u8, prelude: *symbol
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    compiler.compile(&errors, in_name.str(), "a.out", prelude, false, allocator) catch |err| {
+    compiler.compile(&errors, filename, "a.out", prelude, false, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.lexerError,
@@ -465,6 +401,16 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {
 // Great std lib function candidate! Holy hell...
 fn indexOf(str: []const u8, c: u8) ?usize {
     for (0..str.len) |i| {
+        if (str[i] == c) {
+            return i;
+        }
+    }
+    return null;
+}
+
+fn last_index_of(str: []const u8, c: u8) ?usize {
+    var i: usize = str.len - 1;
+    while (i >= 0) : (i -= 1) {
         if (str[i] == c) {
             return i;
         }

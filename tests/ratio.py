@@ -1,8 +1,8 @@
 # This script gets the source-to-output ratio, which helps determine where to optimize
 
-import sys
 import os
 import random
+import sys
 
 file_extensions = {
     "python" : {".py"},

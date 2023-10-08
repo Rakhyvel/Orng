@@ -1,5 +1,5 @@
-import subprocess
 import datetime
+import subprocess
 
 
 def main():
@@ -9,7 +9,6 @@ def main():
     subprocess.run(["rm", "tests/fuzz/problems.txt"]).returncode
 
     for i in range(0, 90_000_000): # 90,000,000 should be about 20 hours, enough for a 4HL fella
-                                   # 13,000,000 is probably enough
         now = datetime.datetime.now()
         print("{} {:,}".format(now, i * 10_000))
         subprocess.run(["./tests/create-fuzz.sh"]).returncode
@@ -25,4 +24,6 @@ def main():
                 if res != 0:
                     problem_file.write(trimmed + "\n")
 
-main()
+
+if __name__ == "__main__":
+    main()

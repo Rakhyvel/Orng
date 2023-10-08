@@ -6,7 +6,7 @@ program: top_level_declaration "eof".
 
 top_level_declaration: "fn main() -> Int" block_expr.
 
-let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" arrow_expr] | "=" arrow_expr).
+let_declaration: "let" let_pattern_atom (":" inject_expr ["=" inject_expr] | "=" inject_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
@@ -15,32 +15,38 @@ let_pattern_atom: ["mut" | "const"] ident
 statement: let_declaration
          | "defer" (expr | let_declaration)
          | "errdefer" (expr | let_declaration)
-         | expr
+         | assignment_expr
          .
 
+
+
+# Reachable only by parens
 expr: sum_expr.
 
 sum_expr: product_expr {"|" annotation_expr}. # (lhs of | must be ident or annotation_expr with proper pattern left of the :)
 
 product_expr: annotation_expr {"," annotation_expr}.
 
-annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" arrow_expr]]. # (lhs of : must be ident or other TBD patterns)
+annotation_expr: assignment_expr [":" inject_expr ["where" inject_expr] ["=" inject_expr]].
 
-assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") arrow_expr].
+
+
+# Reachable by statement/expression
+assignment_expr: inject_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") inject_expr].
+
+inject_expr: arrow_expr ["<-" arrow_expr].
 
 arrow_expr: bool_expr {"->" bool_expr}.
 
 bool_expr: comparison_expr {("and" | "or") comparison_expr}.
 
-comparison_expr: delta_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") delta_expr}.
-
-delta_expr: coalesce_expr. # (rhs must be a call expr)
+comparison_expr: coalesce_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") coalesce_expr}.
 
 coalesce_expr: int_expr {("orelse" | "catch") int_expr}.
 
 int_expr: term_expr {("+" | "-" | "!") term_expr}.
 
-term_expr: prefix_expr {("*" | "/" | "%" | "||") prefix_expr}.
+term_expr: prefix_expr ({("*" | "/" | "||" | "%") prefix_expr}).
 
 prefix_expr: "not" hyper_expr                         # boolean not
           | "-" hyper_expr                           # negation
@@ -78,19 +84,20 @@ factor: ident
       | parens
       .
 
-block_expr: "{" { statement "newline" } [("return" [expr]) | ("continue") | ("break")] "}".
+# List of statements with an optional end jump, all separated by newlines
+block_expr: "{" [ statement "newline" { "newline" statement "newline" } ] [( "return" [expr]) | ("continue") | ("break")] "}".
 
 if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
 
 while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["else" control_flow].
 
-fn_declaration: "fn" [ident] paramlist "->" arrow_expr ["where" arrow_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" arrow_expr ["where" inject_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
+param: let_pattern_atom ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
 
 match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
-match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".
-match_bar_else: "else" "=>" assignment_expr "newline".
+match_bar_clause: match_pattern_inject "=>" expr "newline".
+match_bar_else: "else" "=>" expr "newline".
 
 match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
 match_pattern_inject: match_pattern_atom ["<-" match_pattern_atom].
@@ -110,3 +117,4 @@ match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol o
                   .
 
 parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put all exprs in parens
+                        # This also makes it so that tuples, sums, and annotations are always parenthized, which helps with landmarking

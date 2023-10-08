@@ -87,11 +87,9 @@ pub fn compile(
         switch (err) {
             error.lexerError,
             error.parserError,
-            => if (!fuzz_tokens) {
+            => {
                 try errors.printErrors(&lines, in_name);
                 return err;
-            } else {
-                unreachable;
             },
             error.symbolError,
             error.typeError,
@@ -225,10 +223,16 @@ pub fn output(
         // TODO: defer program.deinit()
         program.lines = lines;
         try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
-        var outputFile = try std.fs.cwd().createFile(
+        var outputFile = std.fs.cwd().createFile(
             out_name,
             .{ .read = false },
-        );
+        ) catch |e| switch (e) {
+            error.FileNotFound => {
+                std.debug.print("Cannot create file: {s}\n", .{out_name});
+                return e;
+            },
+            else => return e,
+        };
         defer outputFile.close();
         try codegen.generate(program, &outputFile);
 

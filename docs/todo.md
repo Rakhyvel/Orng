@@ -129,7 +129,7 @@
     - [x] slice literals
 - [x] UTF8
     - [x] Byte type
-    - [ ] string literals
+    - [x] string literals
         > NOT array/slice of characters. UTF8 encoding is variable width, so array/slice of Bytes!
         - [x] Character escapes (`\n`, `\r`, `\t`, `\x<hex byte>`)
         - [x] Error on invalid escapes (this should happen at lex-time)

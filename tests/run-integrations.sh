@@ -11,4 +11,5 @@ then
     kcov kcov-out ./zig-out/bin/orng-test -- coverage
 else
     ./zig-out/bin/orng-test integration "$@"
+    kcov kcov-out ./zig-out/bin/orng-test -- coverage "$@"
 fi
