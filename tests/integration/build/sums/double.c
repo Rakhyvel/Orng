@@ -36,7 +36,7 @@ int64_t _1_main(void) {
     _2_x._0._0 = 104;
     $tag_check(_2_x.tag, 0, "tests/integration/sums/double.orng:5:7:\n    x.sum.int\n     ^");
     _1_t6 = _2_x._0;
-    $tag_check(_1_t6.tag, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_1_t6.tag, 0, "tests/integration/sums/double.orng:5:11:\n    x.sum.int\n         ^");
     _1_$retval = _2_x._0._0;
     return _1_$retval;
 }

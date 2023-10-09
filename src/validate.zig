@@ -1300,8 +1300,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     } else {
                         // match has no else, not expecting an optional type => type error
                         var new_map = try validateAST(mapping, expected.?, ast.match.scope.?, errors, allocator);
+                        var new_map_type = try new_map.typeof(scope, errors, allocator);
                         ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
-                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try new_map.typeof(scope, errors, allocator) } });
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try AST.create_optional_type(new_map_type, allocator) } });
                         return ast.enpoison();
                     }
                 } else {

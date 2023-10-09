@@ -16,7 +16,7 @@ int64_t _1_main(void) {
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/nested.orng:3:17:\n    let n = fib(10) - 10\n               ^";
     $line_idx--;
-    _1_$retval = $sub_int64_t(_3_fib(10), 10, "tests/integration/functions/nested.orng:2:3:\nfn main()->Int {\n ^");
+    _1_$retval = $sub_int64_t(_3_fib(10), 10, "tests/integration/functions/nested.orng:3:22:\n    let n = fib(10) - 10\n                    ^");
     return _1_$retval;
 }
 
@@ -55,7 +55,7 @@ BB5:
 
 int64_t _8_add(int64_t _8_x,int64_t _8_y) {
     int64_t _8_$retval;
-    _8_$retval = $add_int64_t(_8_x, _8_y, "tests/integration/functions/nested.orng:14:3:\nfn add(x: Int, y: Int)->Int {x + y}\n ^");
+    _8_$retval = $add_int64_t(_8_x, _8_y, "tests/integration/functions/nested.orng:14:33:\nfn add(x: Int, y: Int)->Int {x + y}\n                               ^");
     return _8_$retval;
 }
 

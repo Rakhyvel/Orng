@@ -41,7 +41,7 @@ int64_t _1_main(void) {
 int64_t _3_f(struct1 _3_x) {
     int64_t _3_$retval;
     $bounds_check(1, _3_x._1, "tests/integration/slices/fn-pass.orng:8:24:\nfn f(x: []Int)->Int {x[1] + 80}\n                      ^");
-    _3_$retval = $add_int64_t(*((int64_t*)_3_x._0 + 1), 80, "tests/integration/slices/fn-pass.orng:8:3:\nfn f(x: []Int)->Int {x[1] + 80}\n ^");
+    _3_$retval = $add_int64_t(*((int64_t*)_3_x._0 + 1), 80, "tests/integration/slices/fn-pass.orng:8:28:\nfn f(x: []Int)->Int {x[1] + 80}\n                          ^");
     return _3_$retval;
 }
 

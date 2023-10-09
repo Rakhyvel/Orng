@@ -15,8 +15,8 @@ let_pattern_atom: ["mut" | "const"] ident
                 .
 
 statement: let_declaration
-         | "defer" (expr | let_declaration)
-         | "errdefer" (expr | let_declaration)
+         | "defer" expr
+         | "errdefer" expr
          | assignment_expr
          .
 

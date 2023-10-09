@@ -29,7 +29,7 @@ int64_t _1_main(void) {
     _1_t1 = (struct0) {25, 75};
     _1_t4 = (struct0) {5, 90};
     _2_x = (struct1) {_1_t1, _1_t4};
-    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(_2_x._0._0, _2_x._0._1, "tests/integration/tuples/named-field-2d.orng:10:12:\n    x.a.c + x.a.d + x.b.e + x.b.f\n          ^"), _2_x._1._0, "tests/integration/tuples/named-field-2d.orng:10:20:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                  ^"), _2_x._1._1, "tests/integration/tuples/named-field-2d.orng:4:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(_2_x._0._0, _2_x._0._1, "tests/integration/tuples/named-field-2d.orng:10:12:\n    x.a.c + x.a.d + x.b.e + x.b.f\n          ^"), _2_x._1._0, "tests/integration/tuples/named-field-2d.orng:10:20:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                  ^"), _2_x._1._1, "tests/integration/tuples/named-field-2d.orng:10:28:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                          ^");
     return _1_$retval;
 }
 

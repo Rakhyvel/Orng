@@ -29,7 +29,7 @@ int64_t _1_main(void) {
     *(int64_t*)&_2_x = _1_t4._0;
     *((int64_t*)&_2_x + 1) = _1_t4._1;
     *((int64_t*)&_2_x + 2) = _1_t4._2;
-    _1_$retval = $add_int64_t($add_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/pattern/assign-array.orng:5:11:\n    x[0] + x[1] + x[2]\n         ^"), *((int64_t*)&_2_x + 2), "tests/integration/pattern/assign-array.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t($add_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/pattern/assign-array.orng:5:11:\n    x[0] + x[1] + x[2]\n         ^"), *((int64_t*)&_2_x + 2), "tests/integration/pattern/assign-array.orng:5:18:\n    x[0] + x[1] + x[2]\n                ^");
     return _1_$retval;
 }
 

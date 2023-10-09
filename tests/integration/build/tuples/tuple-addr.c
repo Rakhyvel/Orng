@@ -20,7 +20,7 @@ int64_t _1_main(void) {
     _2_y = 29;
     _1_t3 = &_2_x;
     _1_t4 = &_2_y;
-    _1_$retval = $add_int64_t(*_1_t3, *_1_t4, "tests/integration/tuples/tuple-addr.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t(*_1_t3, *_1_t4, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
     return _1_$retval;
 }
 

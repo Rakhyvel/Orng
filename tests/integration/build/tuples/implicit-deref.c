@@ -23,7 +23,7 @@ int64_t _1_main(void) {
     _2_x = (struct0) {11, 11};
     _2_y = &_2_x;
     _2_y->_0 = 50;
-    _1_$retval = $add_int64_t(_2_y->_0, _2_y->_1, "tests/integration/tuples/implicit-deref.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t(_2_y->_0, _2_y->_1, "tests/integration/tuples/implicit-deref.orng:6:10:\n    y.a + y.b\n        ^");
     return _1_$retval;
 }
 

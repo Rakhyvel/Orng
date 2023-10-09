@@ -30,10 +30,10 @@ BB5:
     _1_$retval = _2_x;
     return _1_$retval;
 BB3:
-    _2_x = $add_int64_t(_2_x, 1, "tests/integration/whitebox/final-pos.orng:6:14:\n            x += 1\n            ^");
+    _2_x = $add_int64_t(_2_x, 1, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
     goto BB5;
 BB9:
-    _2_x = $add_int64_t(_2_x, 1, "tests/integration/whitebox/final-pos.orng:4:21:\n    while x < 100; x += 1 {\n                   ^");
+    _2_x = $add_int64_t(_2_x, 1, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
     goto BB1;
 }
 

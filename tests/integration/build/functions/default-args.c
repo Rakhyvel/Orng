@@ -25,7 +25,7 @@ int64_t _1_main(void) {
 
 int64_t _3_add(int64_t _3_x,int64_t _3_y) {
     int64_t _3_$retval;
-    _3_$retval = $add_int64_t(_3_x, _3_y, "tests/integration/functions/default-args.orng:4:3:\nfn add(x: Int = 1, y: Int = 1) -> Int {x + y}\n ^");
+    _3_$retval = $add_int64_t(_3_x, _3_y, "tests/integration/functions/default-args.orng:4:43:\nfn add(x: Int = 1, y: Int = 1) -> Int {x + y}\n                                         ^");
     return _3_$retval;
 }
 

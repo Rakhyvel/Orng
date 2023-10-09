@@ -21,7 +21,7 @@ int64_t _1_main(void) {
 
 int64_t _3_div(int64_t _3_x,int64_t _3_y) {
     int64_t _3_$retval;
-    _3_$retval = $div_int64_t(_3_x, _3_y, "tests/integration/functions/named-arg.orng:6:3:\nfn div(x: Int, y: Int) -> Int {x / y}\n ^");
+    _3_$retval = $div_int64_t(_3_x, _3_y, "tests/integration/functions/named-arg.orng:6:35:\nfn div(x: Int, y: Int) -> Int {x / y}\n                                 ^");
     return _3_$retval;
 }
 

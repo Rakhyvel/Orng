@@ -21,7 +21,7 @@ int64_t _1_main(void) {
     int64_t _1_$retval;
     _2_x = (struct0) {0};
     _2_y = &_2_x;
-    _1_$retval = $add_int64_t(140, _2_y->_1, "tests/integration/default/default-product-unit.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t(140, _2_y->_1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
     return _1_$retval;
 }
 

@@ -35,7 +35,7 @@ function0 _3_f(void) {
 
 int64_t _5_add_four(int64_t _5_x) {
     int64_t _5_$retval;
-    _5_$retval = $add_int64_t(_5_x, 4, "tests/integration/functions/returned.orng:8:3:\nfn add_four(x: Int)->Int {x + 4}\n ^");
+    _5_$retval = $add_int64_t(_5_x, 4, "tests/integration/functions/returned.orng:8:30:\nfn add_four(x: Int)->Int {x + 4}\n                            ^");
     return _5_$retval;
 }
 

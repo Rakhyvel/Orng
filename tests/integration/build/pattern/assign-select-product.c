@@ -24,7 +24,7 @@ int64_t _1_main(void) {
     _2_x._1 = 60;
     _2_x._2 = 23;
     _2_x._0 = 200;
-    _1_$retval = $add_int64_t(($sub_int64_t(_2_x._0, _2_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^")), _2_x._2, "tests/integration/pattern/assign-select-product.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t(($sub_int64_t(_2_x._0, _2_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^")), _2_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
     return _1_$retval;
 }
 

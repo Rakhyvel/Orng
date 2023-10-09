@@ -26,7 +26,7 @@ int64_t _1_main(void) {
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
     _1_t0 = _3_f();
     $line_idx--;
-    $tag_check(_1_t0.tag, 1, "tests/integration/lint/inactive-select.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_1_t0.tag, 1, "tests/integration/lint/inactive-select.orng:4:7:\n    x.b\n     ^");
     _1_$retval = _1_t0._1;
     return _1_$retval;
 }

@@ -30,7 +30,7 @@ int64_t _1_main(void) {
     **&_2_a = 100;
     **&_2_b = 30;
     **&_2_c = 30;
-    _1_$retval = $add_int64_t($add_int64_t(*_2_a, *_2_b, "tests/integration/pattern/assign-deref-product.orng:8:9:\n    a^ + b^ + c^\n       ^"), *_2_c, "tests/integration/pattern/assign-deref-product.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t($add_int64_t(*_2_a, *_2_b, "tests/integration/pattern/assign-deref-product.orng:8:9:\n    a^ + b^ + c^\n       ^"), *_2_c, "tests/integration/pattern/assign-deref-product.orng:8:14:\n    a^ + b^ + c^\n            ^");
     return _1_$retval;
 }
 

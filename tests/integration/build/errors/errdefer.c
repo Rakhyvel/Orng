@@ -32,7 +32,7 @@ int64_t _1_main(void) {
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:11:\n    _ = f(&mut y, false)\n         ^";
     $line_idx--;
     (void)_3_f(_1_t7, 0);
-    _1_$retval = $add_int64_t(_2_x, _2_y, "tests/integration/errors/errdefer.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t(_2_x, _2_y, "tests/integration/errors/errdefer.orng:7:8:\n    x + y\n      ^");
     return _1_$retval;
 }
 

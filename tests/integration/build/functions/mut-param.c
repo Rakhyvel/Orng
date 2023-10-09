@@ -15,7 +15,7 @@ int64_t _1_main(void) {
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
     $line_idx--;
-    _1_$retval = $add_int64_t(_3_sum_down(8), 2, "tests/integration/functions/mut-param.orng:2:3:\nfn main() -> Int {sum_down(8) + 2}\n ^");
+    _1_$retval = $add_int64_t(_3_sum_down(8), 2, "tests/integration/functions/mut-param.orng:2:32:\nfn main() -> Int {sum_down(8) + 2}\n                              ^");
     return _1_$retval;
 }
 
@@ -30,8 +30,8 @@ BB1:
         goto BB7;
     }
 BB2:
-    _3_x = $add_int64_t(_3_x, _5_i, "tests/integration/functions/mut-param.orng:6:10:\n        x += i\n        ^");
-    _5_i = $sub_int64_t(_5_i, 1, "tests/integration/functions/mut-param.orng:5:35:\n    while let mut i = x; i >= 0; i -= 1 {\n                                 ^");
+    _3_x = $add_int64_t(_3_x, _5_i, "tests/integration/functions/mut-param.orng:6:13:\n        x += i\n           ^");
+    _5_i = $sub_int64_t(_5_i, 1, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
     goto BB1;
 BB7:
     _3_$retval = _3_x;

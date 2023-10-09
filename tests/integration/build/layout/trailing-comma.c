@@ -22,7 +22,7 @@ int64_t _1_main(void) {
     struct0 _2_x;
     int64_t _1_$retval;
     _2_x = (struct0) {100, 100, 3, 4};
-    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^"), *((int64_t*)&_2_x + 2), "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^"), *((int64_t*)&_2_x + 3), "tests/integration/layout/trailing-comma.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^"), *((int64_t*)&_2_x + 2), "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^"), *((int64_t*)&_2_x + 3), "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
     return _1_$retval;
 }
 

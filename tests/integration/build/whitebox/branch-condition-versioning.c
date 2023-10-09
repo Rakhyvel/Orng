@@ -52,7 +52,7 @@ BB19:
 BB6:
     _2_found = 1;
 BB10:
-    _3_n = $add_int64_t(_3_n, 1, "tests/integration/whitebox/branch-condition-versioning.orng:4:40:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                      ^");
+    _3_n = $add_int64_t(_3_n, 1, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
     goto BB1;
 BB18:
     _1_$retval = _1_t13;

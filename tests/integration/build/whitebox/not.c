@@ -8,28 +8,37 @@
 
 /* Function forward definitions */
 int64_t _1_main(void);
+int64_t _3_f(uint8_t _3_b);
 
 /* Function definitions */
 int64_t _1_main(void) {
     int64_t _2_x;
     int64_t* _2_y;
-    int64_t _1_t8;
     int64_t _1_$retval;
     _2_x = 0;
     _2_y = &_2_x;
-    if (*_2_y == 1) {
-        goto BB5;
-    } else {
-        goto BB1;
-    }
-BB5:
-    _1_t8 = 10;
-    goto BB4;
-BB1:
-    _1_t8 = 31;
-BB4:
-    _1_$retval = _1_t8;
+    $lines[$line_idx++] = "tests/integration/whitebox/not.orng:5:7:\n    f(not (y^ == 1))\n     ^";
+    $line_idx--;
+    _1_$retval = _3_f(!(*_2_y == 1));
     return _1_$retval;
+}
+
+int64_t _3_f(uint8_t _3_b) {
+    int64_t _3_t2;
+    int64_t _3_$retval;
+    if (_3_b) {
+        goto BB1;
+    } else {
+        goto BB5;
+    }
+BB1:
+    _3_t2 = 31;
+    goto BB4;
+BB5:
+    _3_t2 = 10;
+BB4:
+    _3_$retval = _3_t2;
+    return _3_$retval;
 }
 
 int main(void)

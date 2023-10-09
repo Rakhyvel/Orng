@@ -32,7 +32,7 @@ int64_t _1_main(void) {
     _2_x = (struct0) {1, 2, 3, 4, 5};
     _1_t10 = (int64_t*)&_2_x;
     _2_y = (struct1) {_1_t10, 5};
-    _1_$retval = $add_int64_t(*((int64_t*)_2_y._0 + 2), 77, "tests/integration/slices/sliceof.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $add_int64_t(*((int64_t*)_2_y._0 + 2), 77, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
     return _1_$retval;
 }
 

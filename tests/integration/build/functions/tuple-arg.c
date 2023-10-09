@@ -30,7 +30,7 @@ int64_t _1_main(void) {
 
 int64_t _3_add(struct0 _3_x) {
     int64_t _3_$retval;
-    _3_$retval = $add_int64_t($add_int64_t(*(int64_t*)&_3_x, *((int64_t*)&_3_x + 1), "tests/integration/functions/tuple-arg.orng:7:11:\n    x[0] + x[1] + x[2]\n         ^"), *((int64_t*)&_3_x + 2), "tests/integration/functions/tuple-arg.orng:6:3:\nfn add(x: [3]Int) -> Int {\n ^");
+    _3_$retval = $add_int64_t($add_int64_t(*(int64_t*)&_3_x, *((int64_t*)&_3_x + 1), "tests/integration/functions/tuple-arg.orng:7:11:\n    x[0] + x[1] + x[2]\n         ^"), *((int64_t*)&_3_x + 2), "tests/integration/functions/tuple-arg.orng:7:18:\n    x[0] + x[1] + x[2]\n                ^");
     return _3_$retval;
 }
 

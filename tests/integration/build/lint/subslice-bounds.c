@@ -53,7 +53,7 @@ BB2:
     _1_t15 = _2_y._0;
     _1_t16 = _1_t15 + _1_t11;
     _2_z = (struct1) {_1_t16, ($sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^"))};
-    $bounds_check(0, $sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:6:6:\n    z[0]\n    ^"), "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^");
+    $bounds_check(0, $sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^"), "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^");
     _1_$retval = *(int64_t*)_2_z._0;
     return _1_$retval;
 }

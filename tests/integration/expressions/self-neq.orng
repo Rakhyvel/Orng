@@ -1,0 +1,12 @@
+// 223
+fn main() -> Int {
+    if f(4) {
+        0
+    } else {
+        223
+    }
+}
+
+fn f(x: Int) -> Bool {
+    x != x
+}

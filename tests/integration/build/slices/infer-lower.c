@@ -54,8 +54,8 @@ BB1:
     }
 BB2:
     $bounds_check(_5_i, _3_xs._1, "tests/integration/slices/infer-lower.orng:12:19:\n        sum += xs[i]\n                 ^");
-    _4_sum = $add_int64_t(_4_sum, *((int64_t*)_3_xs._0 + _5_i), "tests/integration/slices/infer-lower.orng:12:12:\n        sum += xs[i]\n          ^");
-    _5_i = $add_int64_t(_5_i, 1, "tests/integration/slices/infer-lower.orng:11:47:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                             ^");
+    _4_sum = $add_int64_t(_4_sum, *((int64_t*)_3_xs._0 + _5_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
+    _5_i = $add_int64_t(_5_i, 1, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
     goto BB1;
 BB7:
     _3_$retval = _4_sum;

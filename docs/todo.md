@@ -61,15 +61,18 @@
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
 - [x] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
-- [ ] Enable coverage for subdirectories of integration
+- [ ] If a mismatch type error is produced by a control-structure where the only difference is that its optional, suggest adding an `else`
+- [ ] Error if a symbol is marked mut when it isn't muted
+- [ ] Equality of products is just equality of all members in a product. Same with sums, slices, strings, etc
+    - [ ] Addresses are equalable
+- [ ] Generalize binops, unops, and switches on them
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
 - [x] find out if GCC supports UBSan! enable it
 - [x] allow more than one command line argument
-- [ ] Ignore empty files all together
-- [ ] exclude files or directories with a prefix `~`
-- [ ] `count` instruction which just counts the number of .orng files
+- [x] `count` command which just counts the number of .orng files
+- [x] Enable coverage for subdirectories of integration
 
 ### In-House rdgen
 - [ ] Written in Zig

@@ -14,6 +14,7 @@ typedef struct {
 
 /* Interned Strings */
 char* string_0 = "\x0A\x0D\x09\x27\x22";
+
 /* Function forward definitions */
 uint8_t _1_main(void);
 

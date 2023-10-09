@@ -71,7 +71,7 @@ BB7:
     _3_t15 = (struct1) {_3_t14, ($sub_int64_t(_3_t10, _3_t9, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^"))};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:21:\n        xs[0] + sum(xs[1..])\n                   ^";
     $line_idx--;
-    _3_t0 = $add_int64_t(*(int64_t*)_3_xs._0, _3_sum(_3_t15), "tests/integration/slices/slice-literal.orng:7:7:\n    if xs.length == 0 {\n     ^");
+    _3_t0 = $add_int64_t(*(int64_t*)_3_xs._0, _3_sum(_3_t15), "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
 BB4:
     _3_$retval = _3_t0;
     return _3_$retval;

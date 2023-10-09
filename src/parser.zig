@@ -206,17 +206,9 @@ pub const Parser = struct {
         if (self.peek_kind(.LET)) {
             return self.let_declaration();
         } else if (self.accept(.DEFER)) |token| {
-            if (self.peek_kind(.LET)) {
-                return try AST.createDefer(token, try self.let_declaration(), self.astAllocator);
-            } else {
-                return try AST.createDefer(token, try self.expr(), self.astAllocator);
-            }
+            return try AST.createDefer(token, try self.expr(), self.astAllocator);
         } else if (self.accept(.ERRDEFER)) |token| {
-            if (self.peek_kind(.LET)) {
-                return try AST.createErrDefer(token, try self.let_declaration(), self.astAllocator);
-            } else {
-                return try AST.createErrDefer(token, try self.expr(), self.astAllocator);
-            }
+            return try AST.createErrDefer(token, try self.expr(), self.astAllocator);
         } else if (self.next_is_expr()) {
             return self.assignment_expr();
         } else {
@@ -303,8 +295,6 @@ pub const Parser = struct {
         } else if (self.accept(.SLASH_EQUALS)) |token| {
             return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else if (self.accept(.PERCENT_EQUALS)) |token| {
-            return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
-        } else if (self.accept(.D_STAR_EQUALS)) |token| {
             return try AST.createAssign(token, exp, try AST.createBinop(token, exp, try self.inject_expr(), self.astAllocator), self.astAllocator);
         } else {
             return exp;
@@ -789,7 +779,9 @@ pub const Parser = struct {
         var lhs = try self.match_pattern_inject();
         _ = try self.expect(.RIGHT_FAT_ARROW);
         var rhs = try self.expr();
-        _ = try self.expect(.NEWLINE);
+        if (!self.peek_kind(.R_BRACE)) {
+            _ = try self.expect(.NEWLINE);
+        }
 
         return try AST.createMapping(lhs.getToken(), lhs, rhs, self.astAllocator);
     }
@@ -803,7 +795,9 @@ pub const Parser = struct {
             return error.parserError;
         }
         var rhs = try self.expr();
-        _ = try self.expect(.NEWLINE);
+        if (!self.peek_kind(.R_BRACE)) {
+            _ = try self.expect(.NEWLINE);
+        }
 
         return try AST.createMapping(token, null, rhs, self.astAllocator);
     }

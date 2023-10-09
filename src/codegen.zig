@@ -134,10 +134,12 @@ fn generateFowardFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
     for (callGraph.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
-        // Print out parameter declarations
-        try printVarDecl(param, out, true);
-        if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
-            try out.writer().print(",", .{});
+        if (!param.expanded_type.?.c_typesMatch(primitives.unit_type)) {
+            // Print out parameter declarations
+            try printVarDecl(param, out, true);
+            if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
+                try out.writer().print(",", .{});
+            }
         }
     }
     if (callGraph.symbol.decl.?.fnDecl.param_symbols.items.len == 0) {
@@ -158,11 +160,12 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     try printSymbol(callGraph.symbol, out);
     try out.writer().print("(", .{});
     for (callGraph.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
-        // Print out parameter declarations
-        try printVarDecl(param, out, true);
-        if (param.uses == 0) {}
-        if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
-            try out.writer().print(",", .{});
+        if (!param.expanded_type.?.c_typesMatch(primitives.unit_type)) {
+            // Print out parameter declarations
+            try printVarDecl(param, out, true);
+            if (i + 1 < callGraph.symbol.decl.?.fnDecl.param_symbols.items.len) {
+                try out.writer().print(",", .{});
+            }
         }
     }
     if (callGraph.symbol.decl.?.fnDecl.param_symbols.items.len == 0) {
@@ -480,7 +483,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
                 .{ir.data.string},
             );
         },
-        .discard => {
+        .discard => if (ir.src1.?.symbol.expanded_type.?.* != .unit) {
             try out.writer().print("    (void)", .{});
             try printSymbolVersion(ir.src1.?, IRKind.cast.precedence(), out);
             try out.writer().print(";\n", .{});
@@ -519,11 +522,6 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
             for (ir.data.symbverList.items, product_list.items, 1..) |symbver, expected, i| {
                 if (!expected.c_typesMatch(primitives.unit_type)) {
                     // Don't values of type `void` (don't exist in C! (Goobersville!))
-                    if (!expected.c_typesMatch(symbver.symbol.expanded_type.?)) {
-                        try out.writer().print("(", .{});
-                        try printType(expected, out);
-                        try out.writer().print(")", .{});
-                    }
                     try printSymbolVersion(symbver, ir.kind.precedence(), out);
                     if (i < product_list.items.len and !product_list.items[i].c_typesMatch(primitives.unit_type)) {
                         try out.writer().print(", ", .{});

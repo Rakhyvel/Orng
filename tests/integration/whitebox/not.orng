@@ -2,7 +2,10 @@
 fn main()->Int {
     let x = 0
     let y = &x
-    let mut b = not (y^ == 1)
+    f(not (y^ == 1))
+}
+
+fn f(mut b: Bool) -> Int {
     b = not b
     b = not b
     if b {

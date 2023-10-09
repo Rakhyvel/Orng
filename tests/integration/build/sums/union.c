@@ -7,7 +7,9 @@
 #include "debug.inc"
 
 /* Interned Strings */
-char* string_0 = "\x4C\x6D\x61\x6F\x21";char* string_1 = "\x6C\x6F\x6C";
+char* string_0 = "\x4C\x6D\x61\x6F\x21";
+char* string_1 = "\x6C\x6F\x6C";
+
 /* Function forward definitions */
 int64_t _1_main(void);
 

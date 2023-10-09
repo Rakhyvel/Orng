@@ -24,7 +24,7 @@ int64_t _1_main(void) {
     _1_t3 = (struct0) {(*((int64_t*)&_2_x + 1)), (*(int64_t*)&_2_x)};
     *(int64_t*)&_2_x = _1_t3._0;
     *((int64_t*)&_2_x + 1) = _1_t3._1;
-    _1_$retval = $div_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/whitebox/assign-index-product2.orng:2:3:\nfn main() -> Int {\n ^");
+    _1_$retval = $div_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
     return _1_$retval;
 }
 

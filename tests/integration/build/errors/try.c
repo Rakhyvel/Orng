@@ -54,7 +54,7 @@ BB3:
 BB6:
     _1_t6 = 122;
 BB4:
-    _1_$retval = $add_int64_t(_1_t0, _1_t6, "tests/integration/errors/try.orng:2:3:\nfn main() -> Int { \n ^");
+    _1_$retval = $add_int64_t(_1_t0, _1_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
     return _1_$retval;
 }
 
