@@ -183,7 +183,6 @@ pub const IRKind = enum {
             => 0,
 
             .call,
-            .index,
             .indexCopy,
             .select,
             .selectCopy,
@@ -192,6 +191,7 @@ pub const IRKind = enum {
 
             .negate,
             .not,
+            .index, // Because of dereference
             .dereference,
             .derefCopy,
             .addrOf,
@@ -1162,7 +1162,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var lhs_type = try ast.equal.lhs.typeof(scope, errors, allocator);
+                var lhs_type = try (try ast.equal.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                 if (lhs_type.* == .sum) {
                     var lhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
                     var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
@@ -1182,7 +1182,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var lhs_type = try ast.not_equal.lhs.typeof(scope, errors, allocator);
+                var lhs_type = try (try ast.not_equal.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                 if (lhs_type.* == .sum) {
                     var lhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
                     var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);

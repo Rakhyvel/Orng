@@ -11,22 +11,28 @@ typedef struct {
     int64_t _0;
     int64_t _1;
     int64_t _2;
-    int64_t _3;
-    int64_t _4;
 } struct0;
 
 /* Function forward definitions */
 int64_t _1_main(void);
+void _3_f(struct0* _3_x);
 
 /* Function definitions */
 int64_t _1_main(void) {
     struct0 _2_x;
-    struct0* _2_y;
+    struct0* _1_t5;
     int64_t _1_$retval;
-    _2_x = (struct0) {1, 2, 3, 4, 5};
-    _2_y = &_2_x;
-    _1_$retval = $add_int64_t(*((int64_t*)_2_y + 2), 77, "tests/integration/arrays/implicit-deref.orng:5:11:\n    y[2] + 77\n         ^");
+    _2_x = (struct0) {1, 2, 3};
+    _1_t5 = &_2_x;
+    $lines[$line_idx++] = "tests/integration/arrays/in-out.orng:4:7:\n    f(&mut x)\n     ^";
+    _3_f(_1_t5);
+    $line_idx--;
+    _1_$retval = *((int64_t*)&_2_x + 1);
     return _1_$retval;
+}
+
+void _3_f(struct0* _3_x) {
+    *((int64_t*)_3_x + 1) = 217;
 }
 
 int main(void)

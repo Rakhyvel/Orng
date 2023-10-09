@@ -18,7 +18,7 @@ var inited: bool = false;
 
 pub fn init_structures() !void {
     if (!inited) {
-        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "NO BACKGROUND CHECKS", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "LMAO GET POISONED", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         poisoned.getCommon().validation_state = .invalid;
         inited = true;
     }

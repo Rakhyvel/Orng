@@ -1,0 +1,10 @@
+// 217
+fn main() -> Int {
+    let mut x: [3]Int = (1, 2, 3)
+    f(&mut x)
+    x[1]
+}
+
+fn f(x: &mut [3]Int) -> () {
+    x[1] = 217
+}

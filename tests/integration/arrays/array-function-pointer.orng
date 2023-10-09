@@ -1,0 +1,31 @@
+// 214
+fn main() -> Int {
+    let mut x: [3]((Int, Int)->Int) = (sum, diff, div)
+    let mut y: [3](Int->Int) = (double, halve, double)
+    x[1] = mult
+    y[1](x[1](4, 107))
+}
+
+fn sum(x: Int, y: Int) -> Int {
+    x + y
+}
+
+fn diff(x: Int, y: Int) -> Int {
+    x - y
+}
+
+fn mult(x: Int, y: Int) -> Int {
+    x * y
+}
+
+fn div(x: Int, y: Int) -> Int {
+    x / y
+}
+
+fn double(x: Int) -> Int {
+    2 * x
+}
+
+fn halve(x: Int) -> Int {
+    x / 2
+}

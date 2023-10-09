@@ -1,13 +1,11 @@
 // Define an Algebraic Data Type (ADT), similar to tagged unions
-let const FizzBuzzResult 
-    = string: String
-    | integer: Int
+let const FizzBuzzResult = (string: String | integer: Int)
 
 fn main(sys: System) -> !() {
     while let i = 0; i < 100; i += 1 {
         match fizzbuzz(i) {
-            .string  << s => try sys.stdout.>writeln("{s}", s)
-            .integer << j => try sys.stdout.>writeln("{}", j)
+            .string  <- s => try sys.stdout.>writeln("{s}", s)
+            .integer <- j => try sys.stdout.>writeln("{}", j)
         }
     }
 }

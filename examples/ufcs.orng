@@ -2,11 +2,11 @@ let const std = import("std")
 
 // Define types Point and Rectangle as named-tuples
 let const Point: Type = (x: Float, y: Float)
-let const Rectangle: Type = 
-    ( top_left: Point
-    , width: Float
-    , height: Float
-    )
+let const Rectangle: Type = (
+    top_left: Point,
+    width: Float,
+    height: Float,
+)
 
 // Define a function which detects if the two rectangles are collided
 fn aabb_collision(a: Rectangle, b: Rectangle)->Bool {
@@ -16,7 +16,9 @@ fn aabb_collision(a: Rectangle, b: Rectangle)->Bool {
     and a.top_left.y + a.height > b.top_left.y
 }
 
-fn main(_: System) -> !() {
+fn main(sys: System) -> !() {
+    _ = sys
+
     let rect_a: Rectangle = ((10, 10), 10, 10)
     let rect_b: Rectangle = ((13, 15), 15, 10)
 

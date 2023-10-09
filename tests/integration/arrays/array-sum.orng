@@ -1,0 +1,15 @@
+// 215
+let const My_Type = (a | b | c)
+
+fn main() -> Int {
+    let x: [3]My_Type = (.a, .b, .c)
+    f(x)
+}
+
+fn f(x: [3]My_Type) -> Int {
+    if x[1] == .b {
+        215
+    } else {
+        3
+    }
+}

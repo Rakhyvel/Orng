@@ -1,0 +1,5 @@
+// 217
+fn main() -> String {
+    let x: [3]String = ("Hello, ", "217", "World!")
+    x[1]
+}

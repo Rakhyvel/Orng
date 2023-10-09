@@ -32,7 +32,7 @@ int64_t _1_main(void) {
 
 int64_t _3_sum(struct0* _3_xs) {
     int64_t _3_$retval;
-    _3_$retval = $add_int64_t($add_int64_t(*(int64_t*)_3_xs, *((int64_t*)_3_xs + 1), "tests/integration/arrays/addr-of-array.orng:7:12:\n    xs[0] + xs[1] + xs[2]\n          ^"), *((int64_t*)_3_xs + 2), "tests/integration/arrays/addr-of-array.orng:6:3:\nfn sum(xs: &[3]Int) -> Int {\n ^");
+    _3_$retval = $add_int64_t($add_int64_t(*(int64_t*)_3_xs, *((int64_t*)_3_xs + 1), "tests/integration/arrays/addr-of-array.orng:7:12:\n    xs[0] + xs[1] + xs[2]\n          ^"), *((int64_t*)_3_xs + 2), "tests/integration/arrays/addr-of-array.orng:7:20:\n    xs[0] + xs[1] + xs[2]\n                  ^");
     return _3_$retval;
 }
 

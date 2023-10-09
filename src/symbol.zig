@@ -641,6 +641,7 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
         while (i < params.items.len) : (i += 1) {
             try param_types.append(try AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type.?, null, params.items[i].decl.init, allocator));
         }
-        return try AST.createProduct(params.items[0].getToken(), param_types, allocator);
+        var retval = try AST.createProduct(params.items[0].getToken(), param_types, allocator);
+        return retval;
     }
 }

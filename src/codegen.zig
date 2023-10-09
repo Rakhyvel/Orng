@@ -68,7 +68,20 @@ fn generateTypedefs(dag: *_program.DAG, out: *std.fs.File) !void {
         try out.writer().print("typedef ", .{});
         try printType(dag.base.function.rhs, out);
         try out.writer().print("(*function{})(", .{dag.uid});
-        try printType(dag.base.function.lhs, out);
+        if (dag.base.function.lhs.* == .product) {
+            // Function pointer takes more than one argument
+            var product = dag.base.function.lhs;
+            for (product.product.terms.items, 0..) |term, i| {
+                try out.writer().print("    ", .{});
+                try printType(term, out);
+                if (i + 1 < product.product.terms.items.len) {
+                    try out.writer().print(", ", .{});
+                }
+            }
+        } else {
+            // Function pointer takes one argument
+            try printType(dag.base.function.lhs, out);
+        }
         try out.writer().print(");\n\n", .{});
     } else if (dag.base.* == .product) {
         try out.writer().print("typedef struct {{\n", .{});
@@ -108,7 +121,7 @@ fn generateInternedStrings(interned_strings: *std.ArrayList([]const u8), out: *s
         for (str) |byte| {
             try out.writer().print("\\x{X:0>2}", .{byte});
         }
-        try out.writer().print("\";", .{});
+        try out.writer().print("\";\n", .{});
     }
     if (interned_strings.items.len > 0) {
         try out.writer().print("\n", .{});
@@ -895,11 +908,24 @@ fn hide_temporary(symbver: *SymbolVersion) bool {
     } else if (symbver.symbol.discards > 0) {
         return true;
     }
-    return symbver.symbol.is_temp and !symbver.lvalue and symbver.uses == 1 and symbver.symbol.versions == 1 and symbver.def != null and symbver.type.* == .identifier;
+    return symbver.symbol.is_temp and
+        !symbver.lvalue and
+        symbver.uses == 1 and
+        symbver.symbol.versions == 1 and
+        symbver.def != null and
+        symbver.type.* == .identifier;
 }
 
 fn is_literal(ir: *IR) bool {
-    return ir.kind == .loadSymbol or ir.kind == .loadInt or ir.kind == .loadFloat or ir.kind == .loadString or ir.kind == .loadStruct or ir.kind == .loadUnion or ir.kind == .copy or ir.kind == .get_tag or ir.kind == .call;
+    return ir.kind == .loadSymbol or
+        ir.kind == .loadInt or
+        ir.kind == .loadFloat or
+        ir.kind == .loadString or
+        ir.kind == .loadStruct or
+        ir.kind == .loadUnion or
+        ir.kind == .copy or
+        ir.kind == .get_tag or
+        ir.kind == .call;
 }
 
 fn commutative(ir: *IR) bool {
@@ -909,6 +935,7 @@ fn commutative(ir: *IR) bool {
 fn printSymbolVersion(symbver: *SymbolVersion, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (hide_temporary(symbver)) {
         if (precedence < symbver.def.?.kind.precedence() or (precedence == symbver.def.?.kind.precedence() and !commutative(symbver.def.?))) {
+            // Add parens when surrounded by a tigher binding precedence OR when same precedence, but order matters (because operation is not commutative)
             try out.writer().print("(", .{});
         }
         try generate_IR_RHS(symbver.def.?, precedence, out);

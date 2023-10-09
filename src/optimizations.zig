@@ -300,6 +300,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadInt;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -311,6 +312,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadFloat;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -322,6 +324,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadString;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -333,6 +336,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadStruct;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -344,6 +348,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadUnion;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -355,6 +360,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .loadSymbol;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -373,6 +379,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .addrOf;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -384,6 +391,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .dereference;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
                 ir.dest.?.lvalue = false;
@@ -395,6 +403,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .add;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -406,6 +415,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .sub;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -417,6 +427,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .mult;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -428,6 +439,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .div;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -439,6 +451,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.kind = .mod;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
                 ir.dest.?.lvalue = false;
@@ -451,6 +464,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.safe = src1_def.?.safe;
                 ir.src1 = src1_def.?.src1;

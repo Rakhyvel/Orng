@@ -1,0 +1,21 @@
+// 216
+fn main() -> Int {
+    let res = safe_div_vec((216, 432, 648), (1, 2, 3))
+    res[1].some
+}
+
+fn safe_div_vec(x:[3]Int, y:[3]Int) -> [3]?Int {
+    let mut retval: [3]?Int
+    retval[0] = safe_div(x[0], y[0])
+    retval[1] = safe_div(x[1], y[1])
+    retval[2] = safe_div(x[2], y[2])
+    retval
+}
+
+fn safe_div(x:Int, y: Int) -> ?Int {
+    if y == 0 {
+        .none
+    } else {
+        .some <- x / y
+    }
+}
