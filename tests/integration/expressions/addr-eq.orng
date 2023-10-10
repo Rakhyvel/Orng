@@ -1,0 +1,14 @@
+// 236
+fn main() -> Int {
+    let x = 4
+    let y = 4
+    if addr_equal(&x, &x) and not addr_equal(&x, &y) {
+        236
+    } else {
+        -3
+    }
+}
+
+fn addr_equal(x: &Int, y: &Int) -> Bool {
+    x == y
+}

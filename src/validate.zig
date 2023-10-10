@@ -131,7 +131,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 error.OutOfMemory => return error.OutOfMemory,
                 error.Unimplemented => return error.Unimplemented,
             };
-            if (new_list.items.len == 1) {
+            if (new_list.items.len == 1 and expanded_expected.* != .product) {
                 ast = new_list.items[0];
             } else if (new_list.items.len > 1) {
                 ast = try AST.createProduct(ast.getToken(), new_list, allocator);
@@ -1079,11 +1079,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is negative" } });
                         return ast.enpoison();
                     }
-                    if (ast.sliceOf.len.?.int.data == 1) {
-                        retval = new_terms.items[0];
-                    } else {
-                        retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
-                    }
+                    retval = try AST.createProduct(ast.getToken(), new_terms, allocator);
                 } else {
                     // Regular slice type, change to product of data address and length
                     retval = try AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);

@@ -63,12 +63,16 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) !void {
 }
 
 /// THIS PASS MUST BE RUN BEFORE NEWLINES ARE REMOVED. It uses newlines and
-/// parentheses to detect and remove trailing commas.
+/// parentheses to detect and remove trailing commas and bars.
 ///
 /// Given an input token stream:
 ///     [ ... X ',' '\n' ')' ... ]
-/// The trailing comma is removed, like so:
-///     [ ... X ')' ... ]
+/// or:
+///     [ ... X '|' '\n' ')' ... ]
+/// The trailing comma/bar is removed, like so:
+///     [ ... X ',' ')' ... ]
+/// respectively:
+///     [ ... X '|' ')' ... ]
 /// When X is one of the following kind of tokens:
 ///     1. identifier (including `true` or `false`)
 ///     2. integer literal (decimal, hexadecimal, octal, or binary)
@@ -85,14 +89,13 @@ fn trailing_comma_rules(tokens: *std.ArrayList(Token)) !void {
     var i: usize = 0;
     while (i < tokens.items.len - 4) : (i += 1) {
         if (tokens.items[i + 0].kind.is_end_token() and
-            tokens.items[i + 1].kind == .COMMA and
+            (tokens.items[i + 1].kind == .COMMA or tokens.items[i + 1].kind == .BAR) and
             tokens.items[i + 2].kind == .NEWLINE and
             tokens.items[i + 3].kind == .R_PAREN)
         {
-            _ = tokens.orderedRemove(i + 1); // Remove comma
-            _ = tokens.orderedRemove(i + 1); // Remove newline
-            i += 1;
-            std.debug.assert(tokens.items[i].kind == .R_PAREN);
+            _ = tokens.orderedRemove(i + 2); // Remove newline
+            i += 2;
+            std.debug.assert(tokens.items[i].kind == .R_PAREN); // Make sure `i` is correct
         }
     }
 }

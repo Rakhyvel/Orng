@@ -41,6 +41,8 @@ def main():
             integration(args)
         case "negative":
             negative(args)
+        case "all":
+            all(args)
         case "fuzz":
             fuzz()
         case "count":
@@ -60,7 +62,7 @@ def parse_args():
     create.add_argument("-t", "--test", nargs="*", help="list of one or more files/directories of negative tests to run")
     create.add_argument("-n", "--no-coverage", action='store_const', default=False, const=True, help="does not perform coverage after negative testing, even if tests pass")
     create.add_argument("-c", "--count", nargs="*", help="recursively counts the number of negative test files in the directories specified")
-
+    
     create = subparsers.add_parser("fuzz", help="create fuzz and run fuzz tests")
 
     return parser.parse_args()

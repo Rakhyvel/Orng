@@ -63,6 +63,7 @@
 - [x] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
 - [ ] If a mismatch type error is produced by a control-structure where the only difference is that its optional, suggest adding an `else`
 - [ ] Error if a symbol is marked mut when it isn't muted
+- [x] 1-tuple, 1-sum
 - [ ] Equality of products is just equality of all members in a product. Same with sums, slices, strings, etc
     - [ ] Addresses are equalable
 - [ ] Generalize binops, unops, and switches on them

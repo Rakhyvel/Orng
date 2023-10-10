@@ -1123,6 +1123,8 @@ pub const AST = union(enum) {
     ///                       Void
     ///
     /// Also, `&mut T <: &T`, because for every `t: &mut T`, `t: &T`.
+    ///
+    /// Also, (x: T,) == T == (x: T,)
     pub fn typesMatch(A: *AST, B: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         if (A.* == .annotation) {
             return try typesMatch(A.annotation.type, B, scope, errors, allocator);
@@ -1136,6 +1138,11 @@ pub const AST = union(enum) {
             // If only B is an identifier, and B isn't an atom type, dive
             return try typesMatch(A, try B.expand_type(scope, errors, allocator), scope, errors, allocator);
         }
+        // if (A.* == .product and B.* != .product and A.product.terms.items.len == 1) {
+        //     return try typesMatch(A.product.terms.items[0], B, scope, errors, allocator);
+        // } else if (B.* == .product and A.* != .product and B.product.terms.items.len == 1) {
+        //     return try typesMatch(A, B.product.terms.items[0], scope, errors, allocator);
+        // }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }
@@ -1263,7 +1270,9 @@ pub const AST = union(enum) {
 
     pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
-        if (expanded.* == .sum) {
+        if (expanded.* == .addrOf) {
+            return true;
+        } else if (expanded.* == .sum) {
             return true;
         } else if (expanded.* != .identifier) {
             return false;

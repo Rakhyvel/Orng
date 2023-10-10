@@ -231,6 +231,10 @@ pub const Parser = struct {
                 first_token = token;
                 try terms.?.append(exp);
             }
+            if (self.peek_kind(.R_PAREN)) {
+                // Trailing bar, break out
+                break;
+            }
             try terms.?.append(try self.annotation_expr());
         }
         if (terms) |terms_list| {
@@ -249,6 +253,10 @@ pub const Parser = struct {
                 terms = std.ArrayList(*AST).init(self.astAllocator);
                 first_token = token;
                 try terms.?.append(exp);
+            }
+            if (self.peek_kind(.R_PAREN)) {
+                // Trailing comma, break out
+                break;
             }
             try terms.?.append(try self.annotation_expr());
         }
