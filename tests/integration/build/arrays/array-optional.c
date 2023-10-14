@@ -82,16 +82,16 @@ struct2 _5_safe_div(int64_t _5_x,int64_t _5_y) {
     struct2 _5_t0;
     struct2 _5_$retval;
     if (_5_y) {
-        goto BB5;
+        goto BB7;
     } else {
-        goto BB1;
+        goto BB3;
     }
-BB5:
+BB7:
     _5_t0 = (struct2) {.tag=1, ._1=($div_int64_t(_5_x, _5_y, "tests/integration/arrays/array-optional.orng:19:21:\n        .some <- x / y\n                   ^"))};
-    goto BB4;
-BB1:
+    goto BB6;
+BB3:
     _5_t0 = (struct2) {.tag=0};
-BB4:
+BB6:
     _5_$retval = _5_t0;
     return _5_$retval;
 }

@@ -41,18 +41,18 @@ int64_t _7_c(int64_t _7_n) {
     int64_t _7_t0;
     int64_t _7_$retval;
     if (_7_n == 47) {
-        goto BB1;
+        goto BB3;
     } else {
-        goto BB5;
+        goto BB7;
     }
-BB1:
+BB3:
     _7_t0 = 47;
-    goto BB4;
-BB5:
+    goto BB6;
+BB7:
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
     $line_idx--;
     _7_t0 = _3_a(_7_n);
-BB4:
+BB6:
     _7_$retval = _7_t0;
     return _7_$retval;
 }

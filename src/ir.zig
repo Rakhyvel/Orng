@@ -652,27 +652,24 @@ pub const BasicBlock = struct {
         }
         if (self.has_branch) {
             if (self.next) |next| {
-                std.debug.print("    branch {s}_{?}, BB{}", .{ self.condition.?.symbol.name, self.condition.?.version, next.uid });
-                BasicBlock.printSymbverList(&self.branch_arguments);
+                std.debug.print("    if ({s}_{?}) jump BB{}", .{ self.condition.?.symbol.name, self.condition.?.version, next.uid });
+                BasicBlock.printSymbverList(&self.next_arguments);
             } else {
-                std.debug.print("    branch {s}_{?}, <END>", .{ self.condition.?.symbol.name, self.condition.?.version });
-                BasicBlock.printSymbverList(&self.branch_arguments);
+                std.debug.print("    if ({s}_{?}) return", .{ self.condition.?.symbol.name, self.condition.?.version });
             }
-            std.debug.print(", ", .{});
+            std.debug.print(" ", .{});
             if (self.branch) |branch| {
-                std.debug.print("BB{}", .{branch.uid});
-                BasicBlock.printSymbverList(&self.next_arguments);
+                std.debug.print("else jump BB{}", .{branch.uid});
+                BasicBlock.printSymbverList(&self.branch_arguments);
             } else {
-                std.debug.print("<END>", .{});
-                BasicBlock.printSymbverList(&self.next_arguments);
+                std.debug.print("else return", .{});
             }
         } else {
             if (self.next) |next| {
                 std.debug.print("    jump BB{}", .{next.uid});
                 BasicBlock.printSymbverList(&self.next_arguments);
             } else {
-                std.debug.print("    jump <END>", .{});
-                BasicBlock.printSymbverList(&self.next_arguments);
+                std.debug.print("    return", .{});
             }
         }
         std.debug.print("\n\n", .{});
@@ -1162,16 +1159,18 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var lhs_type = try (try ast.equal.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-                if (lhs_type.* == .sum) {
-                    var lhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
-                    var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
-                    self.appendInstruction(try IR.createGetTag(lhs_tag, lhs.?, ast.getToken().span, allocator));
-                    self.appendInstruction(try IR.createGetTag(rhs_tag, rhs.?, ast.getToken().span, allocator));
-                    self.appendInstruction(try IR.create(.equal, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
-                } else {
-                    self.appendInstruction(try IR.create(.equal, temp, lhs, rhs, ast.getToken().span, allocator));
-                }
+                // Labels used
+                var fail_label = try IR.createLabel(ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+
+                try self.generate_tuple_equality(scope, lhs.?, rhs.?, fail_label, errors, allocator);
+
+                self.appendInstruction(try IR.createInt(temp, 1, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
+                self.appendInstruction(fail_label);
+                self.appendInstruction(try IR.createInt(temp, 0, ast.getToken().span, allocator));
+                self.appendInstruction(end_label);
+
                 return temp;
             },
             .not_equal => {
@@ -1791,6 +1790,40 @@ pub const CFG = struct {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
                 return error.Unimplemented;
             },
+        }
+    }
+
+    fn generate_tuple_equality(
+        self: *CFG,
+        scope: *Scope,
+        lhs: *SymbolVersion,
+        rhs: *SymbolVersion,
+        fail_label: *IR,
+        errors: *errs.Errors,
+        allocator: std.mem.Allocator,
+    ) FlattenASTError!void {
+        var new_lhs = try SymbolVersion.createUnversioned(lhs.symbol, lhs.symbol._type.?, allocator);
+        var new_rhs = try SymbolVersion.createUnversioned(rhs.symbol, rhs.symbol._type.?, allocator);
+        var temp = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
+        var lhs_type = lhs.symbol.expanded_type.?;
+        if (lhs_type.* == .product) {
+            for (0..lhs_type.product.terms.items.len) |i| {
+                var lhs_select = try self.createTempSymbolVersion(lhs_type.product.terms.items[i], errors, allocator);
+                var rhs_select = try self.createTempSymbolVersion(lhs_type.product.terms.items[i], errors, allocator);
+                self.appendInstruction(try IR.createSelect(lhs_select, new_lhs, i, lhs.symbol.span, allocator));
+                self.appendInstruction(try IR.createSelect(rhs_select, new_rhs, i, lhs.symbol.span, allocator));
+                try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
+            }
+        } else if (lhs_type.* == .sum) {
+            var lhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
+            var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
+            self.appendInstruction(try IR.createGetTag(lhs_tag, new_lhs, lhs.symbol.span, allocator));
+            self.appendInstruction(try IR.createGetTag(rhs_tag, new_rhs, lhs.symbol.span, allocator));
+            self.appendInstruction(try IR.create(.equal, temp, lhs_tag, rhs_tag, lhs.symbol.span, allocator));
+            self.appendInstruction(try IR.createBranch(temp, fail_label, lhs.symbol.span, allocator));
+        } else {
+            self.appendInstruction(try IR.create(.equal, temp, new_lhs, rhs, lhs.symbol.span, allocator));
+            self.appendInstruction(try IR.createBranch(temp, fail_label, lhs.symbol.span, allocator));
         }
     }
 

@@ -14,16 +14,16 @@ int64_t _1_main(void) {
     int64_t _1_t1;
     int64_t _1_$retval;
     if (0.0e+00) {
-        goto BB5;
+        goto BB7;
     } else {
-        goto BB1;
+        goto BB3;
     }
-BB5:
+BB7:
     _1_t1 = 0;
-    goto BB4;
-BB1:
+    goto BB6;
+BB3:
     _1_t1 = 132;
-BB4:
+BB6:
     _1_$retval = _1_t1;
     return _1_$retval;
 }

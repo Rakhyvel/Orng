@@ -1272,6 +1272,13 @@ pub const AST = union(enum) {
         var expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* == .addrOf) {
             return true;
+        } else if (expanded.* == .product) {
+            for (expanded.product.terms.items) |term| {
+                if (!try term.is_eq_type(scope, errors, allocator)) {
+                    return false;
+                }
+            }
+            return true;
         } else if (expanded.* == .sum) {
             return true;
         } else if (expanded.* != .identifier) {

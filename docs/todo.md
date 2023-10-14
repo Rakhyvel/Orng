@@ -64,9 +64,10 @@
 - [ ] If a mismatch type error is produced by a control-structure where the only difference is that its optional, suggest adding an `else`
 - [ ] Error if a symbol is marked mut when it isn't muted
 - [x] 1-tuple, 1-sum
-- [ ] Equality of products is just equality of all members in a product. Same with sums, slices, strings, etc
-    - [ ] Addresses are equalable
+- [ ] Equality of products is just equality of all members in a product. Same with slices, strings, etc
+    - [x] Addresses are equalable
 - [ ] Generalize binops, unops, and switches on them
+- [ ] Some function call lines are prepended and then popped before function call
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

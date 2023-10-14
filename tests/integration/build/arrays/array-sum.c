@@ -42,16 +42,16 @@ int64_t _3_f(struct1 _3_x) {
     int64_t _3_t0;
     int64_t _3_$retval;
     if ((*((struct0*)&_3_x + 1)).tag == 1) {
-        goto BB1;
+        goto BB3;
     } else {
-        goto BB5;
+        goto BB7;
     }
-BB1:
+BB3:
     _3_t0 = 215;
-    goto BB4;
-BB5:
+    goto BB6;
+BB7:
     _3_t0 = 3;
-BB4:
+BB6:
     _3_$retval = _3_t0;
     return _3_$retval;
 }

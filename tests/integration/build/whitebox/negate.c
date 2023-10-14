@@ -18,16 +18,16 @@ int64_t _1_main(void) {
     _2_x = 1;
     _2_y = &_2_x;
     if ($negate_int64_t(*_2_y, "tests/integration/whitebox/negate.orng:5:9:\n    if -y^ == -1 {\n       ^") == -1) {
-        goto BB1;
+        goto BB3;
     } else {
-        goto BB5;
+        goto BB7;
     }
-BB1:
+BB3:
     _1_t2 = 32;
-    goto BB4;
-BB5:
+    goto BB6;
+BB7:
     _1_t2 = 10;
-BB4:
+BB6:
     _1_$retval = _1_t2;
     return _1_$retval;
 }

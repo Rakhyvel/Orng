@@ -1,0 +1,14 @@
+// 238
+fn main() -> Int {
+    let x = (1, (2, 3.4), 'r')
+    let y = (1, (2, 3.4), 'r')
+    if f(x, y) {
+        238
+    } else {
+        832
+    }
+}
+
+fn f(x: (Int, (Int, Float), Char), y: (Int, (Int, Float), Char)) -> Bool {
+    x == y // 40 lines of C in one operator
+}

@@ -18,20 +18,20 @@ BB1:
     if (_2_x < 36) {
         goto BB2;
     } else {
-        goto BB11;
+        goto BB14;
     }
 BB2:
     if ($mod_int64_t(_2_x, 2, "tests/integration/control-flow/defer-continue.orng:6:15:\n        if x % 2 == 0 {continue}\n             ^")) {
-        goto BB8;
+        goto BB10;
     } else {
-        goto BB4;
+        goto BB6;
     }
-BB11:
+BB14:
     _1_$retval = _2_x;
     return _1_$retval;
-BB8:
+BB10:
     _2_x = $add_int64_t(_2_x, 1, "tests/integration/control-flow/defer-continue.orng:7:13:\n        x += 1\n           ^");
-BB4:
+BB6:
     _2_x = $add_int64_t(_2_x, 9, "tests/integration/control-flow/defer-continue.orng:5:19:\n        defer x += 9\n                 ^");
     goto BB1;
 }

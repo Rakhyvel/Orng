@@ -31,16 +31,16 @@ int64_t _1_main(void) {
     _1_t2 = _6_f();
     $line_idx--;
     if (_1_t1.tag == _1_t2.tag) {
-        goto BB1;
+        goto BB3;
     } else {
-        goto BB5;
+        goto BB7;
     }
-BB1:
+BB3:
     _1_t0 = 212;
-    goto BB4;
-BB5:
+    goto BB6;
+BB7:
     _1_t0 = -1;
-BB4:
+BB6:
     _1_$retval = _1_t0;
     return _1_$retval;
 }

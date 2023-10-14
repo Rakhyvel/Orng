@@ -18,21 +18,21 @@ BB1:
     if (_2_x < 100) {
         goto BB2;
     } else {
-        goto BB5;
+        goto BB7;
     }
 BB2:
     if (_2_x == 40) {
-        goto BB3;
+        goto BB5;
     } else {
-        goto BB9;
+        goto BB11;
     }
-BB5:
+BB7:
     _1_$retval = _2_x;
     return _1_$retval;
-BB3:
+BB5:
     _2_x = $add_int64_t(_2_x, 1, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
-    goto BB5;
-BB9:
+    goto BB7;
+BB11:
     _2_x = $add_int64_t(_2_x, 1, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
     goto BB1;
 }

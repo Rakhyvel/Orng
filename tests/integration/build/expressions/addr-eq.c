@@ -52,8 +52,20 @@ BB6:
 }
 
 uint8_t _6_addr_equal(int64_t* _6_x,int64_t* _6_y) {
+    uint8_t _6_t0;
     uint8_t _6_$retval;
-    _6_$retval = _6_x == _6_y;
+    if (_6_x == _6_y) {
+        goto BB1;
+    } else {
+        goto BB4;
+    }
+BB1:
+    _6_t0 = 1;
+    goto BB3;
+BB4:
+    _6_t0 = 0;
+BB3:
+    _6_$retval = _6_t0;
     return _6_$retval;
 }
 

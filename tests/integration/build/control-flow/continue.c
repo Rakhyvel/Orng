@@ -20,20 +20,20 @@ BB1:
     if (_3_i < 70) {
         goto BB2;
     } else {
-        goto BB10;
+        goto BB13;
     }
 BB2:
     if ($mod_int64_t(_3_i, 2, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^")) {
-        goto BB6;
+        goto BB8;
     } else {
-        goto BB4;
+        goto BB6;
     }
-BB10:
+BB13:
     _1_$retval = _2_x;
     return _1_$retval;
-BB6:
+BB8:
     _2_x = $add_int64_t(_2_x, 1, "tests/integration/control-flow/continue.orng:8:13:\n        x += 1\n           ^");
-BB4:
+BB6:
     _3_i = $add_int64_t(_3_i, 1, "tests/integration/control-flow/continue.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
     goto BB1;
 }
