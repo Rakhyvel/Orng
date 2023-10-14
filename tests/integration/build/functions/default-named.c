@@ -12,10 +12,12 @@ int64_t _3_add(int64_t _3_x,int64_t _3_y);
 
 /* Function definitions */
 int64_t _1_main(void) {
+    int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/functions/default-named.orng:3:9:\n    add(.x = 4)\n       ^";
+    _1_t0 = _3_add(4, 50);
     $line_idx--;
-    _1_$retval = _3_add(4, 50);
+    _1_$retval = _1_t0;
     return _1_$retval;
 }
 

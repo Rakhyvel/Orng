@@ -25,13 +25,15 @@ int64_t _1_main(void) {
     struct0 _1_t2;
     int64_t* _1_t7;
     struct1 _1_t1;
+    int64_t _1_t0;
     int64_t _1_$retval;
     _1_t2 = (struct0) {233};
     _1_t7 = (int64_t*)&_1_t2;
     _1_t1 = (struct1) {_1_t7, 1};
     $lines[$line_idx++] = "tests/integration/slices/1-slice.orng:3:11:\n    first([](233,))\n         ^";
+    _1_t0 = _3_first(_1_t1);
     $line_idx--;
-    _1_$retval = _3_first(_1_t1);
+    _1_$retval = _1_t0;
     return _1_$retval;
 }
 

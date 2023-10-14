@@ -12,11 +12,13 @@ uint8_t _6_f(int64_t _6_x);
 
 /* Function definitions */
 int64_t _1_main(void) {
+    uint8_t _1_t1;
     int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/expressions/mult-1.orng:3:10:\n    if f(4) {\n        ^";
+    _1_t1 = _6_f(4);
     $line_idx--;
-    if (_6_f(4)) {
+    if (_1_t1) {
         goto BB1;
     } else {
         goto BB5;

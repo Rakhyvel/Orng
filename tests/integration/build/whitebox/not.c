@@ -15,6 +15,7 @@ int64_t _1_main(void) {
     int64_t _2_x;
     int64_t* _2_y;
     uint8_t _1_t5;
+    int64_t _1_t2;
     int64_t _1_$retval;
     _2_x = 0;
     _2_y = &_2_x;
@@ -30,8 +31,9 @@ BB4:
     _1_t5 = 0;
 BB2:
     $lines[$line_idx++] = "tests/integration/whitebox/not.orng:5:7:\n    f(not (y^ == 1))\n     ^";
+    _1_t2 = _3_f(!_1_t5);
     $line_idx--;
-    _1_$retval = _3_f(!_1_t5);
+    _1_$retval = _1_t2;
     return _1_$retval;
 }
 

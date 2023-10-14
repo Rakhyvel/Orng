@@ -27,14 +27,16 @@ int64_t _1_main(void) {
     struct0 _1_t2;
     struct0 _1_t3;
     struct1 _2_x;
+    int64_t _1_t4;
     int64_t _1_$retval;
     _1_t1 = (struct0) {.tag=0};
     _1_t2 = (struct0) {.tag=1};
     _1_t3 = (struct0) {.tag=2};
     _2_x = (struct1) {_1_t1, _1_t2, _1_t3};
     $lines[$line_idx++] = "tests/integration/arrays/array-sum.orng:6:7:\n    f(x)\n     ^";
+    _1_t4 = _3_f(_2_x);
     $line_idx--;
-    _1_$retval = _3_f(_2_x);
+    _1_$retval = _1_t4;
     return _1_$retval;
 }
 

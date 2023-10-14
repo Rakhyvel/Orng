@@ -83,3 +83,12 @@
     - Read a file line by line
     - Read and parse CSV files
 - How to execute a terminal command and get the result
+
+# "Killer" Feature Examples
+- Effect system
+- First class types, general type unification
+- Traits/Type classes/Interfaces
+- Immutability-by-default
+- Algebraic data types, pattern matching
+    - Optionals
+    - Errors

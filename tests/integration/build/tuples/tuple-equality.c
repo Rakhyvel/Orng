@@ -28,6 +28,7 @@ int64_t _1_main(void) {
     struct1 _2_x;
     struct0 _1_t8;
     struct1 _2_y;
+    uint8_t _1_t13;
     int64_t _1_t12;
     int64_t _1_$retval;
     _1_t2 = (struct0) {2, 3.4e+00};
@@ -35,8 +36,9 @@ int64_t _1_main(void) {
     _1_t8 = (struct0) {2, 3.4e+00};
     _2_y = (struct1) {1, _1_t8, 114};
     $lines[$line_idx++] = "tests/integration/tuples/tuple-equality.orng:5:10:\n    if f(x, y) {\n        ^";
+    _1_t13 = _6_f(_2_x, _2_y);
     $line_idx--;
-    if (_6_f(_2_x, _2_y)) {
+    if (_1_t13) {
         goto BB1;
     } else {
         goto BB5;

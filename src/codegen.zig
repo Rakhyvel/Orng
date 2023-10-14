@@ -910,7 +910,7 @@ fn hide_temporary(symbver: *SymbolVersion) bool {
         !symbver.lvalue and
         symbver.uses == 1 and
         symbver.symbol.versions == 1 and
-        symbver.def != null and
+        symbver.def.?.kind != .call and
         symbver.type.* == .identifier;
 }
 

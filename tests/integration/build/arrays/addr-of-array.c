@@ -21,12 +21,14 @@ int64_t _3_sum(struct0* _3_xs);
 int64_t _1_main(void) {
     struct0 _1_t1;
     struct0* _1_t5;
+    int64_t _1_t0;
     int64_t _1_$retval;
     _1_t1 = (struct0) {200, 0, 9};
     _1_t5 = &_1_t1;
     $lines[$line_idx++] = "tests/integration/arrays/addr-of-array.orng:3:9:\n    sum(&(200, 0, 9)) // Address of product literal\n       ^";
+    _1_t0 = _3_sum(_1_t5);
     $line_idx--;
-    _1_$retval = _3_sum(_1_t5);
+    _1_$retval = _1_t0;
     return _1_$retval;
 }
 

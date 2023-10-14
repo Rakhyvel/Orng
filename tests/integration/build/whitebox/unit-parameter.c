@@ -12,10 +12,12 @@ int64_t _4_f(int64_t _4_x);
 
 /* Function definitions */
 int64_t _1_main(void) {
+    int64_t _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/whitebox/unit-parameter.orng:3:7:\n    f({}, 219)\n     ^";
+    _1_t0 = _4_f(219);
     $line_idx--;
-    _1_$retval = _4_f(219);
+    _1_$retval = _1_t0;
     return _1_$retval;
 }
 

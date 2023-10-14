@@ -43,6 +43,8 @@ int64_t _1_main(void) {
     struct3 _2_y;
     function4 _1_t5;
     function1 _1_t9;
+    int64_t _1_t11;
+    int64_t _1_t7;
     int64_t _1_$retval;
     _2_x = (struct0) {_3_sum, _5_diff, _9_div};
     _2_y = (struct3) {_11_double, _13_halve, _11_double};
@@ -50,10 +52,12 @@ int64_t _1_main(void) {
     _1_t5 = *((function4*)&_2_y + 1);
     _1_t9 = *((function1*)&_2_x + 1);
     $lines[$line_idx++] = "tests/integration/arrays/array-function-pointer.orng:6:15:\n    y[1](x[1](4, 107))\n             ^";
+    _1_t11 = _1_t9(4, 107);
     $line_idx--;
     $lines[$line_idx++] = "tests/integration/arrays/array-function-pointer.orng:6:10:\n    y[1](x[1](4, 107))\n        ^";
+    _1_t7 = _1_t5(_1_t11);
     $line_idx--;
-    _1_$retval = _1_t5(_1_t9(4, 107));
+    _1_$retval = _1_t7;
     return _1_$retval;
 }
 

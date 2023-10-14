@@ -20,10 +20,12 @@ struct0 _3_get_the_sum(void);
 
 /* Function definitions */
 int64_t _1_main(void) {
+    struct0 _1_t0;
     int64_t _1_$retval;
     $lines[$line_idx++] = "tests/integration/sums/1-sum.orng:5:25:\n    let a = get_the_sum()\n                       ^";
+    _1_t0 = _3_get_the_sum();
     $line_idx--;
-    _1_$retval = _3_get_the_sum()._0;
+    _1_$retval = _1_t0._0;
     return _1_$retval;
 }
 

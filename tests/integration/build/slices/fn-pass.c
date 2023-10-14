@@ -28,13 +28,15 @@ int64_t _1_main(void) {
     struct0 _2_x;
     int64_t* _1_t9;
     struct1 _2_y;
+    int64_t _1_t11;
     int64_t _1_$retval;
     _2_x = (struct0) {1, 2, 3, 4};
     _1_t9 = (int64_t*)&_2_x;
     _2_y = (struct1) {_1_t9, 4};
     $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
+    _1_t11 = _3_f(_2_y);
     $line_idx--;
-    _1_$retval = _3_f(_2_y);
+    _1_$retval = _1_t11;
     return _1_$retval;
 }
 
