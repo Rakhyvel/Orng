@@ -98,7 +98,7 @@ while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["els
 
 for_expr: "for" ["mut"] ident "in" expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
 
-fn_declaration: "fn" [ident] paramlist "->" ["!"] arrow_expr ["where" inject_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" inject_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
 param: let_pattern_atom ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
 

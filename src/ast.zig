@@ -135,6 +135,22 @@ pub const AST = union(enum) {
             return res;
         }
     },
+    inferred_error: struct {
+        common: ASTCommon,
+        terms: std.ArrayList(*AST),
+        all_unit: ?bool = null,
+        pub fn is_all_unit(self: *@This()) bool {
+            if (self.all_unit) |all_unit| {
+                return all_unit;
+            }
+            var res = true;
+            for (self.terms.items) |term| {
+                res = res and term.c_typesMatch(primitives.unit_type);
+            }
+            self.all_unit = res;
+            return res;
+        }
+    },
     inject: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     product: struct {
         common: ASTCommon,
@@ -314,6 +330,7 @@ pub const AST = union(enum) {
             .function => return &self.function.common,
             .invoke => return &self.invoke.common,
             .sum => return &self.sum.common,
+            .inferred_error => return &self.inferred_error.common,
             .inject => return &self.inject.common,
             .product => return &self.product.common,
             ._union => return &self._union.common,
@@ -493,6 +510,14 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
+    pub fn createInferredError(token: Token, ok: *AST, allocator: std.mem.Allocator) !*AST {
+        var retval: AST = AST{ .inferred_error = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = std.ArrayList(*AST).init(allocator) } };
+        var ok_annot = try createAnnotation(token, try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "ok", .span = Span{ .filename = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
+        try retval.inferred_error.terms.append(ok_annot);
+
+        return try AST.box(retval, allocator);
+    }
+
     pub fn createInject(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .inject = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
@@ -669,17 +694,31 @@ pub const AST = union(enum) {
     }
 
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
-        var term_types = std.ArrayList(*AST).init(allocator);
+        var ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
+        var ok_sum_terms = std.ArrayList(*AST).init(allocator);
+        try ok_sum_terms.append(ok_annot);
+        var ok_sum = try AST.createSum(ok_type.getToken(), ok_sum_terms, allocator);
+        ok_sum.sum.was_error = true;
 
-        var none_type = try AST.createAnnotation(err_type.getToken(), try AST.createIdentifier(Token.create("err", null, "", 0, 0), allocator), err_type, null, primitives.unit_type, allocator);
-        try term_types.append(none_type);
-
-        var some_type = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
-        try term_types.append(some_type);
-
-        var retval = try AST.createSum(ok_type.getToken(), term_types, allocator);
-        retval.sum.was_error = true;
+        // Err!Ok => (ok:Ok|) || Err
+        // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
+        var retval = try AST.createUnion(err_type.getToken(), ok_sum, err_type, allocator);
         return retval;
+    }
+
+    pub fn get_none_type(opt_sum: *AST) *AST {
+        std.debug.assert(opt_sum.sum.was_optional);
+        return opt_sum.sum.terms.items[0];
+    }
+
+    pub fn get_some_type(opt_sum: *AST) *AST {
+        std.debug.assert(opt_sum.sum.was_optional);
+        return opt_sum.sum.terms.items[1];
+    }
+
+    pub fn get_ok_type(err_union: *AST) *AST {
+        std.debug.assert(err_union.sum.was_error);
+        return err_union.sum.terms.items[0];
     }
 
     pub fn expand_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
@@ -809,11 +848,11 @@ pub const AST = union(enum) {
             },
             .sum => if (self.sum.was_optional) {
                 try out.print("?", .{});
-                try self.sum.terms.items[1].annotation.type.printType(out);
+                try self.get_some_type().annotation.type.printType(out);
             } else if (self.sum.was_error) {
-                try self.sum.terms.items[0].annotation.type.printType(out);
+                try self.sum.terms.items[1].annotation.type.printType(out); // MASSIVE TODO: Print out sum of these
                 try out.print("!", .{});
-                try self.sum.terms.items[1].annotation.type.printType(out);
+                try self.get_ok_type().annotation.type.printType(out);
             } else {
                 try out.print("(", .{});
                 for (self.sum.terms.items, 0..) |term, i| {
@@ -823,6 +862,10 @@ pub const AST = union(enum) {
                     }
                 }
                 try out.print(")", .{});
+            },
+            .inferred_error => {
+                try out.print("!", .{});
+                try self.inferred_error.terms.items[0].annotation.type.printType(out);
             },
             ._union => {
                 try self._union.lhs.printType(out);
@@ -907,6 +950,7 @@ pub const AST = union(enum) {
             .unit,
             .annotation,
             .sum,
+            .inferred_error,
             ._union,
             .function,
             => retval = primitives.type_type,
@@ -1049,7 +1093,7 @@ pub const AST = union(enum) {
             },
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
             .inferredMember => retval = try self.inferredMember.base.?.expand_type(scope, errors, allocator),
-            ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).sum.terms.items[1],
+            ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).get_ok_type(),
 
             // Control-flow expressions
             ._if => {

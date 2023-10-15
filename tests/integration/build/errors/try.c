@@ -10,7 +10,7 @@
 typedef struct {
     uint64_t tag;
     union {
-        int64_t _1;
+        int64_t _0;
     };
 } struct0;
 
@@ -35,10 +35,10 @@ int64_t _1_main(void) {
         goto BB7;
     }
 BB1:
-    _1_t0 = _1_t1._1;
+    _1_t0 = 122;
     goto BB2;
 BB7:
-    _1_t0 = 122;
+    _1_t0 = _1_t1._0;
 BB2:
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
     _1_t7 = _3_f(0);
@@ -49,10 +49,10 @@ BB2:
         goto BB6;
     }
 BB3:
-    _1_t6 = _1_t7._1;
+    _1_t6 = 122;
     goto BB4;
 BB6:
-    _1_t6 = 122;
+    _1_t6 = _1_t7._0;
 BB4:
     _1_$retval = $add_int64_t(_1_t0, _1_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
     return _1_$retval;
@@ -60,9 +60,9 @@ BB4:
 
 struct0 _3_f(uint8_t _3_fail) {
     struct0 _3_t1;
+    struct0 _3_$retval;
     int64_t _3_t3;
     struct0 _3_t0;
-    struct0 _3_$retval;
     if (_3_fail) {
         goto BB1;
     } else {
@@ -75,26 +75,25 @@ BB1:
     if (_3_t1.tag) {
         goto BB2;
     } else {
-        goto BB7;
+        goto BB3;
     }
 BB8:
-    _3_t0 = (struct0) {.tag=1, ._1=0};
-    goto BB6;
+    _3_t0 = (struct0) {.tag=0, ._0=0};
+    goto BB7;
 BB2:
-    _3_t3 = _3_t1._1;
-    _3_t0 = (struct0) {.tag=1, ._1=_3_t3};
-    goto BB6;
-BB7:
     _3_$retval = _3_t1;
     return _3_$retval;
-BB6:
+BB3:
+    _3_t3 = _3_t1._0;
+    _3_t0 = (struct0) {.tag=0, ._0=_3_t3};
+BB7:
     _3_$retval = _3_t0;
     return _3_$retval;
 }
 
 struct0 _8_g(void) {
     struct0 _8_$retval;
-    _8_$retval = (struct0) {.tag=0};
+    _8_$retval = (struct0) {.tag=1};
     return _8_$retval;
 }
 

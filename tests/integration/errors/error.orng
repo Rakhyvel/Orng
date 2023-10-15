@@ -1,5 +1,5 @@
 // 117
 fn main() -> Int {
-    let x: Int ! Char = (.err <- 117)
+    let x: (err:Int|)!Char = (.err <- 117)
     x.err
 }

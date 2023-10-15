@@ -45,11 +45,11 @@ struct0 _3_f(int64_t* _3_x,uint8_t _3_fail) {
         goto BB4;
     }
 BB1:
-    _3_$retval = (struct0) {.tag=0};
+    _3_$retval = (struct0) {.tag=1};
     **&_3_x = 115;
     return _3_$retval;
 BB4:
-    _3_$retval = (struct0) {.tag=1};
+    _3_$retval = (struct0) {.tag=0};
     return _3_$retval;
 }
 

@@ -3,7 +3,7 @@ fn main() -> Int {
     (f(true) catch 122) + (f(false) catch 122)
 }
 
-fn f(fail: Bool) -> ()!Int {
+fn f(fail: Bool) -> (err|)!Int {
     if fail {
         let x = try g()
         (.ok<-x)
@@ -12,4 +12,4 @@ fn f(fail: Bool) -> ()!Int {
     }
 }
 
-fn g() -> ()!Int {.err}
+fn g() -> (err|)!Int {.err}

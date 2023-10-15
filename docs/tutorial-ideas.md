@@ -17,8 +17,6 @@
     - `break`
     - `continue`
     - `defer`
-- Pattern matching
-    - How is it different from a switch
 - Addresses
     - `&mut`
 - Tuples
@@ -27,23 +25,32 @@
 - Arrays
     - implicit dereferencing
 - Slices
+    - sliceof operator, creating a stack-base slice: `[](1, 2, 3)`
     - implicit dereferencing
+    - subslicing, and how the upper bound is not inclusive, and not a length its an upper bound
     - when to accept an array vs a slice for a function
 - Strings
-    - multiline string literals
+    - multiline string literals; how they are basically like comments, to the end of a line
+    - compile-time string literal concat (implement btw)
 - Sum types
+    - Injections
     - how to do enums (how Orng is better than Go)
     - inferred members
 - Functions
     - `return`
     - default function arguments
+    - Inner functions, scope
 - `()` vs `Void`
 - Optional types
 - Error handling
     - How to `throw` an error
     - `try`
     - `catch`
-    - `errdefer` (maybe `defer if res != .ok {}`)
+    - `errdefer` (maybe change to `defer if res != .ok {}`, with implicit return variable)
+- Pattern matching
+    - How is it different from a switch
+    - `let` tuple/array/dereference/select destructuring
+        > Emphasis on the fact they can be in any order!
 - Compile-time execution
     - When is it done?!
     - Type reflection
@@ -89,6 +96,7 @@
 - First class types, general type unification
 - Traits/Type classes/Interfaces
 - Immutability-by-default
-- Algebraic data types, pattern matching
-    - Optionals
-    - Errors
+- Algebraic data types
+- Pattern matching
+- Null Safety with Optionals
+- Errors

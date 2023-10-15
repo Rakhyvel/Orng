@@ -1,5 +1,5 @@
 // 139
 fn main() -> Int {
-    let x: Float!(a: Int=139)
+    let x: (err: Float|)!(a: Int=139)
     x.ok
 }

@@ -37,6 +37,10 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         } else {
             symbol.init = _ast.poisoned;
         }
+        if (symbol.init.?.* != .poison and symbol._type.?.function.rhs.* == .inferred_error) {
+            var terms = symbol._type.?.function.rhs.inferred_error.terms;
+            symbol._type.?.function.rhs.* = AST{ .sum = .{ .common = symbol._type.?.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
+        }
     } else {
         if (symbol.init != null and symbol._type != null) {
             symbol._type = try validateAST(symbol._type.?, primitives.type_type, symbol.scope, errors, allocator);
@@ -295,9 +299,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 // lhs is not even an error type
                 errors.addError(Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
+            } else if (expected != null and !try lhs_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
                 // lhs is error union, but .err field types don't match with expected
-                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type } });
+                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = lhs_expanded_type.get_ok_type().annotation.type } });
                 return ast.enpoison();
             } else if (scope.inner_function == null) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
@@ -307,7 +311,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return an error" } });
                     return ast.enpoison();
-                } else if (!try lhs_expanded_type.sum.terms.items[0].annotation.type.typesMatch(expanded_function_return.sum.terms.items[0].annotation.type, scope, errors, allocator)) {
+                } else if (!try lhs_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expanded_function_return.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
+                    // MASSIVE TODO: Check ALL sum terms, not just the first one
                     // lhs error union's `.err` member is not a compatible type with the function's error type
                     errors.addError(Error{ .expected2Type = .{
                         .span = expr_span,
@@ -623,8 +628,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
                 errors.addError(Error{ .basic = .{ .span = ast._catch.lhs.getToken().span, .msg = "left-hand side of catch is not an error type" } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
-                // TODO: Print the correct expected and got type, to match orelse for this error.
+            } else if (expected != null and !try lhs_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
+                // MASSIVE TODO: Print the correct expected and got type, to match orelse for this error.
                 // Tough because we don't have the lhs error information... or maybe not?
                 errors.addError(Error{ .expected2Type = .{ .span = ast._catch.lhs.getToken().span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type } });
                 return ast.enpoison();
@@ -643,7 +648,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
                 errors.addError(Error{ .basic = .{ .span = ast._orelse.lhs.getToken().span, .msg = "left-hand side of orelse is not an optional type" } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
+            } else if (expected != null and !try lhs_expanded_type.get_some_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
                 var optional_expected = try AST.create_optional_type(expected.?, allocator);
                 errors.addError(Error{ .expected2Type = .{ .span = ast._orelse.lhs.getToken().span, .expected = optional_expected, .got = lhs_expanded_type } });
                 return ast.enpoison();
@@ -879,6 +884,22 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 retval = ast;
             }
         },
+        .inferred_error => {
+            // Inferred errors are expanded after the node is validated. They should only have one term, the `ok` term
+            std.debug.assert(ast.inferred_error.terms.items.len == 1);
+
+            ast.inferred_error.terms.items[0] = try validateAST(ast.inferred_error.terms.items[0], primitives.type_type, scope, errors, allocator);
+            if (ast.inferred_error.terms.items[0].* == .poison) {
+                return ast.enpoison();
+            }
+
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
+                return ast.enpoison();
+            } else {
+                retval = ast;
+            }
+        },
         .inject => {
             var domain = try domainof(ast, expected, scope, errors, allocator);
             if (domain.* == .poison) {
@@ -990,6 +1011,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
 
                 retval = try AST.createSum(ast.getToken(), new_terms, allocator);
+                if (expand_lhs.sum.was_error) {
+                    retval.sum.was_error = true;
+                }
             }
         },
         .addrOf => {
@@ -1184,10 +1208,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (expected != null) {
                 expected_expanded = try expected.?.expand_type(scope, errors, allocator);
             }
+
             if (expected == null) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot infer the sum type" } });
                 return ast.enpoison();
-            } else if (expected != null and expected_expanded.* != .sum) {
+            } else if (expected_expanded.* == .inferred_error) {
+                ast.inferredMember.base = expected;
+                var name = ast.inferredMember.ident.getToken().data;
+                for (expected_expanded.inferred_error.terms.items, 0..) |term, i| {
+                    if (std.mem.eql(u8, term.annotation.pattern.getToken().data, name)) {
+                        ast.inferredMember.pos = i;
+                        break;
+                    }
+                }
+                if (ast.inferredMember.pos == null) {
+                    // Put in inferred_error
+                    var annot = try AST.createAnnotation(ast.getToken(), try AST.createIdentifier(ast.inferredMember.ident.getToken(), allocator), primitives.unit_type, null, null, allocator);
+                    try expected_expanded.inferred_error.terms.append(annot);
+                    ast.inferredMember.pos = expected_expanded.inferred_error.terms.items.len - 1;
+                }
+                retval = ast;
+            } else if (expected_expanded.* != .sum) {
                 errors.addError(Error{ .expectedGotString = .{ .span = ast.getToken().span, .expected = expected.?, .got = "an inferred member" } });
                 return ast.enpoison();
             } else {
@@ -1207,7 +1248,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 var proper_term: *AST = expected_expanded.sum.terms.items[@as(usize, @intCast(pos))];
 
                 if (proper_term.annotation.init) |_init| {
-                    ast.inferredMember.init = _init; // This will be overriden by a call expression's rhs
+                    ast.inferredMember.init = _init; // This will be overriden by an inject expression's rhs
                 }
 
                 retval = ast;
@@ -1227,7 +1268,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
                     ast._if.elseBlock = try validateAST(ast._if.elseBlock.?, expected.?, ast._if.scope.?, errors, allocator);
                 } else if (is_expected_optional) {
-                    var full_type = expected_expanded.sum.terms.items[1];
+                    var full_type = expected_expanded.get_some_type();
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
                 } else {
                     ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
@@ -1288,7 +1329,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                         poisoned = poisoned or new_mapping.* == .poison;
                     } else if (is_expected_optional) {
                         // match has no `else`, expecting an optional type => validate mappings w/ base of optional expected type
-                        var full_type = expected_expanded.sum.terms.items[1];
+                        var full_type = expected_expanded.get_some_type();
                         var new_mapping = try validateAST(mapping, full_type, ast.match.scope.?, errors, allocator);
                         try new_mappings.append(new_mapping);
                         changed = changed or new_mapping != mapping;
@@ -1349,7 +1390,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (expected != null) {
                 var expected_expanded = try expected.?.expand_type(scope, errors, allocator);
                 if (expected_expanded.* == .sum and expected_expanded.sum.was_optional) {
-                    var full_type = expected_expanded.sum.terms.items[1];
+                    var full_type = expected_expanded.get_some_type();
                     ast._while.bodyBlock = try validateAST(ast._while.bodyBlock, full_type, ast._while.scope.?, errors, allocator);
                     optional_type = true;
                 }

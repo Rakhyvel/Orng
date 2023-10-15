@@ -66,8 +66,9 @@
 - [x] 1-tuple, 1-sum
 - [ ] Equality of products is just equality of all members in a product. Same with slices, strings, etc
     - [x] Addresses are equalable
-- [ ] Generalize binops, unops, and switches on them
-- [ ] Some function call lines are prepended and then popped before function call
+- [ ] Visitor pattern for binops, unops, etc
+    - [ ] Could also do "dependency injection" with a lot of things to remove scope/error/allocator arguments
+- [x] Some function call lines are prepended and then popped before function call
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -148,6 +149,7 @@
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
     - [x] equality on sum type values
+    - [ ] consider a different inject syntax, maybe even bite the bullet with a call-like syntax
     - [ ] Builtin-function (?) to get tag name as string from sum
 - [x] optionals
     - [x] `?` constructor
@@ -161,6 +163,7 @@
     - [x] `try`
     - [ ] inferred errors
         > Investigate. Seems problematic to implement well
+        - [ ] Add convenience functions for sums to get the `ok` annotation from an error, instead of indexing the sum directly
     - [x] remove `throw`
 - [x] more compile errors
     - [x] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)

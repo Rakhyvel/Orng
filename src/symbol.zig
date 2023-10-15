@@ -364,6 +364,9 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .sum => {
             try symbolTableFromASTList(definition.sum.terms, scope, errors, allocator);
         },
+        .inferred_error => {
+            try symbolTableFromASTList(definition.inferred_error.terms, scope, errors, allocator);
+        },
         .inject => {
             try symbolTableFromAST(definition.inject.lhs, scope, errors, allocator);
             try symbolTableFromAST(definition.inject.rhs, scope, errors, allocator);

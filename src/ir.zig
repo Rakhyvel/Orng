@@ -984,22 +984,20 @@ pub const CFG = struct {
                 var expanded_expr_type = try expr.type.expand_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
                 var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
-                var load_tag = try IR.createGetTag(condition, expr, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
-                self.appendInstruction(load_tag);
+                self.appendInstruction(try IR.createGetTag(condition, expr, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
                 self.appendInstruction(try IR.createBranch(condition, err, ast.getToken().span, allocator));
 
                 // Unwrap the `.ok` value
-                var ok_symbver = try self.createTempSymbolVersion(expanded_expr_type.sum.terms.items[1], errors, allocator);
-                var unwrap_ok = try IR.createSelect(ok_symbver, expr, 1, ast.getToken().span, allocator);
-                self.appendInstruction(unwrap_ok);
-                self.appendInstruction(try IR.createJump(end, ast.getToken().span, allocator));
+                var retval_symbver = try SymbolVersion.createUnversioned(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
+                self.appendInstruction(try IR.create(.copy, retval_symbver, expr, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.createJump(error_label, ast.getToken().span, allocator));
 
                 // Else, store the error in retval, return through error
                 self.appendInstruction(err);
-                var retval_symbver = try SymbolVersion.createUnversioned(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
-                var retval_copy = try IR.create(.copy, retval_symbver, expr, null, ast.getToken().span, allocator);
-                self.appendInstruction(retval_copy);
-                self.appendInstruction(try IR.createJump(error_label, ast.getToken().span, allocator));
+
+                var ok_symbver = try self.createTempSymbolVersion(expanded_expr_type.get_ok_type(), errors, allocator);
+                self.appendInstruction(try IR.createSelect(ok_symbver, expr, 0, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.createJump(end, ast.getToken().span, allocator));
 
                 self.appendInstruction(end);
                 return ok_symbver;
@@ -1253,29 +1251,25 @@ pub const CFG = struct {
                 var else_label = try IR.createLabel(ast.getToken().span, allocator);
                 var end_label = try IR.createLabel(ast.getToken().span, allocator);
 
-                // Test if lhs tag is 1 (some)
+                // Test if lhs tag is 0 (ok)
                 var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
-                var load_tag = try IR.createGetTag(condition, lhs, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
-                self.appendInstruction(load_tag);
+                self.appendInstruction(try IR.createGetTag(condition, lhs, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
+                self.appendInstruction(try IR.createBranch(condition, else_label, ast.getToken().span, allocator));
 
-                var branch = try IR.createBranch(condition, else_label, ast.getToken().span, allocator);
-                self.appendInstruction(branch);
+                // tag was an error, store rhs in symbver
+                var rhs = (try self.flattenAST(scope, ast._catch.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
+                var rhs_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                self.appendInstruction(try IR.create(.copy, rhs_symbver, rhs, null, ast.getToken().span, allocator));
+
+                self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
+                self.appendInstruction(else_label);
 
                 // tag was `.ok`, store lhs.some in symbver
                 var val = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                var ir_select = try IR.createSelect(val, lhs, 1, ast.getToken().span, allocator);
+                var ir_select = try IR.createSelect(val, lhs, 0, ast.getToken().span, allocator);
                 self.appendInstruction(ir_select);
                 var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                 self.appendInstruction(try IR.create(.copy, some_symbver, val, null, ast.getToken().span, allocator));
-                self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
-
-                self.appendInstruction(else_label);
-
-                // tag was `.err`, store rhs in symbver
-                var rhs = (try self.flattenAST(scope, ast._catch.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
-
-                var rhs_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                self.appendInstruction(try IR.create(.copy, rhs_symbver, rhs, null, ast.getToken().span, allocator));
 
                 self.appendInstruction(end_label);
                 return symbver;
@@ -1697,9 +1691,10 @@ pub const CFG = struct {
                         if (current_error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
                             // Returning error sum, runtime check if error, branch to error path
                             var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
-                            var load_tag = try IR.createGetTag(condition, _temp, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
-                            self.appendInstruction(load_tag);
-                            self.appendInstruction(try IR.createBranch(condition, current_error_label, ast.getToken().span, allocator));
+                            self.appendInstruction(try IR.createGetTag(condition, _temp, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
+                            var not_condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
+                            self.appendInstruction(try IR.create(.not, not_condition, condition, null, ast.getToken().span, allocator));
+                            self.appendInstruction(try IR.createBranch(not_condition, current_error_label, ast.getToken().span, allocator));
                         }
                     }
 
@@ -1771,9 +1766,10 @@ pub const CFG = struct {
                     if (expanded_expr_type.* == .sum and expanded_expr_type.sum.was_error) {
                         // Returning error sum, runtime check if error, branch to error path
                         var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
-                        var load_tag = try IR.createGetTag(condition, retval, ast.getToken().span, allocator); // Assumes `ok` tag is nonzero, `err` tag is zero
-                        self.appendInstruction(load_tag);
-                        self.appendInstruction(try IR.createBranch(condition, error_label.?, ast.getToken().span, allocator));
+                        self.appendInstruction(try IR.createGetTag(condition, retval, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
+                        var not_condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
+                        self.appendInstruction(try IR.create(.not, not_condition, condition, null, ast.getToken().span, allocator));
+                        self.appendInstruction(try IR.createBranch(not_condition, error_label, ast.getToken().span, allocator));
                     }
                     self.appendInstruction(try IR.createJump(return_label, ast.getToken().span, allocator));
                 } else {
@@ -1849,7 +1845,7 @@ pub const CFG = struct {
                 return temp;
             },
             .sum => {
-                var index: usize = if (_type.sum.was_error) 1 else 0; // For errors, default value is the `ok` value, which is the 1th tag
+                var index: usize = 0;
                 var proper_term: *AST = _type.sum.terms.items[index];
                 var init: ?*SymbolVersion = try self.generate_default(scope, proper_term, errors, allocator);
                 var temp = try self.createTempSymbolVersion(_type, errors, allocator);

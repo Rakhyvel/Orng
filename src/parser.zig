@@ -681,9 +681,11 @@ pub const Parser = struct {
         }
         var params = try self.paramlist();
         _ = try self.expect(.RIGHT_SKINNY_ARROW);
-        // var infer_token = self.accept(.E_MARK);
-        // _ = infer_token;
-        var retType = try self.inject_expr();
+        var inferred_error_token = self.accept(.E_MARK);
+        var retType = try self.bool_expr();
+        if (inferred_error_token != null) {
+            retType = try AST.createInferredError(inferred_error_token.?, retType, self.astAllocator);
+        }
 
         var refinement: ?*AST = null;
         if (self.accept(.WHERE)) |_| {

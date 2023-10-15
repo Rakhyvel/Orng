@@ -49,7 +49,7 @@ BB8:
     **&_3_x = $add_int64_t(*_3_x, 9, "tests/integration/errors/passive-errdefer.orng:11:19:\n    errdefer x^ += 9\n                 ^");
     return _3_$retval;
 BB9:
-    _3_$retval = (struct0) {.tag=1};
+    _3_$retval = (struct0) {.tag=0};
     return _3_$retval;
 }
 
