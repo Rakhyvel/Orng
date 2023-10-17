@@ -907,9 +907,9 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
         },
         .inject => {
             if (expected != null and expected.?.* == .inferred_error) {
+                ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, null, scope, errors, allocator);
                 ast.inject.lhs = try validateAST(ast.inject.lhs, expected, scope, errors, allocator);
                 ast.inject.lhs.inferredMember.base = expected;
-                ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, null, scope, errors, allocator);
                 if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
                     return ast.enpoison();
                 }
@@ -1239,7 +1239,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 }
                 if (ast.inferredMember.pos == null) {
                     // Put in inferred_error
-                    var annot = try AST.createAnnotation(ast.getToken(), try AST.createIdentifier(ast.inferredMember.ident.getToken(), allocator), primitives.unit_type, null, null, allocator);
+                    var annot_type = if (ast.inferredMember.init == null) primitives.unit_type else try ast.inferredMember.init.?.typeof(scope, errors, allocator);
+                    var annot = try AST.createAnnotation(ast.getToken(), try AST.createIdentifier(ast.inferredMember.ident.getToken(), allocator), annot_type, null, null, allocator);
                     try expected_expanded.inferred_error.terms.append(annot);
                     ast.inferredMember.pos = expected_expanded.inferred_error.terms.items.len - 1;
                 }
