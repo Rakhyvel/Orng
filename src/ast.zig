@@ -138,17 +138,22 @@ pub const AST = union(enum) {
     inferred_error: struct {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
-        all_unit: ?bool = null,
-        pub fn is_all_unit(self: *@This()) bool {
-            if (self.all_unit) |all_unit| {
-                return all_unit;
-            }
-            var res = true;
+
+        pub fn add_term(self: *@This(), addend: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+            std.debug.assert(addend.* == .annotation);
             for (self.terms.items) |term| {
-                res = res and term.c_typesMatch(primitives.unit_type);
+                if (std.mem.eql(u8, term.annotation.pattern.getToken().data, addend.annotation.pattern.getToken().data)) {
+                    if (!try term.annotation.type.typesMatch(term, scope, errors, allocator)) {
+                        errors.addError(Error{ .sum_duplicate = .{ .span = self.common.token.span, .identifier = term.annotation.pattern.getToken().data, .first = term.getToken().span } });
+                        return error.typeError;
+                    } else {
+                        // Duplicate found, types match. OK!
+                        return;
+                    }
+                }
             }
-            self.all_unit = res;
-            return res;
+            // No duplicate found, add to inferred error set
+            try self.terms.append(addend);
         }
     },
     inject: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -849,15 +854,11 @@ pub const AST = union(enum) {
             .sum => if (self.sum.was_optional) {
                 try out.print("?", .{});
                 try self.get_some_type().annotation.type.printType(out);
-            } else if (self.sum.was_error) {
-                try self.sum.terms.items[1].annotation.type.printType(out); // MASSIVE TODO: Print out sum of these
-                try out.print("!", .{});
-                try self.get_ok_type().annotation.type.printType(out);
             } else {
                 try out.print("(", .{});
                 for (self.sum.terms.items, 0..) |term, i| {
                     try term.printType(out);
-                    if (i + 1 != self.sum.terms.items.len) {
+                    if (self.sum.terms.items.len == 1 or i + 1 != self.sum.terms.items.len) {
                         try out.print(" | ", .{});
                     }
                 }
@@ -1262,6 +1263,9 @@ pub const AST = union(enum) {
                 } else {
                     return try A.function.lhs.typesMatch(B.function.lhs, scope, errors, allocator) and try A.function.rhs.typesMatch(B.function.rhs, scope, errors, allocator);
                 }
+            },
+            .inferred_error => {
+                return A == B;
             },
             else => {
                 // TODO: May need to evaluate types, possibly done somewhere else though

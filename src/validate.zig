@@ -37,7 +37,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         } else {
             symbol.init = _ast.poisoned;
         }
-        if (symbol.init.?.* != .poison and symbol._type.?.function.rhs.* == .inferred_error) {
+        if (symbol._type.?.function.rhs.* == .inferred_error) {
             var terms = symbol._type.?.function.rhs.inferred_error.terms;
             symbol._type.?.function.rhs.* = AST{ .sum = .{ .common = symbol._type.?.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
         }
@@ -294,29 +294,34 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast._try.expr.* == .poison) {
                 return ast.enpoison();
             }
-            var lhs_expanded_type = try (try ast._try.expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-            if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
-                // lhs is not even an error type
+            var expr_expanded_type = try (try ast._try.expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+            if (expr_expanded_type.* != .sum or !expr_expanded_type.sum.was_error) {
+                // expr is not even an error type
                 errors.addError(Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
-                // lhs is error union, but .err field types don't match with expected
-                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = lhs_expanded_type.get_ok_type().annotation.type } });
+            } else if (expected != null and expected.?.* != .inferred_error and !try expr_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
+                // expr is error union, but .err field types don't match with expected
+                errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = expr_expanded_type.get_ok_type().annotation.type } });
                 return ast.enpoison();
             } else if (scope.inner_function == null) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
                 return ast.enpoison();
             } else {
                 var expanded_function_return = try scope.inner_function.?._type.?.function.rhs.expand_type(scope, errors, allocator);
-                if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
+                if (expanded_function_return.* == .inferred_error) {
+                    // This checks that the `ok` fields match, for free!
+                    for (expr_expanded_type.sum.terms.items) |term| {
+                        try expanded_function_return.inferred_error.add_term(term, scope, errors, allocator);
+                    }
+                } else if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return an error" } });
                     return ast.enpoison();
-                } else if (!try lhs_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expanded_function_return.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
+                } else if (!try expr_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expanded_function_return.sum.terms.items[1].annotation.type, scope, errors, allocator)) {
                     // MASSIVE TODO: Check ALL sum terms, not just the first one
-                    // lhs error union's `.err` member is not a compatible type with the function's error type
+                    // expr error union's `.err` member is not a compatible type with the function's error type
                     errors.addError(Error{ .expected2Type = .{
                         .span = expr_span,
-                        .expected = lhs_expanded_type,
+                        .expected = expr_expanded_type,
                         .got = expanded_function_return,
                     } });
                     return ast.enpoison();
@@ -901,16 +906,27 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             }
         },
         .inject => {
-            var domain = try domainof(ast, expected, scope, errors, allocator);
-            if (domain.* == .poison) {
-                return domain;
+            if (expected != null and expected.?.* == .inferred_error) {
+                ast.inject.lhs = try validateAST(ast.inject.lhs, expected, scope, errors, allocator);
+                ast.inject.lhs.inferredMember.base = expected;
+                ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, null, scope, errors, allocator);
+                if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
+                    return ast.enpoison();
+                }
+                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                retval = ast.inject.lhs;
+            } else {
+                var domain = try domainof(ast, expected, scope, errors, allocator);
+                if (domain.* == .poison) {
+                    return domain;
+                }
+                ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, domain, scope, errors, allocator);
+                if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
+                    return ast.enpoison();
+                }
+                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                retval = ast.inject.lhs;
             }
-            ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, domain, scope, errors, allocator);
-            if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
-                return ast.enpoison();
-            }
-            ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
-            retval = ast.inject.lhs;
         },
 
         .product => {
@@ -1450,7 +1466,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } }; // So that the typeof code can be reused. All children should be validated at this point
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try block_type.typesMatch(expected.?, scope, errors, allocator)) {
-                    // std.debug.assert(ast.block.statements.items.len == 0); // this this true? what about a block that ends in a defer? or a decl?
+                    // std.debug.assert(ast.block.statements.items.len == 0); // is this true? what about a block that ends in a defer? or a decl?
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type } });
                     return ast.enpoison();
                 }
@@ -1803,7 +1819,7 @@ fn putAssign(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Er
 
 fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *errs.Errors) !void {
     var name = ast.annotation.pattern.getToken().data;
-    if (arg_map.get(name)) |_| {
+    if (arg_map.get(name)) |_| { // TODO: Only error if the types are not identical
         errors.addError(Error{ .basic = .{
             .span = ast.getToken().span,
             .msg = "duplicate annotation identifiers detected",

@@ -1,0 +1,16 @@
+// 239
+fn main() -> Int {
+    match f() {
+        .ok => unreachable
+        .some_error => 239
+        else => unreachable
+    }
+}
+
+fn f() -> !Int {
+    (.ok <- try g())
+}
+
+fn g() -> !Int {
+    return .some_error
+}
