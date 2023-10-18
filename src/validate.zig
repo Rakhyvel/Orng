@@ -34,12 +34,12 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         if (symbol._type.?.* != .poison) {
             symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
             symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
+            if (symbol._type.?.function.rhs.* == .inferred_error) {
+                var terms = symbol._type.?.function.rhs.inferred_error.terms;
+                symbol._type.?.function.rhs.* = AST{ .sum = .{ .common = symbol._type.?.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
+            }
         } else {
             symbol.init = _ast.poisoned;
-        }
-        if (symbol._type.?.function.rhs.* == .inferred_error) {
-            var terms = symbol._type.?.function.rhs.inferred_error.terms;
-            symbol._type.?.function.rhs.* = AST{ .sum = .{ .common = symbol._type.?.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
         }
     } else {
         if (symbol.init != null and symbol._type != null) {

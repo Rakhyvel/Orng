@@ -13,8 +13,8 @@ let_pattern_atom: ["mut" | "const"] ident
                 .
 
 statement: let_declaration
-         | "defer" (expr | let_declaration)
-         | "errdefer" (expr | let_declaration)
+         | "defer" expr
+         | "errdefer" expr
          | assignment_expr
          .
 
@@ -84,14 +84,13 @@ factor: ident
       | parens
       .
 
-# List of statements with an optional end jump, all separated by newlines
-block_expr: "{" [ statement "newline" { "newline" statement "newline" } ] [( "return" [expr]) | ("continue") | ("break")] "}".
+block_expr: "{" [ assignment_expr "newline" { "newline" statement "newline" } ] [( "return" [expr]) | ("continue") | ("break")] "}".
 
 if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
 
 while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["else" control_flow].
 
-fn_declaration: "fn" [ident] paramlist "->" arrow_expr ["where" inject_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" inject_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
 param: let_pattern_atom ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
 

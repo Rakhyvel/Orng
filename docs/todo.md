@@ -298,25 +298,30 @@
 - [ ] compile-time evaluation
     > Validate, IR, Optimize. Don't codegen, interpret!
     - [x] `const` is an annotation and symbol modifier
-    - [ ] eval type annotations
-    - [ ] eval default inits
-    - [ ] eval symbol defs defined as const
+    > When a compile-time expression is evaluated
+        - validate expr
+        - surround with CFG context
+        - convert to IR
+        - optimize
+        - interpret
+    > When a function is needed to run at compile-time, check to see if the function CFG exists.
     - [ ] expressions marked `comptime`
         - [ ] block
         - [ ] if
         - [ ] case
         - [ ] decl
         - [ ] defer
+    - [ ] eval type annotations
+    - [ ] eval default inits
+    - [ ] eval symbol defs defined as const
     - [ ] eval array sizes
     - [ ] should be able to index heterogenous tuples with a comptime value
         > Is this undecidable?
-    - [ ] first-class types based generics (stamp)
-    - [ ] `as` which can do reinterpret casting
-    - [ ] `sizeof`
-    - [ ] bitwise psuedo functions
-    - [ ] `typeof` prefix operator which returns type expression of expression
-    - [ ] define `==` and `!=` operators for types, do at comptime
-    - [ ] `default` prefix operator, which takes a type and returns the default value for that type
+    - [ ] various type operations
+        - [ ] `typeof` prefix operator which returns type expression of expression
+        - [ ] `sizeof`
+        - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
+        - [ ] `default` prefix operator, which takes a type and returns the default value for that type
 - [ ] build system (built upon compile-time evaluation)
     - [ ] **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     > Should be stateless, gosh dangit!
@@ -339,21 +344,12 @@
     - [ ] Externs
     - [ ] Prelude with:
         - [ ] Each primitive type as an extern type
-        - [ ] `is_null()`
+        - [ ] bitwise functions
     > How to do exponentiation without libc?
     - [ ] debug mode which enables checks for UB
         - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
     - [ ] Option to generate header and source file
     - [ ] Options to add C system headers and regular header directories
-- [ ] refinement types
-    - [ ] `where` which checks at runtime if a condition is true, panics if it's not
-    - [ ] `==>` implies boolean operator might be handy
-        > `ast^ == .match ==> mappings_have_rhs(ast)`
-    - [ ] `where comptime` checks a condition at compiletime. If a condition is false at compile-time, error
-- [ ] generic type unification
-    > Identifiers that end in a `'` are considered free
-    - [ ] error if an identifier contains a `'` in the middle of itself
-    - [ ] error if identifier is defined with `let` or `match` with apostrophe
 - [ ] type classes / interfaces / traits
     > Do not use for operator overloading!
     - [ ] `lhs<:rhs` operator with lhs being a capture pattern and rhs being a class
@@ -363,7 +359,20 @@
     - [ ] Eq, Ord, Num, Bits, Convertible
     - [ ] derive
     - [ ] dot prepend `.>`
-    - [ ] `id` function in prelude
+- [ ] function stamping
+    > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
+    - [ ] first-class types based generics (stamp)
+    - [ ] generic type unification
+        > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
+        - [ ] error if an identifier is `$` twice
+        - [ ] error if `$` appears anywhere else but a type annotation
+    - [ ] `@as` which can do reinterpret casting (maybe different name?)
+    - [ ] `id` function in standard
+- [ ] refinement types
+    - [ ] `where` which checks at runtime if a condition is true, panics if it's not
+    - [ ] `==>` implies boolean operator might be handy
+        > `ast^ == .match ==> mappings_have_rhs(ast)`
+    - [ ] `where comptime` checks a condition at compiletime. If a condition is false at compile-time, error
 
 ### Standard Library
 - [ ] Collections
