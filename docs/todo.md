@@ -64,8 +64,9 @@
 - [ ] If a mismatch type error is produced by a control-structure where the only difference is that its optional, suggest adding an `else`
 - [ ] Error if a symbol is marked mut when it isn't muted
 - [x] 1-tuple, 1-sum
-- [ ] Equality of products is just equality of all members in a product. Same with slices, strings, etc
+- [x] Equality of products is just equality of all members in a product. Same with slices, strings, etc
     - [x] Addresses are equalable
+    - [ ] tuple not-equal
 - [ ] Visitor pattern for binops, unops, etc
     - [ ] Could also do "dependency injection" with a lot of things to remove scope/error/allocator arguments
 - [x] Some function call lines are prepended and then popped before function call
@@ -297,6 +298,13 @@
     - [x] fuzz with updated `fuzz.ebnf` to force a proper main function
 - [ ] compile-time evaluation
     > Validate, IR, Optimize. Don't codegen, interpret!
+        > Create the program struct very early on
+        > Pass the program struct to validator, as validation may result in comptime code execution
+        > Symbol > MIR > Optimization > Offset/slots > LIR (concat to program struct instructions)
+        > When interpreting, use the program struct's instructions.
+        > Symbols are referenced by their offsets.
+        > BB and CFG are referenced by the next instruction, as if they were labels
+        > Nothing should change for codegen, codegen uses symbvers and such, still prints out labels
     - [x] `const` is an annotation and symbol modifier
     > When a compile-time expression is evaluated
         - validate expr

@@ -1,6 +1,7 @@
 const std = @import("std");
 const ast = @import("ast.zig");
 const codegen = @import("codegen.zig");
+const Context = @import("interpreter.zig").Context;
 const errs = @import("errors.zig");
 const ir = @import("ir.zig");
 const layout = @import("layout.zig");
@@ -203,38 +204,46 @@ pub fn output(
             errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
             return error.symbolError;
         }
+        var interned_strings = std.ArrayList([]const u8).init(allocator);
+        defer interned_strings.deinit();
+        var program: *Program = try Program.init(uid, lines, &interned_strings, prelude, errors, allocator); // TODO: defer program.deinit()
         // IR translation
         var irAllocator = std.heap.ArenaAllocator.init(allocator);
         defer irAllocator.deinit();
-        var interned_strings = std.ArrayList([]const u8).init(allocator);
-        defer interned_strings.deinit();
-        var cfg = try ir.CFG.create(msymb, null, &interned_strings, errors, allocator);
+        var cfg = try msymb.get_cfg(null, &interned_strings, errors, allocator);
+        _ = try program.append_instructions(cfg);
 
-        // Optimize
-        try optimizations.optimize(
-            cfg,
-            errors,
-            &interned_strings,
-            allocator,
-        );
+        const interpret = true;
+        if (interpret) {
+            // Create a new allocator for interpretation
+            var interpreter_allocator = std.heap.ArenaAllocator.init(allocator);
+            defer interpreter_allocator.deinit();
 
-        // C Code generation
-        var program = try Program.init(cfg, uid, &interned_strings, prelude, errors, allocator);
-        // TODO: defer program.deinit()
-        program.lines = lines;
-        try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
-        var outputFile = std.fs.cwd().createFile(
-            out_name,
-            .{ .read = false },
-        ) catch |e| switch (e) {
-            error.FileNotFound => {
-                std.debug.print("Cannot create file: {s}\n", .{out_name});
-                return e;
-            },
-            else => return e,
-        };
-        defer outputFile.close();
-        try codegen.generate(program, &outputFile);
+            // Wrap main CFG in interpreter context
+            program.print_instructions();
+            var context = try Context.init(cfg, &program.instructions);
+            var res = try context.interpret();
+            std.debug.print("{}\n", .{res});
+        } else {
+            // Wrap main CFG in program
+            try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
+
+            // Create the output file
+            var outputFile = std.fs.cwd().createFile(
+                out_name,
+                .{ .read = false },
+            ) catch |e| switch (e) {
+                error.FileNotFound => {
+                    std.debug.print("Cannot create file: {s}\n", .{out_name});
+                    return e;
+                },
+                else => return e,
+            };
+            defer outputFile.close();
+
+            // Generate the output code
+            try codegen.generate(program, &outputFile);
+        }
 
         symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.
     } else {

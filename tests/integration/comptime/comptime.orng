@@ -1,0 +1,4 @@
+// 241
+fn main() -> Int {
+    comptime 201 + 40
+}

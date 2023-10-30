@@ -175,20 +175,12 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
     try out.writer().print(") {{\n", .{});
 
     // Collect and then declare all local variables
-    for (callGraph.basic_blocks.items) |bb| {
-        var maybe_ir: ?*IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest) |dest| {
-                if (dest.symbol.decld or dest.type.* == .unit or dest.symbol.versions == 0) {
-                    continue;
-                }
-                if (hide_temporary(dest)) {
-                    continue;
-                }
-                try printVarDecl(dest.symbol, out, false);
-                dest.symbol.decld = true;
-            }
+    for (callGraph.symbvers) |symbver| {
+        if (symbver.hide_temporary()) {
+            continue;
         }
+        try printVarDecl(symbver.symbol, out, false);
+        symbver.symbol.decld = true;
     }
 
     for (callGraph.symbol.decl.?.fnDecl.param_symbols.items) |param| {
@@ -378,7 +370,7 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         return;
     } else if (ir.dest != null and ir.dest.?.type.* == .unit and ir.kind != .call) {
         return;
-    } else if (ir.dest != null and hide_temporary(ir.dest.?)) {
+    } else if (ir.dest != null and ir.dest.?.hide_temporary()) {
         return;
     }
 
@@ -405,7 +397,8 @@ fn generateIR(ir: *IR, out: *std.fs.File) !void {
         .index,
         .select,
         .get_tag,
-        .negate,
+        .negate_int,
+        .negate_float,
         .addrOf,
         .dereference,
         => {
@@ -549,7 +542,9 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
             try out.writer().print("!", .{});
             try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
         },
-        .negate => {
+        .negate_int,
+        .negate_float,
+        => {
             if (primitives.represents_signed_primitive(ir.dest.?.symbol.expanded_type.?)) {
                 try out.writer().print("$negate_{s}(", .{primitives.from_ast(ir.dest.?.symbol.expanded_type.?).c_name});
                 try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
@@ -570,14 +565,18 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
         },
 
         // Diadic instructions
-        .notEqual => {
-            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
-            try out.writer().print(" != ", .{});
-            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
-        },
-        .equal => {
+        .equal_int,
+        .equal_float,
+        => {
             try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
             try out.writer().print(" == ", .{});
+            try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
+        },
+        .not_equal_int,
+        .not_equal_float,
+        => {
+            try printSymbolVersion(ir.src1.?, ir.kind.precedence(), out);
+            try out.writer().print(" != ", .{});
             try printSymbolVersion(ir.src2.?, ir.kind.precedence(), out);
         },
         .greater => {
@@ -899,21 +898,6 @@ const CodeGen_Error = error{
     InvalidRange,
 };
 
-fn hide_temporary(symbver: *SymbolVersion) bool {
-    if (symbver.def == null) {
-        // parameters do not have defs; they should never be hidden
-        return false;
-    } else if (symbver.symbol.discards > 0) {
-        return true;
-    }
-    return symbver.symbol.is_temp and
-        !symbver.lvalue and
-        symbver.uses == 1 and
-        symbver.symbol.versions == 1 and
-        symbver.def.?.kind != .call and
-        symbver.type.* == .identifier;
-}
-
 fn is_literal(ir: *IR) bool {
     return ir.kind == .loadSymbol or
         ir.kind == .loadInt or
@@ -931,7 +915,7 @@ fn commutative(ir: *IR) bool {
 }
 
 fn printSymbolVersion(symbver: *SymbolVersion, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
-    if (hide_temporary(symbver)) {
+    if (symbver.hide_temporary()) {
         if (precedence < symbver.def.?.kind.precedence() or (precedence == symbver.def.?.kind.precedence() and !commutative(symbver.def.?))) {
             // Add parens when surrounded by a tigher binding precedence OR when same precedence, but order matters (because operation is not commutative)
             try out.writer().print("(", .{});

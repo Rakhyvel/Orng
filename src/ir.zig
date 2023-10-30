@@ -109,6 +109,21 @@ pub const SymbolVersion = struct {
         try set.append(self);
         return true;
     }
+
+    pub fn hide_temporary(symbver: *SymbolVersion) bool {
+        if (symbver.def == null) {
+            // parameters do not have defs; they should never be hidden
+            return false;
+        } else if (symbver.symbol.discards > 0) {
+            return true;
+        }
+        return symbver.symbol.is_temp and
+            !symbver.lvalue and
+            symbver.uses == 1 and
+            symbver.symbol.versions == 1 and
+            symbver.def.?.kind != .call and
+            symbver.type.* == .identifier;
+    }
 };
 
 var ir_uid: u64 = 0;
@@ -121,34 +136,36 @@ pub const IRKind = enum {
     loadStruct,
     loadUnion, // src1 is init, data.int is tag id
     loadString,
-    // decl,
 
     // Monadic instructions
     copy,
     not,
-    negate,
-    // bitNot,
+    negate_int,
+    negate_float,
     addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
     dereference,
     derefCopy,
 
     // Diadic instructions
-    // bitOr,
-    // bitXor,
-    // bitAnd,
     equal,
-    notEqual,
-    greater,
-    lesser,
-    greaterEqual,
-    lesserEqual,
-    // leftShift,
-    // rightShift,
-    add,
-    sub,
-    mult,
-    div,
+    not_equal,
+    greater_int,
+    greater_float,
+    lesser_int,
+    lesser_float,
+    greater_equal_int,
+    greater_equal_float,
+    lesser_equal_int,
+    lesser_equal_float,
+    add_int,
+    add_float,
+    sub_int,
+    sub_float,
+    mult_int,
+    mult_float,
+    div_int,
+    div_float,
     mod,
     index, // dest = src1[src2]
     indexCopy, // src1[src2] = data.symbver
@@ -159,7 +176,7 @@ pub const IRKind = enum {
 
     // Control-flow
     label,
-    jump,
+    jump, // jump to BB{uid} if codegen, ip := {addr} if interpreting
     branchIfFalse,
     call, // dest = src1(symbver_list...)
 
@@ -189,7 +206,8 @@ pub const IRKind = enum {
             .get_tag,
             => 1,
 
-            .negate,
+            .negate_int,
+            .negate_float,
             .not,
             .index, // Because of dereference
             .dereference,
@@ -199,25 +217,33 @@ pub const IRKind = enum {
             .cast,
             => 2,
 
-            .mult,
-            .div,
+            .mult_int,
+            .mult_float,
+            .div_int,
+            .div_float,
             .mod,
             => 3,
 
-            .add,
-            .sub,
+            .add_int,
+            .add_float,
+            .sub_int,
+            .sub_float,
             => 4,
 
             // No bitshift operators, would be precedence 5
 
-            .greater,
-            .lesser,
-            .greaterEqual,
-            .lesserEqual,
+            .greater_int,
+            .greater_float,
+            .lesser_int,
+            .lesser_float,
+            .greater_equal_int,
+            .greater_equal_float,
+            .lesser_equal_int,
+            .lesser_equal_float,
             => 6,
 
             .equal,
-            .notEqual,
+            .not_equal,
             => 7,
 
             .copy => 14,
@@ -232,9 +258,12 @@ pub const IRKind = enum {
 
 pub const IRData = union(enum) {
     branch: ?*IR,
+    jump_bb: struct { next: ?*BasicBlock },
+    branch_bb: struct { next: ?*BasicBlock, branch: ?*BasicBlock },
     int: i128,
     float: f64,
     string_id: usize,
+    bb_id: u64,
     string: []const u8,
     symbver: *SymbolVersion, // Used by index-copy, since it needs an extra symbver to hold index-rhs
     symbol: *Symbol,
@@ -242,6 +271,63 @@ pub const IRData = union(enum) {
     symbverList: std.ArrayList(*SymbolVersion),
 
     none,
+
+    pub fn pprint(self: IRData, allocator: std.mem.Allocator) ![]const u8 {
+        var out = String.init(allocator);
+        defer out.deinit();
+
+        switch (self) {
+            .int => {
+                try out.writer().print("{}", .{self.int});
+            },
+            .none => {
+                try out.writer().print("none", .{});
+            },
+            .symbol => {
+                try out.writer().print("{s}", .{self.symbol.name});
+            },
+            else => {
+                try out.writer().print("???", .{});
+            },
+        }
+
+        return (try out.toOwned()).?;
+    }
+
+    pub fn format(self: IRData, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+
+        var out = self.pprint(arena.allocator()) catch unreachable;
+
+        try writer.print("{s}", .{out});
+    }
+
+    pub fn equals(self: IRData, other: IRData) bool {
+        if (self == .branch and other == .branch) {
+            return self.branch == other.branch;
+        } else if (self == .int and other == .int) {
+            return self.int == other.int;
+        } else if (self == .float and other == .float) {
+            return self.float == other.float;
+        } else if (self == .string_id and other == .string_id) {
+            return self.string_id == other.string_id;
+        } else if (self == .string and other == .string) {
+            return std.mem.eql(u8, self.string, other.string);
+        } else if (self == .symbver and other == .symbver) {
+            return self.symbver == other.symbver;
+        } else if (self == .symbol and other == .symbol) {
+            return self.symbol == other.symbol;
+        } else if (self == .irList and other == .irList) {
+            return false;
+        } else if (self == .symbverList and other == .symbverList) {
+            return false;
+        } else {
+            return false; // tags are mismatched
+        }
+    }
 };
 
 pub const IRMeta = union(enum) {
@@ -340,20 +426,35 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createLabel(span: Span, allocator: std.mem.Allocator) !*IR {
+    pub fn createLabel(id: ?u64, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.label, null, null, null, span, allocator);
+        retval.data = if (id != null) IRData{ .bb_id = id.? } else IRData.none;
         return retval;
     }
 
+    // TODO: Rename create_branch_ir, rename IR kind as well
     fn createBranch(condition: *SymbolVersion, label: ?*IR, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.branchIfFalse, null, condition, null, span, allocator);
         retval.data = IRData{ .branch = label };
         return retval;
     }
 
+    // TODO: Rename create_jump_ir, rename IR kind as well
     fn createJump(label: ?*IR, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.jump, null, null, null, span, allocator);
         retval.data = IRData{ .branch = label };
+        return retval;
+    }
+
+    pub fn create_jump_addr(next: ?*BasicBlock, span: Span, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.jump, null, null, null, span, allocator);
+        retval.data = IRData{ .jump_bb = .{ .next = next } };
+        return retval;
+    }
+
+    pub fn create_branch_addr(condition: *SymbolVersion, next: ?*BasicBlock, branch: ?*BasicBlock, span: Span, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.branchIfFalse, null, condition, null, span, allocator);
+        retval.data = IRData{ .branch_bb = .{ .next = next, .branch = branch } };
         return retval;
     }
 
@@ -416,6 +517,24 @@ pub const IR = struct {
         return retval;
     }
 
+    fn create_int_float_kind(
+        int_kind: IRKind,
+        float_kind: IRKind,
+        dest: ?*SymbolVersion,
+        src1: ?*SymbolVersion,
+        src2: ?*SymbolVersion,
+        span: Span,
+        scope: *Scope,
+        errors: *errs.Errors,
+        allocator: std.mem.Allocator,
+    ) !*IR {
+        if (try src1.?.type.can_represent_float(scope, errors, allocator)) {
+            return try create(float_kind, dest, src1, src2, span, allocator);
+        } else {
+            return try create(int_kind, dest, src1, src2, span, allocator);
+        }
+    }
+
     pub fn getTail(self: *IR) *IR {
         var mut_self: *IR = self;
         while (mut_self.next != null) : (mut_self = mut_self.next.?) {}
@@ -434,6 +553,9 @@ pub const IR = struct {
             },
             .loadFloat => {
                 try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.float });
+            },
+            .loadSymbol => {
+                try out.writer().print("    {} := {s}\n", .{ self.dest.?, self.data.symbol.name });
             },
             .loadStruct => {
                 try out.writer().print("    {} := {{", .{self.dest.?});
@@ -461,8 +583,11 @@ pub const IR = struct {
             .not => {
                 try out.writer().print("    {} := !{}\n", .{ self.dest.?, self.src1.? });
             },
-            .negate => {
+            .negate_int => {
                 try out.writer().print("    {} := -{}\n", .{ self.dest.?, self.src1.? });
+            },
+            .negate_float => {
+                try out.writer().print("    {} := -.{}\n", .{ self.dest.?, self.src1.? });
             },
             .addrOf => {
                 try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
@@ -480,32 +605,56 @@ pub const IR = struct {
             .equal => {
                 try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .notEqual => {
+            .not_equal => {
                 try out.writer().print("    {} := {} != {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .greater => {
+            .greater_int => {
                 try out.writer().print("    {} := {} > {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .lesser => {
+            .greater_float => {
+                try out.writer().print("    {} := {} >. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .lesser_int => {
                 try out.writer().print("    {} := {} < {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .greaterEqual => {
+            .lesser_float => {
+                try out.writer().print("    {} := {} <. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .greater_equal_int => {
                 try out.writer().print("    {} := {} >= {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .lesserEqual => {
+            .greater_equal_float => {
+                try out.writer().print("    {} := {} >=. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .lesser_equal_int => {
                 try out.writer().print("    {} := {} <= {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .add => {
+            .lesser_equal_float => {
+                try out.writer().print("    {} := {} <=. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .add_int => {
                 try out.writer().print("    {} := {} + {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .sub => {
+            .add_float => {
+                try out.writer().print("    {} := {} +. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .sub_int => {
                 try out.writer().print("    {} := {} - {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .mult => {
+            .sub_float => {
+                try out.writer().print("    {} := {} -. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .mult_int => {
                 try out.writer().print("    {} := {} * {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .div => {
+            .mult_float => {
+                try out.writer().print("    {} := {} *. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .div_int => {
                 try out.writer().print("    {} := {} / {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
+            },
+            .div_float => {
+                try out.writer().print("    {} := {} /. {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
             .mod => {
                 try out.writer().print("    {} := {} % {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
@@ -527,6 +676,26 @@ pub const IR = struct {
                 try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
             },
 
+            .jump => {
+                if (self.data.jump_bb.next) |next| {
+                    try out.writer().print("    jump BB{}\n", .{next.uid});
+                } else {
+                    try out.writer().print("    ret\n", .{});
+                }
+            },
+            .branchIfFalse => {
+                if (self.data.branch_bb.next) |next| {
+                    try out.writer().print("    if ({s}_{?}) jump BB{}", .{ self.src1.?.symbol.name, self.src1.?.version, next.uid });
+                } else {
+                    try out.writer().print("    if ({s}_{?}) ret", .{ self.src1.?.symbol.name, self.src1.?.version });
+                }
+                try out.writer().print(" ", .{});
+                if (self.data.branch_bb.branch) |branch| {
+                    try out.writer().print("else jump BB{}\n", .{branch.uid});
+                } else {
+                    try out.writer().print("else ret\n", .{});
+                }
+            },
             .call => {
                 try out.writer().print("    {} := {}(", .{ self.dest.?, self.src1.? });
                 var i: usize = 0;
@@ -637,6 +806,10 @@ pub const BasicBlock = struct {
     number_predecessors: usize,
     removed: bool,
 
+    /// Address in the first instruction of this BasicBlock
+    /// Used for IR interpretation
+    offset: ?i128,
+
     pub fn pprint(self: *BasicBlock) void {
         if (self.visited) {
             return;
@@ -743,6 +916,9 @@ pub const CFG = struct {
     /// All other functions called by this function
     children: std.ArrayList(*CFG),
 
+    /// All symbol versions that are used. Should be filled in after optimizations.
+    symbvers: std.ArrayList(*SymbolVersion),
+
     /// The function that this CFG represents
     symbol: *Symbol,
 
@@ -757,6 +933,12 @@ pub const CFG = struct {
     /// Whether or not this CFG is visited
     visited: bool,
 
+    /// Address in the first instruction of this CFG
+    /// Used for IR interpretation
+    offset: ?i128,
+    /// Number of slots required in order to store the local variables of the function
+    slots: ?i128,
+
     // BIG TODO: 'Contextualize' errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
     pub fn create(symbol: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
         if (symbol.cfg) |cfg| {
@@ -768,12 +950,15 @@ pub const CFG = struct {
         retval.block_graph_head = null;
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
         retval.children = std.ArrayList(*CFG).init(allocator);
+        retval.symbvers = std.ArrayList(*SymbolVersion).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
         retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
         retval.return_symbol.expanded_type = try retval.return_symbol._type.?.expand_type(symbol.scope, errors, allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
+        retval.offset = null;
+        retval.slots = null;
         symbol.cfg = retval;
 
         if (caller) |caller_node| {
@@ -815,11 +1000,27 @@ pub const CFG = struct {
         }
     }
 
+    // Fills in a passed in list with symbol versions which are used in the CFG
+    pub fn collect_generated_symbvers(self: *CFG) !void {
+        for (self.basic_blocks.items) |bb| {
+            var maybe_ir = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.dest) |dest| {
+                    if (dest.symbol.decld or dest.type.* == .unit or dest.symbol.versions == 0) {
+                        continue;
+                    }
+                    try self.symbvers.append(dest);
+                }
+            }
+        }
+    }
+
     fn createBasicBlock(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
         var retval = try allocator.create(BasicBlock);
         retval.ir_head = null;
         retval.condition = null;
         retval.has_panic = false;
+        retval.offset = null;
         retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
         retval.next = null;
         retval.next_arguments = std.ArrayList(*SymbolVersion).init(allocator);
@@ -921,10 +1122,16 @@ pub const CFG = struct {
             .identifier => {
                 var symbol = scope.lookup(ast.getToken().data, false).?;
                 if (symbol.kind == ._fn) {
-                    _ = try create(symbol, self, self.interned_strings, errors, allocator);
+                    _ = try symbol.get_cfg(self, self.interned_strings, errors, allocator);
+                    var symbver = try self.createTempSymbolVersion(symbol._type.?, errors, allocator);
+                    var ir = try IR.create(.loadSymbol, symbver, null, null, ast.getToken().span, allocator);
+                    ir.data = IRData{ .symbol = symbol };
+                    self.appendInstruction(ir);
+                    return symbver;
+                } else {
+                    var src = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
+                    return src;
                 }
-                var src = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                return src;
             },
             ._true => {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
@@ -958,7 +1165,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.negate, temp, expr, null, ast.getToken().span, allocator);
+                var ir = try IR.create(if (try temp.type.can_represent_float(scope, errors, allocator)) .negate_float else .negate_int, temp, expr, null, ast.getToken().span, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -978,8 +1185,8 @@ pub const CFG = struct {
             ._try => {
                 var expr = (try self.flattenAST(scope, ast._try.expr, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
 
-                var end = try IR.createLabel(ast.getToken().span, allocator);
-                var err = try IR.createLabel(ast.getToken().span, allocator);
+                var end = try IR.createLabel(null, ast.getToken().span, allocator);
+                var err = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 var expanded_expr_type = try expr.type.expand_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
@@ -1029,8 +1236,8 @@ pub const CFG = struct {
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test lhs, branch
                 var lhs = (try self.flattenAST(scope, ast._or.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
@@ -1062,8 +1269,8 @@ pub const CFG = struct {
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test lhs, branch
                 var lhs = (try self.flattenAST(scope, ast._and.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
@@ -1097,7 +1304,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.add, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.add_int, .add_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1109,7 +1316,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.sub, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.sub_int, .sub_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1121,7 +1328,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.mult, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.mult_int, .mult_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1133,7 +1340,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.div, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.div_int, .div_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1158,8 +1365,8 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
                 // Labels used
-                var fail_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var fail_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 try self.generate_tuple_equality(scope, lhs.?, rhs.?, fail_label, errors, allocator);
 
@@ -1185,9 +1392,9 @@ pub const CFG = struct {
                     var rhs_tag = try createTempSymbolVersion(self, primitives.int_type, errors, allocator);
                     self.appendInstruction(try IR.createGetTag(lhs_tag, lhs.?, ast.getToken().span, allocator));
                     self.appendInstruction(try IR.createGetTag(rhs_tag, rhs.?, ast.getToken().span, allocator));
-                    self.appendInstruction(try IR.create(.notEqual, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.create(.not_equal, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
                 } else {
-                    self.appendInstruction(try IR.create(.notEqual, temp, lhs, rhs, ast.getToken().span, allocator));
+                    self.appendInstruction(try IR.create(.not_equal, temp, lhs, rhs, ast.getToken().span, allocator));
                 }
                 return temp;
             },
@@ -1199,7 +1406,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.greater, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.greater_int, .greater_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1211,7 +1418,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.lesser, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.lesser_int, .lesser_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1223,7 +1430,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.greaterEqual, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.greater_equal_int, .greater_equal_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1235,7 +1442,7 @@ pub const CFG = struct {
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.lesserEqual, temp, lhs, rhs, ast.getToken().span, allocator);
+                var ir = try IR.create_int_float_kind(.lesser_equal_int, .lesser_equal_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -1248,8 +1455,8 @@ pub const CFG = struct {
                 var lhs = (try self.flattenAST(scope, ast._catch.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
 
                 // Labels used
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test if lhs tag is 0 (ok)
                 var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
@@ -1283,8 +1490,8 @@ pub const CFG = struct {
                 var lhs = (try self.flattenAST(scope, ast._orelse.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
 
                 // Labels used
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test if lhs tag is 1 (some)
                 var condition = try createTempSymbolVersion(self, primitives.bool_type, errors, allocator);
@@ -1397,9 +1604,9 @@ pub const CFG = struct {
                 //     return error.typeError;
                 // } else
                 { // Dynamically confirm that lower <= upper
-                    var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                    var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
                     var compare = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
-                    var ir = try IR.create(.greater, compare, lower, upper, ast.getToken().span, allocator);
+                    var ir = try IR.create(.greater_int, compare, lower, upper, ast.getToken().span, allocator);
                     self.appendInstruction(ir);
                     var branch = try IR.createBranch(compare, end_label, ast.getToken().span, allocator);
                     self.appendInstruction(branch);
@@ -1409,7 +1616,7 @@ pub const CFG = struct {
                 }
 
                 var new_size = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
-                var new_size_ir = try IR.create(.sub, new_size, upper, lower, ast.getToken().span, allocator);
+                var new_size_ir = try IR.create(.sub_int, new_size, upper, lower, ast.getToken().span, allocator);
                 self.appendInstruction(new_size_ir);
 
                 var slice_type = try ast.typeof(scope, errors, allocator);
@@ -1419,7 +1626,7 @@ pub const CFG = struct {
                 self.appendInstruction(data_ptr_ir);
 
                 var new_data_ptr = try self.createTempSymbolVersion(data_type, errors, allocator);
-                var new_data_ptr_ir = try IR.create(.add, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator);
+                var new_data_ptr_ir = try IR.create(.add_int, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator);
                 self.appendInstruction(new_data_ptr_ir);
 
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
@@ -1458,8 +1665,8 @@ pub const CFG = struct {
                 }
 
                 // Labels used
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test lhs, branch
                 var condition = (try self.flattenAST(ast._if.scope.?, ast._if.condition, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
@@ -1505,9 +1712,9 @@ pub const CFG = struct {
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Exit label of match
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
                 // Label jumped to if all tests fail and no `else` mapping
-                var none_label = try IR.createLabel(ast.getToken().span, allocator);
+                var none_label = try IR.createLabel(null, ast.getToken().span, allocator);
                 // List of labels to branch to on an unsuccessful test (ie "next pattern")
                 var lhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer lhs_label_list.deinit();
@@ -1515,8 +1722,8 @@ pub const CFG = struct {
                 var rhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer rhs_label_list.deinit();
                 for (ast.match.mappings.items) |_| {
-                    try lhs_label_list.append(try IR.createLabel(ast.getToken().span, allocator));
-                    try rhs_label_list.append(try IR.createLabel(ast.getToken().span, allocator));
+                    try lhs_label_list.append(try IR.createLabel(null, ast.getToken().span, allocator));
+                    try rhs_label_list.append(try IR.createLabel(null, ast.getToken().span, allocator));
                 }
                 std.debug.assert(lhs_label_list.items.len == ast.match.mappings.items.len);
 
@@ -1587,10 +1794,10 @@ pub const CFG = struct {
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
 
                 // Labels used
-                var cond_label = try IR.createLabel(ast.getToken().span, allocator);
-                var current_continue_label = try IR.createLabel(ast.getToken().span, allocator);
-                var else_label = try IR.createLabel(ast.getToken().span, allocator);
-                var end_label = try IR.createLabel(ast.getToken().span, allocator);
+                var cond_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var current_continue_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // If there's a let, then do it, dumby!
                 if (ast._while.let) |let| {
@@ -1654,14 +1861,14 @@ pub const CFG = struct {
                     var error_labels = std.ArrayList(*IR).init(allocator);
                     defer error_labels.deinit();
                     for (ast.block.scope.?.defers.items) |_| {
-                        try continue_labels.append(try IR.createLabel(ast.getToken().span, allocator));
-                        try break_labels.append(try IR.createLabel(ast.getToken().span, allocator));
-                        try return_labels.append(try IR.createLabel(ast.getToken().span, allocator));
+                        try continue_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
+                        try break_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
+                        try return_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
                     }
                     for (ast.block.scope.?.errdefers.items) |_| {
-                        try error_labels.append(try IR.createLabel(ast.getToken().span, allocator));
+                        try error_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
                     }
-                    var end = try IR.createLabel(ast.getToken().span, allocator);
+                    var end = try IR.createLabel(null, ast.getToken().span, allocator);
 
                     // These are the labels to go to on each final statement. These are updated to point to different places in the defer chain at the end of this block.
                     var current_continue_label = if (continue_label != null) continue_label else end;
@@ -1731,7 +1938,7 @@ pub const CFG = struct {
                 return null;
             },
             .fnDecl => {
-                _ = try create(ast.fnDecl.symbol.?, self, self.interned_strings, errors, allocator);
+                _ = try ast.fnDecl.symbol.?.get_cfg(self, self.interned_strings, errors, allocator);
                 var symbver = try self.createTempSymbolVersion(ast.fnDecl.symbol.?._type.?, errors, allocator);
                 var ir = try IR.create(.loadSymbol, symbver, null, null, ast.getToken().span, allocator);
                 ir.data = IRData{ .symbol = ast.fnDecl.symbol.? };

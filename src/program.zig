@@ -1,10 +1,12 @@
 const _ast = @import("ast.zig");
 const errs = @import("errors.zig");
+const ir_ = @import("ir.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
+const Span = @import("span.zig").Span;
 
 const AST = _ast.AST;
-const CFG = @import("ir.zig").CFG;
+const CFG = ir_.CFG;
 const Scope = _symbol.Scope;
 
 pub const DAG = struct {
@@ -23,11 +25,8 @@ pub const DAG = struct {
     }
 };
 
-/// This structure represents the entire program being compiled
+/// This structure represents the entire program being compiled.
 pub const Program = struct {
-    // CFG node of entry program point
-    callGraph: *CFG,
-
     // A unique identifier for this Orng program
     uid: i128,
 
@@ -36,6 +35,9 @@ pub const Program = struct {
 
     // TODO: Make this a map from filename -> lines
     lines: *std.ArrayList([]const u8),
+
+    // Flat list of instructions
+    instructions: std.ArrayList(*ir_.IR),
 
     // Interned strings
     interned_strings: *std.ArrayList([]const u8),
@@ -49,16 +51,89 @@ pub const Program = struct {
     // Allocator for the program
     allocator: std.mem.Allocator,
 
-    pub fn init(callGraph: *CFG, uid: i128, interned_strings: *std.ArrayList([]const u8), prelude: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Program {
+    pub fn init(uid: i128, lines: *std.ArrayList([]const u8), interned_strings: *std.ArrayList([]const u8), prelude: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Program {
         var retval = try allocator.create(Program);
-        retval.callGraph = callGraph;
         retval.uid = uid;
         retval.interned_strings = interned_strings;
         retval.prelude = prelude;
         retval.errors = errors;
         retval.allocator = allocator;
+        retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.types = std.ArrayList(*DAG).init(allocator);
+        retval.lines = lines;
         return retval;
+    }
+
+    pub fn append_instructions(self: *Program, cfg: *CFG) !i128 {
+        if (cfg.offset != null) {
+            return cfg.offset.?;
+        }
+        cfg.offset = try self.append_basic_block(cfg.block_graph_head.?);
+        for (cfg.children.items) |child| {
+            _ = try self.append_instructions(child);
+        }
+        return cfg.offset.?;
+    }
+
+    /// Appends the instructions in a BasicBlock to the program's instructions.
+    /// Returns the offset of the basic block
+    fn append_basic_block(self: *Program, first_bb: *ir_.BasicBlock) !i128 {
+        var work_queue = std.ArrayList(*ir_.BasicBlock).init(self.allocator);
+        defer work_queue.deinit();
+        try work_queue.append(first_bb);
+
+        while (work_queue.items.len > 0) {
+            var bb = work_queue.orderedRemove(0); // Youch!
+
+            if (bb.offset != null) {
+                continue;
+            }
+
+            bb.offset = self.instructions.items.len;
+            var label = try ir_.IR.createLabel(bb.uid, Span{ .filename = "", .line = 0, .col = 0 }, self.allocator);
+            label.uid = bb.uid;
+            try self.instructions.append(label);
+
+            var maybe_ir = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                try self.instructions.append(ir);
+            }
+
+            if (bb.has_branch) {
+                if (bb.next) |next| {
+                    try work_queue.append(next);
+                }
+                if (bb.branch) |branch| {
+                    try work_queue.append(branch);
+                }
+                try self.instructions.append(try ir_.IR.create_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line = 0, .col = 0 }, self.allocator));
+            } else {
+                if (bb.next) |next| {
+                    try work_queue.append(next);
+                }
+                try self.instructions.append(try ir_.IR.create_jump_addr(bb.next, Span{ .filename = "", .line = 0, .col = 0 }, self.allocator));
+            }
+        }
+        return first_bb.offset.?;
+    }
+
+    fn create_jump_addr_uid(self: *Program, bb: ?*ir_.BasicBlock) error{OutOfMemory}!struct { addr: ?i128, uid: ?u64 } {
+        var addr: ?i128 = undefined;
+        var uid: ?u64 = undefined;
+        if (bb != null) {
+            addr = try self.append_basic_block(bb.?);
+            uid = bb.?.uid;
+        } else {
+            addr = null;
+            uid = null;
+        }
+        return .{ .addr = addr, .uid = uid };
+    }
+
+    pub fn print_instructions(self: *Program) void {
+        for (self.instructions.items) |ir| {
+            std.debug.print("{}", .{ir});
+        }
     }
 };
 

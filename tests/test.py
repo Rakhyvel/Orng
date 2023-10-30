@@ -132,7 +132,7 @@ def fuzz():
 def collect_files(args, base):
     # Extract paths in the args.test list, if there are any
     # Prepend with base
-    if args.test:
+    if args.test and len(args.test) > 0 and args.test[0] != '.': # If the user enters `-t .`, treat that as a test of the whole directory
         full_path = [os.path.join(base, path) for path in args.test]
     elif args.count:
         full_path = [os.path.join(base, path) for path in args.count]

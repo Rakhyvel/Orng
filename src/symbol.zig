@@ -1,11 +1,13 @@
 const std = @import("std");
 const ast = @import("ast.zig");
 const errs = @import("errors.zig");
-const _ir = @import("ir.zig");
+const ir_ = @import("ir.zig");
+const offsets = @import("offsets.zig");
+const optimizations = @import("optimizations.zig");
 const _span = @import("span.zig");
 
 const AST = ast.AST;
-const CFG = _ir.CFG;
+const CFG = ir_.CFG;
 const Error = errs.Error;
 const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
@@ -189,19 +191,21 @@ pub const SymbolKind = enum {
 };
 
 pub const Symbol = struct {
-    scope: *Scope,
+    scope: *Scope, // Enclosing parent scope
     name: []const u8,
     span: Span,
     _type: ?*ast.AST,
     expanded_type: ?*ast.AST,
     init: ?*ast.AST,
+    kind: SymbolKind,
+    cfg: ?*CFG,
+    decl: ?*AST,
+
+    // Use-def
     versions: u64 = 0,
     uses: u64 = 0,
     discards: u64 = 0, // May be 0 if symbol is uses > 0; may be 1 if uses = 0; may not be greater than 1
     discard_span: ?Span,
-    kind: SymbolKind,
-    cfg: ?*CFG,
-    decl: ?*AST,
 
     defined: bool,
     validation_state: enum {
@@ -209,10 +213,13 @@ pub const Symbol = struct {
         validating, // Symbol is currently being validated
         valid, // Symbol has been validated and is valid. Specifically, the type of the symbol is valid and may be used.
     },
-    /// When a local variable, whether or not the variable has been printed out or not
-    decld: bool,
+    decld: bool, // When a local variable, whether or not the variable has been printed out or not
     param: bool,
     is_temp: bool = false,
+
+    // Offset & slots
+    offset: ?i16, // The offset from the BP that this symbol
+    slots: ?i16, // Number of slots this symbol requires
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
@@ -226,6 +233,8 @@ pub const Symbol = struct {
         retval.versions = 0;
         retval.discards = 0;
         retval.uses = 0;
+        retval.offset = null;
+        retval.slots = null;
         retval.kind = kind;
         retval.cfg = null;
         if (kind == ._fn or kind == ._const) {
@@ -236,6 +245,16 @@ pub const Symbol = struct {
         retval.validation_state = .unvalidated;
         retval.decld = false;
         return retval;
+    }
+
+    pub fn get_cfg(self: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
+        if (self.cfg == null) {
+            std.debug.print("{s}\n", .{self.name});
+            self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
+            try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
+            offsets.calculate_slots_offsets(self);
+        }
+        return self.cfg.?;
     }
 };
 
