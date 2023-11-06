@@ -16,6 +16,7 @@ const TokenKind = tokens.TokenKind;
 pub var poisoned: *AST = undefined;
 var inited: bool = false;
 
+/// Initializes internal structures if they are not already initialized.
 pub fn init_structures() !void {
     if (!inited) {
         poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "LMAO GET POISONED", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
@@ -24,12 +25,14 @@ pub fn init_structures() !void {
     }
 }
 
+/// Represents the kind of a slice.
 pub const SliceKind = union(enum) {
     SLICE, // data ptr and len
     MUT, // mutable data ptr and len
     MULTIPTR, // c-style `*` pointer, no len
     ARRAY, // static homogenous tuple, compile-time len
 
+    /// Serializes a `SliceKind` variant into a string representation.
     pub fn serialize(self: SliceKind, out: *String) !void {
         switch (self) {
             .SLICE => {
@@ -50,45 +53,80 @@ pub const SliceKind = union(enum) {
 
 const Errors = error{ InvalidRange, OutOfMemory };
 
+/// Represents different validation states of an AST.
 pub const Validation_State = union(enum) {
+    /// Validation has not been done, undetermined state.
     unvalidated,
+
+    /// Validation is currently in progress, undetermined state.
     validating,
-    valid: struct { valid_form: *AST },
+
+    /// Validation completed successfully.
+    valid: struct {
+        /// The valid form of the AST.
+        valid_form: *AST,
+    },
+
+    /// Validation completed unsuccessfully.
     invalid,
 };
 
+/// Contains common properties of all AST nodes
 const ASTCommon = struct {
+    /// Token that defined the AST node in text.
     token: Token,
+
+    /// The type of the AST as an expression.
+    /// Memoized, use `typeof()`.
+    /// TODO: Postfix with _ to signify private
     _type: ?*AST,
+
+    /// The expanded version of the `_type` field.
+    /// Memoized, use `expanded_type()`.
+    /// TODO: Postfix with _ to signify private
     expanded_type: ?*AST = null,
+
+    /// How many slots a value of the type of the AST takes up.
+    /// Memoized, use `get_slots()`.
+    /// TODO: Postfix with _ to signify private
+    slots: ?i64 = null,
+
+    /// The validation status of the AST
     validation_state: Validation_State = .unvalidated,
 };
 
+/// Represents an Abstract Syntax Tree.
 pub const AST = union(enum) {
-    // Not generated for correct programs, used to represent incorrect ASTs
+    /// Not generated for correct programs, used to represent incorrect ASTs
     poison: struct { common: ASTCommon },
-    // Literals
+    /// Unit type
     unit: struct { common: ASTCommon },
+    /// Integer constant
     int: struct {
         common: ASTCommon,
         data: i128,
         represents: *AST, //< Type that this constant represents. Set on validation.
     },
+    /// Floating-point constant
     float: struct {
         common: ASTCommon,
         data: f64,
         represents: *AST, //< Type that this constant represents. Set on validation.
     },
+    /// Character constant
     char: struct { common: ASTCommon },
+    /// String constant
     string: struct {
         common: ASTCommon,
         data: []const u8,
     },
-    identifier: struct { common: ASTCommon },
+    /// True constant
     _true: struct { common: ASTCommon },
+    /// False constant
     _false: struct { common: ASTCommon },
+    /// Identifier
+    identifier: struct { common: ASTCommon },
 
-    // Unary operators
     not: struct { common: ASTCommon, expr: *AST },
     negate: struct { common: ASTCommon, expr: *AST },
     dereference: struct { common: ASTCommon, expr: *AST },
@@ -179,6 +217,15 @@ pub const AST = union(enum) {
             }
             self.homotypical = true;
             return true;
+        }
+
+        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i128 {
+            var offset: i128 = 0;
+            for (0..field) |i| {
+                var item = self.terms.items[i];
+                offset += (try item.expand_type(scope, errors, allocator)).get_slots(); // TODO: Is it necessary to expand here?
+            }
+            return offset;
         }
     },
     _union: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -286,12 +333,14 @@ pub const AST = union(enum) {
     _defer: struct { common: ASTCommon, statement: *AST },
     _errdefer: struct { common: ASTCommon, statement: *AST },
 
+    /// Boxes an AST value into an allocator.
     fn box(ast: AST, alloc: std.mem.Allocator) error{OutOfMemory}!*AST {
         var retval = try alloc.create(AST);
         retval.* = ast;
         return retval;
     }
 
+    /// Retrieve the common field of an AST node
     pub fn getCommon(self: *AST) *ASTCommon {
         switch (self.*) {
             .poison => return &self.poison.common,
@@ -363,8 +412,45 @@ pub const AST = union(enum) {
         }
     }
 
+    /// Retrieves the token of an AST node
     pub fn getToken(self: *AST) Token {
         return self.getCommon().token;
+    }
+
+    /// Retrieves the slots of an AST node.
+    pub fn get_slots(self: *AST) i64 {
+        if (self.getCommon().slots == null) {
+            switch (self.*) {
+                .product => {
+                    var total_slots: i64 = 0;
+                    for (self.product.terms.items) |child| {
+                        total_slots += child.get_slots();
+                    }
+                    self.getCommon().slots = total_slots;
+                },
+
+                .sum => {
+                    var max_slots: i64 = 0;
+                    for (self.sum.terms.items) |child| {
+                        var child_slots = child.get_slots();
+                        if (max_slots < child_slots) {
+                            max_slots = child_slots;
+                        }
+                    }
+                    self.getCommon().slots = 1 + max_slots;
+                },
+
+                .unit => {
+                    self.getCommon().slots = 0;
+                },
+
+                else => {
+                    self.getCommon().slots = 1;
+                },
+            }
+        }
+
+        return self.getCommon().slots.?;
     }
 
     pub fn createPoison(token: Token, allocator: std.mem.Allocator) !*AST {

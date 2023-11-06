@@ -6,6 +6,7 @@ const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
 const Error = errs.Error;
 const IR = _ir.IR;
+const L_Value = _ir.L_Value;
 const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol.zig").Symbol;
 const SymbolVersion = _ir.SymbolVersion;
@@ -241,26 +242,24 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
     calculateUsage(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
+        // For each BB, keep a map of symbol versions and their definitions
         var def_map = std.AutoArrayHashMap(*SymbolVersion, ?*IR).init(allocator);
         defer def_map.deinit();
 
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            // Walk through IR in BB, update map of src1 and src2 defs
             var src1_def: ?*IR = if (ir.src1) |src1| def_map.get(src1) orelse null else null;
             var src2_def: ?*IR = if (ir.src2) |src2| def_map.get(src2) orelse null else null;
             retval = try propagateIR(ir, src1_def, src2_def, interned_strings, errors) or retval;
 
-            if (ir.kind == .selectCopy) {
-                try def_map.put(ir.src1.?, null);
-            } else if (ir.kind == .indexCopy) {
-                try def_map.put(ir.src1.?, null);
-            } else if (ir.kind == .select and ir.dest.?.lvalue) {
-                try def_map.put(ir.src1.?, null);
+            if (ir.dest != null and ir.dest.?.* != .symbver) {
+                try def_map.put(ir.dest.?.extract_symbver(), null);
             } else if (ir.kind == .addrOf) {
                 try def_map.put(ir.src1.?, null);
             }
-            if (ir.dest) |dest| {
-                try def_map.put(dest, ir);
+            if (ir.dest != null and ir.dest.?.* == .symbver) {
+                try def_map.put(ir.dest.?.symbver, ir);
             }
         }
         if (bb.has_branch) {
@@ -287,7 +286,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.in_block.?.removeInstruction(ir);
             }
             // Self-copy elimination
-            else if (ir.dest.?.symbol == ir.src1.?.symbol and src1_def != null and ir.dest.?.version == ir.src1.?.version) {
+            else if (ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == ir.src1.?.symbol and src1_def != null and ir.dest.?.symbver.version == ir.src1.?.version) {
                 log("self-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
                 retval = true;
@@ -301,7 +300,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Float constant propagation
@@ -313,7 +311,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // String constant propagation
@@ -325,7 +322,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Struct constant propagation
@@ -337,7 +333,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Union constant propagation
@@ -349,7 +344,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Load symbol propagation
@@ -361,14 +355,12 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Copy propagation
             else if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
                 log("copy propagation");
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
                 retval = true;
             }
             // Addrof propagation
@@ -380,7 +372,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Dereference propagation
@@ -392,7 +383,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Add propagation
@@ -404,7 +394,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Add propagation
@@ -416,7 +405,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Sub propagation
@@ -428,7 +416,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Sub propagation
@@ -440,7 +427,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Mult propagation
@@ -452,7 +438,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Mult propagation
@@ -464,7 +449,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Div propagation
@@ -476,7 +460,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Div propagation
@@ -488,7 +471,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Mod propagation
@@ -500,14 +482,12 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
-                ir.dest.?.lvalue = false;
                 retval = true;
             }
             // Select propagation
             else if (src1_def != null and src1_def.?.kind == .select) {
                 log("select");
                 ir.kind = .select;
-                ir.dest.?.lvalue = src1_def.?.dest.?.lvalue;
                 ir.data = src1_def.?.data;
                 ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
@@ -555,14 +535,14 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             }
         },
 
-        .derefCopy => {
-            // Copy propagation
-            if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
-                log("deref-copy propagation");
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-        },
+        // .derefCopy => {
+        //     // Copy propagation
+        //     if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
+        //         log("deref-copy propagation");
+        //         ir.src1 = src1_def.?.src1;
+        //         retval = true;
+        //     }
+        // },
 
         .equal => {
             // Known int, int value
@@ -1184,32 +1164,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             }
         },
 
-        .indexCopy => {
-            // Statically check if index is within bounds
-            if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
-                var index = src2_def.?.data.int;
-                var length = ir.meta.bounds_check.length.def.?.data.int;
-                if (index < 0) {
-                    errors.addError(Error{ .negative_index = .{
-                        .span = src2_def.?.span,
-                        .index = index,
-                    } });
-                    return error.typeError;
-                } else if (index >= length) {
-                    errors.addError(Error{ .out_of_bounds = .{
-                        .span = src2_def.?.span,
-                        .index = index,
-                        .length = @as(usize, @intCast(length)),
-                    } });
-                    return error.typeError;
-                } else {
-                    // Confirmed within bounds, remove bounds check
-                    ir.meta = .none;
-                    retval = true;
-                }
-            }
-        },
-
         .select => {
             if (ir.meta == .active_field_check and ir.meta.active_field_check.tag.def.?.kind == .loadInt) {
                 if (ir.data.int != ir.meta.active_field_check.tag.def.?.data.int and !ir.safe) {
@@ -1225,7 +1179,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 }
             }
             // Known loadUnion value
-            if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadUnion) {
+            if (src1_def != null and src1_def.?.kind == .loadUnion) {
                 log("select; known loadUnion value");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -1234,7 +1188,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 retval = true;
             }
             // Known loadStruct value
-            else if (src1_def != null and !ir.dest.?.lvalue and src1_def.?.kind == .loadStruct) {
+            else if (src1_def != null and src1_def.?.kind == .loadStruct) {
                 // IR is of the form `dest = src1._{data.int}`, where src1_def is of the form: `src1 = {data.symbverList}`
                 // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
                 // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
@@ -1285,7 +1239,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
         else => {},
     }
 
-    if (!retval and ir.kind != .selectCopy) {
+    if (!retval and ir.dest == null or ir.dest.?.* == .symbver) {
         // Need to make sure src1_def.dest is not assigned to in between src1_def and ir.
         //   srcn_def:        dest = ?
         //             ...
@@ -1321,8 +1275,8 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and !ir.removed and !ir.dest.?.symbol.is_temp) {
-                try err_if_unused(ir.dest.?.symbol, errors);
+            if (ir.dest != null and !ir.removed and ir.dest.?.* == .symbver and !ir.dest.?.symbver.symbol.is_temp and ir.dest.?.symbver.symbol != cfg.return_symbol) {
+                try err_if_unused(ir.dest.?.symbver.symbol, errors);
             }
         }
     }
@@ -1371,7 +1325,7 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
             if (ir.kind == .discard) {
                 continue;
             }
-            if (ir.dest != null and !ir.removed and ir.dest.?.uses == 0) {
+            if (ir.dest != null and !ir.removed and ir.dest.?.* == .symbver and ir.dest.?.symbver.uses == 0 and ir.dest.?.symbver.symbol.uses == 0 and ir.dest.?.symbver.symbol != cfg.return_symbol) {
                 if (debug) {
                     std.debug.print("removing: {}", .{ir});
                 }
@@ -1401,8 +1355,8 @@ fn calculateVersions(cfg: *CFG) void {
         // Reset all reachable symbol verison counts to 0
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest) |dest| {
-                dest.symbol.versions = 0;
+            if (ir.dest != null and ir.dest.?.* == .symbver) {
+                ir.dest.?.symbver.symbol.versions = 0;
             }
             if (ir.src1) |src1| {
                 src1.symbol.versions = 0;
@@ -1423,12 +1377,9 @@ fn calculateVersions(cfg: *CFG) void {
         // Go through sum up each definition
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest) |dest| {
-                dest.def = ir;
-                if (dest.lvalue) {
-                    continue;
-                }
-                dest.symbol.versions += 1;
+            if (ir.dest != null and ir.dest.?.* == .symbver) {
+                ir.dest.?.symbver.def = ir;
+                ir.dest.?.symbver.symbol.versions += 1;
             }
         }
     }
@@ -1443,9 +1394,8 @@ fn calculateUsage(cfg: *CFG) void {
         // Clear all used flags
         var maybe_ir: ?*IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest) |dest| {
-                dest.uses = 0;
-                dest.symbol.uses = 0;
+            if (ir.dest != null) {
+                reset_usage_lval(ir.dest.?);
             }
         }
     }
@@ -1465,10 +1415,8 @@ fn calculateUsage(cfg: *CFG) void {
             if (ir.kind == .discard) {
                 ir.src1.?.symbol.discards += 1;
             }
-            if (ir.dest != null and (ir.kind == .derefCopy or ir.dest.?.symbol == cfg.return_symbol)) {
-                // dest aren't USUALLY considered a usage, but they are for derefCopy and call IRs
-                ir.dest.?.uses += 1;
-                ir.dest.?.symbol.uses += 1;
+            if (ir.dest != null and ir.dest.?.* != .symbver) {
+                calculate_usage_lval(ir.dest.?);
             }
             if (ir.src1 != null) {
                 ir.src1.?.uses += 1;
@@ -1503,5 +1451,47 @@ fn calculateUsage(cfg: *CFG) void {
             bb.condition.?.uses += 1;
             bb.condition.?.symbol.uses += 1;
         }
+    }
+}
+
+fn reset_usage_lval(lval: *L_Value) void {
+    switch (lval.*) {
+        .symbver => {
+            lval.symbver.uses = 0;
+            lval.symbver.symbol.uses = 0;
+        },
+        .dereference => {
+            lval.dereference.uses = 0;
+            lval.dereference.symbol.uses = 0;
+        },
+        .index => {
+            reset_usage_lval(lval.index.lhs);
+            lval.index.field.uses = 0;
+            lval.index.field.symbol.uses = 0;
+        },
+        .select => {
+            reset_usage_lval(lval.select.lhs);
+        },
+    }
+}
+
+fn calculate_usage_lval(lval: *L_Value) void {
+    switch (lval.*) {
+        .symbver => {
+            lval.symbver.uses += 1;
+            lval.symbver.symbol.uses += 1;
+        },
+        .dereference => {
+            lval.dereference.uses += 1;
+            lval.dereference.symbol.uses += 1;
+        },
+        .index => {
+            calculate_usage_lval(lval.index.lhs);
+            lval.index.field.uses += 1;
+            lval.index.field.symbol.uses += 1;
+        },
+        .select => {
+            calculate_usage_lval(lval.select.lhs);
+        },
     }
 }

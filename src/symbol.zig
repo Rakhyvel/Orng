@@ -218,8 +218,7 @@ pub const Symbol = struct {
     is_temp: bool = false,
 
     // Offset & slots
-    offset: ?i16, // The offset from the BP that this symbol
-    slots: ?i16, // Number of slots this symbol requires
+    offset: ?i64, // The offset from the BP that this symbol
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
@@ -234,7 +233,6 @@ pub const Symbol = struct {
         retval.discards = 0;
         retval.uses = 0;
         retval.offset = null;
-        retval.slots = null;
         retval.kind = kind;
         retval.cfg = null;
         if (kind == ._fn or kind == ._const) {
@@ -252,7 +250,7 @@ pub const Symbol = struct {
             std.debug.print("{s}\n", .{self.name});
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
-            offsets.calculate_slots_offsets(self);
+            self.cfg.?.slots = offsets.calculate_offsets(self);
         }
         return self.cfg.?;
     }

@@ -20,7 +20,6 @@ pub const SymbolVersion = struct {
     version: ?u64,
     def: ?*IR,
 
-    lvalue: bool,
     uses: usize = 0,
 
     /// Type of the SymbolVersion. Temps use the same symbol, so can't use that for type info
@@ -32,7 +31,6 @@ pub const SymbolVersion = struct {
         retval.uses = 0;
         retval.version = null;
         retval.type = _type;
-        retval.lvalue = false;
         retval.def = null;
         return retval;
     }
@@ -51,11 +49,6 @@ pub const SymbolVersion = struct {
             var out = String.init(arena.allocator());
             defer out.deinit();
 
-            if (symbver.lvalue) {
-                out.concat("L") catch unreachable;
-            } else {
-                out.concat(" ") catch unreachable;
-            }
             out.writer().print("{s}_{?}", .{ symbver.symbol.name, symbver.version }) catch unreachable;
             std.debug.print("{s:<10}", .{out.str()});
         } else {
@@ -71,11 +64,6 @@ pub const SymbolVersion = struct {
         var out = String.init(arena.allocator());
         defer out.deinit();
 
-        if (self.lvalue) {
-            out.concat("L") catch unreachable;
-        } else {
-            out.concat(" ") catch unreachable;
-        }
         writer.print("{s}_{?}", .{ self.symbol.name, self.version }) catch unreachable;
         // try writer.print("{s:<10}", .{out.str()});
     }
@@ -84,8 +72,8 @@ pub const SymbolVersion = struct {
         var retval: *SymbolVersion = self;
         var maybe_ir = ir;
         while (maybe_ir != null and maybe_ir != stop) : (maybe_ir = maybe_ir.?.next) {
-            if (maybe_ir.?.dest != null and maybe_ir.?.dest.?.symbol == self.symbol) {
-                retval = maybe_ir.?.dest.?;
+            if (maybe_ir.?.dest != null and maybe_ir.?.dest.?.* == .symbver and maybe_ir.?.dest.?.symbver.symbol == self.symbol) {
+                retval = maybe_ir.?.dest.?.symbver;
             }
         }
         return retval;
@@ -118,7 +106,6 @@ pub const SymbolVersion = struct {
             return true;
         }
         return symbver.symbol.is_temp and
-            !symbver.lvalue and
             symbver.uses == 1 and
             symbver.symbol.versions == 1 and
             symbver.def.?.kind != .call and
@@ -133,8 +120,8 @@ pub const IRKind = enum {
     loadExtern,
     loadInt,
     loadFloat,
-    loadStruct,
-    loadUnion, // src1 is init, data.int is tag id
+    loadStruct, // TODO: Rename to load_tuple
+    loadUnion, // src1 is init, data.int is tag id // TODO: Rename to load_sum
     loadString,
 
     // Monadic instructions
@@ -145,7 +132,6 @@ pub const IRKind = enum {
     addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
     dereference,
-    derefCopy,
 
     // Diadic instructions
     equal,
@@ -168,9 +154,7 @@ pub const IRKind = enum {
     div_float,
     mod,
     index, // dest = src1[src2]
-    indexCopy, // src1[src2] = data.symbver
     select, // dest = src1._${data.int}
-    selectCopy,
     get_tag, // dest = src1.tag
     cast,
 
@@ -200,9 +184,7 @@ pub const IRKind = enum {
             => 0,
 
             .call,
-            .indexCopy,
             .select,
-            .selectCopy,
             .get_tag,
             => 1,
 
@@ -211,7 +193,6 @@ pub const IRKind = enum {
             .not,
             .index, // Because of dereference
             .dereference,
-            .derefCopy,
             .addrOf,
             .sizeOf,
             .cast,
@@ -330,6 +311,92 @@ pub const IRData = union(enum) {
     }
 };
 
+/// Represents different forms of l-values in an l-value tree.
+pub const L_Value = union(enum) {
+    /// L-Value is the address of the symbol
+    symbver: *SymbolVersion,
+    /// L-Value is lhs.
+    dereference: *SymbolVersion,
+    /// L-Value is L-Value of lhs[field]
+    index: struct { lhs: *L_Value, field: *SymbolVersion, slots: i128 },
+    /// L-Value is L-Value of lhs, + field * slots
+    select: struct { lhs: *L_Value, field: i128, offset: i128 },
+
+    fn create_symbver(symbver: *SymbolVersion, allocator: std.mem.Allocator) !*L_Value {
+        var retval = try allocator.create(L_Value);
+        retval.* = L_Value{ .symbver = symbver };
+        return retval;
+    }
+
+    fn create_dereference(lhs: *SymbolVersion, allocator: std.mem.Allocator) !*L_Value {
+        var retval = try allocator.create(L_Value);
+        retval.* = L_Value{ .dereference = lhs };
+        return retval;
+    }
+
+    fn create_index(lhs: *L_Value, field: *SymbolVersion, slots: i128, allocator: std.mem.Allocator) !*L_Value {
+        var retval = try allocator.create(L_Value);
+        retval.* = L_Value{ .index = .{ .lhs = lhs, .field = field, .slots = slots } };
+        return retval;
+    }
+
+    fn create_select(lhs: *L_Value, field: i128, offset: i128, allocator: std.mem.Allocator) !*L_Value {
+        var retval = try allocator.create(L_Value);
+        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset } };
+        return retval;
+    }
+
+    pub fn pprint(self: L_Value, allocator: std.mem.Allocator) ![]const u8 {
+        var out = String.init(allocator);
+        defer out.deinit();
+
+        switch (self) {
+            .symbver => {
+                try out.writer().print("{}", .{self.symbver});
+            },
+            .dereference => {
+                try out.writer().print("{}^", .{self.dereference});
+            },
+            .index => {
+                try out.writer().print("{}[{}]", .{ self.index.lhs, self.index.field });
+            },
+            .select => {
+                try out.writer().print("{}._{}", .{ self.select.lhs, self.select.field });
+            },
+        }
+
+        return (try out.toOwned()).?;
+    }
+
+    pub fn format(self: L_Value, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+
+        var out = self.pprint(arena.allocator()) catch unreachable;
+
+        try writer.print("{s}", .{out});
+    }
+
+    pub fn extract_symbver(self: *L_Value) *SymbolVersion {
+        switch (self.*) {
+            .symbver => {
+                return self.symbver;
+            },
+            .dereference => {
+                return self.dereference;
+            },
+            .index => {
+                return self.index.lhs.extract_symbver();
+            },
+            .select => {
+                return self.select.lhs.extract_symbver();
+            },
+        }
+    }
+};
+
 pub const IRMeta = union(enum) {
     bounds_check: struct {
         length: *SymbolVersion, // lower bounds is always 0
@@ -375,7 +442,7 @@ pub const IRMeta = union(enum) {
 pub const IR = struct {
     uid: u64,
     kind: IRKind,
-    dest: ?*SymbolVersion,
+    dest: ?*L_Value,
     src1: ?*SymbolVersion,
     src2: ?*SymbolVersion,
 
@@ -394,7 +461,7 @@ pub const IR = struct {
     pub fn create(kind: IRKind, dest: ?*SymbolVersion, src1: ?*SymbolVersion, src2: ?*SymbolVersion, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try allocator.create(IR);
         retval.kind = kind;
-        retval.dest = dest;
+        retval.dest = if (dest) |dest_| try L_Value.create_symbver(dest_, allocator) else null;
         retval.src1 = src1;
         retval.src2 = src2;
         retval.uid = ir_uid;
@@ -424,6 +491,11 @@ pub const IR = struct {
         var retval = try IR.create(.loadString, dest, null, null, span, allocator);
         retval.data = IRData{ .string_id = id };
         return retval;
+    }
+
+    fn create_simple_copy(dest: *SymbolVersion, src: *SymbolVersion, span: Span, allocator: std.mem.Allocator) !*IR {
+        var ir = try IR.create(.copy, dest, src, null, span, allocator);
+        return ir;
     }
 
     pub fn createLabel(id: ?u64, span: Span, allocator: std.mem.Allocator) !*IR {
@@ -598,9 +670,6 @@ pub const IR = struct {
             .dereference => {
                 try out.writer().print("    {} := {}^\n", .{ self.dest.?, self.src1.? });
             },
-            .derefCopy => {
-                try out.writer().print("    {}^ := {}\n", .{ self.src1.?, self.src2.? });
-            },
 
             .equal => {
                 try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
@@ -666,12 +735,6 @@ pub const IR = struct {
                 try out.writer().print("    {} := {}._{} {}\n", .{ self.dest.?, self.src1.?, self.data.int, self.meta });
             },
 
-            .indexCopy => {
-                try out.writer().print("    {}[{}] := {} {}\n", .{ self.src1.?, self.src2.?, self.data.symbver, self.meta });
-            },
-            .selectCopy => {
-                try out.writer().print("    {}._{} := {}\n", .{ self.src1.?, self.data.int, self.src2.? });
-            },
             .get_tag => {
                 try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
             },
@@ -747,19 +810,13 @@ pub const IR = struct {
         var retval: ?*IR = null;
         while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
             var ir: *IR = maybe_ir.?;
-            if (ir.kind == .selectCopy and ir.src1.?.symbol == symbol) {
+            if (ir.dest != null and ir.dest.?.* == .select) {
+                return null;
+            } else if (ir.dest != null and ir.dest.?.* == .index) {
+                return null;
+            } else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
                 retval = null;
-            } else if (ir.kind == .indexCopy and ir.src1.?.symbol == symbol) {
-                retval = null;
-            } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
-                retval = null;
-            }
-            // else if (ir.kind == .index and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
-            //     retval = null; // Needed? Maybe! Coverage
-            // }
-            else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
-                retval = null;
-            } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
+            } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 retval = ir;
             }
         }
@@ -771,15 +828,13 @@ pub const IR = struct {
         var maybe_ir: ?*IR = start_at_ir;
         while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
             var ir: *IR = maybe_ir.?;
-            if (ir.kind == .selectCopy and ir.src1.?.symbol == symbol) {
+            if (ir.dest != null and ir.dest.?.* == .select and ir.dest.?.extract_symbver().symbol == symbol) {
                 return ir;
-            } else if (ir.kind == .indexCopy and ir.src1.?.symbol == symbol) {
-                return ir;
-            } else if (ir.kind == .select and ir.src1.?.symbol == symbol and ir.dest.?.lvalue) {
+            } else if (ir.dest != null and ir.dest.?.* == .index and ir.dest.?.extract_symbver().symbol == symbol) {
                 return ir;
             } else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
                 return ir;
-            } else if (ir.dest != null and ir.dest.?.symbol == symbol) {
+            } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 return ir;
             }
         }
@@ -965,9 +1020,9 @@ pub const CFG = struct {
             try caller_node.children.append(retval);
         }
 
-        var eval: ?*SymbolVersion = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, null, false, errors, allocator);
+        var eval: ?*SymbolVersion = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, null, errors, allocator);
         var return_version = try SymbolVersion.createUnversioned(retval.return_symbol, symbol._type.?.function.rhs, allocator);
-        retval.appendInstruction(try IR.create(.copy, return_version, eval, null, symbol.span, allocator));
+        retval.appendInstruction(try IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
         retval.appendInstruction(try IR.createJump(null, symbol.span, allocator));
 
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
@@ -1005,11 +1060,11 @@ pub const CFG = struct {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest) |dest| {
-                    if (dest.symbol.decld or dest.type.* == .unit or dest.symbol.versions == 0) {
+                if (ir.dest.?.* == .symbver) {
+                    if (ir.dest.?.symbver.symbol.decld or ir.dest.?.symbver.type.* == .unit) {
                         continue;
                     }
-                    try self.symbvers.append(dest);
+                    try self.symbvers.append(ir.dest.?.symbver);
                 }
             }
         }
@@ -1073,7 +1128,7 @@ pub const CFG = struct {
         Utf8CodepointTooLarge,
     };
 
-    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, lvalue: bool, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
+    fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
         switch (ast.*) {
             // Literals
             .unit => return null,
@@ -1148,7 +1203,7 @@ pub const CFG = struct {
 
             // Unary operators
             .not => {
-                var expr = try self.flattenAST(scope, ast.not.expr, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.not.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (expr == null) {
                     return null;
                 }
@@ -1159,7 +1214,7 @@ pub const CFG = struct {
                 return temp;
             },
             .negate => {
-                var expr = try self.flattenAST(scope, ast.negate.expr, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.negate.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (expr == null) {
                     return null;
                 }
@@ -1170,20 +1225,18 @@ pub const CFG = struct {
                 return temp;
             },
             .dereference => {
-                var expr = try self.flattenAST(scope, ast.dereference.expr, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.dereference.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (expr == null) {
                     return null;
                 }
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                temp.lvalue = lvalue;
 
                 var ir = try IR.create(.dereference, temp, expr, null, ast.getToken().span, allocator);
-                temp.lvalue = lvalue;
                 self.appendInstruction(ir);
                 return temp;
             },
             ._try => {
-                var expr = (try self.flattenAST(scope, ast._try.expr, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var expr = (try self.flattenAST(scope, ast._try.expr, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 var end = try IR.createLabel(null, ast.getToken().span, allocator);
                 var err = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -1196,7 +1249,7 @@ pub const CFG = struct {
 
                 // Unwrap the `.ok` value
                 var retval_symbver = try SymbolVersion.createUnversioned(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
-                self.appendInstruction(try IR.create(.copy, retval_symbver, expr, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.create_simple_copy(retval_symbver, expr, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(error_label, ast.getToken().span, allocator));
 
                 // Else, store the error in retval, return through error
@@ -1210,7 +1263,7 @@ pub const CFG = struct {
                 return ok_symbver;
             },
             .discard => {
-                var expr = try self.flattenAST(scope, ast.discard.expr, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.discard.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (expr == null) {
                     return null;
                 }
@@ -1224,10 +1277,12 @@ pub const CFG = struct {
 
             // Binary operators
             .assign => {
-                var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.assign.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (rhs == null) {
                     return null;
                 }
+                // If product, recursively generate a series of assignments
+                // Else, create a *single* copy IR with an L_Value tree
                 return try self.generate_assign(scope, ast.assign.lhs, rhs.?, return_label, break_label, continue_label, error_label, errors, allocator);
             },
             ._or => {
@@ -1240,7 +1295,7 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test lhs, branch
-                var lhs = (try self.flattenAST(scope, ast._or.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast._or.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var branch = try IR.createBranch(lhs, else_label, ast.getToken().span, allocator);
                 self.appendInstruction(branch);
 
@@ -1252,12 +1307,12 @@ pub const CFG = struct {
 
                 // lhs was false, recurse to rhs, store in symbver
                 self.appendInstruction(else_label);
-                var rhs = try self.flattenAST(scope, ast._or.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast._or.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (rhs == null) {
                     return null;
                 }
                 var copy_right_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                var copy_right = try IR.create(.copy, copy_right_symbver, rhs, null, ast.getToken().span, allocator);
+                var copy_right = try IR.create_simple_copy(copy_right_symbver, rhs.?, ast.getToken().span, allocator);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
                 self.appendInstruction(end_label);
@@ -1273,17 +1328,17 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test lhs, branch
-                var lhs = (try self.flattenAST(scope, ast._and.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast._and.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var branch = try IR.createBranch(lhs, else_label, ast.getToken().span, allocator);
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                var rhs = try self.flattenAST(scope, ast._and.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast._and.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (rhs == null) {
                     return null;
                 }
                 var copy_right_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                var copy_right = try IR.create(.copy, copy_right_symbver, rhs, null, ast.getToken().span, allocator);
+                var copy_right = try IR.create_simple_copy(copy_right_symbver, rhs.?, ast.getToken().span, allocator);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
 
@@ -1297,8 +1352,8 @@ pub const CFG = struct {
                 return symbver;
             },
             .add => {
-                var lhs = try self.flattenAST(scope, ast.add.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.add.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.add.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.add.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1309,8 +1364,8 @@ pub const CFG = struct {
                 return temp;
             },
             .sub => {
-                var lhs = try self.flattenAST(scope, ast.sub.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.sub.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.sub.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.sub.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1321,8 +1376,8 @@ pub const CFG = struct {
                 return temp;
             },
             .mult => {
-                var lhs = try self.flattenAST(scope, ast.mult.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.mult.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.mult.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.mult.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1333,8 +1388,8 @@ pub const CFG = struct {
                 return temp;
             },
             .div => {
-                var lhs = try self.flattenAST(scope, ast.div.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.div.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.div.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.div.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1345,8 +1400,8 @@ pub const CFG = struct {
                 return temp;
             },
             .mod => {
-                var lhs = try self.flattenAST(scope, ast.mod.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.mod.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.mod.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.mod.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1357,8 +1412,8 @@ pub const CFG = struct {
                 return temp;
             },
             .equal => {
-                var lhs = try self.flattenAST(scope, ast.equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.equal.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.equal.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1379,8 +1434,8 @@ pub const CFG = struct {
                 return temp;
             },
             .not_equal => {
-                var lhs = try self.flattenAST(scope, ast.not_equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.not_equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.not_equal.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.not_equal.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1399,8 +1454,8 @@ pub const CFG = struct {
                 return temp;
             },
             .greater => {
-                var lhs = try self.flattenAST(scope, ast.greater.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.greater.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.greater.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.greater.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1411,8 +1466,8 @@ pub const CFG = struct {
                 return temp;
             },
             .lesser => {
-                var lhs = try self.flattenAST(scope, ast.lesser.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.lesser.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.lesser.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.lesser.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1423,8 +1478,8 @@ pub const CFG = struct {
                 return temp;
             },
             .greater_equal => {
-                var lhs = try self.flattenAST(scope, ast.greater_equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.greater_equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.greater_equal.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.greater_equal.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1435,8 +1490,8 @@ pub const CFG = struct {
                 return temp;
             },
             .lesser_equal => {
-                var lhs = try self.flattenAST(scope, ast.lesser_equal.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
-                var rhs = try self.flattenAST(scope, ast.lesser_equal.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator);
+                var lhs = try self.flattenAST(scope, ast.lesser_equal.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var rhs = try self.flattenAST(scope, ast.lesser_equal.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (lhs == null or rhs == null) {
                     return null;
                 }
@@ -1452,7 +1507,7 @@ pub const CFG = struct {
                 var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator); // Not actually assigned directly, just so that optimizations can capture the version
 
-                var lhs = (try self.flattenAST(scope, ast._catch.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast._catch.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 // Labels used
                 var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -1464,9 +1519,9 @@ pub const CFG = struct {
                 self.appendInstruction(try IR.createBranch(condition, else_label, ast.getToken().span, allocator));
 
                 // tag was an error, store rhs in symbver
-                var rhs = (try self.flattenAST(scope, ast._catch.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
+                var rhs = (try self.flattenAST(scope, ast._catch.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var rhs_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                self.appendInstruction(try IR.create(.copy, rhs_symbver, rhs, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.create_simple_copy(rhs_symbver, rhs, ast.getToken().span, allocator));
 
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
                 self.appendInstruction(else_label);
@@ -1476,7 +1531,7 @@ pub const CFG = struct {
                 var ir_select = try IR.createSelect(val, lhs, 0, ast.getToken().span, allocator);
                 self.appendInstruction(ir_select);
                 var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                self.appendInstruction(try IR.create(.copy, some_symbver, val, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.create_simple_copy(some_symbver, val, ast.getToken().span, allocator));
 
                 self.appendInstruction(end_label);
                 return symbver;
@@ -1487,7 +1542,7 @@ pub const CFG = struct {
                 var symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
                 var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator); // Not actually assigned directly, just so that optimizations can capture the version
 
-                var lhs = (try self.flattenAST(scope, ast._orelse.lhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast._orelse.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 // Labels used
                 var else_label = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -1506,28 +1561,28 @@ pub const CFG = struct {
                 var ir_select = try IR.createSelect(val, lhs, 1, ast.getToken().span, allocator);
                 self.appendInstruction(ir_select);
                 var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                self.appendInstruction(try IR.create(.copy, some_symbver, val, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.create_simple_copy(some_symbver, val, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
 
                 self.appendInstruction(else_label);
 
                 // tag was `.none`, store rhs in symbver
-                var rhs = (try self.flattenAST(scope, ast._orelse.rhs, return_label, break_label, continue_label, error_label, lvalue, errors, allocator)) orelse return null;
+                var rhs = (try self.flattenAST(scope, ast._orelse.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 var rhs_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                self.appendInstruction(try IR.create(.copy, rhs_symbver, rhs, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.create_simple_copy(rhs_symbver, rhs, ast.getToken().span, allocator));
 
                 self.appendInstruction(end_label);
                 return symbver;
             },
             .call => {
-                var lhs = (try self.flattenAST(scope, ast.call.lhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast.call.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
                 temp.symbol.span = ast.getToken().span;
 
                 var ir = try IR.createCall(temp, lhs, ast.getToken().span, allocator);
                 for (ast.call.args.items) |term| {
-                    try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse continue);
+                    try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, errors, allocator)) orelse continue);
                 }
                 self.appendInstruction(try IR.createStackPush(ast.getToken().span, allocator));
                 self.appendInstruction(ir);
@@ -1535,10 +1590,9 @@ pub const CFG = struct {
                 return temp;
             },
             .index => {
-                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator)) orelse return null;
-                var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
+                var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                temp.lvalue = lvalue;
 
                 var ir = try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator);
                 ir.meta = try self.generate_bounds_check(scope, ast, lhs, errors, allocator);
@@ -1548,9 +1602,8 @@ pub const CFG = struct {
             },
             .select => {
                 var do_check = (try ast.select.lhs.typeof(scope, errors, allocator)).* == .sum;
-                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, error_label, !do_check, errors, allocator)) orelse return null;
+                var lhs = (try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                temp.lvalue = lvalue;
 
                 var meta: IRMeta = IRMeta.none;
                 if (do_check) {
@@ -1571,7 +1624,7 @@ pub const CFG = struct {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
                 var ir = try IR.createLoadStruct(temp, ast.getToken().span, allocator);
                 for (ast.product.terms.items) |term| {
-                    try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null);
+                    try ir.data.symbverList.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null);
                 }
                 self.appendInstruction(ir);
                 return temp;
@@ -1579,7 +1632,7 @@ pub const CFG = struct {
 
             // Fancy Operators
             .addrOf => {
-                var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, true, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (expr == null) {
                     return null;
                 }
@@ -1590,9 +1643,9 @@ pub const CFG = struct {
                 return temp;
             },
             .subSlice => {
-                var arr = (try self.flattenAST(scope, ast.subSlice.super, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
-                var lower = (try self.flattenAST(scope, ast.subSlice.lower.?, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
-                var upper = (try self.flattenAST(scope, ast.subSlice.upper.?, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var arr = (try self.flattenAST(scope, ast.subSlice.super, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
+                var lower = (try self.flattenAST(scope, ast.subSlice.lower.?, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
+                var upper = (try self.flattenAST(scope, ast.subSlice.upper.?, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 // Statically confirm that lower <= upper
                 // if (lower.def.?.kind == .loadInt and upper.def.?.kind == .loadInt and lower.def.?.data.int > upper.def.?.data.int) {
@@ -1641,7 +1694,7 @@ pub const CFG = struct {
                 var pos: i128 = ast.inferredMember.pos.?;
                 var proper_term: *AST = (try ast.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
                 if (ast.inferredMember.init) |_init| {
-                    init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, error_label, true, errors, allocator);
+                    init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, error_label, errors, allocator);
                 } else if (proper_term.annotation.init == null and proper_term.annotation.type.* != .unit) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "no value provided, and no default value available" } });
                     return error.typeError;
@@ -1661,7 +1714,7 @@ pub const CFG = struct {
 
                 // If there's a let, then do it, dumby!
                 if (ast._if.let) |let| {
-                    _ = try self.flattenAST(ast._if.scope.?, let, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                    _ = try self.flattenAST(ast._if.scope.?, let, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
 
                 // Labels used
@@ -1669,12 +1722,12 @@ pub const CFG = struct {
                 var end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test lhs, branch
-                var condition = (try self.flattenAST(ast._if.scope.?, ast._if.condition, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                var condition = (try self.flattenAST(ast._if.scope.?, ast._if.condition, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var branch = try IR.createBranch(condition, else_label, ast.getToken().span, allocator);
                 self.appendInstruction(branch);
 
                 // lhs was true, recurse to rhs, store in symbver
-                if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, error_label, false, errors, allocator)) |block_symbver| {
+                if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, error_label, errors, allocator)) |block_symbver| {
                     var block_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                     var block_copy: *IR = undefined;
                     if (ast._if.elseBlock == null) {
@@ -1682,7 +1735,7 @@ pub const CFG = struct {
                         block_copy = try IR.createUnion(block_copy_symbver, block_symbver, 1, ast.getToken().span, allocator);
                     } else {
                         // regular if-else => copy block
-                        block_copy = try IR.create(.copy, block_copy_symbver, block_symbver, null, ast.getToken().span, allocator);
+                        block_copy = try IR.create_simple_copy(block_copy_symbver, block_symbver, ast.getToken().span, allocator);
                     }
                     self.appendInstruction(block_copy);
                 }
@@ -1691,9 +1744,9 @@ pub const CFG = struct {
                 // lhs was false, store `false` in symbver
                 self.appendInstruction(else_label);
                 if (ast._if.elseBlock) |elseBlock| {
-                    if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, error_label, false, errors, allocator)) |else_symbver| {
+                    if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, error_label, errors, allocator)) |else_symbver| {
                         var else_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                        var else_copy = try IR.create(.copy, else_copy_symbver, else_symbver, null, ast.getToken().span, allocator);
+                        var else_copy = try IR.create_simple_copy(else_copy_symbver, else_symbver, ast.getToken().span, allocator);
                         self.appendInstruction(else_copy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1729,10 +1782,10 @@ pub const CFG = struct {
 
                 // If there's a let, then do it, dumby!
                 if (ast.match.let) |let| {
-                    _ = try self.flattenAST(ast.match.scope.?, let, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                    _ = try self.flattenAST(ast.match.scope.?, let, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
 
-                var expr = try self.flattenAST(scope, ast.match.expr, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var expr = try self.flattenAST(scope, ast.match.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (expr == null) {
                     return null;
                 }
@@ -1771,11 +1824,11 @@ pub const CFG = struct {
 
                     // Generate the rhs, copy result to symbver
                     var mapping_scope = if (mapping.mapping.scope != null) mapping.mapping.scope.? else ast.match.scope.?;
-                    if (try self.flattenAST(mapping_scope, mapping.mapping.rhs.?, return_label, break_label, continue_label, error_label, false, errors, allocator)) |rhs_symbver| {
+                    if (try self.flattenAST(mapping_scope, mapping.mapping.rhs.?, return_label, break_label, continue_label, error_label, errors, allocator)) |rhs_symbver| {
                         var rhs_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                         var rhs_copy: *IR = undefined;
                         if (ast.match.has_else) {
-                            rhs_copy = try IR.create(.copy, rhs_copy_symbver, rhs_symbver, null, ast.getToken().span, allocator);
+                            rhs_copy = try IR.create_simple_copy(rhs_copy_symbver, rhs_symbver, ast.getToken().span, allocator);
                         } else {
                             rhs_copy = try IR.createUnion(rhs_copy_symbver, rhs_symbver, 1, ast.getToken().span, allocator);
                         }
@@ -1801,17 +1854,17 @@ pub const CFG = struct {
 
                 // If there's a let, then do it, dumby!
                 if (ast._while.let) |let| {
-                    _ = try self.flattenAST(ast._while.scope.?, let, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                    _ = try self.flattenAST(ast._while.scope.?, let, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
 
                 // Test condition, branch to either body or else block
                 self.appendInstruction(cond_label);
-                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, end_label, current_continue_label, error_label, false, errors, allocator)) orelse return null;
+                var condition = (try self.flattenAST(ast._while.scope.?, ast._while.condition, return_label, end_label, current_continue_label, error_label, errors, allocator)) orelse return null;
                 var branch = try IR.createBranch(condition, else_label, ast.getToken().span, allocator);
                 self.appendInstruction(branch);
 
                 // Body block
-                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, end_label, current_continue_label, error_label, false, errors, allocator)) |block_symbver| {
+                if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, end_label, current_continue_label, error_label, errors, allocator)) |block_symbver| {
                     var block_copy_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                     var block_copy: *IR = undefined;
                     if (ast._while.elseBlock == null) {
@@ -1819,7 +1872,7 @@ pub const CFG = struct {
                         block_copy = try IR.createUnion(block_copy_symbver, block_symbver, 1, ast.getToken().span, allocator);
                     } else {
                         // regular while-else => copy block
-                        block_copy = try IR.create(.copy, block_copy_symbver, block_symbver, null, ast.getToken().span, allocator);
+                        block_copy = try IR.create_simple_copy(block_copy_symbver, block_symbver, ast.getToken().span, allocator);
                     }
                     self.appendInstruction(block_copy);
                 }
@@ -1827,15 +1880,15 @@ pub const CFG = struct {
                 // Post-condition, jump to condition test
                 self.appendInstruction(current_continue_label);
                 if (ast._while.post) |post| {
-                    _ = try self.flattenAST(ast._while.scope.?, post, return_label, end_label, continue_label, error_label, false, errors, allocator);
+                    _ = try self.flattenAST(ast._while.scope.?, post, return_label, end_label, continue_label, error_label, errors, allocator);
                 }
                 self.appendInstruction(try IR.createJump(cond_label, ast.getToken().span, allocator));
 
                 // Else block
                 self.appendInstruction(else_label);
                 if (ast._while.elseBlock) |elseBlock| {
-                    if (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, error_label, false, errors, allocator)) |elseSymbver| {
-                        var elseCopy = try IR.create(.copy, symbver, elseSymbver, null, ast.getToken().span, allocator);
+                    if (try self.flattenAST(ast._while.scope.?, elseBlock, return_label, break_label, continue_label, error_label, errors, allocator)) |elseSymbver| {
+                        var elseCopy = try IR.create_simple_copy(symbver, elseSymbver, ast.getToken().span, allocator);
                         self.appendInstruction(elseCopy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1880,7 +1933,7 @@ pub const CFG = struct {
 
                     var temp: ?*SymbolVersion = null;
                     for (ast.block.statements.items) |child| {
-                        temp = try self.flattenAST(ast.block.scope.?, child, current_return_label, current_break_label, current_continue_label, current_error_label, lvalue, errors, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, child, current_return_label, current_break_label, current_continue_label, current_error_label, errors, allocator);
                         if (child.* == ._defer) {
                             current_continue_label = continue_labels.items[defer_label_index];
                             current_break_label = break_labels.items[defer_label_index];
@@ -1892,7 +1945,7 @@ pub const CFG = struct {
                         }
                     }
                     if (ast.block.final) |final| {
-                        temp = try self.flattenAST(ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, current_error_label, lvalue, errors, allocator);
+                        temp = try self.flattenAST(ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, current_error_label, errors, allocator);
                     } else if (temp) |_temp| {
                         var expanded_temp_type = try _temp.type.expand_type(scope, errors, allocator);
                         if (current_error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
@@ -1927,7 +1980,7 @@ pub const CFG = struct {
             .decl => {
                 var def: ?*SymbolVersion = null;
                 if (ast.decl.init) |init| {
-                    def = try self.flattenAST(scope, init, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                    def = try self.flattenAST(scope, init, return_label, break_label, continue_label, error_label, errors, allocator);
                 } else {
                     def = try self.generate_default(scope, ast.decl.type.?, errors, allocator);
                 }
@@ -1964,9 +2017,9 @@ pub const CFG = struct {
             ._return => {
                 if (ast._return.expr) |expr| {
                     // Copy expr to retval
-                    var retval = (try self.flattenAST(scope, expr, return_label, break_label, continue_label, error_label, false, errors, allocator)) orelse return null;
+                    var retval = (try self.flattenAST(scope, expr, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                     var retval_symbver = try SymbolVersion.createUnversioned(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
-                    var retval_copy = try IR.create(.copy, retval_symbver, retval, null, ast.getToken().span, allocator);
+                    var retval_copy = try IR.create_simple_copy(retval_symbver, retval, ast.getToken().span, allocator);
                     self.appendInstruction(retval_copy);
 
                     var expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
@@ -2080,7 +2133,7 @@ pub const CFG = struct {
             },
             .unit => return null,
             .annotation => if (_type.annotation.init != null) {
-                return self.flattenAST(scope, _type.annotation.init.?, null, null, null, null, false, errors, allocator);
+                return self.flattenAST(scope, _type.annotation.init.?, null, null, null, null, errors, allocator);
             } else {
                 return self.generate_default(scope, _type.annotation.type, errors, allocator);
             },
@@ -2091,66 +2144,98 @@ pub const CFG = struct {
         }
     }
 
-    fn generate_assign(self: *CFG, scope: *Scope, lhs: *AST, rhs: *SymbolVersion, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
-        switch (lhs.*) {
-            .identifier => {
-                // Lookup identifier's symbol, create a new version and assign rhs to it
-                var symbol = scope.lookup(lhs.getToken().data, false).?;
-                var symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
-                symbver.lvalue = true;
-                var ir = try IR.create(.copy, symbver, rhs, null, lhs.getToken().span, allocator);
-                self.appendInstruction(ir);
-                return symbver;
-            },
-            .dereference => {
-                var deref_lhs = try self.flattenAST(scope, lhs.dereference.expr, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                if (deref_lhs == null) {
-                    return null;
+    fn generate_assign(
+        self: *CFG, // Current control-flow-graph
+        scope: *Scope, // Scope node to use for symbol-tree lookups
+        lhs: *AST, // AST node for the LHS of the `=`
+        rhs: *SymbolVersion, // SymbolVersion which holds the value to assign
+        return_label: ?*IR,
+        break_label: ?*IR,
+        continue_label: ?*IR,
+        error_label: ?*IR,
+        errors: *errs.Errors,
+        allocator: std.mem.Allocator,
+    ) FlattenASTError!?*SymbolVersion // If assign is to a single symbver, returns the symbver
+    {
+        if (lhs.* == .product) {
+            // Recursively call `generate_assign` for each term in the product.
+            // product-assigns may be nested, for example:
+            //     ((x, y), (a, b)) = get_tuple()
+            // So it's important that this is recursive
+            for (lhs.product.terms.items, 0..) |term, i| {
+                var product_lhs = try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, errors, allocator);
+                if (product_lhs == null) {
+                    continue;
                 }
-                var ir = try IR.create(.derefCopy, null, deref_lhs, rhs, lhs.getToken().span, allocator);
+                var select = try self.createTempSymbolVersion(rhs.type.product.terms.items[i], errors, allocator);
+                var ir = try IR.createSelect(select, rhs, i, lhs.getToken().span, allocator);
+                ir.safe = true;
                 self.appendInstruction(ir);
-                return null;
+                _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
+            }
+            return null;
+        } else {
+            // Get L_Value tree, create a `copy` IR of L_Value tree and rhs
+            var lval = try self.generate_l_value_tree(scope, lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+            var ir = try IR.create(.copy, null, rhs, null, lhs.getToken().span, allocator);
+            ir.dest = lval;
+            ir.safe = true;
+            self.appendInstruction(ir);
+            return null;
+        }
+    }
+
+    /// Constructs an L_Value tree from the LHS of an assign (`=`).
+    fn generate_l_value_tree(
+        self: *CFG, // Current control-flow-graph
+        scope: *Scope, // Scope node to use for symbol-tree lookups
+        lhs: *AST, // AST node for the LHS of the `=`
+        return_label: ?*IR,
+        break_label: ?*IR,
+        continue_label: ?*IR,
+        error_label: ?*IR,
+        errors: *errs.Errors,
+        allocator: std.mem.Allocator,
+    ) FlattenASTError!*L_Value // If assign is to a single symbver, returns the symbver
+    {
+        switch (lhs.*) {
+            .dereference => {
+                // Flatten deref expr
+                var expr = try self.flattenAST(scope, lhs.dereference.expr, return_label, break_label, continue_label, error_label, errors, allocator);
+
+                // Surround with with L_Value node
+                return try L_Value.create_dereference(expr.?, allocator);
             },
             .index => {
-                var index_lhs = try self.flattenAST(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                var index_rhs = try self.flattenAST(scope, lhs.index.rhs, return_label, break_label, continue_label, error_label, false, errors, allocator);
-                if (index_lhs == null or index_rhs == null) {
-                    return null;
-                }
+                // Recursively get index's lhs L_Value node
+                var lhs_lval = try self.generate_l_value_tree(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
-                var ir = try IR.create(.indexCopy, null, index_lhs, index_rhs, lhs.getToken().span, allocator);
-                ir.data = IRData{ .symbver = rhs };
-                ir.meta = try self.generate_bounds_check(scope, lhs, index_lhs.?, errors, allocator);
-                self.appendInstruction(ir);
-                return null;
-            },
-            .product => {
-                for (lhs.product.terms.items, 0..) |term, i| {
-                    var product_lhs = try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                    if (product_lhs == null) {
-                        continue;
-                    }
-                    product_lhs.?.lvalue = true;
-                    var select = try self.createTempSymbolVersion(rhs.type.product.terms.items[i], errors, allocator);
-                    var ir = try IR.createSelect(select, rhs, i, lhs.getToken().span, allocator);
-                    ir.safe = true;
-                    self.appendInstruction(ir);
-                    _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
-                }
-                return null;
+                // Flatten index expr
+                var rhs = try self.flattenAST(scope, lhs.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
+
+                // Calculate the slots needed for each element
+                var slots = (try (try lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator)).get_slots();
+
+                // Surround with L_Value node
+                return try L_Value.create_index(lhs_lval, rhs.?, slots, allocator);
             },
             .select => {
-                var select_lhs = try self.flattenAST(scope, lhs.select.lhs, return_label, break_label, continue_label, error_label, true, errors, allocator);
-                if (select_lhs == null) {
-                    return null;
-                }
-                select_lhs.?.lvalue = true;
-                var ir = try IR.create(.selectCopy, null, select_lhs, rhs, lhs.getToken().span, allocator);
-                ir.data = IRData{ .int = lhs.select.pos.? };
-                self.appendInstruction(ir);
-                return null;
+                // Recursively get select's lhs L_Value node
+                var lhs_lval = try self.generate_l_value_tree(scope, lhs.select.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+
+                // Get the offset into the struct that this select does
+                var offset = try (try (try lhs.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator)).product.get_offset(lhs.select.pos.?, scope, errors, allocator);
+
+                // Surround with L_Value node
+                return try L_Value.create_select(lhs_lval, lhs.select.pos.?, offset, allocator);
             },
-            else => return error.NotAnLValue,
+            else => {
+                // Flatten ast
+                var symbver = try self.flattenAST(scope, lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+
+                // Surround in symbver L_Value node
+                return try L_Value.create_symbver(symbver.?, allocator);
+            },
         }
     }
 
@@ -2158,7 +2243,7 @@ pub const CFG = struct {
         if (pattern.* == .symbol) {
             if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
                 var symbver = try SymbolVersion.createUnversioned(pattern.symbol.symbol, pattern.symbol.symbol._type.?, allocator);
-                var ir = try IR.create(.copy, symbver, def, null, pattern.getToken().span, allocator);
+                var ir = try IR.create_simple_copy(symbver, def, pattern.getToken().span, allocator);
                 self.appendInstruction(ir);
             }
         } else if (pattern.* == .product) {
@@ -2167,7 +2252,6 @@ pub const CFG = struct {
                 var symbver = try self.createTempSymbolVersion(subscript_type, errors, allocator);
                 var ir = try IR.createSelect(symbver, def, i, term.getToken().span, allocator);
                 ir.safe = true;
-                symbver.lvalue = term.* != .symbol;
                 self.appendInstruction(ir);
                 try self.generate_pattern(scope, term, subscript_type, symbver, errors, allocator);
             }
@@ -2199,7 +2283,7 @@ pub const CFG = struct {
             .string,
             .block,
             => {
-                var value = try self.flattenAST(scope, pattern.?, return_label, break_label, continue_label, error_label, false, errors, allocator);
+                var value = try self.flattenAST(scope, pattern.?, return_label, break_label, continue_label, error_label, errors, allocator);
                 var condition = try self.createTempSymbolVersion(primitives.bool_type, errors, allocator);
                 var condition_ir = try IR.create(.equal, condition, new_expr, value.?, pattern.?.getToken().span, allocator);
                 self.appendInstruction(condition_ir);
@@ -2215,7 +2299,6 @@ pub const CFG = struct {
                     var symbver = try self.createTempSymbolVersion(subscript_type, errors, allocator);
                     var ir = try IR.createSelect(symbver, new_expr, i, term.getToken().span, allocator);
                     ir.safe = true;
-                    symbver.lvalue = false;
                     self.appendInstruction(ir);
                     try self.generate_match_pattern_check(scope, term, symbver, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
@@ -2286,7 +2369,7 @@ pub const CFG = struct {
         var i: usize = defers.items.len;
         while (i > 0) : (i -= 1) {
             self.appendInstruction(deferLabels.items[i - 1]);
-            _ = try self.flattenAST(scope, defers.items[i - 1], null, null, null, null, false, errors, allocator);
+            _ = try self.flattenAST(scope, defers.items[i - 1], null, null, null, null, errors, allocator);
         }
     }
 
@@ -2302,8 +2385,8 @@ pub const CFG = struct {
             while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
                 ir.in_block = retval;
 
-                if (ir.dest) |dest| {
-                    dest.makeUnique();
+                if (ir.dest != null and ir.dest.?.* == .symbver) {
+                    ir.dest.?.symbver.makeUnique();
                 }
 
                 if (ir.kind == .label) {
@@ -2390,31 +2473,25 @@ pub const CFG = struct {
             // Parameters are symbols used by IR without a definition for the symbol before the IR
             var maybe_ir: ?*IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.dest != null) {
+                    try version_lvalue(ir.dest.?, bb, ir, &bb.parameters);
+                }
                 if (ir.src1 != null) {
                     // If src1 version is not null, and is not defined in this BB, request it as a parameter
-                    ir.src1 = ir.src1.?.findVersion(bb.ir_head, ir);
-                    if (ir.src1.?.version == null) {
-                        _ = try ir.src1.?.putSymbolVersionSet(&bb.parameters);
-                    }
+                    ir.src1 = try version(ir.src1.?, bb, ir, &bb.parameters);
                 }
                 if (ir.src2 != null) {
                     // If src2 version is not null, and is not defined in this BB, request it as a parameter
-                    ir.src2 = ir.src2.?.findVersion(bb.ir_head, ir);
-                    if (ir.src2.?.version == null) {
-                        _ = try ir.src2.?.putSymbolVersionSet(&bb.parameters);
-                    }
+                    ir.src2 = try version(ir.src2.?, bb, ir, &bb.parameters);
                 }
 
                 if (ir.data == .symbver) {
-                    ir.data.symbver = ir.data.symbver.findVersion(bb.ir_head, ir);
-                    if (ir.data.symbver.version == null) {
-                        _ = try ir.data.symbver.putSymbolVersionSet(&bb.parameters);
-                    }
+                    ir.data.symbver = try version(ir.data.symbver, bb, ir, &bb.parameters);
                 } else if (ir.data == .symbverList) {
                     // Do the same as above for each symbver in a symbver list, if there is one
                     for (ir.data.symbverList.items, 0..) |symbver, i| {
                         var symbol_find = symbver.findVersion(bb.ir_head, ir);
-                        var slice: [1]*SymbolVersion = undefined;
+                        var slice: [1]*SymbolVersion = undefined; // Have to do something silly for Zig to in-place replace something in a list
                         slice[0] = symbol_find;
                         try ir.data.symbverList.replaceRange(i, 1, &slice);
                         if (symbol_find.version == null) {
@@ -2426,10 +2503,7 @@ pub const CFG = struct {
 
             if (bb.has_branch) {
                 // Do the same as above for the condition of a branch, if there is one
-                bb.condition = bb.condition.?.findVersion(bb.ir_head, null);
-                if (bb.condition.?.version == null) {
-                    _ = try bb.condition.?.putSymbolVersionSet(&bb.parameters);
-                }
+                bb.condition = try version(bb.condition.?, bb, null, &bb.parameters);
             }
         }
 
@@ -2443,7 +2517,33 @@ pub const CFG = struct {
         self.clearVisitedBBs();
     }
 
-    /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters*.
+    fn version(symbver: *SymbolVersion, bb: *BasicBlock, ir: ?*IR, parameters: *std.ArrayList(*SymbolVersion)) !*SymbolVersion {
+        var retval = symbver.findVersion(bb.ir_head, ir);
+        if (retval.version == null) {
+            _ = try retval.putSymbolVersionSet(parameters);
+        }
+        return retval;
+    }
+
+    fn version_lvalue(lval: *L_Value, bb: *BasicBlock, ir: *IR, parameters: *std.ArrayList(*SymbolVersion)) !void {
+        switch (lval.*) {
+            .symbver => {
+                lval.symbver = try version(lval.symbver, bb, ir, parameters);
+            },
+            .dereference => {
+                lval.dereference = try version(lval.dereference, bb, ir, parameters);
+            },
+            .index => {
+                lval.index.field = try version(lval.index.field, bb, ir, parameters);
+                try version_lvalue(lval.index.lhs, bb, ir, parameters);
+            },
+            .select => {
+                try version_lvalue(lval.select.lhs, bb, ir, parameters);
+            },
+        }
+    }
+
+    /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters* it needs to include.
     fn childrenArgPropagation(self: *CFG, bb: *BasicBlock, allocator: std.mem.Allocator) !bool {
         var retval: bool = false;
         if (bb.visited) {

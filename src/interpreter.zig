@@ -2,6 +2,7 @@ const std = @import("std");
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const symbol_ = @import("symbol.zig");
+const offsets_ = @import("offsets.zig");
 
 const stack_limit = 2048;
 
@@ -15,7 +16,7 @@ pub const Context = struct {
 
     cfg: *ir_.CFG,
 
-    pub fn init(cfg: *ir_.CFG, instructions: *std.ArrayList(*ir_.IR)) !Context {
+    pub fn init(cfg: *ir_.CFG, instructions: *std.ArrayList(*ir_.IR), ret_slots: i64) !Context {
         var retval = Context{
             .stack = [_]ir_.IRData{.none} ** stack_limit,
             .stack_pointer = 5 + cfg.slots.?,
@@ -25,36 +26,58 @@ pub const Context = struct {
             .cfg = cfg,
         };
 
-        retval.stack[1] = ir_.IRData{ .int = 0 }; // Set the return value address to 0
-        retval.stack[2] = ir_.IRData{ .int = 0 }; // Set the prev-bp to 0
-        retval.stack[3] = ir_.IRData{ .int = 0 }; // Set the prev-sp to 0
-        retval.stack[4] = ir_.IRData{ .int = -2 }; // Set the return address to -2 (sentinel to halt)
+        // First `ret_slots` slots are reserved for the return value
+        // Initial stack frame is setup immediately after
+        retval.stack[@as(usize, @intCast(ret_slots + 0))] = ir_.IRData{ .int = 0 }; // Set the return value address to 0
+        retval.stack[@as(usize, @intCast(ret_slots + 1))] = ir_.IRData{ .int = 0 }; // Set the prev-bp to 0
+        retval.stack[@as(usize, @intCast(ret_slots + 2))] = ir_.IRData{ .int = 0 }; // Set the prev-sp to 0
+        retval.stack[@as(usize, @intCast(ret_slots + 3))] = ir_.IRData{ .int = -2 }; // Set the return address to -2 (negative is sentinel to halt)
 
         return retval;
     }
 
+    fn get_lval(self: *Context, lval: *ir_.L_Value) i128 {
+        switch (lval.*) {
+            .symbver => {
+                if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
+                    // Intercept stores to the return symbol of the form:
+                    //     retval := val
+                    // and replace with:
+                    //     retval^ := val
+                    return self.load(self.base_pointer + offsets_.retval_offset).int;
+                } else {
+                    return self.base_pointer + lval.symbver.symbol.offset.?;
+                }
+            },
+            .dereference => {
+                return self.load(self.load_local(lval.dereference.symbol).int).int;
+            },
+            .index => {
+                var base = self.get_lval(lval.index.lhs);
+                var index = self.load_local(lval.index.field.symbol).int;
+                return base + index * lval.index.slots;
+            },
+            .select => {
+                var base = self.get_lval(lval.select.lhs);
+                return base + lval.select.offset;
+            },
+        }
+    }
+
     // Stores a value into a slot addressed with an absolute address
-    fn store(self: *Context, address: i128, val: ir_.IRData) void {
+    inline fn store(self: *Context, address: i128, val: ir_.IRData) void {
         // std.debug.print("{s} := {}\n", .{ dest.symbol.name, val });
         self.stack[@as(usize, @intCast(address))] = val;
     }
 
-    // Loads a value from a slot addressed with an absolute address
-    fn load(self: *Context, address: i128) ir_.IRData {
-        return self.stack[@as(usize, @intCast(address))];
+    fn store_lval(self: *Context, dest: *ir_.L_Value, val: ir_.IRData) void {
+        var addr = self.get_lval(dest);
+        self.store(addr, val);
     }
 
-    // Stores a value into a slot addressed with an address relative to the base-pointer
-    fn store_local(self: *Context, dest: *symbol_.Symbol, val: ir_.IRData) void {
-        if (std.mem.eql(u8, "$retval", dest.name)) {
-            // Intercept stores to the return symbol of the form:
-            //     retval := val
-            // and replace with:
-            //     retval^ := val
-            self.store(self.load_local(dest).int, val);
-        } else {
-            self.store(self.base_pointer + dest.offset.?, val);
-        }
+    // Loads a value from a slot addressed with an absolute address
+    inline fn load(self: *Context, address: i128) ir_.IRData {
+        return self.stack[@as(usize, @intCast(address))];
     }
 
     // Loads a value from a slot addressed with an address relative to the base-pointer
@@ -62,6 +85,34 @@ pub const Context = struct {
         // std.debug.print("load local: bp+({})\n", .{ref.offset.?});
         // std.debug.print("load local: {}\n", .{self.load(self.base_pointer + ref.offset.?)});
         return self.load(self.base_pointer + ref.offset.?);
+    }
+
+    fn move(self: *Context, dest: i128, src: i128, slots: i128) void {
+        std.debug.assert(slots >= 0); // slots=0 for units!
+        for (0..@as(usize, @intCast(slots))) |i| {
+            self.store(dest + i, self.load(src + i));
+        }
+    }
+
+    fn move_symbver_list(self: *Context, dest_symbol: *symbol_.Symbol, list: *std.ArrayList(*ir_.SymbolVersion)) void {
+        std.debug.print("bruh\n", .{});
+        var dest: i128 = undefined;
+        if (std.mem.eql(u8, "$retval", dest_symbol.name)) {
+            // Dest-addr for retval is whatever is stored in the retval slot
+            dest = self.load(self.base_pointer + offsets_.retval_offset).int;
+        } else {
+            dest = self.base_pointer + dest_symbol.offset.?;
+        }
+
+        for (list.items) |symbver| {
+            var slots = symbver.symbol.expanded_type.?.get_slots();
+            self.move(dest, self.addrof_local(symbver.symbol), slots);
+            dest += slots;
+        }
+    }
+
+    fn addrof_local(self: *Context, symbol: *symbol_.Symbol) i128 {
+        return self.base_pointer + symbol.offset.?;
     }
 
     fn push(self: *Context, val: ir_.IRData) void {
@@ -110,151 +161,158 @@ pub const Context = struct {
         // Halt whenever IP is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
-            // self.print_stack();
-            // std.debug.print("{}", .{ir});
+            self.print_stack();
+            std.debug.print("{}", .{ir});
             switch (ir.kind) {
                 // Invalid interpreter operations
                 .loadExtern,
                 .sizeOf,
                 => unreachable,
 
-                // Literals
+                // 1-slot literals
                 .loadInt,
                 .loadFloat,
-                .loadStruct,
-                .loadUnion,
                 .loadString,
                 .loadSymbol,
-                => self.store_local(ir.dest.?.symbol, ir.data),
+                => self.store_lval(ir.dest.?, ir.data),
+
+                // Tuples
+                .loadStruct => self.move_symbver_list(ir.dest.?.symbver.symbol, &ir.data.symbverList),
+
+                .loadUnion => {},
 
                 // Monadic operations
-                .copy => self.store_local(ir.dest.?.symbol, self.load_local(ir.src1.?.symbol)),
+                .copy => {
+                    std.debug.print("moving retval", .{});
+                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol), ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
+                },
                 .not => {
                     var data = self.load_local(ir.src1.?.symbol);
                     data.int = if (data.int != 0) 0 else 1;
-                    self.store_local(ir.dest.?.symbol, data);
+                    self.store_lval(ir.dest.?, data);
                 },
                 .negate_int => {
                     var data = self.load_local(ir.src1.?.symbol);
                     data.int = -data.int;
-                    self.store_local(ir.dest.?.symbol, data);
+                    self.store_lval(ir.dest.?, data);
                 },
                 .negate_float => {
                     var data = self.load_local(ir.src1.?.symbol);
                     data.float = -data.float;
-                    self.store_local(ir.dest.?.symbol, data);
+                    self.store_lval(ir.dest.?, data);
                 },
                 .addrOf => {
                     var data = ir_.IRData{ .symbver = ir.src1.? };
-                    self.store_local(ir.dest.?.symbol, data);
+                    self.store_lval(ir.dest.?, data);
                 },
                 .dereference => {
-                    self.store_local(ir.dest.?.symbol, self.load(self.load_local(ir.src1.?.symbol).int));
-                },
-                .derefCopy => {
-                    self.store(self.load_local(ir.src1.?.symbol).int, self.load_local(ir.src2.?.symbol));
+                    self.move(self.get_lval(ir.dest.?), self.load_local(ir.src1.?.symbol).int, ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
                 },
 
                 // Diadic instructions
                 .equal => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.equals(src2_data)) 1 else 0 });
+                    // TODO: equal for floats, etc. Right?
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.equals(src2_data)) 1 else 0 });
                 },
                 .not_equal => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (!src1_data.equals(src2_data)) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (!src1_data.equals(src2_data)) 1 else 0 });
                 },
                 .greater_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.int > src2_data.int) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int > src2_data.int) 1 else 0 });
                 },
                 .greater_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.float > src2_data.float) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float > src2_data.float) 1 else 0 });
                 },
                 .lesser_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.int < src2_data.int) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int < src2_data.int) 1 else 0 });
                 },
                 .lesser_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.float < src2_data.float) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float < src2_data.float) 1 else 0 });
                 },
                 .greater_equal_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.int >= src2_data.int) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int >= src2_data.int) 1 else 0 });
                 },
                 .greater_equal_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.float >= src2_data.float) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float >= src2_data.float) 1 else 0 });
                 },
                 .lesser_equal_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.int <= src2_data.int) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int <= src2_data.int) 1 else 0 });
                 },
                 .lesser_equal_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = if (src1_data.float <= src2_data.float) 1 else 0 });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float <= src2_data.float) 1 else 0 });
                 },
                 .add_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = src1_data.int + src2_data.int });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int + src2_data.int });
                 },
                 .add_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .float = src1_data.float + src2_data.float });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float + src2_data.float });
                 },
                 .sub_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = src1_data.int - src2_data.int });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int - src2_data.int });
                 },
                 .sub_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .float = src1_data.float - src2_data.float });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float - src2_data.float });
                 },
                 .mult_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = src1_data.int * src2_data.int });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int * src2_data.int });
                 },
                 .mult_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .float = src1_data.float * src2_data.float });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float * src2_data.float });
                 },
                 .div_int => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = @divTrunc(src1_data.int, src2_data.int) });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = @divTrunc(src1_data.int, src2_data.int) });
                 },
                 .div_float => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .float = src1_data.float / src2_data.float });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float / src2_data.float });
                 },
                 .mod => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    self.store_local(ir.dest.?.symbol, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
+                    self.store_lval(ir.dest.?, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
                 },
                 .index, // dest = src1[src2]
-                .indexCopy, // src1[src2] = data.symbver
-                .select, // dest = src1._${data.int}
-                .selectCopy,
+                => {},
+
+                .select => { // dest = src1._${data.int}
+                    var offset = ir.data.int * ir.dest.?.symbver.symbol.expanded_type.?.get_slots();
+                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + offset, ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
+                },
                 .get_tag, // dest = src1.tag
                 .cast,
                 => {
@@ -308,7 +366,7 @@ pub const Context = struct {
                     }
 
                     //  push dest address
-                    self.push(ir_.IRData{ .int = self.base_pointer + ir.dest.?.symbol.offset.? });
+                    self.push(ir_.IRData{ .int = self.base_pointer + ir.dest.?.symbver.symbol.offset.? });
                     //  push old sp
                     self.push(ir_.IRData{ .int = old_sp });
                     //  push bp

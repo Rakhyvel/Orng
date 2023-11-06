@@ -221,7 +221,7 @@ pub fn output(
 
             // Wrap main CFG in interpreter context
             program.print_instructions();
-            var context = try Context.init(cfg, &program.instructions);
+            var context = try Context.init(cfg, &program.instructions, msymb._type.?.function.rhs.get_slots());
             var res = try context.interpret();
             std.debug.print("{}\n", .{res});
         } else {

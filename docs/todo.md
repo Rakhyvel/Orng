@@ -25,6 +25,7 @@
 - [ ] Change some while loops with counter to enhanced for loops
 - [ ] See if things *really* need to be marked `pub`
 - [ ] Go through files and find TODO comments
+- [ ] Maybe have some fields be private, when they make sense
 - [x] All inits have a corresponding deinit
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
@@ -67,9 +68,10 @@
 - [x] Equality of products is just equality of all members in a product. Same with slices, strings, etc
     - [x] Addresses are equalable
     - [ ] tuple not-equal
-- [ ] Visitor pattern for binops, unops, etc
-    - [ ] Could also do "dependency injection" with a lot of things to remove scope/error/allocator arguments
+- [ ] "dependency injection" to remove error/allocator arguments
+- [ ] "packaging" to remove label arguments, possibly something else too
 - [x] Some function call lines are prepended and then popped before function call
+- [ ] Pass around a *WRITER* in codegen, not an actual fr file (jesus christ!)
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

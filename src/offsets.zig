@@ -42,50 +42,32 @@ const symbol_ = @import("symbol.zig");
 //     * bp := pop  (set bp to prev-bp)
 //     * sp := pop  (deallocate all params)
 
-// Calculate offsets and number of slots for each local in a function
-pub fn calculate_slots_offsets(symbol: *symbol_.Symbol) void {
-    calculate_slots(symbol);
-    calculate_offsets(symbol);
-}
+pub const retval_offset = -3;
+pub const locals_starting_offset = 1;
 
-fn calculate_slots(symbol: *symbol_.Symbol) void {
-    symbol.cfg.?.return_symbol.slots = 1;
+/// Calculate offsets for each local and parameter in a function.
+pub fn calculate_offsets(
+    symbol: *symbol_.Symbol, //< Represents the symbol of a function.
+) i64 //< Number of slots used for locals by the function.
+{
+    symbol.cfg.?.return_symbol.offset = null; // return value is set using an out-parameter
 
+    // Calculate parameters offsets, descending from retval address offset
+    var param_offsets: i64 = retval_offset;
     for (symbol.decl.?.fnDecl.param_symbols.items) |param| {
-        param.slots = 1;
+        param_offsets -= param.expanded_type.?.get_slots();
+        param.offset = param_offsets;
     }
 
-    var total_slots: i16 = 0;
+    // Calculate locals offsets, ascending from local starting offset
+    var local_offsets: i64 = locals_starting_offset;
     for (symbol.cfg.?.symbvers.items) |symbver| {
-        if (symbver.symbol.slots == null) {
-            symbver.symbol.slots = 1;
-            total_slots += symbver.symbol.slots.?;
-        }
-    }
-    symbol.cfg.?.slots = total_slots;
-}
-
-fn calculate_offsets(symbol: *symbol_.Symbol) void {
-    const param_start = -3;
-    const local_start = 1;
-
-    symbol.cfg.?.return_symbol.offset = param_start;
-
-    {
-        var param_offsets = symbol.cfg.?.return_symbol.offset.?;
-        for (symbol.decl.?.fnDecl.param_symbols.items) |param| {
-            param_offsets -= param.slots.?;
-            param.offset = param_offsets;
+        if (symbver.symbol.offset == null) {
+            symbver.symbol.offset = local_offsets;
+            local_offsets += symbver.symbol.expanded_type.?.get_slots();
         }
     }
 
-    {
-        var local_offsets: i16 = local_start;
-        for (symbol.cfg.?.symbvers.items) |symbver| {
-            if (symbver.symbol.offset == null) {
-                symbver.symbol.offset = local_offsets;
-                local_offsets += symbver.symbol.slots.?;
-            }
-        }
-    }
+    // The total number of slots used for locals
+    return local_offsets - locals_starting_offset;
 }

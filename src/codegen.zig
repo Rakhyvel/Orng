@@ -176,7 +176,7 @@ fn generateFunctions(callGraph: *CFG, out: *std.fs.File) !void {
 
     // Collect and then declare all local variables
     for (callGraph.symbvers) |symbver| {
-        if (symbver.hide_temporary()) {
+        if (symbver.hide_temporary() or symbver.symbol.versions == 0) {
             continue;
         }
         try printVarDecl(symbver.symbol, out, false);
@@ -791,13 +791,16 @@ fn generateIndexExpr(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen
     }
 }
 
-// Generates the C code of a clean looking select expression.
+/// Generates representation of a Symbol Version
 fn generateSelectExpr(symbver: *SymbolVersion, outer_precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (symbver.def) |ir| {
         switch (ir.kind) {
             .dereference => try printSymbolVersion(ir.src1.?, outer_precedence, out),
+
             .index => try generateLValueIR(symbver, outer_precedence, out),
+
             .select => try generateSelectIR(ir, outer_precedence, out),
+
             else => try printSymbolVersion(symbver, outer_precedence, out),
         }
     } else {
@@ -805,17 +808,26 @@ fn generateSelectExpr(symbver: *SymbolVersion, outer_precedence: i128, out: *std
     }
 }
 
+/// Generates code for a select IR, with respect to a given precedence.
 fn generateSelectIR(ir: *IR, outer_precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (outer_precedence < IRKind.select.precedence()) {
+        // Opening paren, if needed by precedence
         try out.writer().print("(", .{});
     }
+
+    // Output lhs of select
     try generateSelectExpr(ir.src1.?, IRKind.select.precedence(), out);
+
     if (ir.src1.?.def != null and (ir.src1.?.def.?.kind == .dereference or ir.src1.?.def.?.kind == .index)) {
+        // Output `->` if lhs is an address to a tuple, OR if it is an index
         try out.writer().print("->_{}", .{ir.data.int});
     } else {
+        // Regular `.` select
         try out.writer().print("._{}", .{ir.data.int});
     }
+
     if (outer_precedence < IRKind.select.precedence()) {
+        // Closing paren, if needed by precedence
         try out.writer().print(")", .{});
     }
 }
@@ -854,24 +866,29 @@ fn printType(_type: *AST, out: *std.fs.File) !void {
     }
 }
 
+/// Outputs an assignment to a symbol template. It is expected that a value is output immediately
+/// after this to complete the assignment.
 fn printVarAssign(symbver: *SymbolVersion, out: *std.fs.File) !void {
     try out.writer().print("    ", .{});
     try printSymbol(symbver.symbol, out);
     try out.writer().print(" = ", .{});
 }
 
-fn printVarDecl(symbol: *Symbol, out: *std.fs.File, param: bool) !void {
-    if (!param) {
+/// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
+/// semicolon nor newline.
+fn printVarDecl(symbol: *Symbol, out: *std.fs.File, is_parameter: bool) !void {
+    if (!is_parameter) {
         try out.writer().print("    ", .{});
     }
     try printType(symbol.expanded_type.?, out);
     try out.writer().print(" ", .{});
     try printSymbol(symbol, out);
-    if (!param) {
+    if (!is_parameter) {
         try out.writer().print(";\n", .{});
     }
 }
 
+/// Outputs a symbol with it's unique identifier to a file
 fn printSymbol(symbol: *Symbol, out: *std.fs.File) !void {
     try out.writer().print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
@@ -910,10 +927,34 @@ fn is_literal(ir: *IR) bool {
         ir.kind == .call;
 }
 
+/// Checks if the given IR operation is commutative.
+///
+/// Without this check, the following ASTs:
+///    +            -
+///   / \          / \
+///  1   +        1   -
+///     / \          / \
+///    2   3        2   3
+///
+/// Would be code-gen'd as such:
+///   1+2+3        1-2-3
+///
+/// Notice this is OK for `+` since `+` is commutative. It is incorrect for `-`, precisely because
+/// it is not commutative. That is, `(1-2)-3 != 1-(2-3)`. The same is true for division (`/`). The
+/// solution for these two cases is to keep parenthesis around subtraction (resp. division) for
+/// operations lower-than-or-equal-to subtraction's (resp. division's) precedence. This is in
+/// contrast with operations such as addition, where only lower precedences require parenthesis.
 fn commutative(ir: *IR) bool {
     return ir.kind != .sub and ir.kind != .div;
 }
 
+/// Prints out a symbol version. If possible, inlines the symbol version's definition, with correct
+/// parenthesis. For example, the following IR:
+///     x_0 := 4
+///     y_0 := 5
+///     z_0 := x_0 + y_0
+/// May become the following C, with inlining of symbols x and y:
+///     z = 4 + 5;
 fn printSymbolVersion(symbver: *SymbolVersion, precedence: i128, out: *std.fs.File) CodeGen_Error!void {
     if (symbver.hide_temporary()) {
         if (precedence < symbver.def.?.kind.precedence() or (precedence == symbver.def.?.kind.precedence() and !commutative(symbver.def.?))) {
@@ -929,6 +970,7 @@ fn printSymbolVersion(symbver: *SymbolVersion, precedence: i128, out: *std.fs.Fi
     }
 }
 
+/// Emits the return statement from a function
 fn printReturn(return_symbol: *Symbol, out: *std.fs.File) !void {
     if (return_symbol.versions > 0) { // To fix errors when function ends in `unreachable`
         try out.writer().print("    return ", .{});
@@ -953,6 +995,15 @@ fn print_debug_line(out: *std.fs.File, span: Span) !void {
     });
 }
 
+/// Sanitizes a string, escaping proper characters.
+///
+/// This is needed so that string escapes in Orng do not escape in the generate C source.
+///
+/// For example:
+///     let str = some_function("You better \n sanitize me!")
+///
+/// Would produce an error diagnostic in debug mode, which needs to escape the `\` correctly so
+/// that the error shown to the user is identical to the text in the file.
 fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) ![]const u8 {
     var builder = String.init(allocator);
     for (str) |byte| {
