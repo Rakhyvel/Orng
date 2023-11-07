@@ -201,10 +201,10 @@ pub const Errors = struct {
         // unreachable; // uncomment if you want to see where errors come from
     }
 
-    pub fn printErrors(self: *Errors, lines: *std.ArrayList([]const u8), filename: []const u8) !void {
+    pub fn printErrors(self: *Errors) !void {
         for (self.errors_list.items) |err| {
             try (term.Attr{ .bold = true }).dump(out);
-            try printPrelude(err.getSpan(), filename);
+            try printPrelude(err.getSpan());
             try (term.Attr{ .bold = true }).dump(out);
             switch (err) {
                 // General errors
@@ -349,54 +349,54 @@ pub const Errors = struct {
                 },
             }
             try (term.Attr{ .bold = false }).dump(out);
-            try printEpilude(err.getSpan(), lines);
+            try printEpilude(err.getSpan());
 
             // Extra info
             switch (err) {
                 .missing_close => {
                     try (term.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.missing_close.open.span, filename);
+                    try print_note_prelude(err.missing_close.open.span);
                     try (term.Attr{ .bold = true }).dump(out);
                     try out.print("opening `{s}` here\n", .{token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data});
                     try (term.Attr{ .bold = false }).dump(out);
-                    try printEpilude(err.missing_close.open.span, lines);
+                    try printEpilude(err.missing_close.open.span);
                 },
                 .redefinition => {
                     if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
                         try (term.Attr{ .bold = true }).dump(out);
-                        try print_note_prelude(err.redefinition.first_defined_span, filename);
+                        try print_note_prelude(err.redefinition.first_defined_span);
                         try (term.Attr{ .bold = true }).dump(out);
                         try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
                         try (term.Attr{ .bold = false }).dump(out);
-                        try printEpilude(err.redefinition.first_defined_span, lines);
+                        try printEpilude(err.redefinition.first_defined_span);
                     }
                 },
                 .symbol_error => {
                     if (err.symbol_error.context_span != null) {
                         try (term.Attr{ .bold = true }).dump(out);
-                        try print_note_prelude(err.symbol_error.context_span.?, filename);
+                        try print_note_prelude(err.symbol_error.context_span.?);
                         try (term.Attr{ .bold = true }).dump(out);
                         try out.print("{s}\n", .{err.symbol_error.context_message});
                         try (term.Attr{ .bold = false }).dump(out);
-                        try printEpilude(err.symbol_error.context_span.?, lines);
+                        try printEpilude(err.symbol_error.context_span.?);
                     }
                 },
                 .sum_duplicate => {
                     try (term.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.sum_duplicate.first, filename);
+                    try print_note_prelude(err.sum_duplicate.first);
                     try (term.Attr{ .bold = true }).dump(out);
                     try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
                     try (term.Attr{ .bold = false }).dump(out);
-                    try printEpilude(err.sum_duplicate.first, lines);
+                    try printEpilude(err.sum_duplicate.first);
                 },
                 .nonExhaustiveSum => {
                     for (err.nonExhaustiveSum.forgotten.items) |_type| {
                         try (term.Attr{ .bold = true }).dump(out);
-                        try print_note_prelude(_type.getToken().span, filename);
+                        try print_note_prelude(_type.getToken().span);
                         try (term.Attr{ .bold = true }).dump(out);
                         try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.getToken().data});
                         try (term.Attr{ .bold = false }).dump(out);
-                        try printEpilude(_type.getToken().span, lines);
+                        try printEpilude(_type.getToken().span);
                     }
                 },
                 else => {},
@@ -404,34 +404,31 @@ pub const Errors = struct {
         }
     }
 
-    fn printPrelude(maybe_span: ?Span, filename: []const u8) !void {
+    fn printPrelude(maybe_span: ?Span) !void {
         if (maybe_span) |span| {
             if (span.line > 0 and span.col > 0) {
-                try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
+                try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
             } else {
-                try out.print("{s}: ", .{filename});
+                try out.print("{s}: ", .{span.filename});
             }
         }
         try term.outputColor(term.Attr{ .fg = .red, .bold = true }, "error: ", out);
     }
 
-    fn print_note_prelude(maybe_span: ?Span, filename: []const u8) !void {
+    fn print_note_prelude(maybe_span: ?Span) !void {
         if (maybe_span) |span| {
-            try out.print("{s}:{}:{}: ", .{ filename, span.line, span.col });
+            try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
         }
         try term.outputColor(term.Attr{ .fg = .cyan, .bold = true }, "note: ", out);
     }
 
-    fn printEpilude(maybe_span: ?Span, lines: *std.ArrayList([]const u8)) !void {
+    fn printEpilude(maybe_span: ?Span) !void {
         if (maybe_span) |old_span| {
             var span = old_span;
             if (span.line == 0) {
                 return;
-            } else if (lines.items.len + 1 > span.line) {
-                try out.print("{s}\n", .{lines.items[span.line - 1]});
-            } else {
-                try out.print("{s}\n", .{lines.items[lines.items.len - 1]});
-                span.col = lines.items[lines.items.len - 1].len + 1;
+            } else if (span.line_text.len > 0) {
+                try out.print("{s}\n", .{span.line_text});
             }
             var i: usize = 2;
             while (i < span.col) : (i += 1) {

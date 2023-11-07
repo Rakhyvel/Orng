@@ -89,13 +89,13 @@ pub fn compile(
             error.lexerError,
             error.parserError,
             => {
-                try errors.printErrors(&lines, in_name);
+                try errors.printErrors();
                 return err;
             },
             error.symbolError,
             error.typeError,
             => if (!fuzz_tokens) {
-                try errors.printErrors(&lines, in_name);
+                try errors.printErrors();
                 return err;
             } else {
                 return err;
@@ -104,12 +104,12 @@ pub fn compile(
         }
     };
     // TODO: defer file_root.deinit()
-    output(errors, &lines, prelude, file_root, uid, out_name, allocator) catch |err| {
+    output(errors, prelude, file_root, uid, out_name, allocator) catch |err| {
         switch (err) {
             error.symbolError,
             error.typeError,
             => if (!fuzz_tokens) {
-                try errors.printErrors(&lines, in_name);
+                try errors.printErrors();
                 return err;
             },
             else => return err,
@@ -192,7 +192,6 @@ pub fn compileContents(
 /// Takes in a statically correct symbol tree, writes it out to a file
 pub fn output(
     errors: *errs.Errors,
-    lines: *std.ArrayList([]const u8),
     prelude: *symbol.Scope,
     file_root: *symbol.Scope,
     uid: i128,
@@ -206,7 +205,7 @@ pub fn output(
         }
         var interned_strings = std.ArrayList([]const u8).init(allocator);
         defer interned_strings.deinit();
-        var program: *Program = try Program.init(uid, lines, &interned_strings, prelude, errors, allocator); // TODO: defer program.deinit()
+        var program: *Program = try Program.init(uid, &interned_strings, prelude, errors, allocator); // TODO: defer program.deinit()
         // IR translation
         var irAllocator = std.heap.ArenaAllocator.init(allocator);
         defer irAllocator.deinit();

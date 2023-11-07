@@ -330,7 +330,7 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            compiler.output(&errors, &lines, prelude, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch |err| {
+            compiler.output(&errors, prelude, file_root, 0, "tests/fuzz/fuzz-out.c", allocator) catch |err| {
                 switch (err) {
                     error.symbolError => {
                         // passed += 1;

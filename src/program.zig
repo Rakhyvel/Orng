@@ -33,9 +33,6 @@ pub const Program = struct {
     // A graph of type dependencies
     types: std.ArrayList(*DAG),
 
-    // TODO: Make this a map from filename -> lines
-    lines: *std.ArrayList([]const u8),
-
     // Flat list of instructions
     instructions: std.ArrayList(*ir_.IR),
 
@@ -51,7 +48,7 @@ pub const Program = struct {
     // Allocator for the program
     allocator: std.mem.Allocator,
 
-    pub fn init(uid: i128, lines: *std.ArrayList([]const u8), interned_strings: *std.ArrayList([]const u8), prelude: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Program {
+    pub fn init(uid: i128, interned_strings: *std.ArrayList([]const u8), prelude: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Program {
         var retval = try allocator.create(Program);
         retval.uid = uid;
         retval.interned_strings = interned_strings;
@@ -60,7 +57,6 @@ pub const Program = struct {
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.types = std.ArrayList(*DAG).init(allocator);
-        retval.lines = lines;
         return retval;
     }
 
