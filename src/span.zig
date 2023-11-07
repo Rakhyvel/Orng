@@ -1,6 +1,9 @@
 const std = @import("std");
 const String = @import("zig-string/zig-string.zig").String;
 
+pub const c_format = "\"{s}:{}:{}:\\n{s}\\n{s}^\"";
+pub const interpreter_format = "{s}:{}:{}:\n{s}\n{s}^\n";
+
 pub const Span = struct {
     filename: []const u8,
     line_text: []const u8, // TODO: Rename this to `line`, and `line` to `line_number`
@@ -8,14 +11,14 @@ pub const Span = struct {
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: Span, writer: std.io.Writer) !void {
+    pub fn print_debug_line(self: Span, writer: anytype, comptime format: []const u8) !void {
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
 
         for (1..self.col - 1) |_| {
             try spaces.insert(" ", spaces.size);
         }
-        try writer.print("\"{s}:{}:{}:\\n{s}\\n{s}^\"", .{
+        try writer.print(format, .{
             self.filename,
             self.line,
             self.col,

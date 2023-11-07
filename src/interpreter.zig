@@ -3,7 +3,7 @@ const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const symbol_ = @import("symbol.zig");
 const offsets_ = @import("offsets.zig");
-const Span = @import("span.zig").Span;
+const span_ = @import("span.zig");
 
 const stack_limit = 2048;
 
@@ -162,8 +162,7 @@ pub const Context = struct {
     pub fn interpret(self: *Context) !ir_.IRData {
         var buffer: [1028]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
-        var debug_call_stack: std.ArrayList(Span) = std.ArrayList(Span).init(fba.allocator());
-        _ = debug_call_stack;
+        var debug_call_stack: std.ArrayList(span_.Span) = std.ArrayList(span_.Span).init(fba.allocator());
 
         // Halt whenever IP is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
@@ -312,7 +311,9 @@ pub const Context = struct {
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
                 },
                 .index, // dest = src1[src2]
-                => {},
+                => {
+                    std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
+                },
 
                 .select => { // dest = src1._${data.int}
                     var offset = ir.data.int * ir.dest.?.symbver.symbol.expanded_type.?.get_slots();
@@ -400,15 +401,26 @@ pub const Context = struct {
                 // Errors
                 .pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
                 => {
-                    // no-op
+                    try debug_call_stack.append(ir.span);
                 },
                 .popStackTrace => // Pops a message off the stack after a function is successfully called
                 {
-                    // no-op
+                    _ = debug_call_stack.pop();
                 },
                 .panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
                 => {
-                    std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
+                    var i = debug_call_stack.items.len - 1;
+                    while (true) {
+                        var span = debug_call_stack.items[i];
+                        try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+
+                        if (i == 0) {
+                            break;
+                        } else {
+                            i -= 1;
+                        }
+                    }
+                    return ir_.IRData.none;
                 },
             }
         }
