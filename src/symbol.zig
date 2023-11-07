@@ -247,7 +247,6 @@ pub const Symbol = struct {
 
     pub fn get_cfg(self: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
         if (self.cfg == null) {
-            std.debug.print("{s}\n", .{self.name});
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
             self.cfg.?.slots = offsets.calculate_offsets(self);

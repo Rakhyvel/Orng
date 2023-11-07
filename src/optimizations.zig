@@ -256,7 +256,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
             if (ir.dest != null and ir.dest.?.* != .symbver) {
                 try def_map.put(ir.dest.?.extract_symbver(), null);
             } else if (ir.kind == .addrOf) {
-                try def_map.put(ir.src1.?, null);
+                try def_map.put(ir.data.lval.extract_symbver(), null);
             }
             if (ir.dest != null and ir.dest.?.* == .symbver) {
                 try def_map.put(ir.dest.?.symbver, ir);
@@ -1435,6 +1435,8 @@ fn calculateUsage(cfg: *CFG) void {
                     item.uses += 1;
                     item.symbol.uses += 1;
                 }
+            } else if (ir.data == .lval) {
+                calculate_usage_lval(ir.data.lval);
             }
 
             if (ir.meta == .bounds_check) {

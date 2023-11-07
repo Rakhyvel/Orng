@@ -50,7 +50,7 @@ pub const Context = struct {
                 }
             },
             .dereference => {
-                return self.load(self.load_local(lval.dereference.symbol).int).int;
+                return self.load_local(lval.dereference.symbol).int;
             },
             .index => {
                 var base = self.get_lval(lval.index.lhs);
@@ -95,7 +95,6 @@ pub const Context = struct {
     }
 
     fn move_symbver_list(self: *Context, dest_symbol: *symbol_.Symbol, list: *std.ArrayList(*ir_.SymbolVersion)) void {
-        std.debug.print("bruh\n", .{});
         var dest: i128 = undefined;
         if (std.mem.eql(u8, "$retval", dest_symbol.name)) {
             // Dest-addr for retval is whatever is stored in the retval slot
@@ -118,6 +117,13 @@ pub const Context = struct {
     fn push(self: *Context, val: ir_.IRData) void {
         self.stack[@as(usize, @intCast(self.stack_pointer))] = val;
         self.stack_pointer += 1;
+    }
+
+    fn push_move(self: *Context, addr: i128, slots: i128) void {
+        for (0..@as(usize, @intCast(slots))) |i| {
+            self.stack[@as(usize, @intCast(self.stack_pointer))] = self.stack[@as(usize, @intCast(addr + i))];
+            self.stack_pointer += 1;
+        }
     }
 
     fn pop(self: *Context) ir_.IRData {
@@ -161,8 +167,8 @@ pub const Context = struct {
         // Halt whenever IP is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
-            self.print_stack();
-            std.debug.print("{}", .{ir});
+            // self.print_stack();
+            // std.debug.print("{}", .{ir});
             switch (ir.kind) {
                 // Invalid interpreter operations
                 .loadExtern,
@@ -183,7 +189,6 @@ pub const Context = struct {
 
                 // Monadic operations
                 .copy => {
-                    std.debug.print("moving retval", .{});
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol), ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
                 },
                 .not => {
@@ -202,7 +207,7 @@ pub const Context = struct {
                     self.store_lval(ir.dest.?, data);
                 },
                 .addrOf => {
-                    var data = ir_.IRData{ .symbver = ir.src1.? };
+                    var data = ir_.IRData{ .int = self.get_lval(ir.data.lval) };
                     self.store_lval(ir.dest.?, data);
                 },
                 .dereference => {
@@ -213,7 +218,6 @@ pub const Context = struct {
                 .equal => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
                     var src2_data = self.load_local(ir.src2.?.symbol);
-                    // TODO: equal for floats, etc. Right?
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.equals(src2_data)) 1 else 0 });
                 },
                 .not_equal => {
@@ -359,10 +363,13 @@ pub const Context = struct {
                     //  push args in reverse order
                     if (ir.data.symbverList.items.len > 0) {
                         var i = ir.data.symbverList.items.len - 1;
+                        var slots: i128 = undefined;
                         while (i > 0) : (i -= 1) {
-                            self.push(self.load_local(ir.data.symbverList.items[i].symbol));
+                            slots = ir.data.symbverList.items[i].symbol.expanded_type.?.get_slots();
+                            self.push_move(self.addrof_local(ir.data.symbverList.items[i].symbol), slots);
                         }
-                        self.push(self.load_local(ir.data.symbverList.items[i].symbol));
+                        slots = ir.data.symbverList.items[i].symbol.expanded_type.?.get_slots();
+                        self.push_move(self.addrof_local(ir.data.symbverList.items[i].symbol), slots);
                     }
 
                     //  push dest address

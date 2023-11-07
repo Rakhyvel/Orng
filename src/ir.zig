@@ -250,6 +250,7 @@ pub const IRData = union(enum) {
     symbol: *Symbol,
     irList: std.ArrayList(*IR),
     symbverList: std.ArrayList(*SymbolVersion),
+    lval: *L_Value,
 
     none,
 
@@ -260,6 +261,9 @@ pub const IRData = union(enum) {
         switch (self) {
             .int => {
                 try out.writer().print("{}", .{self.int});
+            },
+            .float => {
+                try out.writer().print("{}", .{self.float});
             },
             .none => {
                 try out.writer().print("none", .{});
@@ -662,7 +666,7 @@ pub const IR = struct {
                 try out.writer().print("    {} := -.{}\n", .{ self.dest.?, self.src1.? });
             },
             .addrOf => {
-                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
+                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.data.lval });
             },
             .sizeOf => {
                 try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
@@ -810,11 +814,11 @@ pub const IR = struct {
         var retval: ?*IR = null;
         while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
             var ir: *IR = maybe_ir.?;
-            if (ir.dest != null and ir.dest.?.* == .select) {
+            if (ir.dest != null and ir.dest.?.* == .select and ir.data.lval.extract_symbver().symbol == symbol) {
                 return null;
-            } else if (ir.dest != null and ir.dest.?.* == .index) {
+            } else if (ir.dest != null and ir.dest.?.* == .index and ir.data.lval.extract_symbver().symbol == symbol) {
                 return null;
-            } else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
+            } else if (ir.kind == .addrOf and ir.data.lval.extract_symbver().symbol == symbol) {
                 retval = null;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 retval = ir;
@@ -832,7 +836,7 @@ pub const IR = struct {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .index and ir.dest.?.extract_symbver().symbol == symbol) {
                 return ir;
-            } else if (ir.kind == .addrOf and ir.src1.?.symbol == symbol) {
+            } else if (ir.kind == .addrOf and ir.data.lval.extract_symbver().symbol == symbol) {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 return ir;
@@ -1060,7 +1064,7 @@ pub const CFG = struct {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest.?.* == .symbver) {
+                if (ir.dest != null and ir.dest.?.* == .symbver) {
                     if (ir.dest.?.symbver.symbol.decld or ir.dest.?.symbver.type.* == .unit) {
                         continue;
                     }
@@ -1632,13 +1636,11 @@ pub const CFG = struct {
 
             // Fancy Operators
             .addrOf => {
-                var expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
-                if (expr == null) {
-                    return null;
-                }
+                var expr = try self.generate_l_value_tree(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.addrOf, temp, expr, null, ast.getToken().span, allocator);
+                var ir = try IR.create(.addrOf, temp, null, null, ast.getToken().span, allocator);
+                ir.data = IRData{ .lval = expr };
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -2498,6 +2500,8 @@ pub const CFG = struct {
                             _ = try symbol_find.putSymbolVersionSet(&bb.parameters);
                         }
                     }
+                } else if (ir.data == .lval) {
+                    try version_lvalue(ir.data.lval, bb, ir, &bb.parameters);
                 }
             }
 

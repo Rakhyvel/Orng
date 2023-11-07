@@ -69,5 +69,5 @@ pub fn calculate_offsets(
     }
 
     // The total number of slots used for locals
-    return local_offsets - locals_starting_offset;
+    return local_offsets - locals_starting_offset - 1;
 }
