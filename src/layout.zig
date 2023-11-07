@@ -56,7 +56,7 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) !void {
             try out.?.insert(multiline.data, out.?.len()); // Append data to out
         }
         if (out != null) {
-            var token = Token.create((try out.?.toOwned()).?, .MULTI_LINE, span.?.filename, span.?.line, span.?.col);
+            var token = Token.create((try out.?.toOwned()).?, .MULTI_LINE, span.?.filename, span.?.line_text, span.?.line, span.?.col);
             try tokens.insert(i, token);
         }
     }

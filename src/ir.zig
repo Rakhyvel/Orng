@@ -998,7 +998,7 @@ pub const CFG = struct {
     /// Number of slots required in order to store the local variables of the function
     slots: ?i128,
 
-    // BIG TODO: 'Contextualize' errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
+    // BIG TODO: Dependency-inject errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
     pub fn create(symbol: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
         if (symbol.cfg) |cfg| {
             return cfg;
@@ -1012,7 +1012,7 @@ pub const CFG = struct {
         retval.symbvers = std.ArrayList(*SymbolVersion).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
         retval.return_symbol.expanded_type = try retval.return_symbol._type.?.expand_type(symbol.scope, errors, allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
@@ -1026,7 +1026,9 @@ pub const CFG = struct {
 
         var eval: ?*SymbolVersion = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, null, errors, allocator);
         var return_version = try SymbolVersion.createUnversioned(retval.return_symbol, symbol._type.?.function.rhs, allocator);
-        retval.appendInstruction(try IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
+        if (eval != null) {
+            retval.appendInstruction(try IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
+        }
         retval.appendInstruction(try IR.createJump(null, symbol.span, allocator));
 
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
@@ -1094,7 +1096,7 @@ pub const CFG = struct {
         var buf = try String.init_with_contents(allocator, "t");
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
-        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, Span{ .filename = "", .line = 0, .col = 0 }, _type, null, null, .mut, allocator);
+        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, _type, null, null, .mut, allocator);
         temp_symbol.expanded_type = try _type.expand_type(self.symbol.scope, errors, allocator);
         temp_symbol.is_temp = true;
         return temp_symbol;

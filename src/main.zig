@@ -134,7 +134,7 @@ pub fn compileContents(
 
     // Tokenize, and also append lines to the list of lines
     try lexer.getLines(contents, lines, errors);
-    var tokens = try lexer.getTokens(contents, in_name, errors, fuzz_tokens, allocator);
+    var tokens = try lexer.getTokens(lines, in_name, errors, fuzz_tokens, allocator);
     defer tokens.deinit(); // Make copies of tokens, never take their address
 
     if (false and fuzz_tokens) { // print tokens before layout
@@ -201,7 +201,7 @@ pub fn output(
 ) !void {
     if (file_root.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
-            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
+            errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
             return error.symbolError;
         }
         var interned_strings = std.ArrayList([]const u8).init(allocator);
@@ -247,7 +247,7 @@ pub fn output(
 
         symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.
     } else {
-        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line = 0, .col = 0 }, .msg = "no `main` function specified" } });
+        errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "no `main` function specified" } });
         return error.symbolError;
     }
 }

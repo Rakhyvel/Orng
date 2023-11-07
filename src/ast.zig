@@ -19,7 +19,7 @@ var inited: bool = false;
 /// Initializes internal structures if they are not already initialized.
 pub fn init_structures() !void {
     if (!inited) {
-        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "LMAO GET POISONED", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "LMAO GET POISONED", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         poisoned.getCommon().validation_state = .invalid;
         inited = true;
     }
@@ -603,7 +603,7 @@ pub const AST = union(enum) {
 
     pub fn createInferredError(token: Token, ok: *AST, allocator: std.mem.Allocator) !*AST {
         var retval: AST = AST{ .inferred_error = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = std.ArrayList(*AST).init(allocator) } };
-        var ok_annot = try createAnnotation(token, try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "ok", .span = Span{ .filename = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
+        var ok_annot = try createAnnotation(token, try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "ok", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
         try retval.inferred_error.terms.append(ok_annot);
 
         return try AST.box(retval, allocator);
@@ -723,13 +723,13 @@ pub const AST = union(enum) {
             mut,
             allocator,
         );
-        var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", 0, 0), allocator), data_type, null, null, allocator);
+        var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator);
         data_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = data_type } };
         annot_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = annot_type } };
         try term_types.append(annot_type);
         try term_types.append(try AST.createAnnotation(
             of.getToken(),
-            try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator),
+            try AST.createIdentifier(Token.create("length", null, "", "", 0, 0), allocator),
             primitives.int_type,
             null,
             null,
@@ -773,10 +773,10 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
+        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
         try term_types.append(none_type);
 
-        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", 0, 0), allocator), of_type, null, null, allocator);
+        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator), of_type, null, null, allocator);
         try term_types.append(some_type);
 
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
@@ -785,7 +785,7 @@ pub const AST = union(enum) {
     }
 
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
-        var ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", 0, 0), allocator), ok_type, null, null, allocator);
+        var ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
         var ok_sum_terms = std.ArrayList(*AST).init(allocator);
         try ok_sum_terms.append(ok_annot);
         var ok_sum = try AST.createSum(ok_type.getToken(), ok_sum_terms, allocator);

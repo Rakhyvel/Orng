@@ -90,7 +90,7 @@ pub const Program = struct {
             }
 
             bb.offset = self.instructions.items.len;
-            var label = try ir_.IR.createLabel(bb.uid, Span{ .filename = "", .line = 0, .col = 0 }, self.allocator);
+            var label = try ir_.IR.createLabel(bb.uid, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
             label.uid = bb.uid;
             try self.instructions.append(label);
 
@@ -106,12 +106,12 @@ pub const Program = struct {
                 if (bb.branch) |branch| {
                     try work_queue.append(branch);
                 }
-                try self.instructions.append(try ir_.IR.create_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line = 0, .col = 0 }, self.allocator));
+                try self.instructions.append(try ir_.IR.create_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
             } else {
                 if (bb.next) |next| {
                     try work_queue.append(next);
                 }
-                try self.instructions.append(try ir_.IR.create_jump_addr(bb.next, Span{ .filename = "", .line = 0, .col = 0 }, self.allocator));
+                try self.instructions.append(try ir_.IR.create_jump_addr(bb.next, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
             }
         }
         return first_bb.offset.?;

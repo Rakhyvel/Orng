@@ -125,13 +125,13 @@ pub fn init() !*Scope {
 }
 
 fn create_identifier(name: []const u8) !*AST {
-    var retval = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = name, .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+    var retval = try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = name, .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
     retval.getCommon().validation_state = ast.Validation_State{ .valid = .{ .valid_form = retval } };
     return retval;
 }
 
 fn create_unit() !*AST {
-    var retval = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+    var retval = try AST.createUnit(Token{ .kind = .L_PAREN, .data = "(", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
     retval.getCommon().validation_state = ast.Validation_State{ .valid = .{ .valid_form = retval } };
     return retval;
 }
@@ -153,7 +153,7 @@ fn create_prelude_symbol(name: []const u8, _type: *AST, val: ?*AST, is_temp: boo
     var symbol = try Symbol.create(
         prelude.?,
         name,
-        Span{ .filename = "", .col = 0, .line = 0 },
+        Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
         _type,
         val,
         null,

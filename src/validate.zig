@@ -1188,7 +1188,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
             if (ast.subSlice.upper) |upper| {
                 ast.subSlice.upper = try validateAST(upper, primitives.int_type, scope, errors, allocator);
             } else {
-                var length = try AST.createIdentifier(Token.create("length", null, "", 0, 0), allocator);
+                var length = try AST.createIdentifier(Token.create("length", null, "", "", 0, 0), allocator);
                 length.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = length } };
                 var index = try AST.createSelect(
                     ast.getToken(),

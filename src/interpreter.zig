@@ -3,6 +3,7 @@ const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const symbol_ = @import("symbol.zig");
 const offsets_ = @import("offsets.zig");
+const Span = @import("span.zig").Span;
 
 const stack_limit = 2048;
 
@@ -14,16 +15,14 @@ pub const Context = struct {
     instructions: *std.ArrayList(*ir_.IR),
     instruction_pointer: i128,
 
-    cfg: *ir_.CFG,
-
     pub fn init(cfg: *ir_.CFG, instructions: *std.ArrayList(*ir_.IR), ret_slots: i64) !Context {
         var retval = Context{
             .stack = [_]ir_.IRData{.none} ** stack_limit,
             .stack_pointer = 5 + cfg.slots.?,
             .base_pointer = 4,
+
             .instructions = instructions,
             .instruction_pointer = 0,
-            .cfg = cfg,
         };
 
         // First `ret_slots` slots are reserved for the return value
@@ -161,8 +160,10 @@ pub const Context = struct {
     }
 
     pub fn interpret(self: *Context) !ir_.IRData {
-        var curr_block: *ir_.BasicBlock = self.cfg.block_graph_head.?;
-        _ = curr_block;
+        var buffer: [1028]u8 = undefined;
+        var fba = std.heap.FixedBufferAllocator.init(&buffer);
+        var debug_call_stack: std.ArrayList(Span) = std.ArrayList(Span).init(fba.allocator());
+        _ = debug_call_stack;
 
         // Halt whenever IP is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
