@@ -514,7 +514,7 @@ fn generate_IR_RHS(ir: *IR, precedence: i128, out: *std.fs.File) CodeGen_Error!v
             var product_list = ir.dest.?.symbol.expanded_type.?.product.terms;
             for (ir.data.symbverList.items, product_list.items, 1..) |symbver, expected, i| {
                 if (!expected.c_typesMatch(primitives.unit_type)) {
-                    // Don't values of type `void` (don't exist in C! (Goobersville!))
+                    // Don't use values of type `void` (don't exist in C! (Goobersville!))
                     try printSymbolVersion(symbver, ir.kind.precedence(), out);
                     if (i < product_list.items.len and !product_list.items[i].c_typesMatch(primitives.unit_type)) {
                         try out.writer().print(", ", .{});

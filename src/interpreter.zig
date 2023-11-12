@@ -164,7 +164,7 @@ pub const Context = struct {
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
         var debug_call_stack: std.ArrayList(span_.Span) = std.ArrayList(span_.Span).init(fba.allocator());
 
-        // Halt whenever IP is negative
+        // Halt whenever instruction pointer is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
             // self.print_stack();
@@ -185,7 +185,14 @@ pub const Context = struct {
                 // Tuples
                 .loadStruct => self.move_symbver_list(ir.dest.?.symbver.symbol, &ir.data.symbverList),
 
-                .loadUnion => {},
+                .loadUnion => {
+                    if (ir.src1 != null) {
+                        // Store data
+                        self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol), ir.dest.?.get_slots());
+                    }
+                    // Store tag in last slot
+                    self.store(self.get_lval(ir.dest.?) + ir.dest.?.get_slots() - 1, ir.data);
+                },
 
                 // Monadic operations
                 .copy => {
@@ -318,9 +325,11 @@ pub const Context = struct {
                 .select => { // dest = src1._${data.int}
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + ir.data.select.offset, ir.dest.?.get_slots());
                 },
-                .get_tag, // dest = src1.tag
-                .cast,
-                => {
+                .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
+                    var last_slot_offset = ir.src1.?.symbol.expanded_type.?.get_slots() - 1;
+                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + last_slot_offset, 1);
+                },
+                .cast => {
                     std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
                 },
 

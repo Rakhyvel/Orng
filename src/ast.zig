@@ -471,6 +471,10 @@ pub const AST = union(enum) {
                     self.getCommon().slots = 0;
                 },
 
+                .annotation => {
+                    self.getCommon().slots = self.annotation.type.get_slots();
+                },
+
                 else => {
                     self.getCommon().slots = 1;
                 },
