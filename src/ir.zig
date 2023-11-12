@@ -251,7 +251,7 @@ pub const IRData = union(enum) {
     irList: std.ArrayList(*IR),
     symbverList: std.ArrayList(*SymbolVersion),
     lval: *L_Value,
-
+    select: struct { offset: i128, field: i128 },
     none,
 
     pub fn pprint(self: IRData, allocator: std.mem.Allocator) ![]const u8 {
@@ -321,10 +321,10 @@ pub const L_Value = union(enum) {
     symbver: *SymbolVersion,
     /// L-Value is lhs.
     dereference: *SymbolVersion,
-    /// L-Value is L-Value of lhs[field]
-    index: struct { lhs: *L_Value, field: *SymbolVersion, slots: i128 },
     /// L-Value is L-Value of lhs, + field * slots
-    select: struct { lhs: *L_Value, field: i128, offset: i128 },
+    index: struct { lhs: *L_Value, field: *SymbolVersion, slots: i128 },
+    /// L-Value is L-Value + offset
+    select: struct { lhs: *L_Value, field: i128, offset: i128, slots: i128 },
 
     fn create_symbver(symbver: *SymbolVersion, allocator: std.mem.Allocator) !*L_Value {
         var retval = try allocator.create(L_Value);
@@ -344,9 +344,9 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    fn create_select(lhs: *L_Value, field: i128, offset: i128, allocator: std.mem.Allocator) !*L_Value {
+    fn create_select(lhs: *L_Value, field: i128, offset: i128, slots: i128, allocator: std.mem.Allocator) !*L_Value {
         var retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset } };
+        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .slots = slots } };
         return retval;
     }
 
@@ -396,6 +396,23 @@ pub const L_Value = union(enum) {
             },
             .select => {
                 return self.select.lhs.extract_symbver();
+            },
+        }
+    }
+
+    pub fn get_slots(self: *L_Value) i128 {
+        switch (self.*) {
+            .symbver => {
+                return self.symbver.symbol.expanded_type.?.get_slots();
+            },
+            .dereference => {
+                return self.dereference.symbol.expanded_type.?.addrOf.expr.get_slots();
+            },
+            .index => {
+                return self.index.slots;
+            },
+            .select => {
+                return self.select.slots;
             },
         }
     }
@@ -546,9 +563,9 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createSelect(dest: *SymbolVersion, src1: *SymbolVersion, field_pos: i128, span: Span, allocator: std.mem.Allocator) !*IR {
+    fn createSelect(dest: *SymbolVersion, src1: *SymbolVersion, field_pos: i128, offset: i128, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.select, dest, src1, null, span, allocator);
-        retval.data = IRData{ .int = field_pos };
+        retval.data = IRData{ .select = .{ .field = field_pos, .offset = offset } };
         return retval;
     }
 
@@ -736,7 +753,7 @@ pub const IR = struct {
                 try out.writer().print("    {} := {}[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
             },
             .select => {
-                try out.writer().print("    {} := {}._{} {}\n", .{ self.dest.?, self.src1.?, self.data.int, self.meta });
+                try out.writer().print("    {} := {}._{} {}\n", .{ self.dest.?, self.src1.?, self.data.select.field, self.meta });
             },
 
             .get_tag => {
@@ -1067,10 +1084,7 @@ pub const CFG = struct {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and ir.dest.?.* == .symbver) {
-                    if (ir.dest.?.symbver.symbol.decld or ir.dest.?.symbver.type.* == .unit) {
-                        continue;
-                    }
-                    try self.symbvers.append(ir.dest.?.symbver);
+                    _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
                 }
             }
         }
@@ -1262,7 +1276,7 @@ pub const CFG = struct {
                 self.appendInstruction(err);
 
                 var ok_symbver = try self.createTempSymbolVersion(expanded_expr_type.get_ok_type(), errors, allocator);
-                self.appendInstruction(try IR.createSelect(ok_symbver, expr, 0, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.createSelect(ok_symbver, expr, 0, 0, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(end, ast.getToken().span, allocator));
 
                 self.appendInstruction(end);
@@ -1534,7 +1548,7 @@ pub const CFG = struct {
 
                 // tag was `.ok`, store lhs.some in symbver
                 var val = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                var ir_select = try IR.createSelect(val, lhs, 0, ast.getToken().span, allocator);
+                var ir_select = try IR.createSelect(val, lhs, 0, 0, ast.getToken().span, allocator);
                 self.appendInstruction(ir_select);
                 var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_symbver, val, ast.getToken().span, allocator));
@@ -1564,7 +1578,7 @@ pub const CFG = struct {
 
                 // tag was `.some`, store lhs.some in symbver
                 var val = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                var ir_select = try IR.createSelect(val, lhs, 1, ast.getToken().span, allocator);
+                var ir_select = try IR.createSelect(val, lhs, 1, try ast.select.offset_at(scope, errors, allocator), ast.getToken().span, allocator);
                 self.appendInstruction(ir_select);
                 var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_symbver, val, ast.getToken().span, allocator));
@@ -1621,7 +1635,7 @@ pub const CFG = struct {
                 }
 
                 var new_lhs = try SymbolVersion.createUnversioned(lhs.symbol, lhs.type, allocator);
-                var ir = try IR.createSelect(temp, new_lhs, ast.select.pos.?, ast.getToken().span, allocator);
+                var ir = try IR.createSelect(temp, new_lhs, ast.select.pos.?, try ast.select.offset_at(scope, errors, allocator), ast.getToken().span, allocator);
                 ir.meta = meta;
                 self.appendInstruction(ir);
                 return temp;
@@ -1679,7 +1693,7 @@ pub const CFG = struct {
                 var slice_type = try ast.typeof(scope, errors, allocator);
                 var data_type = slice_type.product.terms.items[0];
                 var data_ptr = try self.createTempSymbolVersion(data_type, errors, allocator);
-                var data_ptr_ir = try IR.createSelect(data_ptr, arr, 0, ast.getToken().span, allocator);
+                var data_ptr_ir = try IR.createSelect(data_ptr, arr, 0, try ast.select.offset_at(scope, errors, allocator), ast.getToken().span, allocator);
                 self.appendInstruction(data_ptr_ir);
 
                 var new_data_ptr = try self.createTempSymbolVersion(data_type, errors, allocator);
@@ -2070,8 +2084,8 @@ pub const CFG = struct {
             for (0..lhs_type.product.terms.items.len) |i| {
                 var lhs_select = try self.createTempSymbolVersion(lhs_type.product.terms.items[i], errors, allocator);
                 var rhs_select = try self.createTempSymbolVersion(lhs_type.product.terms.items[i], errors, allocator);
-                self.appendInstruction(try IR.createSelect(lhs_select, new_lhs, i, lhs.symbol.span, allocator));
-                self.appendInstruction(try IR.createSelect(rhs_select, new_rhs, i, lhs.symbol.span, allocator));
+                self.appendInstruction(try IR.createSelect(lhs_select, new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), lhs.symbol.span, allocator));
+                self.appendInstruction(try IR.createSelect(rhs_select, new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), lhs.symbol.span, allocator));
                 try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
             }
         } else if (lhs_type.* == .sum) {
@@ -2172,7 +2186,7 @@ pub const CFG = struct {
                     continue;
                 }
                 var select = try self.createTempSymbolVersion(rhs.type.product.terms.items[i], errors, allocator);
-                var ir = try IR.createSelect(select, rhs, i, lhs.getToken().span, allocator);
+                var ir = try IR.createSelect(select, rhs, i, try lhs.product.get_offset(i, scope, errors, allocator), lhs.getToken().span, allocator);
                 ir.safe = true;
                 self.appendInstruction(ir);
                 _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
@@ -2231,7 +2245,7 @@ pub const CFG = struct {
                 var offset = try (try (try lhs.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator)).product.get_offset(lhs.select.pos.?, scope, errors, allocator);
 
                 // Surround with L_Value node
-                return try L_Value.create_select(lhs_lval, lhs.select.pos.?, offset, allocator);
+                return try L_Value.create_select(lhs_lval, lhs.select.pos.?, offset, try lhs.select.offset_at(scope, errors, allocator), allocator);
             },
             else => {
                 // Flatten ast
@@ -2254,7 +2268,7 @@ pub const CFG = struct {
             for (pattern.product.terms.items, 0..) |term, i| {
                 var subscript_type = _type.product.terms.items[i];
                 var symbver = try self.createTempSymbolVersion(subscript_type, errors, allocator);
-                var ir = try IR.createSelect(symbver, def, i, term.getToken().span, allocator);
+                var ir = try IR.createSelect(symbver, def, i, try pattern.product.get_offset(i, scope, errors, allocator), term.getToken().span, allocator);
                 ir.safe = true;
                 self.appendInstruction(ir);
                 try self.generate_pattern(scope, term, subscript_type, symbver, errors, allocator);
@@ -2264,7 +2278,7 @@ pub const CFG = struct {
             var domain = try validate.domainof(pattern, lhs_type, scope, errors, allocator);
 
             var symbver = try self.createTempSymbolVersion(domain, errors, allocator);
-            var ir = try IR.createSelect(symbver, def, 0, pattern.getToken().span, allocator);
+            var ir = try IR.createSelect(symbver, def, 0, 0, pattern.getToken().span, allocator);
             ir.safe = true;
             self.appendInstruction(ir);
             try self.generate_pattern(scope, pattern.inject.rhs, domain, symbver, errors, allocator);
@@ -2301,7 +2315,7 @@ pub const CFG = struct {
                 for (pattern.?.product.terms.items, 0..) |term, i| {
                     var subscript_type = new_expr.type.product.terms.items[i];
                     var symbver = try self.createTempSymbolVersion(subscript_type, errors, allocator);
-                    var ir = try IR.createSelect(symbver, new_expr, i, term.getToken().span, allocator);
+                    var ir = try IR.createSelect(symbver, new_expr, i, try pattern.?.product.get_offset(i, scope, errors, allocator), term.getToken().span, allocator);
                     ir.safe = true;
                     self.appendInstruction(ir);
                     try self.generate_match_pattern_check(scope, term, symbver, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
@@ -2358,7 +2372,7 @@ pub const CFG = struct {
         var length: *SymbolVersion = try self.createTempSymbolVersion(primitives.int_type, errors, allocator);
         var lhs_type = try lhs.type.expand_type(scope, errors, allocator);
         if (lhs_type.* == .product and lhs_type.product.was_slice) {
-            var ir = try IR.createSelect(length, lhs, 1, ast.index.lhs.getToken().span, allocator);
+            var ir = try IR.createSelect(length, lhs, 1, try lhs_type.product.get_offset(1, scope, errors, allocator), ast.index.lhs.getToken().span, allocator);
             self.appendInstruction(ir);
         } else if (lhs_type.* == .product and !lhs_type.product.was_slice) {
             var ir = try IR.createInt(length, lhs_type.product.terms.items.len, ast.getToken().span, allocator);

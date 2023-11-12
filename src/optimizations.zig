@@ -535,15 +535,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             }
         },
 
-        // .derefCopy => {
-        //     // Copy propagation
-        //     if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
-        //         log("deref-copy propagation");
-        //         ir.src1 = src1_def.?.src1;
-        //         retval = true;
-        //     }
-        // },
-
         .equal => {
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
@@ -1193,7 +1184,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
                 // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
                 // std.debug.print("{}{?}", .{ ir, src1_def });
-                var field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.int))];
+                var field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.select.field))];
                 var field_def = src1_def.?.any_def_after(field.symbol, ir);
                 if (field_def == null and field.def.?.kind != .index) {
                     log("select; known loadStruct value");

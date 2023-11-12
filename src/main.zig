@@ -210,7 +210,7 @@ pub fn output(
         var irAllocator = std.heap.ArenaAllocator.init(allocator);
         defer irAllocator.deinit();
         var cfg = try msymb.get_cfg(null, &interned_strings, errors, allocator);
-        _ = try program.append_instructions(cfg);
+        try program.append_instructions(cfg);
 
         const interpret = true;
         if (interpret) {

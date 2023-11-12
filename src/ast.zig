@@ -152,7 +152,24 @@ pub const AST = union(enum) {
     _orelse: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     call: struct { common: ASTCommon, lhs: *AST, args: std.ArrayList(*AST) },
     index: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
-    select: struct { common: ASTCommon, lhs: *AST, rhs: *AST, pos: ?usize },
+    select: struct {
+        common: ASTCommon,
+        lhs: *AST,
+        rhs: *AST,
+        pos: ?usize,
+
+        pub fn offset_at(self: *@This(), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i128 {
+            var lhs_expanded_type = try (try self.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+            if (lhs_expanded_type.* == .product) {
+                return try lhs_expanded_type.product.get_offset(self.pos.?, scope, errors, allocator);
+            } else if (lhs_expanded_type.* == .sum) {
+                return try lhs_expanded_type.sum.get_offset(self.pos.?, scope, errors, allocator);
+            } else {
+                std.debug.print("{s}\n", .{@tagName(lhs_expanded_type.*)});
+                unreachable;
+            }
+        }
+    },
     function: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     invoke: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
     sum: struct {
@@ -171,6 +188,16 @@ pub const AST = union(enum) {
             }
             self.all_unit = res;
             return res;
+        }
+
+        // TODO: Duck type this with product/sum
+        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i128 {
+            var offset: i128 = 0;
+            for (0..field) |i| {
+                var item = self.terms.items[i];
+                offset += (try item.expand_type(scope, errors, allocator)).get_slots(); // TODO: Is it necessary to expand here?
+            }
+            return offset;
         }
     },
     inferred_error: struct {

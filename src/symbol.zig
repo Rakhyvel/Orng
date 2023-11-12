@@ -217,7 +217,7 @@ pub const Symbol = struct {
     param: bool,
     is_temp: bool = false,
 
-    // Offset & slots
+    // Offset
     offset: ?i64, // The offset from the BP that this symbol
 
     pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {

@@ -160,7 +160,7 @@ pub const Context = struct {
     }
 
     pub fn interpret(self: *Context) !ir_.IRData {
-        var buffer: [1028]u8 = undefined;
+        var buffer: [1024]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
         var debug_call_stack: std.ArrayList(span_.Span) = std.ArrayList(span_.Span).init(fba.allocator());
 
@@ -189,7 +189,7 @@ pub const Context = struct {
 
                 // Monadic operations
                 .copy => {
-                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol), ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
+                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol), ir.dest.?.get_slots()); // TODO: Integration test that all ir.dest.?.get_slots() work with data of more than one slot
                 },
                 .not => {
                     var data = self.load_local(ir.src1.?.symbol);
@@ -211,7 +211,7 @@ pub const Context = struct {
                     self.store_lval(ir.dest.?, data);
                 },
                 .dereference => {
-                    self.move(self.get_lval(ir.dest.?), self.load_local(ir.src1.?.symbol).int, ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
+                    self.move(self.get_lval(ir.dest.?), self.load_local(ir.src1.?.symbol).int, ir.dest.?.get_slots());
                 },
 
                 // Diadic instructions
@@ -310,14 +310,13 @@ pub const Context = struct {
                     var src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
                 },
-                .index, // dest = src1[src2]
-                => {
-                    std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
+                .index => { // dest = src1[src2]
+                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    var offset = src2_data.int * ir.dest.?.get_slots();
+                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + offset, ir.dest.?.get_slots());
                 },
-
                 .select => { // dest = src1._${data.int}
-                    var offset = ir.data.int * ir.dest.?.symbver.symbol.expanded_type.?.get_slots();
-                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + offset, ir.dest.?.symbver.symbol.expanded_type.?.get_slots());
+                    self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + ir.data.select.offset, ir.dest.?.get_slots());
                 },
                 .get_tag, // dest = src1.tag
                 .cast,
@@ -375,7 +374,7 @@ pub const Context = struct {
                     }
 
                     //  push dest address
-                    self.push(ir_.IRData{ .int = self.base_pointer + ir.dest.?.symbver.symbol.offset.? });
+                    self.push(ir_.IRData{ .int = self.addrof_local(ir.dest.?.extract_symbver().symbol) });
                     //  push old sp
                     self.push(ir_.IRData{ .int = old_sp });
                     //  push bp
@@ -392,23 +391,18 @@ pub const Context = struct {
                     self.instruction_pointer = symbol.cfg.?.offset.?;
                 },
 
-                // Non-Code Generating
-                .discard, // Marks that a symbol isn't used, but that's OK
-                => {
+                .discard => {
                     // no-op
                 },
 
                 // Errors
-                .pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
-                => {
+                .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
                     try debug_call_stack.append(ir.span);
                 },
-                .popStackTrace => // Pops a message off the stack after a function is successfully called
-                {
+                .popStackTrace => { // Pops a message off the stack after a function is successfully called
                     _ = debug_call_stack.pop();
                 },
-                .panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
-                => {
+                .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
                     var i = debug_call_stack.items.len - 1;
                     while (true) {
                         var span = debug_call_stack.items[i];

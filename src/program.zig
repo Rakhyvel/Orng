@@ -60,15 +60,24 @@ pub const Program = struct {
         return retval;
     }
 
-    pub fn append_instructions(self: *Program, cfg: *CFG) !i128 {
+    /// Flattens all CFG's instructions to the programs list of instructions, recursively.
+    ///
+    /// Also sets the `offset` flag of a CFG, which is the address in the instructions list that the
+    /// instructions for the CFG start.
+    pub fn append_instructions(self: *Program, cfg: *CFG) !void {
         if (cfg.offset != null) {
-            return cfg.offset.?;
+            // Already visited, do nothing
+            return;
+        } else if (cfg.block_graph_head == null) {
+            // CFG doesn't have any real instructions. Insert phony BB.
+            cfg.offset = try self.append_phony_block();
+        } else {
+            // Normal CFG with instructions, append BBs to instructions list, recursively append children
+            cfg.offset = try self.append_basic_block(cfg.block_graph_head.?);
+            for (cfg.children.items) |child| {
+                try self.append_instructions(child);
+            }
         }
-        cfg.offset = try self.append_basic_block(cfg.block_graph_head.?);
-        for (cfg.children.items) |child| {
-            _ = try self.append_instructions(child);
-        }
-        return cfg.offset.?;
     }
 
     /// Appends the instructions in a BasicBlock to the program's instructions.
@@ -111,6 +120,16 @@ pub const Program = struct {
             }
         }
         return first_bb.offset.?;
+    }
+
+    /// This function inserts a label and a return instruction. It is needed for functions which do not have
+    /// instructions. The label is needed so that codegen can know there is a new function, and the return
+    /// instruction is for interpreting so that jumping to the function won't jump to some random function.
+    fn append_phony_block(self: *Program) !i128 {
+        var offset = self.instructions.items.len;
+        try self.instructions.append(try ir_.IR.createLabel(0, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+        try self.instructions.append(try ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+        return offset;
     }
 
     fn create_jump_addr_uid(self: *Program, bb: ?*ir_.BasicBlock) error{OutOfMemory}!struct { addr: ?i128, uid: ?u64 } {

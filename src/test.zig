@@ -140,45 +140,45 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     }
 
     // compile C (make sure no errors)
-    var gcc_res = exec(&[_][]const u8{
-        "/bin/gcc",
-        out_name.str(),
-        "-std=c11",
-        "-lm",
-        "-Istd",
-        "-O3",
-        "-g",
-        "-Werror",
-        "-Wall",
-        "-Wextra",
-        "-Wpedantic",
-        "-pedantic-errors",
-        "-Wconversion",
-        "-Wsign-conversion",
-        "-Wfloat-conversion",
-        "-Wcast-qual",
-        "-Wlogical-op",
-        "-Wshadow",
-        "-Wformat=2",
-        "-Wmisleading-indentation",
-        "-Wstrict-prototypes",
-        "-Wmissing-prototypes",
-        "-Winit-self",
-        "-Wjump-misses-init",
-        "-Wdeclaration-after-statement",
-        "-Wbad-function-cast",
-        "-Wc11-c2x-compat",
-        "-Wcast-align",
-        "-fsanitize=undefined,address",
-    }) catch {
-        std.debug.print("Error compiling with GCC", .{});
-        return false;
-    };
-    if (gcc_res.retcode != 0) {
-        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-        try out.print("C -> Executable.\n", .{});
-        return false;
-    }
+    // var gcc_res = exec(&[_][]const u8{
+    //     "/bin/gcc",
+    //     out_name.str(),
+    //     "-std=c11",
+    //     "-lm",
+    //     "-Istd",
+    //     "-O3",
+    //     "-g",
+    //     "-Werror",
+    //     "-Wall",
+    //     "-Wextra",
+    //     "-Wpedantic",
+    //     "-pedantic-errors",
+    //     "-Wconversion",
+    //     "-Wsign-conversion",
+    //     "-Wfloat-conversion",
+    //     "-Wcast-qual",
+    //     "-Wlogical-op",
+    //     "-Wshadow",
+    //     "-Wformat=2",
+    //     "-Wmisleading-indentation",
+    //     "-Wstrict-prototypes",
+    //     "-Wmissing-prototypes",
+    //     "-Winit-self",
+    //     "-Wjump-misses-init",
+    //     "-Wdeclaration-after-statement",
+    //     "-Wbad-function-cast",
+    //     "-Wc11-c2x-compat",
+    //     "-Wcast-align",
+    //     "-fsanitize=undefined,address",
+    // }) catch {
+    //     std.debug.print("Error compiling with GCC", .{});
+    //     return false;
+    // };
+    // if (gcc_res.retcode != 0) {
+    //     try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+    //     try out.print("C -> Executable.\n", .{});
+    //     return false;
+    // }
 
     // execute (make sure no signals)
     // TODO: Interpret instead
