@@ -555,7 +555,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 retval = true;
             }
             // `0 == x` => `!x`
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("equal; lhs 0");
                 ir.kind = .not;
                 ir.data = _ir.IRData.none;
@@ -564,7 +564,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 retval = true;
             }
             // `x == 0` => `!x`
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
+            else if (src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("equal; rhs 0");
                 ir.kind = .not;
                 ir.data = _ir.IRData.none;
@@ -603,7 +603,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 retval = true;
             }
             // `0 != x` => `x`
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
+            else if (src1_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("not_equal; lhs 0");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -612,7 +612,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 retval = true;
             }
             // `x != 0` => `x`
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
+            else if (src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("not_equal; rhs 0");
                 ir.kind = .copy;
                 ir.data = _ir.IRData.none;
@@ -1157,7 +1157,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
 
         .select => {
             if (ir.meta == .active_field_check and ir.meta.active_field_check.tag.def.?.kind == .loadInt) {
-                if (ir.data.int != ir.meta.active_field_check.tag.def.?.data.int and !ir.safe) {
+                if (ir.data.select.field != ir.meta.active_field_check.tag.def.?.data.int and !ir.safe) {
                     errors.addError(Error{ .sum_select_inactive = .{
                         .span = ir.span,
                         .inactive = ir.src1.?.type.sum.terms.items[@as(usize, @intCast(ir.data.int))].annotation.pattern.getToken().data,

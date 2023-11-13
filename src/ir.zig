@@ -271,8 +271,11 @@ pub const IRData = union(enum) {
             .symbol => {
                 try out.writer().print("{s}", .{self.symbol.name});
             },
+            .string_id => {
+                try out.writer().print("<interned string:{}>", .{self.string_id});
+            },
             else => {
-                try out.writer().print("???", .{});
+                try out.writer().print("??? ({s})", .{@tagName(self)});
             },
         }
 
@@ -297,6 +300,10 @@ pub const IRData = union(enum) {
             return self.int == other.int;
         } else if (self == .float and other == .float) {
             return self.float == other.float;
+        } else if (self == .int and other == .float) {
+            return self.int == @as(i128, @intFromFloat(other.float)); // These will crash if float is not representable by i128
+        } else if (self == .float and other == .int) { //                This should not be a problem with user-generated code, since it's type-checked
+            return @as(i128, @intFromFloat(self.float)) == other.int; // But keep it in mind for compiler-generated code generated after type-checking, such as defaults
         } else if (self == .string_id and other == .string_id) {
             return self.string_id == other.string_id;
         } else if (self == .string and other == .string) {
@@ -1578,7 +1585,7 @@ pub const CFG = struct {
 
                 // tag was `.some`, store lhs.some in symbver
                 var val = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
-                var ir_select = try IR.createSelect(val, lhs, 1, try ast.select.offset_at(scope, errors, allocator), ast.getToken().span, allocator);
+                var ir_select = try IR.createSelect(val, lhs, 1, try lhs.symbol.expanded_type.?.sum.get_offset(1, scope, errors, allocator), ast.getToken().span, allocator);
                 self.appendInstruction(ir_select);
                 var some_symbver = try SymbolVersion.createUnversioned(symbol, symbol._type.?, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_symbver, val, ast.getToken().span, allocator));

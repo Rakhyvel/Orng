@@ -65,7 +65,7 @@ pub fn compile(
     prelude: *symbol.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) !void {
+) !ir.IRData {
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -104,17 +104,18 @@ pub fn compile(
         }
     };
     // TODO: defer file_root.deinit()
-    output(errors, prelude, file_root, uid, out_name, allocator) catch |err| {
-        switch (err) {
-            error.symbolError,
-            error.typeError,
-            => if (!fuzz_tokens) {
-                try errors.printErrors();
-                return err;
-            },
-            else => return err,
-        }
-    };
+    return try output(errors, prelude, file_root, uid, out_name, allocator);
+    // catch |err| {
+    //     switch (err) {
+    //         error.symbolError,
+    //         error.typeError,
+    //         => if (!fuzz_tokens) {
+    //             try errors.printErrors();
+    //             return err;
+    //         },
+    //         else => return err,
+    //     }
+    // };
 }
 
 /// Takes in a string of contents, compiles it to a statically correct symbol-tree
@@ -197,7 +198,7 @@ pub fn output(
     uid: i128,
     out_name: []const u8,
     allocator: std.mem.Allocator,
-) !void {
+) !ir.IRData {
     if (file_root.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
             errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
@@ -221,8 +222,7 @@ pub fn output(
             // Wrap main CFG in interpreter context
             // program.print_instructions();
             var context = try Context.init(cfg, &program.instructions, msymb._type.?.function.rhs.get_slots());
-            var res = try context.interpret();
-            std.debug.print("{}\n", .{res});
+            return try context.interpret();
         } else {
             // Wrap main CFG in program
             try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
