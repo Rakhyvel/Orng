@@ -893,6 +893,9 @@ pub const AST = union(enum) {
             },
             .index => {
                 var expr = try self.index.lhs.expand_type(scope, errors, allocator);
+                if (expr.* == .identifier) {
+                    std.debug.print("{s}\n", .{expr.getToken().data});
+                }
                 retval = expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
             },
             .poison,

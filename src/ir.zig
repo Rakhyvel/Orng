@@ -2187,13 +2187,14 @@ pub const CFG = struct {
             // product-assigns may be nested, for example:
             //     ((x, y), (a, b)) = get_tuple()
             // So it's important that this is recursive
+            var lhs_expanded_type = try (try lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             for (lhs.product.terms.items, 0..) |term, i| {
                 var product_lhs = try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (product_lhs == null) {
                     continue;
                 }
                 var select = try self.createTempSymbolVersion(rhs.type.product.terms.items[i], errors, allocator);
-                var ir = try IR.createSelect(select, rhs, i, try lhs.product.get_offset(i, scope, errors, allocator), lhs.getToken().span, allocator);
+                var ir = try IR.createSelect(select, rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), lhs.getToken().span, allocator);
                 ir.safe = true;
                 self.appendInstruction(ir);
                 _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);

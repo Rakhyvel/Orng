@@ -65,11 +65,11 @@ pub const Context = struct {
 
     // Stores a value into a slot addressed with an absolute address
     inline fn store(self: *Context, address: i128, val: ir_.IRData) void {
-        // std.debug.print("{s} := {}\n", .{ dest.symbol.name, val });
+        std.debug.print("{}^ := {}\n", .{ address, val });
         self.stack[@as(usize, @intCast(address))] = val;
     }
 
-    fn store_lval(self: *Context, dest: *ir_.L_Value, val: ir_.IRData) void {
+    inline fn store_lval(self: *Context, dest: *ir_.L_Value, val: ir_.IRData) void {
         var addr = self.get_lval(dest);
         self.store(addr, val);
     }
@@ -80,7 +80,7 @@ pub const Context = struct {
     }
 
     // Loads a value from a slot addressed with an address relative to the base-pointer
-    fn load_local(self: *Context, ref: *symbol_.Symbol) ir_.IRData {
+    inline fn load_local(self: *Context, ref: *symbol_.Symbol) ir_.IRData {
         // std.debug.print("load local: bp+({})\n", .{ref.offset.?});
         // std.debug.print("load local: {}\n", .{self.load(self.base_pointer + ref.offset.?)});
         return self.load(self.base_pointer + ref.offset.?);
@@ -109,11 +109,11 @@ pub const Context = struct {
         }
     }
 
-    fn addrof_local(self: *Context, symbol: *symbol_.Symbol) i128 {
+    inline fn addrof_local(self: *Context, symbol: *symbol_.Symbol) i128 {
         return self.base_pointer + symbol.offset.?;
     }
 
-    fn push(self: *Context, val: ir_.IRData) void {
+    inline fn push(self: *Context, val: ir_.IRData) void {
         self.stack[@as(usize, @intCast(self.stack_pointer))] = val;
         self.stack_pointer += 1;
     }
@@ -125,12 +125,12 @@ pub const Context = struct {
         }
     }
 
-    fn pop(self: *Context) ir_.IRData {
+    inline fn pop(self: *Context) ir_.IRData {
         self.stack_pointer -= 1;
         return self.stack[@as(usize, @intCast(self.stack_pointer))];
     }
 
-    fn ret(self: *Context) void {
+    inline fn ret(self: *Context) void {
         // deallocate locals
         self.stack_pointer = self.base_pointer + 1;
         // jump to return-address
@@ -169,6 +169,48 @@ pub const Context = struct {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
             // self.print_stack();
             // std.debug.print("{}", .{ir});
+
+            if (ir.meta == .bounds_check) {
+                // IR has a bounds to be checked
+                var length = self.load_local(ir.meta.bounds_check.length.symbol);
+                var src2_data = self.load_local(ir.src2.?.symbol);
+                if (0 > src2_data.int or src2_data.int >= length.int) {
+                    // Bounds check fails, append line and panic
+                    try debug_call_stack.append(ir.span);
+                    var i = debug_call_stack.items.len - 1;
+                    while (true) {
+                        var span = debug_call_stack.items[i];
+                        try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+
+                        if (i == 0) {
+                            break;
+                        } else {
+                            i -= 1;
+                        }
+                    }
+                    return ir_.IRData.none;
+                }
+            } else if (ir.meta == .active_field_check) {
+                // IR has an active field to check
+                var tag = self.load_local(ir.meta.active_field_check.tag.symbol);
+                if (tag.int != ir.meta.active_field_check.selection) {
+                    // Active field check fails, append line and panic
+                    try debug_call_stack.append(ir.span);
+                    var i = debug_call_stack.items.len - 1;
+                    while (true) {
+                        var span = debug_call_stack.items[i];
+                        try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+
+                        if (i == 0) {
+                            break;
+                        } else {
+                            i -= 1;
+                        }
+                    }
+                    return ir_.IRData.none;
+                }
+            }
+
             switch (ir.kind) {
                 // Invalid interpreter operations
                 .loadExtern,
