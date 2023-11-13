@@ -263,7 +263,7 @@ pub const IRData = union(enum) {
                 try out.writer().print("{}", .{self.int});
             },
             .float => {
-                try out.writer().print("{}", .{self.float});
+                try out.writer().print("{d:.6}", .{self.float});
             },
             .none => {
                 try out.writer().print("none", .{});
