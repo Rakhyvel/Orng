@@ -65,7 +65,7 @@ pub const Context = struct {
 
     // Stores a value into a slot addressed with an absolute address
     inline fn store(self: *Context, address: i128, val: ir_.IRData) void {
-        std.debug.print("{}^ := {}\n", .{ address, val });
+        // std.debug.print("{}^ := {}\n", .{ address, val });
         self.stack[@as(usize, @intCast(address))] = val;
     }
 
@@ -167,8 +167,8 @@ pub const Context = struct {
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
-            // self.print_stack();
-            // std.debug.print("{}", .{ir});
+            self.print_stack();
+            std.debug.print("{}", .{ir});
 
             if (ir.meta == .bounds_check) {
                 // IR has a bounds to be checked
