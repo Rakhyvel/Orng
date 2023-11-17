@@ -2294,7 +2294,11 @@ pub const CFG = struct {
                 var lhs_lval = try self.generate_l_value_tree(scope, lhs.select.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
                 // Get the offset into the struct that this select does
-                var offset = try (try (try lhs.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator)).product.get_offset(lhs.select.pos.?, scope, errors, allocator);
+                var lhs_expanded_type = try (try lhs.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+                var offset = if (lhs_expanded_type.* == .product)
+                    try lhs_expanded_type.product.get_offset(lhs.select.pos.?, scope, errors, allocator)
+                else
+                    try lhs_expanded_type.sum.get_offset(lhs.select.pos.?, scope, errors, allocator);
 
                 // Surround with L_Value node
                 return try L_Value.create_select(lhs_lval, lhs.select.pos.?, offset, try lhs.select.offset_at(scope, errors, allocator), allocator);
@@ -2443,6 +2447,8 @@ pub const CFG = struct {
         }
     }
 
+    /// Converts the list of IR to a web of BB's
+    /// Also versions IR dest's if they are symbvers. This versioning should persist and should not be wiped.
     fn basicBlockFromIR(self: *CFG, maybe_ir: ?*IR, allocator: std.mem.Allocator) !?*BasicBlock {
         if (maybe_ir == null) {
             return null;
@@ -2600,7 +2606,7 @@ pub const CFG = struct {
     fn version_lvalue(lval: *L_Value, bb: *BasicBlock, ir: *IR, parameters: *std.ArrayList(*SymbolVersion)) !void {
         switch (lval.*) {
             .symbver => {
-                lval.symbver = try version(lval.symbver, bb, ir, parameters);
+                // should already be versioned by `basicBlockFromIR()`
             },
             .dereference => {
                 lval.dereference = try version(lval.dereference, bb, ir, parameters);

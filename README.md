@@ -28,7 +28,7 @@ fn main(sys: System)->!() {
     greet("Orng! 🍊", sys.stdout)
 }
 
-fn greet(recipient: String, out:<:Writer) -> !() {
+fn greet(recipient: String, out: dyn Writer) -> !() {
     out.>writeln("Hello, {s}", recipient)
 }
 ```
@@ -62,7 +62,7 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 ```rs
 // A factorial function!
 fn factorial(n: Int) -> Int {
-    if n < 2 (1) else (n * factorial(n - 1))
+    if n < 2 {1} else {n * factorial(n - 1)}
 }
 ```
 Lets break that down so we can understand how Orng works.
@@ -71,58 +71,64 @@ fn factorial                      // Define a new function called `factorial`.
     (n: Int) -> Int {             // The type of `factorial` is a function, 
                                   //     which takes an integer called `n` and 
                                   //     returns an integer.
-    if n < 2 (1)                  // The result of calling factorial is either 
+    if n < 2 {1}                  // The result of calling factorial is either 
                                   //     `1` if `n < 2`,
-      else (n * factorial(n - 1))}// Otherwise is `n * factorial(n-1)`.
+      else {n * factorial(n - 1)}}// Otherwise is `n * factorial(n-1)`.
 ```
 ### Fizzbuzz
 ```rs
 // Define an Algebraic Data Type (ADT), similar to tagged unions
-const FizzBuzzResult = (
-      string: String
-    | integer: Int)
+const FizzBuzzResult = (string: String | integer: Int)
 
 fn fizzbuzz(n: Int) -> FizzBuzzResult {
     match 0 {
         {n % 15}      => FizzBuzzResult.string("fizzbuzz") 
         //               ^^^^^^^^^^^^^^
         // We can either be explicit with the ADT we use...
+
         {n % 5} == 0  => .string("buzz") 
         //               ^
         // ... Or we can let it be inferred, if possible
+
         {n % 3} == 0  => .string("fizz")
+
         else          => .integer(n)
     }
 }
 
 fn main(sys: System) -> !() {
     while let i = 0; i < 100; i += 1 {
-        // Can pattern match on ADTs! Again, can let it be inferred if possible
+        // Can pattern match on ADTs! Again, can let which ADT be inferred if possible
         match fizzbuzz(i) {
-            .string  <- s => try sys.stdout.>println("{}", s)
-            .integer <- j => try sys.stdout.>println("{}", j)
+            .string(s)  => try sys.stdout.>println("{}", s)
+            .integer(j) => try sys.stdout.>println("{}", j)
         }
     }
 }
 ```
 ### Generic Type Unification
-Identifiers may end in a single apostrophe. When unification is done, apostrophe'd identifiers are considered to be free variables, and regular identifiers are terms.
+Parameter types identifiers that begin with `$` are considered free. This method of ad-hoc polymorphism is more readable than other methods, such as overloaded functions, as each function name has one unique definition.
 ```rs
-// Define a type class
-class Eq of T {
-    equals: (T, T)->Bool = not<>not_equal
-    not_equal: (T, T)->Bool = not<>equals
+// Define a simple, generic array list type
+fn List(const T: Type) -> Type {
+    (
+        items: []T,
+        length: Int,
+        alloc: dyn Allocator
+    )
 }
 
-// Function that works for slices of any type `T'` in the `Eq` type-class
-fn contains(haystack: [](T' <: Eq), needle: T') -> Bool {
-    if haystack.len == 0 {
-        false
-    } else if haystack[0].>equals(needle) {
-        true
-    } else {
-        contains(haystack[1..], needle)
+// Define generic functions that act on instances of List
+fn append(list: List($T), element: T) -> !() {
+    if list.items.length >= list.length {
+        // ... expand the list's capacity
     }
+    list.items[list.length] = element
+    list.length += 1
+}
+
+fn get(list: List($T), index: Int) -> T {
+    list.items[index]
 }
 ```
 

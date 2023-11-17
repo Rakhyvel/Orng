@@ -115,7 +115,9 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
                 retval = true;
             }
             // Flip labels if branch condition is negation, plunge negation
-            else if (latest_condition != null and latest_condition.?.kind == .not) {
+            else if (latest_condition != null and latest_condition.?.kind == .not and
+                latest_condition.?.src1.?.def != null // this condition prevents a loop if a function parameter (which are without a def) is negated
+            ) {
                 defer log_optimization_pass("flip not condition", cfg);
                 var old_branch = bb.branch.?;
                 bb.branch = bb.next;
@@ -1197,7 +1199,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             }
             // Known loadString value
             else if (src1_def != null and src1_def.?.kind == .loadString) {
-                if (ir.data.int == 1) {
+                if (ir.data.select.field == 1) {
                     ir.kind = .loadInt;
                     ir.data = _ir.IRData{ .int = interned_strings.items[src1_def.?.data.string_id].len };
                     ir.src1 = null;

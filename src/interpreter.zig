@@ -370,6 +370,7 @@ pub const Context = struct {
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + offset, ir.dest.?.get_slots());
                 },
                 .index_slice => { // dest = src1._0[src2]
+                    // TODO: Figure out strings. Not my biggest priority
                     var field = self.load_local(ir.src1.?.symbol).int; // the address to the data is the first slot
                     var src2_data = self.load_local(ir.src2.?.symbol);
                     var offset = src2_data.int * ir.dest.?.get_slots();
