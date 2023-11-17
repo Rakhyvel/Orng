@@ -51,6 +51,11 @@ pub const Context = struct {
             .dereference => {
                 return self.load_local(lval.dereference.symbol).int;
             },
+            .index_slice => {
+                var base = self.load_local(lval.index_slice.lhs.symbol).int; // Because data address is stored in first slot
+                var index = self.load_local(lval.index_slice.field.symbol).int;
+                return base + index * lval.index_slice.slots;
+            },
             .index => {
                 var base = self.get_lval(lval.index.lhs);
                 var index = self.load_local(lval.index.field.symbol).int;
@@ -167,8 +172,8 @@ pub const Context = struct {
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
-            self.print_stack();
-            std.debug.print("{}", .{ir});
+            // self.print_stack();
+            // std.debug.print("\n{}", .{ir});
 
             if (ir.meta == .bounds_check) {
                 // IR has a bounds to be checked
@@ -363,6 +368,12 @@ pub const Context = struct {
                     var src2_data = self.load_local(ir.src2.?.symbol);
                     var offset = src2_data.int * ir.dest.?.get_slots();
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + offset, ir.dest.?.get_slots());
+                },
+                .index_slice => { // dest = src1._0[src2]
+                    var field = self.load_local(ir.src1.?.symbol).int; // the address to the data is the first slot
+                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    var offset = src2_data.int * ir.dest.?.get_slots();
+                    self.move(self.get_lval(ir.dest.?), field + offset, ir.dest.?.get_slots());
                 },
                 .select => { // dest = src1._${data.int}
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + ir.data.select.offset, ir.dest.?.get_slots());

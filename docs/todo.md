@@ -72,6 +72,7 @@
 - [ ] "packaging" to remove label arguments, possibly something else too
 - [x] Some function call lines are prepended and then popped before function call
 - [ ] Pass around a *WRITER* in codegen, not an actual fr file (jesus christ!)
+- [ ] IRs should use L_Values for sources too (its not harder to optimize btw)
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

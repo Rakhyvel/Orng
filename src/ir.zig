@@ -154,6 +154,7 @@ pub const IRKind = enum {
     div_float,
     mod,
     index, // dest = src1[src2]
+    index_slice, // dest = src1._0[src2]
     select, // dest = src1._${data.int}
     get_tag, // dest = src1.tag
     cast,
@@ -330,6 +331,8 @@ pub const L_Value = union(enum) {
     dereference: *SymbolVersion,
     /// L-Value is L-Value of lhs, + field * slots
     index: struct { lhs: *L_Value, field: *SymbolVersion, slots: i128 },
+    /// L-Value is L-Value of lhs, + field * slots
+    index_slice: struct { lhs: *SymbolVersion, field: *SymbolVersion, slots: i128 },
     /// L-Value is L-Value + offset
     select: struct { lhs: *L_Value, field: i128, offset: i128, slots: i128 },
 
@@ -351,6 +354,12 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
+    fn create_index_slice(lhs: *SymbolVersion, field: *SymbolVersion, slots: i128, allocator: std.mem.Allocator) !*L_Value {
+        var retval = try allocator.create(L_Value);
+        retval.* = L_Value{ .index_slice = .{ .lhs = lhs, .field = field, .slots = slots } };
+        return retval;
+    }
+
     fn create_select(lhs: *L_Value, field: i128, offset: i128, slots: i128, allocator: std.mem.Allocator) !*L_Value {
         var retval = try allocator.create(L_Value);
         retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .slots = slots } };
@@ -367,6 +376,9 @@ pub const L_Value = union(enum) {
             },
             .dereference => {
                 try out.writer().print("{}^", .{self.dereference});
+            },
+            .index_slice => {
+                try out.writer().print("{}.data[{}]", .{ self.index_slice.lhs, self.index_slice.field });
             },
             .index => {
                 try out.writer().print("{}[{}]", .{ self.index.lhs, self.index.field });
@@ -398,6 +410,9 @@ pub const L_Value = union(enum) {
             .dereference => {
                 return self.dereference;
             },
+            .index_slice => {
+                return self.index_slice.lhs;
+            },
             .index => {
                 return self.index.lhs.extract_symbver();
             },
@@ -414,6 +429,9 @@ pub const L_Value = union(enum) {
             },
             .dereference => {
                 return self.dereference.symbol.expanded_type.?.addrOf.expr.get_slots();
+            },
+            .index_slice => {
+                return self.index_slice.slots;
             },
             .index => {
                 return self.index.slots;
@@ -593,6 +611,12 @@ pub const IR = struct {
         return retval;
     }
 
+    fn createIndexSlice(dest: *SymbolVersion, src1: *SymbolVersion, src2: *SymbolVersion, span: Span, allocator: std.mem.Allocator) !*IR {
+        var retval = try IR.create(.index_slice, dest, src1, src2, span, allocator);
+        retval.data = IRData.none;
+        return retval;
+    }
+
     fn createDiscard(src1: *SymbolVersion, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.discard, null, src1, null, span, allocator);
         retval.data = IRData.none;
@@ -758,6 +782,9 @@ pub const IR = struct {
             },
             .index => {
                 try out.writer().print("    {} := {}[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
+            },
+            .index_slice => {
+                try out.writer().print("    {} := {}.data[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
             },
             .select => {
                 try out.writer().print("    {} := {}._{} {}\n", .{ self.dest.?, self.src1.?, self.data.select.field, self.meta });
@@ -1621,7 +1648,11 @@ pub const CFG = struct {
                 var rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator);
+                var lhs_expanded_type = try lhs.symbol._type.?.expand_type(scope, errors, allocator);
+                var ir = if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice)
+                    try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator)
+                else
+                    try IR.createIndexSlice(temp, lhs, rhs, ast.getToken().span, allocator);
                 ir.meta = try self.generate_bounds_check(scope, ast, lhs, errors, allocator);
                 ir.span = ast.getToken().span;
                 self.appendInstruction(ir);
@@ -1700,7 +1731,7 @@ pub const CFG = struct {
                 var slice_type = try ast.typeof(scope, errors, allocator);
                 var data_type = slice_type.product.terms.items[0];
                 var data_ptr = try self.createTempSymbolVersion(data_type, errors, allocator);
-                var data_ptr_ir = try IR.createSelect(data_ptr, arr, 0, try ast.select.offset_at(scope, errors, allocator), ast.getToken().span, allocator);
+                var data_ptr_ir = try IR.createSelect(data_ptr, arr, 0, 0, ast.getToken().span, allocator);
                 self.appendInstruction(data_ptr_ir);
 
                 var new_data_ptr = try self.createTempSymbolVersion(data_type, errors, allocator);
@@ -2233,8 +2264,8 @@ pub const CFG = struct {
                 return try L_Value.create_dereference(expr.?, allocator);
             },
             .index => {
-                // Recursively get index's lhs L_Value node
-                var lhs_lval = try self.generate_l_value_tree(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                // Get the type of the index lhs. This will determine if this is an array index or a slice index
+                var lhs_expanded_type = try (try lhs.index.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
 
                 // Flatten index expr
                 var rhs = try self.flattenAST(scope, lhs.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
@@ -2242,8 +2273,21 @@ pub const CFG = struct {
                 // Calculate the slots needed for each element
                 var slots = (try (try lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator)).get_slots();
 
-                // Surround with L_Value node
-                return try L_Value.create_index(lhs_lval, rhs.?, slots, allocator);
+                if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice)
+                // Indexing an array
+                {
+                    // Recursively get index's lhs L_Value node
+                    var lhs_lval = try self.generate_l_value_tree(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                    // Surround with L_Value node
+                    return try L_Value.create_index(lhs_lval, rhs.?, slots, allocator);
+                }
+                // Indexing a slice
+                else {
+                    // Flatten deref expr
+                    var lhs_symbver = try self.flattenAST(scope, lhs.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                    // Surround with L_Value node
+                    return try L_Value.create_index_slice(lhs_symbver.?, rhs.?, slots, allocator);
+                }
             },
             .select => {
                 // Recursively get select's lhs L_Value node
@@ -2560,6 +2604,10 @@ pub const CFG = struct {
             },
             .dereference => {
                 lval.dereference = try version(lval.dereference, bb, ir, parameters);
+            },
+            .index_slice => {
+                lval.index_slice.lhs = try version(lval.index_slice.lhs, bb, ir, parameters);
+                lval.index_slice.field = try version(lval.index_slice.field, bb, ir, parameters);
             },
             .index => {
                 lval.index.field = try version(lval.index.field, bb, ir, parameters);
