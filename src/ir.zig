@@ -2549,7 +2549,8 @@ pub const CFG = struct {
             // Parameters are symbols used by IR without a definition for the symbol before the IR
             var maybe_ir: ?*IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest != null) {
+                if (ir.dest != null and ir.dest.?.* != .symbver) {
+                    // Recursively version L_Value symbvers, if they are not a leaf symbver.
                     try version_lvalue(ir.dest.?, bb, ir, &bb.parameters);
                 }
                 if (ir.src1 != null) {
@@ -2606,7 +2607,9 @@ pub const CFG = struct {
     fn version_lvalue(lval: *L_Value, bb: *BasicBlock, ir: *IR, parameters: *std.ArrayList(*SymbolVersion)) !void {
         switch (lval.*) {
             .symbver => {
-                // should already be versioned by `basicBlockFromIR()`
+                // This is only used for recursive symbvers, which needs the most up-to-date version of a symbver
+                // If the dest of an IR is symbver, this is never called. They are versioned in basicBlockFromIR()
+                lval.symbver = try version(lval.symbver, bb, ir, parameters);
             },
             .dereference => {
                 lval.dereference = try version(lval.dereference, bb, ir, parameters);

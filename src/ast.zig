@@ -804,11 +804,11 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
-        try term_types.append(none_type);
-
         var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator), of_type, null, null, allocator);
         try term_types.append(some_type);
+
+        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
+        try term_types.append(none_type);
 
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
         retval.sum.was_optional = true;

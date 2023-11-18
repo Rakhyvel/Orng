@@ -202,6 +202,7 @@ pub const Context = struct {
                     // Active field check fails, append line and panic
                     try debug_call_stack.append(ir.span);
                     var i = debug_call_stack.items.len - 1;
+                    std.debug.print("panic: attempt to access field {} when field {} was active\n", .{ ir.meta.active_field_check.selection, tag.int });
                     while (true) {
                         var span = debug_call_stack.items[i];
                         try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
