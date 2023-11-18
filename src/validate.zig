@@ -654,8 +654,7 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 errors.addError(Error{ .basic = .{ .span = ast._orelse.lhs.getToken().span, .msg = "left-hand side of orelse is not an optional type" } });
                 return ast.enpoison();
             } else if (expected != null and !try lhs_expanded_type.get_some_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
-                var optional_expected = try AST.create_optional_type(expected.?, allocator);
-                errors.addError(Error{ .expected2Type = .{ .span = ast._orelse.lhs.getToken().span, .expected = optional_expected, .got = lhs_expanded_type } });
+                errors.addError(Error{ .expected2Type = .{ .span = ast._orelse.lhs.getToken().span, .expected = expected.?, .got = lhs_expanded_type.get_some_type().annotation.type } });
                 return ast.enpoison();
             }
             if (ast._orelse.lhs.* == .poison or ast._orelse.rhs.* == .poison) {

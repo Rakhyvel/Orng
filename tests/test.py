@@ -32,7 +32,7 @@ import subprocess
 def main():
     args = parse_args()
 
-    res = subprocess.run(["zig", "build", "orng-test"]).returncode
+    res = subprocess.run(["zig", "build", "orng-test", "-freference-trace"]).returncode
     if res != 0:
         return
 

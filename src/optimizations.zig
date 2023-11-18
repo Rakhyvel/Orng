@@ -112,6 +112,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
                     bb.next = bb.branch;
                     bb.next_arguments = bb.branch_arguments;
                 }
+                bb.branch = null;
                 retval = true;
             }
             // Flip labels if branch condition is negation, plunge negation

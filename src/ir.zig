@@ -695,7 +695,7 @@ pub const IR = struct {
             },
             .loadUnion => {
                 // init may be null, if it is unit
-                try out.writer().print("    {} := {{tag={}, init={?}}}\n", .{ self.dest.?, self.data.int, self.src1 });
+                try out.writer().print("    {} := {{init={?}, tag={}}}\n", .{ self.dest.?, self.src1, self.data.int });
             },
             .loadString => {
                 try out.writer().print("    {} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
