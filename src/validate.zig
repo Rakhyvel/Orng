@@ -384,8 +384,7 @@ fn validateAST(
             try scope.module.?.append_instructions(cfg);
             var context = try Context.init(cfg, &scope.module.?.instructions, ast._comptime.symbol.?._type.?.function.rhs.get_slots(), cfg.offset.?);
             var ir_data = try context.interpret();
-            _ = ir_data;
-            retval = try AST.createInt(ast.getToken(), 100, allocator);
+            retval = try ir_data.to_ast(ast.getToken(), allocator);
         },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);

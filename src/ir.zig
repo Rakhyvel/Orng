@@ -255,6 +255,24 @@ pub const IRData = union(enum) {
     select: struct { offset: i128, field: i128 },
     none,
 
+    pub fn to_ast(self: IRData, token: Token, allocator: std.mem.Allocator) !*AST {
+        switch (self) {
+            .int => {
+                return try AST.createInt(token, self.int, allocator);
+            },
+            .float => {
+                return try AST.createFloat(token, self.float, allocator);
+            },
+            .none => {
+                return try AST.createUnit(token, allocator);
+            },
+            else => {
+                std.debug.print("Unknown IRData->AST conversion for {s}\n", .{@tagName(self)});
+                unreachable;
+            },
+        }
+    }
+
     pub fn pprint(self: IRData, allocator: std.mem.Allocator) ![]const u8 {
         var out = String.init(allocator);
         defer out.deinit();
@@ -1085,10 +1103,10 @@ pub const CFG = struct {
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
         retval.removeBasicBlockLastInstruction();
 
-        for (retval.basic_blocks.items) |bb| {
-            bb.pprint();
-        }
-        retval.clearVisitedBBs();
+        // for (retval.basic_blocks.items) |bb| {
+        //     bb.pprint();
+        // }
+        // retval.clearVisitedBBs();
 
         try retval.calculatePhiParamsAndArgs(allocator);
 
