@@ -22,7 +22,7 @@ pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
-    module: *Module, // Enclosing module
+    module: ?*Module, // Enclosing module
     name: []const u8,
     uid: usize,
 
@@ -52,6 +52,7 @@ pub const Scope = struct {
             retval.in_loop = false;
             retval.in_function = 0;
             retval.inner_function = null;
+            retval.module = null;
         }
         return retval;
     }

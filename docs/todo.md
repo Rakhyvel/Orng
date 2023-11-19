@@ -318,11 +318,6 @@
         - interpret
     > When a function is needed to run at compile-time, check to see if the function CFG exists.
     - [ ] expressions marked `comptime`
-        - [ ] block
-        - [ ] if
-        - [ ] case
-        - [ ] decl
-        - [ ] defer
     - [ ] eval type annotations
     - [ ] eval default inits
     - [ ] eval symbol defs defined as const
@@ -335,33 +330,32 @@
         - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
         - [ ] `default` prefix operator, which takes a type and returns the default value for that type
 - [ ] build system (built upon compile-time evaluation)
-    - [ ] **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
-    > Should be stateless, gosh dangit!
-    > Read about philosophy of other build systems, what do users want/need to build Orng programs?
-        > `orng build ?.orng` command takes in a file `?.orng` that has a `build` constant, which has fields for 
-        > `fn import(const path:String) -> (tuple of definitions in module)`
-        > `fn package(path: const String) -> (tuple of modules in package)`
-        > `fn extern(name: const String, T: Type) -> T`
-        > `fn extern_type(name: const String, backing: Type = ()) -> Type`
-        > `fn c_include(path: const String) -> (a tuple of the definitions)`
+    > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
+    - [ ] `build.orng` which contains a `build()` function, like zig
+        > specifies the entry function (is this possible?)
+        > specifies the orng code to use (is this possible?)
+        > sets build modes, like debug, executable, library, etc
+            - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
+        > be able to include C source files, and header directories
+        > be able to link static and dynamic libraries
+    - [ ] import syntax before any definitions `["from" package {"." package}] "import" module ["as" ident]`
+        > Packages are directories, mapped in the build file
+        > This allows dependencies to be simple
+        > Also makes canonical names the norm
+        > `module` is the filename in the package without the `.orng`, so file names have to abide by identifier syntax
+    - [ ] `::` for module selection
     - [ ] `pub` keyword
     - [ ] `fn main(sys: System)->!()`
-    - [ ] Specifies the entry function somehow
-    - [ ] entry function takes a record of IO function pointers
-    - [ ] be able to parse C headers
-    - [ ] be able to include C source files before generated C file
-    - [ ] be able to link static and dynamic libraries
-    > How do 'packages' work? How **SHOULD** they work?
-    - [ ] Optionally execute output executable after compiling
-    - [ ] Externs
-    - [ ] Prelude with:
-        - [ ] Each primitive type as an extern type
-        - [ ] bitwise functions
-    > How to do exponentiation without libc?
-    - [ ] debug mode which enables checks for UB
-        - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
-    - [ ] Option to generate header and source file
-    - [ ] Options to add C system headers and regular header directories
+        > System contains:
+            - args: []String // the command line args
+            - stdin: dyn Reader
+            - stdout: dyn Writer
+            - stderr: dyn Writer
+            - global_allocator: dyn Allocator
+            - fs: // File System?
+            - net: // Socket system?
+            - env: // How should environment variables work?
+    > How do externs work?
 - [ ] type classes / interfaces / traits
     > Do not use for operator overloading!
     - [ ] `lhs<:rhs` operator with lhs being a capture pattern and rhs being a class
@@ -381,6 +375,7 @@
     - [ ] `@as` which can do reinterpret casting (maybe different name?)
     - [ ] `id` function in standard
 - [ ] refinement types
+    > This feature may not be needed, or good
     - [ ] `where` which checks at runtime if a condition is true, panics if it's not
     - [ ] `==>` implies boolean operator might be handy
         > `ast^ == .match ==> mappings_have_rhs(ast)`

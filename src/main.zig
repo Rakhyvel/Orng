@@ -103,7 +103,6 @@ pub fn compile(
             else => return err,
         }
     };
-    // TODO: defer file_root.deinit()
     return try output(errors, module, out_name, allocator);
     // catch |err| {
     //     switch (err) {
@@ -178,9 +177,9 @@ pub fn compileContents(
     var parser = try Parser.create(&tokens, errors, allocator);
     var module_ast = try parser.parse();
 
-    // Symbol tree construction
-    var module = try Module.init(uid, prelude, errors, allocator);
+    // Module/Symbol-Tree construction
     var file_root = try symbol.Scope.init(prelude, name, allocator);
+    var module = try Module.init(uid, file_root, errors, allocator);
     file_root.module = module;
     try symbol.symbolTableFromASTList(module_ast, file_root, errors, allocator);
 
@@ -200,6 +199,7 @@ pub fn output(
     out_name: []const u8,
     allocator: std.mem.Allocator,
 ) !ir.IRData {
+    // try module.scope.pprint();
     if (module.scope.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
             errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
@@ -219,7 +219,7 @@ pub fn output(
 
             // Wrap main CFG in interpreter context
             // module.print_instructions();
-            var context = try Context.init(cfg, &module.instructions, msymb._type.?.function.rhs.get_slots());
+            var context = try Context.init(cfg, &module.instructions, msymb._type.?.function.rhs.get_slots(), cfg.offset.?);
             return try context.interpret();
         } else {
             // Wrap main CFG in module

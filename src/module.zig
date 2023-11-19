@@ -88,7 +88,7 @@ pub const Module = struct {
         try work_queue.append(first_bb);
 
         while (work_queue.items.len > 0) {
-            var bb = work_queue.orderedRemove(0); // Youch!
+            var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
 
             if (bb.offset != null) {
                 continue;

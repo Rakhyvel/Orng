@@ -380,9 +380,9 @@ fn validateAST(
 
             // Create CFG, optimize, calc offsets, emplace instructions into module, wrap context around instructions, interpret, wrap in AST
             // If the comptime expr calls other functions... those will need to be emplaced too...
-            var cfg = try ast._comptime.symbol.?.get_cfg(null, &scope.module.interned_strings, errors, allocator);
-            try scope.module.append_instructions(cfg);
-            var context = try Context.init(cfg, &scope.module.instructions, ast._comptime.symbol.?._type.?.function.rhs.get_slots());
+            var cfg = try ast._comptime.symbol.?.get_cfg(null, &scope.module.?.interned_strings, errors, allocator);
+            try scope.module.?.append_instructions(cfg);
+            var context = try Context.init(cfg, &scope.module.?.instructions, ast._comptime.symbol.?._type.?.function.rhs.get_slots(), cfg.offset.?);
             var ir_data = try context.interpret();
             _ = ir_data;
             retval = try AST.createInt(ast.getToken(), 100, allocator);

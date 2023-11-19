@@ -1085,10 +1085,10 @@ pub const CFG = struct {
         retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
         retval.removeBasicBlockLastInstruction();
 
-        // for (retval.basic_blocks.items) |bb| {
-        //     bb.pprint();
-        // }
-        // retval.clearVisitedBBs();
+        for (retval.basic_blocks.items) |bb| {
+            bb.pprint();
+        }
+        retval.clearVisitedBBs();
 
         try retval.calculatePhiParamsAndArgs(allocator);
 
