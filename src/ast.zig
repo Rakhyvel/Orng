@@ -132,6 +132,12 @@ pub const AST = union(enum) {
     dereference: struct { common: ASTCommon, expr: *AST },
     _try: struct { common: ASTCommon, expr: *AST },
     discard: struct { common: ASTCommon, expr: *AST },
+    _comptime: struct {
+        common: ASTCommon,
+        expr: *AST,
+        name: ?*AST = null,
+        symbol: ?*Symbol = null,
+    },
 
     // Binary operators
     assign: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -388,6 +394,7 @@ pub const AST = union(enum) {
             .discard => return &self.discard.common,
             ._typeOf => return &self._typeOf.common,
             .domainOf => return &self.domainOf.common,
+            ._comptime => return &self._comptime.common,
 
             .assign => return &self.assign.common,
             ._or => return &self._or.common,
@@ -542,6 +549,10 @@ pub const AST = union(enum) {
 
     pub fn createDiscard(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .discard = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    }
+
+    pub fn createComptime(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ ._comptime = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .name = null, .symbol = null } }, allocator);
     }
 
     pub fn createTypeOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
@@ -1185,7 +1196,7 @@ pub const AST = union(enum) {
                 };
             },
 
-            // Unary Operators (TODO: Make polymorphic)
+            // Unary Operators
             .negate => retval = try self.negate.expr.typeof(scope, errors, allocator),
             .dereference => {
                 var _type = try self.dereference.expr.typeof(scope, errors, allocator);
@@ -1215,6 +1226,7 @@ pub const AST = union(enum) {
             .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
             .inferredMember => retval = try self.inferredMember.base.?.expand_type(scope, errors, allocator),
             ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).get_ok_type(),
+            ._comptime => retval = try self._comptime.expr.typeof(scope, errors, allocator),
 
             // Control-flow expressions
             ._if => {

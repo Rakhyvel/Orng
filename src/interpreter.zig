@@ -168,6 +168,7 @@ pub const Context = struct {
         var buffer: [1024]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
         var debug_call_stack: std.ArrayList(span_.Span) = std.ArrayList(span_.Span).init(fba.allocator());
+        defer debug_call_stack.deinit();
 
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
@@ -184,8 +185,8 @@ pub const Context = struct {
                     try debug_call_stack.append(ir.span);
                     var i = debug_call_stack.items.len - 1;
                     while (true) {
-                        var span = debug_call_stack.items[i];
-                        try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+                        // var span = debug_call_stack.items[i];
+                        // try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
 
                         if (i == 0) {
                             break;
@@ -204,8 +205,8 @@ pub const Context = struct {
                     var i = debug_call_stack.items.len - 1;
                     std.debug.print("panic: attempt to access field {} when field {} was active\n", .{ ir.meta.active_field_check.selection, tag.int });
                     while (true) {
-                        var span = debug_call_stack.items[i];
-                        try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+                        // var span = debug_call_stack.items[i];
+                        // try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
 
                         if (i == 0) {
                             break;
@@ -469,8 +470,8 @@ pub const Context = struct {
                 .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
                     var i = debug_call_stack.items.len - 1;
                     while (true) {
-                        var span = debug_call_stack.items[i];
-                        try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+                        // var span = debug_call_stack.items[i];
+                        // try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
 
                         if (i == 0) {
                             break;

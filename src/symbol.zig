@@ -2,6 +2,7 @@ const std = @import("std");
 const ast = @import("ast.zig");
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
+const module_ = @import("module.zig");
 const offsets = @import("offsets.zig");
 const optimizations = @import("optimizations.zig");
 const _span = @import("span.zig");
@@ -9,6 +10,7 @@ const _span = @import("span.zig");
 const AST = ast.AST;
 const CFG = ir_.CFG;
 const Error = errs.Error;
+const Module = module_.Module;
 const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = @import("token.zig").Token;
@@ -20,6 +22,7 @@ pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
+    module: *Module, // Enclosing module
     name: []const u8,
     uid: usize,
 
@@ -44,6 +47,7 @@ pub const Scope = struct {
             retval.in_loop = _parent.in_loop;
             retval.in_function = _parent.in_function;
             retval.inner_function = _parent.inner_function;
+            retval.module = _parent.module;
         } else {
             retval.in_loop = false;
             retval.in_function = 0;
@@ -190,6 +194,7 @@ pub const SymbolKind = enum {
     }
 };
 
+var number_of_comptime: usize = 0;
 pub const Symbol = struct {
     scope: *Scope, // Enclosing parent scope
     name: []const u8,
@@ -292,6 +297,20 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
         ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
         .discard => try symbolTableFromAST(definition.discard.expr, scope, errors, allocator),
+        ._comptime => {
+            var symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
+            if (scope.lookup(symbol.name, false)) |first| {
+                errors.addError(Error{ .redefinition = .{
+                    .first_defined_span = first.span,
+                    .redefined_span = symbol.span,
+                    .name = symbol.name,
+                } });
+                return error.symbolError;
+            } else {
+                try scope.symbols.put(symbol.name, symbol);
+            }
+            definition._comptime.symbol = symbol;
+        },
 
         .assign => {
             try symbolTableFromAST(definition.assign.lhs, scope, errors, allocator);
@@ -663,4 +682,55 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
         var retval = try AST.createProduct(params.items[0].getToken(), param_types, allocator);
         return retval;
     }
+}
+
+fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
+    // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
+    var lhs = try AST.createUnit(definition._comptime.expr.getToken(), allocator);
+    var rhs = try AST.createTypeOf(definition._comptime.expr.getToken(), definition._comptime.expr, allocator);
+    var _type = try AST.createFunction(definition._comptime.expr.getToken(), lhs, rhs, allocator);
+
+    // Create the comptime scope
+    var comptime_scope = try Scope.init(scope, "", allocator);
+    comptime_scope.in_function = scope.in_function + 1;
+
+    var keySet = comptime_scope.symbols.keys();
+    var i: usize = 0;
+    while (i < keySet.len) : (i += 1) {
+        var key = keySet[i];
+        var symbol = comptime_scope.symbols.get(key).?;
+        symbol.defined = true;
+        symbol.decld = true;
+        symbol.param = true;
+    }
+
+    // Choose name
+    var buf: []const u8 = undefined;
+    buf = try next_comptime_name(allocator);
+
+    // Create the symbol
+    var retval = try Symbol.create(
+        comptime_scope,
+        buf,
+        definition.getToken().span,
+        _type,
+        definition._comptime.expr,
+        definition,
+        ._fn,
+        allocator,
+    );
+    comptime_scope.inner_function = retval;
+
+    try symbolTableFromAST(definition._comptime.expr, comptime_scope, errors, allocator);
+    return retval;
+}
+
+var num_comptime: usize = 0;
+fn next_comptime_name(allocator: std.mem.Allocator) SymbolErrorEnum![]const u8 {
+    // TODO: Idk maybe generalize this with the anon function name
+    defer numAnonFunctions += 1;
+    var out = String.init(allocator);
+    defer out.deinit();
+    try out.writer().print("$comptime{}", .{numAnonFunctions});
+    return (try out.toOwned()).?;
 }

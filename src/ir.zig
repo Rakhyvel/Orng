@@ -1,7 +1,7 @@
 const _ast = @import("ast.zig");
 const errs = @import("errors.zig");
 const primitives = @import("primitives.zig");
-const program = @import("program.zig");
+const module_ = @import("module.zig");
 const std = @import("std");
 const _symbol = @import("symbol.zig");
 const _string = @import("zig-string/zig-string.zig");
@@ -1176,10 +1176,10 @@ pub const CFG = struct {
         NotAnLValue,
         Unimplemented,
         InvalidRange,
-        Utf8ExpectedContinuation,
-        Utf8OverlongEncoding,
-        Utf8EncodesSurrogateHalf,
-        Utf8CodepointTooLarge,
+        // Utf8ExpectedContinuation,
+        // Utf8OverlongEncoding,
+        // Utf8EncodesSurrogateHalf,
+        // Utf8CodepointTooLarge,
     };
 
     fn flattenAST(self: *CFG, scope: *Scope, ast: *AST, return_label: ?*IR, break_label: ?*IR, continue_label: ?*IR, error_label: ?*IR, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*SymbolVersion {
@@ -1195,6 +1195,7 @@ pub const CFG = struct {
             },
             .char => {
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
+                // Convert the character inside to a codepoint
                 var codepoint: u21 = undefined;
                 switch (ast.getToken().data[1]) {
                     '\\' => switch (ast.getToken().data[2]) {
@@ -1208,7 +1209,7 @@ pub const CFG = struct {
                     },
                     else => {
                         var num_bytes = std.unicode.utf8ByteSequenceLength(ast.getToken().data[1]) catch return error.typeError;
-                        codepoint = try std.unicode.utf8Decode(ast.getToken().data[1 .. num_bytes + 1]);
+                        codepoint = std.unicode.utf8Decode(ast.getToken().data[1 .. num_bytes + 1]) catch return error.typeError; // TODO: Add actual error diagnostics here
                     },
                 }
                 var ir = try IR.createInt(temp, codepoint, ast.getToken().span, allocator);
@@ -1222,7 +1223,7 @@ pub const CFG = struct {
                 return temp;
             },
             .string => {
-                try program.interned_string_set_add(ast.string.data, self.interned_strings);
+                try module_.interned_string_set_add(ast.string.data, self.interned_strings);
                 var temp = try self.createTempSymbolVersion(try ast.typeof(scope, errors, allocator), errors, allocator);
                 var ir = try IR.createString(temp, self.interned_strings.items.len - 1, ast.getToken().span, allocator);
                 self.appendInstruction(ir);

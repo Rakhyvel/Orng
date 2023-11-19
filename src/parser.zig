@@ -63,6 +63,7 @@ pub const Parser = struct {
         or nextKind == .FOR //
         or nextKind == .IF //
         or nextKind == .TRY //
+        or nextKind == .COMPTIME //
         or nextKind == .UNREACHABLE //
         or nextKind == .WHILE //
         or nextKind == .IDENTIFIER //
@@ -404,6 +405,8 @@ pub const Parser = struct {
     fn prefix_expr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.NOT)) |token| {
             return try AST.createNot(token, try self.invoke_expr(), self.astAllocator);
+        } else if (self.accept(.COMPTIME)) |token| {
+            return try AST.createComptime(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
             return try AST.createNegate(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {

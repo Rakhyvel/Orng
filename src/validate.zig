@@ -1,28 +1,35 @@
 const _ast = @import("ast.zig");
 const errs = @import("errors.zig");
+const module_ = @import("module.zig");
 const primitives = @import("primitives.zig");
 const std = @import("std");
 const symbols = @import("symbol.zig");
 
 const AST = _ast.AST;
+const Context = @import("interpreter.zig").Context;
 const Error = errs.Error;
+const Module = module_.Module;
 const Scope = symbols.Scope;
 const Span = @import("span.zig").Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Symbol = symbols.Symbol;
 const Token = @import("token.zig").Token;
 
-pub fn validateScope(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+pub fn validate_module(module: *Module, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+    try validate_scope(module.scope, errors, allocator);
+}
+
+fn validate_scope(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     for (scope.symbols.keys()) |key| {
         var symbol = scope.symbols.get(key).?;
         try validateSymbol(symbol, errors, allocator);
     }
     for (scope.children.items) |child| {
-        try validateScope(child, errors, allocator);
+        try validate_scope(child, errors, allocator);
     }
 }
 
-pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!void {
+pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!void {
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -100,7 +107,13 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
 
 /// Errors out if `ast` is not the expected type
 /// @param expected Should be null if `ast` can be any type
-pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory }!*AST {
+fn validateAST(
+    old_ast: *AST,
+    old_expected: ?*AST,
+    scope: *Scope,
+    errors: *errs.Errors,
+    allocator: std.mem.Allocator,
+) error{ typeError, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!*AST {
     var retval: *AST = undefined;
     var expected = old_expected;
     var ast = old_ast;
@@ -134,6 +147,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 error.typeError => return ast.enpoison(),
                 error.OutOfMemory => return error.OutOfMemory,
                 error.Unimplemented => return error.Unimplemented,
+                error.InvalidRange => return error.InvalidRange,
+                error.NotAnLValue => return error.NotAnLValue,
             };
             if (new_list.items.len == 1 and expanded_expected.* != .product) {
                 ast = new_list.items[0];
@@ -354,6 +369,23 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 return ast.enpoison();
             }
             retval = try ast._typeOf.expr.typeof(scope, errors, allocator);
+        },
+        ._comptime => {
+            // Validate the symbol, return ast enpoisoned if the symbol type is poison
+            // (_comptime.symbol is created during symbol tree expansion)
+            try validateSymbol(ast._comptime.symbol.?, errors, allocator);
+            if (ast._comptime.symbol.?._type.?.* == .poison) {
+                return ast.enpoison();
+            }
+
+            // Create CFG, optimize, calc offsets, emplace instructions into module, wrap context around instructions, interpret, wrap in AST
+            // If the comptime expr calls other functions... those will need to be emplaced too...
+            var cfg = try ast._comptime.symbol.?.get_cfg(null, &scope.module.interned_strings, errors, allocator);
+            try scope.module.append_instructions(cfg);
+            var context = try Context.init(cfg, &scope.module.instructions, ast._comptime.symbol.?._type.?.function.rhs.get_slots());
+            var ir_data = try context.interpret();
+            _ = ir_data;
+            retval = try AST.createInt(ast.getToken(), 100, allocator);
         },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);
@@ -680,6 +712,8 @@ pub fn validateAST(old_ast: *AST, old_expected: ?*AST, scope: *Scope, errors: *e
                 error.typeError => return ast.enpoison(),
                 error.OutOfMemory => return error.OutOfMemory,
                 error.Unimplemented => return error.Unimplemented,
+                error.InvalidRange => return error.InvalidRange,
+                error.NotAnLValue => return error.NotAnLValue,
             };
 
             // Validate
@@ -1830,6 +1864,7 @@ fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *err
     }
 }
 
+// TODO: Move this elsewhere
 pub fn findSymbol(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
     var symbol = scope.lookup(ast.getToken().data, false) orelse {
         errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .scope = scope, .expected = expected } });

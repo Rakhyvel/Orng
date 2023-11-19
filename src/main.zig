@@ -1,6 +1,6 @@
 const std = @import("std");
 const ast = @import("ast.zig");
-const codegen = @import("codegen.zig");
+// const codegen = @import("codegen.zig");
 const Context = @import("interpreter.zig").Context;
 const errs = @import("errors.zig");
 const ir = @import("ir.zig");
@@ -8,8 +8,8 @@ const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
 const primitives = @import("primitives.zig");
-const _program = @import("program.zig");
-const Program = _program.Program;
+const module_ = @import("module.zig");
+const Module = module_.Module;
 const Span = @import("span.zig");
 const symbol = @import("symbol.zig");
 const Token = @import("token.zig").Token;
@@ -84,7 +84,7 @@ pub fn compile(
     var lines = std.ArrayList([]const u8).init(allocator);
     defer lines.deinit();
 
-    var file_root = compileContents(errors, &lines, in_name, contents, prelude, fuzz_tokens, allocator) catch |err| {
+    var module = compileContents(errors, &lines, in_name, contents, uid, prelude, fuzz_tokens, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parserError,
@@ -104,7 +104,7 @@ pub fn compile(
         }
     };
     // TODO: defer file_root.deinit()
-    return try output(errors, prelude, file_root, uid, out_name, allocator);
+    return try output(errors, module, out_name, allocator);
     // catch |err| {
     //     switch (err) {
     //         error.symbolError,
@@ -118,16 +118,17 @@ pub fn compile(
     // };
 }
 
-/// Takes in a string of contents, compiles it to a statically correct symbol-tree
+/// Takes in a string of contents, compiles it to a statically correct module
 pub fn compileContents(
     errors: *errs.Errors,
     lines: *std.ArrayList([]const u8),
     in_name: []const u8,
     contents: []const u8,
+    uid: i128,
     prelude: *symbol.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) !*symbol.Scope {
+) !*Module {
     // Construct the name
     var i: usize = 0;
     while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
@@ -175,43 +176,40 @@ pub fn compileContents(
     // Parse
     try ast.init_structures();
     var parser = try Parser.create(&tokens, errors, allocator);
-    var program_ast = try parser.parse();
+    var module_ast = try parser.parse();
 
     // Symbol tree construction
+    var module = try Module.init(uid, prelude, errors, allocator);
     var file_root = try symbol.Scope.init(prelude, name, allocator);
-    try symbol.symbolTableFromASTList(program_ast, file_root, errors, allocator);
+    file_root.module = module;
+    try symbol.symbolTableFromASTList(module_ast, file_root, errors, allocator);
 
     // Typecheck
-    try validate.validateScope(file_root, errors, allocator);
+    try validate.validate_module(module, errors, allocator);
     if (errors.errors_list.items.len > 0) {
         return error.typeError;
     }
 
-    return file_root;
+    return module;
 }
 
 /// Takes in a statically correct symbol tree, writes it out to a file
 pub fn output(
     errors: *errs.Errors,
-    prelude: *symbol.Scope,
-    file_root: *symbol.Scope,
-    uid: i128,
+    module: *Module,
     out_name: []const u8,
     allocator: std.mem.Allocator,
 ) !ir.IRData {
-    if (file_root.symbols.get("main")) |msymb| {
+    if (module.scope.symbols.get("main")) |msymb| {
         if (msymb._type.?.* != .function or msymb.kind != ._fn) {
             errors.addError(errs.Error{ .basic = .{ .span = Span.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "entry point `main` is not a function" } });
             return error.symbolError;
         }
-        var interned_strings = std.ArrayList([]const u8).init(allocator);
-        defer interned_strings.deinit();
-        var program: *Program = try Program.init(uid, &interned_strings, prelude, errors, allocator); // TODO: defer program.deinit()
         // IR translation
         var irAllocator = std.heap.ArenaAllocator.init(allocator);
         defer irAllocator.deinit();
-        var cfg = try msymb.get_cfg(null, &interned_strings, errors, allocator);
-        try program.append_instructions(cfg);
+        var cfg = try msymb.get_cfg(null, &module.interned_strings, errors, allocator);
+        try module.append_instructions(cfg);
 
         const interpret = true;
         if (interpret) {
@@ -220,12 +218,12 @@ pub fn output(
             defer interpreter_allocator.deinit();
 
             // Wrap main CFG in interpreter context
-            // program.print_instructions();
-            var context = try Context.init(cfg, &program.instructions, msymb._type.?.function.rhs.get_slots());
+            // module.print_instructions();
+            var context = try Context.init(cfg, &module.instructions, msymb._type.?.function.rhs.get_slots());
             return try context.interpret();
         } else {
-            // Wrap main CFG in program
-            try _program.collectTypes(cfg, &program.types, file_root, errors, allocator);
+            // Wrap main CFG in module
+            try module_.collectTypes(cfg, &module.types, module.scope, errors, allocator);
 
             // Create the output file
             var outputFile = std.fs.cwd().createFile(
@@ -241,7 +239,7 @@ pub fn output(
             defer outputFile.close();
 
             // Generate the output code
-            try codegen.generate(program, &outputFile);
+            // try codegen.generate(module, &outputFile);
         }
 
         symbol.scopeUID = 0; // Reset scope UID. Doesn't affect one-off compilations really, but does for tests. Helps with version control.

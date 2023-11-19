@@ -117,8 +117,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    var res_ = compiler.compile(&errors, filename, out_name.str(), prelude, false, allocator);
-    _ = res_ catch |err| {
+    var res = compiler.compile(&errors, filename, out_name.str(), prelude, false, allocator) catch |err| {
         if (!coverage) {
             std.debug.print("{}\n", .{err});
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
@@ -135,7 +134,6 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
         }
         return false;
     };
-    var res = try res_;
     if (coverage) {
         return false;
     }
@@ -312,7 +310,7 @@ fn fuzzTests() !void {
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            var file_root = compiler.compileContents(&errors, &lines, "fuzz", program_text, prelude, true, allocator) catch |err| {
+            var module = compiler.compileContents(&errors, &lines, "fuzz", program_text, 0, prelude, true, allocator) catch |err| {
                 // try errors.printErrors(&lines, "");
                 switch (err) {
                     error.lexerError,
@@ -338,7 +336,7 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            var res = compiler.output(&errors, prelude, file_root, 0, "tests/fuzz/fuzz-out.c", allocator);
+            var res = compiler.output(&errors, module, "tests/fuzz/fuzz-out.c", allocator);
             _ = res catch |err| {
                 switch (err) {
                     error.symbolError => {

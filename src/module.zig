@@ -25,9 +25,9 @@ pub const DAG = struct {
     }
 };
 
-/// This structure represents the entire program being compiled.
-pub const Program = struct {
-    // A unique identifier for this Orng program
+/// This structure represents a module being compiled.
+pub const Module = struct {
+    // A unique identifier for this Orng module
     uid: i128,
 
     // A graph of type dependencies
@@ -37,22 +37,22 @@ pub const Program = struct {
     instructions: std.ArrayList(*ir_.IR),
 
     // Interned strings
-    interned_strings: *std.ArrayList([]const u8),
+    interned_strings: std.ArrayList([]const u8),
 
-    // The prelude scope node
-    prelude: *Scope,
+    // The root scope node for the module
+    scope: *Scope,
 
     // Errors, used as context
     errors: *errs.Errors,
 
-    // Allocator for the program
+    // Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(uid: i128, interned_strings: *std.ArrayList([]const u8), prelude: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Program {
-        var retval = try allocator.create(Program);
+    pub fn init(uid: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Module {
+        var retval = try allocator.create(Module);
         retval.uid = uid;
-        retval.interned_strings = interned_strings;
-        retval.prelude = prelude;
+        retval.interned_strings = std.ArrayList([]const u8).init(allocator);
+        retval.scope = scope;
         retval.errors = errors;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
@@ -60,11 +60,11 @@ pub const Program = struct {
         return retval;
     }
 
-    /// Flattens all CFG's instructions to the programs list of instructions, recursively.
+    /// Flattens all CFG's instructions to the module's list of instructions, recursively.
     ///
     /// Also sets the `offset` flag of a CFG, which is the address in the instructions list that the
     /// instructions for the CFG start.
-    pub fn append_instructions(self: *Program, cfg: *CFG) !void {
+    pub fn append_instructions(self: *Module, cfg: *CFG) !void {
         if (cfg.offset != null) {
             // Already visited, do nothing
             return;
@@ -80,9 +80,9 @@ pub const Program = struct {
         }
     }
 
-    /// Appends the instructions in a BasicBlock to the program's instructions.
+    /// Appends the instructions in a BasicBlock to the module's instructions.
     /// Returns the offset of the basic block
-    fn append_basic_block(self: *Program, first_bb: *ir_.BasicBlock) !i128 {
+    fn append_basic_block(self: *Module, first_bb: *ir_.BasicBlock) !i128 {
         var work_queue = std.ArrayList(*ir_.BasicBlock).init(self.allocator);
         defer work_queue.deinit();
         try work_queue.append(first_bb);
@@ -125,14 +125,14 @@ pub const Program = struct {
     /// This function inserts a label and a return instruction. It is needed for functions which do not have
     /// instructions. The label is needed so that codegen can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
-    fn append_phony_block(self: *Program) !i128 {
+    fn append_phony_block(self: *Module) !i128 {
         var offset = self.instructions.items.len;
         try self.instructions.append(try ir_.IR.createLabel(0, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         try self.instructions.append(try ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         return offset;
     }
 
-    fn create_jump_addr_uid(self: *Program, bb: ?*ir_.BasicBlock) error{OutOfMemory}!struct { addr: ?i128, uid: ?u64 } {
+    fn create_jump_addr_uid(self: *Module, bb: ?*ir_.BasicBlock) error{OutOfMemory}!struct { addr: ?i128, uid: ?u64 } {
         var addr: ?i128 = undefined;
         var uid: ?u64 = undefined;
         if (bb != null) {
@@ -145,7 +145,7 @@ pub const Program = struct {
         return .{ .addr = addr, .uid = uid };
     }
 
-    pub fn print_instructions(self: *Program) void {
+    pub fn print_instructions(self: *Module) void {
         for (self.instructions.items) |ir| {
             std.debug.print("{}", .{ir});
         }

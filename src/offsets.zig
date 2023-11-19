@@ -54,9 +54,11 @@ pub fn calculate_offsets(
 
     // Calculate parameters offsets, descending from retval address offset
     var param_offsets: i64 = retval_offset;
-    for (symbol.decl.?.fnDecl.param_symbols.items) |param| {
-        param_offsets -= param.expanded_type.?.get_slots();
-        param.offset = param_offsets;
+    if (symbol.decl.?.* == .fnDecl) {
+        for (symbol.decl.?.fnDecl.param_symbols.items) |param| {
+            param_offsets -= param.expanded_type.?.get_slots();
+            param.offset = param_offsets;
+        }
     }
 
     // Calculate locals offsets, ascending from local starting offset

@@ -51,7 +51,7 @@ int_expr: term_expr {("+" | "-" | "!") term_expr}.
 term_expr: prefix_expr ({("*" | "/" | "||" | "%") prefix_expr}).
 
 prefix_expr: "not" hyper_expr                         # boolean not
-           | "comptime" prefix_expr                   # compile-time expression
+           | "comptime" hyper_expr                    # compile-time expression
            | "-" hyper_expr                           # negation
            | "&" ["mut"] prefix_expr                  # address-of
            | "[" ["mut" | expr | "*"] "]" prefix_expr # slice-of/tuple-of/multi-pointer

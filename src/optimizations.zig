@@ -32,7 +32,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     }
 }
 
-pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) !void {
+pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) error{ typeError, OutOfMemory, InvalidRange }!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -1262,8 +1262,10 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
 
 fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
     calculateUsage(cfg);
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
-        try err_if_unused(param_symbol, errors);
+    if (cfg.symbol.decl.?.* == .fnDecl) {
+        for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
+            try err_if_unused(param_symbol, errors);
+        }
     }
 
     for (cfg.basic_blocks.items) |bb| {
@@ -1380,8 +1382,10 @@ fn calculateVersions(cfg: *CFG) void {
 }
 
 fn calculateUsage(cfg: *CFG) void {
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
-        param_symbol.uses = 0;
+    if (cfg.symbol.decl.?.* == .fnDecl) {
+        for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
+            param_symbol.uses = 0;
+        }
     }
 
     for (cfg.basic_blocks.items) |bb| {

@@ -5,9 +5,10 @@
 - [ ] Standardize token, ast, ir *kind* naming convention
 - [ ] Alphabetize type imports by the module, then by the type.
 - [ ] Standardize the names of parameters, ie:
-    - `token` for a Token
-    - `ast` for an AST node
-    - `def` for the def IR node of a SymbolVersion
+    - `const <file>_ = @import("<file>.zig")` for zig files
+    - `token` for a Tokens
+    - `ast` for an AST nodes
+    - `def` for the def IR node of a SymbolVersions
     - `ir` for an arbitrary IR node
     - `symbver` for an arbitrary SymbolVersion
     - `maybe_x` for an optional variant of a type
