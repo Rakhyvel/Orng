@@ -19,7 +19,7 @@ pub fn doLayout(tokens: *std.ArrayList(Token)) !void {
 fn strip_comments(tokens: *std.ArrayList(Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
-        var token = tokens.items[i];
+        const token = tokens.items[i];
         if (token.kind != .COMMENT) {
             continue;
         }
@@ -50,13 +50,13 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) !void {
                 // out was not null => there must have been a multiline before this one => insert newline
                 try out.?.insert("\n", out.?.len());
             }
-            var multiline: Token = tokens.orderedRemove(i); // Remove multiline
+            const multiline: Token = tokens.orderedRemove(i); // Remove multiline
             _ = tokens.orderedRemove(i); // Remove newline (do not compensate)
             i -= 1; // Compensate for removed multiline
             try out.?.insert(multiline.data, out.?.len()); // Append data to out
         }
         if (out != null) {
-            var token = Token.create((try out.?.toOwned()).?, .MULTI_LINE, span.?.filename, span.?.line_text, span.?.line, span.?.col);
+            const token = Token.create((try out.?.toOwned()).?, .MULTI_LINE, span.?.filename, span.?.line_text, span.?.line, span.?.col);
             try tokens.insert(i, token);
         }
     }
@@ -119,11 +119,11 @@ fn newline_rules(tokens: *std.ArrayList(Token)) !void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
         // If token at `i` is a newline, ...
-        var token = tokens.items[i];
+        const token = tokens.items[i];
         if (token.kind == .L_PAREN or token.kind == .L_BRACE) {
             try stack.append(token.kind);
         } else if (token.kind == .R_PAREN or token.kind == .R_BRACE and stack.items.len > 0) {
-            var popped = stack.pop();
+            const popped = stack.pop();
             if (popped != token.kind) {
                 // TODO: Throw a great big ol fit
             }

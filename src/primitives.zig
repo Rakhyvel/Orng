@@ -137,7 +137,7 @@ fn create_unit() !*AST {
 }
 
 fn create_info(name: []const u8, bounds: ?Bounds, c_name: []const u8, _ast: *AST, alias: ?*AST, type_class: Type_Class, signed_integer: bool) !void {
-    var symbol = try create_prelude_symbol(name, type_type, alias, true);
+    const symbol = try create_prelude_symbol(name, type_type, alias, true);
     try primitives.put(name, Primitive_Info{
         .name = name,
         .bounds = bounds,
@@ -185,6 +185,6 @@ pub fn represents_signed_primitive(_type: *AST) bool {
     if (_type.* != .identifier) {
         return false;
     }
-    var info = primitives.get(_type.getToken().data) orelse return false;
+    const info = primitives.get(_type.getToken().data) orelse return false;
     return info.signed_integer;
 }

@@ -424,7 +424,7 @@ pub const Errors = struct {
 
     fn printEpilude(maybe_span: ?Span) !void {
         if (maybe_span) |old_span| {
-            var span = old_span;
+            const span = old_span;
             if (span.line == 0) {
                 return;
             } else if (span.line_text.len > 0) {

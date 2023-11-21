@@ -52,9 +52,9 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
-    var prelude = try primitives.init();
+    const prelude = try primitives.init();
     while (args.next()) |next| {
-        var res = try test_file(next, prelude, coverage);
+        const res = try test_file(next, prelude, coverage);
         if (res) {
             results.passed += 1;
         } else {
@@ -76,7 +76,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
-    var dot_index = indexOf(filename, '.') orelse {
+    const dot_index = indexOf(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return error.InvalidFilename;
     };
@@ -87,7 +87,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     defer out_name.deinit();
     try out_name.concat(test_name);
     if (!coverage) { // Create output directory if it doesn't exist
-        var slash_index = last_index_of(out_name.str(), '/').?;
+        const slash_index = last_index_of(out_name.str(), '/').?;
         _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str()[0..slash_index] }) catch {};
     }
     try out_name.concat(".c");
@@ -112,7 +112,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
-    var expectedOut = contents[3..untilNewline(contents)];
+    const expectedOut = contents[3..untilNewline(contents)];
 
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
@@ -189,7 +189,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     // };
 
     if (res != .string_id) {
-        var res_stdout = if (res == .none) "" else try res.pprint(allocator);
+        const res_stdout = if (res == .none) "" else try res.pprint(allocator);
         if (!std.mem.eql(u8, res_stdout, expectedOut)) {
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
             try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res_stdout });
@@ -206,11 +206,11 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
-    var dot_index = indexOf(filename, '.') orelse {
+    const dot_index = indexOf(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return error.InvalidFilename;
     };
-    var test_name = filename[0..dot_index];
+    const test_name = filename[0..dot_index];
     _ = test_name;
 
     if (!coverage) {
@@ -236,7 +236,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    var res = compiler.compile(&errors, filename, "a.out", prelude, false, allocator);
+    const res = compiler.compile(&errors, filename, "a.out", prelude, false, allocator);
     _ = res catch |err| {
         if (!coverage) {
             switch (err) {
@@ -283,7 +283,7 @@ fn fuzzTests() !void {
     var failed: usize = 0;
     var i: usize = 0;
 
-    var prelude = try primitives.init();
+    const prelude = try primitives.init();
 
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"').? + 1;
@@ -301,7 +301,7 @@ fn fuzzTests() !void {
             }
 
             // Found end of string
-            var program_text: []const u8 = contents[start..end];
+            const program_text: []const u8 = contents[start..end];
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
@@ -310,7 +310,7 @@ fn fuzzTests() !void {
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            var module = compiler.compileContents(&errors, &lines, "fuzz", program_text, 0, prelude, true, allocator) catch |err| {
+            const module = compiler.compileContents(&errors, &lines, "fuzz", program_text, 0, prelude, true, allocator) catch |err| {
                 // try errors.printErrors(&lines, "");
                 switch (err) {
                     error.lexerError,
@@ -336,7 +336,7 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            var res = compiler.output(&errors, module, "tests/fuzz/fuzz-out.c", allocator);
+            const res = compiler.output(&errors, module, "tests/fuzz/fuzz-out.c", allocator);
             _ = res catch |err| {
                 switch (err) {
                     error.symbolError => {

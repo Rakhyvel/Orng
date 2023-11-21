@@ -72,8 +72,8 @@
 - [ ] "dependency injection" to remove error/allocator arguments
 - [ ] "packaging" to remove label arguments, possibly something else too
 - [x] Some function call lines are prepended and then popped before function call
-- [ ] Pass around a *WRITER* in codegen, not an actual fr file (jesus christ!)
 - [ ] IRs should use L_Values for sources too (its not harder to optimize btw)
+- [ ] Reduce coupling
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -317,7 +317,8 @@
         - optimize
         - interpret
     > When a function is needed to run at compile-time, check to see if the function CFG exists.
-    - [ ] expressions marked `comptime`
+    - [x] expressions marked `comptime`
+        - [ ] redo code-gen, pass around writer, not a file, move main functions to modules
     - [ ] eval type annotations
     - [ ] eval default inits
     - [ ] eval symbol defs defined as const

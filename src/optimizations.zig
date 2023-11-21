@@ -103,7 +103,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         }
 
         if (bb.has_branch) {
-            var latest_condition = bb.condition.?.def; // This is set by propagate
+            const latest_condition = bb.condition.?.def; // This is set by propagate
             // Convert constant true/false branches to jumps
             if (latest_condition != null and latest_condition.?.kind == .loadInt) {
                 defer log_optimization_pass("convert constant true/false to jumps", cfg);
@@ -120,7 +120,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
                 latest_condition.?.src1.?.def != null // this condition prevents a loop if a function parameter (which are without a def) is negated
             ) {
                 defer log_optimization_pass("flip not condition", cfg);
-                var old_branch = bb.branch.?;
+                const old_branch = bb.branch.?;
                 bb.branch = bb.next;
                 bb.next = old_branch;
                 bb.condition = latest_condition.?.src1;
@@ -156,7 +156,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         if (bb.next) |next| {
             if (next.has_branch and next.ir_head == null) {
                 defer log_optimization_pass("next depends on known argument", cfg);
-                var def = bb.get_latest_def(next.condition.?.symbol, null);
+                const def = bb.get_latest_def(next.condition.?.symbol, null);
                 if (def != null and def.?.kind == .loadInt) {
                     if (def.?.data.int == 0) {
                         bb.next = next.branch;
@@ -170,7 +170,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         // If branch is a branch that depends on a known arugment
         if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null) {
             defer log_optimization_pass("branch depends on known argument", cfg);
-            var def = bb.get_latest_def(bb.branch.?.condition.?.symbol, null);
+            const def = bb.get_latest_def(bb.branch.?.condition.?.symbol, null);
             if (def != null and def.?.kind == .loadInt) {
                 if (def.?.data.int == 0) {
                     bb.branch = bb.branch.?.branch;
@@ -252,8 +252,8 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             // Walk through IR in BB, update map of src1 and src2 defs
-            var src1_def: ?*IR = if (ir.src1) |src1| def_map.get(src1) orelse null else null;
-            var src2_def: ?*IR = if (ir.src2) |src2| def_map.get(src2) orelse null else null;
+            const src1_def: ?*IR = if (ir.src1) |src1| def_map.get(src1) orelse null else null;
+            const src2_def: ?*IR = if (ir.src2) |src2| def_map.get(src2) orelse null else null;
             retval = try propagateIR(ir, src1_def, src2_def, interned_strings, errors) or retval;
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
@@ -266,7 +266,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
             }
         }
         if (bb.has_branch) {
-            var cond_def: ?*IR = def_map.get(bb.condition.?) orelse null;
+            const cond_def: ?*IR = def_map.get(bb.condition.?) orelse null;
             bb.condition.?.def = cond_def;
             if (cond_def != null and cond_def.?.kind == .copy) {
                 bb.condition = cond_def.?.src1;
@@ -1136,8 +1136,8 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
         .index => {
             // Statically check if index is within bounds
             if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
-                var index = src2_def.?.data.int;
-                var length = ir.meta.bounds_check.length.def.?.data.int;
+                const index = src2_def.?.data.int;
+                const length = ir.meta.bounds_check.length.def.?.data.int;
                 if (index < 0) {
                     errors.addError(Error{ .negative_index = .{
                         .span = src2_def.?.span,
@@ -1187,8 +1187,8 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
                 // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
                 // std.debug.print("{}{?}", .{ ir, src1_def });
-                var field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.select.field))];
-                var field_def = src1_def.?.any_def_after(field.symbol, ir);
+                const field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.select.field))];
+                const field_def = src1_def.?.any_def_after(field.symbol, ir);
                 if (field_def == null and field.def.?.kind != .index) {
                     log("select; known loadStruct value");
                     ir.kind = .copy;
@@ -1242,14 +1242,14 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
         //   ir:              ...
         if (src1_def != null and src1_def.?.kind == .copy) {
             // src1 copy propagation
-            var recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbol, ir);
+            const recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbol, ir);
             if (recent_src1_def == null) {
                 ir.src1 = src1_def.?.src1;
                 retval = true;
             }
         } else if (src2_def != null and src2_def.?.kind == .copy) {
             // src2 copy propagation
-            var recent_src2_def = src2_def.?.next.?.any_def_after(src2_def.?.src1.?.symbol, ir);
+            const recent_src2_def = src2_def.?.next.?.any_def_after(src2_def.?.src1.?.symbol, ir);
             if (recent_src2_def == null) {
                 ir.src2 = src2_def.?.src1;
                 retval = true;

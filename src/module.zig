@@ -1,13 +1,17 @@
-const _ast = @import("ast.zig");
+const ast_ = @import("ast.zig");
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
+const layout = @import("layout.zig");
+const lexer = @import("lexer.zig");
+const Parser = @import("parser.zig").Parser;
 const std = @import("std");
-const _symbol = @import("symbol.zig");
+const symbol_ = @import("symbol.zig");
 const Span = @import("span.zig").Span;
+const validate_ = @import("validate.zig");
 
-const AST = _ast.AST;
+const AST = ast_.AST;
 const CFG = ir_.CFG;
-const Scope = _symbol.Scope;
+const Scope = symbol_.Scope;
 
 pub const DAG = struct {
     base: *AST,
@@ -58,6 +62,80 @@ pub const Module = struct {
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
+    }
+
+    pub fn compile_module(
+        errors: *errs.Errors,
+        lines: *std.ArrayList([]const u8),
+        in_name: []const u8,
+        contents: []const u8,
+        uid: i128,
+        prelude: *symbol_.Scope,
+        fuzz_tokens: bool,
+        allocator: std.mem.Allocator,
+    ) !*Module {
+        // Construct the name
+        var i: usize = 0;
+        while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
+        const name: []const u8 = in_name[0..i];
+
+        // Tokenize, and also append lines to the list of lines
+        try lexer.getLines(contents, lines, errors);
+        var tokens = try lexer.getTokens(lines, in_name, errors, fuzz_tokens, allocator);
+        defer tokens.deinit(); // Make copies of tokens, never take their address
+
+        if (false and fuzz_tokens) { // print tokens before layout
+            for (tokens.items) |token| {
+                std.debug.print("{s} ", .{token.data});
+            }
+            std.debug.print("\n", .{});
+        }
+
+        // Layout
+        if (!fuzz_tokens) {
+            try layout.doLayout(&tokens);
+        }
+
+        if (false) { // Print out tokens after layout
+            var indent: usize = 0;
+            for (0..tokens.items.len - 1) |j| {
+                var token = tokens.items[j];
+                const next_token = tokens.items[j + 1];
+                if (next_token.kind == .INDENT) {
+                    indent += 1;
+                }
+                if (next_token.kind == .DEDENT) {
+                    indent -= 1;
+                }
+                std.debug.print("{s} ", .{token.repr()});
+                if (token.kind == .NEWLINE or token.kind == .INDENT or token.kind == .DEDENT) {
+                    std.debug.print("\n", .{});
+                    for (0..indent) |_| {
+                        std.debug.print("    ", .{});
+                    }
+                }
+            }
+            std.debug.print("\n", .{});
+        }
+
+        // Parse
+        try ast_.init_structures();
+        var parser = try Parser.create(&tokens, errors, allocator);
+        const module_ast = try parser.parse();
+
+        // Module/Symbol-Tree construction
+        var file_root = try symbol_.Scope.init(prelude, name, allocator);
+        const module = try Module.init(uid, file_root, errors, allocator);
+        file_root.module = module;
+        try symbol_.symbolTableFromASTList(module_ast, file_root, errors, allocator);
+
+        // Typecheck
+        try validate_.validate_module(module, errors, allocator);
+        if (errors.errors_list.items.len > 0) {
+            return error.typeError;
+        }
+
+        return module;
     }
 
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.
@@ -126,7 +204,7 @@ pub const Module = struct {
     /// instructions. The label is needed so that codegen can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
     fn append_phony_block(self: *Module) !i128 {
-        var offset = self.instructions.items.len;
+        const offset = self.instructions.items.len;
         try self.instructions.append(try ir_.IR.createLabel(0, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         try self.instructions.append(try ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         return offset;
@@ -182,8 +260,8 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, e
     }
 }
 
-fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
-    var ast = try old_ast.expand_type(scope, errors, allocator);
+fn typeSetAppend(oldast_: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
+    const ast = try oldast_.expand_type(scope, errors, allocator);
     if (try typeSetGet(ast, set, scope, errors, allocator)) |dag| {
         // Type is already in the set, return DAG entry for it
         return dag;
@@ -222,8 +300,8 @@ fn typeSetAppend(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors
     }
 }
 
-pub fn typeSetGet(old_ast: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
-    var ast = try old_ast.expand_type(scope, errors, allocator);
+pub fn typeSetGet(oldast_: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
+    const ast = try oldast_.expand_type(scope, errors, allocator);
     for (set.items) |dag| {
         if (dag.base.c_typesMatch(ast)) {
             return dag;

@@ -52,17 +52,17 @@ pub const Context = struct {
                 return self.load_local(lval.dereference.symbol).int;
             },
             .index_slice => {
-                var base = self.load_local(lval.index_slice.lhs.symbol).int; // Because data address is stored in first slot
-                var index = self.load_local(lval.index_slice.field.symbol).int;
+                const base = self.load_local(lval.index_slice.lhs.symbol).int; // Because data address is stored in first slot
+                const index = self.load_local(lval.index_slice.field.symbol).int;
                 return base + index * lval.index_slice.slots;
             },
             .index => {
-                var base = self.get_lval(lval.index.lhs);
-                var index = self.load_local(lval.index.field.symbol).int;
+                const base = self.get_lval(lval.index.lhs);
+                const index = self.load_local(lval.index.field.symbol).int;
                 return base + index * lval.index.slots;
             },
             .select => {
-                var base = self.get_lval(lval.select.lhs);
+                const base = self.get_lval(lval.select.lhs);
                 return base + lval.select.offset;
             },
         }
@@ -75,7 +75,7 @@ pub const Context = struct {
     }
 
     inline fn store_lval(self: *Context, dest: *ir_.L_Value, val: ir_.IRData) void {
-        var addr = self.get_lval(dest);
+        const addr = self.get_lval(dest);
         self.store(addr, val);
     }
 
@@ -108,7 +108,7 @@ pub const Context = struct {
         }
 
         for (list.items) |symbver| {
-            var slots = symbver.symbol.expanded_type.?.get_slots();
+            const slots = symbver.symbol.expanded_type.?.get_slots();
             self.move(dest, self.addrof_local(symbver.symbol), slots);
             dest += slots;
         }
@@ -178,8 +178,8 @@ pub const Context = struct {
 
             if (ir.meta == .bounds_check) {
                 // IR has a bounds to be checked
-                var length = self.load_local(ir.meta.bounds_check.length.symbol);
-                var src2_data = self.load_local(ir.src2.?.symbol);
+                const length = self.load_local(ir.meta.bounds_check.length.symbol);
+                const src2_data = self.load_local(ir.src2.?.symbol);
                 if (0 > src2_data.int or src2_data.int >= length.int) {
                     // Bounds check fails, append line and panic
                     try debug_call_stack.append(ir.span);
@@ -198,7 +198,7 @@ pub const Context = struct {
                 }
             } else if (ir.meta == .active_field_check) {
                 // IR has an active field to check
-                var tag = self.load_local(ir.meta.active_field_check.tag.symbol);
+                const tag = self.load_local(ir.meta.active_field_check.tag.symbol);
                 if (tag.int != ir.meta.active_field_check.selection) {
                     // Active field check fails, append line and panic
                     try debug_call_stack.append(ir.span);
@@ -263,7 +263,7 @@ pub const Context = struct {
                     self.store_lval(ir.dest.?, data);
                 },
                 .addrOf => {
-                    var data = ir_.IRData{ .int = self.get_lval(ir.data.lval) };
+                    const data = ir_.IRData{ .int = self.get_lval(ir.data.lval) };
                     self.store_lval(ir.dest.?, data);
                 },
                 .dereference => {
@@ -273,116 +273,116 @@ pub const Context = struct {
                 // Diadic instructions
                 .equal => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.equals(src2_data)) 1 else 0 });
                 },
                 .not_equal => {
                     var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (!src1_data.equals(src2_data)) 1 else 0 });
                 },
                 .greater_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int > src2_data.int) 1 else 0 });
                 },
                 .greater_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float > src2_data.float) 1 else 0 });
                 },
                 .lesser_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int < src2_data.int) 1 else 0 });
                 },
                 .lesser_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float < src2_data.float) 1 else 0 });
                 },
                 .greater_equal_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int >= src2_data.int) 1 else 0 });
                 },
                 .greater_equal_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float >= src2_data.float) 1 else 0 });
                 },
                 .lesser_equal_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int <= src2_data.int) 1 else 0 });
                 },
                 .lesser_equal_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float <= src2_data.float) 1 else 0 });
                 },
                 .add_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int + src2_data.int });
                 },
                 .add_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float + src2_data.float });
                 },
                 .sub_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int - src2_data.int });
                 },
                 .sub_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float - src2_data.float });
                 },
                 .mult_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int * src2_data.int });
                 },
                 .mult_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float * src2_data.float });
                 },
                 .div_int => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = @divTrunc(src1_data.int, src2_data.int) });
                 },
                 .div_float => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float / src2_data.float });
                 },
                 .mod => {
-                    var src1_data = self.load_local(ir.src1.?.symbol);
-                    var src2_data = self.load_local(ir.src2.?.symbol);
+                    const src1_data = self.load_local(ir.src1.?.symbol);
+                    const src2_data = self.load_local(ir.src2.?.symbol);
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
                 },
                 .index => { // dest = src1[src2]
-                    var src2_data = self.load_local(ir.src2.?.symbol);
-                    var offset = src2_data.int * ir.dest.?.get_slots();
+                    const src2_data = self.load_local(ir.src2.?.symbol);
+                    const offset = src2_data.int * ir.dest.?.get_slots();
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + offset, ir.dest.?.get_slots());
                 },
                 .index_slice => { // dest = src1._0[src2]
                     // TODO: Figure out strings. Not my biggest priority
-                    var field = self.load_local(ir.src1.?.symbol).int; // the address to the data is the first slot
-                    var src2_data = self.load_local(ir.src2.?.symbol);
-                    var offset = src2_data.int * ir.dest.?.get_slots();
+                    const field = self.load_local(ir.src1.?.symbol).int; // the address to the data is the first slot
+                    const src2_data = self.load_local(ir.src2.?.symbol);
+                    const offset = src2_data.int * ir.dest.?.get_slots();
                     self.move(self.get_lval(ir.dest.?), field + offset, ir.dest.?.get_slots());
                 },
                 .select => { // dest = src1._${data.int}
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + ir.data.select.offset, ir.dest.?.get_slots());
                 },
                 .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
-                    var last_slot_offset = ir.src1.?.symbol.expanded_type.?.get_slots() - 1;
+                    const last_slot_offset = ir.src1.?.symbol.expanded_type.?.get_slots() - 1;
                     self.move(self.get_lval(ir.dest.?), self.addrof_local(ir.src1.?.symbol) + last_slot_offset, 1);
                 },
                 .cast => {
@@ -419,13 +419,13 @@ pub const Context = struct {
                     }
                 },
                 .call => { // dest = src1(symbver_list...)
-                    var symbol = if (ir.src1.?.def == null or ir.src1.?.def.?.data != .symbol)
+                    const symbol = if (ir.src1.?.def == null or ir.src1.?.def.?.data != .symbol)
                         self.load_local(ir.src1.?.symbol).symbol
                     else
                         ir.src1.?.def.?.data.symbol;
 
                     // Save old stack pointer
-                    var old_sp = self.stack_pointer;
+                    const old_sp = self.stack_pointer;
                     //  push args in reverse order
                     if (ir.data.symbverList.items.len > 0) {
                         var i = ir.data.symbverList.items.len - 1;

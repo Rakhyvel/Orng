@@ -86,7 +86,7 @@ pub const Parser = struct {
     /// Returns the next token if its kind matches the given kind, otherwise
     /// null
     fn accept(self: *Parser, kind: TokenKind) ?Token {
-        var token = self.peek();
+        const token = self.peek();
         if (token.kind == kind) {
             self.cursor += 1;
             return token;
@@ -134,9 +134,9 @@ pub const Parser = struct {
     }
 
     fn let_declaration(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.LET);
+        const token = try self.expect(.LET);
 
-        var ident = try self.let_pattern_atom();
+        const ident = try self.let_pattern_atom();
         var _type: ?*AST = null;
         var init: ?*AST = null;
 
@@ -172,10 +172,10 @@ pub const Parser = struct {
             } else {
                 kind = .let;
             }
-            var identifier = try self.expect(.IDENTIFIER);
+            const identifier = try self.expect(.IDENTIFIER);
             return try AST.createSymbol(identifier, kind, identifier.data, self.astAllocator);
         } else if (self.accept(.L_PAREN)) |_| {
-            var res = try self.let_pattern_product();
+            const res = try self.let_pattern_product();
             _ = try self.expect(.R_PAREN);
             return res;
         } else {
@@ -185,7 +185,7 @@ pub const Parser = struct {
     }
 
     fn let_pattern_product(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.let_pattern_atom();
+        const exp = try self.let_pattern_atom();
         var terms: ?std.ArrayList(*AST) = null;
         var first_token: ?Token = null;
         while (self.accept(.COMMA)) |token| {
@@ -223,7 +223,7 @@ pub const Parser = struct {
     }
 
     fn sum_type(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.product_expr();
+        const exp = try self.product_expr();
         var terms: ?std.ArrayList(*AST) = null;
         var first_token: ?Token = null;
         while (self.accept(.BAR)) |token| {
@@ -246,7 +246,7 @@ pub const Parser = struct {
     }
 
     fn product_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.annotation_expr();
+        const exp = try self.annotation_expr();
         var terms: ?std.ArrayList(*AST) = null;
         var first_token: ?Token = null;
         while (self.accept(.COMMA)) |token| {
@@ -269,9 +269,9 @@ pub const Parser = struct {
     }
 
     fn annotation_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.assignment_expr();
+        const exp = try self.assignment_expr();
         if (self.accept(.COLON)) |token| {
-            var _type = try self.inject_expr();
+            const _type = try self.inject_expr();
             var predicate: ?*AST = null;
             var init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
@@ -311,7 +311,7 @@ pub const Parser = struct {
     }
 
     fn inject_expr(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.arrow_expr();
+        const exp = try self.arrow_expr();
         if (self.accept(.LEFT_SKINNY_ARROW)) |token| {
             return try AST.createInject(token, exp, try self.arrow_expr(), self.astAllocator);
         }
@@ -410,7 +410,7 @@ pub const Parser = struct {
         } else if (self.accept(.MINUS)) |token| {
             return try AST.createNegate(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
-            var mut = self.accept(.MUT);
+            const mut = self.accept(.MUT);
             return try AST.createAddrOf(token, try self.prefix_expr(), mut != null, self.astAllocator);
         } else if (self.accept(.L_SQUARE)) |token| {
             var sliceKind: ast.SliceKind = undefined;
@@ -551,7 +551,7 @@ pub const Parser = struct {
         } else if (self.peek_kind(.FN)) {
             return self.fn_declaration();
         } else if (self.accept(.PERIOD)) |token| {
-            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+            const ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
             return try AST.createInferredMember(token, ident, self.astAllocator);
         } else if (self.accept(.UNREACHABLE)) |token| {
             return try AST.createUnreachable(token, self.astAllocator);
@@ -564,7 +564,7 @@ pub const Parser = struct {
     }
 
     fn block_expr(self: *Parser) ParserErrorEnum!*AST {
-        var brace_token = try self.expect(.L_BRACE);
+        const brace_token = try self.expect(.L_BRACE);
 
         var statements = std.ArrayList(*AST).init(self.astAllocator);
 
@@ -608,7 +608,7 @@ pub const Parser = struct {
     }
 
     fn if_expr(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.IF);
+        const token = try self.expect(.IF);
         var let: ?*AST = null;
         if (self.peek_kind(.LET)) {
             let = try self.let_declaration();
@@ -619,8 +619,8 @@ pub const Parser = struct {
                 return error.parserError;
             }
         }
-        var cond = try self.expr();
-        var bodyBlock = try self.factor();
+        const cond = try self.expr();
+        const bodyBlock = try self.factor();
         var elseBlock: ?*AST = null;
         if (self.accept(.ELSE)) |_| {
             elseBlock = try self.control_flow();
@@ -630,7 +630,7 @@ pub const Parser = struct {
     }
 
     fn while_expr(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.WHILE);
+        const token = try self.expect(.WHILE);
         var let: ?*AST = null;
         if (self.peek_kind(.LET)) {
             let = try self.let_declaration();
@@ -641,12 +641,12 @@ pub const Parser = struct {
                 return error.parserError;
             }
         }
-        var cond = try self.expr();
+        const cond = try self.expr();
         var post: ?*AST = null;
         if (self.accept(.SEMICOLON)) |_| {
             post = try self.statement();
         }
-        var bodyBlock = try self.block_expr();
+        const bodyBlock = try self.block_expr();
         var elseBlock: ?*AST = null;
         if (self.accept(.ELSE)) |_| {
             elseBlock = try self.control_flow();
@@ -656,17 +656,17 @@ pub const Parser = struct {
     }
 
     fn for_expr(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.FOR);
+        const token = try self.expect(.FOR);
         var let: ?*AST = null;
         if (self.peek_kind(.LET)) {
             let = try self.let_declaration();
             _ = try self.expect(.SEMICOLON);
         }
         _ = self.accept(.MUT);
-        var elem = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+        const elem = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
         _ = try self.expect(.IN);
-        var iterable = try self.expr();
-        var bodyBlock = try self.block_expr();
+        const iterable = try self.expr();
+        const bodyBlock = try self.block_expr();
         var elseBlock: ?*AST = null;
         if (self.accept(.ELSE)) |_| {
             elseBlock = try self.control_flow();
@@ -676,26 +676,26 @@ pub const Parser = struct {
     }
 
     fn fn_declaration(self: *Parser) ParserErrorEnum!*AST {
-        var introducer = try self.expect(.FN);
+        const introducer = try self.expect(.FN);
         var maybeIdent: ?*AST = null;
 
         if (self.accept(.IDENTIFIER)) |token| {
             maybeIdent = try AST.createIdentifier(token, self.astAllocator);
         }
-        var params = try self.paramlist();
+        const params = try self.paramlist();
         _ = try self.expect(.RIGHT_SKINNY_ARROW);
-        var inferred_error_token = self.accept(.E_MARK);
+        const inferred_error_token = self.accept(.E_MARK);
         var retType = try self.bool_expr();
         if (inferred_error_token != null) {
             retType = try AST.createInferredError(inferred_error_token.?, retType, self.astAllocator);
         }
 
-        var refinement: ?*AST = null;
+        const refinement: ?*AST = null;
         if (self.accept(.WHERE)) |_| {
             _ = try self.inject_expr();
         }
 
-        var init = try self.block_expr();
+        const init = try self.block_expr();
 
         return try AST.createFnDecl(
             introducer,
@@ -713,7 +713,7 @@ pub const Parser = struct {
         var params = std.ArrayList(*AST).init(self.astAllocator);
         errdefer params.deinit();
 
-        var token = try self.expect(.L_PAREN);
+        const token = try self.expect(.L_PAREN);
         if (self.peek_kind(.MUT) or self.peek_kind(.CONST) or self.peek_kind(.L_PAREN) or self.peek_kind(.IDENTIFIER)) {
             try params.append(try self.param());
             while (self.accept(.COMMA)) |_| {
@@ -752,7 +752,7 @@ pub const Parser = struct {
     }
 
     fn match_expr(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.MATCH);
+        const token = try self.expect(.MATCH);
         var mappings = std.ArrayList(*AST).init(self.astAllocator);
         var let: ?*AST = null;
 
@@ -765,7 +765,7 @@ pub const Parser = struct {
                 return error.parserError;
             }
         }
-        var exp = try self.expr();
+        const exp = try self.expr();
 
         _ = try self.expect(.L_BRACE);
         while (self.accept(.NEWLINE)) |_| {}
@@ -791,7 +791,7 @@ pub const Parser = struct {
     fn match_mapping(self: *Parser) ParserErrorEnum!*AST {
         var lhs = try self.match_pattern_inject();
         _ = try self.expect(.RIGHT_FAT_ARROW);
-        var rhs = try self.expr();
+        const rhs = try self.expr();
         if (!self.peek_kind(.R_BRACE)) {
             _ = try self.expect(.NEWLINE);
         }
@@ -800,14 +800,14 @@ pub const Parser = struct {
     }
 
     fn match_else(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.ELSE);
+        const token = try self.expect(.ELSE);
         if (self.peek_kind(.RIGHT_FAT_ARROW)) {
             _ = self.expect(.RIGHT_FAT_ARROW) catch {};
         } else {
             self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "`=>` after `else`", .got = self.peek() } });
             return error.parserError;
         }
-        var rhs = try self.expr();
+        const rhs = try self.expr();
         if (!self.peek_kind(.R_BRACE)) {
             _ = try self.expect(.NEWLINE);
         }
@@ -816,7 +816,7 @@ pub const Parser = struct {
     }
 
     fn match_pattern_product(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.match_pattern_inject();
+        const exp = try self.match_pattern_inject();
         var terms: ?std.ArrayList(*AST) = null;
         var first_token: ?Token = null;
         while (self.accept(.COMMA)) |token| {
@@ -835,9 +835,9 @@ pub const Parser = struct {
     }
 
     fn match_pattern_inject(self: *Parser) ParserErrorEnum!*AST {
-        var exp = try self.match_pattern_atom();
+        const exp = try self.match_pattern_atom();
         if (self.accept(.LEFT_SKINNY_ARROW)) |token| {
-            var rhs = try self.match_pattern_atom();
+            const rhs = try self.match_pattern_atom();
             return AST.createInject(token, exp, rhs, self.astAllocator);
         } else {
             return exp;
@@ -846,7 +846,7 @@ pub const Parser = struct {
 
     fn match_pattern_atom(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.MUT)) |_| {
-            var identifier = try self.expect(.IDENTIFIER);
+            const identifier = try self.expect(.IDENTIFIER);
             return try AST.createSymbol(identifier, .mut, identifier.data, self.astAllocator);
         } else if (self.accept(.IDENTIFIER)) |token| {
             if (self.peek_kind(.PERIOD)) {
@@ -886,10 +886,10 @@ pub const Parser = struct {
         } else if (self.peek_kind(.L_BRACE)) {
             return try self.block_expr();
         } else if (self.accept(.PERIOD)) |token| {
-            var ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+            const ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
             return try AST.createInferredMember(token, ident, self.astAllocator);
         } else if (self.accept(.L_PAREN)) |_| {
-            var pattern = try self.match_pattern_product();
+            const pattern = try self.match_pattern_product();
             _ = try self.expect(.R_PAREN);
             return pattern;
         } else {
@@ -899,7 +899,7 @@ pub const Parser = struct {
     }
 
     fn parens(self: *Parser) ParserErrorEnum!*AST {
-        var token = try self.expect(.L_PAREN);
+        const token = try self.expect(.L_PAREN);
         var exp: ?*AST = null;
         if (self.next_is_expr()) {
             exp = try self.expr();

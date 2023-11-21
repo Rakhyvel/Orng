@@ -25,7 +25,7 @@ pub fn main() !void {
     // Get second command line argument
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
-    var arg = args.next() orelse {
+    const arg = args.next() orelse {
         std.debug.print("{s}\n", .{"Usage: zig build run -- <orng-filename>"});
         return;
     };
@@ -48,7 +48,7 @@ pub fn main() !void {
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
 
-    var prelude = try primitives.init();
+    const prelude = try primitives.init();
 
     if (fuzz_tokens) {
         compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator) catch {};
@@ -70,8 +70,8 @@ pub fn compile(
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
 
-    var stat = try file.stat();
-    var uid = stat.mtime;
+    const stat = try file.stat();
+    const uid = stat.mtime;
 
     // Read in the contents of the file
     var buf_reader = std.io.bufferedReader(file.reader());
@@ -79,12 +79,12 @@ pub fn compile(
     var contents_arraylist = std.ArrayList(u8).init(allocator);
     defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-    var contents = try contents_arraylist.toOwnedSlice();
+    const contents = try contents_arraylist.toOwnedSlice();
 
     var lines = std.ArrayList([]const u8).init(allocator);
     defer lines.deinit();
 
-    var module = compileContents(errors, &lines, in_name, contents, uid, prelude, fuzz_tokens, allocator) catch |err| {
+    const module = compileContents(errors, &lines, in_name, contents, uid, prelude, fuzz_tokens, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parserError,
@@ -131,7 +131,7 @@ pub fn compileContents(
     // Construct the name
     var i: usize = 0;
     while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
-    var name: []const u8 = in_name[0..i];
+    const name: []const u8 = in_name[0..i];
 
     // Tokenize, and also append lines to the list of lines
     try lexer.getLines(contents, lines, errors);
@@ -154,7 +154,7 @@ pub fn compileContents(
         var indent: usize = 0;
         for (0..tokens.items.len - 1) |j| {
             var token = tokens.items[j];
-            var next_token = tokens.items[j + 1];
+            const next_token = tokens.items[j + 1];
             if (next_token.kind == .INDENT) {
                 indent += 1;
             }
@@ -175,11 +175,11 @@ pub fn compileContents(
     // Parse
     try ast.init_structures();
     var parser = try Parser.create(&tokens, errors, allocator);
-    var module_ast = try parser.parse();
+    const module_ast = try parser.parse();
 
     // Module/Symbol-Tree construction
     var file_root = try symbol.Scope.init(prelude, name, allocator);
-    var module = try Module.init(uid, file_root, errors, allocator);
+    const module = try Module.init(uid, file_root, errors, allocator);
     file_root.module = module;
     try symbol.symbolTableFromASTList(module_ast, file_root, errors, allocator);
 
@@ -208,7 +208,7 @@ pub fn output(
         // IR translation
         var irAllocator = std.heap.ArenaAllocator.init(allocator);
         defer irAllocator.deinit();
-        var cfg = try msymb.get_cfg(null, &module.interned_strings, errors, allocator);
+        const cfg = try msymb.get_cfg(null, &module.interned_strings, errors, allocator);
         try module.append_instructions(cfg);
 
         const interpret = true;

@@ -368,7 +368,7 @@ pub const AST = union(enum) {
 
     /// Boxes an AST value into an allocator.
     fn box(ast: AST, alloc: std.mem.Allocator) error{OutOfMemory}!*AST {
-        var retval = try alloc.create(AST);
+        const retval = try alloc.create(AST);
         retval.* = ast;
         return retval;
     }
@@ -466,7 +466,7 @@ pub const AST = union(enum) {
                 .sum => {
                     var max_slots: i64 = 0;
                     for (self.sum.terms.items) |child| {
-                        var child_slots = child.get_slots();
+                        const child_slots = child.get_slots();
                         if (max_slots < child_slots) {
                             max_slots = child_slots;
                         }
@@ -645,7 +645,7 @@ pub const AST = union(enum) {
 
     pub fn createInferredError(token: Token, ok: *AST, allocator: std.mem.Allocator) !*AST {
         var retval: AST = AST{ .inferred_error = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = std.ArrayList(*AST).init(allocator) } };
-        var ok_annot = try createAnnotation(token, try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "ok", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
+        const ok_annot = try createAnnotation(token, try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "ok", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
         try retval.inferred_error.terms.append(ok_annot);
 
         return try AST.box(retval, allocator);
@@ -815,10 +815,10 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        var none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
+        const none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
         try term_types.append(none_type);
 
-        var some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator), of_type, null, null, allocator);
+        const some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator), of_type, null, null, allocator);
         try term_types.append(some_type);
 
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
@@ -827,7 +827,7 @@ pub const AST = union(enum) {
     }
 
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
-        var ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
+        const ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
         var ok_sum_terms = std.ArrayList(*AST).init(allocator);
         try ok_sum_terms.append(ok_annot);
         var ok_sum = try AST.createSum(ok_type.getToken(), ok_sum_terms, allocator);
@@ -835,7 +835,7 @@ pub const AST = union(enum) {
 
         // Err!Ok => (ok:Ok|) || Err
         // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
-        var retval = try AST.createUnion(err_type.getToken(), ok_sum, err_type, allocator);
+        const retval = try AST.createUnion(err_type.getToken(), ok_sum, err_type, allocator);
         return retval;
     }
 
@@ -862,7 +862,7 @@ pub const AST = union(enum) {
         var retval: *AST = undefined;
         switch (self.*) {
             .identifier => {
-                var symbol = scope.lookup(self.getToken().data, false) orelse {
+                const symbol = scope.lookup(self.getToken().data, false) orelse {
                     errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .scope = scope, .expected = null } });
                     return error.typeError;
                 };
@@ -877,7 +877,7 @@ pub const AST = union(enum) {
                 var terms = std.ArrayList(*AST).init(allocator);
                 var change = false;
                 for (self.product.terms.items) |term| {
-                    var new_term = try term.expand_type(scope, errors, allocator);
+                    const new_term = try term.expand_type(scope, errors, allocator);
                     try terms.append(new_term);
                     change = new_term != term or change;
                 }
@@ -890,16 +890,16 @@ pub const AST = union(enum) {
                 }
             },
             .addrOf => {
-                var expr = try self.addrOf.expr.expand_type(scope, errors, allocator);
+                const expr = try self.addrOf.expr.expand_type(scope, errors, allocator);
                 retval = try AST.createAddrOf(self.getToken(), expr, self.addrOf.mut, allocator);
             },
             .function => {
-                var lhs = try self.function.lhs.expand_type(scope, errors, allocator);
-                var rhs = try self.function.rhs.expand_type(scope, errors, allocator);
+                const lhs = try self.function.lhs.expand_type(scope, errors, allocator);
+                const rhs = try self.function.rhs.expand_type(scope, errors, allocator);
                 retval = try AST.createFunction(self.getToken(), lhs, rhs, allocator);
             },
             .annotation => {
-                var expr = try self.annotation.type.expand_type(scope, errors, allocator);
+                const expr = try self.annotation.type.expand_type(scope, errors, allocator);
                 retval = try AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
             },
             .index => {
@@ -1123,7 +1123,7 @@ pub const AST = union(enum) {
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
                     for (self.product.terms.items) |term| {
-                        var term_type = try term.typeof(scope, errors, allocator);
+                        const term_type = try term.typeof(scope, errors, allocator);
                         try terms.append(term_type);
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
@@ -1188,7 +1188,7 @@ pub const AST = union(enum) {
             .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
                 retval = primitives.unit_type;
             } else {
-                var symbol = try _validate.findSymbol(self, null, scope, errors);
+                const symbol = try _validate.findSymbol(self, null, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
                 retval = symbol._type orelse {
                     errors.addError(Error{ .basic = .{ .span = self.getToken().span, .msg = "recursive definition detected" } });
@@ -1199,7 +1199,7 @@ pub const AST = union(enum) {
             // Unary Operators
             .negate => retval = try self.negate.expr.typeof(scope, errors, allocator),
             .dereference => {
-                var _type = try self.dereference.expr.typeof(scope, errors, allocator);
+                const _type = try self.dereference.expr.typeof(scope, errors, allocator);
                 retval = _type.addrOf.expr;
             },
             .addrOf => {
@@ -1230,7 +1230,7 @@ pub const AST = union(enum) {
 
             // Control-flow expressions
             ._if => {
-                var body_type = try self._if.bodyBlock.typeof(self._if.scope.?, errors, allocator);
+                const body_type = try self._if.bodyBlock.typeof(self._if.scope.?, errors, allocator);
                 if (self._if.elseBlock) |_| {
                     retval = body_type;
                 } else {
@@ -1248,7 +1248,7 @@ pub const AST = union(enum) {
                 retval = primitives.unit_type;
             },
             ._while => {
-                var body_type = try self._while.bodyBlock.typeof(self._while.scope.?, errors, allocator);
+                const body_type = try self._while.bodyBlock.typeof(self._while.scope.?, errors, allocator);
                 if (self._while.elseBlock) |_| {
                     retval = body_type;
                 } else {
@@ -1263,7 +1263,7 @@ pub const AST = union(enum) {
                 retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors, allocator);
             },
             .call => {
-                var fn_type: *AST = try self.call.lhs.typeof(scope, errors, allocator);
+                const fn_type: *AST = try self.call.lhs.typeof(scope, errors, allocator);
                 retval = fn_type.function.rhs;
             },
             .fnDecl => {
@@ -1382,8 +1382,8 @@ pub const AST = union(enum) {
                     }
                     var retval = true;
                     for (A.sum.terms.items, B.sum.terms.items) |term, B_term| {
-                        var this_name = term.annotation.pattern.getToken().data;
-                        var B_name = B_term.annotation.pattern.getToken().data;
+                        const this_name = term.annotation.pattern.getToken().data;
+                        const B_name = B_term.annotation.pattern.getToken().data;
                         retval = retval and std.mem.eql(u8, this_name, B_name) and try term.typesMatch(B_term, scope, errors, allocator);
                     }
                     return retval;
@@ -1409,7 +1409,7 @@ pub const AST = union(enum) {
 
     /// Determines if a given integer type can represent a given integer value.
     pub fn can_represent_integer(self: *AST, value: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        var expanded = try self.expand_type(scope, errors, allocator);
+        const expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* == .unit) {
             // Top type
             return true;
@@ -1418,7 +1418,7 @@ pub const AST = union(enum) {
             return false;
         }
         for (primitives.keys()) |key| {
-            var info = primitives.get(key);
+            const info = primitives.get(key);
             if (std.mem.eql(u8, info.name, self.getToken().data) and
                 info.bounds != null and
                 value >= info.bounds.?.lower and
@@ -1432,7 +1432,7 @@ pub const AST = union(enum) {
 
     const float_types = [_][]const u8{ "Float", "Float32", "Float64" };
     pub fn can_represent_float(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        var expanded = try self.expand_type(scope, errors, allocator);
+        const expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* == .unit) {
             // Top type
             return true;
@@ -1449,7 +1449,7 @@ pub const AST = union(enum) {
     }
 
     pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        var expanded = try self.expand_type(scope, errors, allocator);
+        const expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* == .addrOf) {
             return true;
         } else if (expanded.* == .product) {
@@ -1469,7 +1469,7 @@ pub const AST = union(enum) {
 
     /// Ord <: Eq
     pub fn is_ord_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        var expanded = try self.expand_type(scope, errors, allocator);
+        const expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* != .identifier) {
             return false;
         }
@@ -1478,7 +1478,7 @@ pub const AST = union(enum) {
 
     /// Num <: Ord
     pub fn is_num_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        var expanded = try self.expand_type(scope, errors, allocator);
+        const expanded = try self.expand_type(scope, errors, allocator);
         if (expanded.* != .identifier) {
             return false;
         }

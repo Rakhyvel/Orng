@@ -214,7 +214,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                             } else if (std.mem.eql(u8, token.data, "eof")) {
                                 token.kind = .NEWLINE;
                             } else if (std.mem.eql(u8, token.data, "int") or std.mem.eql(u8, token.data, "hex") or std.mem.eql(u8, token.data, "oct") or std.mem.eql(u8, token.data, "bin")) {
-                                var some_random_num = rnd.random().int(i32);
+                                const some_random_num = rnd.random().int(i32);
                                 token.kind = .DECIMAL_INTEGER;
                                 switch (@mod(some_random_num, 3)) {
                                     0 => token.data = "0",
@@ -223,7 +223,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                                     else => unreachable,
                                 }
                             } else if (std.mem.eql(u8, token.data, "char")) {
-                                var some_random_num = rnd.random().int(i32);
+                                const some_random_num = rnd.random().int(i32);
                                 token.kind = .CHAR;
                                 switch (@mod(some_random_num, 3)) {
                                     0 => token.data = "'0'",
@@ -232,7 +232,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                                     else => unreachable,
                                 }
                             } else if (std.mem.eql(u8, token.data, "ident")) {
-                                var some_random_num = rnd.random().int(i69);
+                                const some_random_num = rnd.random().int(i69);
                                 switch (@mod(some_random_num, 2)) {
                                     0 => switch (@mod(@divTrunc(some_random_num, 2), 7)) {
                                         0 => token.data = "Bool",
@@ -333,8 +333,8 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         '\'' => {
                             ix += 1;
                             col += 1;
-                            var num_codepoints = try std.unicode.utf8CountCodepoints(contents[slice_start + 1 .. ix - 1]);
-                            var escaped = contents[slice_start + 1] == '\\';
+                            const num_codepoints = try std.unicode.utf8CountCodepoints(contents[slice_start + 1 .. ix - 1]);
+                            const escaped = contents[slice_start + 1] == '\\';
                             if ((!escaped and num_codepoints > 1) or (escaped and num_codepoints > 2)) {
                                 errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal" } });
                                 return LexerErrors.lexerError;
@@ -543,7 +543,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         ix += 1;
                         col += 1;
                     } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                        var token = Token.create(contents[slice_start..ix], null, filename, contents, line, col);
+                        const token = Token.create(contents[slice_start..ix], null, filename, contents, line, col);
                         try tokens.append(token);
                         slice_start = ix;
                         state = .none;
