@@ -378,17 +378,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
-            // Dereference propagation
-            else if (src1_def != null and src1_def.?.kind == .dereference) {
-                log("dereference propagation");
-                ir.kind = .dereference;
-                ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
-                ir.span = src1_def.?.span;
-                ir.src1 = src1_def.?.src1;
-                ir.src2 = null;
-                retval = true;
-            }
             // Add propagation
             else if (src1_def != null and src1_def.?.kind == .add_int) {
                 log("add propagation");
@@ -485,18 +474,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Select propagation
-            else if (src1_def != null and src1_def.?.kind == .select) {
-                log("select");
-                ir.kind = .select;
-                ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.safe = src1_def.?.safe;
                 ir.src1 = src1_def.?.src1;
                 retval = true;
             }
@@ -1134,30 +1111,30 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             }
         },
 
-        .index => {
-            // Statically check if index is within bounds
-            if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
-                const index = src2_def.?.data.int;
-                const length = ir.meta.bounds_check.length.def.?.data.int;
-                if (index < 0) {
-                    errors.addError(Error{ .negative_index = .{
-                        .span = src2_def.?.span,
-                        .index = index,
-                    } });
-                    return error.typeError;
-                } else if (index >= length) {
-                    errors.addError(Error{ .out_of_bounds = .{
-                        .span = src2_def.?.span,
-                        .index = index,
-                        .length = @as(usize, @intCast(length)),
-                    } });
-                    return error.typeError;
-                } else {
-                    // Confirmed within bounds, remove bounds check
-                    ir.meta = .none;
-                }
-            }
-        },
+        // .index => {
+        //     // Statically check if index is within bounds
+        //     if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
+        //         const index = src2_def.?.data.int;
+        //         const length = ir.meta.bounds_check.length.def.?.data.int;
+        //         if (index < 0) {
+        //             errors.addError(Error{ .negative_index = .{
+        //                 .span = src2_def.?.span,
+        //                 .index = index,
+        //             } });
+        //             return error.typeError;
+        //         } else if (index >= length) {
+        //             errors.addError(Error{ .out_of_bounds = .{
+        //                 .span = src2_def.?.span,
+        //                 .index = index,
+        //                 .length = @as(usize, @intCast(length)),
+        //             } });
+        //             return error.typeError;
+        //         } else {
+        //             // Confirmed within bounds, remove bounds check
+        //             ir.meta = .none;
+        //         }
+        //     }
+        // },
 
         // .select => {
         //     if (ir.meta == .active_field_check and ir.meta.active_field_check.tag.def.?.kind == .loadInt) {
@@ -1436,11 +1413,11 @@ fn calculateUsage(cfg: *CFG) void {
             }
 
             if (ir.meta == .bounds_check) {
-                ir.meta.bounds_check.length.uses += 1;
-                ir.meta.bounds_check.length.symbol.uses += 1;
+                ir.meta.bounds_check.length.extract_symbver().uses += 1;
+                ir.meta.bounds_check.length.extract_symbver().symbol.uses += 1;
             } else if (ir.meta == .active_field_check) {
-                ir.meta.active_field_check.tag.uses += 1;
-                ir.meta.active_field_check.tag.symbol.uses += 1;
+                ir.meta.active_field_check.tag.extract_symbver().uses += 1;
+                ir.meta.active_field_check.tag.extract_symbver().symbol.uses += 1;
             }
         }
 

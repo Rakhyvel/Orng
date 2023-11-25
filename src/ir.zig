@@ -131,7 +131,6 @@ pub const IRKind = enum {
     negate_float,
     addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
-    dereference,
 
     // Diadic instructions
     equal,
@@ -153,9 +152,6 @@ pub const IRKind = enum {
     div_int,
     div_float,
     mod,
-    index, // dest = src1[src2]
-    index_slice, // dest = src1._0[src2]
-    select, // dest = src1._${data.int}
     get_tag, // dest = src1.tag
     cast,
 
@@ -185,15 +181,12 @@ pub const IRKind = enum {
             => 0,
 
             .call,
-            .select,
             .get_tag,
             => 1,
 
             .negate_int,
             .negate_float,
             .not,
-            .index, // Because of dereference
-            .dereference,
             .addrOf,
             .sizeOf,
             .cast,
@@ -355,14 +348,14 @@ pub const L_Value = union(enum) {
     /// L-Value is L-Value of lhs, + field * slots
     index: struct {
         lhs: *L_Value,
-        field: *L_Value,
+        field: *L_Value, // TODO: Rename to rhs
         slots: i128,
         type: *AST,
     },
     /// L-Value is L-Value of lhs, + field * slots
     index_slice: struct {
         lhs: *L_Value,
-        field: *L_Value,
+        field: *L_Value, // TODO: Rename to rhs
         slots: i128,
         type: *AST,
     },
@@ -501,14 +494,24 @@ pub const L_Value = union(enum) {
             .select => return self.select.type,
         }
     }
+
+    pub fn precedence(self: *L_Value) i64 {
+        return switch (self.*) {
+            .symbver => IRKind.precedence(IRKind.loadSymbol),
+            .dereference => 2,
+            .index_slice => 2,
+            .index => 2,
+            .select => 1,
+        };
+    }
 };
 
 pub const IRMeta = union(enum) {
     bounds_check: struct {
-        length: *SymbolVersion, // lower bounds is always 0
+        length: *L_Value, // lower bounds is always 0
     },
     active_field_check: struct {
-        tag: *SymbolVersion,
+        tag: *L_Value,
         selection: usize,
     },
 
@@ -648,12 +651,6 @@ pub const IR = struct {
         return retval;
     }
 
-    fn createSelect(dest: *L_Value, src1: *L_Value, field_pos: i128, offset: i128, span: Span, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.select, dest, src1, null, span, allocator);
-        retval.data = IRData{ .select = .{ .field = field_pos, .offset = offset } };
-        return retval;
-    }
-
     fn createGetTag(dest: *L_Value, src1: *L_Value, span: Span, allocator: std.mem.Allocator) !*IR {
         const retval = try IR.create(.get_tag, dest, src1, null, span, allocator);
         return retval;
@@ -662,18 +659,6 @@ pub const IR = struct {
     fn createUnion(dest: *L_Value, init: ?*L_Value, tag: i128, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.loadUnion, dest, init, null, span, allocator);
         retval.data = IRData{ .int = tag };
-        return retval;
-    }
-
-    fn createIndex(dest: *L_Value, src1: *L_Value, src2: *L_Value, span: Span, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.index, dest, src1, src2, span, allocator);
-        retval.data = IRData.none;
-        return retval;
-    }
-
-    fn createIndexSlice(dest: *L_Value, src1: *L_Value, src2: *L_Value, span: Span, allocator: std.mem.Allocator) !*IR {
-        var retval = try IR.create(.index_slice, dest, src1, src2, span, allocator);
-        retval.data = IRData.none;
         return retval;
     }
 
@@ -779,9 +764,6 @@ pub const IR = struct {
             .sizeOf => {
                 try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
             },
-            .dereference => {
-                try out.writer().print("    {} := {}^\n", .{ self.dest.?, self.src1.? });
-            },
 
             .equal => {
                 try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
@@ -840,15 +822,6 @@ pub const IR = struct {
             .mod => {
                 try out.writer().print("    {} := {} % {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-            .index => {
-                try out.writer().print("    {} := {}[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
-            },
-            .index_slice => {
-                try out.writer().print("    {} := {}.data[{}] {}\n", .{ self.dest.?, self.src1.?, self.src2.?, self.meta });
-            },
-            .select => {
-                try out.writer().print("    {} := {}._{} {}\n", .{ self.dest.?, self.src1.?, self.data.select.field, self.meta });
-            },
 
             .get_tag => {
                 try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
@@ -863,9 +836,9 @@ pub const IR = struct {
             },
             .branchIfFalse => {
                 if (self.data.branch_bb.next) |next| {
-                    try out.writer().print("    if ({s}_{?}) jump BB{}", .{ self.src1.?.symbol.name, self.src1.?.version, next.uid });
+                    try out.writer().print("    if ({}) jump BB{}", .{ self.src1.?, next.uid });
                 } else {
-                    try out.writer().print("    if ({s}_{?}) ret", .{ self.src1.?.symbol.name, self.src1.?.version });
+                    try out.writer().print("    if ({}) ret", .{self.src1.?});
                 }
                 try out.writer().print(" ", .{});
                 if (self.data.branch_bb.branch) |branch| {
@@ -1360,10 +1333,9 @@ pub const CFG = struct {
                 if (expr == null) {
                     return null;
                 }
-                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
-
-                const ir = try IR.create(.dereference, temp, expr, null, ast.getToken().span, allocator);
-                self.appendInstruction(ir);
+                const _type = try ast.typeof(scope, errors, allocator);
+                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const temp = try L_Value.create_dereference(expr.?, slots, _type, allocator);
                 return temp;
             },
             ._try => {
@@ -1386,11 +1358,10 @@ pub const CFG = struct {
                 // Else, store the error in retval, return through error
                 self.appendInstruction(err);
 
-                const ok_lval = try self.create_temp_lvalue(expanded_expr_type.get_ok_type(), errors, allocator);
-                self.appendInstruction(try IR.createSelect(ok_lval, expr, 0, 0, ast.getToken().span, allocator));
+                const ok_lval = try L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().get_slots(), expanded_expr_type.get_ok_type(), allocator);
                 self.appendInstruction(try IR.createJump(end, ast.getToken().span, allocator));
-
                 self.appendInstruction(end);
+
                 return ok_lval;
             },
             .discard => {
@@ -1658,9 +1629,9 @@ pub const CFG = struct {
                 self.appendInstruction(else_label);
 
                 // tag was `.ok`, store lhs.some in temp
-                const val = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const ir_select = try IR.createSelect(val, lhs, 0, 0, ast.getToken().span, allocator);
-                self.appendInstruction(ir_select);
+                const _type = try ast.typeof(scope, errors, allocator);
+                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const val = try L_Value.create_select(lhs, 0, 0, slots, _type, allocator);
                 const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
 
@@ -1688,9 +1659,10 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // tag was `.some`, store lhs.some in temp
-                const val = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const ir_select = try IR.createSelect(val, lhs, 1, try (try lhs.get_type().expand_type(scope, errors, allocator)).sum.get_offset(1, scope, errors, allocator), ast.getToken().span, allocator);
-                self.appendInstruction(ir_select);
+                const _type = try ast.typeof(scope, errors, allocator);
+                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const offset = try (try lhs.get_type().expand_type(scope, errors, allocator)).sum.get_offset(1, scope, errors, allocator);
+                const val = try L_Value.create_select(lhs, 1, offset, slots, _type, allocator);
                 const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1721,19 +1693,30 @@ pub const CFG = struct {
                 return temp;
             },
             .index => {
-                var lhs = (try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
-                const rhs = (try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
-                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                const _type = try ast.typeof(scope, errors, allocator);
+                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
 
-                const lhs_expanded_type = try lhs.get_type().expand_type(scope, errors, allocator);
-                var ir = if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice)
-                    try IR.createIndex(temp, lhs, rhs, ast.getToken().span, allocator)
-                else
-                    try IR.createIndexSlice(temp, lhs, rhs, ast.getToken().span, allocator);
-                // ir.meta = try self.generate_bounds_check(scope, ast, lhs, errors, allocator);
-                ir.span = ast.getToken().span;
-                self.appendInstruction(ir);
-                return temp;
+                // Get the type of the index ast. This will determine if this is an array index or a slice index
+                const ast_expanded_type = try (try ast.index.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+
+                // Flatten index expr
+                const rhs = try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
+
+                if (ast_expanded_type.* == .product and !ast_expanded_type.product.was_slice)
+                // Indexing an array
+                {
+                    // Recursively get index's ast L_Value node
+                    const ast_lval = try self.generate_l_value_tree(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                    // Surround with L_Value node
+                    return try L_Value.create_index(ast_lval, rhs.?, slots, _type, allocator);
+                }
+                // Indexing a slice
+                else {
+                    // Flatten deref expr
+                    const ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                    // Surround with L_Value node
+                    return try L_Value.create_index_slice(ast_lval.?, rhs.?, slots, _type, allocator);
+                }
             },
             .select => {
                 // Recursively get select's ast L_Value node
@@ -1801,9 +1784,8 @@ pub const CFG = struct {
 
                 const slice_type = try ast.typeof(scope, errors, allocator);
                 const data_type = slice_type.product.terms.items[0];
-                const data_ptr = try self.create_temp_lvalue(data_type, errors, allocator);
-                const data_ptr_ir = try IR.createSelect(data_ptr, arr, 0, 0, ast.getToken().span, allocator);
-                self.appendInstruction(data_ptr_ir);
+                const slots = (try data_type.expand_type(scope, errors, allocator)).get_slots();
+                const data_ptr = try L_Value.create_select(arr, 0, 0, slots, data_type, allocator);
 
                 const new_data_ptr = try self.create_temp_lvalue(data_type, errors, allocator);
                 const new_data_ptr_ir = try IR.create(.add_int, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator);
@@ -2191,10 +2173,10 @@ pub const CFG = struct {
         var lhs_type = try lhs.get_type().expand_type(scope, errors, allocator);
         if (lhs_type.* == .product) {
             for (0..lhs_type.product.terms.items.len) |i| {
-                const lhs_select = try self.create_temp_lvalue(lhs_type.product.terms.items[i], errors, allocator);
-                const rhs_select = try self.create_temp_lvalue(lhs_type.product.terms.items[i], errors, allocator);
-                self.appendInstruction(try IR.createSelect(lhs_select, new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), lhs.extract_symbver().symbol.span, allocator));
-                self.appendInstruction(try IR.createSelect(rhs_select, new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), lhs.extract_symbver().symbol.span, allocator));
+                const _type = lhs_type.product.terms.items[i];
+                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const lhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, allocator);
+                const rhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, allocator);
                 try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
             }
         } else if (lhs_type.* == .sum) {
@@ -2295,10 +2277,9 @@ pub const CFG = struct {
                 if (product_lhs == null) {
                     continue;
                 }
-                const select = try self.create_temp_lvalue(rhs.get_type().product.terms.items[i], errors, allocator);
-                var ir = try IR.createSelect(select, rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), lhs.getToken().span, allocator);
-                ir.safe = true;
-                self.appendInstruction(ir);
+                const _type = rhs.get_type().product.terms.items[i];
+                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const select = try L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), slots, _type, allocator);
                 _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
             }
             return null;
@@ -2398,21 +2379,17 @@ pub const CFG = struct {
         } else if (pattern.* == .product) {
             for (pattern.product.terms.items, 0..) |term, i| {
                 const subscript_type = _type.product.terms.items[i];
-                const symbver = try self.create_temp_lvalue(subscript_type, errors, allocator);
-                var ir = try IR.createSelect(symbver, def, i, try pattern.product.get_offset(i, scope, errors, allocator), term.getToken().span, allocator);
-                ir.safe = true;
-                self.appendInstruction(ir);
-                try self.generate_pattern(scope, term, subscript_type, symbver, errors, allocator);
+                const slots = (try subscript_type.expand_type(scope, errors, allocator)).get_slots();
+                const offset = try pattern.product.get_offset(i, scope, errors, allocator);
+                const lval = try L_Value.create_select(def, i, offset, slots, subscript_type, allocator);
+                try self.generate_pattern(scope, term, subscript_type, lval, errors, allocator);
             }
         } else if (pattern.* == .inject) {
             const lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
             const domain = try validate.domainof(pattern, lhs_type, scope, errors, allocator);
-
-            const symbver = try self.create_temp_lvalue(domain, errors, allocator);
-            var ir = try IR.createSelect(symbver, def, 0, 0, pattern.getToken().span, allocator);
-            ir.safe = true;
-            self.appendInstruction(ir);
-            try self.generate_pattern(scope, pattern.inject.rhs, domain, symbver, errors, allocator);
+            const slots = (try domain.expand_type(scope, errors, allocator)).get_slots();
+            const lval = try L_Value.create_select(def, 0, 0, slots, domain, allocator);
+            try self.generate_pattern(scope, pattern.inject.rhs, domain, lval, errors, allocator);
         }
     }
 
@@ -2457,11 +2434,10 @@ pub const CFG = struct {
             .product => {
                 for (pattern.?.product.terms.items, 0..) |term, i| {
                     const subscript_type = new_expr.get_type().product.terms.items[i];
-                    const symbver = try self.create_temp_lvalue(subscript_type, errors, allocator);
-                    var ir = try IR.createSelect(symbver, new_expr, i, try pattern.?.product.get_offset(i, scope, errors, allocator), term.getToken().span, allocator);
-                    ir.safe = true;
-                    self.appendInstruction(ir);
-                    try self.generate_match_pattern_check(scope, term, symbver, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
+                    const slots = (try subscript_type.expand_type(scope, errors, allocator)).get_slots();
+                    const offset = try pattern.?.product.get_offset(i, scope, errors, allocator);
+                    const lval = try L_Value.create_select(new_expr, i, offset, slots, subscript_type, allocator);
+                    try self.generate_match_pattern_check(scope, term, lval, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
             },
             .select => {

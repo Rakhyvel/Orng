@@ -162,8 +162,7 @@ pub const Module = struct {
         out_name: []const u8, // TODO: Replace with writer, shouldn't be responsible for handling files
         errors: *errs.Errors,
         allocator: std.mem.Allocator,
-    ) error{ typeError, OutOfMemory, InvalidRange, Unimplemented, NotAnLValue, IoError }!void {
-        _ = self;
+    ) !void {
         _ = allocator;
         _ = errors;
 
@@ -180,7 +179,7 @@ pub const Module = struct {
         };
         defer output_file.close();
 
-        // try codegen.generate(self, output_file.writer());
+        try codegen.generate(self, output_file.writer());
     }
 
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.

@@ -171,7 +171,7 @@ pub const Context = struct {
 
             if (ir.meta == .bounds_check) {
                 // IR has a bounds to be checked
-                const length = self.load_local(ir.meta.bounds_check.length.symbol);
+                const length = self.load(self.get_lval(ir.meta.bounds_check.length));
                 const src2_data = self.load(self.get_lval(ir.src2.?));
                 if (0 > src2_data.int or src2_data.int >= length.int) {
                     // Bounds check fails, append line and panic
@@ -191,7 +191,7 @@ pub const Context = struct {
                 }
             } else if (ir.meta == .active_field_check) {
                 // IR has an active field to check
-                const tag = self.load_local(ir.meta.active_field_check.tag.symbol);
+                const tag = self.load(self.get_lval(ir.meta.active_field_check.tag));
                 if (tag.int != ir.meta.active_field_check.selection) {
                     // Active field check fails, append line and panic
                     try debug_call_stack.append(ir.span);
@@ -258,9 +258,6 @@ pub const Context = struct {
                 .addrOf => {
                     const data = ir_.IRData{ .int = self.get_lval(ir.data.lval) };
                     self.store_lval(ir.dest.?, data);
-                },
-                .dereference => {
-                    self.move(self.get_lval(ir.dest.?), self.load(self.get_lval(ir.src1.?)).int, ir.dest.?.get_slots());
                 },
 
                 // Diadic instructions
@@ -358,21 +355,6 @@ pub const Context = struct {
                     const src1_data = self.load(self.get_lval(ir.src1.?));
                     const src2_data = self.load(self.get_lval(ir.src2.?));
                     self.store_lval(ir.dest.?, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
-                },
-                .index => { // dest = src1[src2]
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    const offset = src2_data.int * ir.dest.?.get_slots();
-                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + offset, ir.dest.?.get_slots());
-                },
-                .index_slice => { // dest = src1._0[src2]
-                    // TODO: Figure out strings. Not my biggest priority
-                    const field = self.load(self.get_lval(ir.src1.?)).int; // the address to the data is the first slot
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    const offset = src2_data.int * ir.dest.?.get_slots();
-                    self.move(self.get_lval(ir.dest.?), field + offset, ir.dest.?.get_slots());
-                },
-                .select => { // dest = src1._${data.int}
-                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + ir.data.select.offset, ir.dest.?.get_slots());
                 },
                 .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
                     const last_slot_offset = ir.src1.?.get_slots() - 1;
