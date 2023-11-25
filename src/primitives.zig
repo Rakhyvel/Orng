@@ -67,7 +67,7 @@ pub const Type_Class = enum {
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
 
 var prelude: ?*Scope = null;
-pub fn init() !*Scope {
+pub fn get_scope() !*Scope {
     if (prelude == null) {
         // Create ASTs for primitives
         bool_type = try create_identifier("Bool");

@@ -1,6 +1,10 @@
 # The Orng Programming Language
 ## General Design Philosphy
-1. Control-flow is explicit
+1. Programs are a collection of types, and functions that act on values of those types.
+2. Explicit over implicit. Readability over writability
+3. Prefer fewer, simple, modular, composable solutions.
+4. 
+5. 
 
 ## Syntax
 ### Character Set

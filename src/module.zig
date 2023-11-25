@@ -1,4 +1,6 @@
 const ast_ = @import("ast.zig");
+const codegen = @import("codegen.zig");
+const Context = @import("interpreter.zig").Context;
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const layout = @import("layout.zig");
@@ -29,6 +31,7 @@ pub const DAG = struct {
     }
 };
 
+var module_uids: usize = 0;
 /// This structure represents a module being compiled.
 pub const Module = struct {
     // A unique identifier for this Orng module
@@ -39,6 +42,9 @@ pub const Module = struct {
 
     // Flat list of instructions
     instructions: std.ArrayList(*ir_.IR),
+
+    // List of CFGs defined in this module
+    cfgs: std.ArrayList(*ir_.CFG),
 
     // Interned strings
     interned_strings: std.ArrayList([]const u8),
@@ -52,26 +58,26 @@ pub const Module = struct {
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(uid: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Module {
+    fn init(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Module {
         var retval = try allocator.create(Module);
-        retval.uid = uid;
+        retval.uid = module_uids;
+        module_uids += 1;
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
         retval.errors = errors;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
+        retval.cfgs = std.ArrayList(*ir_.CFG).init(allocator);
         retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
     }
 
-    pub fn compile_module(
-        errors: *errs.Errors,
-        lines: *std.ArrayList([]const u8),
-        in_name: []const u8,
+    pub fn compile(
         contents: []const u8,
-        uid: i128,
+        in_name: []const u8,
         prelude: *symbol_.Scope,
         fuzz_tokens: bool,
+        errors: *errs.Errors,
         allocator: std.mem.Allocator,
     ) !*Module {
         // Construct the name
@@ -80,8 +86,10 @@ pub const Module = struct {
         const name: []const u8 = in_name[0..i];
 
         // Tokenize, and also append lines to the list of lines
-        try lexer.getLines(contents, lines, errors);
-        var tokens = try lexer.getTokens(lines, in_name, errors, fuzz_tokens, allocator);
+        var lines = std.ArrayList([]const u8).init(allocator);
+        defer lines.deinit();
+        try lexer.getLines(contents, &lines, errors);
+        var tokens = try lexer.getTokens(&lines, in_name, errors, fuzz_tokens, allocator);
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
         if (false and fuzz_tokens) { // print tokens before layout
@@ -125,7 +133,7 @@ pub const Module = struct {
 
         // Module/Symbol-Tree construction
         var file_root = try symbol_.Scope.init(prelude, name, allocator);
-        const module = try Module.init(uid, file_root, errors, allocator);
+        const module = try Module.init(file_root, errors, allocator);
         file_root.module = module;
         try symbol_.symbolTableFromASTList(module_ast, file_root, errors, allocator);
 
@@ -135,10 +143,49 @@ pub const Module = struct {
             return error.typeError;
         }
 
+        for (module.scope.symbols.keys()) |key| {
+            var symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
+            // IR translation
+            const cfg = try symbol.get_cfg(null, &module.interned_strings, errors, allocator);
+            try module.append_instructions(cfg);
+
+            // Wrap main CFG in module
+            try collectTypes(cfg, &module.types, module.scope, errors, allocator);
+        }
+
         return module;
     }
 
+    /// Takes in a statically correct symbol tree, writes it out to a file
+    pub fn output(
+        self: *Module,
+        out_name: []const u8, // TODO: Replace with writer, shouldn't be responsible for handling files
+        errors: *errs.Errors,
+        allocator: std.mem.Allocator,
+    ) error{ typeError, OutOfMemory, InvalidRange, Unimplemented, NotAnLValue, IoError }!void {
+        _ = self;
+        _ = allocator;
+        _ = errors;
+
+        // Open the output file
+        var output_file = std.fs.cwd().createFile(
+            out_name,
+            .{ .read = false },
+        ) catch |e| switch (e) {
+            error.FileNotFound => {
+                std.debug.print("Cannot create file: {s}\n", .{out_name});
+                return error.IoError;
+            },
+            else => return error.IoError,
+        };
+        defer output_file.close();
+
+        // try codegen.generate(self, output_file.writer());
+    }
+
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.
+    ///
+    /// This also then adds the CFG to the list of CFGs in this module.
     ///
     /// Also sets the `offset` flag of a CFG, which is the address in the instructions list that the
     /// instructions for the CFG start.
@@ -149,9 +196,12 @@ pub const Module = struct {
         } else if (cfg.block_graph_head == null) {
             // CFG doesn't have any real instructions. Insert phony BB.
             cfg.offset = try self.append_phony_block();
+            try self.cfgs.append(cfg);
         } else {
             // Normal CFG with instructions, append BBs to instructions list, recursively append children
             cfg.offset = try self.append_basic_block(cfg.block_graph_head.?);
+            try self.cfgs.append(cfg);
+
             for (cfg.children.items) |child| {
                 try self.append_instructions(child);
             }
@@ -210,19 +260,6 @@ pub const Module = struct {
         return offset;
     }
 
-    fn create_jump_addr_uid(self: *Module, bb: ?*ir_.BasicBlock) error{OutOfMemory}!struct { addr: ?i128, uid: ?u64 } {
-        var addr: ?i128 = undefined;
-        var uid: ?u64 = undefined;
-        if (bb != null) {
-            addr = try self.append_basic_block(bb.?);
-            uid = bb.?.uid;
-        } else {
-            addr = null;
-            uid = null;
-        }
-        return .{ .addr = addr, .uid = uid };
-    }
-
     pub fn print_instructions(self: *Module) void {
         for (self.instructions.items) |ir| {
             std.debug.print("{}", .{ir});
@@ -230,7 +267,7 @@ pub const Module = struct {
     }
 };
 
-pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     if (callGraph.visited) {
         return;
     }
@@ -250,8 +287,8 @@ pub fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, e
     for (callGraph.basic_blocks.items) |bb| {
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.symbol._type != null) {
-                _ = try typeSetAppend(ir.dest.?.symbol._type.?, set, scope, errors, allocator);
+            if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol._type != null) {
+                _ = try typeSetAppend(ir.dest.?.symbver.symbol._type.?, set, scope, errors, allocator);
             }
         }
     }

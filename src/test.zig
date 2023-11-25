@@ -1,10 +1,12 @@
 const std = @import("std");
 const errs = @import("errors.zig");
-const compiler = @import("main.zig");
+const module_ = @import("module.zig");
 const primitives = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol = @import("symbol.zig");
 const term = @import("term.zig");
+
+const Module = module_.Module;
 
 const allocator = std.heap.page_allocator;
 const revert = term.Attr{};
@@ -52,7 +54,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
-    const prelude = try primitives.init();
+    const prelude = try primitives.get_scope();
     while (args.next()) |next| {
         const res = try test_file(next, prelude, coverage);
         if (res) {
@@ -117,7 +119,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    var res = compiler.compile(&errors, filename, out_name.str(), prelude, false, allocator) catch |err| {
+    const module = Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             std.debug.print("{}\n", .{err});
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
@@ -134,67 +136,63 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
         }
         return false;
     };
+    try module.output(out_name.str(), &errors, allocator);
     if (coverage) {
         return false;
     }
 
     // compile C (make sure no errors)
-    // var gcc_res = exec(&[_][]const u8{
-    //     "/bin/gcc",
-    //     out_name.str(),
-    //     "-std=c11",
-    //     "-lm",
-    //     "-Istd",
-    //     "-O3",
-    //     "-g",
-    //     "-Werror",
-    //     "-Wall",
-    //     "-Wextra",
-    //     "-Wpedantic",
-    //     "-pedantic-errors",
-    //     "-Wconversion",
-    //     "-Wsign-conversion",
-    //     "-Wfloat-conversion",
-    //     "-Wcast-qual",
-    //     "-Wlogical-op",
-    //     "-Wshadow",
-    //     "-Wformat=2",
-    //     "-Wmisleading-indentation",
-    //     "-Wstrict-prototypes",
-    //     "-Wmissing-prototypes",
-    //     "-Winit-self",
-    //     "-Wjump-misses-init",
-    //     "-Wdeclaration-after-statement",
-    //     "-Wbad-function-cast",
-    //     "-Wc11-c2x-compat",
-    //     "-Wcast-align",
-    //     "-fsanitize=undefined,address",
-    // }) catch {
-    //     std.debug.print("Error compiling with GCC", .{});
-    //     return false;
-    // };
-    // if (gcc_res.retcode != 0) {
-    //     try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-    //     try out.print("C -> Executable.\n", .{});
-    //     return false;
-    // }
+    const gcc_res = exec(&[_][]const u8{
+        "/bin/gcc",
+        out_name.str(),
+        "-std=c11",
+        "-lm",
+        "-Istd",
+        "-O3",
+        "-g",
+        "-Werror",
+        "-Wall",
+        "-Wextra",
+        "-Wpedantic",
+        "-pedantic-errors",
+        "-Wconversion",
+        "-Wsign-conversion",
+        "-Wfloat-conversion",
+        "-Wcast-qual",
+        "-Wlogical-op",
+        "-Wshadow",
+        "-Wformat=2",
+        "-Wmisleading-indentation",
+        "-Wstrict-prototypes",
+        "-Wmissing-prototypes",
+        "-Winit-self",
+        "-Wjump-misses-init",
+        "-Wdeclaration-after-statement",
+        "-Wbad-function-cast",
+        "-Wc11-c2x-compat",
+        "-Wcast-align",
+        "-fsanitize=undefined,address",
+    }) catch {
+        std.debug.print("Error compiling with GCC", .{});
+        return false;
+    };
+    if (gcc_res.retcode != 0) {
+        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try out.print("C -> Executable.\n", .{});
+        return false;
+    }
 
     // execute (make sure no signals)
-    // TODO: Interpret instead
-    // var res = exec(&[_][]const u8{"./a.out"}) catch |e| {
-    //     try out.print("{?}\n", .{e});
-    //     try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-    //     try out.print("Execution interrupted!\n", .{});
-    //     return false;
-    // };
-
-    if (res != .string_id) {
-        const res_stdout = if (res == .none) "" else try res.pprint(allocator);
-        if (!std.mem.eql(u8, res_stdout, expectedOut)) {
-            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
-            try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res_stdout });
-            return false;
-        }
+    const res = exec(&[_][]const u8{"./a.out"}) catch |e| {
+        try out.print("{?}\n", .{e});
+        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try out.print("Execution interrupted!\n", .{});
+        return false;
+    };
+    if (!std.mem.eql(u8, res.stdout, expectedOut)) {
+        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
+        return false;
     }
 
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
@@ -232,12 +230,12 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
     var contents_arraylist = std.ArrayList(u8).init(allocator);
     defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
+    const contents = try contents_arraylist.toOwnedSlice();
 
     // Try to compile Orng (make sure no errors)
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
-    const res = compiler.compile(&errors, filename, "a.out", prelude, false, allocator);
-    _ = res catch |err| {
+    _ = Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.lexerError,
@@ -283,7 +281,7 @@ fn fuzzTests() !void {
     var failed: usize = 0;
     var i: usize = 0;
 
-    const prelude = try primitives.init();
+    const prelude = try primitives.get_scope();
 
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"').? + 1;
@@ -310,7 +308,7 @@ fn fuzzTests() !void {
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            const module = compiler.compileContents(&errors, &lines, "fuzz", program_text, 0, prelude, true, allocator) catch |err| {
+            const module = Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
                 // try errors.printErrors(&lines, "");
                 switch (err) {
                     error.lexerError,
@@ -336,10 +334,12 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            const res = compiler.output(&errors, module, "tests/fuzz/fuzz-out.c", allocator);
-            _ = res catch |err| {
+            module.output("tests/fuzz/fuzz-out.c", &errors, allocator) catch |err| {
                 switch (err) {
-                    error.symbolError => {
+                    error.typeError,
+                    error.Unimplemented,
+                    error.NotAnLValue,
+                    => {
                         // passed += 1;
                         try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
                         try out.print("Orng -> C. {}\n", .{i});
