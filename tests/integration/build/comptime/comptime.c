@@ -16,8 +16,7 @@ int64_t _2_main(void) {
     return _2_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_4_$comptime0());
+int main(void) {
+  printf("%ld",_2_main());
   return 0;
 }

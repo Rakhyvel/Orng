@@ -1400,10 +1400,7 @@ fn calculateUsage(cfg: *CFG) void {
                 ir.src2.?.extract_symbver().symbol.uses += 1;
             }
 
-            if (ir.data == .symbver) {
-                ir.data.symbver.uses += 1;
-                ir.data.symbver.symbol.uses += 1;
-            } else if (ir.data == .symbverList) {
+            if (ir.data == .symbverList) {
                 for (ir.data.symbverList.items) |item| {
                     item.uses += 1;
                     item.symbol.uses += 1;

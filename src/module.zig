@@ -46,6 +46,9 @@ pub const Module = struct {
     // List of CFGs defined in this module
     cfgs: std.ArrayList(*ir_.CFG),
 
+    // Main function. TODO: Temporary
+    entry: *ir_.CFG,
+
     // Interned strings
     interned_strings: std.ArrayList([]const u8),
 
@@ -151,6 +154,10 @@ pub const Module = struct {
 
             // Wrap main CFG in module
             try collectTypes(cfg, &module.types, module.scope, errors, allocator);
+
+            if (std.mem.eql(u8, key, "main")) {
+                module.entry = cfg;
+            }
         }
 
         return module;

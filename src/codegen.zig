@@ -51,7 +51,7 @@ pub fn generate(module: *Module, writer: anytype) !void {
             try output_function_definition(cfg, writer);
         }
     }
-    try output_main_function(module.cfgs.items[0], writer); // TODO: Temporarily find a better way to find the main function to call
+    try output_main_function(module.entry, writer);
 }
 
 fn output_typedefs(dags: *std.ArrayList(*module_.DAG), writer: anytype) !void {
@@ -213,14 +213,12 @@ fn output_main_function(cfg: *CFG, writer: anytype) !void {
         std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int64"))
     {
         try writer.print(
-            \\int main(void)
-            \\{{
+            \\int main(void) {{
             \\  printf("%ld",
         , .{});
     } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Word64")) {
         try writer.print(
-            \\int main(void)
-            \\{{
+            \\int main(void) {{
             \\  printf("%lu",
         , .{});
     } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float64") or
@@ -228,20 +226,17 @@ fn output_main_function(cfg: *CFG, writer: anytype) !void {
         std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float"))
     {
         try writer.print(
-            \\int main(void)
-            \\{{
+            \\int main(void) {{
             \\  printf("%f",
         , .{});
     } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
         try writer.print(
-            \\int main(void)
-            \\{{
+            \\int main(void) {{
             \\  printf("%s",
         , .{});
     } else {
         try writer.print(
-            \\int main(void)
-            \\{{
+            \\int main(void) {{
             \\  printf("%d",
         , .{});
     }
@@ -649,7 +644,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
                 .{ir.data.string},
             );
         },
-        .discard => if (ir.src1.?.get_type().* != .unit) { // TODO: L_Value expanded type
+        .discard => if (ir.src1.?.get_expanded_type().* != .unit) {
             try writer.print("    (void)", .{});
             try output_rvalue(ir.src1.?, IRKind.cast.precedence(), writer);
             try writer.print(";\n", .{});
@@ -672,7 +667,7 @@ fn output_lvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
 
             // Generate reinterpret cast to pointer of elements
             try writer.print("(", .{});
-            try printType(lvalue.get_type(), writer); // TODO: Should be able to get the expanded type of an lvalue
+            try printType(lvalue.get_expanded_type(), writer);
             try writer.print("*)", .{});
             try output_lvalue(lvalue.index.lhs, self_precedence, writer);
 
@@ -693,7 +688,7 @@ fn output_lvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
             }
 
             // Generate reinterpret cast to pointer of elements
-            const elem_type = lvalue.get_type(); // TODO: Do expanded type
+            const elem_type = lvalue.get_expanded_type();
             try writer.print("(", .{});
             try printType(elem_type, writer);
             try writer.print("*)", .{});
