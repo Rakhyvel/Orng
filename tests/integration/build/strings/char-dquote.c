@@ -7,17 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint32_t _1_main(void);
+uint32_t _2_main(void);
 
 /* Function definitions */
-uint32_t _1_main(void) {
-    uint32_t _1_$retval;
-    _1_$retval = 34;
-    return _1_$retval;
+uint32_t _2_main(void) {
+    uint32_t _2_$retval;
+    _2_$retval = 34;
+    return _2_$retval;
 }
 
-int main(void)
-{
-  printf("%d",_1_main());
+int main(void) {
+  printf("%d",_2_main());
   return 0;
 }

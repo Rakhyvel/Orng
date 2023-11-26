@@ -376,7 +376,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
             try output_var_assign(ir.dest.?, writer);
             try writer.print("(", .{});
             try output_type(ir.dest.?.get_expanded_type(), writer);
-            try writer.print(") {{(uint8_t*)string_{}, {}}}", .{ ir.data.string_id, cheat_module.interned_strings.items[ir.data.string_id].len - 1 });
+            try writer.print(") {{(uint8_t*)string_{}, {}}}", .{ ir.data.string_id, cheat_module.interned_strings.items[ir.data.string_id].len });
             try writer.print(";\n", .{});
         },
         .loadStruct => {
