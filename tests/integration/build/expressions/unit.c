@@ -6,25 +6,29 @@
 
 #include "debug.inc"
 
+/* Typedefs */
+typedef void(*function0)(void);
+
 /* Function forward definitions */
-int64_t _1_main(void);
-void _3_f(void);
+int64_t _267_main(void);
+void _269_f(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    int64_t _1_$retval;
+int64_t _267_main(void) {
+    function0 _267_t0;
+    int64_t _267_$retval;
+    _267_t0 = _269_f;
     $lines[$line_idx++] = "tests/integration/expressions/unit.orng:3:7:\n    f()\n     ^";
-    _3_f();
+    _267_t0();
     $line_idx--;
-    _1_$retval = 48;
-    return _1_$retval;
+    _267_$retval = 48;
+    return _267_$retval;
 }
 
-void _3_f(void) {
+void _269_f(void) {
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_267_main());
   return 0;
 }

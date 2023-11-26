@@ -7,42 +7,49 @@
 #include "debug.inc"
 
 /* Typedefs */
-typedef int64_t(*function0)(int64_t);
+typedef int64_t(*function1)(int64_t);
+
+typedef function1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1_main(void);
-function0 _3_f(void);
-int64_t _5_add_four(int64_t _5_x);
+int64_t _63_main(void);
+function1 _65_f(void);
+int64_t _67_add_four(int64_t _67_x);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    function0 _1_t0;
-    int64_t _1_t1;
-    int64_t _1_$retval;
+int64_t _63_main(void) {
+    function0 _63_t0;
+    function1 _63_t1;
+    int64_t _63_t3;
+    int64_t _63_t2;
+    int64_t _63_$retval;
+    _63_t0 = _65_f;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
-    _1_t0 = _3_f();
+    _63_t1 = _63_t0();
     $line_idx--;
+    _63_t3 = 45;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n       ^";
-    _1_t1 = _1_t0(45);
+    _63_t2 = _63_t1(_63_t3);
     $line_idx--;
-    _1_$retval = _1_t1;
-    return _1_$retval;
+    _63_$retval = _63_t2;
+    return _63_$retval;
 }
 
-function0 _3_f(void) {
-    function0 _3_$retval;
-    _3_$retval = _5_add_four;
-    return _3_$retval;
+function1 _65_f(void) {
+    function1 _65_$retval;
+    _65_$retval = _67_add_four;
+    return _65_$retval;
 }
 
-int64_t _5_add_four(int64_t _5_x) {
-    int64_t _5_$retval;
-    _5_$retval = $add_int64_t(_5_x, 4, "tests/integration/functions/returned.orng:8:30:\nfn add_four(x: Int)->Int {x + 4}\n                            ^");
-    return _5_$retval;
+int64_t _67_add_four(int64_t _67_x) {
+    int64_t _67_t0;
+    int64_t _67_$retval;
+    _67_t0 = 4;
+    _67_$retval = $add_int64_t(_67_x, _67_t0, "tests/integration/functions/returned.orng:8:30:\nfn add_four(x: Int)->Int {x + 4}\n                            ^");
+    return _67_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_63_main());
   return 0;
 }

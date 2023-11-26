@@ -153,18 +153,33 @@ pub const Module = struct {
             }
             // IR translation
             const cfg = try symbol.get_cfg(null, &module.interned_strings, errors, allocator);
-            try cfg.collect_generated_symbvers();
-            try module.append_instructions(cfg);
-
-            // Wrap main CFG in module
-            try collect_types(cfg, &module.types, allocator);
+            try module.collect_cfgs(cfg);
 
             if (std.mem.eql(u8, key, "main")) {
                 module.entry = cfg;
             }
         }
 
+        for (module.cfgs.items) |cfg| {
+            try collect_types(cfg, &module.types, allocator);
+        }
+
         return module;
+    }
+
+    // This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
+    fn collect_cfgs(self: *Module, cfg: *CFG) !void {
+        if (cfg.visited) {
+            return;
+        }
+        cfg.visited = true;
+
+        try cfg.collect_generated_symbvers();
+        try self.append_instructions(cfg);
+
+        for (cfg.children.items) |child| {
+            try self.collect_cfgs(child);
+        }
     }
 
     /// Takes in a statically correct symbol tree, writes it out to a file
@@ -278,11 +293,6 @@ pub const Module = struct {
 };
 
 fn collect_types(cfg: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
-    if (cfg.visited) {
-        return;
-    }
-    cfg.visited = true;
-
     // Add parameter types to type set
     if (cfg.symbol._type.?.function.lhs.* == .product) {
         // Function has more than one parameter, add types of product terms

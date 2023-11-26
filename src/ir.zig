@@ -1064,6 +1064,9 @@ pub const CFG = struct {
     /// All other functions called by this function
     children: std.ArrayList(*CFG),
 
+    /// All symbol versions that are parameters to the function this CFG defines
+    parameters: std.ArrayList(*SymbolVersion),
+
     /// All symbol versions that are used. Should be filled in after optimizations.
     symbvers: std.ArrayList(*SymbolVersion),
 
@@ -1099,6 +1102,7 @@ pub const CFG = struct {
         retval.basic_blocks = std.ArrayList(*BasicBlock).init(allocator);
         retval.children = std.ArrayList(*CFG).init(allocator);
         retval.symbvers = std.ArrayList(*SymbolVersion).init(allocator);
+        retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
         retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
@@ -1114,6 +1118,9 @@ pub const CFG = struct {
         }
 
         const eval: ?*L_Value = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, null, errors, allocator);
+        for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+            try retval.parameters.append(try SymbolVersion.createUnversioned(param, param._type.?, allocator));
+        }
         const return_version = try L_Value.create_unversioned_symbver(retval.return_symbol, symbol._type.?.function.rhs, allocator);
         if (eval != null) {
             retval.appendInstruction(try IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
@@ -1155,24 +1162,10 @@ pub const CFG = struct {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest != null) {
-                    try self.collect_lvalue(ir.dest.?);
+                if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol.expanded_type.?.* != .unit and ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null) {
+                    _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
                 }
             }
-        }
-    }
-
-    fn collect_lvalue(self: *CFG, lvalue: *L_Value) !void {
-        const symbver = lvalue.extract_symbver();
-        if (symbver.version != null // prevent collection of arguments
-        and symbver.symbol.expanded_type.?.* != .unit // prevent collection of void symbvers
-        ) {
-            _ = try symbver.putSymbolVersionSet(&self.symbvers);
-        }
-        switch (lvalue.*) {
-            .index_slice => try self.collect_lvalue(lvalue.index_slice.field),
-            .index => try self.collect_lvalue(lvalue.index.field),
-            else => {},
         }
     }
 

@@ -6,29 +6,35 @@
 
 #include "debug.inc"
 
+/* Typedefs */
+typedef int64_t(*function0)(int64_t);
+
 /* Function forward definitions */
-int64_t _1_main(void);
-int64_t _3_id(int64_t _3_x);
+int64_t _43_main(void);
+int64_t _45_id(int64_t _45_x);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    int64_t _1_t0;
-    int64_t _1_$retval;
+int64_t _43_main(void) {
+    function0 _43_t0;
+    int64_t _43_t2;
+    int64_t _43_t1;
+    int64_t _43_$retval;
+    _43_t0 = _45_id;
+    _43_t2 = 52;
     $lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:3:8:\n    id(.x = 52)\n      ^";
-    _1_t0 = _3_id(52);
+    _43_t1 = _43_t0(_43_t2);
     $line_idx--;
-    _1_$retval = _1_t0;
-    return _1_$retval;
+    _43_$retval = _43_t1;
+    return _43_$retval;
 }
 
-int64_t _3_id(int64_t _3_x) {
-    int64_t _3_$retval;
-    _3_$retval = _3_x;
-    return _3_$retval;
+int64_t _45_id(int64_t _45_x) {
+    int64_t _45_$retval;
+    _45_$retval = _45_x;
+    return _45_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_43_main());
   return 0;
 }
