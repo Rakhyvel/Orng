@@ -15,22 +15,29 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _7_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t* _2_y;
-    int64_t _1_$retval;
-    _2_x = (struct0) {1, 2, 3, 4};
-    _2_y = &_2_x._3;
-    **&_2_y = 66;
-    _1_$retval = _2_x._3;
-    return _1_$retval;
+int64_t _7_main(void) {
+    int64_t _7_t1;
+    int64_t _7_t2;
+    int64_t _7_t3;
+    int64_t _7_t4;
+    struct0 _8_x;
+    int64_t* _8_y;
+    int64_t _7_$retval;
+    _7_t1 = 1;
+    _7_t2 = 2;
+    _7_t3 = 3;
+    _7_t4 = 4;
+    _8_x = (struct0) {_7_t1, _7_t2, _7_t3, _7_t4};
+    _8_y = &_8_x._3;
+    *_8_y = 66;
+    _7_$retval = _8_x._3;
+    return _7_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_7_main());
   return 0;
 }

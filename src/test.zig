@@ -121,7 +121,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     defer errors.deinit();
     const module = Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
-            std.debug.print("{}\n", .{err});
+            try errors.printErrors();
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
             switch (err) {
                 error.lexerError,
@@ -132,7 +132,6 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
                 else => try out.print("Orng Compiler crashed!\n", .{}),
             }
             std.debug.dumpCurrentStackTrace(128);
-            return err;
         }
         return false;
     };
@@ -222,7 +221,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
             std.debug.print("filename {s} doesn't exist\n", .{filename});
             return err;
         },
-        else => return err,
+        else => return false,
     };
     defer f.close();
     var buf_reader = std.io.bufferedReader(f.reader());
@@ -251,7 +250,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                     try term.outputColor(fail_color, "[ ... FAILED ] ", out);
                     try out.print("Orng Compiler crashed unexpectedly!\n", .{});
                     std.debug.dumpCurrentStackTrace(128);
-                    return err;
+                    return false;
                 },
             }
         } else {

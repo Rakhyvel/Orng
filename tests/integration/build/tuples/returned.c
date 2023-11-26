@@ -10,31 +10,38 @@
 typedef struct {
     int64_t _0;
     int64_t _1;
-} struct0;
+} struct1;
+
+typedef struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1_main(void);
-struct0 _3_f(void);
+int64_t _30_main(void);
+struct1 _32_f(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _1_t0;
-    int64_t _1_$retval;
-    $lines[$line_idx++] = "tests/integration/tuples/returned.orng:3:7:\n    f().x\n     ^";
-    _1_t0 = _3_f();
+int64_t _30_main(void) {
+    function0 _30_t0;
+    struct1 _30_t1;
+    int64_t _30_$retval;
+    _30_t0 = _32_f;
+    $lines[$line_idx++] = "tests/integration/tuples/returned.orng:3:7:\n    f().y\n     ^";
+    _30_t1 = _30_t0();
     $line_idx--;
-    _1_$retval = _1_t0._0;
-    return _1_$retval;
+    _30_$retval = _30_t1._1;
+    return _30_$retval;
 }
 
-struct0 _3_f(void) {
-    struct0 _3_$retval;
-    _3_$retval = (struct0) {221, 45};
-    return _3_$retval;
+struct1 _32_f(void) {
+    int64_t _32_t1;
+    int64_t _32_t2;
+    struct1 _32_$retval;
+    _32_t1 = 45;
+    _32_t2 = 221;
+    _32_$retval = (struct1) {_32_t1, _32_t2};
+    return _32_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_30_main());
   return 0;
 }

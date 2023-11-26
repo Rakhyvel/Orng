@@ -10,5 +10,5 @@ fn main() -> Int {
 }
 
 fn f(x: (Int, (Int, Float), Char), y: (Int, (Int, Float), Char)) -> Bool {
-    x == y // 40 lines of C in one operator
+    x == y // 40 lines of C in one operator (no side-effects though!)
 }

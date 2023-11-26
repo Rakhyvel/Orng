@@ -2166,7 +2166,7 @@ pub const CFG = struct {
                 const _type = lhs_type.product.terms.items[i];
                 const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
                 const lhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                const rhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const rhs_select = try L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
                 try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
             }
         } else if (lhs_type.* == .sum) {

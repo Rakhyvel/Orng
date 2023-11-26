@@ -6,18 +6,29 @@
 
 #include "debug.inc"
 
+/* Typedefs */
+typedef struct {
+    int64_t _0;
+    int64_t _1;
+} struct0;
+
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _13_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    int64_t _1_$retval;
-    _1_$retval = 57;
-    return _1_$retval;
+int64_t _13_main(void) {
+    int64_t _13_t1;
+    int64_t _13_t2;
+    struct0 _14_x;
+    int64_t _13_$retval;
+    _13_t1 = 50;
+    _13_t2 = 7;
+    _14_x = (struct0) {_13_t1, _13_t2};
+    _13_$retval = $add_int64_t(_14_x._0, _14_x._1, "tests/integration/tuples/default-fields.orng:4:10:\n    x.a + x.b\n        ^");
+    return _13_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_13_main());
   return 0;
 }

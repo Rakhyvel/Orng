@@ -13,22 +13,25 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _16_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    struct0* _2_y;
-    int64_t _1_$retval;
-    _2_x = (struct0) {11, 11};
-    _2_y = &_2_x;
-    _2_y->_0 = 50;
-    _1_$retval = $add_int64_t(_2_y->_0, _2_y->_1, "tests/integration/tuples/implicit-deref.orng:6:10:\n    y.a + y.b\n        ^");
-    return _1_$retval;
+int64_t _16_main(void) {
+    int64_t _16_t1;
+    int64_t _16_t2;
+    struct0 _17_x;
+    struct0* _17_y;
+    int64_t _16_$retval;
+    _16_t1 = 11;
+    _16_t2 = 11;
+    _17_x = (struct0) {_16_t1, _16_t2};
+    _17_y = &_17_x;
+    (*_17_y)._0 = 50;
+    _16_$retval = $add_int64_t((*_17_y)._0, (*_17_y)._1, "tests/integration/tuples/implicit-deref.orng:6:10:\n    y.a + y.b\n        ^");
+    return _16_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_16_main());
   return 0;
 }

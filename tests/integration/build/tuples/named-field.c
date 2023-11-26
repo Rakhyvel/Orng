@@ -6,18 +6,29 @@
 
 #include "debug.inc"
 
+/* Typedefs */
+typedef struct {
+    int64_t _0;
+    int64_t _1;
+} struct0;
+
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _27_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    int64_t _1_$retval;
-    _1_$retval = 60;
-    return _1_$retval;
+int64_t _27_main(void) {
+    int64_t _27_t1;
+    int64_t _27_t2;
+    struct0 _28_x;
+    int64_t _27_$retval;
+    _27_t1 = 20;
+    _27_t2 = 3;
+    _28_x = (struct0) {_27_t1, _27_t2};
+    _27_$retval = $mult_int64_t(_28_x._0, _28_x._1, "tests/integration/tuples/named-field.orng:4:10:\n    x.a * x.b\n        ^");
+    return _27_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_27_main());
   return 0;
 }

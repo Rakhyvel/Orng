@@ -18,24 +18,31 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _42_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _1_t1;
-    struct0 _1_t4;
-    struct1 _2_x;
-    int64_t _1_$retval;
-    _1_t1 = (struct0) {1, 2};
-    _1_t4 = (struct0) {3, 4};
-    _2_x = (struct1) {_1_t1, _1_t4};
-    _2_x._0._0 = 77;
-    _1_$retval = _2_x._0._0;
-    return _1_$retval;
+int64_t _42_main(void) {
+    int64_t _42_t2;
+    int64_t _42_t3;
+    struct0 _42_t1;
+    int64_t _42_t5;
+    int64_t _42_t6;
+    struct0 _42_t4;
+    struct1 _43_x;
+    int64_t _42_$retval;
+    _42_t2 = 1;
+    _42_t3 = 2;
+    _42_t1 = (struct0) {_42_t2, _42_t3};
+    _42_t5 = 3;
+    _42_t6 = 4;
+    _42_t4 = (struct0) {_42_t5, _42_t6};
+    _43_x = (struct1) {_42_t1, _42_t4};
+    _43_x._0._0 = 77;
+    _42_$retval = _43_x._0._0;
+    return _42_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_42_main());
   return 0;
 }
