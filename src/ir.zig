@@ -1853,7 +1853,13 @@ pub const CFG = struct {
             },
             .match => {
                 // Create the result symbol and IR
-                const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
+                const symbol_type = if (ast.match.has_else)
+                    // Match has an else, type of the mappings should be the type of the match
+                    try ast.typeof(scope, errors, allocator)
+                else
+                    // Match has no else, type of the mappings should be wrapped in an optional type
+                    try AST.create_optional_type(try ast.typeof(scope, errors, allocator), allocator);
+                const symbol = try self.createTempSymbol(symbol_type, errors, allocator);
                 const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
 
                 // Exit label of match
@@ -1882,6 +1888,7 @@ pub const CFG = struct {
                     return null;
                 }
 
+                // Generate the lhs of the mappings
                 var label_index: usize = 0;
                 for (ast.match.mappings.items) |mapping| {
                     const lhs_label = lhs_label_list.items[label_index];
