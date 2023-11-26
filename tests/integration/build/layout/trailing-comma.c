@@ -15,19 +15,38 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _8_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t _1_$retval;
-    _2_x = (struct0) {100, 100, 3, 4};
-    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(*(int64_t*)&_2_x, *((int64_t*)&_2_x + 1), "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^"), *((int64_t*)&_2_x + 2), "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^"), *((int64_t*)&_2_x + 3), "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
-    return _1_$retval;
+int64_t _8_main(void) {
+    int64_t _8_t1;
+    int64_t _8_t2;
+    int64_t _8_t3;
+    int64_t _8_t4;
+    struct0 _9_x;
+    int64_t _8_t5;
+    int64_t _8_t6;
+    int64_t _8_t7;
+    int64_t _8_t8;
+    int64_t _8_t9;
+    int64_t _8_t10;
+    int64_t _8_$retval;
+    _8_t1 = 100;
+    _8_t2 = 100;
+    _8_t3 = 3;
+    _8_t4 = 4;
+    _9_x = (struct0) {_8_t1, _8_t2, _8_t3, _8_t4};
+    _8_t5 = 0;
+    _8_t6 = 1;
+    _8_t7 = $add_int64_t(*((int64_t*)&_9_x + _8_t5), *((int64_t*)&_9_x + _8_t6), "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    _8_t8 = 2;
+    _8_t9 = $add_int64_t(_8_t7, *((int64_t*)&_9_x + _8_t8), "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
+    _8_t10 = 3;
+    _8_$retval = $add_int64_t(_8_t9, *((int64_t*)&_9_x + _8_t10), "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
+    return _8_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_8_main());
   return 0;
 }

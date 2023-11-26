@@ -19,37 +19,51 @@ typedef struct {
     int64_t _1;
 } struct1;
 
+typedef int64_t(*function2)(void);
+
 /* Function forward definitions */
-int64_t _1_main(void);
-int64_t _3_f(void);
+int64_t _30_main(void);
+int64_t _32_f(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t* _1_t9;
-    struct1 _2_y;
-    int64_t _1_t12;
-    int64_t _1_$retval;
-    _2_x = (struct0) {0, 0, 0, 0};
-    _1_t9 = (int64_t*)&_2_x;
-    _2_y = (struct1) {_1_t9, 4};
+int64_t _30_main(void) {
+    int64_t _30_t1;
+    int64_t _30_t2;
+    int64_t _30_t3;
+    int64_t _30_t4;
+    struct0 _31_x;
+    int64_t _30_t6;
+    int64_t* _30_t7;
+    int64_t _30_t8;
+    struct1 _31_y;
+    function2 _30_t10;
+    int64_t _30_t11;
+    int64_t _30_$retval;
+    _30_t1 = 0;
+    _30_t2 = 0;
+    _30_t3 = 0;
+    _30_t4 = 0;
+    _31_x = (struct0) {_30_t1, _30_t2, _30_t3, _30_t4};
+    _30_t6 = 0;
+    _30_t7 = ((int64_t*)&_31_x + _30_t6);
+    _30_t8 = 4;
+    _31_y = (struct1) {_30_t7, _30_t8};
+    _30_t10 = _32_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
-    _1_t12 = _3_f();
+    _30_t11 = _30_t10();
     $line_idx--;
-    $bounds_check(_1_t12, 4, "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^");
-    *((int64_t*)_2_y._0 + _1_t12) = 0;
-    _1_$retval = 0;
-    return _1_$retval;
+    *((int64_t*)&_31_y._0 + _30_t11) = 0;
+    _30_$retval = 0;
+    return _30_$retval;
 }
 
-int64_t _3_f(void) {
-    int64_t _3_$retval;
-    _3_$retval = -100;
-    return _3_$retval;
+int64_t _32_f(void) {
+    int64_t _32_$retval;
+    _32_$retval = -100;
+    return _32_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_30_main());
   return 0;
 }

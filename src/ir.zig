@@ -345,14 +345,6 @@ pub const L_Value = union(enum) {
         type: *AST,
         expanded_type: *AST,
     },
-    /// L-Value is L-Value of lhs, + field * slots
-    index_slice: struct {
-        lhs: *L_Value,
-        field: *L_Value, // TODO: Rename to rhs
-        slots: i128,
-        type: *AST,
-        expanded_type: *AST,
-    },
     /// L-Value is L-Value + offset
     select: struct {
         lhs: *L_Value,
@@ -392,12 +384,6 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    fn create_index_slice(lhs: *L_Value, field: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
-        const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .index_slice = .{ .lhs = lhs, .field = field, .slots = slots, .type = _type, .expanded_type = expanded_type } };
-        return retval;
-    }
-
     fn create_select(lhs: *L_Value, field: i128, offset: i128, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
         retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .slots = slots, .type = _type, .expanded_type = expanded_type } };
@@ -414,9 +400,6 @@ pub const L_Value = union(enum) {
             },
             .dereference => {
                 try out.writer().print("{}^", .{self.dereference.expr});
-            },
-            .index_slice => {
-                try out.writer().print("{}.data[{}]", .{ self.index_slice.lhs, self.index_slice.field });
             },
             .index => {
                 try out.writer().print("{}[{}]", .{ self.index.lhs, self.index.field });
@@ -448,9 +431,6 @@ pub const L_Value = union(enum) {
             .dereference => {
                 return self.dereference.expr.extract_symbver();
             },
-            .index_slice => {
-                return self.index_slice.lhs.extract_symbver();
-            },
             .index => {
                 return self.index.lhs.extract_symbver();
             },
@@ -468,9 +448,6 @@ pub const L_Value = union(enum) {
             .dereference => {
                 return self.dereference.slots;
             },
-            .index_slice => {
-                return self.index_slice.slots;
-            },
             .index => {
                 return self.index.slots;
             },
@@ -484,7 +461,6 @@ pub const L_Value = union(enum) {
         switch (self.*) {
             .symbver => return self.symbver.type,
             .dereference => return self.dereference.type,
-            .index_slice => return self.index_slice.type,
             .index => return self.index.type,
             .select => return self.select.type,
         }
@@ -494,7 +470,6 @@ pub const L_Value = union(enum) {
         switch (self.*) {
             .symbver => return self.symbver.symbol.expanded_type.?,
             .dereference => return self.dereference.expanded_type,
-            .index_slice => return self.index_slice.expanded_type,
             .index => return self.index.expanded_type,
             .select => return self.select.expanded_type,
         }
@@ -504,7 +479,6 @@ pub const L_Value = union(enum) {
         return switch (self.*) {
             .symbver => IRKind.precedence(IRKind.loadSymbol),
             .dereference => 2,
-            .index_slice => 2,
             .index => 2,
             .select => 1,
         };
@@ -1714,21 +1688,18 @@ pub const CFG = struct {
                 // Flatten index expr
                 const rhs = try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
-                if (ast_expanded_type.* == .product and !ast_expanded_type.product.was_slice)
-                // Indexing an array
+                // Recursively get index's ast L_Value node
+                var ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+
+                if (ast_expanded_type.product.was_slice)
+                // Indexing a slice, add a select for the addr
                 {
-                    // Recursively get index's ast L_Value node
-                    const ast_lval = try self.generate_l_value_tree(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
-                    // Surround with L_Value node
-                    return try L_Value.create_index(ast_lval, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                    const addr_type = ast_expanded_type.product.terms.items[0];
+                    const addr_slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                    ast_lval = try L_Value.create_select(ast_lval.?, 0, 0, addr_slots, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
                 }
-                // Indexing a slice
-                else {
-                    // Flatten deref expr
-                    const ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
-                    // Surround with L_Value node
-                    return try L_Value.create_index_slice(ast_lval.?, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                }
+                // Surround with L_Value node
+                return try L_Value.create_index(ast_lval.?, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
             },
             .select => {
                 // Recursively get select's ast L_Value node
@@ -1757,7 +1728,7 @@ pub const CFG = struct {
 
             // Fancy Operators
             .addrOf => {
-                const expr = try self.generate_l_value_tree(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
+                const expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
                 const ir = try IR.create(.addrOf, temp, expr, null, ast.getToken().span, allocator);
@@ -2297,79 +2268,12 @@ pub const CFG = struct {
             return null;
         } else {
             // Get L_Value tree, create a `copy` IR of L_Value tree and rhs
-            const lval = try self.generate_l_value_tree(scope, lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+            const lval = try self.flattenAST(scope, lhs, return_label, break_label, continue_label, error_label, errors, allocator);
             var ir = try IR.create(.copy, null, rhs, null, lhs.getToken().span, allocator);
             ir.dest = lval;
             ir.safe = true;
             self.appendInstruction(ir);
             return null;
-        }
-    }
-
-    /// Constructs an L_Value tree from an AST
-    fn generate_l_value_tree(
-        self: *CFG, // Current control-flow-graph
-        scope: *Scope, // Scope node to use for symbol-tree lookups
-        ast: *AST, // AST node to construct L_Value tree from
-        return_label: ?*IR,
-        break_label: ?*IR,
-        continue_label: ?*IR,
-        error_label: ?*IR,
-        errors: *errs.Errors,
-        allocator: std.mem.Allocator,
-    ) FlattenASTError!*L_Value // If assign is to a single symbver, returns the symbver
-    {
-        const _type = try ast.typeof(scope, errors, allocator);
-        const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
-        switch (ast.*) {
-            .dereference => {
-                // Flatten deref expr
-                const expr = try self.flattenAST(scope, ast.dereference.expr, return_label, break_label, continue_label, error_label, errors, allocator);
-
-                // Surround with with L_Value node
-                return try L_Value.create_dereference(expr.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-            },
-            .index => {
-                // Get the type of the index ast. This will determine if this is an array index or a slice index
-                const ast_expanded_type = try (try ast.index.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-
-                // Flatten index expr
-                const rhs = try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
-
-                if (ast_expanded_type.* == .product and !ast_expanded_type.product.was_slice)
-                // Indexing an array
-                {
-                    // Recursively get index's ast L_Value node
-                    const ast_lval = try self.generate_l_value_tree(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
-                    // Surround with L_Value node
-                    return try L_Value.create_index(ast_lval, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                }
-                // Indexing a slice
-                else {
-                    // Flatten deref expr
-                    const ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
-                    // Surround with L_Value node
-                    return try L_Value.create_index_slice(ast_lval.?, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                }
-            },
-            .select => {
-                // Recursively get select's ast L_Value node
-                const ast_lval = try self.generate_l_value_tree(scope, ast.select.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
-
-                // Get the offset into the struct that this select does
-                var ast_expanded_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-                const offset = if (ast_expanded_type.* == .product)
-                    try ast_expanded_type.product.get_offset(ast.select.pos.?, scope, errors, allocator)
-                else
-                    try ast_expanded_type.sum.get_offset(ast.select.pos.?, scope, errors, allocator);
-
-                // Surround with L_Value node
-                return try L_Value.create_select(ast_lval, ast.select.pos.?, offset, try ast.select.offset_at(scope, errors, allocator), _type, try _type.expand_type(scope, errors, allocator), allocator);
-            },
-            else => {
-                // Flatten ast
-                return (try self.flattenAST(scope, ast, return_label, break_label, continue_label, error_label, errors, allocator)).?;
-            },
         }
     }
 
@@ -2672,10 +2576,6 @@ pub const CFG = struct {
             },
             .dereference => {
                 try version_lvalue(lval.dereference.expr, bb, ir, parameters);
-            },
-            .index_slice => {
-                try version_lvalue(lval.index_slice.lhs, bb, ir, parameters);
-                try version_lvalue(lval.index_slice.field, bb, ir, parameters);
             },
             .index => {
                 try version_lvalue(lval.index.field, bb, ir, parameters);

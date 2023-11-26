@@ -19,37 +19,51 @@ typedef struct {
     int64_t _1;
 } struct1;
 
+typedef int64_t(*function2)(void);
+
 /* Function forward definitions */
-int64_t _1_main(void);
-int64_t _3_f(void);
+int64_t _35_main(void);
+int64_t _37_f(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t* _1_t9;
-    struct1 _2_y;
-    int64_t _1_t12;
-    int64_t _1_$retval;
-    _2_x = (struct0) {0, 0, 0, 0};
-    _1_t9 = (int64_t*)&_2_x;
-    _2_y = (struct1) {_1_t9, 4};
+int64_t _35_main(void) {
+    int64_t _35_t1;
+    int64_t _35_t2;
+    int64_t _35_t3;
+    int64_t _35_t4;
+    struct0 _36_x;
+    int64_t _35_t6;
+    int64_t* _35_t7;
+    int64_t _35_t8;
+    struct1 _36_y;
+    function2 _35_t10;
+    int64_t _35_t11;
+    int64_t _35_$retval;
+    _35_t1 = 0;
+    _35_t2 = 0;
+    _35_t3 = 0;
+    _35_t4 = 0;
+    _36_x = (struct0) {_35_t1, _35_t2, _35_t3, _35_t4};
+    _35_t6 = 0;
+    _35_t7 = ((int64_t*)&_36_x + _35_t6);
+    _35_t8 = 4;
+    _36_y = (struct1) {_35_t7, _35_t8};
+    _35_t10 = _37_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
-    _1_t12 = _3_f();
+    _35_t11 = _35_t10();
     $line_idx--;
-    $bounds_check(_1_t12, 4, "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:7:\n    y[f()] = 0\n     ^");
-    *((int64_t*)_2_y._0 + _1_t12) = 0;
-    _1_$retval = 0;
-    return _1_$retval;
+    *((int64_t*)&_36_y._0 + _35_t11) = 0;
+    _35_$retval = 0;
+    return _35_$retval;
 }
 
-int64_t _3_f(void) {
-    int64_t _3_$retval;
-    _3_$retval = 100;
-    return _3_$retval;
+int64_t _37_f(void) {
+    int64_t _37_$retval;
+    _37_$retval = 100;
+    return _37_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_35_main());
   return 0;
 }

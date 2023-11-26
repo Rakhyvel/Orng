@@ -662,29 +662,6 @@ fn output_lvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
 
             try writer.print(")", .{});
         },
-        .index_slice => {
-            try writer.print("(", .{});
-
-            // Generate reinterpret cast to pointer of elements
-            const elem_type = lvalue.get_expanded_type();
-            try writer.print("(", .{});
-            try output_type(elem_type, writer);
-            try writer.print("*)", .{});
-
-            // Slice/String index; dereference(src1._0 + index)
-            try output_lvalue(lvalue.index_slice.lhs, 1, writer);
-            if (lvalue.index_slice.lhs.* == .dereference) {
-                try writer.print("->_0", .{});
-            } else {
-                try writer.print("._0", .{});
-            }
-            // Only generate index add if index is non-zero
-            // NOTE: Do not generate checked addition. The index is already checked.
-            try writer.print(" + ", .{});
-            try output_rvalue(lvalue.index_slice.field, lvalue.precedence(), writer);
-
-            try writer.print(")", .{});
-        },
         .symbver, .select => {
             // For symbvers and selects, just print out the rvalue version, and take the address of it
             if (outer_precedence < 2) {
@@ -711,7 +688,7 @@ fn output_rvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
                 try writer.print(")", .{});
             }
         },
-        .index, .index_slice => {
+        .index => {
             if (outer_precedence < lvalue.precedence()) {
                 try writer.print("(", .{});
             }
@@ -730,8 +707,12 @@ fn output_rvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
             // Output lhs of select
             try output_rvalue(lvalue.select.lhs, lvalue.precedence(), writer);
 
-            // Regular `.` select
-            try writer.print("._{}", .{lvalue.select.field});
+            if (lvalue.select.lhs.get_expanded_type().* == .addrOf) {
+                try writer.print("->_{}", .{lvalue.select.field});
+            } else {
+                // Regular `.` select
+                try writer.print("._{}", .{lvalue.select.field});
+            }
 
             if (outer_precedence < lvalue.precedence()) {
                 // Closing paren, if needed by precedence

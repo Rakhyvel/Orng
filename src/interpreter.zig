@@ -51,11 +51,6 @@ pub const Context = struct {
             .dereference => {
                 return self.load(self.get_lval(lval.dereference.expr)).int;
             },
-            .index_slice => {
-                const base = self.load(self.get_lval(lval.index_slice.lhs)).int; // Because data address is stored in first slot
-                const index = self.load(self.get_lval(lval.index_slice.field)).int;
-                return base + index * lval.index_slice.slots;
-            },
             .index => {
                 const base = self.get_lval(lval.index.lhs);
                 const index = self.load(self.get_lval(lval.index.field)).int;

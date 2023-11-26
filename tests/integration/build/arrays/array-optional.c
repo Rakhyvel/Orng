@@ -150,6 +150,7 @@ BB1:
     goto BB2;
 BB9:
     _38_t2 = 0;
+    goto BB2;
 BB2:
     if (_38_t2) {
         goto BB3;
@@ -162,6 +163,7 @@ BB3:
 BB7:
     _38_t5 = $div_int64_t(_38_x, _38_y, "tests/integration/arrays/array-optional.orng:19:21:\n        .some <- x / y\n                   ^");
     _38_t0 = (struct4) {.tag=1, ._1=_38_t5};
+    goto BB6;
 BB6:
     _38_$retval = _38_t0;
     return _38_$retval;

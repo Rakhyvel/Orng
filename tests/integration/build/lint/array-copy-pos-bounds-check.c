@@ -14,33 +14,43 @@ typedef struct {
     int64_t _3;
 } struct0;
 
+typedef int64_t(*function1)(void);
+
 /* Function forward definitions */
-int64_t _1_main(void);
-int64_t _3_f(void);
+int64_t _7_main(void);
+int64_t _9_f(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t _1_t6;
-    int64_t _1_$retval;
-    _2_x = (struct0) {0, 0, 0, 0};
+int64_t _7_main(void) {
+    int64_t _7_t1;
+    int64_t _7_t2;
+    int64_t _7_t3;
+    int64_t _7_t4;
+    struct0 _8_x;
+    function1 _7_t6;
+    int64_t _7_t7;
+    int64_t _7_$retval;
+    _7_t1 = 0;
+    _7_t2 = 0;
+    _7_t3 = 0;
+    _7_t4 = 0;
+    _8_x = (struct0) {_7_t1, _7_t2, _7_t3, _7_t4};
+    _7_t6 = _9_f;
     $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
-    _1_t6 = _3_f();
+    _7_t7 = _7_t6();
     $line_idx--;
-    $bounds_check(_1_t6, 4, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:7:\n    x[f()] = 0\n     ^");
-    *((int64_t*)&_2_x + _1_t6) = 0;
-    _1_$retval = 0;
-    return _1_$retval;
+    *((int64_t*)&_8_x + _7_t7) = 0;
+    _7_$retval = 0;
+    return _7_$retval;
 }
 
-int64_t _3_f(void) {
-    int64_t _3_$retval;
-    _3_$retval = 100;
-    return _3_$retval;
+int64_t _9_f(void) {
+    int64_t _9_$retval;
+    _9_$retval = 100;
+    return _9_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_7_main());
   return 0;
 }

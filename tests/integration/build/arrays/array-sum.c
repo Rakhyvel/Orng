@@ -72,6 +72,7 @@ BB1:
     goto BB2;
 BB9:
     _52_t3 = 0;
+    goto BB2;
 BB2:
     if (_52_t3) {
         goto BB3;
@@ -83,6 +84,7 @@ BB3:
     goto BB6;
 BB7:
     _52_t0 = 3;
+    goto BB6;
 BB6:
     _52_$retval = _52_t0;
     return _52_$retval;

@@ -1428,10 +1428,6 @@ fn reset_usage_lval(lval: *L_Value) void {
         .dereference => {
             reset_usage_lval(lval.dereference.expr);
         },
-        .index_slice => {
-            reset_usage_lval(lval.index_slice.lhs);
-            reset_usage_lval(lval.index_slice.field);
-        },
         .index => {
             reset_usage_lval(lval.index.lhs);
             reset_usage_lval(lval.index.field);
@@ -1450,10 +1446,6 @@ fn calculate_usage_lval(lval: *L_Value) void {
         },
         .dereference => {
             calculate_usage_lval(lval.dereference.expr);
-        },
-        .index_slice => {
-            calculate_usage_lval(lval.index_slice.lhs);
-            calculate_usage_lval(lval.index_slice.field);
         },
         .index => {
             calculate_usage_lval(lval.index.lhs);

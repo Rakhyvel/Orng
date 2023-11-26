@@ -19,29 +19,48 @@ typedef struct {
     int64_t _1;
 } struct1;
 
+typedef int64_t(*function2)(void);
+
 /* Function forward definitions */
-int64_t _1_main(void);
-int64_t _3_f(void);
+int64_t _50_main(void);
+int64_t _52_f(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t* _1_t9;
-    struct1 _2_y;
-    int64_t _1_t11;
-    int64_t _1_t12;
-    int64_t* _1_t15;
-    int64_t* _1_t16;
-    struct1 _2_z;
-    int64_t _1_$retval;
-    _2_x = (struct0) {0, 0, 0, 0};
-    _1_t9 = (int64_t*)&_2_x;
-    _2_y = (struct1) {_1_t9, 4};
+int64_t _50_main(void) {
+    int64_t _50_t1;
+    int64_t _50_t2;
+    int64_t _50_t3;
+    int64_t _50_t4;
+    struct0 _51_x;
+    int64_t _50_t6;
+    int64_t* _50_t7;
+    int64_t _50_t8;
+    struct1 _51_y;
+    function2 _50_t9;
+    int64_t _50_t10;
+    int64_t _50_t11;
+    uint8_t _50_t12;
+    int64_t _50_t13;
+    int64_t* _50_t14;
+    struct1 _51_z;
+    int64_t _50_t16;
+    int64_t _50_$retval;
+    _50_t1 = 0;
+    _50_t2 = 0;
+    _50_t3 = 0;
+    _50_t4 = 0;
+    _51_x = (struct0) {_50_t1, _50_t2, _50_t3, _50_t4};
+    _50_t6 = 0;
+    _50_t7 = ((int64_t*)&_51_x + _50_t6);
+    _50_t8 = 4;
+    _51_y = (struct1) {_50_t7, _50_t8};
+    _50_t9 = _52_f;
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";
-    _1_t11 = _3_f();
+    _50_t10 = _50_t9();
     $line_idx--;
-    _1_t12 = 1;
-    if (_1_t11 > _1_t12) {
+    _50_t11 = 1;
+    _50_t12 = _50_t10 > _50_t11;
+    if (_50_t12) {
         goto BB1;
     } else {
         goto BB2;
@@ -50,22 +69,21 @@ BB1:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
     $panic("subslice lower bound is greater than upper bound\n");
 BB2:
-    _1_t15 = _2_y._0;
-    _1_t16 = _1_t15 + _1_t11;
-    _2_z = (struct1) {_1_t16, ($sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^"))};
-    $bounds_check(0, $sub_int64_t(_1_t12, _1_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^"), "tests/integration/lint/subslice-bounds.orng:6:7:\n    z[0]\n     ^");
-    _1_$retval = *(int64_t*)_2_z._0;
-    return _1_$retval;
+    _50_t13 = $sub_int64_t(_50_t11, _50_t10, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^");
+    _50_t14 = _51_y._0 + _50_t10;
+    _51_z = (struct1) {_50_t14, _50_t13};
+    _50_t16 = 0;
+    _50_$retval = *((int64_t*)&_51_z._0 + _50_t16);
+    return _50_$retval;
 }
 
-int64_t _3_f(void) {
-    int64_t _3_$retval;
-    _3_$retval = 2;
-    return _3_$retval;
+int64_t _52_f(void) {
+    int64_t _52_$retval;
+    _52_$retval = 2;
+    return _52_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_50_main());
   return 0;
 }
