@@ -7,39 +7,69 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _13_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    int64_t _2_x;
-    int64_t _3_i;
-    int64_t _1_$retval;
-    _2_x = 0;
-    _3_i = 0;
+int64_t _13_main(void) {
+    int64_t _14_x;
+    int64_t _15_i;
+    int64_t _13_t3;
+    uint8_t _13_t4;
+    int64_t _13_t6;
+    int64_t _13_t7;
+    int64_t _13_t8;
+    uint8_t _13_t10;
+    uint8_t _13_t9;
+    int64_t _13_$retval;
+    int64_t _13_t13;
+    int64_t _13_t11;
+    _14_x = 0;
+    _15_i = 0;
+    goto BB1;
 BB1:
-    if (_3_i < 70) {
+    _13_t3 = 70;
+    _13_t4 = _15_i < _13_t3;
+    if (_13_t4) {
         goto BB2;
     } else {
         goto BB13;
     }
 BB2:
-    if ($mod_int64_t(_3_i, 2, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^")) {
-        goto BB8;
+    _13_t6 = 2;
+    _13_t7 = $mod_int64_t(_15_i, _13_t6, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^");
+    _13_t8 = 0;
+    _13_t10 = _13_t7 == _13_t8;
+    if (_13_t10) {
+        goto BB3;
     } else {
-        goto BB6;
+        goto BB10;
     }
 BB13:
-    _1_$retval = _2_x;
-    return _1_$retval;
-BB8:
-    _2_x = $add_int64_t(_2_x, 1, "tests/integration/control-flow/continue.orng:8:13:\n        x += 1\n           ^");
+    _13_$retval = _14_x;
+    return _13_$retval;
+BB3:
+    _13_t9 = 1;
+    goto BB4;
+BB10:
+    _13_t9 = 0;
+    goto BB4;
+BB4:
+    if (_13_t9) {
+        goto BB6;
+    } else {
+        goto BB8;
+    }
 BB6:
-    _3_i = $add_int64_t(_3_i, 1, "tests/integration/control-flow/continue.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
+    _13_t13 = 1;
+    _15_i = $add_int64_t(_15_i, _13_t13, "tests/integration/control-flow/continue.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
     goto BB1;
+BB8:
+    _13_t11 = 1;
+    _14_x = $add_int64_t(_14_x, _13_t11, "tests/integration/control-flow/continue.orng:8:13:\n        x += 1\n           ^");
+    goto BB6;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_13_main());
   return 0;
 }

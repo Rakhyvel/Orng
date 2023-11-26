@@ -259,6 +259,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
     var bb_queue = std.ArrayList(*BasicBlock).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
     defer bb_queue.deinit();
     try bb_queue.append(start_bb);
+    start_bb.visited = true;
 
     var head: usize = 0;
     while (head < bb_queue.items.len) {
@@ -266,9 +267,8 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
         head += 1;
 
         const is_head_bb = cfg.block_graph_head != null and cfg.block_graph_head.? == bb;
-        const no_incoming = bb.number_predecessors <= 1;
-        if (!is_head_bb or !no_incoming) {
-            // Only print the label if this basic block isn't the first one in the graph
+        const more_than_one_incoming = bb.number_predecessors > 1;
+        if (!is_head_bb or more_than_one_incoming) {
             try writer.print("BB{}:\n", .{bb.uid});
         }
         var maybe_ir = bb.ir_head;
@@ -302,11 +302,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
                         try bb_queue.append(branch);
                         branch.visited = true;
                     }
-                    if (head >= bb_queue.items.len or bb_queue.items[head].uid != branch.uid) {
-                        try writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
-                    } else {
-                        try writer.print("\n", .{});
-                    }
+                    try writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
                 } else {
                     try writer.print("    ", .{});
                     try printReturn(symbol, writer);
@@ -318,9 +314,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
                         try bb_queue.append(next);
                         next.visited = true;
                     }
-                    if (head >= bb_queue.items.len or bb_queue.items[head].uid != next.uid) {
-                        try writer.print("    goto BB{};\n", .{next.uid});
-                    }
+                    try writer.print("    goto BB{};\n", .{next.uid});
                 } else {
                     try printReturn(symbol, writer);
                 }

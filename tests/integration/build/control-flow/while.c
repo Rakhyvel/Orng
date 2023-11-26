@@ -7,32 +7,38 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _100_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    int64_t _2_x;
-    int64_t _3_i;
-    int64_t _1_$retval;
-    _2_x = 0;
-    _3_i = 0;
+int64_t _100_main(void) {
+    int64_t _101_x;
+    int64_t _102_i;
+    int64_t _100_t3;
+    uint8_t _100_t4;
+    int64_t _100_t6;
+    int64_t _100_$retval;
+    _101_x = 0;
+    _102_i = 0;
+    goto BB1;
 BB1:
-    if (_3_i <= 10) {
+    _100_t3 = 10;
+    _100_t4 = _102_i <= _100_t3;
+    if (_100_t4) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _2_x = $add_int64_t(_2_x, _3_i, "tests/integration/control-flow/while.orng:5:16:\n        x = x + i\n              ^");
-    _3_i = $add_int64_t(_3_i, 1, "tests/integration/control-flow/while.orng:4:47:\n    while let mut i: Int = 0; i <= 10; i = i + 1 {\n                                             ^");
+    _101_x = $add_int64_t(_101_x, _102_i, "tests/integration/control-flow/while.orng:5:16:\n        x = x + i\n              ^");
+    _100_t6 = 1;
+    _102_i = $add_int64_t(_102_i, _100_t6, "tests/integration/control-flow/while.orng:4:47:\n    while let mut i: Int = 0; i <= 10; i = i + 1 {\n                                             ^");
     goto BB1;
 BB7:
-    _1_$retval = _2_x;
-    return _1_$retval;
+    _100_$retval = _101_x;
+    return _100_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_100_main());
   return 0;
 }
