@@ -1212,14 +1212,14 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
         //   recent_srcn_def: dest = ? // If this exists, then srcn_def is NOT the most up to date
         //             ...
         //   ir:              ...
-        if (src1_def != null and src1_def.?.kind == .copy) {
+        if (src1_def != null and src1_def.?.kind == .copy and src1_def.?.src1.?.* == .symbver) {
             // src1 copy propagation
             const recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbver.symbol, ir);
             if (recent_src1_def == null) {
                 ir.src1 = src1_def.?.src1;
                 retval = true;
             }
-        } else if (src2_def != null and src2_def.?.kind == .copy) {
+        } else if (src2_def != null and src2_def.?.kind == .copy and src2_def.?.src1.?.* == .symbver) {
             // src2 copy propagation
             const recent_src2_def = src2_def.?.next.?.any_def_after(src2_def.?.src1.?.symbver.symbol, ir);
             if (recent_src2_def == null) {

@@ -2461,7 +2461,7 @@ pub const CFG = struct {
             },
             .select => {
                 // Get tag of pattern
-                const sel = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
+                const sel = try self.create_temp_lvalue(primitives.word64_type, errors, allocator);
                 const sel_ir = try IR.createInt(sel, pattern.?.select.pos.?, pattern.?.getToken().span, allocator);
                 self.appendInstruction(sel_ir);
 
@@ -2479,7 +2479,7 @@ pub const CFG = struct {
             },
             .inferredMember => {
                 // Get tag of pattern
-                const sel = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
+                const sel = try self.create_temp_lvalue(primitives.word64_type, errors, allocator);
                 const sel_ir = try IR.createInt(sel, pattern.?.inferredMember.pos.?, pattern.?.getToken().span, allocator);
                 self.appendInstruction(sel_ir);
 
