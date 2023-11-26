@@ -2311,7 +2311,7 @@ pub const CFG = struct {
             const lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
             const domain = try validate.domainof(pattern, lhs_type, scope, errors, allocator);
             const slots = (try domain.expand_type(scope, errors, allocator)).get_slots();
-            const lval = try L_Value.create_select(def, 0, 0, slots, domain, try domain.expand_type(scope, errors, allocator), allocator);
+            const lval = try L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, slots, domain, try domain.expand_type(scope, errors, allocator), allocator);
             try self.generate_pattern(scope, pattern.inject.rhs, domain, lval, errors, allocator);
         }
     }

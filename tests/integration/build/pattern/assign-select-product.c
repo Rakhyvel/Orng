@@ -14,22 +14,37 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _22_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t _1_$retval;
-    _2_x = (struct0) {1, 2, 3};
-    _2_x._1 = 60;
-    _2_x._2 = 23;
-    _2_x._0 = 200;
-    _1_$retval = $add_int64_t(($sub_int64_t(_2_x._0, _2_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^")), _2_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
-    return _1_$retval;
+int64_t _22_main(void) {
+    int64_t _22_t1;
+    int64_t _22_t2;
+    int64_t _22_t3;
+    struct0 _23_x;
+    int64_t _22_t5;
+    int64_t _22_t6;
+    int64_t _22_t7;
+    struct0 _22_t4;
+    int64_t _22_t8;
+    int64_t _22_$retval;
+    _22_t1 = 1;
+    _22_t2 = 2;
+    _22_t3 = 3;
+    _23_x = (struct0) {_22_t1, _22_t2, _22_t3};
+    _22_t5 = 60;
+    _22_t6 = 23;
+    _22_t7 = 200;
+    _22_t4 = (struct0) {_22_t5, _22_t6, _22_t7};
+    _23_x._1 = _22_t4._0;
+    _23_x._2 = _22_t4._1;
+    _23_x._0 = _22_t4._2;
+    _22_t8 = $sub_int64_t(_23_x._0, _23_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^");
+    _22_$retval = $add_int64_t(_22_t8, _23_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
+    return _22_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_22_main());
   return 0;
 }

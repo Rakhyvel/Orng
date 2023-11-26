@@ -18,31 +18,42 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _52_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _1_t1;
-    struct0 _1_t4;
-    struct1 _1_t0;
-    int64_t _2_x;
-    int64_t _2_y;
-    int64_t _2_a;
-    int64_t _2_b;
-    int64_t _1_$retval;
-    _1_t1 = (struct0) {100, 20};
-    _1_t4 = (struct0) {20, 2};
-    _1_t0 = (struct1) {_1_t1, _1_t4};
-    _2_x = _1_t0._0._0;
-    _2_y = _1_t0._0._1;
-    _2_a = _1_t0._1._0;
-    _2_b = _1_t0._1._1;
-    _1_$retval = $add_int64_t($add_int64_t($add_int64_t(_2_x, _2_y, "tests/integration/pattern/let-product-product.orng:4:8:\n    x + y + a + b\n      ^"), _2_a, "tests/integration/pattern/let-product-product.orng:4:12:\n    x + y + a + b\n          ^"), _2_b, "tests/integration/pattern/let-product-product.orng:4:16:\n    x + y + a + b\n              ^");
-    return _1_$retval;
+int64_t _52_main(void) {
+    int64_t _52_t2;
+    int64_t _52_t3;
+    struct0 _52_t1;
+    int64_t _52_t5;
+    int64_t _52_t6;
+    struct0 _52_t4;
+    struct1 _52_t0;
+    int64_t _53_x;
+    int64_t _53_y;
+    int64_t _53_a;
+    int64_t _53_b;
+    int64_t _52_t7;
+    int64_t _52_t8;
+    int64_t _52_$retval;
+    _52_t2 = 100;
+    _52_t3 = 20;
+    _52_t1 = (struct0) {_52_t2, _52_t3};
+    _52_t5 = 20;
+    _52_t6 = 2;
+    _52_t4 = (struct0) {_52_t5, _52_t6};
+    _52_t0 = (struct1) {_52_t1, _52_t4};
+    _53_x = _52_t0._0._0;
+    _53_y = _52_t0._0._1;
+    _53_a = _52_t0._1._0;
+    _53_b = _52_t0._1._1;
+    _52_t7 = $add_int64_t(_53_x, _53_y, "tests/integration/pattern/let-product-product.orng:4:8:\n    x + y + a + b\n      ^");
+    _52_t8 = $add_int64_t(_52_t7, _53_a, "tests/integration/pattern/let-product-product.orng:4:12:\n    x + y + a + b\n          ^");
+    _52_$retval = $add_int64_t(_52_t8, _53_b, "tests/integration/pattern/let-product-product.orng:4:16:\n    x + y + a + b\n              ^");
+    return _52_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_52_main());
   return 0;
 }

@@ -389,7 +389,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
                 if (!expected.c_typesMatch(primitives.unit_type)) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
                     try output_rvalue(lval, ir.kind.precedence(), writer);
-                    if (i < product_list.items.len and !product_list.items[i].c_typesMatch(primitives.unit_type)) {
+                    if (i < product_list.items.len and !product_list.items[i - 1].c_typesMatch(primitives.unit_type)) {
                         try writer.print(", ", .{});
                     }
                 }
