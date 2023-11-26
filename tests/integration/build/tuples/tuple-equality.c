@@ -23,7 +23,7 @@ typedef struct {
     struct1 _1;
 } struct3;
 
-typedef uint8_t(*function2)(    struct1,     struct1);
+typedef uint8_t(*function2)(struct1, struct1);
 
 /* Function forward definitions */
 int64_t _56_main(void);

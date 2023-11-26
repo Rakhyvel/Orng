@@ -319,9 +319,8 @@
     > When a function is needed to run at compile-time, check to see if the function CFG exists.
     - [x] expressions marked `comptime`
         - [x] redo code-gen, pass around writer, not a file, move main functions to modules
-        - [ ] be able to get expanded type from lvalue
-        - [ ] rename index field to rhs
-        - [ ] move Symbol_Version into L_Value
+        - [x] be able to get expanded type from lvalue
+        - [x] rename index field to rhs
     - [ ] eval type annotations
     - [ ] eval default inits
     - [ ] eval symbol defs defined as const

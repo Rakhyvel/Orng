@@ -1430,7 +1430,7 @@ fn reset_usage_lval(lval: *L_Value) void {
         },
         .index => {
             reset_usage_lval(lval.index.lhs);
-            reset_usage_lval(lval.index.field);
+            reset_usage_lval(lval.index.rhs);
         },
         .select => {
             reset_usage_lval(lval.select.lhs);
@@ -1449,7 +1449,7 @@ fn calculate_usage_lval(lval: *L_Value) void {
         },
         .index => {
             calculate_usage_lval(lval.index.lhs);
-            calculate_usage_lval(lval.index.field);
+            calculate_usage_lval(lval.index.rhs);
         },
         .select => {
             calculate_usage_lval(lval.select.lhs);

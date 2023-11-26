@@ -660,7 +660,7 @@ fn output_lvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
             // Only generate index add if index is non-zero
             // NOTE: Do not generate checked addition. The index is already checked.
             try writer.print(" + ", .{});
-            try output_rvalue(lvalue.index.field, lvalue.precedence(), writer);
+            try output_rvalue(lvalue.index.rhs, lvalue.precedence(), writer);
 
             try writer.print(")", .{});
         },

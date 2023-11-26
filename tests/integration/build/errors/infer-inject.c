@@ -74,7 +74,7 @@ BB7:
         goto BB13;
     }
 BB9:
-    _16_$retval = _16_t2._0;
+    _16_$retval = _16_t2._1;
     return _16_$retval;
 BB13:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:7:28:\n        else => unreachable\n                          ^";

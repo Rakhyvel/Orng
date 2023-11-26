@@ -337,10 +337,10 @@ pub const L_Value = union(enum) {
         type: *AST,
         expanded_type: *AST,
     },
-    /// L-Value is L-Value of lhs, + field * slots
+    /// L-Value is L-Value of lhs, + rhs * slots
     index: struct {
         lhs: *L_Value,
-        field: *L_Value, // TODO: Rename to rhs
+        rhs: *L_Value, // TODO: Rename to rhs
         slots: i128,
         type: *AST,
         expanded_type: *AST,
@@ -378,9 +378,9 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    fn create_index(lhs: *L_Value, field: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
+    fn create_index(lhs: *L_Value, rhs: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .index = .{ .lhs = lhs, .field = field, .slots = slots, .type = _type, .expanded_type = expanded_type } };
+        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .slots = slots, .type = _type, .expanded_type = expanded_type } };
         return retval;
     }
 
@@ -402,7 +402,7 @@ pub const L_Value = union(enum) {
                 try out.writer().print("{}^", .{self.dereference.expr});
             },
             .index => {
-                try out.writer().print("{}[{}]", .{ self.index.lhs, self.index.field });
+                try out.writer().print("{}[{}]", .{ self.index.lhs, self.index.rhs });
             },
             .select => {
                 try out.writer().print("{}._{}", .{ self.select.lhs, self.select.field });
@@ -2588,7 +2588,7 @@ pub const CFG = struct {
                 try version_lvalue(lval.dereference.expr, bb, ir, parameters);
             },
             .index => {
-                try version_lvalue(lval.index.field, bb, ir, parameters);
+                try version_lvalue(lval.index.rhs, bb, ir, parameters);
                 try version_lvalue(lval.index.lhs, bb, ir, parameters);
             },
             .select => {

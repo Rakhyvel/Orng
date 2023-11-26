@@ -16,7 +16,7 @@ typedef struct {
     uint64_t tag;
 } struct2;
 
-typedef struct2(*function0)(    int64_t*,     uint8_t);
+typedef struct2(*function0)(int64_t*, uint8_t);
 
 /* Function forward definitions */
 int64_t _46_main(void);

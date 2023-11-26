@@ -53,7 +53,7 @@ pub const Context = struct {
             },
             .index => {
                 const base = self.get_lval(lval.index.lhs);
-                const index = self.load(self.get_lval(lval.index.field)).int;
+                const index = self.load(self.get_lval(lval.index.rhs)).int;
                 return base + index * lval.index.slots;
             },
             .select => {

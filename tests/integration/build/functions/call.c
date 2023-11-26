@@ -12,7 +12,7 @@ typedef struct {
     int64_t _1;
 } struct1;
 
-typedef int64_t(*function0)(    int64_t,     int64_t);
+typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _9_main(void);
