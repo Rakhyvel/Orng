@@ -30,40 +30,67 @@ typedef struct {
 } struct3;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _33_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t* _1_t9;
-    struct1 _1_t5;
-    int64_t* _1_t15;
-    struct1 _1_t11;
-    int64_t* _1_t21;
-    struct1 _1_t17;
-    struct2 _2_y;
-    struct1* _1_t27;
-    struct3 _2_z;
-    int64_t _1_$retval;
-    _2_x = (struct0) {1, 2, 3};
-    _1_t9 = (int64_t*)&_2_x;
-    _1_t5 = (struct1) {_1_t9, 3};
-    _1_t15 = (int64_t*)&_2_x;
-    _1_t11 = (struct1) {_1_t15, 3};
-    _1_t21 = (int64_t*)&_2_x;
-    _1_t17 = (struct1) {_1_t21, 3};
-    _2_y = (struct2) {_1_t5, _1_t11, _1_t17};
-    _1_t27 = (struct1*)&_2_y;
-    _2_z = (struct3) {_1_t27, 3};
-    $bounds_check(2, ((struct1*)_2_z._0 + 1)->_1, "tests/integration/slices/multi-dim.orng:6:10:\n    z[1][2] = 82\n        ^");
-    *((int64_t*)((struct1*)_2_z._0 + 1)->_0 + 2) = 82;
-    $bounds_check(2, ((struct1*)_2_z._0 + 1)->_1, "tests/integration/slices/multi-dim.orng:7:10:\n    z[1][2]\n        ^");
-    _1_$retval = *((int64_t*)((struct1*)_2_z._0 + 1)->_0 + 2);
-    return _1_$retval;
+int64_t _33_main(void) {
+    int64_t _33_t1;
+    int64_t _33_t2;
+    int64_t _33_t3;
+    struct0 _34_x;
+    int64_t _33_t6;
+    int64_t* _33_t7;
+    int64_t _33_t8;
+    struct1 _33_t5;
+    int64_t _33_t10;
+    int64_t* _33_t11;
+    int64_t _33_t12;
+    struct1 _33_t9;
+    int64_t _33_t14;
+    int64_t* _33_t15;
+    int64_t _33_t16;
+    struct1 _33_t13;
+    struct2 _34_y;
+    int64_t _33_t18;
+    struct1* _33_t19;
+    int64_t _33_t20;
+    struct3 _34_z;
+    int64_t _33_t22;
+    int64_t _33_t23;
+    int64_t _33_t24;
+    int64_t _33_t25;
+    int64_t _33_$retval;
+    _33_t1 = 1;
+    _33_t2 = 2;
+    _33_t3 = 3;
+    _34_x = (struct0) {_33_t1, _33_t2, _33_t3};
+    _33_t6 = 0;
+    _33_t7 = ((int64_t*)&_34_x + _33_t6);
+    _33_t8 = 3;
+    _33_t5 = (struct1) {_33_t7, _33_t8};
+    _33_t10 = 0;
+    _33_t11 = ((int64_t*)&_34_x + _33_t10);
+    _33_t12 = 3;
+    _33_t9 = (struct1) {_33_t11, _33_t12};
+    _33_t14 = 0;
+    _33_t15 = ((int64_t*)&_34_x + _33_t14);
+    _33_t16 = 3;
+    _33_t13 = (struct1) {_33_t15, _33_t16};
+    _34_y = (struct2) {_33_t5, _33_t9, _33_t13};
+    _33_t18 = 0;
+    _33_t19 = ((struct1*)&_34_y + _33_t18);
+    _33_t20 = 3;
+    _34_z = (struct3) {_33_t19, _33_t20};
+    _33_t22 = 2;
+    _33_t23 = 1;
+    *((int64_t*)(*((struct1*)_34_z._0 + _33_t23))._0 + _33_t22) = 82;
+    _33_t24 = 2;
+    _33_t25 = 1;
+    _33_$retval = *((int64_t*)(*((struct1*)_34_z._0 + _33_t25))._0 + _33_t24);
+    return _33_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_33_main());
   return 0;
 }

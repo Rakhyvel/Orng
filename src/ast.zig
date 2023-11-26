@@ -783,6 +783,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    // Expr must be a product value of length `l`. Slice value is `(&expr[0], l)`.
     pub fn create_slice_value(expr: *AST, mut: bool, expr_type: *AST, allocator: std.mem.Allocator) !*AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
         var zero = try AST.createInt(expr.getToken(), 0, allocator);

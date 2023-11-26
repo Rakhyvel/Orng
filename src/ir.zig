@@ -1691,12 +1691,12 @@ pub const CFG = struct {
                 // Recursively get index's ast L_Value node
                 var ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
-                if (ast_expanded_type.product.was_slice)
-                // Indexing a slice, add a select for the addr
-                {
+                if (ast_expanded_type.product.was_slice) {
+                    // Indexing a slice; retval := lhs._0^[rhs]
                     const addr_type = ast_expanded_type.product.terms.items[0];
                     const addr_slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
                     ast_lval = try L_Value.create_select(ast_lval.?, 0, 0, addr_slots, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
+                    ast_lval = try L_Value.create_dereference(ast_lval.?, addr_slots, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
                 }
                 // Surround with L_Value node
                 return try L_Value.create_index(ast_lval.?, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);

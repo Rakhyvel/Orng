@@ -8,44 +8,54 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-} struct0;
-
-typedef struct {
     int64_t* _0;
     int64_t _1;
 } struct1;
 
+typedef int64_t(*function0)(struct1);
+
+typedef struct {
+    int64_t _0;
+} struct2;
+
 /* Function forward definitions */
-int64_t _1_main(void);
-int64_t _3_first(struct1 _3_xs);
+int64_t _2_main(void);
+int64_t _4_first(struct1 _4_xs);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _1_t2;
-    int64_t* _1_t7;
-    struct1 _1_t1;
-    int64_t _1_t0;
-    int64_t _1_$retval;
-    _1_t2 = (struct0) {233};
-    _1_t7 = (int64_t*)&_1_t2;
-    _1_t1 = (struct1) {_1_t7, 1};
+int64_t _2_main(void) {
+    function0 _2_t0;
+    int64_t _2_t3;
+    int64_t _2_t5;
+    struct2 _2_t4;
+    int64_t* _2_t6;
+    int64_t _2_t7;
+    struct1 _2_t2;
+    int64_t _2_t1;
+    int64_t _2_$retval;
+    _2_t0 = _4_first;
+    _2_t3 = 0;
+    _2_t5 = 233;
+    _2_t4 = (struct2) {_2_t5};
+    _2_t6 = ((int64_t*)&_2_t4 + _2_t3);
+    _2_t7 = 1;
+    _2_t2 = (struct1) {_2_t6, _2_t7};
     $lines[$line_idx++] = "tests/integration/slices/1-slice.orng:3:11:\n    first([](233,))\n         ^";
-    _1_t0 = _3_first(_1_t1);
+    _2_t1 = _2_t0(_2_t2);
     $line_idx--;
-    _1_$retval = _1_t0;
-    return _1_$retval;
+    _2_$retval = _2_t1;
+    return _2_$retval;
 }
 
-int64_t _3_first(struct1 _3_xs) {
-    int64_t _3_$retval;
-    $bounds_check(0, _3_xs._1, "tests/integration/slices/1-slice.orng:7:8:\n    xs[0]\n      ^");
-    _3_$retval = *(int64_t*)_3_xs._0;
-    return _3_$retval;
+int64_t _4_first(struct1 _4_xs) {
+    int64_t _4_t0;
+    int64_t _4_$retval;
+    _4_t0 = 0;
+    _4_$retval = *((int64_t*)_4_xs._0 + _4_t0);
+    return _4_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_2_main());
   return 0;
 }
