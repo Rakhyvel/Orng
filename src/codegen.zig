@@ -54,6 +54,56 @@ pub fn generate(module: *Module, writer: anytype) !void {
     try output_main_function(module.entry, writer);
 }
 
+fn output_main_function(cfg: *CFG, writer: anytype) !void {
+    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int") or
+        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int64"))
+    {
+        try writer.print(
+            \\int main(void) {{
+            \\  printf("%ld",
+        , .{});
+    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Word64")) {
+        try writer.print(
+            \\int main(void) {{
+            \\  printf("%lu",
+        , .{});
+    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float64") or
+        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float32") or
+        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float"))
+    {
+        try writer.print(
+            \\int main(void) {{
+            \\  printf("%f",
+        , .{});
+    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
+        try writer.print(
+            \\int main(void) {{
+            \\  printf("%s",
+        , .{});
+    } else {
+        try writer.print(
+            \\int main(void) {{
+            \\  printf("%d",
+        , .{});
+    }
+    try output_symbol(cfg.symbol, writer);
+    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
+        try writer.print(
+            \\()._0);
+            \\  return 0;
+            \\}}
+            \\
+        , .{});
+    } else {
+        try writer.print(
+            \\());
+            \\  return 0;
+            \\}}
+            \\
+        , .{});
+    }
+}
+
 fn output_typedefs(dags: *std.ArrayList(*module_.DAG), writer: anytype) !void {
     if (dags.items.len > 0) {
         try writer.print("/* Typedefs */\n", .{});
@@ -203,56 +253,6 @@ fn output_function_definition(cfg: *CFG, writer: anytype) !void {
     }
 
     try writer.print("}}\n\n", .{});
-}
-
-fn output_main_function(cfg: *CFG, writer: anytype) !void {
-    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int") or
-        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int64"))
-    {
-        try writer.print(
-            \\int main(void) {{
-            \\  printf("%ld",
-        , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Word64")) {
-        try writer.print(
-            \\int main(void) {{
-            \\  printf("%lu",
-        , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float64") or
-        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float32") or
-        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float"))
-    {
-        try writer.print(
-            \\int main(void) {{
-            \\  printf("%f",
-        , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
-        try writer.print(
-            \\int main(void) {{
-            \\  printf("%s",
-        , .{});
-    } else {
-        try writer.print(
-            \\int main(void) {{
-            \\  printf("%d",
-        , .{});
-    }
-    try output_symbol(cfg.symbol, writer);
-    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
-        try writer.print(
-            \\()._0);
-            \\  return 0;
-            \\}}
-            \\
-        , .{});
-    } else {
-        try writer.print(
-            \\());
-            \\  return 0;
-            \\}}
-            \\
-        , .{});
-    }
 }
 
 fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer: anytype) !void {

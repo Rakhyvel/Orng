@@ -153,6 +153,7 @@ pub const Module = struct {
             }
             // IR translation
             const cfg = try symbol.get_cfg(null, &module.interned_strings, errors, allocator);
+            try cfg.collect_generated_symbvers();
             try module.append_instructions(cfg);
 
             // Wrap main CFG in module

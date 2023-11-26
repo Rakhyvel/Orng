@@ -49,8 +49,6 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     cfg.clearVisitedBBs();
 
     log_optimization_pass("final", cfg);
-
-    try cfg.collect_generated_symbvers();
 }
 
 fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {

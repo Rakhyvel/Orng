@@ -2250,7 +2250,7 @@ pub const CFG = struct {
                     if (term_symb_ver) |_| {
                         try ir.data.lval_list.append(term_symb_ver.?);
                     } else {
-                        const temp2 = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
+                        const temp2 = try self.create_temp_lvalue(primitives.unit_type, errors, allocator);
                         const ir2 = try IR.createInt(temp2, 0, _type.getToken().span, allocator);
                         self.appendInstruction(ir2);
                         try ir.data.lval_list.append(temp2);
