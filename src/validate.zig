@@ -233,6 +233,8 @@ fn validateAST(
             if (expected != null and !try symbol._type.?.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type.? } });
                 return ast.enpoison();
+            } else if (symbol.kind == ._const and symbol.init != null) {
+                retval = symbol.init.?;
             } else {
                 retval = ast;
             }

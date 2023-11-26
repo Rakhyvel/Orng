@@ -8,22 +8,24 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+    uint64_t tag;
+    union {
+        int64_t _0;
+        uint8_t _1;
+    };
 } struct0;
 
 /* Function forward definitions */
-int64_t _23_main(void);
+int64_t _37_main(void);
 
 /* Function definitions */
-int64_t _23_main(void) {
-    int64_t _23_$retval;
-    _23_$retval = 233;
-    return _23_$retval;
+int64_t _37_main(void) {
+    int64_t _37_$retval;
+    _37_$retval = 237;
+    return _37_$retval;
 }
 
 int main(void) {
-  printf("%ld",_23_main());
+  printf("%ld",_37_main());
   return 0;
 }

@@ -1269,7 +1269,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
             .context_message = "defined here",
         } });
         return error.typeError;
-    } else if (symbol.discards == 0 and symbol.uses == 0) {
+    } else if (symbol.kind != ._const and symbol.discards == 0 and symbol.uses == 0) {
         errors.addError(Error{ .symbol_error = .{
             .span = symbol.span,
             .context_span = null,

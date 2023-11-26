@@ -1,0 +1,10 @@
+// 237
+let const Int_Or_Bool = (int: Int = 102 | bool: Bool = false)
+
+fn main() -> Int {
+    comptime {
+        let mut x: Int_Or_Bool = .int <- 4
+        x.int = 237
+        x.int
+    }
+}

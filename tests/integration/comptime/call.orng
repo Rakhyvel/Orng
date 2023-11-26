@@ -1,0 +1,8 @@
+// 235
+fn main() -> Int {
+    comptime {
+        add(200, 35)
+    }
+}
+
+fn add(x: Int, y: Int) -> Int { x + y }

@@ -79,13 +79,6 @@ pub const Context = struct {
         return self.stack[@as(usize, @intCast(address))];
     }
 
-    // Loads a value from a slot addressed with an address relative to the base-pointer
-    inline fn load_local(self: *Context, ref: *symbol_.Symbol) ir_.IRData {
-        // std.debug.print("load local: bp+({})\n", .{ref.offset.?});
-        // std.debug.print("load local: {}\n", .{self.load(self.base_pointer + ref.offset.?)});
-        return self.load(self.base_pointer + ref.offset.?);
-    }
-
     fn move(self: *Context, dest: i128, src: i128, slots: i128) void {
         std.debug.assert(slots >= 0); // slots=0 for units!
         for (0..@as(usize, @intCast(slots))) |i| {
@@ -453,8 +446,4 @@ pub const Context = struct {
 
         return self.load(0);
     }
-};
-
-const Variable = struct {
-    data: ir_.IRData,
 };

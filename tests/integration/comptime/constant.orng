@@ -1,0 +1,7 @@
+// 236
+fn main() -> Int {
+    let const x = 200
+    comptime {
+        x + 36
+    }
+}
