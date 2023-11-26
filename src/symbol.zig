@@ -256,6 +256,7 @@ pub const Symbol = struct {
         if (self.cfg == null) {
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
+            try self.cfg.?.collect_generated_symbvers();
             self.cfg.?.slots = offsets.calculate_offsets(self);
         }
         return self.cfg.?;

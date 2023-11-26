@@ -7,31 +7,31 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _79_main(void);
+int64_t _384_main(void);
 
 /* Function definitions */
-int64_t _79_main(void) {
-    uint8_t _79_t3;
-    int64_t _79_t0;
-    int64_t _79_$retval;
-    _79_t3 = 1;
-    if (_79_t3) {
+int64_t _384_main(void) {
+    uint8_t _384_t3;
+    int64_t _384_t0;
+    int64_t _384_$retval;
+    _384_t3 = 1;
+    if (_384_t3) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _79_t0 = 178;
+    _384_t0 = 178;
     goto BB4;
 BB5:
-    _79_t0 = 4;
+    _384_t0 = 4;
     goto BB4;
 BB4:
-    _79_$retval = _79_t0;
-    return _79_$retval;
+    _384_$retval = _384_t0;
+    return _384_$retval;
 }
 
 int main(void) {
-  printf("%ld",_79_main());
+  printf("%ld",_384_main());
   return 0;
 }

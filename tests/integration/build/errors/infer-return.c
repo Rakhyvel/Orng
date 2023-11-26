@@ -17,28 +17,28 @@ typedef struct {
 typedef struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _28_main(void);
-struct1 _33_f(void);
+int64_t _271_main(void);
+struct1 _276_f(void);
 
 /* Function definitions */
-int64_t _28_main(void) {
-    function0 _28_t1;
-    struct1 _28_t2;
-    uint64_t _28_t3;
-    uint64_t _28_t4;
-    uint8_t _28_t5;
-    int64_t _28_$retval;
-    uint64_t _28_t6;
-    uint64_t _28_t7;
-    uint8_t _28_t8;
-    _28_t1 = _33_f;
+int64_t _271_main(void) {
+    function0 _271_t1;
+    struct1 _271_t2;
+    uint64_t _271_t3;
+    uint64_t _271_t4;
+    uint8_t _271_t5;
+    int64_t _271_$retval;
+    uint64_t _271_t6;
+    uint64_t _271_t7;
+    uint8_t _271_t8;
+    _271_t1 = _276_f;
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:3:13:\n    match f() {\n           ^";
-    _28_t2 = _28_t1();
+    _271_t2 = _271_t1();
     $line_idx--;
-    _28_t3 = 0;
-    _28_t4 = _28_t2.tag;
-    _28_t5 = _28_t4 == _28_t3;
-    if (_28_t5) {
+    _271_t3 = 0;
+    _271_t4 = _271_t2.tag;
+    _271_t5 = _271_t4 == _271_t3;
+    if (_271_t5) {
         goto BB3;
     } else {
         goto BB4;
@@ -47,29 +47,29 @@ BB3:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
 BB4:
-    _28_t6 = 1;
-    _28_t7 = _28_t2.tag;
-    _28_t8 = _28_t7 == _28_t6;
-    if (_28_t8) {
+    _271_t6 = 1;
+    _271_t7 = _271_t2.tag;
+    _271_t8 = _271_t7 == _271_t6;
+    if (_271_t8) {
         goto BB6;
     } else {
         goto BB10;
     }
 BB6:
-    _28_$retval = 238;
-    return _28_$retval;
+    _271_$retval = 238;
+    return _271_$retval;
 BB10:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:6:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }
 
-struct1 _33_f(void) {
-    struct1 _33_$retval;
-    _33_$retval = (struct1) {.tag=1};
-    return _33_$retval;
+struct1 _276_f(void) {
+    struct1 _276_$retval;
+    _276_$retval = (struct1) {.tag=1};
+    return _276_$retval;
 }
 
 int main(void) {
-  printf("%ld",_28_main());
+  printf("%ld",_271_main());
   return 0;
 }

@@ -1,0 +1,8 @@
+// 234
+fn main() -> Int {
+    comptime {
+        let x = 234
+        let y = &x
+        y^
+    }
+}

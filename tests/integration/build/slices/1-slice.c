@@ -19,43 +19,43 @@ typedef struct {
 } struct2;
 
 /* Function forward definitions */
-int64_t _2_main(void);
-int64_t _4_first(struct1 _4_xs);
+int64_t _876_main(void);
+int64_t _878_first(struct1 _878_xs);
 
 /* Function definitions */
-int64_t _2_main(void) {
-    function0 _2_t0;
-    int64_t _2_t3;
-    int64_t _2_t5;
-    struct2 _2_t4;
-    int64_t* _2_t6;
-    int64_t _2_t7;
-    struct1 _2_t2;
-    int64_t _2_t1;
-    int64_t _2_$retval;
-    _2_t0 = _4_first;
-    _2_t3 = 0;
-    _2_t5 = 233;
-    _2_t4 = (struct2) {_2_t5};
-    _2_t6 = ((int64_t*)&_2_t4 + _2_t3);
-    _2_t7 = 1;
-    _2_t2 = (struct1) {_2_t6, _2_t7};
+int64_t _876_main(void) {
+    function0 _876_t0;
+    int64_t _876_t3;
+    int64_t _876_t5;
+    struct2 _876_t4;
+    int64_t* _876_t6;
+    int64_t _876_t7;
+    struct1 _876_t2;
+    int64_t _876_t1;
+    int64_t _876_$retval;
+    _876_t0 = _878_first;
+    _876_t3 = 0;
+    _876_t5 = 233;
+    _876_t4 = (struct2) {_876_t5};
+    _876_t6 = ((int64_t*)&_876_t4 + _876_t3);
+    _876_t7 = 1;
+    _876_t2 = (struct1) {_876_t6, _876_t7};
     $lines[$line_idx++] = "tests/integration/slices/1-slice.orng:3:11:\n    first([](233,))\n         ^";
-    _2_t1 = _2_t0(_2_t2);
+    _876_t1 = _876_t0(_876_t2);
     $line_idx--;
-    _2_$retval = _2_t1;
-    return _2_$retval;
+    _876_$retval = _876_t1;
+    return _876_$retval;
 }
 
-int64_t _4_first(struct1 _4_xs) {
-    int64_t _4_t0;
-    int64_t _4_$retval;
-    _4_t0 = 0;
-    _4_$retval = *((int64_t*)_4_xs._0 + _4_t0);
-    return _4_$retval;
+int64_t _878_first(struct1 _878_xs) {
+    int64_t _878_t0;
+    int64_t _878_$retval;
+    _878_t0 = 0;
+    _878_$retval = *((int64_t*)_878_xs._0 + _878_t0);
+    return _878_$retval;
 }
 
 int main(void) {
-  printf("%ld",_2_main());
+  printf("%ld",_876_main());
   return 0;
 }

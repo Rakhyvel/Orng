@@ -1533,14 +1533,6 @@ pub const AST = union(enum) {
                     return c_typesMatch(self.addrOf.expr, other.addrOf.expr);
                 }
             },
-            .sliceOf => {
-                if (other.* != .sliceOf) {
-                    return false;
-                } else {
-                    return c_typesMatch(self.sliceOf.expr, other.sliceOf.expr);
-                }
-            },
-            .annotation => unreachable,
 
             .unit => {
                 return other.* == .unit;

@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint32_t _20_main(void);
+uint32_t _949_main(void);
 
 /* Function definitions */
-uint32_t _20_main(void) {
-    uint32_t _20_$retval;
-    _20_$retval = 9;
-    return _20_$retval;
+uint32_t _949_main(void) {
+    uint32_t _949_$retval;
+    _949_$retval = 9;
+    return _949_$retval;
 }
 
 int main(void) {
-  printf("%d",_20_main());
+  printf("%d",_949_main());
   return 0;
 }

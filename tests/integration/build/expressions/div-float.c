@@ -7,44 +7,44 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _58_main(void);
+int64_t _363_main(void);
 
 /* Function definitions */
-int64_t _58_main(void) {
-    uint8_t _58_t6;
-    uint8_t _58_t5;
-    int64_t _58_t0;
-    int64_t _58_$retval;
-    _58_t6 = 1;
-    if (_58_t6) {
+int64_t _363_main(void) {
+    uint8_t _363_t6;
+    uint8_t _363_t5;
+    int64_t _363_t0;
+    int64_t _363_$retval;
+    _363_t6 = 1;
+    if (_363_t6) {
         goto BB1;
     } else {
         goto BB9;
     }
 BB1:
-    _58_t5 = 1;
+    _363_t5 = 1;
     goto BB2;
 BB9:
-    _58_t5 = 0;
+    _363_t5 = 0;
     goto BB2;
 BB2:
-    if (_58_t5) {
+    if (_363_t5) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _58_t0 = 189;
+    _363_t0 = 189;
     goto BB6;
 BB7:
-    _58_t0 = 4;
+    _363_t0 = 4;
     goto BB6;
 BB6:
-    _58_$retval = _58_t0;
-    return _58_$retval;
+    _363_$retval = _363_t0;
+    return _363_$retval;
 }
 
 int main(void) {
-  printf("%ld",_58_main());
+  printf("%ld",_363_main());
   return 0;
 }

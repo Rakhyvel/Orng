@@ -10,31 +10,31 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _21_main(void);
-int64_t _23_return53(int64_t _23_x);
+int64_t _605_main(void);
+int64_t _607_return53(int64_t _607_x);
 
 /* Function definitions */
-int64_t _21_main(void) {
-    function0 _21_t0;
-    int64_t _21_t2;
-    int64_t _21_t1;
-    int64_t _21_$retval;
-    _21_t0 = _23_return53;
-    _21_t2 = 53;
+int64_t _605_main(void) {
+    function0 _605_t0;
+    int64_t _605_t2;
+    int64_t _605_t1;
+    int64_t _605_$retval;
+    _605_t0 = _607_return53;
+    _605_t2 = 53;
     $lines[$line_idx++] = "tests/integration/functions/default-1arg.orng:3:14:\n    return53()\n            ^";
-    _21_t1 = _21_t0(_21_t2);
+    _605_t1 = _605_t0(_605_t2);
     $line_idx--;
-    _21_$retval = _21_t1;
-    return _21_$retval;
+    _605_$retval = _605_t1;
+    return _605_$retval;
 }
 
-int64_t _23_return53(int64_t _23_x) {
-    int64_t _23_$retval;
-    _23_$retval = _23_x;
-    return _23_$retval;
+int64_t _607_return53(int64_t _607_x) {
+    int64_t _607_$retval;
+    _607_$retval = _607_x;
+    return _607_$retval;
 }
 
 int main(void) {
-  printf("%ld",_21_main());
+  printf("%ld",_605_main());
   return 0;
 }

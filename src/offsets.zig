@@ -64,7 +64,6 @@ pub fn calculate_offsets(
     // Calculate locals offsets, ascending from local starting offset
     var local_offsets: i64 = locals_starting_offset;
     for (symbol.cfg.?.symbvers.items) |symbver| {
-        // std.debug.print("{s}\n", .{symbver.symbol.name});
         if (symbver.symbol.offset == null) {
             symbver.symbol.offset = local_offsets;
             local_offsets += symbver.symbol.expanded_type.?.get_slots();

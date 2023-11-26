@@ -13,29 +13,29 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _105_main(void);
+int64_t _820_main(void);
 
 /* Function definitions */
-int64_t _105_main(void) {
-    int64_t _105_t2;
-    int64_t _105_t3;
-    struct0 _105_t1;
-    int64_t _108_x;
-    int64_t _108_y;
-    int64_t _105_t4;
-    int64_t _105_$retval;
-    _105_t2 = 230;
-    _105_t3 = 4;
-    _105_t1 = (struct0) {_105_t2, _105_t3};
-    _108_x = _105_t1._0;
-    _108_y = _105_t1._1;
-    _105_t4 = 4;
-    _108_y = $div_int64_t(_108_y, _105_t4, "tests/integration/pattern/match-mut.orng:5:17:\n            y /= 4\n               ^");
-    _105_$retval = $add_int64_t(_108_x, _108_y, "tests/integration/pattern/match-mut.orng:6:16:\n            x + y\n              ^");
-    return _105_$retval;
+int64_t _820_main(void) {
+    int64_t _820_t2;
+    int64_t _820_t3;
+    struct0 _820_t1;
+    int64_t _823_x;
+    int64_t _823_y;
+    int64_t _820_t4;
+    int64_t _820_$retval;
+    _820_t2 = 230;
+    _820_t3 = 4;
+    _820_t1 = (struct0) {_820_t2, _820_t3};
+    _823_x = _820_t1._0;
+    _823_y = _820_t1._1;
+    _820_t4 = 4;
+    _823_y = $div_int64_t(_823_y, _820_t4, "tests/integration/pattern/match-mut.orng:5:17:\n            y /= 4\n               ^");
+    _820_$retval = $add_int64_t(_823_x, _823_y, "tests/integration/pattern/match-mut.orng:6:16:\n            x + y\n              ^");
+    return _820_$retval;
 }
 
 int main(void) {
-  printf("%ld",_105_main());
+  printf("%ld",_820_main());
   return 0;
 }

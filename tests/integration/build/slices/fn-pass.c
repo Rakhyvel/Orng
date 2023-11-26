@@ -22,51 +22,51 @@ typedef struct {
 typedef int64_t(*function2)(struct1);
 
 /* Function forward definitions */
-int64_t _7_main(void);
-int64_t _9_f(struct1 _9_x);
+int64_t _881_main(void);
+int64_t _883_f(struct1 _883_x);
 
 /* Function definitions */
-int64_t _7_main(void) {
-    int64_t _7_t1;
-    int64_t _7_t2;
-    int64_t _7_t3;
-    int64_t _7_t4;
-    struct0 _8_x;
-    int64_t _7_t6;
-    int64_t* _7_t7;
-    int64_t _7_t8;
-    struct1 _8_y;
-    function2 _7_t9;
-    int64_t _7_t10;
-    int64_t _7_$retval;
-    _7_t1 = 1;
-    _7_t2 = 2;
-    _7_t3 = 3;
-    _7_t4 = 4;
-    _8_x = (struct0) {_7_t1, _7_t2, _7_t3, _7_t4};
-    _7_t6 = 0;
-    _7_t7 = ((int64_t*)&_8_x + _7_t6);
-    _7_t8 = 4;
-    _8_y = (struct1) {_7_t7, _7_t8};
-    _7_t9 = _9_f;
+int64_t _881_main(void) {
+    int64_t _881_t1;
+    int64_t _881_t2;
+    int64_t _881_t3;
+    int64_t _881_t4;
+    struct0 _882_x;
+    int64_t _881_t6;
+    int64_t* _881_t7;
+    int64_t _881_t8;
+    struct1 _882_y;
+    function2 _881_t9;
+    int64_t _881_t10;
+    int64_t _881_$retval;
+    _881_t1 = 1;
+    _881_t2 = 2;
+    _881_t3 = 3;
+    _881_t4 = 4;
+    _882_x = (struct0) {_881_t1, _881_t2, _881_t3, _881_t4};
+    _881_t6 = 0;
+    _881_t7 = ((int64_t*)&_882_x + _881_t6);
+    _881_t8 = 4;
+    _882_y = (struct1) {_881_t7, _881_t8};
+    _881_t9 = _883_f;
     $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
-    _7_t10 = _7_t9(_8_y);
+    _881_t10 = _881_t9(_882_y);
     $line_idx--;
-    _7_$retval = _7_t10;
-    return _7_$retval;
+    _881_$retval = _881_t10;
+    return _881_$retval;
 }
 
-int64_t _9_f(struct1 _9_x) {
-    int64_t _9_t0;
-    int64_t _9_t1;
-    int64_t _9_$retval;
-    _9_t0 = 1;
-    _9_t1 = 80;
-    _9_$retval = $add_int64_t(*((int64_t*)_9_x._0 + _9_t0), _9_t1, "tests/integration/slices/fn-pass.orng:8:28:\nfn f(x: []Int)->Int {x[1] + 80}\n                          ^");
-    return _9_$retval;
+int64_t _883_f(struct1 _883_x) {
+    int64_t _883_t0;
+    int64_t _883_t1;
+    int64_t _883_$retval;
+    _883_t0 = 1;
+    _883_t1 = 80;
+    _883_$retval = $add_int64_t(*((int64_t*)_883_x._0 + _883_t0), _883_t1, "tests/integration/slices/fn-pass.orng:8:28:\nfn f(x: []Int)->Int {x[1] + 80}\n                          ^");
+    return _883_$retval;
 }
 
 int main(void) {
-  printf("%ld",_7_main());
+  printf("%ld",_881_main());
   return 0;
 }

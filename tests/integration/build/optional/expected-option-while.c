@@ -15,42 +15,42 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _25_main(void);
+int64_t _696_main(void);
 
 /* Function definitions */
-int64_t _25_main(void) {
-    int64_t _25_$retval;
-    uint8_t _25_t1;
-    struct0 _26_y;
-    uint64_t _25_t4;
-    int64_t _25_t3;
+int64_t _696_main(void) {
+    int64_t _696_$retval;
+    uint8_t _696_t1;
+    struct0 _697_y;
+    uint64_t _696_t4;
+    int64_t _696_t3;
 BB1:
-    _25_t1 = 0;
-    if (_25_t1) {
+    _696_t1 = 0;
+    if (_696_t1) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB5:
-    _26_y = (struct0) {.tag=0};
-    _25_t4 = 0;
-    if (_25_t4) {
+    _697_y = (struct0) {.tag=0};
+    _696_t4 = 0;
+    if (_696_t4) {
         goto BB7;
     } else {
         goto BB10;
     }
 BB7:
-    _25_t3 = _26_y._1;
+    _696_t3 = _697_y._1;
     goto BB9;
 BB10:
-    _25_t3 = 116;
+    _696_t3 = 116;
     goto BB9;
 BB9:
-    _25_$retval = _25_t3;
-    return _25_$retval;
+    _696_$retval = _696_t3;
+    return _696_$retval;
 }
 
 int main(void) {
-  printf("%ld",_25_main());
+  printf("%ld",_696_main());
   return 0;
 }

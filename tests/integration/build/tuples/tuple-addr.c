@@ -13,26 +13,26 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _53_main(void);
+int64_t _1088_main(void);
 
 /* Function definitions */
-int64_t _53_main(void) {
-    int64_t _54_x;
-    int64_t _54_y;
-    int64_t* _53_t3;
-    int64_t* _53_t4;
-    struct0 _54_z;
-    int64_t _53_$retval;
-    _54_x = 30;
-    _54_y = 29;
-    _53_t3 = &_54_x;
-    _53_t4 = &_54_y;
-    _54_z = (struct0) {_53_t3, _53_t4};
-    _53_$retval = $add_int64_t(*_54_z._0, *_54_z._1, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
-    return _53_$retval;
+int64_t _1088_main(void) {
+    int64_t _1089_x;
+    int64_t _1089_y;
+    int64_t* _1088_t3;
+    int64_t* _1088_t4;
+    struct0 _1089_z;
+    int64_t _1088_$retval;
+    _1089_x = 30;
+    _1089_y = 29;
+    _1088_t3 = &_1089_x;
+    _1088_t4 = &_1089_y;
+    _1089_z = (struct0) {_1088_t3, _1088_t4};
+    _1088_$retval = $add_int64_t(*_1089_z._0, *_1089_z._1, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
+    return _1088_$retval;
 }
 
 int main(void) {
-  printf("%ld",_53_main());
+  printf("%ld",_1088_main());
   return 0;
 }

@@ -72,8 +72,8 @@
 - [ ] "dependency injection" to remove error/allocator arguments
 - [ ] "packaging" to remove label arguments, possibly something else too
 - [x] Some function call lines are prepended and then popped before function call
-- [ ] IRs should use L_Values for sources too (its not harder to optimize btw)
-- [ ] Reduce coupling
+- [x] IRs should use L_Values for sources too (its not harder to optimize btw)
+- [ ] Figure out how to do lints before GCC does
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

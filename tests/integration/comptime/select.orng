@@ -1,0 +1,7 @@
+// 235
+fn main() -> Int {
+    comptime {
+        let x: (a: Int, b: Int) = (100, 235)
+        x.b
+    }
+}

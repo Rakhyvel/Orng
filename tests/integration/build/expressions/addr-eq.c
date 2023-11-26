@@ -15,90 +15,90 @@ typedef struct {
 typedef uint8_t(*function0)(int64_t*, int64_t*);
 
 /* Function forward definitions */
-int64_t _16_main(void);
-uint8_t _21_addr_equal(int64_t* _21_x,int64_t* _21_y);
+int64_t _321_main(void);
+uint8_t _326_addr_equal(int64_t* _326_x,int64_t* _326_y);
 
 /* Function definitions */
-int64_t _16_main(void) {
-    int64_t _17_x;
-    int64_t _17_y;
-    function0 _16_t4;
-    int64_t* _16_t6;
-    int64_t* _16_t7;
-    uint8_t _16_t5;
-    function0 _16_t8;
-    int64_t* _16_t10;
-    int64_t* _16_t11;
-    uint8_t _16_t9;
-    uint8_t _16_t12;
-    uint8_t _16_t3;
-    int64_t _16_t2;
-    int64_t _16_$retval;
-    _17_x = 4;
-    _17_y = 4;
-    _16_t4 = _21_addr_equal;
-    _16_t6 = &_17_x;
-    _16_t7 = &_17_x;
+int64_t _321_main(void) {
+    int64_t _322_x;
+    int64_t _322_y;
+    function0 _321_t4;
+    int64_t* _321_t6;
+    int64_t* _321_t7;
+    uint8_t _321_t5;
+    function0 _321_t8;
+    int64_t* _321_t10;
+    int64_t* _321_t11;
+    uint8_t _321_t9;
+    uint8_t _321_t12;
+    uint8_t _321_t3;
+    int64_t _321_t2;
+    int64_t _321_$retval;
+    _322_x = 4;
+    _322_y = 4;
+    _321_t4 = _326_addr_equal;
+    _321_t6 = &_322_x;
+    _321_t7 = &_322_x;
     $lines[$line_idx++] = "tests/integration/expressions/addr-eq.orng:5:19:\n    if addr_equal(&x, &x) and not addr_equal(&x, &y) {\n                 ^";
-    _16_t5 = _16_t4(_16_t6, _16_t7);
+    _321_t5 = _321_t4(_321_t6, _321_t7);
     $line_idx--;
-    if (_16_t5) {
+    if (_321_t5) {
         goto BB1;
     } else {
         goto BB9;
     }
 BB1:
-    _16_t8 = _21_addr_equal;
-    _16_t10 = &_17_x;
-    _16_t11 = &_17_y;
+    _321_t8 = _326_addr_equal;
+    _321_t10 = &_322_x;
+    _321_t11 = &_322_y;
     $lines[$line_idx++] = "tests/integration/expressions/addr-eq.orng:5:46:\n    if addr_equal(&x, &x) and not addr_equal(&x, &y) {\n                                            ^";
-    _16_t9 = _16_t8(_16_t10, _16_t11);
+    _321_t9 = _321_t8(_321_t10, _321_t11);
     $line_idx--;
-    _16_t12 = !_16_t9;
-    _16_t3 = _16_t12;
+    _321_t12 = !_321_t9;
+    _321_t3 = _321_t12;
     goto BB2;
 BB9:
-    _16_t3 = 0;
+    _321_t3 = 0;
     goto BB2;
 BB2:
-    if (_16_t3) {
+    if (_321_t3) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _16_t2 = 236;
+    _321_t2 = 236;
     goto BB6;
 BB7:
-    _16_t2 = -3;
+    _321_t2 = -3;
     goto BB6;
 BB6:
-    _16_$retval = _16_t2;
-    return _16_$retval;
+    _321_$retval = _321_t2;
+    return _321_$retval;
 }
 
-uint8_t _21_addr_equal(int64_t* _21_x,int64_t* _21_y) {
-    uint8_t _21_t1;
-    uint8_t _21_t0;
-    uint8_t _21_$retval;
-    _21_t1 = _21_x == _21_y;
-    if (_21_t1) {
+uint8_t _326_addr_equal(int64_t* _326_x,int64_t* _326_y) {
+    uint8_t _326_t1;
+    uint8_t _326_t0;
+    uint8_t _326_$retval;
+    _326_t1 = _326_x == _326_y;
+    if (_326_t1) {
         goto BB1;
     } else {
         goto BB4;
     }
 BB1:
-    _21_t0 = 1;
+    _326_t0 = 1;
     goto BB3;
 BB4:
-    _21_t0 = 0;
+    _326_t0 = 0;
     goto BB3;
 BB3:
-    _21_$retval = _21_t0;
-    return _21_$retval;
+    _326_$retval = _326_t0;
+    return _326_$retval;
 }
 
 int main(void) {
-  printf("%ld",_16_main());
+  printf("%ld",_321_main());
   return 0;
 }

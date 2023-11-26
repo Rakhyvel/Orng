@@ -1117,6 +1117,10 @@ pub const CFG = struct {
         return retval;
     }
 
+    pub fn deinit(self: *CFG) void {
+        _ = self;
+    }
+
     // BBs aren't trees, so `defer self.visited = false` won't work
     // Use this function instead
     pub fn clearVisitedBBs(self: *CFG) void {
@@ -1139,7 +1143,11 @@ pub const CFG = struct {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol.expanded_type.?.* != .unit and ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null) {
+                if (ir.dest != null and
+                    ir.dest.?.* == .symbver and
+                    ir.dest.?.symbver.symbol.expanded_type.?.* != .unit and
+                    ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null)
+                {
                     _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
                 }
             }

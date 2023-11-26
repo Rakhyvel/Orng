@@ -707,14 +707,8 @@ fn output_rvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
             }
 
             // Output lhs of select
-            try output_rvalue(lvalue.select.lhs, lvalue.precedence(), writer);
-
-            if (lvalue.select.lhs.get_expanded_type().* == .addrOf) {
-                try writer.print("->_{}", .{lvalue.select.field});
-            } else {
-                // Regular `.` select
-                try writer.print("._{}", .{lvalue.select.field});
-            }
+            try output_rvalue(lvalue.select.lhs, lvalue.precedence(), writer); // This will dereference, no need for `->`
+            try writer.print("._{}", .{lvalue.select.field});
 
             if (outer_precedence < lvalue.precedence()) {
                 // Closing paren, if needed by precedence
