@@ -23,26 +23,23 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _10_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _1_t1;
-    struct1 _2_x;
-    struct0 _1_t6;
-    int64_t _1_$retval;
-    _1_t1 = (struct0) {.tag=0, ._0=4};
-    _2_x = (struct1) {.tag=0, ._0=_1_t1};
-    _2_x._0._0 = 104;
-    $tag_check(_2_x.tag, 0, "tests/integration/sums/double.orng:5:7:\n    x.sum.int\n     ^");
-    _1_t6 = _2_x._0;
-    $tag_check(_1_t6.tag, 0, "tests/integration/sums/double.orng:5:11:\n    x.sum.int\n         ^");
-    _1_$retval = _2_x._0._0;
-    return _1_$retval;
+int64_t _10_main(void) {
+    int64_t _10_t0;
+    struct0 _10_t1;
+    struct1 _11_x;
+    int64_t _10_$retval;
+    _10_t0 = 4;
+    _10_t1 = (struct0) {.tag=0, ._0=_10_t0};
+    _11_x = (struct1) {.tag=0, ._0=_10_t1};
+    _11_x._0._0 = 104;
+    _10_$retval = _11_x._0._0;
+    return _10_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_10_main());
   return 0;
 }

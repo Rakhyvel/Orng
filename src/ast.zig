@@ -890,6 +890,23 @@ pub const AST = union(enum) {
                     retval = self;
                 }
             },
+            .sum => {
+                var terms = std.ArrayList(*AST).init(allocator);
+                var change = false;
+                for (self.sum.terms.items) |term| {
+                    const new_term = try term.expand_type(scope, errors, allocator);
+                    try terms.append(new_term);
+                    change = new_term != term or change;
+                }
+                if (change) {
+                    retval = try AST.createSum(self.getToken(), terms, allocator);
+                    retval.sum.was_error = self.sum.was_error;
+                    retval.sum.was_optional = self.sum.was_optional;
+                } else {
+                    terms.deinit();
+                    retval = self;
+                }
+            },
             .addrOf => {
                 const expr = try self.addrOf.expr.expand_type(scope, errors, allocator);
                 retval = try AST.createAddrOf(self.getToken(), expr, self.addrOf.mut, allocator);

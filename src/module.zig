@@ -292,6 +292,10 @@ pub const Module = struct {
     }
 };
 
+// TODO: I don't think this works with addresses
+//     let const A = (x: &B, y: Int)
+//     let const B = (x: &A, y: Int)
+// The above should work
 fn collect_types(cfg: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
     // Add parameter types to type set
     if (cfg.symbol._type.?.function.lhs.* == .product) {
