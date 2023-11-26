@@ -148,12 +148,15 @@ pub const Module = struct {
 
         for (module.scope.symbols.keys()) |key| {
             var symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
+            if (symbol.kind != ._fn) {
+                continue;
+            }
             // IR translation
             const cfg = try symbol.get_cfg(null, &module.interned_strings, errors, allocator);
             try module.append_instructions(cfg);
 
             // Wrap main CFG in module
-            try collectTypes(cfg, &module.types, module.scope, errors, allocator);
+            try collect_types(cfg, &module.types, allocator);
 
             if (std.mem.eql(u8, key, "main")) {
                 module.entry = cfg;
@@ -273,48 +276,45 @@ pub const Module = struct {
     }
 };
 
-fn collectTypes(callGraph: *CFG, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
-    if (callGraph.visited) {
+fn collect_types(cfg: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
+    if (cfg.visited) {
         return;
     }
-    callGraph.visited = true;
+    cfg.visited = true;
 
     // Add parameter types to type set
-    if (callGraph.symbol._type.?.function.lhs.* == .product) {
+    if (cfg.symbol._type.?.function.lhs.* == .product) {
         // Function has more than one parameter, add types of product terms
-        for (callGraph.symbol._type.?.function.lhs.product.terms.items) |param_type| {
-            _ = try typeSetAppend(param_type, set, scope, errors, allocator);
+        for (cfg.symbol._type.?.function.lhs.product.terms.items) |param_type| {
+            _ = try type_set_append(param_type, set, allocator);
         }
     } else {
         // Function has one parameter, add it's type
-        _ = try typeSetAppend(callGraph.symbol._type.?.function.lhs, set, scope, errors, allocator);
+        _ = try type_set_append(cfg.symbol._type.?.function.lhs, set, allocator);
     }
 
-    for (callGraph.basic_blocks.items) |bb| {
+    for (cfg.basic_blocks.items) |bb| {
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol._type != null) {
-                _ = try typeSetAppend(ir.dest.?.symbver.symbol._type.?, set, scope, errors, allocator);
+            if (ir.dest != null) {
+                _ = try type_set_append(ir.dest.?.get_expanded_type(), set, allocator);
             }
         }
     }
-    for (callGraph.children.items) |child| {
-        try collectTypes(child, set, scope, errors, allocator);
-    }
 }
 
-fn typeSetAppend(oldast_: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
-    const ast = try oldast_.expand_type(scope, errors, allocator);
-    if (try typeSetGet(ast, set, scope, errors, allocator)) |dag| {
+fn type_set_append(oldast_: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
+    const ast = oldast_;
+    if (type_set_get(ast, set)) |dag| {
         // Type is already in the set, return DAG entry for it
         return dag;
     } else if (ast.* == .function) {
         var dag = try DAG.init(ast, set.items.len, allocator);
         try set.append(dag);
-        if (try typeSetAppend(ast.function.lhs, set, scope, errors, allocator)) |domain| {
+        if (try type_set_append(ast.function.lhs, set, allocator)) |domain| {
             try dag.dependencies.append(domain);
         }
-        if (try typeSetAppend(ast.function.rhs, set, scope, errors, allocator)) |codomain| {
+        if (try type_set_append(ast.function.rhs, set, allocator)) |codomain| {
             try dag.dependencies.append(codomain);
         }
         return dag;
@@ -322,7 +322,7 @@ fn typeSetAppend(oldast_: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors
         var dag = try DAG.init(ast, set.items.len, allocator);
         try set.append(dag);
         for (ast.product.terms.items) |term| {
-            if (try typeSetAppend(term, set, scope, errors, allocator)) |dependency| {
+            if (try type_set_append(term, set, allocator)) |dependency| {
                 try dag.dependencies.append(dependency);
             }
         }
@@ -331,20 +331,22 @@ fn typeSetAppend(oldast_: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors
         var dag = try DAG.init(ast, set.items.len, allocator);
         try set.append(dag);
         for (ast.sum.terms.items) |term| {
-            if (try typeSetAppend(term, set, scope, errors, allocator)) |dependency| {
+            if (try type_set_append(term, set, allocator)) |dependency| {
                 try dag.dependencies.append(dependency);
             }
         }
         return dag;
     } else if (ast.* == .annotation) {
-        return try typeSetAppend(ast.annotation.type, set, scope, errors, allocator);
+        return try type_set_append(ast.annotation.type, set, allocator);
+    } else if (ast.* == .addrOf) {
+        return try type_set_append(ast.addrOf.expr, set, allocator);
     } else {
         return null;
     }
 }
 
-pub fn typeSetGet(oldast_: *AST, set: *std.ArrayList(*DAG), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !?*DAG {
-    const ast = try oldast_.expand_type(scope, errors, allocator);
+pub fn type_set_get(oldast_: *AST, set: *std.ArrayList(*DAG)) ?*DAG {
+    const ast = oldast_;
     for (set.items) |dag| {
         if (dag.base.c_typesMatch(ast)) {
             return dag;

@@ -19,26 +19,41 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _44_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _1_t1;
-    struct0 _1_t4;
-    struct0 _1_t7;
-    struct1 _2_x;
-    int64_t _1_$retval;
-    _1_t1 = (struct0) {1, 2};
-    _1_t4 = (struct0) {3, 4};
-    _1_t7 = (struct0) {5, 6};
-    _2_x = (struct1) {_1_t1, _1_t4, _1_t7};
-    ((struct0*)&_2_x + 1)->_0 = 73;
-    _1_$retval = ((struct0*)&_2_x + 1)->_0;
-    return _1_$retval;
+int64_t _44_main(void) {
+    int64_t _44_t2;
+    int64_t _44_t3;
+    struct0 _44_t1;
+    int64_t _44_t5;
+    int64_t _44_t6;
+    struct0 _44_t4;
+    int64_t _44_t8;
+    int64_t _44_t9;
+    struct0 _44_t7;
+    struct1 _45_x;
+    int64_t _44_t11;
+    int64_t _44_t12;
+    int64_t _44_$retval;
+    _44_t2 = 1;
+    _44_t3 = 2;
+    _44_t1 = (struct0) {_44_t2, _44_t3};
+    _44_t5 = 3;
+    _44_t6 = 4;
+    _44_t4 = (struct0) {_44_t5, _44_t6};
+    _44_t8 = 5;
+    _44_t9 = 6;
+    _44_t7 = (struct0) {_44_t8, _44_t9};
+    _45_x = (struct1) {_44_t1, _44_t4, _44_t7};
+    _44_t11 = 1;
+    (*((struct0*)&_45_x + _44_t11))._0 = 73;
+    _44_t12 = 1;
+    _44_$retval = (*((struct0*)&_45_x + _44_t12))._0;
+    return _44_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_44_main());
   return 0;
 }

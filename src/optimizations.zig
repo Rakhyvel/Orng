@@ -253,13 +253,13 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             // Walk through IR in BB, update map of src1 and src2 defs
             const src1_def: ?*IR = if (ir.src1 != null and ir.src1.?.* == .symbver) def_map.get(ir.src1.?.symbver) orelse null else null;
-            const src2_def: ?*IR = if (ir.src2 != null and ir.src1.?.* == .symbver) def_map.get(ir.src2.?.symbver) orelse null else null;
+            const src2_def: ?*IR = if (ir.src2 != null and ir.src2.?.* == .symbver) def_map.get(ir.src2.?.symbver) orelse null else null;
             retval = try propagateIR(ir, src1_def, src2_def, interned_strings, errors) or retval;
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
                 try def_map.put(ir.dest.?.extract_symbver(), null);
             } else if (ir.kind == .addrOf) {
-                try def_map.put(ir.data.lval.extract_symbver(), null);
+                try def_map.put(ir.src1.?.extract_symbver(), null);
             }
             if (ir.dest != null and ir.dest.?.* == .symbver) {
                 try def_map.put(ir.dest.?.symbver, ir);
@@ -1392,21 +1392,16 @@ fn calculateUsage(cfg: *CFG) void {
                 calculate_usage_lval(ir.dest.?);
             }
             if (ir.src1 != null) {
-                ir.src1.?.extract_symbver().uses += 1;
-                ir.src1.?.extract_symbver().symbol.uses += 1;
+                calculate_usage_lval(ir.src1.?);
             }
             if (ir.src2 != null) {
-                ir.src2.?.extract_symbver().uses += 1;
-                ir.src2.?.extract_symbver().symbol.uses += 1;
+                calculate_usage_lval(ir.src2.?);
             }
 
-            if (ir.data == .symbverList) {
-                for (ir.data.symbverList.items) |item| {
-                    item.uses += 1;
-                    item.symbol.uses += 1;
+            if (ir.data == .lval_list) {
+                for (ir.data.lval_list.items) |lval| {
+                    calculate_usage_lval(lval);
                 }
-            } else if (ir.data == .lval) {
-                calculate_usage_lval(ir.data.lval);
             }
 
             if (ir.meta == .bounds_check) {

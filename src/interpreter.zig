@@ -256,7 +256,7 @@ pub const Context = struct {
                     self.store_lval(ir.dest.?, data);
                 },
                 .addrOf => {
-                    const data = ir_.IRData{ .int = self.get_lval(ir.data.lval) };
+                    const data = ir_.IRData{ .int = self.get_lval(ir.src1.?) };
                     self.store_lval(ir.dest.?, data);
                 },
 
@@ -399,14 +399,14 @@ pub const Context = struct {
                     // Save old stack pointer
                     const old_sp = self.stack_pointer;
                     //  push args in reverse order
-                    if (ir.data.symbverList.items.len > 0) {
-                        var i = ir.data.symbverList.items.len - 1;
+                    if (ir.data.lval_list.items.len > 0) {
+                        var i = ir.data.lval_list.items.len - 1;
                         var slots: i128 = undefined;
                         while (i > 0) : (i -= 1) {
-                            slots = ir.data.symbverList.items[i].symbol.expanded_type.?.get_slots();
+                            slots = ir.data.lval_list.items[i].get_expanded_type().get_slots();
                             self.push_move(self.get_lval(ir.data.lval_list.items[i]), slots);
                         }
-                        slots = ir.data.symbverList.items[i].symbol.expanded_type.?.get_slots();
+                        slots = ir.data.lval_list.items[i].get_expanded_type().get_slots();
                         self.push_move(self.get_lval(ir.data.lval_list.items[i]), slots);
                     }
 

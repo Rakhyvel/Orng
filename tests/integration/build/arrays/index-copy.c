@@ -15,20 +15,31 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1_main(void);
+int64_t _71_main(void);
 
 /* Function definitions */
-int64_t _1_main(void) {
-    struct0 _2_x;
-    int64_t _1_$retval;
-    _2_x = (struct0) {1, 2, 3, 4};
-    *((int64_t*)&_2_x + 2) = 62;
-    _1_$retval = *((int64_t*)&_2_x + 2);
-    return _1_$retval;
+int64_t _71_main(void) {
+    int64_t _71_t1;
+    int64_t _71_t2;
+    int64_t _71_t3;
+    int64_t _71_t4;
+    struct0 _72_x;
+    int64_t _71_t6;
+    int64_t _71_t7;
+    int64_t _71_$retval;
+    _71_t1 = 1;
+    _71_t2 = 2;
+    _71_t3 = 3;
+    _71_t4 = 4;
+    _72_x = (struct0) {_71_t1, _71_t2, _71_t3, _71_t4};
+    _71_t6 = 2;
+    *((int64_t*)&_72_x + _71_t6) = 62;
+    _71_t7 = 2;
+    _71_$retval = *((int64_t*)&_72_x + _71_t7);
+    return _71_$retval;
 }
 
-int main(void)
-{
-  printf("%ld",_1_main());
+int main(void) {
+  printf("%ld",_71_main());
   return 0;
 }

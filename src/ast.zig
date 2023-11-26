@@ -1568,4 +1568,101 @@ pub const AST = union(enum) {
             },
         }
     }
+
+    pub fn pprint(self: AST, allocator: std.mem.Allocator) ![]const u8 {
+        var out = String.init(allocator);
+        defer out.deinit();
+
+        switch (self) {
+            .poison => try out.writer().print("poison", .{}),
+            .unit => try out.writer().print("unit", .{}),
+            .int => try out.writer().print("int()", .{}),
+            .char => try out.writer().print("char()", .{}),
+            .float => try out.writer().print("float()", .{}),
+            .string => try out.writer().print("string()", .{}),
+            .identifier => try out.writer().print("identifier(\"{s}\")", .{self.identifier.common.token.data}),
+            ._unreachable => try out.writer().print("unreachable", .{}),
+            ._true => try out.writer().print("true", .{}),
+            ._false => try out.writer().print("false", .{}),
+
+            .not => try out.writer().print("not()", .{}),
+            .negate => try out.writer().print("negate()", .{}),
+            .dereference => try out.writer().print("dereference()", .{}),
+            ._try => try out.writer().print("try()", .{}),
+            .discard => try out.writer().print("discard()", .{}),
+            ._typeOf => try out.writer().print("typeof()", .{}),
+            .domainOf => try out.writer().print("domainof()", .{}),
+            ._comptime => try out.writer().print("comptime()", .{}),
+
+            .assign => try out.writer().print("assign()", .{}),
+            ._or => try out.writer().print("or()", .{}),
+            ._and => try out.writer().print("and()", .{}),
+            .add => try out.writer().print("add()", .{}),
+            .sub => try out.writer().print("sub()", .{}),
+            .mult => try out.writer().print("mult()", .{}),
+            .div => try out.writer().print("div()", .{}),
+            .mod => try out.writer().print("mod()", .{}),
+            .equal => try out.writer().print("equal()", .{}),
+            .not_equal => try out.writer().print("not_equal()", .{}),
+            .greater => try out.writer().print("greater()", .{}),
+            .lesser => try out.writer().print("lesser()", .{}),
+            .greater_equal => try out.writer().print("greater_equal()", .{}),
+            .lesser_equal => try out.writer().print("lesser_equal()", .{}),
+            ._catch => try out.writer().print("catch()", .{}),
+            ._orelse => try out.writer().print("orelse()", .{}),
+            .call => try out.writer().print("call()", .{}),
+            .index => try out.writer().print("index()", .{}),
+            .select => try out.writer().print("select()", .{}),
+            .function => try out.writer().print("function()", .{}),
+            .invoke => try out.writer().print("invoke()", .{}),
+            .sum => try out.writer().print("sum()", .{}),
+            .inferred_error => try out.writer().print("inferred_error()", .{}),
+            .inject => try out.writer().print("inject()", .{}),
+            .product => {
+                try out.writer().print("product(", .{});
+                for (self.product.terms.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.product.terms.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
+            ._union => try out.writer().print("union()", .{}),
+
+            .addrOf => try out.writer().print("addrOf({})", .{self.addrOf.expr}),
+            .sliceOf => try out.writer().print("sliceOf()", .{}),
+            .subSlice => try out.writer().print("subSlice()", .{}),
+            .annotation => try out.writer().print("annotation()", .{}),
+            .inferredMember => try out.writer().print("inferredMember()", .{}),
+
+            ._if => try out.writer().print("if()", .{}),
+            .match => try out.writer().print("match()", .{}),
+            .mapping => try out.writer().print("mapping()", .{}),
+            ._while => try out.writer().print("while()", .{}),
+            ._for => try out.writer().print("for()", .{}),
+            .block => try out.writer().print("block()", .{}),
+            ._break => try out.writer().print("break", .{}),
+            ._continue => try out.writer().print("continue", .{}),
+            ._return => try out.writer().print("return()", .{}),
+            .symbol => try out.writer().print("symbol()", .{}),
+            .decl => try out.writer().print("decl()", .{}),
+            .fnDecl => try out.writer().print("fnDecl()", .{}),
+            ._defer => try out.writer().print("defer()", .{}),
+            ._errdefer => try out.writer().print("errdefer()", .{}),
+        }
+
+        return (try out.toOwned()).?;
+    }
+
+    pub fn format(self: AST, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+
+        const out = self.pprint(arena.allocator()) catch unreachable;
+
+        try writer.print("{s}", .{out});
+    }
 };

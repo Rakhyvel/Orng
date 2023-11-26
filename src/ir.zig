@@ -129,8 +129,8 @@ pub const IRKind = enum {
     not,
     negate_int,
     negate_float,
-    addrOf,
     sizeOf, //< For extern types that Orng can't do automatically
+    addrOf,
 
     // Diadic instructions
     equal,
@@ -187,9 +187,9 @@ pub const IRKind = enum {
             .negate_int,
             .negate_float,
             .not,
-            .addrOf,
             .sizeOf,
             .cast,
+            .addrOf,
             => 2,
 
             .mult_int,
@@ -241,10 +241,8 @@ pub const IRData = union(enum) {
     bb_id: u64,
     string: []const u8,
     symbol: *Symbol,
-    irList: std.ArrayList(*IR),
-    symbverList: std.ArrayList(*SymbolVersion),
     lval_list: std.ArrayList(*L_Value),
-    lval: *L_Value,
+    // lval: *L_Value,
     select: struct { offset: i128, field: i128 },
     none,
 
@@ -322,10 +320,6 @@ pub const IRData = union(enum) {
             return std.mem.eql(u8, self.string, other.string);
         } else if (self == .symbol and other == .symbol) {
             return self.symbol == other.symbol;
-        } else if (self == .irList and other == .irList) {
-            return false;
-        } else if (self == .symbverList and other == .symbverList) {
-            return false;
         } else {
             return false; // tags are mismatched
         }
@@ -419,7 +413,7 @@ pub const L_Value = union(enum) {
                 try out.writer().print("{}", .{self.symbver});
             },
             .dereference => {
-                try out.writer().print("{}^", .{self.dereference});
+                try out.writer().print("{}^", .{self.dereference.expr});
             },
             .index_slice => {
                 try out.writer().print("{}.data[{}]", .{ self.index_slice.lhs, self.index_slice.field });
@@ -740,10 +734,10 @@ pub const IR = struct {
             .loadStruct => {
                 try out.writer().print("    {} := {{", .{self.dest.?});
                 var i: usize = 0;
-                while (i < self.data.symbverList.items.len) : (i += 1) {
-                    const symbver = self.data.symbverList.items[i];
-                    try out.writer().print("{}", .{symbver});
-                    if (i < self.data.symbverList.items.len - 1) {
+                while (i < self.data.lval_list.items.len) : (i += 1) {
+                    const lval = self.data.lval_list.items[i];
+                    try out.writer().print("{}", .{lval});
+                    if (i < self.data.lval_list.items.len - 1) {
                         try out.writer().print(", ", .{});
                     }
                 }
@@ -769,11 +763,11 @@ pub const IR = struct {
             .negate_float => {
                 try out.writer().print("    {} := -.{}\n", .{ self.dest.?, self.src1.? });
             },
-            .addrOf => {
-                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.data.lval });
-            },
             .sizeOf => {
                 try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
+            },
+            .addrOf => {
+                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
             },
 
             .equal => {
@@ -861,10 +855,10 @@ pub const IR = struct {
             .call => {
                 try out.writer().print("    {} := {}(", .{ self.dest.?, self.src1.? });
                 var i: usize = 0;
-                while (i < self.data.symbverList.items.len) : (i += 1) {
-                    const symbver = self.data.symbverList.items[i];
-                    try out.writer().print("{}", .{symbver});
-                    if (i < self.data.symbverList.items.len - 1) {
+                while (i < self.data.lval_list.items.len) : (i += 1) {
+                    const lval = self.data.lval_list.items[i];
+                    try out.writer().print("{}", .{lval});
+                    if (i < self.data.lval_list.items.len - 1) {
                         try out.writer().print(", ", .{});
                     }
                 }
@@ -911,10 +905,10 @@ pub const IR = struct {
             var ir: *IR = maybe_ir.?;
             if (ir.dest != null and ir.dest.?.* == .select and ir.data.lval.extract_symbver().symbol == symbol) {
                 return null;
+            } else if (ir.kind == .addrOf and ir.src1.?.extract_symbver().symbol == symbol) {
+                retval = null;
             } else if (ir.dest != null and ir.dest.?.* == .index and ir.data.lval.extract_symbver().symbol == symbol) {
                 return null;
-            } else if (ir.kind == .addrOf and ir.data.lval.extract_symbver().symbol == symbol) {
-                retval = null;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 retval = ir;
             }
@@ -931,7 +925,7 @@ pub const IR = struct {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .index and ir.dest.?.extract_symbver().symbol == symbol) {
                 return ir;
-            } else if (ir.kind == .addrOf and ir.data.lval.extract_symbver().symbol == symbol) {
+            } else if (ir.kind == .addrOf and ir.src1.?.extract_symbver().symbol == symbol) {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 return ir;
@@ -979,10 +973,10 @@ pub const BasicBlock = struct {
         }
         if (self.has_branch) {
             if (self.next) |next| {
-                std.debug.print("    if ({s}_{?}) jump BB{}", .{ self.condition.?.symbol.name, self.condition.?.version, next.uid });
+                std.debug.print("    if ({}) jump BB{}", .{ self.condition.?, next.uid });
                 BasicBlock.printSymbverList(&self.next_arguments);
             } else {
-                std.debug.print("    if ({s}_{?}) return", .{ self.condition.?.symbol.name, self.condition.?.version });
+                std.debug.print("    if ({}) return", .{self.condition.?});
             }
             std.debug.print(" ", .{});
             if (self.branch) |branch| {
@@ -1161,10 +1155,24 @@ pub const CFG = struct {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest != null and ir.dest.?.* == .symbver) {
-                    _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
+                if (ir.dest != null) {
+                    try self.collect_lvalue(ir.dest.?);
                 }
             }
+        }
+    }
+
+    fn collect_lvalue(self: *CFG, lvalue: *L_Value) !void {
+        const symbver = lvalue.extract_symbver();
+        if (symbver.version != null // prevent collection of arguments
+        and symbver.symbol.expanded_type.?.* != .unit // prevent collection of void symbvers
+        ) {
+            _ = try symbver.putSymbolVersionSet(&self.symbvers);
+        }
+        switch (lvalue.*) {
+            .index_slice => try self.collect_lvalue(lvalue.index_slice.field),
+            .index => try self.collect_lvalue(lvalue.index.field),
+            else => {},
         }
     }
 
@@ -1357,7 +1365,7 @@ pub const CFG = struct {
 
                 var expanded_expr_type = try expr.get_type().expand_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
-                const condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
+                const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
                 self.appendInstruction(try IR.createGetTag(condition, expr, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
                 self.appendInstruction(try IR.createBranch(condition, err, ast.getToken().span, allocator));
 
@@ -1556,8 +1564,8 @@ pub const CFG = struct {
 
                 const lhs_type = try (try ast.not_equal.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                 if (lhs_type.* == .sum) {
-                    const lhs_tag = try create_temp_lvalue(self, primitives.int_type, errors, allocator);
-                    const rhs_tag = try create_temp_lvalue(self, primitives.int_type, errors, allocator);
+                    const lhs_tag = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
+                    const rhs_tag = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
                     self.appendInstruction(try IR.createGetTag(lhs_tag, lhs.?, ast.getToken().span, allocator));
                     self.appendInstruction(try IR.createGetTag(rhs_tag, rhs.?, ast.getToken().span, allocator));
                     self.appendInstruction(try IR.create(.not_equal, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
@@ -1627,7 +1635,7 @@ pub const CFG = struct {
                 const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test if lhs tag is 0 (ok)
-                const condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
+                const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
                 self.appendInstruction(try IR.createGetTag(condition, lhs, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
                 self.appendInstruction(try IR.createBranch(condition, else_label, ast.getToken().span, allocator));
 
@@ -1662,7 +1670,7 @@ pub const CFG = struct {
                 const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
 
                 // Test if lhs tag is 1 (some)
-                const condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
+                const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
                 const load_tag = try IR.createGetTag(condition, lhs, ast.getToken().span, allocator); // Assumes `some` tag is nonzero, `none` tag is zero
                 self.appendInstruction(load_tag);
 
@@ -1759,8 +1767,7 @@ pub const CFG = struct {
                 const expr = try self.generate_l_value_tree(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
                 const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                var ir = try IR.create(.addrOf, temp, null, null, ast.getToken().span, allocator);
-                ir.data = IRData{ .lval = expr };
+                const ir = try IR.create(.addrOf, temp, expr, null, ast.getToken().span, allocator);
                 self.appendInstruction(ir);
                 return temp;
             },
@@ -2071,7 +2078,7 @@ pub const CFG = struct {
                         const expanded_temp_type = try _temp.get_type().expand_type(scope, errors, allocator);
                         if (current_error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
                             // Returning error sum, runtime check if error, branch to error path
-                            const condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
+                            const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
                             self.appendInstruction(try IR.createGetTag(condition, _temp, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
                             const not_condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
                             self.appendInstruction(try IR.create(.not, not_condition, condition, null, ast.getToken().span, allocator));
@@ -2146,7 +2153,7 @@ pub const CFG = struct {
                     const expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                     if (expanded_expr_type.* == .sum and expanded_expr_type.sum.was_error) {
                         // Returning error sum, runtime check if error, branch to error path
-                        const condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
+                        const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
                         self.appendInstruction(try IR.createGetTag(condition, retval, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
                         const not_condition = try create_temp_lvalue(self, primitives.bool_type, errors, allocator);
                         self.appendInstruction(try IR.create(.not, not_condition, condition, null, ast.getToken().span, allocator));
@@ -2192,8 +2199,8 @@ pub const CFG = struct {
                 try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
             }
         } else if (lhs_type.* == .sum) {
-            const lhs_tag = try create_temp_lvalue(self, primitives.int_type, errors, allocator);
-            const rhs_tag = try create_temp_lvalue(self, primitives.int_type, errors, allocator);
+            const lhs_tag = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
+            const rhs_tag = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
             self.appendInstruction(try IR.createGetTag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, allocator));
             self.appendInstruction(try IR.createGetTag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span, allocator));
             self.appendInstruction(try IR.create(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span, allocator));
@@ -2459,7 +2466,7 @@ pub const CFG = struct {
                 self.appendInstruction(sel_ir);
 
                 // Get tag of expr
-                const tag = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
+                const tag = try self.create_temp_lvalue(primitives.word64_type, errors, allocator);
                 const tag_ir = try IR.createGetTag(tag, expr, pattern.?.getToken().span, allocator);
                 self.appendInstruction(tag_ir);
 
@@ -2477,7 +2484,7 @@ pub const CFG = struct {
                 self.appendInstruction(sel_ir);
 
                 // Get tag of expr
-                const tag = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
+                const tag = try self.create_temp_lvalue(primitives.word64_type, errors, allocator);
                 const tag_ir = try IR.createGetTag(tag, expr, pattern.?.getToken().span, allocator);
                 self.appendInstruction(tag_ir);
 
@@ -2639,17 +2646,9 @@ pub const CFG = struct {
 
                 if (ir.data == .lval_list) {
                     // Do the same as above for each symbver in a symbver list, if there is one
-                    for (ir.data.symbverList.items, 0..) |symbver, i| {
-                        var symbol_find = symbver.findVersion(bb.ir_head, ir);
-                        var slice: [1]*SymbolVersion = undefined; // Have to do something silly for Zig to in-place replace something in a list
-                        slice[0] = symbol_find;
-                        try ir.data.symbverList.replaceRange(i, 1, &slice);
-                        if (symbol_find.version == null) {
-                            _ = try symbol_find.putSymbolVersionSet(&bb.parameters);
-                        }
+                    for (ir.data.lval_list.items) |lval| {
+                        try version_lvalue(lval, bb, ir, &bb.parameters);
                     }
-                } else if (ir.data == .lval) {
-                    try version_lvalue(ir.data.lval, bb, ir, &bb.parameters);
                 }
             }
 
