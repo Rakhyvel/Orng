@@ -131,10 +131,12 @@ fn output_typedef(dag: *module_.DAG, writer: anytype) !void {
             // Function pointer takes more than one argument
             const product = dag.base.function.lhs;
             for (product.product.terms.items, 0..) |term, i| {
-                try writer.print("    ", .{});
-                try output_type(term, writer);
-                if (i + 1 < product.product.terms.items.len) {
-                    try writer.print(", ", .{});
+                if (!term.c_typesMatch(primitives.unit_type)) {
+                    // Do not output `void` parameters
+                    try output_type(term, writer);
+                    if (i + 1 < product.product.terms.items.len) {
+                        try writer.print(", ", .{});
+                    }
                 }
             }
         } else {
