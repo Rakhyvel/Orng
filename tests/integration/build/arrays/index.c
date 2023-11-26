@@ -19,7 +19,7 @@ typedef struct {
     int64_t _3;
 } struct2;
 
-typedef struct2(*function0)(    int64_t,     int64_t);
+typedef struct2(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _74_main(void);

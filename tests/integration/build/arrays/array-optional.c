@@ -31,14 +31,14 @@ typedef struct {
     struct4 _2;
 } struct3;
 
-typedef struct3(*function0)(    struct2,     struct2);
+typedef struct3(*function0)(struct2, struct2);
 
 typedef struct {
     int64_t _0;
     int64_t _1;
 } struct6;
 
-typedef struct4(*function5)(    int64_t,     int64_t);
+typedef struct4(*function5)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _34_main(void);

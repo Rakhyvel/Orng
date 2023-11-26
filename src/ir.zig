@@ -1092,8 +1092,11 @@ pub const CFG = struct {
         }
 
         const eval: ?*L_Value = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, null, errors, allocator);
-        for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-            try retval.parameters.append(try SymbolVersion.createUnversioned(param, param._type.?, allocator));
+        if (retval.symbol.decl.?.* == .fnDecl) {
+            // `_comptime` symbols don't have parameters anyway
+            for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+                try retval.parameters.append(try SymbolVersion.createUnversioned(param, param._type.?, allocator));
+            }
         }
         const return_version = try L_Value.create_unversioned_symbver(retval.return_symbol, symbol._type.?.function.rhs, allocator);
         if (eval != null) {
