@@ -15,35 +15,20 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _673_main(void);
+int64_t _704_main(void);
 
 /* Function definitions */
-int64_t _673_main(void) {
-    uint8_t _673_t1;
-    int64_t _673_t2;
-    struct0 _673_t0;
-    struct0 _674_x;
-    int64_t _673_$retval;
-    _673_t1 = 1;
-    if (_673_t1) {
-        goto BB1;
-    } else {
-        goto BB5;
-    }
-BB1:
-    _673_t2 = 125;
-    _673_t0 = (struct0) {.tag=1, ._1=_673_t2};
-    goto BB3;
-BB5:
-    _673_t0 = (struct0) {.tag=0};
-    goto BB3;
-BB3:
-    _674_x = _673_t0;
-    _673_$retval = _674_x._1;
-    return _673_$retval;
+int64_t _704_main(void) {
+    int64_t _704_t2;
+    struct0 _705_x;
+    int64_t _704_$retval;
+    _704_t2 = 125;
+    _705_x = (struct0) {.tag=1, ._1=_704_t2};
+    _704_$retval = _705_x._1;
+    return _704_$retval;
 }
 
 int main(void) {
-  printf("%ld",_673_main());
+  printf("%ld",_704_main());
   return 0;
 }

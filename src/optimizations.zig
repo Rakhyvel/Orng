@@ -100,31 +100,31 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             break;
         }
 
-        // if (bb.has_branch) {
-        //     const latest_condition = bb.condition.?.def; // This is set by propagate
-        //     // Convert constant true/false branches to jumps
-        //     if (latest_condition != null and latest_condition.?.kind == .loadInt) {
-        //         defer log_optimization_pass("convert constant true/false to jumps", cfg);
-        //         bb.has_branch = false;
-        //         if (bb.condition.?.def.?.data.int == 0) {
-        //             bb.next = bb.branch;
-        //             bb.next_arguments = bb.branch_arguments;
-        //         }
-        //         bb.branch = null;
-        //         retval = true;
-        //     }
-        //     // Flip labels if branch condition is negation, plunge negation
-        //     else if (latest_condition != null and latest_condition.?.kind == .not and
-        //         latest_condition.?.src1.?.def != null // this condition prevents a loop if a function parameter (which are without a def) is negated
-        //     ) {
-        //         defer log_optimization_pass("flip not condition", cfg);
-        //         const old_branch = bb.branch.?;
-        //         bb.branch = bb.next;
-        //         bb.next = old_branch;
-        //         bb.condition = latest_condition.?.src1;
-        //         retval = true;
-        //     }
-        // }
+        if (bb.has_branch and bb.condition.?.* == .symbver) {
+            const latest_condition = bb.condition.?.symbver.def; // This is set by `propagate()`
+            // Convert constant true/false branches to jumps
+            if (latest_condition != null and latest_condition.?.kind == .loadInt) {
+                defer log_optimization_pass("convert constant true/false to jumps", cfg);
+                bb.has_branch = false;
+                if (bb.condition.?.symbver.def.?.data.int == 0) {
+                    bb.next = bb.branch;
+                    bb.next_arguments = bb.branch_arguments;
+                }
+                bb.branch = null;
+                retval = true;
+            }
+            // Flip labels if branch condition is negation, plunge negation
+            else if (latest_condition != null and latest_condition.?.kind == .not and latest_condition.?.src1.?.* == .symbver and
+                latest_condition.?.src1.?.symbver.def != null // this condition prevents a loop if a function parameter (which are without a def) is negated
+            ) {
+                defer log_optimization_pass("flip not condition", cfg);
+                const old_branch = bb.branch.?;
+                bb.branch = bb.next;
+                bb.next = old_branch;
+                bb.condition = latest_condition.?.src1;
+                retval = true;
+            }
+        }
 
         // Remove jump chains
         if (bb.next) |next| {
@@ -150,33 +150,33 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             retval = true;
         }
 
-        // TODO: If next is a branch that depends on a known arugment
-        // if (bb.next) |next| {
-        //     if (next.has_branch and next.ir_head == null) {
-        //         defer log_optimization_pass("next depends on known argument", cfg);
-        //         const def = bb.get_latest_def(next.condition.?.symbol, null);
-        //         if (def != null and def.?.kind == .loadInt) {
-        //             if (def.?.data.int == 0) {
-        //                 bb.next = next.branch;
-        //             } else {
-        //                 bb.next = next.next;
-        //             }
-        //         }
-        //     }
-        // }
+        // If next is a branch that depends on a known arugment
+        if (bb.next) |next| {
+            if (next.has_branch and next.ir_head == null and next.condition.?.* == .symbver) {
+                defer log_optimization_pass("next depends on known argument", cfg);
+                const def = bb.get_latest_def(next.condition.?.symbver.symbol, null);
+                if (def != null and def.?.kind == .loadInt) {
+                    if (def.?.data.int == 0) {
+                        bb.next = next.branch;
+                    } else {
+                        bb.next = next.next;
+                    }
+                }
+            }
+        }
 
-        // TODO: If branch is a branch that depends on a known arugment
-        // if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null) {
-        //     defer log_optimization_pass("branch depends on known argument", cfg);
-        //     const def = bb.get_latest_def(bb.branch.?.condition.?.symbol, null);
-        //     if (def != null and def.?.kind == .loadInt) {
-        //         if (def.?.data.int == 0) {
-        //             bb.branch = bb.branch.?.branch;
-        //         } else {
-        //             bb.branch = bb.branch.?.next;
-        //         }
-        //     }
-        // }
+        // If branch is a branch that depends on a known arugment
+        if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null and bb.branch.?.condition.?.* == .symbver) {
+            defer log_optimization_pass("branch depends on known argument", cfg);
+            const def = bb.get_latest_def(bb.branch.?.condition.?.symbver.symbol, null);
+            if (def != null and def.?.kind == .loadInt) {
+                if (def.?.data.int == 0) {
+                    bb.branch = bb.branch.?.branch;
+                } else {
+                    bb.branch = bb.branch.?.next;
+                }
+            }
+        }
     }
 
     // Rebase block graph if jump chain
@@ -263,14 +263,14 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
                 try def_map.put(ir.dest.?.symbver, ir);
             }
         }
-        // if (bb.has_branch and bb.condition.?.* == .symbver) {
-        //     const cond_def: ?*IR = def_map.get(bb.condition.?.symbver) orelse null;
-        //     bb.condition.?.def = cond_def;
-        //     if (cond_def != null and cond_def.?.kind == .copy) {
-        //         bb.condition = cond_def.?.src1;
-        //         retval = true;
-        //     }
-        // }
+        if (bb.has_branch and bb.condition.?.* == .symbver) {
+            const cond_def: ?*IR = def_map.get(bb.condition.?.symbver) orelse null;
+            bb.condition.?.symbver.def = cond_def;
+            if (cond_def != null and cond_def.?.kind == .copy) {
+                bb.condition = cond_def.?.src1;
+                retval = true;
+            }
+        }
     }
 
     return retval;
@@ -1108,86 +1108,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 retval = true;
             }
         },
-
-        // .index => {
-        //     // Statically check if index is within bounds
-        //     if (src2_def != null and src2_def.?.kind == .loadInt and ir.meta == .bounds_check and ir.meta.bounds_check.length.def.?.kind == .loadInt) {
-        //         const index = src2_def.?.data.int;
-        //         const length = ir.meta.bounds_check.length.def.?.data.int;
-        //         if (index < 0) {
-        //             errors.addError(Error{ .negative_index = .{
-        //                 .span = src2_def.?.span,
-        //                 .index = index,
-        //             } });
-        //             return error.typeError;
-        //         } else if (index >= length) {
-        //             errors.addError(Error{ .out_of_bounds = .{
-        //                 .span = src2_def.?.span,
-        //                 .index = index,
-        //                 .length = @as(usize, @intCast(length)),
-        //             } });
-        //             return error.typeError;
-        //         } else {
-        //             // Confirmed within bounds, remove bounds check
-        //             ir.meta = .none;
-        //         }
-        //     }
-        // },
-
-        // .select => {
-        //     if (ir.meta == .active_field_check and ir.meta.active_field_check.tag.def.?.kind == .loadInt) {
-        //         if (ir.data.select.field != ir.meta.active_field_check.tag.def.?.data.int and !ir.safe) {
-        //             errors.addError(Error{
-        //                 .sum_select_inactive = .{
-        //                     .span = ir.span,
-        //                     // TODO: What is going on here?
-        //                     .inactive = ir.src1.?.extract_symbver().type.sum.terms.items[@as(usize, @intCast(ir.data.int))].annotation.pattern.getToken().data,
-        //                     .active = ir.src1.?.extract_symbver().type.sum.terms.items[@as(usize, @intCast(src1_def.?.data.int))].annotation.pattern.getToken().data,
-        //                 },
-        //             });
-        //             return error.typeError;
-        //         } else {
-        //             ir.meta = .none;
-        //             retval = true;
-        //         }
-        //     }
-        //     // Known loadUnion value
-        //     if (src1_def != null and src1_def.?.kind == .loadUnion) {
-        //         log("select; known loadUnion value");
-        //         ir.kind = .copy;
-        //         ir.data = _ir.IRData.none;
-        //         ir.src1 = src1_def.?.src1;
-        //         ir.src2 = null;
-        //         retval = true;
-        //     }
-        //     // Known loadStruct value
-        //     else if (src1_def != null and src1_def.?.kind == .loadStruct) {
-        //         // IR is of the form `dest = src1._{data.int}`, where src1_def is of the form: `src1 = {data.symbverList}`
-        //         // `field = src1.data.symbverList[data.int]`; however, field may be updated after src1_def
-        //         // make sure that `latest_def(field.symbol) == field` (in other words, field.symbol was not assigned to after src1_def)
-        //         // std.debug.print("{}{?}", .{ ir, src1_def });
-        //         const field: *SymbolVersion = src1_def.?.data.symbverList.items[@as(usize, @intCast(ir.data.select.field))];
-        //         const field_def = src1_def.?.any_def_after(field.symbol, ir);
-        //         if (field_def == null and field.def.?.kind != .index) {
-        //             log("select; known loadStruct value");
-        //             ir.kind = .copy;
-        //             ir.src1 = field;
-        //             ir.src2 = null;
-        //             ir.data = _ir.IRData.none;
-        //             retval = true;
-        //         }
-        //     }
-        //     // Known loadString value
-        //     else if (src1_def != null and src1_def.?.kind == .loadString) {
-        //         if (ir.data.select.field == 1) {
-        //             ir.kind = .loadInt;
-        //             ir.data = _ir.IRData{ .int = interned_strings.items[src1_def.?.data.string_id].len };
-        //             ir.src1 = null;
-        //             ir.src2 = null;
-        //             retval = true;
-        //         }
-        //     }
-        // },
 
         .get_tag => {
             // Known loadUnion value

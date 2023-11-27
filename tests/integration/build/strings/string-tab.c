@@ -16,20 +16,20 @@ typedef struct {
 char* string_0 = "\x0A\x0D\x09\x27\x22";
 
 /* Function forward definitions */
-uint8_t _976_main(void);
+uint8_t _1007_main(void);
 
 /* Function definitions */
-uint8_t _976_main(void) {
-    struct0 _977_x;
-    int64_t _976_t1;
-    uint8_t _976_$retval;
-    _977_x = (struct0) {(uint8_t*)string_0, 5};
-    _976_t1 = 2;
-    _976_$retval = *((uint8_t*)_977_x._0 + _976_t1);
-    return _976_$retval;
+uint8_t _1007_main(void) {
+    struct0 _1008_x;
+    int64_t _1007_t1;
+    uint8_t _1007_$retval;
+    _1008_x = (struct0) {(uint8_t*)string_0, 5};
+    _1007_t1 = 2;
+    _1007_$retval = *((uint8_t*)_1008_x._0 + _1007_t1);
+    return _1007_$retval;
 }
 
 int main(void) {
-  printf("%d",_976_main());
+  printf("%d",_1007_main());
   return 0;
 }

@@ -15,23 +15,23 @@ typedef struct {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _6_add(int64_t _6_x,int64_t _6_y);
-int64_t _2_main(void);
+int64_t _89_add(int64_t _89_x,int64_t _89_y);
+int64_t _85_main(void);
 
 /* Function definitions */
-int64_t _6_add(int64_t _6_x,int64_t _6_y) {
-    int64_t _6_$retval;
-    _6_$retval = $add_int64_t(_6_x, _6_y, "tests/integration/comptime/call.orng:8:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
-    return _6_$retval;
+int64_t _89_add(int64_t _89_x,int64_t _89_y) {
+    int64_t _89_$retval;
+    _89_$retval = $add_int64_t(_89_x, _89_y, "tests/integration/comptime/call.orng:8:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
+    return _89_$retval;
 }
 
-int64_t _2_main(void) {
-    int64_t _2_$retval;
-    _2_$retval = 235;
-    return _2_$retval;
+int64_t _85_main(void) {
+    int64_t _85_$retval;
+    _85_$retval = 235;
+    return _85_$retval;
 }
 
 int main(void) {
-  printf("%ld",_2_main());
+  printf("%ld",_85_main());
   return 0;
 }

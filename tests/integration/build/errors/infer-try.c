@@ -17,29 +17,29 @@ typedef struct {
 typedef struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _279_main(void);
-struct1 _284_f(void);
-struct1 _286_g(void);
+int64_t _310_main(void);
+struct1 _315_f(void);
+struct1 _317_g(void);
 
 /* Function definitions */
-int64_t _279_main(void) {
-    function0 _279_t1;
-    struct1 _279_t2;
-    uint64_t _279_t3;
-    uint64_t _279_t4;
-    uint8_t _279_t5;
-    int64_t _279_$retval;
-    uint64_t _279_t6;
-    uint64_t _279_t7;
-    uint8_t _279_t8;
-    _279_t1 = _284_f;
+int64_t _310_main(void) {
+    function0 _310_t1;
+    struct1 _310_t2;
+    uint64_t _310_t3;
+    uint64_t _310_t4;
+    uint8_t _310_t5;
+    int64_t _310_$retval;
+    uint64_t _310_t6;
+    uint64_t _310_t7;
+    uint8_t _310_t8;
+    _310_t1 = _315_f;
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:3:13:\n    match f() {\n           ^";
-    _279_t2 = _279_t1();
+    _310_t2 = _310_t1();
     $line_idx--;
-    _279_t3 = 0;
-    _279_t4 = _279_t2.tag;
-    _279_t5 = _279_t4 == _279_t3;
-    if (_279_t5) {
+    _310_t3 = 0;
+    _310_t4 = _310_t2.tag;
+    _310_t5 = _310_t4 == _310_t3;
+    if (_310_t5) {
         goto BB3;
     } else {
         goto BB4;
@@ -48,52 +48,52 @@ BB3:
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
 BB4:
-    _279_t6 = 1;
-    _279_t7 = _279_t2.tag;
-    _279_t8 = _279_t7 == _279_t6;
-    if (_279_t8) {
+    _310_t6 = 1;
+    _310_t7 = _310_t2.tag;
+    _310_t8 = _310_t7 == _310_t6;
+    if (_310_t8) {
         goto BB6;
     } else {
         goto BB10;
     }
 BB6:
-    _279_$retval = 239;
-    return _279_$retval;
+    _310_$retval = 239;
+    return _310_$retval;
 BB10:
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:6:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }
 
-struct1 _284_f(void) {
-    function0 _284_t0;
-    struct1 _284_t1;
-    uint64_t _284_t2;
-    struct1 _284_$retval;
-    _284_t0 = _286_g;
+struct1 _315_f(void) {
+    function0 _315_t0;
+    struct1 _315_t1;
+    uint64_t _315_t2;
+    struct1 _315_$retval;
+    _315_t0 = _317_g;
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:11:19:\n    (.ok <- try g())\n                 ^";
-    _284_t1 = _284_t0();
+    _315_t1 = _315_t0();
     $line_idx--;
-    _284_t2 = _284_t1.tag;
-    if (_284_t2) {
+    _315_t2 = _315_t1.tag;
+    if (_315_t2) {
         goto BB1;
     } else {
         goto BB3;
     }
 BB1:
-    _284_$retval = _284_t1;
-    return _284_$retval;
+    _315_$retval = _315_t1;
+    return _315_$retval;
 BB3:
-    _284_$retval = (struct1) {.tag=0, ._0=(_284_t1._0)};
-    return _284_$retval;
+    _315_$retval = (struct1) {.tag=0, ._0=(_315_t1._0)};
+    return _315_$retval;
 }
 
-struct1 _286_g(void) {
-    struct1 _286_$retval;
-    _286_$retval = (struct1) {.tag=1};
-    return _286_$retval;
+struct1 _317_g(void) {
+    struct1 _317_$retval;
+    _317_$retval = (struct1) {.tag=1};
+    return _317_$retval;
 }
 
 int main(void) {
-  printf("%ld",_279_main());
+  printf("%ld",_310_main());
   return 0;
 }

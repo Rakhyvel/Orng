@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int32_t _402_main(void);
+int32_t _433_main(void);
 
 /* Function definitions */
-int32_t _402_main(void) {
-    int32_t _402_$retval;
-    _402_$retval = 201;
-    return _402_$retval;
+int32_t _433_main(void) {
+    int32_t _433_$retval;
+    _433_$retval = 201;
+    return _433_$retval;
 }
 
 int main(void) {
-  printf("%d",_402_main());
+  printf("%d",_433_main());
   return 0;
 }

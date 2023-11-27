@@ -10,88 +10,45 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _467_main(void);
-uint8_t _472_f(int64_t _472_x);
+int64_t _498_main(void);
+uint8_t _503_f(int64_t _503_x);
 
 /* Function definitions */
-int64_t _467_main(void) {
-    function0 _467_t1;
-    int64_t _467_t3;
-    uint8_t _467_t2;
-    int64_t _467_t0;
-    int64_t _467_$retval;
-    _467_t1 = _472_f;
-    _467_t3 = 4;
+int64_t _498_main(void) {
+    function0 _498_t1;
+    int64_t _498_t3;
+    uint8_t _498_t2;
+    int64_t _498_t0;
+    int64_t _498_$retval;
+    _498_t1 = _503_f;
+    _498_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mult-zero-int.orng:3:10:\n    if f(4) {\n        ^";
-    _467_t2 = _467_t1(_467_t3);
+    _498_t2 = _498_t1(_498_t3);
     $line_idx--;
-    if (_467_t2) {
+    if (_498_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _467_t0 = 187;
+    _498_t0 = 187;
     goto BB4;
 BB5:
-    _467_t0 = 4;
+    _498_t0 = 4;
     goto BB4;
 BB4:
-    _467_$retval = _467_t0;
-    return _467_$retval;
+    _498_$retval = _498_t0;
+    return _498_$retval;
 }
 
-uint8_t _472_f(int64_t _472_x) {
-    uint8_t _472_t5;
-    uint8_t _472_t4;
-    uint8_t _472_t10;
-    uint8_t _472_t9;
-    uint8_t _472_t0;
-    uint8_t _472_$retval;
-    (void)_472_x;
-    _472_t5 = 1;
-    if (_472_t5) {
-        goto BB1;
-    } else {
-        goto BB10;
-    }
-BB1:
-    _472_t4 = 1;
-    goto BB2;
-BB10:
-    _472_t4 = 0;
-    goto BB2;
-BB2:
-    if (_472_t4) {
-        goto BB3;
-    } else {
-        goto BB9;
-    }
-BB3:
-    _472_t10 = 1;
-    if (_472_t10) {
-        goto BB4;
-    } else {
-        goto BB8;
-    }
-BB9:
-    _472_t0 = 0;
-    goto BB7;
-BB4:
-    _472_t9 = 1;
-    goto BB5;
-BB8:
-    _472_t9 = 0;
-    goto BB5;
-BB7:
-    _472_$retval = _472_t0;
-    return _472_$retval;
-BB5:
-    _472_t0 = _472_t9;
-    goto BB7;
+uint8_t _503_f(int64_t _503_x) {
+    uint8_t _503_$retval;
+    (void)_503_x;
+    _503_$retval = 1;
+    return _503_$retval;
 }
 
 int main(void) {
-  printf("%ld",_467_main());
+  printf("%ld",_498_main());
   return 0;
 }

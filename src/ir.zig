@@ -877,14 +877,14 @@ pub const IR = struct {
         var retval: ?*IR = null;
         while (maybe_ir != null and maybe_ir != stop_at_ir) : (maybe_ir = maybe_ir.?.next) {
             var ir: *IR = maybe_ir.?;
-            if (ir.dest != null and ir.dest.?.* == .select and ir.data.lval.extract_symbver().symbol == symbol) {
+            if (ir.dest != null and ir.dest.?.* == .select and ir.dest.?.extract_symbver().symbol == symbol) {
                 return null;
-            } else if (ir.kind == .addrOf and ir.src1.?.extract_symbver().symbol == symbol) {
-                retval = null;
-            } else if (ir.dest != null and ir.dest.?.* == .index and ir.data.lval.extract_symbver().symbol == symbol) {
+            } else if (ir.dest != null and ir.dest.?.* == .index and ir.dest.?.extract_symbver().symbol == symbol) {
                 return null;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 retval = ir;
+            } else if (ir.kind == .addrOf and ir.src1.?.extract_symbver().symbol == symbol) {
+                retval = null;
             }
         }
         return retval;

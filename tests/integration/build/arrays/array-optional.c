@@ -134,25 +134,12 @@ struct3 _36_safe_div_vec(struct2 _36_x,struct2 _36_y) {
 struct4 _38_safe_div(int64_t _38_x,int64_t _38_y) {
     int64_t _38_t1;
     uint8_t _38_t3;
-    uint8_t _38_t2;
-    struct4 _38_t0;
     int64_t _38_t5;
+    struct4 _38_t0;
     struct4 _38_$retval;
     _38_t1 = 0;
     _38_t3 = _38_y == _38_t1;
     if (_38_t3) {
-        goto BB1;
-    } else {
-        goto BB9;
-    }
-BB1:
-    _38_t2 = 1;
-    goto BB2;
-BB9:
-    _38_t2 = 0;
-    goto BB2;
-BB2:
-    if (_38_t2) {
         goto BB3;
     } else {
         goto BB7;

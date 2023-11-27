@@ -10,53 +10,53 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _620_main(void);
-int64_t _622_sum_down(int64_t _622_x);
+int64_t _651_main(void);
+int64_t _653_sum_down(int64_t _653_x);
 
 /* Function definitions */
-int64_t _620_main(void) {
-    function0 _620_t0;
-    int64_t _620_t2;
-    int64_t _620_t1;
-    int64_t _620_t3;
-    int64_t _620_$retval;
-    _620_t0 = _622_sum_down;
-    _620_t2 = 8;
+int64_t _651_main(void) {
+    function0 _651_t0;
+    int64_t _651_t2;
+    int64_t _651_t1;
+    int64_t _651_t3;
+    int64_t _651_$retval;
+    _651_t0 = _653_sum_down;
+    _651_t2 = 8;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
-    _620_t1 = _620_t0(_620_t2);
+    _651_t1 = _651_t0(_651_t2);
     $line_idx--;
-    _620_t3 = 2;
-    _620_$retval = $add_int64_t(_620_t1, _620_t3, "tests/integration/functions/mut-param.orng:2:32:\nfn main() -> Int {sum_down(8) + 2}\n                              ^");
-    return _620_$retval;
+    _651_t3 = 2;
+    _651_$retval = $add_int64_t(_651_t1, _651_t3, "tests/integration/functions/mut-param.orng:2:32:\nfn main() -> Int {sum_down(8) + 2}\n                              ^");
+    return _651_$retval;
 }
 
-int64_t _622_sum_down(int64_t _622_x) {
-    int64_t _624_i;
-    int64_t _622_t1;
-    uint8_t _622_t2;
-    int64_t _622_t4;
-    int64_t _622_$retval;
-    _624_i = _622_x;
+int64_t _653_sum_down(int64_t _653_x) {
+    int64_t _655_i;
+    int64_t _653_t1;
+    uint8_t _653_t2;
+    int64_t _653_t4;
+    int64_t _653_$retval;
+    _655_i = _653_x;
     goto BB1;
 BB1:
-    _622_t1 = 0;
-    _622_t2 = _624_i >= _622_t1;
-    if (_622_t2) {
+    _653_t1 = 0;
+    _653_t2 = _655_i >= _653_t1;
+    if (_653_t2) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _622_x = $add_int64_t(_622_x, _624_i, "tests/integration/functions/mut-param.orng:6:13:\n        x += i\n           ^");
-    _622_t4 = 1;
-    _624_i = $sub_int64_t(_624_i, _622_t4, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
+    _653_x = $add_int64_t(_653_x, _655_i, "tests/integration/functions/mut-param.orng:6:13:\n        x += i\n           ^");
+    _653_t4 = 1;
+    _655_i = $sub_int64_t(_655_i, _653_t4, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
     goto BB1;
 BB7:
-    _622_$retval = _622_x;
-    return _622_$retval;
+    _653_$retval = _653_x;
+    return _653_$retval;
 }
 
 int main(void) {
-  printf("%ld",_620_main());
+  printf("%ld",_651_main());
   return 0;
 }

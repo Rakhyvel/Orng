@@ -16,16 +16,16 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _37_main(void);
+int64_t _120_main(void);
 
 /* Function definitions */
-int64_t _37_main(void) {
-    int64_t _37_$retval;
-    _37_$retval = 237;
-    return _37_$retval;
+int64_t _120_main(void) {
+    int64_t _120_$retval;
+    _120_$retval = 237;
+    return _120_$retval;
 }
 
 int main(void) {
-  printf("%ld",_37_main());
+  printf("%ld",_120_main());
   return 0;
 }

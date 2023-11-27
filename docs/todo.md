@@ -321,10 +321,10 @@
         - [x] redo code-gen, pass around writer, not a file, move main functions to modules
         - [x] be able to get expanded type from lvalue
         - [x] rename index field to rhs
-    - [ ] eval type annotations
-    - [ ] eval default inits
     - [ ] eval symbol defs defined as const
+    - [ ] eval default inits
     - [ ] eval array sizes
+    - [ ] eval type annotations
     - [ ] should be able to index heterogenous tuples with a comptime value
         > Is this undecidable?
     - [ ] various type operations

@@ -23,23 +23,23 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _990_main(void);
+int64_t _1021_main(void);
 
 /* Function definitions */
-int64_t _990_main(void) {
-    int64_t _990_t0;
-    struct0 _990_t1;
-    struct1 _991_x;
-    int64_t _990_$retval;
-    _990_t0 = 4;
-    _990_t1 = (struct0) {.tag=0, ._0=_990_t0};
-    _991_x = (struct1) {.tag=0, ._0=_990_t1};
-    _991_x._0._0 = 104;
-    _990_$retval = _991_x._0._0;
-    return _990_$retval;
+int64_t _1021_main(void) {
+    int64_t _1021_t0;
+    struct0 _1021_t1;
+    struct1 _1022_x;
+    int64_t _1021_$retval;
+    _1021_t0 = 4;
+    _1021_t1 = (struct0) {.tag=0, ._0=_1021_t0};
+    _1022_x = (struct1) {.tag=0, ._0=_1021_t1};
+    _1022_x._0._0 = 104;
+    _1021_$retval = _1022_x._0._0;
+    return _1021_$retval;
 }
 
 int main(void) {
-  printf("%ld",_990_main());
+  printf("%ld",_1021_main());
   return 0;
 }

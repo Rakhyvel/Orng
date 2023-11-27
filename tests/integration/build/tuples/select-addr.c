@@ -13,27 +13,27 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1070_main(void);
+int64_t _1101_main(void);
 
 /* Function definitions */
-int64_t _1070_main(void) {
-    int64_t _1070_t1;
-    int64_t _1070_t2;
-    struct0 _1071_x;
-    struct0* _1070_t4;
-    struct0* _1070_t5;
-    int64_t _1070_$retval;
-    _1070_t1 = 1;
-    _1070_t2 = 2;
-    _1071_x = (struct0) {_1070_t1, _1070_t2};
-    _1070_t4 = &_1071_x;
-    (*_1070_t4)._0 = 76;
-    _1070_t5 = &_1071_x;
-    _1070_$retval = (*_1070_t5)._0;
-    return _1070_$retval;
+int64_t _1101_main(void) {
+    int64_t _1101_t1;
+    int64_t _1101_t2;
+    struct0 _1102_x;
+    struct0* _1101_t4;
+    struct0* _1101_t5;
+    int64_t _1101_$retval;
+    _1101_t1 = 1;
+    _1101_t2 = 2;
+    _1102_x = (struct0) {_1101_t1, _1101_t2};
+    _1101_t4 = &_1102_x;
+    (*_1101_t4)._0 = 76;
+    _1101_t5 = &_1102_x;
+    _1101_$retval = (*_1101_t5)._0;
+    return _1101_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1070_main());
+  printf("%ld",_1101_main());
   return 0;
 }

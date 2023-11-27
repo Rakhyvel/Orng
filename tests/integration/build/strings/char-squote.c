@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint32_t _946_main(void);
+uint32_t _977_main(void);
 
 /* Function definitions */
-uint32_t _946_main(void) {
-    uint32_t _946_$retval;
-    _946_$retval = 39;
-    return _946_$retval;
+uint32_t _977_main(void) {
+    uint32_t _977_$retval;
+    _977_$retval = 39;
+    return _977_$retval;
 }
 
 int main(void) {
-  printf("%d",_946_main());
+  printf("%d",_977_main());
   return 0;
 }

@@ -75,7 +75,7 @@ fn output_main_function(cfg: *CFG, writer: anytype) !void {
             \\int main(void) {{
             \\  printf("%f",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
+    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String") or cfg.symbol._type.?.function.rhs.* == .product) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%s",
@@ -87,7 +87,7 @@ fn output_main_function(cfg: *CFG, writer: anytype) !void {
         , .{});
     }
     try output_symbol(cfg.symbol, writer);
-    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String")) {
+    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String") or cfg.symbol._type.?.function.rhs.* == .product) {
         try writer.print(
             \\()._0);
             \\  return 0;

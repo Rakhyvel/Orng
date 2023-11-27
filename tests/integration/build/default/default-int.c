@@ -7,44 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _212_main(void);
+int64_t _243_main(void);
 
 /* Function definitions */
-int64_t _212_main(void) {
-    uint8_t _212_t4;
-    uint8_t _212_t3;
-    int64_t _212_t1;
-    int64_t _212_$retval;
-    _212_t4 = 1;
-    if (_212_t4) {
-        goto BB1;
-    } else {
-        goto BB9;
-    }
-BB1:
-    _212_t3 = 1;
-    goto BB2;
-BB9:
-    _212_t3 = 0;
-    goto BB2;
-BB2:
-    if (_212_t3) {
-        goto BB3;
-    } else {
-        goto BB7;
-    }
-BB3:
-    _212_t1 = 131;
-    goto BB6;
-BB7:
-    _212_t1 = 4;
-    goto BB6;
-BB6:
-    _212_$retval = _212_t1;
-    return _212_$retval;
+int64_t _243_main(void) {
+    int64_t _243_$retval;
+    _243_$retval = 131;
+    return _243_$retval;
 }
 
 int main(void) {
-  printf("%ld",_212_main());
+  printf("%ld",_243_main());
   return 0;
 }

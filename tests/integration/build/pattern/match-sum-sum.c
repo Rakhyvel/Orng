@@ -24,117 +24,51 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _852_main(void);
+int64_t _883_main(void);
 
 /* Function definitions */
-int64_t _852_main(void) {
-    int64_t _852_t0;
-    struct0 _852_t1;
-    struct1 _853_x;
-    uint8_t _852_t6;
-    struct0 _855_y;
-    uint64_t _852_t11;
-    uint64_t _852_t12;
-    uint8_t _852_t13;
-    int64_t _852_t17;
-    struct0 _859_y;
-    uint64_t _852_t18;
-    uint64_t _852_t19;
-    uint8_t _852_t20;
-    int64_t _852_t10;
-    int64_t _852_t3;
-    int64_t _852_$retval;
-    uint64_t _852_t14;
-    uint64_t _852_t15;
-    uint8_t _852_t16;
-    uint64_t _852_t21;
-    uint64_t _852_t22;
-    uint8_t _852_t23;
-    uint64_t _852_t7;
-    uint64_t _852_t8;
-    uint8_t _852_t9;
-    _852_t0 = 173;
-    _852_t1 = (struct0) {.tag=0, ._0=_852_t0};
-    _853_x = (struct1) {.tag=1, ._1=_852_t1};
-    _852_t6 = 0;
-    if (_852_t6) {
-        goto BB3;
-    } else {
-        goto BB15;
-    }
-BB3:
-    _855_y = _853_x._0;
-    _852_t11 = 0;
-    _852_t12 = _855_y.tag;
-    _852_t13 = _852_t12 == _852_t11;
-    if (_852_t13) {
-        goto BB6;
-    } else {
-        goto BB10;
-    }
-BB15:
-    _852_t7 = 1;
-    _852_t8 = _853_x.tag;
-    _852_t9 = _852_t8 == _852_t7;
-    if (_852_t9) {
-        goto BB17;
-    } else {
-        goto BB28;
-    }
-BB6:
-    _852_t10 = _855_y._0;
-    goto BB7;
-BB10:
-    _852_t14 = 1;
-    _852_t15 = _855_y.tag;
-    _852_t16 = _852_t15 == _852_t14;
-    if (_852_t16) {
-        goto BB12;
-    } else {
-        goto BB14;
-    }
-BB17:
-    _859_y = _853_x._1;
-    _852_t18 = 0;
-    _852_t19 = _859_y.tag;
-    _852_t20 = _852_t19 == _852_t18;
-    if (_852_t20) {
+int64_t _883_main(void) {
+    int64_t _883_t0;
+    struct0 _883_t1;
+    struct1 _884_x;
+    struct0 _890_y;
+    uint64_t _883_t18;
+    uint64_t _883_t19;
+    uint8_t _883_t20;
+    uint64_t _883_t21;
+    uint64_t _883_t22;
+    uint8_t _883_t23;
+    int64_t _883_$retval;
+    int64_t _883_t17;
+    _883_t0 = 173;
+    _883_t1 = (struct0) {.tag=0, ._0=_883_t0};
+    _884_x = (struct1) {.tag=1, ._1=_883_t1};
+    _890_y = _884_x._1;
+    _883_t18 = 0;
+    _883_t19 = _890_y.tag;
+    _883_t20 = _883_t19 == _883_t18;
+    if (_883_t20) {
         goto BB20;
     } else {
         goto BB22;
     }
-BB28:
-    $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:17:28:\n        else => unreachable\n                          ^";
-    $panic("reached unreachable code\n");
-BB7:
-    _852_t3 = _852_t10;
-    goto BB9;
-BB12:
-    _852_t10 = _855_y._1;
-    goto BB7;
-BB14:
-    $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:10:32:\n            else => unreachable\n                              ^";
-    $panic("reached unreachable code\n");
 BB20:
-    _852_t17 = _859_y._0;
+    _883_t17 = _890_y._0;
     goto BB21;
 BB22:
-    _852_t21 = 1;
-    _852_t22 = _859_y.tag;
-    _852_t23 = _852_t22 == _852_t21;
-    if (_852_t23) {
+    _883_t21 = 1;
+    _883_t22 = _890_y.tag;
+    _883_t23 = _883_t22 == _883_t21;
+    if (_883_t23) {
         goto BB24;
     } else {
         goto BB26;
     }
-BB9:
-    _852_$retval = _852_t3;
-    return _852_$retval;
 BB21:
-    _852_t3 = _852_t17;
-    goto BB9;
+    _883_$retval = _883_t17;
+    return _883_$retval;
 BB24:
-    _852_t17 = _859_y._1;
+    _883_t17 = _890_y._1;
     goto BB21;
 BB26:
     $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:15:32:\n            else => unreachable\n                              ^";
@@ -142,6 +76,6 @@ BB26:
 }
 
 int main(void) {
-  printf("%ld",_852_main());
+  printf("%ld",_883_main());
   return 0;
 }

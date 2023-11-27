@@ -10,45 +10,45 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _523_main(void);
-uint8_t _528_f(int64_t _528_x);
+int64_t _554_main(void);
+uint8_t _559_f(int64_t _559_x);
 
 /* Function definitions */
-int64_t _523_main(void) {
-    function0 _523_t1;
-    int64_t _523_t3;
-    uint8_t _523_t2;
-    int64_t _523_t0;
-    int64_t _523_$retval;
-    _523_t1 = _528_f;
-    _523_t3 = 4;
+int64_t _554_main(void) {
+    function0 _554_t1;
+    int64_t _554_t3;
+    uint8_t _554_t2;
+    int64_t _554_t0;
+    int64_t _554_$retval;
+    _554_t1 = _559_f;
+    _554_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-greater.orng:3:10:\n    if f(4) {\n        ^";
-    _523_t2 = _523_t1(_523_t3);
+    _554_t2 = _554_t1(_554_t3);
     $line_idx--;
-    if (_523_t2) {
+    if (_554_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _523_t0 = 0;
+    _554_t0 = 0;
     goto BB4;
 BB5:
-    _523_t0 = 224;
+    _554_t0 = 224;
     goto BB4;
 BB4:
-    _523_$retval = _523_t0;
-    return _523_$retval;
+    _554_$retval = _554_t0;
+    return _554_$retval;
 }
 
-uint8_t _528_f(int64_t _528_x) {
-    uint8_t _528_$retval;
-    (void)_528_x;
-    _528_$retval = 0;
-    return _528_$retval;
+uint8_t _559_f(int64_t _559_x) {
+    uint8_t _559_$retval;
+    (void)_559_x;
+    _559_$retval = 0;
+    return _559_$retval;
 }
 
 int main(void) {
-  printf("%ld",_523_main());
+  printf("%ld",_554_main());
   return 0;
 }

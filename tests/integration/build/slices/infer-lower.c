@@ -24,92 +24,77 @@ typedef struct {
 typedef int64_t(*function2)(struct1);
 
 /* Function forward definitions */
-int64_t _893_main(void);
-int64_t _895_sum_up(struct1 _895_xs);
+int64_t _924_main(void);
+int64_t _926_sum_up(struct1 _926_xs);
 
 /* Function definitions */
-int64_t _893_main(void) {
-    int64_t _893_t1;
-    int64_t _893_t2;
-    int64_t _893_t3;
-    int64_t _893_t4;
-    int64_t _893_t5;
-    int64_t _893_t6;
-    struct0 _894_x;
-    int64_t _893_t8;
-    int64_t* _893_t9;
-    int64_t _893_t10;
-    struct1 _894_y;
-    int64_t _893_t11;
-    int64_t _893_t12;
-    uint8_t _893_t13;
-    int64_t _893_t14;
-    int64_t* _893_t15;
-    struct1 _894_z;
-    function2 _893_t17;
-    int64_t _893_t18;
-    int64_t _893_$retval;
-    _893_t1 = 100;
-    _893_t2 = 8;
-    _893_t3 = 2;
-    _893_t4 = 4;
-    _893_t5 = 35;
-    _893_t6 = 6;
-    _894_x = (struct0) {_893_t1, _893_t2, _893_t3, _893_t4, _893_t5, _893_t6};
-    _893_t8 = 0;
-    _893_t9 = ((int64_t*)&_894_x + _893_t8);
-    _893_t10 = 6;
-    _894_y = (struct1) {_893_t9, _893_t10};
-    _893_t11 = 0;
-    _893_t12 = 3;
-    _893_t13 = 0;
-    if (_893_t13) {
-        goto BB1;
-    } else {
-        goto BB2;
-    }
-BB1:
-    $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:5:25:\n    let z: [mut]Int = y[..3]\n                       ^";
-    $panic("subslice lower bound is greater than upper bound\n");
-BB2:
-    _893_t14 = $sub_int64_t(_893_t12, _893_t11, "tests/integration/slices/infer-lower.orng:5:25:\n    let z: [mut]Int = y[..3]\n                       ^");
-    _893_t15 = _894_y._0 + _893_t11;
-    _894_z = (struct1) {_893_t15, _893_t14};
-    _893_t17 = _895_sum_up;
+int64_t _924_main(void) {
+    int64_t _924_t1;
+    int64_t _924_t2;
+    int64_t _924_t3;
+    int64_t _924_t4;
+    int64_t _924_t5;
+    int64_t _924_t6;
+    struct0 _925_x;
+    int64_t _924_t8;
+    int64_t* _924_t9;
+    int64_t _924_t10;
+    struct1 _925_y;
+    int64_t _924_t14;
+    int64_t* _924_t15;
+    struct1 _925_z;
+    function2 _924_t17;
+    int64_t _924_t18;
+    int64_t _924_$retval;
+    _924_t1 = 100;
+    _924_t2 = 8;
+    _924_t3 = 2;
+    _924_t4 = 4;
+    _924_t5 = 35;
+    _924_t6 = 6;
+    _925_x = (struct0) {_924_t1, _924_t2, _924_t3, _924_t4, _924_t5, _924_t6};
+    _924_t8 = 0;
+    _924_t9 = ((int64_t*)&_925_x + _924_t8);
+    _924_t10 = 6;
+    _925_y = (struct1) {_924_t9, _924_t10};
+    _924_t14 = 3;
+    _924_t15 = _925_y._0;
+    _925_z = (struct1) {_924_t15, _924_t14};
+    _924_t17 = _926_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
-    _893_t18 = _893_t17(_894_z);
+    _924_t18 = _924_t17(_925_z);
     $line_idx--;
-    _893_$retval = _893_t18;
-    return _893_$retval;
+    _924_$retval = _924_t18;
+    return _924_$retval;
 }
 
-int64_t _895_sum_up(struct1 _895_xs) {
-    int64_t _896_sum;
-    int64_t _897_i;
-    uint8_t _895_t3;
-    int64_t _895_t5;
-    int64_t _895_$retval;
-    _896_sum = 0;
-    _897_i = 0;
+int64_t _926_sum_up(struct1 _926_xs) {
+    int64_t _927_sum;
+    int64_t _928_i;
+    uint8_t _926_t3;
+    int64_t _926_t5;
+    int64_t _926_$retval;
+    _927_sum = 0;
+    _928_i = 0;
     goto BB1;
 BB1:
-    _895_t3 = _897_i < _895_xs._1;
-    if (_895_t3) {
+    _926_t3 = _928_i < _926_xs._1;
+    if (_926_t3) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _896_sum = $add_int64_t(_896_sum, *((int64_t*)_895_xs._0 + _897_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
-    _895_t5 = 1;
-    _897_i = $add_int64_t(_897_i, _895_t5, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
+    _927_sum = $add_int64_t(_927_sum, *((int64_t*)_926_xs._0 + _928_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
+    _926_t5 = 1;
+    _928_i = $add_int64_t(_928_i, _926_t5, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
     goto BB1;
 BB7:
-    _895_$retval = _896_sum;
-    return _895_$retval;
+    _926_$retval = _927_sum;
+    return _926_$retval;
 }
 
 int main(void) {
-  printf("%ld",_893_main());
+  printf("%ld",_924_main());
   return 0;
 }

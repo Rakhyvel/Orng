@@ -10,31 +10,31 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _627_main(void);
-int64_t _629_id(int64_t _629_x);
+int64_t _658_main(void);
+int64_t _660_id(int64_t _660_x);
 
 /* Function definitions */
-int64_t _627_main(void) {
-    function0 _627_t0;
-    int64_t _627_t2;
-    int64_t _627_t1;
-    int64_t _627_$retval;
-    _627_t0 = _629_id;
-    _627_t2 = 52;
+int64_t _658_main(void) {
+    function0 _658_t0;
+    int64_t _658_t2;
+    int64_t _658_t1;
+    int64_t _658_$retval;
+    _658_t0 = _660_id;
+    _658_t2 = 52;
     $lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:3:8:\n    id(.x = 52)\n      ^";
-    _627_t1 = _627_t0(_627_t2);
+    _658_t1 = _658_t0(_658_t2);
     $line_idx--;
-    _627_$retval = _627_t1;
-    return _627_$retval;
+    _658_$retval = _658_t1;
+    return _658_$retval;
 }
 
-int64_t _629_id(int64_t _629_x) {
-    int64_t _629_$retval;
-    _629_$retval = _629_x;
-    return _629_$retval;
+int64_t _660_id(int64_t _660_x) {
+    int64_t _660_$retval;
+    _660_$retval = _660_x;
+    return _660_$retval;
 }
 
 int main(void) {
-  printf("%ld",_627_main());
+  printf("%ld",_658_main());
   return 0;
 }

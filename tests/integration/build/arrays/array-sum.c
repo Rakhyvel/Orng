@@ -19,12 +19,6 @@ typedef struct {
 
 typedef int64_t(*function2)(struct1);
 
-typedef struct {
-    struct0 _0;
-    struct0 _1;
-    struct0 _2;
-} struct3;
-
 /* Function forward definitions */
 int64_t _50_main(void);
 int64_t _52_f(struct1 _52_x);
@@ -55,7 +49,6 @@ int64_t _52_f(struct1 _52_x) {
     uint64_t _52_t5;
     uint64_t _52_t6;
     uint8_t _52_t4;
-    uint8_t _52_t3;
     int64_t _52_t0;
     int64_t _52_$retval;
     _52_t1 = 1;
@@ -63,18 +56,6 @@ int64_t _52_f(struct1 _52_x) {
     _52_t6 = 1;
     _52_t4 = _52_t5 == _52_t6;
     if (_52_t4) {
-        goto BB1;
-    } else {
-        goto BB9;
-    }
-BB1:
-    _52_t3 = 1;
-    goto BB2;
-BB9:
-    _52_t3 = 0;
-    goto BB2;
-BB2:
-    if (_52_t3) {
         goto BB3;
     } else {
         goto BB7;
