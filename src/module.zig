@@ -163,7 +163,6 @@ pub const Module = struct {
         for (module.cfgs.items) |cfg| {
             try collect_types(cfg, &module.types, allocator);
         }
-
         return module;
     }
 
@@ -175,7 +174,7 @@ pub const Module = struct {
         cfg.visited = true;
 
         try cfg.collect_generated_symbvers();
-        try self.append_instructions(cfg);
+        _ = try self.append_instructions(cfg);
 
         for (cfg.children.items) |child| {
             try self.collect_cfgs(child);
@@ -214,10 +213,13 @@ pub const Module = struct {
     ///
     /// Also sets the `offset` flag of a CFG, which is the address in the instructions list that the
     /// instructions for the CFG start.
-    pub fn append_instructions(self: *Module, cfg: *CFG) !void {
+    ///
+    /// Returns the index in the cfg in the cfgs list.
+    pub fn append_instructions(self: *Module, cfg: *CFG) !usize {
+        const len = self.cfgs.items.len;
         if (cfg.offset != null) {
             // Already visited, do nothing
-            return;
+            return len;
         } else if (cfg.block_graph_head == null) {
             // CFG doesn't have any real instructions. Insert phony BB.
             cfg.offset = try self.append_phony_block();
@@ -228,9 +230,10 @@ pub const Module = struct {
             try self.cfgs.append(cfg);
 
             for (cfg.children.items) |child| {
-                try self.append_instructions(child);
+                _ = try self.append_instructions(child);
             }
         }
+        return len;
     }
 
     /// Appends the instructions in a BasicBlock to the module's instructions.
@@ -283,6 +286,10 @@ pub const Module = struct {
         try self.instructions.append(try ir_.IR.createLabel(0, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         try self.instructions.append(try ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         return offset;
+    }
+
+    pub fn pop_cfg(self: *Module, idx: usize) void {
+        _ = self.cfgs.orderedRemove(idx);
     }
 
     pub fn print_instructions(self: *Module) void {

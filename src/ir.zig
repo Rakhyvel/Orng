@@ -25,6 +25,8 @@ pub const SymbolVersion = struct {
     /// Type of the SymbolVersion. Temps use the same symbol, so can't use that for type info
     type: *AST,
 
+    allocator: std.mem.Allocator,
+
     fn createUnversioned(symbol: *Symbol, _type: *AST, allocator: std.mem.Allocator) !*SymbolVersion {
         var retval = try allocator.create(SymbolVersion);
         retval.symbol = symbol;
@@ -32,7 +34,12 @@ pub const SymbolVersion = struct {
         retval.version = null;
         retval.type = _type;
         retval.def = null;
+        retval.allocator = allocator;
         return retval;
+    }
+
+    pub fn deinit(self: *SymbolVersion) void {
+        self.allocator.destroy(self);
     }
 
     pub fn makeUnique(self: *SymbolVersion) void {
@@ -123,6 +130,7 @@ pub const IRKind = enum {
     loadStruct, // TODO: Rename to load_tuple
     loadUnion, // src1 is init, data.int is tag id // TODO: Rename to load_sum
     loadString,
+    loadAST,
 
     // Monadic instructions
     copy,
@@ -244,6 +252,7 @@ pub const IRData = union(enum) {
     lval_list: std.ArrayList(*L_Value),
     // lval: *L_Value,
     select: struct { offset: i128, field: i128 },
+    ast: *AST,
     none,
 
     pub fn to_ast(self: IRData, token: Token, allocator: std.mem.Allocator) !*AST {
@@ -256,6 +265,9 @@ pub const IRData = union(enum) {
             },
             .none => {
                 return try AST.createUnit(token, allocator);
+            },
+            .ast => {
+                return self.ast;
             },
             else => {
                 std.debug.print("Unknown IRData->AST conversion for {s}\n", .{@tagName(self)});
@@ -336,6 +348,7 @@ pub const L_Value = union(enum) {
         slots: i128,
         type: *AST,
         expanded_type: *AST,
+        allocator: std.mem.Allocator,
     },
     /// L-Value is L-Value of lhs, + rhs * slots
     index: struct {
@@ -344,6 +357,7 @@ pub const L_Value = union(enum) {
         slots: i128,
         type: *AST,
         expanded_type: *AST,
+        allocator: std.mem.Allocator,
     },
     /// L-Value is L-Value + offset
     select: struct {
@@ -353,6 +367,7 @@ pub const L_Value = union(enum) {
         slots: i128,
         type: *AST,
         expanded_type: *AST,
+        allocator: std.mem.Allocator,
     },
 
     fn create_symbver(symbver: *SymbolVersion, allocator: std.mem.Allocator) !*L_Value {
@@ -366,28 +381,39 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    fn create_temp_symbver(symbol: *Symbol, _type: *AST, allocator: std.mem.Allocator) !*L_Value {
-        _ = allocator;
-        _ = _type;
-        _ = symbol;
-    }
-
     fn create_dereference(lhs: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .dereference = .{ .expr = lhs, .slots = slots, .type = _type, .expanded_type = expanded_type } };
+        retval.* = L_Value{ .dereference = .{ .expr = lhs, .slots = slots, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
     fn create_index(lhs: *L_Value, rhs: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .slots = slots, .type = _type, .expanded_type = expanded_type } };
+        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .slots = slots, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
     fn create_select(lhs: *L_Value, field: i128, offset: i128, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .slots = slots, .type = _type, .expanded_type = expanded_type } };
+        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .slots = slots, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
+    }
+
+    pub fn deinit(self: *L_Value) void {
+        switch (self.*) {
+            .symbver => {
+                self.symbver.deinit();
+            },
+            .dereference => {
+                self.dereference.allocator.destroy(self);
+            },
+            .index => {
+                self.index.allocator.destroy(self);
+            },
+            .select => {
+                self.select.allocator.destroy(self);
+            },
+        }
     }
 
     pub fn pprint(self: L_Value, allocator: std.mem.Allocator) ![]const u8 {
@@ -543,6 +569,7 @@ pub const IR = struct {
     span: Span,
 
     removed: bool,
+    allocator: std.mem.Allocator,
 
     safe: bool, // Disables static UB checks for this IR. Used for IR generated by `match`'s
 
@@ -559,6 +586,7 @@ pub const IR = struct {
         retval.data = IRData.none;
         retval.meta = IRMeta.none;
         retval.span = span;
+        retval.allocator = allocator;
         ir_uid += 1;
         return retval;
     }
@@ -681,6 +709,13 @@ pub const IR = struct {
         } else {
             return try create(int_kind, dest, src1, src2, span, allocator);
         }
+    }
+
+    pub fn deinit(self: *IR) void {
+        if (self.dest != null) {
+            self.dest.?.deinit();
+        }
+        self.allocator.destroy(self);
     }
 
     pub fn getTail(self: *IR) *IR {
@@ -927,10 +962,36 @@ pub const BasicBlock = struct {
     visited: bool,
     number_predecessors: usize,
     removed: bool,
+    allocator: std.mem.Allocator,
 
     /// Address in the first instruction of this BasicBlock
     /// Used for IR interpretation
     offset: ?i128,
+
+    pub fn deinit(self: *BasicBlock) void {
+        for (self.parameters.items) |param| {
+            param.deinit();
+        }
+        self.parameters.deinit();
+
+        for (self.next_arguments.items) |arg| {
+            arg.deinit();
+        }
+        self.next_arguments.deinit();
+
+        for (self.branch_arguments.items) |arg| {
+            arg.deinit();
+        }
+        self.branch_arguments.deinit();
+
+        var maybe_ir: ?*IR = self.ir_head;
+        while (maybe_ir) |ir| {
+            maybe_ir = ir.next;
+            ir.deinit();
+        }
+
+        self.allocator.destroy(self);
+    }
 
     pub fn pprint(self: *BasicBlock) void {
         if (self.visited) {
@@ -1006,12 +1067,13 @@ pub const BasicBlock = struct {
         if (bb.ir_head != null and bb.ir_head == ir) {
             bb.ir_head = bb.ir_head.?.next;
         }
-        if (ir.prev) |prev| {
-            prev.next = ir.next;
+        if (ir.prev != null) {
+            ir.prev.?.next = ir.next;
         }
-        if (ir.next) |next| {
-            next.prev = ir.prev;
+        if (ir.next != null) {
+            ir.next.?.prev = ir.prev;
         }
+        ir.deinit();
     }
 
     /// This functions is O(n)
@@ -1064,6 +1126,8 @@ pub const CFG = struct {
     /// Number of slots required in order to store the local variables of the function
     slots: ?i128,
 
+    allocator: std.mem.Allocator,
+
     // BIG TODO: Dependency-inject errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
     pub fn create(symbol: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
         if (symbol.cfg) |cfg| {
@@ -1085,6 +1149,7 @@ pub const CFG = struct {
         retval.interned_strings = interned_strings;
         retval.offset = null;
         retval.slots = null;
+        retval.allocator = allocator;
         symbol.cfg = retval;
 
         if (caller) |caller_node| {
@@ -1118,7 +1183,19 @@ pub const CFG = struct {
     }
 
     pub fn deinit(self: *CFG) void {
-        _ = self;
+        for (self.basic_blocks.items) |bb| {
+            bb.deinit();
+        }
+        self.basic_blocks.deinit();
+
+        self.symbvers.deinit();
+
+        for (self.parameters.items) |param| {
+            param.deinit();
+        }
+        self.parameters.deinit();
+
+        self.allocator.destroy(self);
     }
 
     // BBs aren't trees, so `defer self.visited = false` won't work
@@ -1166,6 +1243,7 @@ pub const CFG = struct {
         retval.branch = null;
         retval.branch_arguments = std.ArrayList(*SymbolVersion).init(allocator);
         retval.uid = self.basic_blocks.items.len;
+        retval.allocator = allocator;
         try self.basic_blocks.append(retval);
         return retval;
     }
@@ -1736,6 +1814,14 @@ pub const CFG = struct {
                 self.appendInstruction(ir);
                 return temp;
             },
+            .sum => {
+                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+
+                const ir = try IR.create(.loadAST, temp, null, null, ast.getToken().span, allocator);
+                self.appendInstruction(ir);
+                ir.data = IRData{ .ast = ast };
+                return temp;
+            },
 
             // Fancy Operators
             .addrOf => {
@@ -2148,9 +2234,6 @@ pub const CFG = struct {
                 }
                 return null;
             },
-
-            // Types?
-            .sum => return null,
 
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});

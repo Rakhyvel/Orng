@@ -210,6 +210,7 @@ pub const Context = struct {
                 .loadFloat,
                 .loadString,
                 .loadSymbol,
+                .loadAST,
                 => self.store_lval(ir.dest.?, ir.data),
 
                 // Tuples

@@ -35,7 +35,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     }
     symbol.validation_state = .validating;
 
-    if (symbol.kind == ._fn) {
+    if (symbol.kind == ._fn or symbol.kind == ._comptime) {
         symbol._type.? = try validateAST(symbol._type.?, primitives.type_type, symbol.scope, errors, allocator);
         symbol.validation_state = .valid;
         if (symbol._type.?.* != .poison) {
@@ -380,13 +380,18 @@ fn validateAST(
                 return ast.enpoison();
             }
 
-            // Create CFG, optimize, calc offsets, emplace instructions into module, wrap context around instructions, interpret, wrap in AST
-            // If the comptime expr calls other functions... those will need to be emplaced too...
+            // Get the cfg from the symbol, and embed into the module
             const cfg = try ast._comptime.symbol.?.get_cfg(null, &scope.module.?.interned_strings, errors, allocator);
-            defer cfg.deinit();
-            try scope.module.?.append_instructions(cfg);
+            defer cfg.deinit(); // Remove the cfg so that it isn't output
+
+            const idx = try scope.module.?.append_instructions(cfg);
+            defer scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
+
+            // Create a context and interpret
             var context = try Context.init(cfg, &scope.module.?.instructions, ast._comptime.symbol.?._type.?.function.rhs.get_slots(), cfg.offset.?);
             var ir_data = try context.interpret();
+
+            // Extract the retval
             retval = try ir_data.to_ast(ast.getToken(), allocator);
         },
         .assign => {

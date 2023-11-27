@@ -6,26 +6,17 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-    uint64_t tag;
-    union {
-        int64_t _0;
-        uint8_t _1;
-    };
-} struct0;
-
 /* Function forward definitions */
-int64_t _120_main(void);
+int64_t _45_main(void);
 
 /* Function definitions */
-int64_t _120_main(void) {
-    int64_t _120_$retval;
-    _120_$retval = 237;
-    return _120_$retval;
+int64_t _45_main(void) {
+    int64_t _45_$retval;
+    _45_$retval = 237;
+    return _45_$retval;
 }
 
 int main(void) {
-  printf("%ld",_120_main());
+  printf("%ld",_45_main());
   return 0;
 }

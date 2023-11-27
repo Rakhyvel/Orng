@@ -1602,7 +1602,9 @@ pub const AST = union(enum) {
             .discard => try out.writer().print("discard()", .{}),
             ._typeOf => try out.writer().print("typeof()", .{}),
             .domainOf => try out.writer().print("domainof()", .{}),
-            ._comptime => try out.writer().print("comptime()", .{}),
+            ._comptime => {
+                try out.writer().print("comptime({})", .{self._comptime.expr});
+            },
 
             .assign => try out.writer().print("assign()", .{}),
             ._or => try out.writer().print("or()", .{}),
@@ -1625,7 +1627,16 @@ pub const AST = union(enum) {
             .select => try out.writer().print("select()", .{}),
             .function => try out.writer().print("function()", .{}),
             .invoke => try out.writer().print("invoke()", .{}),
-            .sum => try out.writer().print("sum()", .{}),
+            .sum => {
+                try out.writer().print("sum(", .{});
+                for (self.sum.terms.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.sum.terms.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
             .inferred_error => try out.writer().print("inferred_error()", .{}),
             .inject => try out.writer().print("inject()", .{}),
             .product => {
@@ -1643,7 +1654,7 @@ pub const AST = union(enum) {
             .addrOf => try out.writer().print("addrOf({})", .{self.addrOf.expr}),
             .sliceOf => try out.writer().print("sliceOf()", .{}),
             .subSlice => try out.writer().print("subSlice()", .{}),
-            .annotation => try out.writer().print("annotation()", .{}),
+            .annotation => try out.writer().print("annotation({})", .{self.annotation.type}),
             .inferredMember => try out.writer().print("inferredMember()", .{}),
 
             ._if => try out.writer().print("if()", .{}),

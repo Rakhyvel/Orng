@@ -185,12 +185,14 @@ pub const SymbolKind = enum {
     _const,
     let,
     mut,
+    _comptime,
     pub fn to_string(self: SymbolKind) []const u8 {
         return switch (self) {
             ._fn => "fn",
             ._const => "const",
             .let => "let",
             .mut => "mut",
+            ._comptime => "comptime",
         };
     }
 };
@@ -241,7 +243,7 @@ pub const Symbol = struct {
         retval.offset = null;
         retval.kind = kind;
         retval.cfg = null;
-        if (kind == ._fn or kind == ._const) {
+        if (kind == ._fn or kind == ._const or kind == ._comptime) {
             retval.defined = true;
         } else {
             retval.defined = false;
@@ -252,7 +254,7 @@ pub const Symbol = struct {
     }
 
     pub fn get_cfg(self: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
-        std.debug.assert(self.kind == ._fn);
+        std.debug.assert(self.kind == ._fn or self.kind == ._comptime);
         if (self.cfg == null) {
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
@@ -534,7 +536,35 @@ fn put_all_symbols(symbols: *std.ArrayList(*Symbol), scope: *Scope, errors: *err
 fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     switch (pattern.*) {
         .symbol => {
-            if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
+            // TODO: Clean this up
+            if (pattern.symbol.kind == ._const) {
+                const definition = try AST.createComptime(init.?.getToken(), init.?, allocator);
+                const comptime_symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
+                if (scope.lookup(comptime_symbol.name, false)) |first| {
+                    errors.addError(Error{ .redefinition = .{
+                        .first_defined_span = first.span,
+                        .redefined_span = comptime_symbol.span,
+                        .name = comptime_symbol.name,
+                    } });
+                    return error.symbolError;
+                } else {
+                    try scope.symbols.put(comptime_symbol.name, comptime_symbol);
+                }
+                definition._comptime.symbol = comptime_symbol;
+
+                const symbol = try Symbol.create(
+                    scope,
+                    pattern.symbol.name,
+                    pattern.getToken().span,
+                    _type,
+                    definition,
+                    null,
+                    pattern.symbol.kind,
+                    allocator,
+                );
+                pattern.symbol.symbol = symbol;
+                try symbols.append(symbol);
+            } else if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
                 const symbol = try Symbol.create(
                     scope,
                     pattern.symbol.name,
@@ -687,6 +717,7 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
     }
 }
 
+// definition is a `comptime` ast
 fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = try AST.createUnit(definition._comptime.expr.getToken(), allocator);
@@ -719,7 +750,7 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
         _type,
         definition._comptime.expr,
         definition,
-        ._fn,
+        ._comptime,
         allocator,
     );
     comptime_scope.inner_function = retval;

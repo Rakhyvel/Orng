@@ -1231,6 +1231,7 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
                 } else {
                     bb.removeInstruction(ir);
                     retval = true;
+                    break;
                 }
             }
         }

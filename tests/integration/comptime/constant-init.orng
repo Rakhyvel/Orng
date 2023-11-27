@@ -1,0 +1,8 @@
+// 238
+let const a = add(200, 38)
+
+fn main() -> Int {
+    a
+}
+
+fn add(x: Int, y: Int) -> Int { x + y }
