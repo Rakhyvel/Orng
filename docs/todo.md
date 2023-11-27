@@ -321,7 +321,7 @@
         - [x] redo code-gen, pass around writer, not a file, move main functions to modules
         - [x] be able to get expanded type from lvalue
         - [x] rename index field to rhs
-    - [ ] eval symbol defs defined as const
+    - [x] eval symbol defs defined as const
     - [ ] eval default inits
     - [ ] eval array sizes
     - [ ] eval type annotations

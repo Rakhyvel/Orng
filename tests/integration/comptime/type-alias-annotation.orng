@@ -1,0 +1,7 @@
+// 241
+let const My_Type = (a: Int)
+
+fn main() -> Int {
+    let x: My_Type = 241
+    x
+}

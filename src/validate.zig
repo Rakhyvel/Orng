@@ -162,8 +162,8 @@ fn validateAST(
             expected = expected.?.annotation.type;
         }
         std.debug.assert(expected.?.getCommon().validation_state == .valid);
-        var exp_type = try expected.?.typeof(scope, errors, allocator);
-        std.debug.assert(try exp_type.typesMatch(primitives.type_type, scope, errors, allocator));
+        var expected_type = try expected.?.typeof(scope, errors, allocator);
+        std.debug.assert(try expected_type.typesMatch(primitives.type_type, scope, errors, allocator));
     }
 
     // std.debug.print("{s}\n", .{@tagName(ast.*)});

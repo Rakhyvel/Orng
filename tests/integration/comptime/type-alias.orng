@@ -1,0 +1,6 @@
+// 239
+let const My_Int = Int
+
+fn main() -> My_Int {
+    239
+}

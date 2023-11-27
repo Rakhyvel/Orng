@@ -1,0 +1,8 @@
+// 242
+let const My_Type: Type = &Int
+
+fn main() -> Int {
+    let x = 242
+    let y: My_Type = &x
+    y^
+}

@@ -1586,7 +1586,7 @@ pub const AST = union(enum) {
         switch (self) {
             .poison => try out.writer().print("poison", .{}),
             .unit => try out.writer().print("unit", .{}),
-            .int => try out.writer().print("int()", .{}),
+            .int => try out.writer().print("int({})", .{self.int.data}),
             .char => try out.writer().print("char()", .{}),
             .float => try out.writer().print("float()", .{}),
             .string => try out.writer().print("string()", .{}),

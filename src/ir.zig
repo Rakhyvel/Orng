@@ -609,6 +609,12 @@ pub const IR = struct {
         return retval;
     }
 
+    fn create_ast(dest: *L_Value, ast: *AST, span: Span, allocator: std.mem.Allocator) !*IR {
+        const retval = try IR.create(.loadAST, dest, null, null, span, allocator);
+        retval.data = IRData{ .ast = ast };
+        return retval;
+    }
+
     fn create_simple_copy(dest: *L_Value, src: *L_Value, span: Span, allocator: std.mem.Allocator) !*IR {
         const ir = try IR.create(.copy, dest, src, null, span, allocator);
         return ir;
@@ -1362,6 +1368,10 @@ pub const CFG = struct {
                     ir.data = IRData{ .symbol = symbol };
                     self.appendInstruction(ir);
                     return lval;
+                } else if (try symbol.expanded_type.?.typesMatch(primitives.type_type, scope, errors, allocator)) {
+                    const lval = try self.create_temp_lvalue(symbol._type.?, errors, allocator);
+                    self.appendInstruction(try IR.create_ast(lval, ast, ast.getToken().span, allocator));
+                    return lval;
                 } else {
                     const src = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
                     return src;
@@ -1767,6 +1777,11 @@ pub const CFG = struct {
                 self.appendInstruction(try IR.createStackPop(ast.getToken().span, allocator));
                 return temp;
             },
+            .function => {
+                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                self.appendInstruction(try IR.create_ast(temp, ast, ast.getToken().span, allocator));
+                return temp;
+            },
             .index => {
                 const _type = try ast.typeof(scope, errors, allocator);
                 const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
@@ -1806,31 +1821,40 @@ pub const CFG = struct {
                 return try L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, try ast.select.offset_at(scope, errors, allocator), _type, try _type.expand_type(scope, errors, allocator), allocator);
             },
             .product => {
-                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
-                var ir = try IR.createLoadStruct(temp, ast.getToken().span, allocator);
-                for (ast.product.terms.items) |term| {
-                    try ir.data.lval_list.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null);
+                if (try (try ast.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(primitives.type_type, scope, errors, allocator)) {
+                    const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                    self.appendInstruction(try IR.create_ast(temp, ast, ast.getToken().span, allocator));
+                    return temp;
+                } else {
+                    const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                    var ir = try IR.createLoadStruct(temp, ast.getToken().span, allocator);
+                    for (ast.product.terms.items) |term| {
+                        try ir.data.lval_list.append((try self.flattenAST(scope, term, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null);
+                    }
+                    self.appendInstruction(ir);
+                    return temp;
                 }
-                self.appendInstruction(ir);
-                return temp;
             },
             .sum => {
                 const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
-
-                const ir = try IR.create(.loadAST, temp, null, null, ast.getToken().span, allocator);
-                self.appendInstruction(ir);
-                ir.data = IRData{ .ast = ast };
+                self.appendInstruction(try IR.create_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
             },
 
             // Fancy Operators
             .addrOf => {
-                const expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
-                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                if (try (try ast.typeof(scope, errors, allocator)).typesMatch(primitives.type_type, scope, errors, allocator)) {
+                    const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                    self.appendInstruction(try IR.create_ast(temp, ast, ast.getToken().span, allocator));
+                    return temp;
+                } else {
+                    const expr = try self.flattenAST(scope, ast.addrOf.expr, return_label, break_label, continue_label, error_label, errors, allocator);
+                    const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-                const ir = try IR.create(.addrOf, temp, expr, null, ast.getToken().span, allocator);
-                self.appendInstruction(ir);
-                return temp;
+                    const ir = try IR.create(.addrOf, temp, expr, null, ast.getToken().span, allocator);
+                    self.appendInstruction(ir);
+                    return temp;
+                }
             },
             .subSlice => {
                 const arr = (try self.flattenAST(scope, ast.subSlice.super, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
@@ -1876,6 +1900,11 @@ pub const CFG = struct {
                 try load_struct.data.lval_list.append(new_data_ptr);
                 try load_struct.data.lval_list.append(new_size);
                 self.appendInstruction(load_struct);
+                return temp;
+            },
+            .annotation => {
+                const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
+                self.appendInstruction(try IR.create_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
             },
             .inferredMember => {
