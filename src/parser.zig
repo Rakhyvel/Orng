@@ -420,7 +420,7 @@ pub const Parser = struct {
                 sliceKind = .MULTIPTR;
             } else if (self.next_is_expr()) {
                 sliceKind = .ARRAY;
-                len = try self.expr();
+                len = try AST.createComptime(token, try self.expr(), self.astAllocator);
             } else {
                 sliceKind = .SLICE;
             }

@@ -10,45 +10,45 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _468_main(void);
-uint8_t _473_f(int64_t _473_x);
+int64_t _540_main(void);
+uint8_t _545_f(int64_t _545_x);
 
 /* Function definitions */
-int64_t _468_main(void) {
-    function0 _468_t1;
-    int64_t _468_t3;
-    uint8_t _468_t2;
-    int64_t _468_t0;
-    int64_t _468_$retval;
-    _468_t1 = _473_f;
-    _468_t3 = 4;
+int64_t _540_main(void) {
+    function0 _540_t1;
+    int64_t _540_t3;
+    uint8_t _540_t2;
+    int64_t _540_t0;
+    int64_t _540_$retval;
+    _540_t1 = _545_f;
+    _540_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mod-1.orng:3:10:\n    if f(4) {\n        ^";
-    _468_t2 = _468_t1(_468_t3);
+    _540_t2 = _540_t1(_540_t3);
     $line_idx--;
-    if (_468_t2) {
+    if (_540_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _468_t0 = 192;
+    _540_t0 = 192;
     goto BB4;
 BB5:
-    _468_t0 = 4;
+    _540_t0 = 4;
     goto BB4;
 BB4:
-    _468_$retval = _468_t0;
-    return _468_$retval;
+    _540_$retval = _540_t0;
+    return _540_$retval;
 }
 
-uint8_t _473_f(int64_t _473_x) {
-    uint8_t _473_$retval;
-    (void)_473_x;
-    _473_$retval = 1;
-    return _473_$retval;
+uint8_t _545_f(int64_t _545_x) {
+    uint8_t _545_$retval;
+    (void)_545_x;
+    _545_$retval = 1;
+    return _545_$retval;
 }
 
 int main(void) {
-  printf("%ld",_468_main());
+  printf("%ld",_540_main());
   return 0;
 }

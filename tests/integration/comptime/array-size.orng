@@ -1,0 +1,12 @@
+// 246
+fn main() -> Int {
+    let mut x: [add(2, 2)]Int
+    x[3] = 0 * 1000
+    x[2] = 2 * 100
+    x[1] = 4 * 10
+    x[0] = 6 * 1
+
+    x[0] + x[1] + x[2] + x[3]
+}
+
+fn add(a: Int, b: Int) -> Int { a + b }

@@ -7,72 +7,72 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1133_main(void);
+int64_t _1255_main(void);
 
 /* Function definitions */
-int64_t _1133_main(void) {
-    uint8_t _1134_found;
-    int64_t _1135_n;
-    int64_t _1133_t3;
-    uint8_t _1133_t4;
-    int64_t _1133_t12;
-    int64_t _1133_t8;
-    uint8_t _1133_t10;
-    int64_t _1133_t14;
-    int64_t _1133_$retval;
-    _1134_found = 0;
-    _1135_n = 0;
+int64_t _1255_main(void) {
+    uint8_t _1256_found;
+    int64_t _1257_n;
+    int64_t _1255_t3;
+    uint8_t _1255_t4;
+    int64_t _1255_t12;
+    int64_t _1255_t8;
+    uint8_t _1255_t10;
+    int64_t _1255_t14;
+    int64_t _1255_$retval;
+    _1256_found = 0;
+    _1257_n = 0;
     goto BB1;
 BB1:
-    _1133_t3 = 10;
-    _1133_t4 = _1135_n < _1133_t3;
-    if (_1133_t4) {
+    _1255_t3 = 10;
+    _1255_t4 = _1257_n < _1255_t3;
+    if (_1255_t4) {
         goto BB2;
     } else {
         goto BB17;
     }
 BB2:
-    if (_1134_found) {
+    if (_1256_found) {
         goto BB3;
     } else {
         goto BB5;
     }
 BB17:
-    if (_1134_found) {
+    if (_1256_found) {
         goto BB18;
     } else {
         goto BB22;
     }
 BB3:
-    _1135_n = 100;
+    _1257_n = 100;
     goto BB5;
 BB5:
-    _1133_t8 = 6;
-    _1133_t10 = _1135_n == _1133_t8;
-    if (_1133_t10) {
+    _1255_t8 = 6;
+    _1255_t10 = _1257_n == _1255_t8;
+    if (_1255_t10) {
         goto BB8;
     } else {
         goto BB12;
     }
 BB18:
-    _1133_t14 = 15;
+    _1255_t14 = 15;
     goto BB21;
 BB22:
-    _1133_t14 = 4;
+    _1255_t14 = 4;
     goto BB21;
 BB8:
-    _1134_found = 1;
+    _1256_found = 1;
     goto BB12;
 BB12:
-    _1133_t12 = 1;
-    _1135_n = $add_int64_t(_1135_n, _1133_t12, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
+    _1255_t12 = 1;
+    _1257_n = $add_int64_t(_1257_n, _1255_t12, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
     goto BB1;
 BB21:
-    _1133_$retval = _1133_t14;
-    return _1133_$retval;
+    _1255_$retval = _1255_t14;
+    return _1255_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1133_main());
+  printf("%ld",_1255_main());
   return 0;
 }

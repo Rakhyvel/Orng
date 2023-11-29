@@ -7,15 +7,15 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _208_main(void);
+int64_t _277_main(void);
 
 /* Function definitions */
-int64_t _208_main(void) {
+int64_t _277_main(void) {
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable.orng:2:30:\nfn main() -> Int {unreachable}\n                            ^";
     $panic("reached unreachable code\n");
 }
 
 int main(void) {
-  printf("%ld",_208_main());
+  printf("%ld",_277_main());
   return 0;
 }

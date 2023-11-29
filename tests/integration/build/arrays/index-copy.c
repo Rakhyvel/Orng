@@ -15,31 +15,31 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _72_main(void);
+int64_t _92_main(void);
 
 /* Function definitions */
-int64_t _72_main(void) {
-    int64_t _72_t1;
-    int64_t _72_t2;
-    int64_t _72_t3;
-    int64_t _72_t4;
-    struct0 _73_x;
-    int64_t _72_t6;
-    int64_t _72_t7;
-    int64_t _72_$retval;
-    _72_t1 = 1;
-    _72_t2 = 2;
-    _72_t3 = 3;
-    _72_t4 = 4;
-    _73_x = (struct0) {_72_t1, _72_t2, _72_t3, _72_t4};
-    _72_t6 = 2;
-    *((int64_t*)&_73_x + _72_t6) = 62;
-    _72_t7 = 2;
-    _72_$retval = *((int64_t*)&_73_x + _72_t7);
-    return _72_$retval;
+int64_t _92_main(void) {
+    int64_t _92_t1;
+    int64_t _92_t2;
+    int64_t _92_t3;
+    int64_t _92_t4;
+    struct0 _93_x;
+    int64_t _92_t6;
+    int64_t _92_t7;
+    int64_t _92_$retval;
+    _92_t1 = 1;
+    _92_t2 = 2;
+    _92_t3 = 3;
+    _92_t4 = 4;
+    _93_x = (struct0) {_92_t1, _92_t2, _92_t3, _92_t4};
+    _92_t6 = 2;
+    *((int64_t*)&_93_x + _92_t6) = 62;
+    _92_t7 = 2;
+    _92_$retval = *((int64_t*)&_93_x + _92_t7);
+    return _92_$retval;
 }
 
 int main(void) {
-  printf("%ld",_72_main());
+  printf("%ld",_92_main());
   return 0;
 }

@@ -16,40 +16,40 @@ typedef struct {
 typedef void(*function1)(struct0*);
 
 /* Function forward definitions */
-int64_t _67_main(void);
-void _69_f(struct0* _69_x);
+int64_t _85_main(void);
+void _88_f(struct0* _88_x);
 
 /* Function definitions */
-int64_t _67_main(void) {
-    int64_t _67_t1;
-    int64_t _67_t2;
-    int64_t _67_t3;
-    struct0 _68_x;
-    function1 _67_t4;
-    struct0* _67_t6;
-    int64_t _67_t7;
-    int64_t _67_$retval;
-    _67_t1 = 1;
-    _67_t2 = 2;
-    _67_t3 = 3;
-    _68_x = (struct0) {_67_t1, _67_t2, _67_t3};
-    _67_t4 = _69_f;
-    _67_t6 = &_68_x;
+int64_t _85_main(void) {
+    int64_t _85_t1;
+    int64_t _85_t2;
+    int64_t _85_t3;
+    struct0 _86_x;
+    function1 _85_t4;
+    struct0* _85_t6;
+    int64_t _85_t7;
+    int64_t _85_$retval;
+    _85_t1 = 1;
+    _85_t2 = 2;
+    _85_t3 = 3;
+    _86_x = (struct0) {_85_t1, _85_t2, _85_t3};
+    _85_t4 = _88_f;
+    _85_t6 = &_86_x;
     $lines[$line_idx++] = "tests/integration/arrays/in-out.orng:4:7:\n    f(&mut x)\n     ^";
-    _67_t4(_67_t6);
+    _85_t4(_85_t6);
     $line_idx--;
-    _67_t7 = 1;
-    _67_$retval = *((int64_t*)&_68_x + _67_t7);
-    return _67_$retval;
+    _85_t7 = 1;
+    _85_$retval = *((int64_t*)&_86_x + _85_t7);
+    return _85_$retval;
 }
 
-void _69_f(struct0* _69_x) {
-    int64_t _69_t1;
-    _69_t1 = 1;
-    *((int64_t*)_69_x + _69_t1) = 217;
+void _88_f(struct0* _88_x) {
+    int64_t _88_t1;
+    _88_t1 = 1;
+    *((int64_t*)_88_x + _88_t1) = 217;
 }
 
 int main(void) {
-  printf("%ld",_67_main());
+  printf("%ld",_85_main());
   return 0;
 }

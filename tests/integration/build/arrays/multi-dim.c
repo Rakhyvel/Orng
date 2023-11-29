@@ -20,57 +20,57 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _80_main(void);
+int64_t _103_main(void);
 
 /* Function definitions */
-int64_t _80_main(void) {
-    int64_t _80_t2;
-    int64_t _80_t3;
-    int64_t _80_t4;
-    struct0 _80_t1;
-    int64_t _80_t6;
-    int64_t _80_t7;
-    int64_t _80_t8;
-    struct0 _80_t5;
-    int64_t _80_t10;
-    int64_t _80_t11;
-    int64_t _80_t12;
-    struct0 _80_t9;
-    struct1 _81_x;
-    int64_t _80_t13;
-    int64_t _80_t14;
-    int64_t _80_t15;
-    int64_t _80_t17;
-    int64_t _80_t18;
-    int64_t _80_t19;
-    int64_t _80_t20;
-    int64_t _80_$retval;
-    _80_t2 = 1;
-    _80_t3 = 2;
-    _80_t4 = 3;
-    _80_t1 = (struct0) {_80_t2, _80_t3, _80_t4};
-    _80_t6 = 4;
-    _80_t7 = 5;
-    _80_t8 = 68;
-    _80_t5 = (struct0) {_80_t6, _80_t7, _80_t8};
-    _80_t10 = 7;
-    _80_t11 = 8;
-    _80_t12 = 9;
-    _80_t9 = (struct0) {_80_t10, _80_t11, _80_t12};
-    _81_x = (struct1) {_80_t1, _80_t5, _80_t9};
-    _80_t13 = 2;
-    _80_t14 = 1;
-    _80_t15 = 1;
-    _80_t17 = 2;
-    _80_t18 = 1;
-    *((int64_t*)((struct0*)&_81_x + _80_t18) + _80_t17) = $add_int64_t(*((int64_t*)((struct0*)&_81_x + _80_t14) + _80_t13), _80_t15, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
-    _80_t19 = 2;
-    _80_t20 = 1;
-    _80_$retval = *((int64_t*)((struct0*)&_81_x + _80_t20) + _80_t19);
-    return _80_$retval;
+int64_t _103_main(void) {
+    int64_t _103_t2;
+    int64_t _103_t3;
+    int64_t _103_t4;
+    struct0 _103_t1;
+    int64_t _103_t6;
+    int64_t _103_t7;
+    int64_t _103_t8;
+    struct0 _103_t5;
+    int64_t _103_t10;
+    int64_t _103_t11;
+    int64_t _103_t12;
+    struct0 _103_t9;
+    struct1 _104_x;
+    int64_t _103_t13;
+    int64_t _103_t14;
+    int64_t _103_t15;
+    int64_t _103_t17;
+    int64_t _103_t18;
+    int64_t _103_t19;
+    int64_t _103_t20;
+    int64_t _103_$retval;
+    _103_t2 = 1;
+    _103_t3 = 2;
+    _103_t4 = 3;
+    _103_t1 = (struct0) {_103_t2, _103_t3, _103_t4};
+    _103_t6 = 4;
+    _103_t7 = 5;
+    _103_t8 = 68;
+    _103_t5 = (struct0) {_103_t6, _103_t7, _103_t8};
+    _103_t10 = 7;
+    _103_t11 = 8;
+    _103_t12 = 9;
+    _103_t9 = (struct0) {_103_t10, _103_t11, _103_t12};
+    _104_x = (struct1) {_103_t1, _103_t5, _103_t9};
+    _103_t13 = 2;
+    _103_t14 = 1;
+    _103_t15 = 1;
+    _103_t17 = 2;
+    _103_t18 = 1;
+    *((int64_t*)((struct0*)&_104_x + _103_t18) + _103_t17) = $add_int64_t(*((int64_t*)((struct0*)&_104_x + _103_t14) + _103_t13), _103_t15, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    _103_t19 = 2;
+    _103_t20 = 1;
+    _103_$retval = *((int64_t*)((struct0*)&_104_x + _103_t20) + _103_t19);
+    return _103_$retval;
 }
 
 int main(void) {
-  printf("%ld",_80_main());
+  printf("%ld",_103_main());
   return 0;
 }

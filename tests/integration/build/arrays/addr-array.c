@@ -15,33 +15,33 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _5_main(void);
+int64_t _6_main(void);
 
 /* Function definitions */
-int64_t _5_main(void) {
-    int64_t _5_t1;
-    int64_t _5_t2;
-    int64_t _5_t3;
-    int64_t _5_t4;
-    struct0 _6_x;
-    struct0* _6_y;
-    int64_t _5_t7;
-    int64_t _5_t8;
-    int64_t _5_$retval;
-    _5_t1 = 1;
-    _5_t2 = 2;
-    _5_t3 = 3;
-    _5_t4 = 4;
-    _6_x = (struct0) {_5_t1, _5_t2, _5_t3, _5_t4};
-    _6_y = &_6_x;
-    _5_t7 = 2;
-    *((int64_t*)_6_y + _5_t7) = 70;
-    _5_t8 = 2;
-    _5_$retval = *((int64_t*)_6_y + _5_t8);
-    return _5_$retval;
+int64_t _6_main(void) {
+    int64_t _6_t1;
+    int64_t _6_t2;
+    int64_t _6_t3;
+    int64_t _6_t4;
+    struct0 _7_x;
+    struct0* _7_y;
+    int64_t _6_t7;
+    int64_t _6_t8;
+    int64_t _6_$retval;
+    _6_t1 = 1;
+    _6_t2 = 2;
+    _6_t3 = 3;
+    _6_t4 = 4;
+    _7_x = (struct0) {_6_t1, _6_t2, _6_t3, _6_t4};
+    _7_y = &_7_x;
+    _6_t7 = 2;
+    *((int64_t*)_7_y + _6_t7) = 70;
+    _6_t8 = 2;
+    _6_$retval = *((int64_t*)_7_y + _6_t8);
+    return _6_$retval;
 }
 
 int main(void) {
-  printf("%ld",_5_main());
+  printf("%ld",_6_main());
   return 0;
 }

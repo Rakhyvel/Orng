@@ -330,7 +330,7 @@
         - [x] rename index field to rhs
     - [x] eval symbol defs defined as const
     - [x] eval default inits
-    - [ ] eval array sizes
+    - [x] eval array sizes
     - [ ] eval type annotations
     - [ ] should be able to index heterogenous tuples with a comptime value
         > Is this undecidable?
