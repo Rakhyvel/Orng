@@ -1,6 +1,4 @@
 const std = @import("std");
-const errs = @import("errors.zig");
-const ir_ = @import("ir.zig");
 const symbol_ = @import("symbol.zig");
 
 // # Orng interpreter calling convention

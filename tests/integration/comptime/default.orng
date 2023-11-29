@@ -1,0 +1,7 @@
+// 245
+fn main() -> Int {
+    let x: (a: Int = add(200, 40), b: Int = 5)
+    x.a + x.b
+}
+
+fn add(a: Int, b: Int) -> Int { a + b }

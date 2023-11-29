@@ -701,7 +701,7 @@ fn validateAST(
             }
             retval = ast;
         },
-        .call => {
+        .call => { // TODO: TOO LONG!
             ast.call.lhs = try validateAST(ast.call.lhs, null, scope, errors, allocator);
             if (ast.call.lhs.* == .poison) {
                 return ast.enpoison();
@@ -778,7 +778,7 @@ fn validateAST(
             }
             retval = ast;
         },
-        .index => {
+        .index => { // TODO: TOO LONG!
             const lhs_span = ast.index.lhs.getToken().span; // Used for error reporting
             if (expected != null and try primitives.type_type.typesMatch(expected.?, scope, errors, allocator)) {
                 ast.index.lhs = try validateAST(ast.index.lhs, primitives.type_type, scope, errors, allocator);
@@ -878,7 +878,7 @@ fn validateAST(
                 retval = ast;
             }
         },
-        .sum => {
+        .sum => { // TODO: TOO LONG!
             var poisoned = false;
             var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
@@ -969,7 +969,7 @@ fn validateAST(
             }
         },
 
-        .product => {
+        .product => { // TODO: TOO LONG!
             var poisoned = false;
             var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
@@ -1072,7 +1072,7 @@ fn validateAST(
                 }
             }
         },
-        .addrOf => {
+        .addrOf => { // TODO: TOO LONG!
             if (expected == null) {
                 // Not expecting anything, just validate expr
                 ast.addrOf.expr = try validateAST(ast.addrOf.expr, null, scope, errors, allocator);
@@ -1128,7 +1128,7 @@ fn validateAST(
             }
             retval = ast;
         },
-        .sliceOf => {
+        .sliceOf => { // TODO: TOO LONG!
             var was_type = false;
             // TODO: This doesn't work if expected isn't set to type. It should.
             if (expected != null and try primitives.type_type.typesMatch(expected.?, scope, errors, allocator)) {
@@ -1259,7 +1259,7 @@ fn validateAST(
                 retval = ast;
             }
         },
-        .inferredMember => {
+        .inferredMember => { // TODO: TOO LONG!
             var expected_expanded: *AST = undefined;
             if (expected != null) {
                 expected_expanded = try expected.?.expand_type(scope, errors, allocator);
@@ -1349,7 +1349,7 @@ fn validateAST(
             }
             retval = ast;
         },
-        .match => {
+        .match => { // TODO: TOO LONG!
             var poisoned = false;
             if (ast.match.let) |let| {
                 ast.match.let = try validateAST(let, null, scope, errors, allocator);
@@ -1468,7 +1468,7 @@ fn validateAST(
             }
             retval = ast;
         },
-        .block => {
+        .block => { // TODO: TOO LONG!
             var changed = false;
             var poisoned = false;
             var new_statements = std.ArrayList(*AST).init(allocator);

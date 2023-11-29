@@ -1,4 +1,3 @@
-const errs = @import("errors.zig");
 const Span = @import("span.zig").Span;
 const String = @import("zig-string/zig-string.zig").String;
 const _token = @import("token.zig");

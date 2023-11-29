@@ -15,9 +15,9 @@ const Span = _span.Span;
 const String = @import("zig-string/zig-string.zig").String;
 const Token = @import("token.zig").Token;
 
-pub const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
+const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
 
-pub var scopeUID: usize = 0;
+var scopeUID: usize = 0;
 pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),

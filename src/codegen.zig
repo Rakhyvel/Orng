@@ -17,7 +17,6 @@ const Scope = _symbol.Scope;
 const Span = span_.Span;
 const String = strings.String;
 const Symbol = _symbol.Symbol;
-const SymbolVersion = ir_.SymbolVersion;
 
 var cheat_module: *Module = undefined; // TODO: I hate this
 const HIGHEST_PRECEDENCE = 100;

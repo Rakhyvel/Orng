@@ -1,7 +1,5 @@
 const std = @import("std");
-const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
-const symbol_ = @import("symbol.zig");
 const offsets_ = @import("offsets.zig");
 const span_ = @import("span.zig");
 
@@ -93,10 +91,6 @@ pub const Context = struct {
             self.move(cursor, self.get_lval(lval), slots);
             cursor += slots;
         }
-    }
-
-    inline fn addrof_local(self: *Context, symbol: *symbol_.Symbol) i128 {
-        return self.base_pointer + symbol.offset.?;
     }
 
     inline fn push(self: *Context, val: ir_.IRData) void {

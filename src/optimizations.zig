@@ -11,7 +11,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol.zig").Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
-const debug = false;
+const debug = true;
 
 fn log(msg: []const u8) void {
     if (debug) {

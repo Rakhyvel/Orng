@@ -1,6 +1,5 @@
 const ast_ = @import("ast.zig");
 const codegen = @import("codegen.zig");
-const Context = @import("interpreter.zig").Context;
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const layout = @import("layout.zig");

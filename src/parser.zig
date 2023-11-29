@@ -2,7 +2,6 @@ const std = @import("std");
 
 const ast = @import("ast.zig");
 const errs = @import("errors.zig");
-const main = @import("main.zig");
 const symbols = @import("symbol.zig");
 const _token = @import("token.zig");
 
@@ -278,7 +277,7 @@ pub const Parser = struct {
                 predicate = try self.inject_expr();
             }
             if (self.accept(.EQUALS)) |_| {
-                init = try self.inject_expr();
+                init = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
             }
             return try AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
         } else {

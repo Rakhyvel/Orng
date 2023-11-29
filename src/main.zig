@@ -1,20 +1,10 @@
 const std = @import("std");
-const ast = @import("ast.zig");
-// const codegen = @import("codegen.zig");
-const Context = @import("interpreter.zig").Context;
 const errs = @import("errors.zig");
-const ir = @import("ir.zig");
-const layout = @import("layout.zig");
-const lexer = @import("lexer.zig");
-const Parser = @import("parser.zig").Parser;
 const primitives = @import("primitives.zig");
 const module_ = @import("module.zig");
 const Module = module_.Module;
 const Span = @import("span.zig");
 const symbol = @import("symbol.zig");
-const Token = @import("token.zig").Token;
-const validate = @import("validate.zig");
-const optimizations = @import("optimizations.zig");
 
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...

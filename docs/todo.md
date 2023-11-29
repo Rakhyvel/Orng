@@ -73,6 +73,13 @@
 - [ ] "packaging" to remove label arguments, possibly something else too
 - [x] Some function call lines are prepended and then popped before function call
 - [x] IRs should use L_Values for sources too (its not harder to optimize btw)
+- [ ] Make SliceKind anonymous (?)
+- [ ] Put Validation_State in its own file, bring along poisoned and init_structures
+- [ ] ir -> {(IR, IRKind, IRData), (SymbolVersion, L_Value), BasicBlock, CFG}, lower.zig
+- [ ] Move DAG to its own file, along with the type set functions
+- [ ] Keep Symbol and Scope together, remove SymbolKind, create a new file for creating the tree
+- [ ] Move `reprFromTokenKind` into TokenKind
+- [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Figure out how to do lints before GCC does
 
 ### Testing
