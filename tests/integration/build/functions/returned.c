@@ -12,44 +12,44 @@ typedef int64_t(*function1)(int64_t);
 typedef function1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _678_main(void);
-function1 _680_f(void);
-int64_t _682_add_four(int64_t _682_x);
+int64_t _63_main(void);
+function1 _65_f(void);
+int64_t _67_add_four(int64_t _67_x);
 
 /* Function definitions */
-int64_t _678_main(void) {
-    function0 _678_t0;
-    function1 _678_t1;
-    int64_t _678_t3;
-    int64_t _678_t2;
-    int64_t _678_$retval;
-    _678_t0 = _680_f;
+int64_t _63_main(void) {
+    function0 _63_t0;
+    function1 _63_t1;
+    int64_t _63_t3;
+    int64_t _63_t2;
+    int64_t _63_$retval;
+    _63_t0 = _65_f;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
-    _678_t1 = _678_t0();
+    _63_t1 = _63_t0();
     $line_idx--;
-    _678_t3 = 45;
+    _63_t3 = 45;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:9:\n    f()(45)\n       ^";
-    _678_t2 = _678_t1(_678_t3);
+    _63_t2 = _63_t1(_63_t3);
     $line_idx--;
-    _678_$retval = _678_t2;
-    return _678_$retval;
+    _63_$retval = _63_t2;
+    return _63_$retval;
 }
 
-function1 _680_f(void) {
-    function1 _680_$retval;
-    _680_$retval = _682_add_four;
-    return _680_$retval;
+function1 _65_f(void) {
+    function1 _65_$retval;
+    _65_$retval = _67_add_four;
+    return _65_$retval;
 }
 
-int64_t _682_add_four(int64_t _682_x) {
-    int64_t _682_t0;
-    int64_t _682_$retval;
-    _682_t0 = 4;
-    _682_$retval = $add_int64_t(_682_x, _682_t0, "tests/integration/functions/returned.orng:8:30:\nfn add_four(x: Int)->Int {x + 4}\n                            ^");
-    return _682_$retval;
+int64_t _67_add_four(int64_t _67_x) {
+    int64_t _67_t0;
+    int64_t _67_$retval;
+    _67_t0 = 4;
+    _67_$retval = $add_int64_t(_67_x, _67_t0, "tests/integration/functions/returned.orng:8:30:\nfn add_four(x: Int)->Int {x + 4}\n                            ^");
+    return _67_$retval;
 }
 
 int main(void) {
-  printf("%ld",_678_main());
+  printf("%ld",_63_main());
   return 0;
 }

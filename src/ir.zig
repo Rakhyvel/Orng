@@ -953,6 +953,7 @@ pub const IR = struct {
 pub const BasicBlock = struct {
     uid: u64,
     ir_head: ?*IR,
+    removed_irs: std.ArrayList(*IR),
     has_branch: bool,
     has_panic: bool,
     parameters: std.ArrayList(*SymbolVersion),
@@ -974,6 +975,24 @@ pub const BasicBlock = struct {
     /// Used for IR interpretation
     offset: ?i128,
 
+    pub fn create(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
+        var retval = try allocator.create(BasicBlock);
+        retval.ir_head = null;
+        retval.condition = null;
+        retval.has_panic = false;
+        retval.offset = null;
+        retval.removed_irs = std.ArrayList(*IR).init(allocator);
+        retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
+        retval.next = null;
+        retval.next_arguments = std.ArrayList(*SymbolVersion).init(allocator);
+        retval.branch = null;
+        retval.branch_arguments = std.ArrayList(*SymbolVersion).init(allocator);
+        retval.uid = self.basic_blocks.items.len;
+        retval.allocator = allocator;
+        try self.basic_blocks.append(retval);
+        return retval;
+    }
+
     pub fn deinit(self: *BasicBlock) void {
         for (self.parameters.items) |param| {
             param.deinit();
@@ -993,6 +1012,10 @@ pub const BasicBlock = struct {
         var maybe_ir: ?*IR = self.ir_head;
         while (maybe_ir) |ir| {
             maybe_ir = ir.next;
+            ir.deinit();
+        }
+
+        for (self.removed_irs.items) |ir| {
             ir.deinit();
         }
 
@@ -1068,7 +1091,7 @@ pub const BasicBlock = struct {
         return ir;
     }
 
-    pub fn removeInstruction(bb: *BasicBlock, ir: *IR) void {
+    pub fn removeInstruction(bb: *BasicBlock, ir: *IR) !void {
         ir.removed = true;
         if (bb.ir_head != null and bb.ir_head == ir) {
             bb.ir_head = bb.ir_head.?.next;
@@ -1079,7 +1102,7 @@ pub const BasicBlock = struct {
         if (ir.next != null) {
             ir.next.?.prev = ir.prev;
         }
-        ir.deinit();
+        try bb.removed_irs.append(ir);
     }
 
     /// This functions is O(n)
@@ -1235,23 +1258,6 @@ pub const CFG = struct {
                 }
             }
         }
-    }
-
-    fn createBasicBlock(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
-        var retval = try allocator.create(BasicBlock);
-        retval.ir_head = null;
-        retval.condition = null;
-        retval.has_panic = false;
-        retval.offset = null;
-        retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
-        retval.next = null;
-        retval.next_arguments = std.ArrayList(*SymbolVersion).init(allocator);
-        retval.branch = null;
-        retval.branch_arguments = std.ArrayList(*SymbolVersion).init(allocator);
-        retval.uid = self.basic_blocks.items.len;
-        retval.allocator = allocator;
-        try self.basic_blocks.append(retval);
-        return retval;
     }
 
     fn createTempSymbol(self: *CFG, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*Symbol {
@@ -2564,7 +2570,7 @@ pub const CFG = struct {
         } else if (maybe_ir.?.in_block) |in_block| {
             return in_block;
         } else {
-            var retval: *BasicBlock = try self.createBasicBlock(allocator);
+            var retval: *BasicBlock = try BasicBlock.create(self, allocator);
             retval.ir_head = maybe_ir;
             var _maybe_ir = maybe_ir;
             while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {

@@ -20,39 +20,39 @@ typedef struct {
 typedef int64_t(*function2)(struct1);
 
 /* Function forward definitions */
-int64_t _1114_main(void);
-int64_t _1116_f(struct1 _1116_a);
+int64_t _51_main(void);
+int64_t _53_f(struct1 _53_a);
 
 /* Function definitions */
-int64_t _1114_main(void) {
-    int64_t _1114_t2;
-    int64_t _1114_t3;
-    struct0 _1114_t1;
-    int64_t _1114_t4;
-    struct1 _1115_x;
-    function2 _1114_t5;
-    int64_t _1114_t6;
-    int64_t _1114_$retval;
-    _1114_t2 = 50;
-    _1114_t3 = 150;
-    _1114_t1 = (struct0) {_1114_t2, _1114_t3};
-    _1114_t4 = 300;
-    _1115_x = (struct1) {_1114_t1, _1114_t4};
-    _1114_t5 = _1116_f;
+int64_t _51_main(void) {
+    int64_t _51_t2;
+    int64_t _51_t3;
+    struct0 _51_t1;
+    int64_t _51_t4;
+    struct1 _52_x;
+    function2 _51_t5;
+    int64_t _51_t6;
+    int64_t _51_$retval;
+    _51_t2 = 50;
+    _51_t3 = 150;
+    _51_t1 = (struct0) {_51_t2, _51_t3};
+    _51_t4 = 300;
+    _52_x = (struct1) {_51_t1, _51_t4};
+    _51_t5 = _53_f;
     $lines[$line_idx++] = "tests/integration/tuples/select2.orng:4:7:\n    f(x)\n     ^";
-    _1114_t6 = _1114_t5(_1115_x);
+    _51_t6 = _51_t5(_52_x);
     $line_idx--;
-    _1114_$retval = _1114_t6;
-    return _1114_$retval;
+    _51_$retval = _51_t6;
+    return _51_$retval;
 }
 
-int64_t _1116_f(struct1 _1116_a) {
-    int64_t _1116_$retval;
-    _1116_$retval = _1116_a._1;
-    return _1116_$retval;
+int64_t _53_f(struct1 _53_a) {
+    int64_t _53_$retval;
+    _53_$retval = _53_a._1;
+    return _53_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1114_main());
+  printf("%ld",_51_main());
   return 0;
 }

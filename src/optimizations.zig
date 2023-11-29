@@ -11,7 +11,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol.zig").Symbol;
 const SymbolVersion = _ir.SymbolVersion;
 
-const debug = true;
+const debug = false;
 
 fn log(msg: []const u8) void {
     if (debug) {
@@ -42,9 +42,9 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     try findUnused(cfg, errors);
 
     while (try propagate(cfg, interned_strings, errors, allocator) or
-        try removeUnusedDefs(cfg, errors) or
+        try removeUnusedDefs(cfg, errors, allocator) or
         try bbOptimizations(cfg, allocator) or
-        try removeUnusedDefs(cfg, errors))
+        try removeUnusedDefs(cfg, errors, allocator))
     {}
     cfg.clearVisitedBBs();
 
@@ -285,12 +285,12 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Unit-copy elimination
             if (ir.src1 == null) {
                 log("unit-copy elimination");
-                ir.in_block.?.removeInstruction(ir);
+                try ir.in_block.?.removeInstruction(ir);
             }
             // Self-copy elimination
             else if (ir.dest.?.* == .symbver and ir.src1.?.* == .symbver and ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and src1_def != null and ir.dest.?.symbver.version == ir.src1.?.symbver.version) {
                 log("self-copy elimination");
-                ir.in_block.?.removeInstruction(ir);
+                try ir.in_block.?.removeInstruction(ir);
                 retval = true;
             }
             // Integer constant propagation
@@ -1201,7 +1201,8 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
     }
 }
 
-fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
+fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    _ = allocator;
     var retval = false;
 
     calculateUsage(cfg);
@@ -1229,9 +1230,8 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
                         return error.typeError;
                     }
                 } else {
-                    bb.removeInstruction(ir);
+                    try bb.removeInstruction(ir);
                     retval = true;
-                    break;
                 }
             }
         }

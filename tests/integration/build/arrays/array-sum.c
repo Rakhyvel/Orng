@@ -20,58 +20,58 @@ typedef struct {
 typedef int64_t(*function2)(struct1);
 
 /* Function forward definitions */
-int64_t _50_main(void);
-int64_t _52_f(struct1 _52_x);
+int64_t _51_main(void);
+int64_t _53_f(struct1 _53_x);
 
 /* Function definitions */
-int64_t _50_main(void) {
-    struct0 _50_t1;
-    struct0 _50_t2;
-    struct0 _50_t3;
-    struct1 _51_x;
-    function2 _50_t4;
-    int64_t _50_t5;
-    int64_t _50_$retval;
-    _50_t1 = (struct0) {.tag=0};
-    _50_t2 = (struct0) {.tag=1};
-    _50_t3 = (struct0) {.tag=2};
-    _51_x = (struct1) {_50_t1, _50_t2, _50_t3};
-    _50_t4 = _52_f;
+int64_t _51_main(void) {
+    struct0 _51_t1;
+    struct0 _51_t2;
+    struct0 _51_t3;
+    struct1 _52_x;
+    function2 _51_t4;
+    int64_t _51_t5;
+    int64_t _51_$retval;
+    _51_t1 = (struct0) {.tag=0};
+    _51_t2 = (struct0) {.tag=1};
+    _51_t3 = (struct0) {.tag=2};
+    _52_x = (struct1) {_51_t1, _51_t2, _51_t3};
+    _51_t4 = _53_f;
     $lines[$line_idx++] = "tests/integration/arrays/array-sum.orng:6:7:\n    f(x)\n     ^";
-    _50_t5 = _50_t4(_51_x);
+    _51_t5 = _51_t4(_52_x);
     $line_idx--;
-    _50_$retval = _50_t5;
-    return _50_$retval;
+    _51_$retval = _51_t5;
+    return _51_$retval;
 }
 
-int64_t _52_f(struct1 _52_x) {
-    int64_t _52_t1;
-    uint64_t _52_t5;
-    uint64_t _52_t6;
-    uint8_t _52_t4;
-    int64_t _52_t0;
-    int64_t _52_$retval;
-    _52_t1 = 1;
-    _52_t5 = (*((struct0*)&_52_x + _52_t1)).tag;
-    _52_t6 = 1;
-    _52_t4 = _52_t5 == _52_t6;
-    if (_52_t4) {
+int64_t _53_f(struct1 _53_x) {
+    int64_t _53_t1;
+    uint64_t _53_t5;
+    uint64_t _53_t6;
+    uint8_t _53_t4;
+    int64_t _53_t0;
+    int64_t _53_$retval;
+    _53_t1 = 1;
+    _53_t5 = (*((struct0*)&_53_x + _53_t1)).tag;
+    _53_t6 = 1;
+    _53_t4 = _53_t5 == _53_t6;
+    if (_53_t4) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _52_t0 = 215;
+    _53_t0 = 215;
     goto BB6;
 BB7:
-    _52_t0 = 3;
+    _53_t0 = 3;
     goto BB6;
 BB6:
-    _52_$retval = _52_t0;
-    return _52_$retval;
+    _53_$retval = _53_t0;
+    return _53_$retval;
 }
 
 int main(void) {
-  printf("%ld",_50_main());
+  printf("%ld",_51_main());
   return 0;
 }

@@ -329,7 +329,7 @@
         - [x] be able to get expanded type from lvalue
         - [x] rename index field to rhs
     - [x] eval symbol defs defined as const
-    - [ ] eval default inits
+    - [x] eval default inits
     - [ ] eval array sizes
     - [ ] eval type annotations
     - [ ] should be able to index heterogenous tuples with a comptime value
