@@ -331,7 +331,7 @@
     - [x] eval symbol defs defined as const
     - [x] eval default inits
     - [x] eval array sizes
-    - [ ] eval type annotations
+    - [x] eval type annotations
     - [ ] should be able to index heterogenous tuples with a comptime value
         > Is this undecidable?
     - [ ] various type operations

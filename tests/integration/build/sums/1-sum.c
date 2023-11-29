@@ -17,33 +17,33 @@ typedef struct {
 typedef struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1114_main(void);
-struct1 _1116_get_the_sum(void);
+int64_t _1373_main(void);
+struct1 _1375_get_the_sum(void);
 
 /* Function definitions */
-int64_t _1114_main(void) {
-    function0 _1114_t0;
-    struct1 _1114_t1;
-    struct1 _1115_a;
-    int64_t _1114_$retval;
-    _1114_t0 = _1116_get_the_sum;
+int64_t _1373_main(void) {
+    function0 _1373_t0;
+    struct1 _1373_t1;
+    struct1 _1374_a;
+    int64_t _1373_$retval;
+    _1373_t0 = _1375_get_the_sum;
     $lines[$line_idx++] = "tests/integration/sums/1-sum.orng:5:25:\n    let a = get_the_sum()\n                       ^";
-    _1114_t1 = _1114_t0();
+    _1373_t1 = _1373_t0();
     $line_idx--;
-    _1115_a = _1114_t1;
-    _1114_$retval = _1115_a._0;
-    return _1114_$retval;
+    _1374_a = _1373_t1;
+    _1373_$retval = _1374_a._0;
+    return _1373_$retval;
 }
 
-struct1 _1116_get_the_sum(void) {
-    int64_t _1116_t0;
-    struct1 _1116_$retval;
-    _1116_t0 = 235;
-    _1116_$retval = (struct1) {.tag=0, ._0=_1116_t0};
-    return _1116_$retval;
+struct1 _1375_get_the_sum(void) {
+    int64_t _1375_t0;
+    struct1 _1375_$retval;
+    _1375_t0 = 235;
+    _1375_$retval = (struct1) {.tag=0, ._0=_1375_t0};
+    return _1375_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1114_main());
+  printf("%ld",_1373_main());
   return 0;
 }

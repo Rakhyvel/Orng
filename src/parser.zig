@@ -140,7 +140,7 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         if (self.accept(.COLON)) |_| {
-            _type = try self.inject_expr();
+            _type = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
             if (self.peek_kind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
                 init = try self.inject_expr();
@@ -270,7 +270,7 @@ pub const Parser = struct {
     fn annotation_expr(self: *Parser) ParserErrorEnum!*AST {
         const exp = try self.assignment_expr();
         if (self.accept(.COLON)) |token| {
-            const _type = try self.inject_expr();
+            const _type = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
             var predicate: ?*AST = null;
             var init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
@@ -735,7 +735,7 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         _ = try self.expect(.COLON);
-        _type = try self.inject_expr();
+        _type = try AST.createComptime(ident.getToken(), try self.inject_expr(), self.astAllocator);
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
             init = try self.inject_expr();

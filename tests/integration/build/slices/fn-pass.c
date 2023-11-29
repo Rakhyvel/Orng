@@ -22,51 +22,51 @@ typedef struct {
 typedef int64_t(*function2)(struct1);
 
 /* Function forward definitions */
-int64_t _1004_main(void);
-int64_t _1006_f(struct1 _1006_x);
+int64_t _1230_main(void);
+int64_t _1232_f(struct1 _1232_x);
 
 /* Function definitions */
-int64_t _1004_main(void) {
-    int64_t _1004_t1;
-    int64_t _1004_t2;
-    int64_t _1004_t3;
-    int64_t _1004_t4;
-    struct0 _1005_x;
-    int64_t _1004_t6;
-    int64_t* _1004_t7;
-    int64_t _1004_t8;
-    struct1 _1005_y;
-    function2 _1004_t9;
-    int64_t _1004_t10;
-    int64_t _1004_$retval;
-    _1004_t1 = 1;
-    _1004_t2 = 2;
-    _1004_t3 = 3;
-    _1004_t4 = 4;
-    _1005_x = (struct0) {_1004_t1, _1004_t2, _1004_t3, _1004_t4};
-    _1004_t6 = 0;
-    _1004_t7 = ((int64_t*)&_1005_x + _1004_t6);
-    _1004_t8 = 4;
-    _1005_y = (struct1) {_1004_t7, _1004_t8};
-    _1004_t9 = _1006_f;
+int64_t _1230_main(void) {
+    int64_t _1230_t1;
+    int64_t _1230_t2;
+    int64_t _1230_t3;
+    int64_t _1230_t4;
+    struct0 _1231_x;
+    int64_t _1230_t6;
+    int64_t* _1230_t7;
+    int64_t _1230_t8;
+    struct1 _1231_y;
+    function2 _1230_t9;
+    int64_t _1230_t10;
+    int64_t _1230_$retval;
+    _1230_t1 = 1;
+    _1230_t2 = 2;
+    _1230_t3 = 3;
+    _1230_t4 = 4;
+    _1231_x = (struct0) {_1230_t1, _1230_t2, _1230_t3, _1230_t4};
+    _1230_t6 = 0;
+    _1230_t7 = ((int64_t*)&_1231_x + _1230_t6);
+    _1230_t8 = 4;
+    _1231_y = (struct1) {_1230_t7, _1230_t8};
+    _1230_t9 = _1232_f;
     $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
-    _1004_t10 = _1004_t9(_1005_y);
+    _1230_t10 = _1230_t9(_1231_y);
     $line_idx--;
-    _1004_$retval = _1004_t10;
-    return _1004_$retval;
+    _1230_$retval = _1230_t10;
+    return _1230_$retval;
 }
 
-int64_t _1006_f(struct1 _1006_x) {
-    int64_t _1006_t0;
-    int64_t _1006_t1;
-    int64_t _1006_$retval;
-    _1006_t0 = 1;
-    _1006_t1 = 80;
-    _1006_$retval = $add_int64_t(*((int64_t*)_1006_x._0 + _1006_t0), _1006_t1, "tests/integration/slices/fn-pass.orng:8:28:\nfn f(x: []Int)->Int {x[1] + 80}\n                          ^");
-    return _1006_$retval;
+int64_t _1232_f(struct1 _1232_x) {
+    int64_t _1232_t0;
+    int64_t _1232_t1;
+    int64_t _1232_$retval;
+    _1232_t0 = 1;
+    _1232_t1 = 80;
+    _1232_$retval = $add_int64_t(*((int64_t*)_1232_x._0 + _1232_t0), _1232_t1, "tests/integration/slices/fn-pass.orng:8:28:\nfn f(x: []Int)->Int {x[1] + 80}\n                          ^");
+    return _1232_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1004_main());
+  printf("%ld",_1230_main());
   return 0;
 }

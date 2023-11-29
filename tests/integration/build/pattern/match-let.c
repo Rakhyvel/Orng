@@ -14,69 +14,69 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _933_main(void);
+int64_t _1143_main(void);
 
 /* Function definitions */
-int64_t _933_main(void) {
-    int64_t _933_t2;
-    int64_t _933_t3;
-    int64_t _933_t4;
-    struct0 _934_x;
-    int64_t _933_t5;
-    int64_t _933_t6;
-    uint8_t _933_t7;
-    int64_t _933_t0;
-    int64_t _933_t10;
-    uint8_t _933_t11;
-    int64_t _933_$retval;
-    int64_t _933_t8;
-    uint8_t _933_t9;
-    _933_t2 = 1;
-    _933_t3 = 2;
-    _933_t4 = 3;
-    _934_x = (struct0) {_933_t2, _933_t3, _933_t4};
-    _933_t5 = 2;
-    _933_t6 = 1;
-    _933_t7 = *((int64_t*)&_934_x + _933_t5) == _933_t6;
-    if (_933_t7) {
+int64_t _1143_main(void) {
+    int64_t _1143_t2;
+    int64_t _1143_t3;
+    int64_t _1143_t4;
+    struct0 _1144_x;
+    int64_t _1143_t5;
+    int64_t _1143_t6;
+    uint8_t _1143_t7;
+    int64_t _1143_t0;
+    int64_t _1143_t10;
+    uint8_t _1143_t11;
+    int64_t _1143_$retval;
+    int64_t _1143_t8;
+    uint8_t _1143_t9;
+    _1143_t2 = 1;
+    _1143_t3 = 2;
+    _1143_t4 = 3;
+    _1144_x = (struct0) {_1143_t2, _1143_t3, _1143_t4};
+    _1143_t5 = 2;
+    _1143_t6 = 1;
+    _1143_t7 = *((int64_t*)&_1144_x + _1143_t5) == _1143_t6;
+    if (_1143_t7) {
         goto BB3;
     } else {
         goto BB6;
     }
 BB3:
-    _933_t0 = 2;
+    _1143_t0 = 2;
     goto BB5;
 BB6:
-    _933_t8 = 2;
-    _933_t9 = *((int64_t*)&_934_x + _933_t5) == _933_t8;
-    if (_933_t9) {
+    _1143_t8 = 2;
+    _1143_t9 = *((int64_t*)&_1144_x + _1143_t5) == _1143_t8;
+    if (_1143_t9) {
         goto BB8;
     } else {
         goto BB9;
     }
 BB5:
-    _933_$retval = _933_t0;
-    return _933_$retval;
+    _1143_$retval = _1143_t0;
+    return _1143_$retval;
 BB8:
-    _933_t0 = 22;
+    _1143_t0 = 22;
     goto BB5;
 BB9:
-    _933_t10 = 3;
-    _933_t11 = *((int64_t*)&_934_x + _933_t5) == _933_t10;
-    if (_933_t11) {
+    _1143_t10 = 3;
+    _1143_t11 = *((int64_t*)&_1144_x + _1143_t5) == _1143_t10;
+    if (_1143_t11) {
         goto BB11;
     } else {
         goto BB13;
     }
 BB11:
-    _933_t0 = 222;
+    _1143_t0 = 222;
     goto BB5;
 BB13:
-    _933_t0 = 0;
+    _1143_t0 = 0;
     goto BB5;
 }
 
 int main(void) {
-  printf("%ld",_933_main());
+  printf("%ld",_1143_main());
   return 0;
 }

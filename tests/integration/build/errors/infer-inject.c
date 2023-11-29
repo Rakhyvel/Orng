@@ -18,33 +18,33 @@ typedef struct {
 typedef struct1(*function0)(uint8_t);
 
 /* Function forward definitions */
-int64_t _362_main(void);
-struct1 _368_f(uint8_t _368_give_int);
+int64_t _477_main(void);
+struct1 _483_f(uint8_t _483_give_int);
 
 /* Function definitions */
-int64_t _362_main(void) {
-    function0 _362_t1;
-    uint8_t _362_t3;
-    struct1 _362_t2;
-    uint64_t _362_t4;
-    uint64_t _362_t5;
-    uint8_t _362_t6;
-    uint64_t _362_t10;
-    uint64_t _362_t11;
-    uint8_t _362_t12;
-    uint64_t _362_t7;
-    uint64_t _362_t8;
-    uint8_t _362_t9;
-    int64_t _362_$retval;
-    _362_t1 = _368_f;
-    _362_t3 = 1;
+int64_t _477_main(void) {
+    function0 _477_t1;
+    uint8_t _477_t3;
+    struct1 _477_t2;
+    uint64_t _477_t4;
+    uint64_t _477_t5;
+    uint8_t _477_t6;
+    uint64_t _477_t10;
+    uint64_t _477_t11;
+    uint8_t _477_t12;
+    uint64_t _477_t7;
+    uint64_t _477_t8;
+    uint8_t _477_t9;
+    int64_t _477_$retval;
+    _477_t1 = _483_f;
+    _477_t3 = 1;
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:3:13:\n    match f(true) {\n           ^";
-    _362_t2 = _362_t1(_362_t3);
+    _477_t2 = _477_t1(_477_t3);
     $line_idx--;
-    _362_t4 = 0;
-    _362_t5 = _362_t2.tag;
-    _362_t6 = _362_t5 == _362_t4;
-    if (_362_t6) {
+    _477_t4 = 0;
+    _477_t5 = _477_t2.tag;
+    _477_t6 = _477_t5 == _477_t4;
+    if (_477_t6) {
         goto BB3;
     } else {
         goto BB4;
@@ -53,10 +53,10 @@ BB3:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
 BB4:
-    _362_t7 = 2;
-    _362_t8 = _362_t2.tag;
-    _362_t9 = _362_t8 == _362_t7;
-    if (_362_t9) {
+    _477_t7 = 2;
+    _477_t8 = _477_t2.tag;
+    _477_t9 = _477_t8 == _477_t7;
+    if (_477_t9) {
         goto BB6;
     } else {
         goto BB7;
@@ -65,44 +65,44 @@ BB6:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:5:32:\n        .error_1 => unreachable\n                              ^";
     $panic("reached unreachable code\n");
 BB7:
-    _362_t10 = 1;
-    _362_t11 = _362_t2.tag;
-    _362_t12 = _362_t11 == _362_t10;
-    if (_362_t12) {
+    _477_t10 = 1;
+    _477_t11 = _477_t2.tag;
+    _477_t12 = _477_t11 == _477_t10;
+    if (_477_t12) {
         goto BB9;
     } else {
         goto BB13;
     }
 BB9:
-    _362_$retval = _362_t2._1;
-    return _362_$retval;
+    _477_$retval = _477_t2._1;
+    return _477_$retval;
 BB13:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:7:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }
 
-struct1 _368_f(uint8_t _368_give_int) {
-    int64_t _368_t1;
-    struct1 _368_t0;
-    struct1 _368_$retval;
-    if (_368_give_int) {
+struct1 _483_f(uint8_t _483_give_int) {
+    int64_t _483_t1;
+    struct1 _483_t0;
+    struct1 _483_$retval;
+    if (_483_give_int) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _368_t1 = 240;
-    _368_t0 = (struct1) {.tag=1, ._1=_368_t1};
+    _483_t1 = 240;
+    _483_t0 = (struct1) {.tag=1, ._1=_483_t1};
     goto BB4;
 BB5:
-    _368_t0 = (struct1) {.tag=2};
+    _483_t0 = (struct1) {.tag=2};
     goto BB4;
 BB4:
-    _368_$retval = _368_t0;
-    return _368_$retval;
+    _483_$retval = _483_t0;
+    return _483_$retval;
 }
 
 int main(void) {
-  printf("%ld",_362_main());
+  printf("%ld",_477_main());
   return 0;
 }

@@ -1130,14 +1130,14 @@ fn validateAST(
         },
         .sliceOf => { // TODO: TOO LONG!
             var was_type = false;
-            // TODO: This doesn't work if expected isn't set to type. It should.
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, scope, errors, allocator)) {
-                // Slice-of type, type of this ast must be a type, inner must be a type
+            ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, null, scope, errors, allocator);
+            if (ast.sliceOf.expr.* == .poison) {
+                return ast.enpoison();
+            }
+            var expr_type = try ast.sliceOf.expr.typeof(scope, errors, allocator);
 
-                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, primitives.type_type, scope, errors, allocator);
-                if (ast.sliceOf.expr.* == .poison) {
-                    return ast.enpoison();
-                }
+            if (try primitives.type_type.typesMatch(expr_type, scope, errors, allocator)) {
+                // Slice-of type, type of this ast must be a type, inner must be a type
                 if (ast.sliceOf.len) |len| {
                     ast.sliceOf.len = try validateAST(len, primitives.int_type, scope, errors, allocator);
                     if (ast.sliceOf.len.?.* == .poison) {
@@ -1148,7 +1148,6 @@ fn validateAST(
                     // Inflate to product
                     var new_terms = std.ArrayList(*AST).init(allocator);
                     if (ast.sliceOf.len.?.* != .int) {
-                        // TODO: Compile-time evaluate array size
                         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "not integer literal" } });
                         return ast.enpoison();
                     }
@@ -1165,19 +1164,13 @@ fn validateAST(
                     retval = try AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
                 }
                 was_type = true;
-            } else {
-                // Slice-of value, expected must be an slice, inner must match with expected's inner
+            } else { // Slice-of value, expected must be an slice, inner must match with expected's inner
                 if (ast.sliceOf.kind != .SLICE and ast.sliceOf.kind != .MUT) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is not allowed in slice-of operator" } });
                     return ast.enpoison();
                 }
-                ast.sliceOf.expr = try validateAST(ast.sliceOf.expr, null, scope, errors, allocator);
-                if (ast.sliceOf.expr.* == .poison) {
-                    return ast.enpoison();
-                }
 
                 // ast.sliceOf.expr must be homotypical product type of expected
-                var expr_type = try ast.sliceOf.expr.typeof(scope, errors, allocator);
                 if (expr_type.* != .product or !try expr_type.product.is_homotypical(scope, errors, allocator)) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "attempt to take slice-of something that is not an array" } });
                     return ast.enpoison();
