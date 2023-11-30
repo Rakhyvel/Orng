@@ -19,51 +19,51 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1014_main(void);
+int64_t _993_main(void);
 
 /* Function definitions */
-int64_t _1014_main(void) {
-    int64_t _1014_t1;
-    int64_t _1014_t2;
-    int64_t _1014_t3;
-    struct0 _1015_x;
-    int64_t _1014_t5;
-    int64_t _1014_t6;
-    struct1 _1014_t4;
-    int64_t _1014_t8;
-    int64_t _1014_t10;
-    int64_t _1014_t12;
-    int64_t _1014_t13;
-    uint8_t _1014_t14;
-    int64_t _1014_$retval;
-    _1014_t1 = 0;
-    _1014_t2 = 1;
-    _1014_t3 = 2;
-    _1015_x = (struct0) {_1014_t1, _1014_t2, _1014_t3};
-    _1014_t5 = 1;
-    _1014_t6 = 0;
-    _1014_t4 = (struct1) {(*((int64_t*)&_1015_x + _1014_t5)), (*((int64_t*)&_1015_x + _1014_t6))};
-    _1014_t8 = 0;
-    *((int64_t*)&_1015_x + _1014_t8) = _1014_t4._0;
-    _1014_t10 = 1;
-    *((int64_t*)&_1015_x + _1014_t10) = _1014_t4._1;
-    _1014_t12 = 0;
-    _1014_t13 = 1;
-    _1014_t14 = *((int64_t*)&_1015_x + _1014_t12) > *((int64_t*)&_1015_x + _1014_t13);
-    if (_1014_t14) {
+int64_t _993_main(void) {
+    int64_t _993_t1;
+    int64_t _993_t2;
+    int64_t _993_t3;
+    struct0 _994_x;
+    int64_t _993_t5;
+    int64_t _993_t6;
+    struct1 _993_t4;
+    int64_t _993_t8;
+    int64_t _993_t10;
+    int64_t _993_t12;
+    int64_t _993_t13;
+    uint8_t _993_t14;
+    int64_t _993_$retval;
+    _993_t1 = 0;
+    _993_t2 = 1;
+    _993_t3 = 2;
+    _994_x = (struct0) {_993_t1, _993_t2, _993_t3};
+    _993_t5 = 1;
+    _993_t6 = 0;
+    _993_t4 = (struct1) {(*((int64_t*)&_994_x + _993_t5)), (*((int64_t*)&_994_x + _993_t6))};
+    _993_t8 = 0;
+    *((int64_t*)&_994_x + _993_t8) = _993_t4._0;
+    _993_t10 = 1;
+    *((int64_t*)&_994_x + _993_t10) = _993_t4._1;
+    _993_t12 = 0;
+    _993_t13 = 1;
+    _993_t14 = *((int64_t*)&_994_x + _993_t12) > *((int64_t*)&_994_x + _993_t13);
+    if (_993_t14) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _1014_$retval = 162;
-    return _1014_$retval;
+    _993_$retval = 162;
+    return _993_$retval;
 BB5:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
 int main(void) {
-  printf("%ld",_1014_main());
+  printf("%ld",_993_main());
   return 0;
 }

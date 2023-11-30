@@ -373,9 +373,8 @@ fn validateAST(
             retval = try ast._typeOf.expr.typeof(scope, errors, allocator);
         },
         ._comptime => {
-            // Validate the symbol, return ast enpoisoned if the symbol type is poison
-            // (_comptime.symbol is created during symbol tree expansion)
-            try validateSymbol(ast._comptime.symbol.?, errors, allocator);
+            // Validate symbol
+            try validateSymbol(ast._comptime.symbol.?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
             if (ast._comptime.symbol.?._type.?.* == .poison) {
                 return ast.enpoison();
             }

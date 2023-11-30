@@ -140,6 +140,7 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         if (self.accept(.COLON)) |_| {
+            // Do not assert that _types_ have to be comptime
             _type = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
             if (self.peek_kind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
@@ -277,7 +278,12 @@ pub const Parser = struct {
                 predicate = try self.inject_expr();
             }
             if (self.accept(.EQUALS)) |_| {
-                init = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
+                const pre_init = try self.inject_expr();
+                if (!pre_init.is_comptime_expr()) {
+                    self.errors.addError(Error{ .comptime_known = .{ .span = pre_init.getToken().span, .what = "default values" } });
+                    return error.parserError;
+                }
+                init = try AST.createComptime(token, pre_init, self.astAllocator);
             }
             return try AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
         } else {
@@ -420,7 +426,12 @@ pub const Parser = struct {
                 sliceKind = .MULTIPTR;
             } else if (self.next_is_expr()) {
                 sliceKind = .ARRAY;
-                len = try AST.createComptime(token, try self.expr(), self.astAllocator);
+                const pre_len = try self.inject_expr();
+                if (!pre_len.is_comptime_expr()) {
+                    self.errors.addError(Error{ .comptime_known = .{ .span = pre_len.getToken().span, .what = "array lengths" } });
+                    return error.parserError;
+                }
+                len = try AST.createComptime(token, pre_len, self.astAllocator);
             } else {
                 sliceKind = .SLICE;
             }

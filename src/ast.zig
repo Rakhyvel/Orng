@@ -1503,6 +1503,19 @@ pub const AST = union(enum) {
         return primitives.from_ast(expanded).is_num();
     }
 
+    pub fn is_comptime_expr(self: *AST) bool {
+        // It's easier to list all the ASTs that AREN'T comptime! :-)
+        return !(self.* == ._try or
+            self.* == .block or
+            self.* == .call);
+        // AST kinds like `and` and `or` are technically control-flow, but conceptually, they terminate and
+        // are pure.
+        // `try` breaks normal control-flow. `block` allows for unpure statements like `continue`, `break`,
+        // `return`, and `try`. `call` is non-comptime because functions are not pure in Orng.
+        // Kinds like `and`, `or`, `orelse`, `catch`, `if`, `match`, and `while` are in a way "purer", and it
+        // would be annoying to have to wrap these in comptime.
+    }
+
     // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) *AST {
         self.getCommon().validation_state = .invalid;

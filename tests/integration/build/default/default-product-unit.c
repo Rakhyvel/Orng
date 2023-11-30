@@ -12,24 +12,24 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _423_main(void);
+int64_t _402_main(void);
 
 /* Function definitions */
-int64_t _423_main(void) {
-    int64_t _423_t2;
-    struct0 _424_x;
-    struct0* _424_y;
-    int64_t _423_t5;
-    int64_t _423_$retval;
-    _423_t2 = 0;
-    _424_x = (struct0) {_423_t2, };
-    _424_y = &_424_x;
-    _423_t5 = 140;
-    _423_$retval = $add_int64_t(_423_t5, (*_424_y)._1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
-    return _423_$retval;
+int64_t _402_main(void) {
+    int64_t _402_t2;
+    struct0 _403_x;
+    struct0* _403_y;
+    int64_t _402_t5;
+    int64_t _402_$retval;
+    _402_t2 = 0;
+    _403_x = (struct0) {_402_t2, };
+    _403_y = &_403_x;
+    _402_t5 = 140;
+    _402_$retval = $add_int64_t(_402_t5, (*_403_y)._1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
+    return _402_$retval;
 }
 
 int main(void) {
-  printf("%ld",_423_main());
+  printf("%ld",_402_main());
   return 0;
 }

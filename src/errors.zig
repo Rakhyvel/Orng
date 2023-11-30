@@ -41,6 +41,10 @@ pub const Error = union(enum) {
         got: Token,
         open: Token,
     },
+    comptime_known: struct {
+        span: Span,
+        what: []const u8, // what must be compile-time known?
+    },
 
     // Symbol
     redefinition: struct {
@@ -154,6 +158,7 @@ pub const Error = union(enum) {
             .expectedBasicToken => return self.expectedBasicToken.got.span,
             .expected2Token => return self.expected2Token.got.span,
             .missing_close => return self.missing_close.got.span,
+            .comptime_known => return self.comptime_known.span,
 
             .redefinition => return self.redefinition.redefined_span,
             .symbol_error => return self.symbol_error.span,
@@ -198,7 +203,7 @@ pub const Errors = struct {
     }
     pub fn addError(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        unreachable; // uncomment if you want to see where errors come from
+        // unreachable; // uncomment if you want to see where errors come from
     }
 
     pub fn printErrors(self: *Errors) !void {
@@ -229,6 +234,9 @@ pub const Errors = struct {
                         token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data,
                         token.reprFromTokenKind(err.missing_close.got.kind) orelse err.missing_close.got.data,
                     });
+                },
+                .comptime_known => {
+                    try out.print("{s} must be compile-time known\n", .{err.comptime_known.what});
                 },
 
                 // Symbol
@@ -360,6 +368,13 @@ pub const Errors = struct {
                     try out.print("opening `{s}` here\n", .{token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data});
                     try (term.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.missing_close.open.span);
+                },
+                .comptime_known => {
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try print_note_prelude(err.comptime_known.span);
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try out.print("consider wrapping with `comptime`\n", .{});
+                    try (term.Attr{ .bold = false }).dump(out);
                 },
                 .redefinition => {
                     if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
