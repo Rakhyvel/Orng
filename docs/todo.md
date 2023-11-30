@@ -332,8 +332,7 @@
     - [x] eval default inits
     - [x] eval array sizes
     - [x] eval type annotations
-    - [ ] should be able to index heterogenous tuples with a comptime value
-        > Is this undecidable?
+    - [x] should be able to index heterogenous tuples with a comptime value
     - [ ] various type operations
         - [ ] `typeof` prefix operator which returns type expression of expression
         - [ ] `sizeof`

@@ -10,45 +10,45 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _688_main(void);
-uint8_t _693_f(int64_t _693_x);
+int64_t _711_main(void);
+uint8_t _716_f(int64_t _716_x);
 
 /* Function definitions */
-int64_t _688_main(void) {
-    function0 _688_t1;
-    int64_t _688_t3;
-    uint8_t _688_t2;
-    int64_t _688_t0;
-    int64_t _688_$retval;
-    _688_t1 = _693_f;
-    _688_t3 = 4;
+int64_t _711_main(void) {
+    function0 _711_t1;
+    int64_t _711_t3;
+    uint8_t _711_t2;
+    int64_t _711_t0;
+    int64_t _711_$retval;
+    _711_t1 = _716_f;
+    _711_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mult-zero-int.orng:3:10:\n    if f(4) {\n        ^";
-    _688_t2 = _688_t1(_688_t3);
+    _711_t2 = _711_t1(_711_t3);
     $line_idx--;
-    if (_688_t2) {
+    if (_711_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _688_t0 = 187;
+    _711_t0 = 187;
     goto BB4;
 BB5:
-    _688_t0 = 4;
+    _711_t0 = 4;
     goto BB4;
 BB4:
-    _688_$retval = _688_t0;
-    return _688_$retval;
+    _711_$retval = _711_t0;
+    return _711_$retval;
 }
 
-uint8_t _693_f(int64_t _693_x) {
-    uint8_t _693_$retval;
-    (void)_693_x;
-    _693_$retval = 1;
-    return _693_$retval;
+uint8_t _716_f(int64_t _716_x) {
+    uint8_t _716_$retval;
+    (void)_716_x;
+    _716_$retval = 1;
+    return _716_$retval;
 }
 
 int main(void) {
-  printf("%ld",_688_main());
+  printf("%ld",_711_main());
   return 0;
 }

@@ -1179,26 +1179,32 @@ pub const AST = union(enum) {
                 } else {
                     unreachable;
                 }
-                for (annot_list.items, 0..) |term, i| {
-                    if (term.* != .annotation) {
-                        errors.addError(Error{ .basic = .{
+                if (self.select.pos != null) {
+                    // pos is already known, do short-cut
+                    retval = annot_list.items[self.select.pos.?];
+                } else {
+                    // pos not known...
+                    for (annot_list.items, 0..) |term, i| {
+                        if (term.* != .annotation) {
+                            errors.addError(Error{ .basic = .{
+                                .span = self.getToken().span,
+                                .msg = "left-hand-side of select is not selectable",
+                            } });
+                            return error.typeError;
+                        }
+                        if (std.mem.eql(u8, term.annotation.pattern.getToken().data, self.select.rhs.getToken().data)) {
+                            self.select.pos = i;
+                            retval = term.annotation.type;
+                            break;
+                        }
+                    } else {
+                        errors.addError(Error{ .member_not_in = .{
                             .span = self.getToken().span,
-                            .msg = "left-hand-side of select is not selectable",
+                            .identifier = self.select.rhs.getToken().data,
+                            .group_name = "tuple",
                         } });
                         return error.typeError;
                     }
-                    if (std.mem.eql(u8, term.annotation.pattern.getToken().data, self.select.rhs.getToken().data)) {
-                        self.select.pos = i;
-                        retval = term.annotation.type;
-                        break;
-                    }
-                } else {
-                    errors.addError(Error{ .member_not_in = .{
-                        .span = self.getToken().span,
-                        .identifier = self.select.rhs.getToken().data,
-                        .group_name = "tuple",
-                    } });
-                    return error.typeError;
                 }
             },
 

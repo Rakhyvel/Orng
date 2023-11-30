@@ -10,45 +10,45 @@
 typedef uint8_t(*function0)(double);
 
 /* Function forward definitions */
-int64_t _679_main(void);
-uint8_t _684_f(double _684_x);
+int64_t _702_main(void);
+uint8_t _707_f(double _707_x);
 
 /* Function definitions */
-int64_t _679_main(void) {
-    function0 _679_t1;
-    double _679_t3;
-    uint8_t _679_t2;
-    int64_t _679_t0;
-    int64_t _679_$retval;
-    _679_t1 = _684_f;
-    _679_t3 = 4.0e+00;
+int64_t _702_main(void) {
+    function0 _702_t1;
+    double _702_t3;
+    uint8_t _702_t2;
+    int64_t _702_t0;
+    int64_t _702_$retval;
+    _702_t1 = _707_f;
+    _702_t3 = 4.0e+00;
     $lines[$line_idx++] = "tests/integration/expressions/mult-zero-float.orng:3:10:\n    if f(4.0) {\n        ^";
-    _679_t2 = _679_t1(_679_t3);
+    _702_t2 = _702_t1(_702_t3);
     $line_idx--;
-    if (_679_t2) {
+    if (_702_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _679_t0 = 188;
+    _702_t0 = 188;
     goto BB4;
 BB5:
-    _679_t0 = 4;
+    _702_t0 = 4;
     goto BB4;
 BB4:
-    _679_$retval = _679_t0;
-    return _679_$retval;
+    _702_$retval = _702_t0;
+    return _702_$retval;
 }
 
-uint8_t _684_f(double _684_x) {
-    uint8_t _684_$retval;
-    (void)_684_x;
-    _684_$retval = 1;
-    return _684_$retval;
+uint8_t _707_f(double _707_x) {
+    uint8_t _707_$retval;
+    (void)_707_x;
+    _707_$retval = 1;
+    return _707_$retval;
 }
 
 int main(void) {
-  printf("%ld",_679_main());
+  printf("%ld",_702_main());
   return 0;
 }

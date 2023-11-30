@@ -806,12 +806,20 @@ fn validateAST(
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
                 retval = ast.index.lhs.product.terms.items[@as(usize, @intCast(ast.index.rhs.int.data))];
             } else if (lhs_type.* != .product and !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
-                // TODO: Replace with check that lhs type implements Indexable
                 errors.addError(Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_type } });
                 return ast.enpoison();
             } else if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(scope, errors, allocator)) {
-                errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "array is not homotypical" } });
-                return ast.enpoison();
+                if (ast.index.rhs.* == .int) {
+                    // rhs is compile-time known, change to select
+                    var select = try AST.createSelect(ast.getToken(), ast.index.lhs, try AST.createIdentifier(Token.create("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                    select.select.pos = @as(usize, @intCast(ast.index.rhs.int.data));
+                    select.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = select } };
+                    retval = select;
+                } else {
+                    // rhs is not int, error
+                    errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "array is not homotypical and index is not compile-time known" } });
+                    return ast.enpoison();
+                }
             } else if (expected != null) {
                 if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.terms.items[0].typesMatch(expected.?, scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.product.terms.items[0] } });

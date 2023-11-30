@@ -15,37 +15,37 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _424_main(void);
+int64_t _447_main(void);
 
 /* Function definitions */
-int64_t _424_main(void) {
-    int64_t _424_t0;
-    struct0 _425_x;
-    int64_t _424_t3;
-    uint8_t _424_t5;
-    int64_t _424_t2;
-    int64_t _424_$retval;
-    _424_t0 = 0;
-    _425_x = (struct0) {.tag=0, ._0=_424_t0};
-    _424_t3 = 0;
-    _424_t5 = _425_x._0 == _424_t3;
-    if (_424_t5) {
+int64_t _447_main(void) {
+    int64_t _447_t0;
+    struct0 _448_x;
+    int64_t _447_t3;
+    uint8_t _447_t5;
+    int64_t _447_t2;
+    int64_t _447_$retval;
+    _447_t0 = 0;
+    _448_x = (struct0) {.tag=0, ._0=_447_t0};
+    _447_t3 = 0;
+    _447_t5 = _448_x._0 == _447_t3;
+    if (_447_t5) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _424_t2 = 133;
+    _447_t2 = 133;
     goto BB6;
 BB7:
-    _424_t2 = 0;
+    _447_t2 = 0;
     goto BB6;
 BB6:
-    _424_$retval = _424_t2;
-    return _424_$retval;
+    _447_$retval = _447_t2;
+    return _447_$retval;
 }
 
 int main(void) {
-  printf("%ld",_424_main());
+  printf("%ld",_447_main());
   return 0;
 }
