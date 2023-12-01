@@ -409,11 +409,13 @@ pub const Parser = struct {
 
     fn prefix_expr(self: *Parser) ParserErrorEnum!*AST {
         if (self.accept(.NOT)) |token| {
-            return try AST.createNot(token, try self.invoke_expr(), self.astAllocator);
+            return try AST.createNot(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.COMPTIME)) |token| {
             return try AST.createComptime(token, try self.invoke_expr(), self.astAllocator);
+        } else if (self.accept(.TYPEOF)) |token| {
+            return try AST.createTypeOf(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
-            return try AST.createNegate(token, try self.invoke_expr(), self.astAllocator);
+            return try AST.createNegate(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
             const mut = self.accept(.MUT);
             return try AST.createAddrOf(token, try self.prefix_expr(), mut != null, self.astAllocator);

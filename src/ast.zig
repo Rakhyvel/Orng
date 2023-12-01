@@ -1619,7 +1619,7 @@ pub const AST = union(enum) {
             .dereference => try out.writer().print("dereference()", .{}),
             ._try => try out.writer().print("try()", .{}),
             .discard => try out.writer().print("discard()", .{}),
-            ._typeOf => try out.writer().print("typeof()", .{}),
+            ._typeOf => try out.writer().print("typeof({})", .{self._typeOf.expr}),
             .domainOf => try out.writer().print("domainof()", .{}),
             ._comptime => {
                 try out.writer().print("comptime({})", .{self._comptime.expr});
@@ -1644,7 +1644,7 @@ pub const AST = union(enum) {
             .call => try out.writer().print("call()", .{}),
             .index => try out.writer().print("index()", .{}),
             .select => try out.writer().print("select()", .{}),
-            .function => try out.writer().print("function()", .{}),
+            .function => try out.writer().print("function({},{})", .{ self.function.lhs, self.function.rhs }),
             .invoke => try out.writer().print("invoke()", .{}),
             .sum => {
                 try out.writer().print("sum(", .{});
@@ -1685,8 +1685,14 @@ pub const AST = union(enum) {
             ._break => try out.writer().print("break", .{}),
             ._continue => try out.writer().print("continue", .{}),
             ._return => try out.writer().print("return()", .{}),
-            .symbol => try out.writer().print("symbol()", .{}),
-            .decl => try out.writer().print("decl()", .{}),
+            .symbol => try out.writer().print("symbol({s})", .{self.symbol.name}),
+            .decl => {
+                try out.writer().print("decl(\n", .{});
+                try out.writer().print("    .pattern = {},\n", .{self.decl.pattern});
+                try out.writer().print("    .type = {?},\n", .{self.decl.type});
+                try out.writer().print("    .init = {?},\n", .{self.decl.init});
+                try out.writer().print(")", .{});
+            },
             .fnDecl => try out.writer().print("fnDecl()", .{}),
             ._defer => try out.writer().print("defer()", .{}),
             ._errdefer => try out.writer().print("errdefer()", .{}),

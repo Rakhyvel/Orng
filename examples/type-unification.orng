@@ -1,4 +1,4 @@
-let const std = import("std")
+from std import debug
 
 let const RationalNumber: Type = (
     numerator: Int,
@@ -13,10 +13,10 @@ impl Eq for RationalNumber {
 
 fn main: (sys: System)->!() {
     let x: [5]Int = (1, 2, 3, 4, 5)
-    std.debug.expect(contains([]x, 4))
+    debug::assert(contains([]x, 4))
 
     let y: [5]RationalNumber = ((1, 1), (4, 5), (-3, 6), (2, 5), (1, 65))
-    std.debug.expect(contains([]y, (-3, 6)))
+    debug::assert(contains([]y, (-3, 6)))
 }
 
 fn contains: (haystack: []($T\Eq), needle: T)->Bool {

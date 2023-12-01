@@ -42,6 +42,9 @@ pub const TokenKind = enum(u32) {
     UNREACHABLE,
     WHERE,
     WHILE,
+    TYPEOF,
+    DEFAULT,
+    SIZEOF,
 
     // Equals
     D_EQUALS,
@@ -281,6 +284,9 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .UNREACHABLE => "unreachable",
         .WHERE => "where",
         .WHILE => "while",
+        .TYPEOF => "typeof",
+        .DEFAULT => "default",
+        .SIZEOF => "sizeof",
 
         // Equals
         .D_EQUALS => "==",

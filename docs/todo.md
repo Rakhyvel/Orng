@@ -334,10 +334,12 @@
     - [x] eval type annotations
     - [x] should be able to index heterogenous tuples with a comptime value
     - [ ] various type operations
-        - [ ] `typeof` prefix operator which returns type expression of expression
-        - [ ] `sizeof`
-        - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
+        - [x] `typeof` prefix operator which returns type expression of expression
         - [ ] `default` prefix operator, which takes a type and returns the default value for that type
+        - [ ] define type inference and defaults for variable declarations in terms of `typeof` and `default`
+        - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
+        - [ ] `sizeof`
+            > Don't like this. Interpreter memory unit is the slot, not the byte. Would cause confusion. Perhaps sizeof should trap for interpretation.
 - [ ] build system (built upon compile-time evaluation)
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] `build.orng` which contains a `build()` function, like zig

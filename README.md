@@ -82,17 +82,17 @@ const FizzBuzzResult = (string: String | integer: Int)
 
 fn fizzbuzz(n: Int) -> FizzBuzzResult {
     match 0 {
-        {n % 15}      => FizzBuzzResult.string("fizzbuzz") 
-        //               ^^^^^^^^^^^^^^
+        {n % 15} => FizzBuzzResult.string("fizzbuzz") 
+        //          ^^^^^^^^^^^^^^
         // We can either be explicit with the ADT we use...
 
-        {n % 5} == 0  => .string("buzz") 
-        //               ^
+        {n % 5}  => .string("buzz") 
+        //         ^
         // ... Or we can let it be inferred, if possible
 
-        {n % 3} == 0  => .string("fizz")
+        {n % 3}  => .string("fizz")
 
-        else          => .integer(n)
+        else     => .integer(n)
     }
 }
 

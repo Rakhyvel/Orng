@@ -1,0 +1,6 @@
+// 249
+fn main() -> Int {
+    let x = 9
+    let y: typeof x = 240
+    x + y
+}

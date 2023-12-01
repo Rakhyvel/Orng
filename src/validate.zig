@@ -166,7 +166,7 @@ fn validateAST(
         std.debug.assert(try expected_type.typesMatch(primitives.type_type, scope, errors, allocator));
     }
 
-    // std.debug.print("{s}\n", .{@tagName(ast.*)});
+    // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => retval = ast,
         .unit => {

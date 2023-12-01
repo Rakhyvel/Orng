@@ -15,14 +15,14 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _7_add(int64_t _7_a,int64_t _7_b);
+int64_t _4_add(int64_t _4_a,int64_t _4_b);
 int64_t _2_main(void);
 
 /* Function definitions */
-int64_t _7_add(int64_t _7_a,int64_t _7_b) {
-    int64_t _7_$retval;
-    _7_$retval = $add_int64_t(_7_a, _7_b, "tests/integration/comptime/array-size.orng:12:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
-    return _7_$retval;
+int64_t _4_add(int64_t _4_a,int64_t _4_b) {
+    int64_t _4_$retval;
+    _4_$retval = $add_int64_t(_4_a, _4_b, "tests/integration/comptime/array-size.orng:12:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
+    return _4_$retval;
 }
 
 int64_t _2_main(void) {

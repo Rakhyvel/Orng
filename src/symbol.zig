@@ -725,18 +725,16 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
     const _type = try AST.createFunction(definition._comptime.expr.getToken(), lhs, rhs, allocator);
 
     // Create the comptime scope
-    var comptime_scope = try Scope.init(scope, "", allocator);
-    comptime_scope.in_function = scope.in_function + 1;
 
-    const keySet = comptime_scope.symbols.keys();
-    var i: usize = 0;
-    while (i < keySet.len) : (i += 1) {
-        const key = keySet[i];
-        var symbol = comptime_scope.symbols.get(key).?;
-        symbol.defined = true;
-        symbol.decld = true;
-        symbol.param = true;
-    }
+    // const keySet = scope.symbols.keys();
+    // var i: usize = 0;
+    // while (i < keySet.len) : (i += 1) {
+    //     const key = keySet[i];
+    //     var symbol = scope.symbols.get(key).?;
+    //     symbol.defined = true;
+    //     symbol.decld = true;
+    //     symbol.param = true;
+    // }
 
     // Choose name
     var buf: []const u8 = undefined;
@@ -744,7 +742,7 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
 
     // Create the symbol
     const retval = try Symbol.create(
-        comptime_scope,
+        scope,
         buf,
         definition.getToken().span,
         _type,
@@ -753,9 +751,8 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
         ._comptime,
         allocator,
     );
-    comptime_scope.inner_function = retval;
 
-    try symbolTableFromAST(definition._comptime.expr, comptime_scope, errors, allocator);
+    try symbolTableFromAST(definition._comptime.expr, scope, errors, allocator);
     return retval;
 }
 
