@@ -100,7 +100,9 @@ pub const AST = union(enum) {
     /// Not generated for correct programs, used to represent incorrect ASTs
     poison: struct { common: ASTCommon },
     /// Unit type
-    unit: struct { common: ASTCommon },
+    unit_type: struct { common: ASTCommon },
+    /// Unit value
+    unit_value: struct { common: ASTCommon },
     /// Integer constant
     int: struct {
         common: ASTCommon,
@@ -279,6 +281,10 @@ pub const AST = union(enum) {
         common: ASTCommon,
         expr: *AST,
     },
+    default: struct {
+        common: ASTCommon,
+        expr: *AST,
+    },
     domainOf: struct {
         common: ASTCommon,
         sum_expr: *AST,
@@ -377,7 +383,8 @@ pub const AST = union(enum) {
     pub fn getCommon(self: *AST) *ASTCommon {
         switch (self.*) {
             .poison => return &self.poison.common,
-            .unit => return &self.unit.common,
+            .unit_type => return &self.unit_type.common,
+            .unit_value => return &self.unit_value.common,
             .int => return &self.int.common,
             .char => return &self.char.common,
             .float => return &self.float.common,
@@ -393,6 +400,7 @@ pub const AST = union(enum) {
             ._try => return &self._try.common,
             .discard => return &self.discard.common,
             ._typeOf => return &self._typeOf.common,
+            .default => return &self.default.common,
             .domainOf => return &self.domainOf.common,
             ._comptime => return &self._comptime.common,
 
@@ -474,7 +482,7 @@ pub const AST = union(enum) {
                     self.getCommon().slots = 1 + max_slots;
                 },
 
-                .unit => {
+                .unit_type => {
                     self.getCommon().slots = 0;
                 },
 
@@ -495,15 +503,22 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .poison = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createUnit(token: Token, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .unit = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
+    pub fn createUnitType(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .unit_type = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
+    }
+
+    pub fn createUnitValue(token: Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .unit_value = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
     pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.int_type } }, allocator);
     }
 
-    pub fn createChar(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createChar(
+        token: Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings. TODO: Maybe make it like strings?
+        allocator: std.mem.Allocator,
+    ) !*AST {
         return try AST.box(AST{ .char = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
@@ -511,7 +526,11 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.float_type } }, allocator);
     }
 
-    pub fn createString(token: Token, data: []const u8, allocator: std.mem.Allocator) !*AST {
+    pub fn createString(
+        token: Token,
+        data: []const u8, // Raw bytes of the string, not containing `"`'s, with escapes escaped
+        allocator: std.mem.Allocator,
+    ) !*AST {
         return try AST.box(AST{ .string = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
     }
 
@@ -557,6 +576,10 @@ pub const AST = union(enum) {
 
     pub fn createTypeOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._typeOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    }
+
+    pub fn createDefault(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .default = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createDomainOf(token: Token, sum_expr: *AST, expr: *AST, allocator: std.mem.Allocator) !*AST {
@@ -928,7 +951,7 @@ pub const AST = union(enum) {
                 retval = expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
             },
             .poison,
-            .unit,
+            .unit_type,
             => retval = self,
 
             else => retval = self,
@@ -954,7 +977,7 @@ pub const AST = union(enum) {
 
     pub fn printType(self: *AST, out: anytype) !void {
         switch (self.*) {
-            .unit => {
+            .unit_type => {
                 try out.print("()", .{});
             },
             .identifier => {
@@ -1097,7 +1120,7 @@ pub const AST = union(enum) {
             .string => retval = primitives.string_type,
 
             // Type type
-            .unit,
+            .unit_type,
             .annotation,
             .sum,
             .inferred_error,
@@ -1106,6 +1129,7 @@ pub const AST = union(enum) {
             => retval = primitives.type_type,
 
             // Unit type
+            .unit_value,
             .decl,
             .assign,
             ._defer,
@@ -1223,7 +1247,7 @@ pub const AST = union(enum) {
             // Unary Operators
             .negate => retval = try self.negate.expr.typeof(scope, errors, allocator),
             .dereference => {
-                const _type = try self.dereference.expr.typeof(scope, errors, allocator);
+                const _type = try (try self.dereference.expr.typeof(scope, errors, allocator)).expand_identifier(scope, errors, allocator);
                 retval = _type.addrOf.expr;
             },
             .addrOf => {
@@ -1251,6 +1275,7 @@ pub const AST = union(enum) {
             .inferredMember => retval = try self.inferredMember.base.?.expand_type(scope, errors, allocator),
             ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).get_ok_type(),
             ._comptime => retval = try self._comptime.expr.typeof(scope, errors, allocator),
+            .default => retval = self.default.expr,
 
             // Control-flow expressions
             ._if => {
@@ -1287,7 +1312,7 @@ pub const AST = union(enum) {
                 retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors, allocator);
             },
             .call => {
-                const fn_type: *AST = try self.call.lhs.typeof(scope, errors, allocator);
+                const fn_type: *AST = try (try self.call.lhs.typeof(scope, errors, allocator)).expand_identifier(scope, errors, allocator);
                 retval = fn_type.function.rhs;
             },
             .fnDecl => {
@@ -1302,6 +1327,17 @@ pub const AST = union(enum) {
         self.getCommon()._type = retval;
         self.getCommon()._type.?.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
         return retval;
+    }
+
+    // Expands an ast one level if it is an identifier
+    pub fn expand_identifier(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+        if (self.* == .identifier) {
+            const symbol = try _validate.findSymbol(self, null, scope, errors);
+            try _validate.validateSymbol(symbol, errors, allocator);
+            return symbol.init orelse self;
+        } else {
+            return self;
+        }
     }
 
     /// For two types `A` and `B`, we say `A <: B` iff for every value `a` belonging to
@@ -1347,7 +1383,7 @@ pub const AST = union(enum) {
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }
-        if (B.* == .unit) {
+        if (B.* == .unit_type) {
             return true; // Top type - vacuously true
         }
         if (A.* == .identifier and std.mem.eql(u8, "Void", A.getToken().data)) {
@@ -1380,8 +1416,8 @@ pub const AST = union(enum) {
             },
             .annotation => unreachable,
 
-            .unit => {
-                return B.* == .unit;
+            .unit_type => {
+                return B.* == .unit_type;
             },
             .product => {
                 if (B.* != .product) {
@@ -1431,10 +1467,72 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn generate_default(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+        var retval = try generate_default_unvalidated(_type, scope, errors, allocator);
+        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
+        return retval;
+    }
+
+    fn generate_default_unvalidated(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
+        switch (_type.*) {
+            .identifier => {
+                const expanded_type = try _type.expand_type(scope, errors, allocator);
+                if (expanded_type == _type) {
+                    const primitive_info = primitives.get(_type.getToken().data);
+                    if (primitive_info.default_value != null) {
+                        return primitive_info.default_value.?;
+                    } else {
+                        errors.addError(Error{ .no_default = .{ .span = _type.getToken().span, ._type = _type } });
+                        return error.typeError;
+                    }
+                } else {
+                    return try generate_default(expanded_type, scope, errors, allocator);
+                }
+            },
+            .addrOf,
+            .function,
+            => {
+                return try AST.createInt(_type.getToken(), 0, allocator);
+            },
+            .unit_type => {
+                return try AST.createUnitValue(_type.getToken(), allocator);
+            },
+            .sum => {
+                var retval = try AST.createInferredMember(_type.getToken(), try AST.createIdentifier(Token.create("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                retval.inferredMember.pos = 0;
+                retval.inferredMember.base = _type;
+                const proper_term: *AST = _type.sum.terms.items[0];
+                retval.inferredMember.init = try proper_term.generate_default(scope, errors, allocator);
+                return retval;
+            },
+            .product => {
+                var value_terms = std.ArrayList(*AST).init(allocator);
+                errdefer value_terms.deinit();
+                for (_type.product.terms.items) |term| {
+                    const default_term = try term.generate_default(scope, errors, allocator);
+                    try value_terms.append(default_term);
+                }
+                return try AST.createProduct(_type.getToken(), value_terms, allocator);
+            },
+            .annotation => if (_type.annotation.init != null) {
+                return _type.annotation.init.?;
+            } else {
+                return _type.annotation.type.generate_default(scope, errors, allocator);
+            },
+            else => {
+                std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
+                return error.Unimplemented;
+            },
+        }
+    }
+
     /// Determines if a given integer type can represent a given integer value.
     pub fn can_represent_integer(self: *AST, value: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        const expanded = try self.expand_type(scope, errors, allocator);
-        if (expanded.* == .unit) {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
+        if (expanded.* == .unit_type) {
             // Top type
             return true;
         } else if (expanded.* != .identifier) {
@@ -1443,7 +1541,7 @@ pub const AST = union(enum) {
         }
         for (primitives.keys()) |key| {
             const info = primitives.get(key);
-            if (std.mem.eql(u8, info.name, self.getToken().data) and
+            if (std.mem.eql(u8, info.name, expanded.getToken().data) and
                 info.bounds != null and
                 value >= info.bounds.?.lower and
                 value <= info.bounds.?.upper)
@@ -1456,8 +1554,11 @@ pub const AST = union(enum) {
 
     const float_types = [_][]const u8{ "Float", "Float32", "Float64" };
     pub fn can_represent_float(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        const expanded = try self.expand_type(scope, errors, allocator);
-        if (expanded.* == .unit) {
+        var expanded = try self.expand_type(scope, errors, allocator);
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
+        if (expanded.* == .unit_type) {
             // Top type
             return true;
         } else if (expanded.* != .identifier) {
@@ -1465,7 +1566,7 @@ pub const AST = union(enum) {
             return false;
         }
         for (float_types) |name| {
-            if (std.mem.eql(u8, name, self.getToken().data)) {
+            if (std.mem.eql(u8, name, expanded.getToken().data)) {
                 return true;
             }
         }
@@ -1473,7 +1574,10 @@ pub const AST = union(enum) {
     }
 
     pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        const expanded = try self.expand_type(scope, errors, allocator);
+        var expanded = try self.expand_type(scope, errors, allocator);
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
         if (expanded.* == .addrOf) {
             return true;
         } else if (expanded.* == .product) {
@@ -1493,7 +1597,10 @@ pub const AST = union(enum) {
 
     /// Ord <: Eq
     pub fn is_ord_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        const expanded = try self.expand_type(scope, errors, allocator);
+        var expanded = try self.expand_type(scope, errors, allocator);
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
         if (expanded.* != .identifier) {
             return false;
         }
@@ -1502,7 +1609,10 @@ pub const AST = union(enum) {
 
     /// Num <: Ord
     pub fn is_num_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        const expanded = try self.expand_type(scope, errors, allocator);
+        var expanded = try self.expand_type(scope, errors, allocator);
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
         if (expanded.* != .identifier) {
             return false;
         }
@@ -1553,8 +1663,8 @@ pub const AST = union(enum) {
                 }
             },
 
-            .unit => {
-                return other.* == .unit;
+            .unit_type => {
+                return other.* == .unit_type;
             },
             .product => {
                 if (other.* != .product) {
@@ -1604,7 +1714,8 @@ pub const AST = union(enum) {
 
         switch (self) {
             .poison => try out.writer().print("poison", .{}),
-            .unit => try out.writer().print("unit", .{}),
+            .unit_type => try out.writer().print("unit_type", .{}),
+            .unit_value => try out.writer().print("unit_value", .{}),
             .int => try out.writer().print("int({})", .{self.int.data}),
             .char => try out.writer().print("char()", .{}),
             .float => try out.writer().print("float()", .{}),
@@ -1620,6 +1731,7 @@ pub const AST = union(enum) {
             ._try => try out.writer().print("try()", .{}),
             .discard => try out.writer().print("discard()", .{}),
             ._typeOf => try out.writer().print("typeof({})", .{self._typeOf.expr}),
+            .default => try out.writer().print("default({})", .{self.default.expr}),
             .domainOf => try out.writer().print("domainof()", .{}),
             ._comptime => {
                 try out.writer().print("comptime({})", .{self._comptime.expr});
@@ -1673,7 +1785,7 @@ pub const AST = union(enum) {
             .addrOf => try out.writer().print("addrOf({})", .{self.addrOf.expr}),
             .sliceOf => try out.writer().print("sliceOf()", .{}),
             .subSlice => try out.writer().print("subSlice()", .{}),
-            .annotation => try out.writer().print("annotation({})", .{self.annotation.type}),
+            .annotation => try out.writer().print("annotation(.type={},.init={?})", .{ self.annotation.type, self.annotation.init }),
             .inferredMember => try out.writer().print("inferredMember()", .{}),
 
             ._if => try out.writer().print("if()", .{}),

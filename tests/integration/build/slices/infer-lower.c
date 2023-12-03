@@ -24,77 +24,77 @@ typedef struct {
 typedef int64_t(*function2)(struct1);
 
 /* Function forward definitions */
-int64_t _1251_main(void);
-int64_t _1256_sum_up(struct1 _1256_xs);
+int64_t _959_main(void);
+int64_t _961_sum_up(struct1 _961_xs);
 
 /* Function definitions */
-int64_t _1251_main(void) {
-    int64_t _1251_t1;
-    int64_t _1251_t2;
-    int64_t _1251_t3;
-    int64_t _1251_t4;
-    int64_t _1251_t5;
-    int64_t _1251_t6;
-    struct0 _1252_x;
-    int64_t _1251_t8;
-    int64_t* _1251_t9;
-    int64_t _1251_t10;
-    struct1 _1252_y;
-    int64_t _1251_t14;
-    int64_t* _1251_t15;
-    struct1 _1252_z;
-    function2 _1251_t17;
-    int64_t _1251_t18;
-    int64_t _1251_$retval;
-    _1251_t1 = 100;
-    _1251_t2 = 8;
-    _1251_t3 = 2;
-    _1251_t4 = 4;
-    _1251_t5 = 35;
-    _1251_t6 = 6;
-    _1252_x = (struct0) {_1251_t1, _1251_t2, _1251_t3, _1251_t4, _1251_t5, _1251_t6};
-    _1251_t8 = 0;
-    _1251_t9 = ((int64_t*)&_1252_x + _1251_t8);
-    _1251_t10 = 6;
-    _1252_y = (struct1) {_1251_t9, _1251_t10};
-    _1251_t14 = 3;
-    _1251_t15 = _1252_y._0;
-    _1252_z = (struct1) {_1251_t15, _1251_t14};
-    _1251_t17 = _1256_sum_up;
+int64_t _959_main(void) {
+    int64_t _959_t1;
+    int64_t _959_t2;
+    int64_t _959_t3;
+    int64_t _959_t4;
+    int64_t _959_t5;
+    int64_t _959_t6;
+    struct0 _960_x;
+    int64_t _959_t8;
+    int64_t* _959_t9;
+    int64_t _959_t10;
+    struct1 _960_y;
+    int64_t _959_t14;
+    int64_t* _959_t15;
+    struct1 _960_z;
+    function2 _959_t17;
+    int64_t _959_t18;
+    int64_t _959_$retval;
+    _959_t1 = 100;
+    _959_t2 = 8;
+    _959_t3 = 2;
+    _959_t4 = 4;
+    _959_t5 = 35;
+    _959_t6 = 6;
+    _960_x = (struct0) {_959_t1, _959_t2, _959_t3, _959_t4, _959_t5, _959_t6};
+    _959_t8 = 0;
+    _959_t9 = ((int64_t*)&_960_x + _959_t8);
+    _959_t10 = 6;
+    _960_y = (struct1) {_959_t9, _959_t10};
+    _959_t14 = 3;
+    _959_t15 = _960_y._0;
+    _960_z = (struct1) {_959_t15, _959_t14};
+    _959_t17 = _961_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
-    _1251_t18 = _1251_t17(_1252_z);
+    _959_t18 = _959_t17(_960_z);
     $line_idx--;
-    _1251_$retval = _1251_t18;
-    return _1251_$retval;
+    _959_$retval = _959_t18;
+    return _959_$retval;
 }
 
-int64_t _1256_sum_up(struct1 _1256_xs) {
-    int64_t _1258_sum;
-    int64_t _1260_i;
-    uint8_t _1256_t3;
-    int64_t _1256_t5;
-    int64_t _1256_$retval;
-    _1258_sum = 0;
-    _1260_i = 0;
+int64_t _961_sum_up(struct1 _961_xs) {
+    int64_t _962_sum;
+    int64_t _963_i;
+    uint8_t _961_t3;
+    int64_t _961_t5;
+    int64_t _961_$retval;
+    _962_sum = 0;
+    _963_i = 0;
     goto BB1;
 BB1:
-    _1256_t3 = _1260_i < _1256_xs._1;
-    if (_1256_t3) {
+    _961_t3 = _963_i < _961_xs._1;
+    if (_961_t3) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _1258_sum = $add_int64_t(_1258_sum, *((int64_t*)_1256_xs._0 + _1260_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
-    _1256_t5 = 1;
-    _1260_i = $add_int64_t(_1260_i, _1256_t5, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
+    _962_sum = $add_int64_t(_962_sum, *((int64_t*)_961_xs._0 + _963_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
+    _961_t5 = 1;
+    _963_i = $add_int64_t(_963_i, _961_t5, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
     goto BB1;
 BB7:
-    _1256_$retval = _1258_sum;
-    return _1256_$retval;
+    _961_$retval = _962_sum;
+    return _961_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1251_main());
+  printf("%ld",_959_main());
   return 0;
 }

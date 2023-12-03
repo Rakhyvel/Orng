@@ -81,6 +81,7 @@
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Figure out how to do lints before GCC does
+- [ ] Go through MISRA when writing reqs
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -88,6 +89,7 @@
 - [x] allow more than one command line argument
 - [x] `count` command which just counts the number of .orng files
 - [x] Enable coverage for subdirectories of integration
+- [ ] Give a list of the tests that failed after a run
 
 ### In-House rdgen
 - [ ] Written in Zig
@@ -420,6 +422,7 @@
     - [ ] Warn about code such as `y, x = x, y` which is parsed as `y, (x = x), y`
         > Warn when non-unit expressions are in the middle of a block?
     - [ ] Warn if identifier is not in the right style
+    - [ ] Warn if identifier begins with `0` (not an octal, a decimal! use `0o` for octal)
 - [ ] Documentation generator
     - [ ] `///` Comment blocks are documentation
     - [ ] `\<attribute>` to mark attributes

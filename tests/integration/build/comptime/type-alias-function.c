@@ -15,33 +15,33 @@ typedef struct {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _60_main(void);
-int64_t _62_add(int64_t _62_x,int64_t _62_y);
+int64_t _143_main(void);
+int64_t _145_add(int64_t _145_x,int64_t _145_y);
 
 /* Function definitions */
-int64_t _60_main(void) {
-    function0 _61_f;
-    int64_t _60_t2;
-    int64_t _60_t3;
-    int64_t _60_t1;
-    int64_t _60_$retval;
-    _61_f = _62_add;
-    _60_t2 = 200;
-    _60_t3 = 43;
+int64_t _143_main(void) {
+    function0 _144_f;
+    int64_t _143_t2;
+    int64_t _143_t3;
+    int64_t _143_t1;
+    int64_t _143_$retval;
+    _144_f = _145_add;
+    _143_t2 = 200;
+    _143_t3 = 43;
     $lines[$line_idx++] = "tests/integration/comptime/type-alias-function.orng:6:7:\n    f(200, 43)\n     ^";
-    _60_t1 = _61_f(_60_t2, _60_t3);
+    _143_t1 = _144_f(_143_t2, _143_t3);
     $line_idx--;
-    _60_$retval = _60_t1;
-    return _60_$retval;
+    _143_$retval = _143_t1;
+    return _143_$retval;
 }
 
-int64_t _62_add(int64_t _62_x,int64_t _62_y) {
-    int64_t _62_$retval;
-    _62_$retval = $add_int64_t(_62_x, _62_y, "tests/integration/comptime/type-alias-function.orng:9:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
-    return _62_$retval;
+int64_t _145_add(int64_t _145_x,int64_t _145_y) {
+    int64_t _145_$retval;
+    _145_$retval = $add_int64_t(_145_x, _145_y, "tests/integration/comptime/type-alias-function.orng:9:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
+    return _145_$retval;
 }
 
 int main(void) {
-  printf("%ld",_60_main());
+  printf("%ld",_143_main());
   return 0;
 }

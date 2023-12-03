@@ -18,42 +18,42 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1077_main(void);
+int64_t _833_main(void);
 
 /* Function definitions */
-int64_t _1077_main(void) {
-    int64_t _1077_t2;
-    int64_t _1077_t3;
-    struct0 _1077_t1;
-    int64_t _1077_t5;
-    int64_t _1077_t6;
-    struct0 _1077_t4;
-    struct1 _1077_t0;
-    int64_t _1078_x;
-    int64_t _1078_y;
-    int64_t _1078_a;
-    int64_t _1078_b;
-    int64_t _1077_t7;
-    int64_t _1077_t8;
-    int64_t _1077_$retval;
-    _1077_t2 = 100;
-    _1077_t3 = 20;
-    _1077_t1 = (struct0) {_1077_t2, _1077_t3};
-    _1077_t5 = 20;
-    _1077_t6 = 2;
-    _1077_t4 = (struct0) {_1077_t5, _1077_t6};
-    _1077_t0 = (struct1) {_1077_t1, _1077_t4};
-    _1078_x = _1077_t0._0._0;
-    _1078_y = _1077_t0._0._1;
-    _1078_a = _1077_t0._1._0;
-    _1078_b = _1077_t0._1._1;
-    _1077_t7 = $add_int64_t(_1078_x, _1078_y, "tests/integration/pattern/let-product-product.orng:4:8:\n    x + y + a + b\n      ^");
-    _1077_t8 = $add_int64_t(_1077_t7, _1078_a, "tests/integration/pattern/let-product-product.orng:4:12:\n    x + y + a + b\n          ^");
-    _1077_$retval = $add_int64_t(_1077_t8, _1078_b, "tests/integration/pattern/let-product-product.orng:4:16:\n    x + y + a + b\n              ^");
-    return _1077_$retval;
+int64_t _833_main(void) {
+    int64_t _833_t2;
+    int64_t _833_t3;
+    struct0 _833_t1;
+    int64_t _833_t5;
+    int64_t _833_t6;
+    struct0 _833_t4;
+    struct1 _833_t0;
+    int64_t _834_x;
+    int64_t _834_y;
+    int64_t _834_a;
+    int64_t _834_b;
+    int64_t _833_t7;
+    int64_t _833_t8;
+    int64_t _833_$retval;
+    _833_t2 = 100;
+    _833_t3 = 20;
+    _833_t1 = (struct0) {_833_t2, _833_t3};
+    _833_t5 = 20;
+    _833_t6 = 2;
+    _833_t4 = (struct0) {_833_t5, _833_t6};
+    _833_t0 = (struct1) {_833_t1, _833_t4};
+    _834_x = _833_t0._0._0;
+    _834_y = _833_t0._0._1;
+    _834_a = _833_t0._1._0;
+    _834_b = _833_t0._1._1;
+    _833_t7 = $add_int64_t(_834_x, _834_y, "tests/integration/pattern/let-product-product.orng:4:8:\n    x + y + a + b\n      ^");
+    _833_t8 = $add_int64_t(_833_t7, _834_a, "tests/integration/pattern/let-product-product.orng:4:12:\n    x + y + a + b\n          ^");
+    _833_$retval = $add_int64_t(_833_t8, _834_b, "tests/integration/pattern/let-product-product.orng:4:16:\n    x + y + a + b\n              ^");
+    return _833_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1077_main());
+  printf("%ld",_833_main());
   return 0;
 }

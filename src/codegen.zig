@@ -54,27 +54,27 @@ pub fn generate(module: *Module, writer: anytype) !void {
 }
 
 fn output_main_function(cfg: *CFG, writer: anytype) !void {
-    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int") or
-        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Int64"))
+    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Int") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Int64"))
     {
         try writer.print(
             \\int main(void) {{
             \\  printf("%ld",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Word64")) {
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Word64")) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%lu",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float64") or
-        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float32") or
-        std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "Float"))
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Float64") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Float32") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Float"))
     {
         try writer.print(
             \\int main(void) {{
             \\  printf("%f",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String") or cfg.symbol._type.?.function.rhs.* == .product) {
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "String") or cfg.symbol.expanded_type.?.function.rhs.* == .product) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%s",
@@ -86,7 +86,7 @@ fn output_main_function(cfg: *CFG, writer: anytype) !void {
         , .{});
     }
     try output_symbol(cfg.symbol, writer);
-    if (std.mem.eql(u8, cfg.symbol._type.?.function.rhs.getToken().data, "String") or cfg.symbol._type.?.function.rhs.* == .product) {
+    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "String") or cfg.symbol.expanded_type.?.function.rhs.* == .product) {
         try writer.print(
             \\()._0);
             \\  return 0;
@@ -293,7 +293,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
                     }
                 } else {
                     try writer.print("    ", .{});
-                    try printReturn(symbol, writer);
+                    try output_return(symbol, writer);
                     try writer.print("    }}", .{});
                 }
 
@@ -306,7 +306,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
                     try writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
                 } else {
                     try writer.print("    ", .{});
-                    try printReturn(symbol, writer);
+                    try output_return(symbol, writer);
                     try writer.print("    }}\n", .{});
                 }
             } else {
@@ -317,7 +317,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
                     }
                     try writer.print("    goto BB{};\n", .{next.uid});
                 } else {
-                    try printReturn(symbol, writer);
+                    try output_return(symbol, writer);
                 }
             }
         }
@@ -353,11 +353,12 @@ fn output_IR(ir: *IR, writer: anytype) !void {
         try writer.print(");\n", .{});
     }
 
-    if (ir.dest != null and ir.dest.?.get_type().* == .unit and ir.kind != .call) {
+    if (ir.dest != null and ir.dest.?.get_type().* == .unit_type and ir.kind != .call) {
         return;
     }
 
     switch (ir.kind) {
+        .loadUnit => {}, // Nop!
         .loadSymbol => {
             try output_var_assign(ir.dest.?, writer);
             try output_symbol(ir.data.symbol, writer);
@@ -403,9 +404,9 @@ fn output_IR(ir: *IR, writer: anytype) !void {
             try writer.print("(", .{});
             try output_type(ir.dest.?.get_expanded_type(), writer);
             try writer.print(") {{.tag={}", .{ir.data.int});
-            if (ir.src1) |init| {
+            if (ir.src1 != null and ir.src1.?.get_expanded_type().* != .unit_type) {
                 try writer.print(", ._{}=", .{ir.data.int});
-                try output_rvalue(init, ir.kind.precedence(), writer);
+                try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             }
             try writer.print("}}", .{});
             try writer.print(";\n", .{});
@@ -579,7 +580,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
         },
 
         .call => {
-            const void_fn = ir.dest.?.get_type().* == .unit;
+            const void_fn = ir.dest.?.get_type().* == .unit_type;
             if (!void_fn) {
                 try output_var_assign(ir.dest.?, writer);
             } else {
@@ -588,9 +589,12 @@ fn output_IR(ir: *IR, writer: anytype) !void {
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print("(", .{});
             for (ir.data.lval_list.items, 0..) |lval, i| {
-                try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
-                if (i + 1 != ir.data.lval_list.items.len) {
-                    try writer.print(", ", .{});
+                if (!lval.get_expanded_type().c_typesMatch(primitives.unit_type)) {
+                    // Do not output `void` arguments
+                    try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
+                    if (i + 1 < ir.data.lval_list.items.len) {
+                        try writer.print(", ", .{});
+                    }
                 }
             }
             try writer.print(")", .{});
@@ -633,7 +637,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
                 .{ir.data.string},
             );
         },
-        .discard => if (ir.src1.?.get_expanded_type().* != .unit) {
+        .discard => if (ir.src1.?.get_expanded_type().* != .unit_type) {
             try writer.print("    (void)", .{});
             try output_rvalue(ir.src1.?, IRKind.cast.precedence(), writer);
             try writer.print(";\n", .{});
@@ -741,7 +745,7 @@ fn output_type(_type: *AST, writer: anytype) CodeGen_Error!void {
             const i = (module_.type_set_get(_type, &cheat_module.types)).?.uid;
             try writer.print("struct{}", .{i});
         },
-        .unit => {
+        .unit_type => {
             try writer.print("void", .{});
         },
         .annotation => {
@@ -806,10 +810,11 @@ const CodeGen_Error = error{
 };
 
 /// Emits the return statement from a function
-fn printReturn(return_symbol: *Symbol, writer: anytype) !void {
-    if (return_symbol.versions > 0) { // To fix errors when function ends in `unreachable`
-        try writer.print("    return ", .{});
+fn output_return(return_symbol: *Symbol, writer: anytype) !void {
+    try writer.print("    return", .{});
+    if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
+        try writer.print(" ", .{});
         try output_symbol(return_symbol, writer);
-        try writer.print(";\n", .{});
     }
+    try writer.print(";\n", .{});
 }

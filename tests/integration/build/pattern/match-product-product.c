@@ -18,64 +18,64 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1165_main(void);
+int64_t _899_main(void);
 
 /* Function definitions */
-int64_t _1165_main(void) {
-    int64_t _1165_t3;
-    int64_t _1165_t4;
-    struct0 _1165_t2;
-    int64_t _1165_t6;
-    int64_t _1165_t7;
-    struct0 _1165_t5;
-    struct1 _1165_t1;
-    int64_t _1165_t8;
-    uint8_t _1165_t9;
-    int64_t _1165_t10;
-    uint8_t _1165_t11;
-    int64_t _1165_t0;
-    int64_t _1165_t14;
-    uint8_t _1165_t15;
-    int64_t _1165_$retval;
-    int64_t _1165_t12;
-    uint8_t _1165_t13;
-    _1165_t3 = 100;
-    _1165_t4 = 100;
-    _1165_t2 = (struct0) {_1165_t3, _1165_t4};
-    _1165_t6 = 200;
-    _1165_t7 = 200;
-    _1165_t5 = (struct0) {_1165_t6, _1165_t7};
-    _1165_t1 = (struct1) {_1165_t2, _1165_t5};
-    _1165_t8 = 100;
-    _1165_t9 = _1165_t1._0._0 == _1165_t8;
-    if (_1165_t9) {
+int64_t _899_main(void) {
+    int64_t _899_t3;
+    int64_t _899_t4;
+    struct0 _899_t2;
+    int64_t _899_t6;
+    int64_t _899_t7;
+    struct0 _899_t5;
+    struct1 _899_t1;
+    int64_t _899_t8;
+    uint8_t _899_t9;
+    int64_t _899_t10;
+    uint8_t _899_t11;
+    int64_t _899_t0;
+    int64_t _899_t14;
+    uint8_t _899_t15;
+    int64_t _899_$retval;
+    int64_t _899_t12;
+    uint8_t _899_t13;
+    _899_t3 = 100;
+    _899_t4 = 100;
+    _899_t2 = (struct0) {_899_t3, _899_t4};
+    _899_t6 = 200;
+    _899_t7 = 200;
+    _899_t5 = (struct0) {_899_t6, _899_t7};
+    _899_t1 = (struct1) {_899_t2, _899_t5};
+    _899_t8 = 100;
+    _899_t9 = _899_t1._0._0 == _899_t8;
+    if (_899_t9) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB2:
-    _1165_t10 = 130;
-    _1165_t11 = _1165_t1._0._1 == _1165_t10;
-    if (_1165_t11) {
+    _899_t10 = 130;
+    _899_t11 = _899_t1._0._1 == _899_t10;
+    if (_899_t11) {
         goto BB4;
     } else {
         goto BB7;
     }
 BB7:
-    _1165_t12 = 100;
-    _1165_t13 = _1165_t1._0._0 == _1165_t12;
-    if (_1165_t13) {
+    _899_t12 = 100;
+    _899_t13 = _899_t1._0._0 == _899_t12;
+    if (_899_t13) {
         goto BB8;
     } else {
         goto BB12;
     }
 BB4:
-    _1165_t0 = 4;
+    _899_t0 = 4;
     goto BB6;
 BB8:
-    _1165_t14 = 100;
-    _1165_t15 = _1165_t1._0._1 == _1165_t14;
-    if (_1165_t15) {
+    _899_t14 = 100;
+    _899_t15 = _899_t1._0._1 == _899_t14;
+    if (_899_t15) {
         goto BB10;
     } else {
         goto BB12;
@@ -84,14 +84,14 @@ BB12:
     $lines[$line_idx++] = "tests/integration/pattern/match-product-product.orng:6:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 BB6:
-    _1165_$retval = _1165_t0;
-    return _1165_$retval;
+    _899_$retval = _899_t0;
+    return _899_$retval;
 BB10:
-    _1165_t0 = 170;
+    _899_t0 = 170;
     goto BB6;
 }
 
 int main(void) {
-  printf("%ld",_1165_main());
+  printf("%ld",_899_main());
   return 0;
 }

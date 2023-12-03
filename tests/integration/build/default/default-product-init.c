@@ -13,22 +13,22 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _418_main(void);
+int64_t _285_main(void);
 
 /* Function definitions */
-int64_t _418_main(void) {
-    int64_t _418_t1;
-    double _418_t2;
-    struct0 _419_x;
-    int64_t _418_$retval;
-    _418_t1 = 137;
-    _418_t2 = 0;
-    _419_x = (struct0) {_418_t1, _418_t2};
-    _418_$retval = _419_x._0;
-    return _418_$retval;
+int64_t _285_main(void) {
+    int64_t _285_t1;
+    double _285_t2;
+    struct0 _286_x;
+    int64_t _285_$retval;
+    _285_t1 = 137;
+    _285_t2 = 0.0e+00;
+    _286_x = (struct0) {_285_t1, _285_t2};
+    _285_$retval = _286_x._0;
+    return _285_$retval;
 }
 
 int main(void) {
-  printf("%ld",_418_main());
+  printf("%ld",_285_main());
   return 0;
 }

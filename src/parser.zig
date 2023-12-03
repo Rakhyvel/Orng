@@ -140,8 +140,10 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         if (self.accept(.COLON)) |_| {
-            // Do not assert that _types_ have to be comptime
-            _type = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
+            _type = try self.inject_expr();
+            if (_type.?.* != .identifier) {
+                _type = try AST.createComptime(token, _type.?, self.astAllocator);
+            }
             if (self.peek_kind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
                 init = try self.inject_expr();
@@ -156,8 +158,8 @@ pub const Parser = struct {
         return try AST.createDecl(
             token,
             ident,
-            _type,
-            init,
+            _type orelse try AST.createTypeOf(token, init.?, self.astAllocator), // type inference done here!
+            init orelse try AST.createDefault(token, _type.?, self.astAllocator), // default value generate done here!
             self.astAllocator,
         );
     }
@@ -271,7 +273,10 @@ pub const Parser = struct {
     fn annotation_expr(self: *Parser) ParserErrorEnum!*AST {
         const exp = try self.assignment_expr();
         if (self.accept(.COLON)) |token| {
-            const _type = try AST.createComptime(token, try self.inject_expr(), self.astAllocator);
+            var _type = try self.inject_expr();
+            if (_type.* != .identifier) {
+                _type = try AST.createComptime(token, _type, self.astAllocator);
+            }
             var predicate: ?*AST = null;
             var init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
@@ -414,6 +419,8 @@ pub const Parser = struct {
             return try AST.createComptime(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.TYPEOF)) |token| {
             return try AST.createTypeOf(token, try self.prefix_expr(), self.astAllocator);
+        } else if (self.accept(.DEFAULT)) |token| {
+            return try AST.createDefault(token, try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
             return try AST.createNegate(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {
@@ -582,6 +589,11 @@ pub const Parser = struct {
 
         while (self.accept(.SEMICOLON) orelse self.accept(.NEWLINE)) |_| {}
 
+        if (self.peek_kind(.R_BRACE)) {
+            _ = self.expect(.R_BRACE) catch {};
+            return try AST.createUnitValue(brace_token, self.astAllocator);
+        }
+
         while (self.next_is_statement()) {
             try statements.append(try self.statement());
             if (!self.peek_kind(.SEMICOLON) and !self.peek_kind(.NEWLINE) and !self.peek_kind(.R_BRACE)) {
@@ -748,7 +760,10 @@ pub const Parser = struct {
         var init: ?*AST = null;
 
         _ = try self.expect(.COLON);
-        _type = try AST.createComptime(ident.getToken(), try self.inject_expr(), self.astAllocator);
+        _type = try self.inject_expr();
+        if (_type.?.* != .identifier) {
+            _type = try AST.createComptime(_type.?.getToken(), _type.?, self.astAllocator);
+        }
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
             init = try self.inject_expr();
@@ -923,7 +938,7 @@ pub const Parser = struct {
             return error.parserError;
         }
 
-        return exp orelse try AST.createUnit(token, self.astAllocator);
+        return exp orelse try AST.createUnitType(token, self.astAllocator);
     }
 };
 

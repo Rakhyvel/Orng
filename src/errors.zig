@@ -126,6 +126,10 @@ pub const Error = union(enum) {
         takes: usize,
         given: usize,
     },
+    no_default: struct {
+        span: Span,
+        _type: *AST,
+    },
 
     // Optimizer
     out_of_bounds: struct {
@@ -177,6 +181,7 @@ pub const Error = union(enum) {
             .nonExhaustiveSum => return self.nonExhaustiveSum.span,
             .mismatchCallArity => return self.mismatchCallArity.span,
             .mismatchTupleArity => return self.mismatchTupleArity.span,
+            .no_default => return self.no_default.span,
 
             .out_of_bounds => return self.out_of_bounds.span,
             .negative_index => return self.negative_index.span,
@@ -340,6 +345,11 @@ pub const Errors = struct {
                         err.mismatchTupleArity.given,
                         if (err.mismatchTupleArity.given == 1) "" else "s",
                     });
+                },
+                .no_default => {
+                    try out.print("no default value for the type `", .{});
+                    try err.expectedBuiltinTypeclass.got.printType(out);
+                    try out.print("`\n", .{});
                 },
 
                 // Optimizer

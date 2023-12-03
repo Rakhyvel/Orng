@@ -199,6 +199,9 @@ pub const Context = struct {
                 .sizeOf,
                 => unreachable,
 
+                // Nop
+                .loadUnit => {},
+
                 // 1-slot literals
                 .loadInt,
                 .loadFloat,

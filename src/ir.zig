@@ -131,6 +131,7 @@ pub const IRKind = enum {
     loadUnion, // src1 is init, data.int is tag id // TODO: Rename to load_sum
     loadString,
     loadAST,
+    loadUnit, // no-op, but required. DO NOT optimize away
 
     // Monadic instructions
     copy,
@@ -264,7 +265,7 @@ pub const IRData = union(enum) {
                 return try AST.createFloat(token, self.float, allocator);
             },
             .none => {
-                return try AST.createUnit(token, allocator);
+                return try AST.createUnitType(token, allocator);
             },
             .ast => {
                 return self.ast;
@@ -765,6 +766,9 @@ pub const IR = struct {
             .loadString => {
                 try out.writer().print("    {} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
             },
+            .loadAST => {
+                try out.writer().print("    {} := AST({})\n", .{ self.dest.?, self.data.ast });
+            },
 
             .copy => {
                 try out.writer().print("    {} := {?}\n", .{ self.dest.?, self.src1 });
@@ -1251,7 +1255,7 @@ pub const CFG = struct {
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and
                     ir.dest.?.* == .symbver and
-                    ir.dest.?.symbver.symbol.expanded_type.?.* != .unit and
+                    ir.dest.?.symbver.symbol.expanded_type.?.* != .unit_type and
                     ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null)
                 {
                     _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
@@ -1321,7 +1325,16 @@ pub const CFG = struct {
     ) FlattenASTError!?*L_Value {
         switch (ast.*) {
             // Literals
-            .unit => return null,
+            .unit_type => {
+                const lval = try self.create_temp_lvalue(ast, errors, allocator);
+                self.appendInstruction(try IR.create_ast(lval, ast, ast.getToken().span, allocator));
+                return lval;
+            },
+            .unit_value => {
+                const lval = try self.create_temp_lvalue(primitives.unit_type, errors, allocator);
+                self.appendInstruction(try IR.create(.loadUnit, null, null, null, ast.getToken().span, allocator));
+                return lval;
+            },
             .int => {
                 const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
                 const ir = try IR.createInt(temp, ast.int.data, ast.getToken().span, allocator);
@@ -1378,6 +1391,8 @@ pub const CFG = struct {
                     const lval = try self.create_temp_lvalue(symbol._type.?, errors, allocator);
                     self.appendInstruction(try IR.create_ast(lval, ast, ast.getToken().span, allocator));
                     return lval;
+                } else if (symbol.kind == ._const) {
+                    return try self.flattenAST(scope, symbol.init.?, return_label, break_label, continue_label, error_label, errors, allocator);
                 } else {
                     const src = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
                     return src;
@@ -1454,6 +1469,10 @@ pub const CFG = struct {
                 self.appendInstruction(end);
 
                 return ok_lval;
+            },
+            .default => {
+                const default = try ast.default.expr.generate_default(scope, errors, allocator);
+                return try self.flattenAST(scope, default, return_label, break_label, continue_label, error_label, errors, allocator);
             },
             .discard => {
                 var expr = try self.flattenAST(scope, ast.discard.expr, return_label, break_label, continue_label, error_label, errors, allocator);
@@ -1919,7 +1938,7 @@ pub const CFG = struct {
                 const proper_term: *AST = (try ast.typeof(scope, errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
                 if (ast.inferredMember.init) |_init| {
                     init = try self.flattenAST(scope, _init, return_label, break_label, continue_label, error_label, errors, allocator);
-                } else if (proper_term.annotation.init == null and proper_term.annotation.type.* != .unit) {
+                } else if (proper_term.annotation.init == null and proper_term.annotation.type.* != .unit_type) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "no value provided, and no default value available" } });
                     return error.typeError;
                 }
@@ -2213,7 +2232,7 @@ pub const CFG = struct {
                 if (ast.decl.init) |init| {
                     def = try self.flattenAST(scope, init, return_label, break_label, continue_label, error_label, errors, allocator);
                 } else {
-                    def = try self.generate_default(scope, ast.decl.type.?, errors, allocator);
+                    unreachable;
                 }
                 if (def == null) {
                     return null;
@@ -2308,67 +2327,6 @@ pub const CFG = struct {
         } else {
             self.appendInstruction(try IR.create(.equal, temp, new_lhs, rhs, lhs.extract_symbver().symbol.span, allocator));
             self.appendInstruction(try IR.createBranch(temp, fail_label, lhs.extract_symbver().symbol.span, allocator));
-        }
-    }
-
-    /// Takes in a type, generates the code to create the default value for that type, returns SymbolVersion
-    fn generate_default(self: *CFG, scope: *Scope, _type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!?*L_Value {
-        switch (_type.*) {
-            .identifier => {
-                if (_type.getCommon().expanded_type.? == _type) {
-                    const temp = try self.create_temp_lvalue(_type, errors, allocator);
-                    const ir = try IR.createInt(temp, 0, _type.getToken().span, allocator);
-                    self.appendInstruction(ir);
-                    return temp;
-                } else {
-                    return self.generate_default(scope, _type.getCommon().expanded_type.?, errors, allocator);
-                }
-            },
-            .addrOf,
-            .function,
-            => {
-                const temp = try self.create_temp_lvalue(_type, errors, allocator);
-                const ir = try IR.createInt(temp, 0, _type.getToken().span, allocator);
-                self.appendInstruction(ir);
-                return temp;
-            },
-            .sum => {
-                const index: usize = 0;
-                const proper_term: *AST = _type.sum.terms.items[index];
-                const init: ?*L_Value = try self.generate_default(scope, proper_term, errors, allocator);
-                const temp = try self.create_temp_lvalue(_type, errors, allocator);
-
-                const ir = try IR.createUnion(temp, init, index, _type.getToken().span, allocator);
-                self.appendInstruction(ir);
-                return temp;
-            },
-            .product => {
-                const temp = try self.create_temp_lvalue(_type, errors, allocator);
-                var ir = try IR.createLoadStruct(temp, _type.getToken().span, allocator);
-                for (_type.product.terms.items) |term| {
-                    const term_symb_ver = try self.generate_default(scope, term, errors, allocator);
-                    if (term_symb_ver) |_| {
-                        try ir.data.lval_list.append(term_symb_ver.?);
-                    } else {
-                        const temp2 = try self.create_temp_lvalue(primitives.unit_type, errors, allocator);
-                        const ir2 = try IR.createInt(temp2, 0, _type.getToken().span, allocator);
-                        self.appendInstruction(ir2);
-                        try ir.data.lval_list.append(temp2);
-                    }
-                }
-                self.appendInstruction(ir);
-                return temp;
-            },
-            .unit => return null,
-            .annotation => if (_type.annotation.init != null) {
-                return self.flattenAST(scope, _type.annotation.init.?, null, null, null, null, errors, allocator);
-            } else {
-                return self.generate_default(scope, _type.annotation.type, errors, allocator);
-            },
-            else => {
-                std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
-                return error.Unimplemented;
-            },
         }
     }
 

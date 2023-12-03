@@ -359,6 +359,17 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
+            // Load symbol propagation
+            else if (src1_def != null and src1_def.?.kind == .loadAST) {
+                log("symbol constant propagation");
+                ir.kind = .loadAST;
+                ir.data = src1_def.?.data;
+                ir.meta = src1_def.?.meta;
+                ir.span = src1_def.?.span;
+                ir.src1 = src1_def.?.src1;
+                ir.src2 = null;
+                retval = true;
+            }
             // Copy propagation
             else if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
                 log("copy propagation");
@@ -1220,7 +1231,7 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocato
                 }
                 if (ir.kind == .call) {
                     // TODO: Fix, need some way to get the expanded type of an lvalue!
-                    if (ir.src1.?.extract_symbver().symbol.expanded_type.?.function.rhs.* != .unit) {
+                    if (ir.src1.?.extract_symbver().symbol.expanded_type.?.function.rhs.* != .unit_type) {
                         // It is an error for the return val of a non-unit-returning function to not be used
                         // DO NOT remove an unused call for a unit function
                         errors.addError(Error{ .basic = .{

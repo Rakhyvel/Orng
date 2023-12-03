@@ -279,7 +279,8 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
     }
     var definition = maybe_definition.?;
     switch (definition.*) {
-        .unit,
+        .unit_type,
+        .unit_value,
         .int,
         .char,
         .float,
@@ -293,10 +294,11 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .inferredMember,
         .poison,
         .symbol,
-        ._typeOf,
         .domainOf,
         => {},
 
+        ._typeOf => try symbolTableFromAST(definition._typeOf.expr, scope, errors, allocator),
+        .default => try symbolTableFromAST(definition.default.expr, scope, errors, allocator),
         .not => try symbolTableFromAST(definition.not.expr, scope, errors, allocator),
         .negate => try symbolTableFromAST(definition.negate.expr, scope, errors, allocator),
         .dereference => try symbolTableFromAST(definition.dereference.expr, scope, errors, allocator),
@@ -500,6 +502,10 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             }
         },
         .fnDecl => {
+            if (definition.fnDecl.symbol != null) {
+                // Do not re-do symbol if already declared
+                return;
+            }
             const symbol = try createFunctionSymbol(definition, scope, errors, allocator);
             if (scope.lookup(symbol.name, false)) |first| {
                 errors.addError(Error{ .redefinition = .{
@@ -702,7 +708,7 @@ fn nextAnonFunctionName(allocator: std.mem.Allocator) SymbolErrorEnum![]const u8
 
 fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.Allocator) SymbolErrorEnum!*AST {
     if (params.items.len == 0) {
-        return try AST.createUnit(token, allocator);
+        return try AST.createUnitType(token, allocator);
     } else if (params.items.len <= 1) {
         return AST.createAnnotation(params.items[0].getToken(), params.items[0].decl.pattern, params.items[0].decl.type.?, null, params.items[0].decl.init, allocator);
     } else {
@@ -720,7 +726,7 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
 // definition is a `comptime` ast
 fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
-    const lhs = try AST.createUnit(definition._comptime.expr.getToken(), allocator);
+    const lhs = try AST.createUnitType(definition._comptime.expr.getToken(), allocator);
     const rhs = try AST.createTypeOf(definition._comptime.expr.getToken(), definition._comptime.expr, allocator);
     const _type = try AST.createFunction(definition._comptime.expr.getToken(), lhs, rhs, allocator);
 

@@ -206,6 +206,11 @@ pub const Token = struct {
         return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .filename = filename, .line_text = line_text, .line = line, .col = col } };
     }
 
+    // Used to create a simple, anonymous identifier token
+    pub fn create_simple(data: []const u8) Token {
+        return Token.create(data, .IDENTIFIER, "", "", 0, 0);
+    }
+
     pub fn repr(self: *Token) []const u8 {
         return reprFromTokenKind(self.kind) orelse self.data;
     }

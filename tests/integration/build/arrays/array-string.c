@@ -24,26 +24,26 @@ char* string_1 = "\x32\x31\x37";
 char* string_2 = "\x57\x6F\x72\x6C\x64\x21";
 
 /* Function forward definitions */
-struct0 _83_main(void);
+struct0 _47_main(void);
 
 /* Function definitions */
-struct0 _83_main(void) {
-    struct0 _83_t1;
-    struct0 _83_t2;
-    struct0 _83_t3;
-    struct1 _84_x;
-    int64_t _83_t4;
-    struct0 _83_$retval;
-    _83_t1 = (struct0) {(uint8_t*)string_0, 7};
-    _83_t2 = (struct0) {(uint8_t*)string_1, 3};
-    _83_t3 = (struct0) {(uint8_t*)string_2, 6};
-    _84_x = (struct1) {_83_t1, _83_t2, _83_t3};
-    _83_t4 = 1;
-    _83_$retval = *((struct0*)&_84_x + _83_t4);
-    return _83_$retval;
+struct0 _47_main(void) {
+    struct0 _47_t1;
+    struct0 _47_t2;
+    struct0 _47_t3;
+    struct1 _48_x;
+    int64_t _47_t4;
+    struct0 _47_$retval;
+    _47_t1 = (struct0) {(uint8_t*)string_0, 7};
+    _47_t2 = (struct0) {(uint8_t*)string_1, 3};
+    _47_t3 = (struct0) {(uint8_t*)string_2, 6};
+    _48_x = (struct1) {_47_t1, _47_t2, _47_t3};
+    _47_t4 = 1;
+    _47_$retval = *((struct0*)&_48_x + _47_t4);
+    return _47_$retval;
 }
 
 int main(void) {
-  printf("%s",_83_main()._0);
+  printf("%s",_47_main()._0);
   return 0;
 }
