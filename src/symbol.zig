@@ -131,12 +131,10 @@ pub const Scope = struct {
                 continue; // never suggest `_`
             }
 
-            if (symbol._type != null) {
-                const matches = expected == null or try symbol._type.?.typesMatch(expected.?, self, &errors, allocator);
-                const dist = try levenshteinDistance2(allocator, symbol.name, name);
-                if (matches and dist <= name.len / 2) {
-                    try out.append(key);
-                }
+            const matches = expected == null or try symbol._type.typesMatch(expected.?, self, &errors, allocator);
+            const dist = try levenshteinDistance2(allocator, symbol.name, name);
+            if (matches and dist <= name.len / 2) {
+                try out.append(key);
             }
         }
         if (self.parent) |_parent| {
@@ -202,7 +200,7 @@ pub const Symbol = struct {
     scope: *Scope, // Enclosing parent scope
     name: []const u8,
     span: Span,
-    _type: ?*ast.AST,
+    _type: *ast.AST,
     expanded_type: ?*ast.AST,
     init: ?*ast.AST,
     kind: SymbolKind,
@@ -228,7 +226,7 @@ pub const Symbol = struct {
     // Offset
     offset: ?i64, // The offset from the BP that this symbol
 
-    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: ?*ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
+    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: *ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
         retval.name = name;
@@ -539,7 +537,7 @@ fn put_all_symbols(symbols: *std.ArrayList(*Symbol), scope: *Scope, errors: *err
     }
 }
 
-fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     switch (pattern.*) {
         .symbol => {
             // TODO: Clean this up
@@ -594,10 +592,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: ?*a
         .product => {
             for (pattern.product.terms.items, 0..) |term, i| {
                 const index = try AST.createInt(pattern.getToken(), i, allocator);
-                const new_type: ?*AST = if (_type != null)
-                    try AST.createIndex(_type.?.getToken(), _type.?, index, allocator)
-                else
-                    null;
+                const new_type: *AST = try AST.createIndex(_type.getToken(), _type, index, allocator);
                 const new_init: ?*AST = if (init != null)
                     try AST.createIndex(init.?.getToken(), init.?, index, allocator)
                 else
@@ -622,7 +617,8 @@ fn create_match_pattern_symbol(match: *AST, scope: *Scope, errors: *errs.Errors,
             mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*Symbol).init(allocator);
             defer symbols.deinit();
-            try create_symbol(&symbols, mapping.mapping.lhs.?, null, match.match.expr, new_scope, errors, allocator);
+            const _type = try AST.createTypeOf(match.match.expr.getToken(), match.match.expr, allocator);
+            try create_symbol(&symbols, mapping.mapping.lhs.?, _type, match.match.expr, new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;
             }
@@ -710,13 +706,13 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
     if (params.items.len == 0) {
         return try AST.createUnitType(token, allocator);
     } else if (params.items.len <= 1) {
-        return AST.createAnnotation(params.items[0].getToken(), params.items[0].decl.pattern, params.items[0].decl.type.?, null, params.items[0].decl.init, allocator);
+        return AST.createAnnotation(params.items[0].getToken(), params.items[0].decl.pattern, params.items[0].decl.type, null, params.items[0].decl.init, allocator);
     } else {
         std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*AST).init(allocator);
         var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
-            try param_types.append(try AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type.?, null, params.items[i].decl.init, allocator));
+            try param_types.append(try AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type, null, params.items[i].decl.init, allocator));
         }
         const retval = try AST.createProduct(params.items[0].getToken(), param_types, allocator);
         return retval;

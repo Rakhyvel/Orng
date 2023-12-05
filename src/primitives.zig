@@ -101,7 +101,7 @@ pub fn get_scope() !*Scope {
         _ = try create_prelude_symbol("String", type_type, byte_slice_type, true);
         _ = try create_prelude_symbol("Type", type_type, null, true);
         _ = try create_prelude_symbol("Void", type_type, null, true);
-        _ = try create_prelude_symbol("_", ast.poisoned, unit_type, true);
+        _ = try create_prelude_symbol("_", unit_type, try AST.createUnitValue(Token.create_simple("{}"), std.heap.page_allocator), true);
 
         // Setup default values
         const default_bool = try AST.createFalse(Token.create_simple("false"), std.heap.page_allocator);

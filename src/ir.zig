@@ -1176,8 +1176,8 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.?.function.rhs, null, null, .mut, allocator);
-        retval.return_symbol.expanded_type = try retval.return_symbol._type.?.expand_type(symbol.scope, errors, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, null, null, .mut, allocator);
+        retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(symbol.scope, errors, allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
         retval.offset = null;
@@ -1193,10 +1193,10 @@ pub const CFG = struct {
         if (retval.symbol.decl.?.* == .fnDecl) {
             // `_comptime` symbols don't have parameters anyway
             for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-                try retval.parameters.append(try SymbolVersion.createUnversioned(param, param._type.?, allocator));
+                try retval.parameters.append(try SymbolVersion.createUnversioned(param, param._type, allocator));
             }
         }
-        const return_version = try L_Value.create_unversioned_symbver(retval.return_symbol, symbol._type.?.function.rhs, allocator);
+        const return_version = try L_Value.create_unversioned_symbver(retval.return_symbol, symbol._type.function.rhs, allocator);
         if (eval != null) {
             retval.appendInstruction(try IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
         }
@@ -1382,19 +1382,19 @@ pub const CFG = struct {
                 var symbol = scope.lookup(ast.getToken().data, false).?;
                 if (symbol.kind == ._fn) {
                     _ = try symbol.get_cfg(self, self.interned_strings, errors, allocator);
-                    const lval = try self.create_temp_lvalue(symbol._type.?, errors, allocator);
+                    const lval = try self.create_temp_lvalue(symbol._type, errors, allocator);
                     var ir = try IR.create(.loadSymbol, lval, null, null, ast.getToken().span, allocator);
                     ir.data = IRData{ .symbol = symbol };
                     self.appendInstruction(ir);
                     return lval;
                 } else if (try symbol.expanded_type.?.typesMatch(primitives.type_type, scope, errors, allocator)) {
-                    const lval = try self.create_temp_lvalue(symbol._type.?, errors, allocator);
+                    const lval = try self.create_temp_lvalue(symbol._type, errors, allocator);
                     self.appendInstruction(try IR.create_ast(lval, ast, ast.getToken().span, allocator));
                     return lval;
                 } else if (symbol.kind == ._const) {
                     return try self.flattenAST(scope, symbol.init.?, return_label, break_label, continue_label, error_label, errors, allocator);
                 } else {
-                    const src = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                    const src = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     return src;
                 }
             },
@@ -1457,7 +1457,7 @@ pub const CFG = struct {
                 self.appendInstruction(try IR.createBranch(condition, err, ast.getToken().span, allocator));
 
                 // Unwrap the `.ok` value
-                const retval_lval = try L_Value.create_unversioned_symbver(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
+                const retval_lval = try L_Value.create_unversioned_symbver(self.return_symbol, self.symbol._type.function.rhs, allocator);
                 self.appendInstruction(try IR.create_simple_copy(retval_lval, expr, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(error_label, ast.getToken().span, allocator));
 
@@ -1500,7 +1500,7 @@ pub const CFG = struct {
             ._or => {
                 // Create the result symbol and IR
                 const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Labels used
                 const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -1512,7 +1512,7 @@ pub const CFG = struct {
                 self.appendInstruction(branch);
 
                 // lhs was true, store `true` in temp
-                const load_true_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const load_true_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 const load_true = try IR.createInt(load_true_lval, 1, ast.getToken().span, allocator);
                 self.appendInstruction(load_true);
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1523,7 +1523,7 @@ pub const CFG = struct {
                 if (rhs == null) {
                     return null;
                 }
-                const copy_right_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const copy_right_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 const copy_right = try IR.create_simple_copy(copy_right_lval, rhs.?, ast.getToken().span, allocator);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1533,7 +1533,7 @@ pub const CFG = struct {
             ._and => {
                 // Create the result symbol and IR
                 const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Labels used
                 const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -1549,14 +1549,14 @@ pub const CFG = struct {
                 if (rhs == null) {
                     return null;
                 }
-                const copy_right_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const copy_right_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 const copy_right = try IR.create_simple_copy(copy_right_lval, rhs.?, ast.getToken().span, allocator);
                 self.appendInstruction(copy_right);
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
 
                 // lhs was false, store `false` in temp
                 self.appendInstruction(else_label);
-                const load_false_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const load_false_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 const load_false = try IR.createInt(load_false_lval, 0, ast.getToken().span, allocator);
                 self.appendInstruction(load_false);
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1717,7 +1717,7 @@ pub const CFG = struct {
                 // Create the result symbol.
                 // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
                 const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator); // Not actually assigned directly, just so that optimizations can capture the version
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator); // Not actually assigned directly, just so that optimizations can capture the version
 
                 const lhs = (try self.flattenAST(scope, ast._catch.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
@@ -1732,7 +1732,7 @@ pub const CFG = struct {
 
                 // tag was an error, store rhs in temp
                 const rhs = (try self.flattenAST(scope, ast._catch.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
-                const rhs_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const rhs_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(rhs_lval, rhs, ast.getToken().span, allocator));
 
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1742,7 +1742,7 @@ pub const CFG = struct {
                 const _type = try ast.typeof(scope, errors, allocator);
                 const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
                 const val = try L_Value.create_select(lhs, 0, 0, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
 
                 self.appendInstruction(end_label);
@@ -1752,7 +1752,7 @@ pub const CFG = struct {
                 // Create the result symbol.
                 // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
                 const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator); // Not actually assigned directly, just so that optimizations can capture the version
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator); // Not actually assigned directly, just so that optimizations can capture the version
 
                 var lhs = (try self.flattenAST(scope, ast._orelse.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
@@ -1773,7 +1773,7 @@ pub const CFG = struct {
                 const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
                 const offset = try (try lhs.get_type().expand_type(scope, errors, allocator)).sum.get_offset(1, scope, errors, allocator);
                 const val = try L_Value.create_select(lhs, 1, offset, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
 
@@ -1782,7 +1782,7 @@ pub const CFG = struct {
                 // tag was `.none`, store rhs in temp
                 const rhs = (try self.flattenAST(scope, ast._orelse.rhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
-                const rhs_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const rhs_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(rhs_lval, rhs, ast.getToken().span, allocator));
 
                 self.appendInstruction(end_label);
@@ -1953,7 +1953,7 @@ pub const CFG = struct {
             ._if => {
                 // Create the result symbol and IR
                 const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // If there's a let, then do it, dumby!
                 if (ast._if.let) |let| {
@@ -1971,7 +1971,7 @@ pub const CFG = struct {
 
                 // lhs was true, recurse to rhs, store in temp
                 if (try self.flattenAST(ast._if.scope.?, ast._if.bodyBlock, return_label, break_label, continue_label, error_label, errors, allocator)) |block_lval| {
-                    const block_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                    const block_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     var block_copy: *IR = undefined;
                     if (ast._if.elseBlock == null) {
                         // no else block => if is optional, coerce up to `.some <- block`
@@ -1988,14 +1988,14 @@ pub const CFG = struct {
                 self.appendInstruction(else_label);
                 if (ast._if.elseBlock) |elseBlock| {
                     if (try self.flattenAST(ast._if.scope.?, elseBlock, return_label, break_label, continue_label, error_label, errors, allocator)) |else_lval| {
-                        const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                        const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                         const else_copy = try IR.create_simple_copy(else_copy_lval, else_lval, ast.getToken().span, allocator);
                         self.appendInstruction(else_copy);
                     }
                     self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
                 } else {
                     // no else block => if is optional, store null
-                    const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                    const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     const else_copy = try IR.createUnion(else_copy_lval, null, 0, ast.getToken().span, allocator);
                     self.appendInstruction(else_copy);
                 }
@@ -2011,7 +2011,7 @@ pub const CFG = struct {
                     // Match has no else, type of the mappings should be wrapped in an optional type
                     try AST.create_optional_type(try ast.typeof(scope, errors, allocator), allocator);
                 const symbol = try self.createTempSymbol(symbol_type, errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Exit label of match
                 const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -2057,7 +2057,7 @@ pub const CFG = struct {
 
                 if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
                     self.appendInstruction(none_label);
-                    const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                    const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     const else_copy = try IR.createUnion(else_copy_lval, null, 0, ast.getToken().span, allocator);
                     self.appendInstruction(else_copy);
                     self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -2075,7 +2075,7 @@ pub const CFG = struct {
                     // Generate the rhs, copy result to temp
                     const mapping_scope = if (mapping.mapping.scope != null) mapping.mapping.scope.? else ast.match.scope.?;
                     if (try self.flattenAST(mapping_scope, mapping.mapping.rhs.?, return_label, break_label, continue_label, error_label, errors, allocator)) |rhs_lval| {
-                        const rhs_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                        const rhs_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                         var rhs_copy: *IR = undefined;
                         if (ast.match.has_else) {
                             rhs_copy = try IR.create_simple_copy(rhs_copy_lval, rhs_lval, ast.getToken().span, allocator);
@@ -2094,7 +2094,7 @@ pub const CFG = struct {
             ._while => {
                 // Create the result symbol and IR
                 const symbol = try self.createTempSymbol(try ast.typeof(scope, errors, allocator), errors, allocator);
-                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Labels used
                 const cond_label = try IR.createLabel(null, ast.getToken().span, allocator);
@@ -2115,7 +2115,7 @@ pub const CFG = struct {
 
                 // Body block
                 if (try self.flattenAST(ast._while.scope.?, ast._while.bodyBlock, return_label, end_label, current_continue_label, error_label, errors, allocator)) |block_lval| {
-                    const block_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                    const block_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     var block_copy: *IR = undefined;
                     if (ast._while.elseBlock == null) {
                         // no else block => while is optional, coerce up to `.some <- block`
@@ -2144,7 +2144,7 @@ pub const CFG = struct {
                     self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
                 } else {
                     // no else block => while is optional, store null
-                    const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type.?, allocator);
+                    const else_copy_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     const else_copy = try IR.createUnion(else_copy_lval, null, 0, ast.getToken().span, allocator);
                     self.appendInstruction(else_copy);
                 }
@@ -2228,21 +2228,16 @@ pub const CFG = struct {
 
             // Control-flow statements
             .decl => {
-                var def: ?*L_Value = null;
-                if (ast.decl.init) |init| {
-                    def = try self.flattenAST(scope, init, return_label, break_label, continue_label, error_label, errors, allocator);
-                } else {
-                    unreachable;
-                }
+                const def: ?*L_Value = try self.flattenAST(scope, ast.decl.init, return_label, break_label, continue_label, error_label, errors, allocator);
                 if (def == null) {
                     return null;
                 }
-                try self.generate_pattern(scope, ast.decl.pattern, try ast.decl.type.?.expand_type(scope, errors, allocator), def.?, errors, allocator);
+                try self.generate_pattern(scope, ast.decl.pattern, try ast.decl.type.expand_type(scope, errors, allocator), def.?, errors, allocator);
                 return null;
             },
             .fnDecl => {
                 _ = try ast.fnDecl.symbol.?.get_cfg(self, self.interned_strings, errors, allocator);
-                const temp = try self.create_temp_lvalue(ast.fnDecl.symbol.?._type.?, errors, allocator);
+                const temp = try self.create_temp_lvalue(ast.fnDecl.symbol.?._type, errors, allocator);
                 var ir = try IR.create(.loadSymbol, temp, null, null, ast.getToken().span, allocator);
                 ir.data = IRData{ .symbol = ast.fnDecl.symbol.? };
                 self.appendInstruction(ir);
@@ -2268,7 +2263,7 @@ pub const CFG = struct {
                 if (ast._return.expr) |expr| {
                     // Copy expr to retval
                     const retval = (try self.flattenAST(scope, expr, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
-                    const retval_lval = try L_Value.create_unversioned_symbver(self.return_symbol, self.symbol._type.?.function.rhs, allocator);
+                    const retval_lval = try L_Value.create_unversioned_symbver(self.return_symbol, self.symbol._type.function.rhs, allocator);
                     const retval_copy = try IR.create_simple_copy(retval_lval, retval, ast.getToken().span, allocator);
                     self.appendInstruction(retval_copy);
 
@@ -2382,7 +2377,7 @@ pub const CFG = struct {
     ) FlattenASTError!void {
         if (pattern.* == .symbol) {
             if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
-                const symbver = try L_Value.create_unversioned_symbver(pattern.symbol.symbol, pattern.symbol.symbol._type.?, allocator);
+                const symbver = try L_Value.create_unversioned_symbver(pattern.symbol.symbol, pattern.symbol.symbol._type, allocator);
                 const ir = try IR.create_simple_copy(symbver, def, pattern.getToken().span, allocator);
                 self.appendInstruction(ir);
             }

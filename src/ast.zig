@@ -354,8 +354,8 @@ pub const AST = union(enum) {
         common: ASTCommon,
         symbols: std.ArrayList(*Symbol), // List of symbols that are defined with this statement
         pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
-        type: ?*AST,
-        init: ?*AST,
+        type: *AST,
+        init: *AST,
         top_level: bool,
     },
     fnDecl: struct {
@@ -755,7 +755,7 @@ pub const AST = union(enum) {
         return try AST.box(AST{ .symbol = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .name = name } }, allocator);
     }
 
-    pub fn createDecl(token: Token, pattern: *AST, _type: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDecl(token: Token, pattern: *AST, _type: *AST, init: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbols = std.ArrayList(*Symbol).init(allocator), .pattern = pattern, .type = _type, .init = init, .top_level = false } }, allocator);
     }
 
@@ -1238,10 +1238,7 @@ pub const AST = union(enum) {
             } else {
                 const symbol = try _validate.findSymbol(self, null, scope, errors);
                 try _validate.validateSymbol(symbol, errors, allocator);
-                retval = symbol._type orelse {
-                    errors.addError(Error{ .basic = .{ .span = self.getToken().span, .msg = "recursive definition detected" } });
-                    return poisoned;
-                };
+                retval = symbol._type;
             },
 
             // Unary Operators
@@ -1316,7 +1313,7 @@ pub const AST = union(enum) {
                 retval = fn_type.function.rhs;
             },
             .fnDecl => {
-                retval = self.fnDecl.symbol.?._type.?;
+                retval = self.fnDecl.symbol.?._type;
             },
 
             else => {

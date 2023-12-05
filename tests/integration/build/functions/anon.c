@@ -18,7 +18,7 @@ typedef int64_t(*function1)(function0, int64_t);
 
 /* Function forward definitions */
 int64_t _649_main(void);
-int64_t _651_$anon137(int64_t _651_x);
+int64_t _651_$anon154(int64_t _651_x);
 int64_t _653_apply(function0 _653_f,int64_t _653_x);
 
 /* Function definitions */
@@ -28,7 +28,7 @@ int64_t _649_main(void) {
     int64_t _649_t3;
     int64_t _649_t2;
     int64_t _649_$retval;
-    _650_id = _651_$anon137;
+    _650_id = _651_$anon154;
     _649_t1 = _653_apply;
     _649_t3 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
@@ -38,7 +38,7 @@ int64_t _649_main(void) {
     return _649_$retval;
 }
 
-int64_t _651_$anon137(int64_t _651_x) {
+int64_t _651_$anon154(int64_t _651_x) {
     int64_t _651_$retval;
     _651_$retval = _651_x;
     return _651_$retval;

@@ -756,13 +756,13 @@ pub const Parser = struct {
 
     fn param(self: *Parser) ParserErrorEnum!*AST {
         var ident = try self.let_pattern_atom();
-        var _type: ?*AST = null;
+        var _type: *AST = undefined;
         var init: ?*AST = null;
 
         _ = try self.expect(.COLON);
         _type = try self.inject_expr();
-        if (_type.?.* != .identifier) {
-            _type = try AST.createComptime(_type.?.getToken(), _type.?, self.astAllocator);
+        if (_type.* != .identifier) {
+            _type = try AST.createComptime(_type.getToken(), _type, self.astAllocator);
         }
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
@@ -773,7 +773,7 @@ pub const Parser = struct {
             ident.getToken(),
             ident,
             _type,
-            init,
+            init orelse try AST.createDefault(_type.getToken(), _type, self.astAllocator),
             self.astAllocator,
         );
     }

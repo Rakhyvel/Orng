@@ -170,14 +170,14 @@
     - [x] remove `fromOptional`
     - [x] `orelse` coalesce
     - [x] control-flow operators return optional if else isn't present
-- [ ] errors
+- [x] errors
     - [x] binary `!`
     - [x] `catch`
     - [x] `errdefer`
     - [x] `try`
-    - [ ] inferred errors
+    - [x] inferred errors
         > Investigate. Seems problematic to implement well
-        - [ ] Add convenience functions for sums to get the `ok` annotation from an error, instead of indexing the sum directly
+        - [x] Add convenience functions for sums to get the `ok` annotation from an error, instead of indexing the sum directly
     - [x] remove `throw`
 - [x] more compile errors
     - [x] negative tests (coarse grained, just a bunch of files that should fail... for some reason or another. Would be too chaotic to mandate which error or where in source the error should occur)
@@ -309,7 +309,7 @@
         - [ ] `printSymbolVersion` should collapse addrOf IR, etc
     - [x] coverage!
     - [x] fuzz with updated `fuzz.ebnf` to force a proper main function
-- [ ] compile-time evaluation
+- [ ] compile-time evaluation (12/17/23)
     > Validate, IR, Optimize. Don't codegen, interpret!
         > Create the program struct very early on
         > Pass the program struct to validator, as validation may result in comptime code execution
@@ -337,13 +337,16 @@
     - [x] should be able to index heterogenous tuples with a comptime value
     - [ ] various type operations
         - [x] `typeof` prefix operator which returns type expression of expression
-        - [ ] `default` prefix operator, which takes a type and returns the default value for that type
+        - [x] `default` prefix operator, which takes a type and returns the default value for that type
         - [ ] define type inference and defaults for variable declarations in terms of `typeof` and `default`
+            > This will require some fenangling, but it should be possible.
         - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
         - [ ] `sizeof`
             > Don't like this. Interpreter memory unit is the slot, not the byte. Would cause confusion. Perhaps sizeof should trap for interpretation.
-- [ ] build system (built upon compile-time evaluation)
+- [ ] build system (built upon compile-time evaluation) (1/21/24)
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
+    - [ ] `test` to do tests
+        > Rework integration tests
     - [ ] `build.orng` which contains a `build()` function, like zig
         > specifies the entry function (is this possible?)
         > specifies the orng code to use (is this possible?)
@@ -369,7 +372,7 @@
             - net: // Socket system?
             - env: // How should environment variables work?
     > How do externs work?
-- [ ] type classes / interfaces / traits
+- [ ] type classes / interfaces / traits (3/24/24)
     > Do not use for operator overloading!
     - [ ] `lhs<:rhs` operator with lhs being a capture pattern and rhs being a class
     - [ ] allocators
@@ -378,7 +381,7 @@
     - [ ] Eq, Ord, Num, Bits, Convertible
     - [ ] derive
     - [ ] dot prepend `.>`
-- [ ] function stamping
+- [ ] function stamping (4/28/24)
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
     - [ ] first-class types based generics (stamp)
     - [ ] generic type unification

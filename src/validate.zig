@@ -36,46 +36,33 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     symbol.validation_state = .validating;
 
     if (symbol.kind == ._fn or symbol.kind == ._comptime) {
-        symbol._type.? = try validateAST(symbol._type.?, primitives.type_type, symbol.scope, errors, allocator);
+        symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
         symbol.validation_state = .valid;
-        if (symbol._type.?.* != .poison) {
-            symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
-            symbol.init = try validateAST(symbol.init.?, symbol._type.?.function.rhs, symbol.scope, errors, allocator);
-            if (symbol._type.?.function.rhs.* == .inferred_error) {
-                const terms = symbol._type.?.function.rhs.inferred_error.terms;
-                symbol._type.?.function.rhs.* = AST{ .sum = .{ .common = symbol._type.?.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
+        if (symbol._type.* != .poison) {
+            symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
+            symbol.init = try validateAST(symbol.init.?, symbol._type.function.rhs, symbol.scope, errors, allocator);
+            if (symbol._type.function.rhs.* == .inferred_error) {
+                const terms = symbol._type.function.rhs.inferred_error.terms;
+                symbol._type.function.rhs.* = AST{ .sum = .{ .common = symbol._type.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
             }
         } else {
             symbol.init = _ast.poisoned;
         }
     } else {
-        if (symbol.init != null and symbol._type != null) {
-            symbol._type = try validateAST(symbol._type.?, primitives.type_type, symbol.scope, errors, allocator);
+        if (symbol.init != null) {
+            symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
             symbol.validation_state = .valid;
-            if (symbol._type.?.* != .poison) {
-                symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
+            if (symbol._type.* != .poison) {
+                symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
                 symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
             } else {
                 symbol.init = _ast.poisoned;
             }
-        } else if (symbol.init == null and symbol._type != null) {
-            // Default value
-            symbol._type = try validateAST(symbol._type.?, primitives.type_type, symbol.scope, errors, allocator);
-            symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
-            symbol.validation_state = .valid;
-        } else if (symbol.init != null and symbol._type == null) {
-            // Infer type
-            symbol.init = try validateAST(symbol.init.?, null, symbol.scope, errors, allocator);
-            if (symbol.init.?.* != .poison) {
-                symbol._type = try validateAST(try symbol.init.?.typeof(symbol.scope, errors, allocator), primitives.type_type, symbol.scope, errors, allocator);
-                symbol.expanded_type = try symbol._type.?.expand_type(symbol.scope, errors, allocator);
-                symbol.validation_state = .valid;
-            } else {
-                symbol._type = _ast.poisoned;
-            }
         } else {
-            std.debug.print("symbol `{s}` has null type and null init value\n", .{symbol.name});
-            unreachable;
+            // Default value
+            symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
+            symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
+            symbol.validation_state = .valid;
         }
     }
 
@@ -226,12 +213,12 @@ fn validate_AST_internal(
                 else => return err,
             };
             try validateSymbol(symbol, errors, allocator);
-            if (symbol._type == null or symbol.validation_state != .valid or symbol._type == null or symbol._type.?.getCommon().validation_state != .valid) {
+            if (symbol.validation_state != .valid or symbol._type.getCommon().validation_state != .valid) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "recursive definition detected" } });
                 return ast.enpoison();
             }
-            if (expected != null and !try symbol._type.?.typesMatch(expected.?, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type.? } });
+            if (expected != null and !try symbol._type.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type } });
                 return ast.enpoison();
             } else {
                 return ast;
@@ -322,7 +309,7 @@ fn validate_AST_internal(
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
                 return ast.enpoison();
             } else {
-                var expanded_function_return = try scope.inner_function.?._type.?.function.rhs.expand_type(scope, errors, allocator);
+                var expanded_function_return = try scope.inner_function.?._type.function.rhs.expand_type(scope, errors, allocator);
                 if (expanded_function_return.* == .inferred_error) {
                     // This checks that the `ok` fields match, for free!
                     for (expr_expanded_type.sum.terms.items) |term| {
@@ -381,7 +368,7 @@ fn validate_AST_internal(
         ._comptime => {
             // Validate symbol
             try validateSymbol(ast._comptime.symbol.?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
-            if (ast._comptime.symbol.?._type.?.* == .poison) {
+            if (ast._comptime.symbol.?._type.* == .poison) {
                 return ast.enpoison();
             }
 
@@ -393,7 +380,7 @@ fn validate_AST_internal(
             defer scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = try Context.init(cfg, &scope.module.?.instructions, ast._comptime.symbol.?._type.?.function.rhs.get_slots(), cfg.offset.?);
+            var context = try Context.init(cfg, &scope.module.?.instructions, ast._comptime.symbol.?._type.function.rhs.get_slots(), cfg.offset.?);
             var ir_data = try context.interpret();
 
             // Extract the retval
@@ -1580,7 +1567,7 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
             if (ast._return.expr) |expr| {
-                ast._return.expr = try validateAST(expr, scope.inner_function.?._type.?.function.rhs, scope, errors, allocator);
+                ast._return.expr = try validateAST(expr, scope.inner_function.?._type.function.rhs, scope, errors, allocator);
                 if (ast._return.expr.?.* == .poison) {
                     return ast.enpoison();
                 }
@@ -1627,7 +1614,7 @@ fn validate_AST_internal(
         },
         .fnDecl => {
             try validateSymbol(ast.fnDecl.symbol.?, errors, allocator);
-            if (ast.fnDecl.symbol.?._type.?.* == .poison) {
+            if (ast.fnDecl.symbol.?._type.* == .poison) {
                 return ast.enpoison();
             }
             if (expected) |_expected| {
@@ -1642,30 +1629,12 @@ fn validate_AST_internal(
         },
         .decl => {
             var poisoned = false;
-            if (ast.decl.type != null and ast.decl.init != null) {
-                // Normal decl
-                ast.decl.type = try validateAST(ast.decl.type.?, primitives.type_type, scope, errors, allocator);
-                if (ast.decl.type.?.* != .poison) {
-                    ast.decl.init = try validateAST(ast.decl.init.?, ast.decl.type, scope, errors, allocator);
-                    poisoned = ast.decl.init.?.* == .poison;
-                } else {
-                    return ast.enpoison();
-                }
-            } else if (ast.decl.init == null) {
-                // Default value
-                ast.decl.type = try validateAST(ast.decl.type.?, primitives.type_type, scope, errors, allocator);
-                poisoned = ast.decl.type.?.* == .poison;
-            } else if (ast.decl.type == null) {
-                // Infer type
-                ast.decl.init = try validateAST(ast.decl.init.?, null, scope, errors, allocator);
-                if (ast.decl.init.?.* != .poison) {
-                    ast.decl.type = try validateAST(try ast.decl.init.?.typeof(scope, errors, allocator), primitives.type_type, scope, errors, allocator);
-                    poisoned = ast.decl.type.?.* == .poison;
-                } else {
-                    return ast.enpoison();
-                }
+            ast.decl.type = try validateAST(ast.decl.type, primitives.type_type, scope, errors, allocator);
+            if (ast.decl.type.* != .poison) {
+                ast.decl.init = try validateAST(ast.decl.init, ast.decl.type, scope, errors, allocator);
+                poisoned = ast.decl.init.* == .poison;
             } else {
-                unreachable;
+                return ast.enpoison();
             }
 
             for (ast.decl.symbols.items) |symbol| {
