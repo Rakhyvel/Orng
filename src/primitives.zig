@@ -124,7 +124,7 @@ pub fn get_scope() !*Scope {
         try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, true, default_int);
         try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, true, default_int);
         try create_info("String", null, "NO C EQUIVALENT!", string_type, byte_slice_type, .none, false, default_string);
-        try create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .none, false, null);
+        try create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .eq, false, null);
         try create_info("Void", null, "NO C EQUIVALENT!", void_type, null, .none, false, null);
         try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, false, default_int);
         try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, false, default_int);

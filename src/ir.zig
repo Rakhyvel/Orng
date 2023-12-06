@@ -39,7 +39,8 @@ pub const SymbolVersion = struct {
     }
 
     pub fn deinit(self: *SymbolVersion) void {
-        self.allocator.destroy(self);
+        _ = self;
+        // self.allocator.destroy(self); // TODO: Bwuh?!
     }
 
     pub fn makeUnique(self: *SymbolVersion) void {

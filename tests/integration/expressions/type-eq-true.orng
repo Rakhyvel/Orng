@@ -1,0 +1,8 @@
+// 251
+fn main() -> Int {
+    if Int == Int {
+        251
+    } else {
+        unreachable
+    }
+}

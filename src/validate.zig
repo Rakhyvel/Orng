@@ -535,7 +535,16 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
+            const expanded_lhs_type = try lhs_type.expand_type(scope, errors, allocator);
+            if (try primitives.type_type.typesMatch(expanded_lhs_type, scope, errors, allocator)) {
+                if (!try ast.equal.lhs.typesMatch(ast.equal.rhs, scope, errors, allocator)) {
+                    return try AST.createFalse(ast.getToken(), allocator);
+                } else if (!try ast.equal.rhs.typesMatch(ast.equal.lhs, scope, errors, allocator)) {
+                    return try AST.createFalse(ast.getToken(), allocator);
+                } else {
+                    return try AST.createTrue(ast.getToken(), allocator);
+                }
+            } else if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {
@@ -555,7 +564,16 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
+            const expanded_lhs_type = try lhs_type.expand_type(scope, errors, allocator);
+            if (try primitives.type_type.typesMatch(expanded_lhs_type, scope, errors, allocator)) {
+                if (try ast.not_equal.lhs.typesMatch(ast.not_equal.rhs, scope, errors, allocator)) {
+                    return try AST.createFalse(ast.getToken(), allocator);
+                } else if (try ast.not_equal.rhs.typesMatch(ast.not_equal.lhs, scope, errors, allocator)) {
+                    return try AST.createFalse(ast.getToken(), allocator);
+                } else {
+                    return try AST.createTrue(ast.getToken(), allocator);
+                }
+            } else if (!try lhs_type.is_eq_type(scope, errors, allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.not_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
             } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, scope, errors, allocator)) {

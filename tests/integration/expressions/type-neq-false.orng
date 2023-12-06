@@ -1,0 +1,8 @@
+// 254
+fn main() -> Int {
+    if Int != Int {
+        unreachable
+    } else {
+        254
+    }
+}
