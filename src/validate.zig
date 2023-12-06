@@ -40,7 +40,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
         symbol.validation_state = .valid;
         if (symbol._type.* != .poison) {
             symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
-            symbol.init = try validateAST(symbol.init.?, symbol._type.function.rhs, symbol.scope, errors, allocator);
+            symbol.init = try validateAST(symbol.init, symbol._type.function.rhs, symbol.scope, errors, allocator);
             if (symbol._type.function.rhs.* == .inferred_error) {
                 const terms = symbol._type.function.rhs.inferred_error.terms;
                 symbol._type.function.rhs.* = AST{ .sum = .{ .common = symbol._type.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
@@ -49,20 +49,13 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
             symbol.init = _ast.poisoned;
         }
     } else {
-        if (symbol.init != null) {
-            symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
-            symbol.validation_state = .valid;
-            if (symbol._type.* != .poison) {
-                symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
-                symbol.init = try validateAST(symbol.init.?, symbol._type, symbol.scope, errors, allocator);
-            } else {
-                symbol.init = _ast.poisoned;
-            }
-        } else {
-            // Default value
-            symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
+        symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
+        symbol.validation_state = .valid;
+        if (symbol._type.* != .poison) {
             symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
-            symbol.validation_state = .valid;
+            symbol.init = try validateAST(symbol.init, symbol._type, symbol.scope, errors, allocator);
+        } else {
+            symbol.init = _ast.poisoned;
         }
     }
 

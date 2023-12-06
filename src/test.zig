@@ -1,4 +1,5 @@
 const std = @import("std");
+const ast_ = @import("ast.zig");
 const errs = @import("errors.zig");
 const module_ = @import("module.zig");
 const primitives = @import("primitives.zig");
@@ -54,6 +55,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
+    try ast_.init_structures();
     const prelude = try primitives.get_scope();
     while (args.next()) |next| {
         const res = try test_file(next, prelude, coverage);

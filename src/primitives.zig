@@ -168,13 +168,13 @@ fn create_info(
     });
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *AST, val: ?*AST, is_temp: bool) !*Symbol {
+fn create_prelude_symbol(name: []const u8, _type: *AST, init: ?*AST, is_temp: bool) !*Symbol {
     var symbol = try Symbol.create(
         prelude.?,
         name,
         Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
         _type,
-        val,
+        init orelse ast.poisoned,
         null,
         ._const,
         std.heap.page_allocator,

@@ -891,10 +891,10 @@ pub const AST = union(enum) {
                     return error.typeError;
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
-                if (symbol.init) |init| {
-                    retval = try init.expand_type(scope, errors, allocator);
-                } else {
+                if (symbol.init.* == .poison) {
                     retval = self;
+                } else {
+                    retval = try symbol.init.expand_type(scope, errors, allocator);
                 }
             },
             .product => {
@@ -944,10 +944,7 @@ pub const AST = union(enum) {
                 retval = try AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
             },
             .index => {
-                var expr = try self.index.lhs.expand_type(scope, errors, allocator);
-                if (expr.* == .identifier) {
-                    std.debug.print("{s}\n", .{expr.getToken().data});
-                }
+                const expr = try self.index.lhs.expand_type(scope, errors, allocator);
                 retval = expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
             },
             .poison,
@@ -1331,7 +1328,7 @@ pub const AST = union(enum) {
         if (self.* == .identifier) {
             const symbol = try _validate.findSymbol(self, null, scope, errors);
             try _validate.validateSymbol(symbol, errors, allocator);
-            return symbol.init orelse self;
+            return symbol.init;
         } else {
             return self;
         }

@@ -338,7 +338,7 @@
     - [ ] various type operations
         - [x] `typeof` prefix operator which returns type expression of expression
         - [x] `default` prefix operator, which takes a type and returns the default value for that type
-        - [ ] define type inference and defaults for variable declarations in terms of `typeof` and `default`
+        - [x] define type inference and defaults for variable declarations in terms of `typeof` and `default`
             > This will require some fenangling, but it should be possible.
         - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
         - [ ] `sizeof`

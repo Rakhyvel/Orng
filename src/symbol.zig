@@ -202,7 +202,7 @@ pub const Symbol = struct {
     span: Span,
     _type: *ast.AST,
     expanded_type: ?*ast.AST,
-    init: ?*ast.AST,
+    init: *ast.AST,
     kind: SymbolKind,
     cfg: ?*CFG,
     decl: ?*AST,
@@ -226,7 +226,7 @@ pub const Symbol = struct {
     // Offset
     offset: ?i64, // The offset from the BP that this symbol
 
-    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: *ast.AST, _init: ?*ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
+    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: *ast.AST, _init: *ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
         var retval = try allocator.create(Symbol);
         retval.scope = scope;
         retval.name = name;
@@ -537,12 +537,12 @@ fn put_all_symbols(symbols: *std.ArrayList(*Symbol), scope: *Scope, errors: *err
     }
 }
 
-fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *ast.AST, init: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *ast.AST, init: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     switch (pattern.*) {
         .symbol => {
             // TODO: Clean this up
             if (pattern.symbol.kind == ._const) {
-                const definition = try AST.createComptime(init.?.getToken(), init.?, allocator);
+                const definition = try AST.createComptime(init.getToken(), init, allocator);
                 const comptime_symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
                 if (scope.lookup(comptime_symbol.name, false)) |first| {
                     errors.addError(Error{ .redefinition = .{
@@ -593,18 +593,15 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
             for (pattern.product.terms.items, 0..) |term, i| {
                 const index = try AST.createInt(pattern.getToken(), i, allocator);
                 const new_type: *AST = try AST.createIndex(_type.getToken(), _type, index, allocator);
-                const new_init: ?*AST = if (init != null)
-                    try AST.createIndex(init.?.getToken(), init.?, index, allocator)
-                else
-                    null;
+                const new_init: *AST = try AST.createIndex(init.getToken(), init, index, allocator);
                 try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
             }
         },
         .inject => {
-            const lhs_type = try AST.createTypeOf(pattern.getToken(), init.?, allocator);
+            const lhs_type = try AST.createTypeOf(pattern.getToken(), init, allocator);
             const rhs_type = try AST.createDomainOf(pattern.getToken(), lhs_type, pattern, allocator);
-            try create_symbol(symbols, pattern.inject.lhs, lhs_type, null, scope, errors, allocator);
-            try create_symbol(symbols, pattern.inject.rhs, rhs_type, null, scope, errors, allocator);
+            try create_symbol(symbols, pattern.inject.lhs, lhs_type, ast.poisoned, scope, errors, allocator);
+            try create_symbol(symbols, pattern.inject.rhs, rhs_type, ast.poisoned, scope, errors, allocator);
         },
         else => {},
     }

@@ -1176,7 +1176,7 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*SymbolVersion).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, null, null, .mut, allocator);
+        retval.return_symbol = try Symbol.create(symbol.scope, "$retval", Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, _ast.poisoned, null, .mut, allocator);
         retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(symbol.scope, errors, allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
@@ -1189,7 +1189,7 @@ pub const CFG = struct {
             try caller_node.children.append(retval);
         }
 
-        const eval: ?*L_Value = try retval.flattenAST(symbol.scope, symbol.init.?, null, null, null, null, errors, allocator);
+        const eval: ?*L_Value = try retval.flattenAST(symbol.scope, symbol.init, null, null, null, null, errors, allocator);
         if (retval.symbol.decl.?.* == .fnDecl) {
             // `_comptime` symbols don't have parameters anyway
             for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
@@ -1268,7 +1268,7 @@ pub const CFG = struct {
         var buf = try String.init_with_contents(allocator, "t");
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
-        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, _type, null, null, .mut, allocator);
+        var temp_symbol = try Symbol.create(self.symbol.scope, (try buf.toOwned()).?, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, _type, _ast.poisoned, null, .mut, allocator);
         temp_symbol.expanded_type = try _type.expand_type(self.symbol.scope, errors, allocator);
         temp_symbol.is_temp = true;
         return temp_symbol;
@@ -1392,7 +1392,7 @@ pub const CFG = struct {
                     self.appendInstruction(try IR.create_ast(lval, ast, ast.getToken().span, allocator));
                     return lval;
                 } else if (symbol.kind == ._const) {
-                    return try self.flattenAST(scope, symbol.init.?, return_label, break_label, continue_label, error_label, errors, allocator);
+                    return try self.flattenAST(scope, symbol.init, return_label, break_label, continue_label, error_label, errors, allocator);
                 } else {
                     const src = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                     return src;
