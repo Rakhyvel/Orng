@@ -86,10 +86,10 @@ const ASTCommon = struct {
     /// TODO: Postfix with _ to signify private
     expanded_type: ?*AST = null,
 
-    /// How many slots a value of the type of the AST takes up.
-    /// Memoized, use `get_slots()`.
+    /// How many bytes a value of the type of the AST takes up.
+    /// Memoized, use `sizeof()`.
     /// TODO: Postfix with _ to signify private
-    slots: ?i64 = null,
+    size: ?i64 = null,
 
     /// The validation status of the AST
     validation_state: Validation_State = .unvalidated,
@@ -166,7 +166,7 @@ pub const AST = union(enum) {
         rhs: *AST,
         pos: ?usize,
 
-        pub fn offset_at(self: *@This(), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i128 {
+        pub fn offset_at(self: *@This(), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var lhs_expanded_type = try (try self.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             if (lhs_expanded_type.* == .product) {
                 return try lhs_expanded_type.product.get_offset(self.pos.?, scope, errors, allocator);
@@ -199,11 +199,11 @@ pub const AST = union(enum) {
         }
 
         // TODO: Duck type this with product/sum
-        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i128 {
-            var offset: i128 = 0;
+        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
+            var offset: i64 = 0;
             for (0..field) |i| {
                 var item = self.terms.items[i];
-                offset += (try item.expand_type(scope, errors, allocator)).get_slots(); // TODO: Is it necessary to expand here?
+                offset += (try item.expand_type(scope, errors, allocator)).sizeof(); // TODO: Is it necessary to expand here?
             }
             return offset;
         }
@@ -254,11 +254,11 @@ pub const AST = union(enum) {
             return true;
         }
 
-        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i128 {
-            var offset: i128 = 0;
+        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
+            var offset: i64 = 0;
             for (0..field) |i| {
                 var item = self.terms.items[i];
-                offset += (try item.expand_type(scope, errors, allocator)).get_slots(); // TODO: Is it necessary to expand here?
+                offset += (try item.expand_type(scope, errors, allocator)).sizeof(); // TODO: Is it necessary to expand here?
             }
             return offset;
         }
@@ -459,44 +459,53 @@ pub const AST = union(enum) {
         return self.getCommon().token;
     }
 
-    /// Retrieves the slots of an AST node.
-    pub fn get_slots(self: *AST) i64 {
-        if (self.getCommon().slots == null) {
-            switch (self.*) {
-                .product => {
-                    var total_slots: i64 = 0;
-                    for (self.product.terms.items) |child| {
-                        total_slots += child.get_slots();
-                    }
-                    self.getCommon().slots = total_slots;
-                },
-
-                .sum => {
-                    var max_slots: i64 = 0;
-                    for (self.sum.terms.items) |child| {
-                        const child_slots = child.get_slots();
-                        if (max_slots < child_slots) {
-                            max_slots = child_slots;
-                        }
-                    }
-                    self.getCommon().slots = 1 + max_slots;
-                },
-
-                .unit_type => {
-                    self.getCommon().slots = 0;
-                },
-
-                .annotation => {
-                    self.getCommon().slots = self.annotation.type.get_slots();
-                },
-
-                else => {
-                    self.getCommon().slots = 1;
-                },
-            }
+    /// Retrieves the size in bytes of an AST node.
+    pub fn sizeof(self: *AST) i64 {
+        if (self.getCommon().size == null) {
+            // memoize call
+            self.getCommon().size = self.sizeof_internal();
         }
 
-        return self.getCommon().slots.?;
+        return self.getCommon().size.?;
+    }
+
+    fn sizeof_internal(self: *AST) i64 {
+        switch (self.*) {
+            .identifier => {
+                const info = primitives.get(self.getToken().data);
+                return info.size;
+            },
+
+            .product => {
+                var total_size: i64 = 0;
+                for (self.product.terms.items) |child| {
+                    total_size += child.sizeof(); // TODO: Padding
+                }
+                return total_size;
+            },
+
+            .sum => {
+                var max_size: i64 = 0;
+                for (self.sum.terms.items) |child| {
+                    const child_size = child.sizeof();
+                    if (max_size < child_size) {
+                        max_size = child_size;
+                    }
+                }
+                return 8 + max_size; // TODO: Padding :(
+            },
+
+            .function, .addrOf => return 8,
+
+            .unit_type => return 0,
+
+            .annotation => return self.annotation.type.sizeof(),
+
+            else => {
+                std.debug.print("Unimplemented sizeof for {}\n", .{self});
+                unreachable;
+            },
+        }
     }
 
     pub fn createPoison(token: Token, allocator: std.mem.Allocator) !*AST {
@@ -1312,6 +1321,7 @@ pub const AST = union(enum) {
             .fnDecl => {
                 retval = self.fnDecl.symbol.?._type;
             },
+            .symbol => retval = self.symbol.symbol._type,
 
             else => {
                 std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});

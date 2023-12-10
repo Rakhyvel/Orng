@@ -248,7 +248,7 @@ pub const IRData = union(enum) {
     int: i128,
     float: f64,
     string_id: usize,
-    bb_id: u64,
+    cfg: *CFG, // Used by the interpreter to know how much space to leave for a CFGs locals
     string: []const u8,
     symbol: *Symbol,
     lval_list: std.ArrayList(*L_Value),
@@ -347,16 +347,16 @@ pub const L_Value = union(enum) {
     /// L-Value is lhs.
     dereference: struct {
         expr: *L_Value,
-        slots: i128,
+        size: i64,
         type: *AST,
         expanded_type: *AST,
         allocator: std.mem.Allocator,
     },
-    /// L-Value is L-Value of lhs, + rhs * slots
+    /// L-Value is L-Value of lhs, + rhs * size
     index: struct {
         lhs: *L_Value,
         rhs: *L_Value, // TODO: Rename to rhs
-        slots: i128,
+        size: i64,
         type: *AST,
         expanded_type: *AST,
         allocator: std.mem.Allocator,
@@ -365,8 +365,8 @@ pub const L_Value = union(enum) {
     select: struct {
         lhs: *L_Value,
         field: i128,
-        offset: i128,
-        slots: i128,
+        offset: i64,
+        size: i64,
         type: *AST,
         expanded_type: *AST,
         allocator: std.mem.Allocator,
@@ -383,21 +383,21 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    fn create_dereference(lhs: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
+    fn create_dereference(lhs: *L_Value, size: i64, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .dereference = .{ .expr = lhs, .slots = slots, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .dereference = .{ .expr = lhs, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
-    fn create_index(lhs: *L_Value, rhs: *L_Value, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
+    fn create_index(lhs: *L_Value, rhs: *L_Value, size: i64, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .slots = slots, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
-    fn create_select(lhs: *L_Value, field: i128, offset: i128, slots: i128, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
+    fn create_select(lhs: *L_Value, field: i128, offset: i64, size: i64, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .slots = slots, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
@@ -468,21 +468,8 @@ pub const L_Value = union(enum) {
         }
     }
 
-    pub fn get_slots(self: *L_Value) i128 {
-        switch (self.*) {
-            .symbver => {
-                return self.symbver.symbol.expanded_type.?.get_slots();
-            },
-            .dereference => {
-                return self.dereference.slots;
-            },
-            .index => {
-                return self.index.slots;
-            },
-            .select => {
-                return self.select.slots;
-            },
-        }
+    pub fn sizeof(self: *L_Value) i64 {
+        return self.get_expanded_type().sizeof();
     }
 
     pub fn get_type(self: *L_Value) *AST {
@@ -622,9 +609,9 @@ pub const IR = struct {
         return ir;
     }
 
-    pub fn createLabel(id: ?u64, span: Span, allocator: std.mem.Allocator) !*IR {
+    pub fn createLabel(cfg: *CFG, span: Span, allocator: std.mem.Allocator) !*IR {
         var retval = try IR.create(.label, null, null, null, span, allocator);
-        retval.data = if (id != null) IRData{ .bb_id = id.? } else IRData.none;
+        retval.data = IRData{ .cfg = cfg };
         return retval;
     }
 
@@ -978,7 +965,7 @@ pub const BasicBlock = struct {
 
     /// Address in the first instruction of this BasicBlock
     /// Used for IR interpretation
-    offset: ?i128,
+    offset: ?i64,
 
     pub fn create(self: *CFG, allocator: std.mem.Allocator) !*BasicBlock {
         var retval = try allocator.create(BasicBlock);
@@ -1156,9 +1143,9 @@ pub const CFG = struct {
 
     /// Address in the first instruction of this CFG
     /// Used for IR interpretation
-    offset: ?i128,
-    /// Number of slots required in order to store the local variables of the function
-    slots: ?i128,
+    offset: ?i64,
+    /// Number of bytes required in order to store the local variables of the function
+    locals_size: ?i64,
 
     allocator: std.mem.Allocator,
 
@@ -1182,7 +1169,7 @@ pub const CFG = struct {
         retval.visited = false;
         retval.interned_strings = interned_strings;
         retval.offset = null;
-        retval.slots = null;
+        retval.locals_size = null;
         retval.allocator = allocator;
         symbol.cfg = retval;
 
@@ -1441,15 +1428,15 @@ pub const CFG = struct {
                     return null;
                 }
                 const _type = try ast.typeof(scope, errors, allocator);
-                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
-                const temp = try L_Value.create_dereference(expr.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
+                const temp = try L_Value.create_dereference(expr.?, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
                 return temp;
             },
             ._try => {
                 var expr = (try self.flattenAST(scope, ast._try.expr, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
-                const end = try IR.createLabel(null, ast.getToken().span, allocator);
-                const err = try IR.createLabel(null, ast.getToken().span, allocator);
+                const end = try IR.createLabel(self, ast.getToken().span, allocator);
+                const err = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 var expanded_expr_type = try expr.get_type().expand_type(scope, errors, allocator);
                 // Trying error sum, runtime check if error, branch to error path
@@ -1465,7 +1452,7 @@ pub const CFG = struct {
                 // Else, store the error in retval, return through error
                 self.appendInstruction(err);
 
-                const ok_lval = try L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().get_slots(), expanded_expr_type.get_ok_type(), try expanded_expr_type.get_ok_type().expand_type(scope, errors, allocator), allocator);
+                const ok_lval = try L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().sizeof(), expanded_expr_type.get_ok_type(), try expanded_expr_type.get_ok_type().expand_type(scope, errors, allocator), allocator);
                 self.appendInstruction(try IR.createJump(end, ast.getToken().span, allocator));
                 self.appendInstruction(end);
 
@@ -1504,8 +1491,8 @@ pub const CFG = struct {
                 const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Labels used
-                const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const else_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 // Test lhs, branch
                 const lhs = (try self.flattenAST(scope, ast._or.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
@@ -1537,8 +1524,8 @@ pub const CFG = struct {
                 const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Labels used
-                const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const else_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 // Test lhs, branch
                 const lhs = (try self.flattenAST(scope, ast._and.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
@@ -1633,8 +1620,8 @@ pub const CFG = struct {
                 const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
                 // Labels used
-                const fail_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const fail_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 try self.generate_tuple_equality(scope, lhs.?, rhs.?, fail_label, errors, allocator);
 
@@ -1723,8 +1710,8 @@ pub const CFG = struct {
                 const lhs = (try self.flattenAST(scope, ast._catch.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 // Labels used
-                const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const else_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 // Test if lhs tag is 0 (ok)
                 const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
@@ -1741,8 +1728,8 @@ pub const CFG = struct {
 
                 // tag was `.ok`, store lhs.some in temp
                 const _type = try ast.typeof(scope, errors, allocator);
-                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
-                const val = try L_Value.create_select(lhs, 0, 0, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
+                const val = try L_Value.create_select(lhs, 0, 0, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
                 const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
 
@@ -1758,8 +1745,8 @@ pub const CFG = struct {
                 var lhs = (try self.flattenAST(scope, ast._orelse.lhs, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
 
                 // Labels used
-                const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const else_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 // Test if lhs tag is 1 (some)
                 const condition = try create_temp_lvalue(self, primitives.word64_type, errors, allocator);
@@ -1771,9 +1758,9 @@ pub const CFG = struct {
 
                 // tag was `.some`, store lhs.some in temp
                 const _type = try ast.typeof(scope, errors, allocator);
-                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
                 const offset = try (try lhs.get_type().expand_type(scope, errors, allocator)).sum.get_offset(1, scope, errors, allocator);
-                const val = try L_Value.create_select(lhs, 1, offset, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const val = try L_Value.create_select(lhs, 1, offset, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
                 const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1810,7 +1797,7 @@ pub const CFG = struct {
             },
             .index => {
                 const _type = try ast.typeof(scope, errors, allocator);
-                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
+                const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
 
                 // Get the type of the index ast. This will determine if this is an array index or a slice index
                 const ast_expanded_type = try (try ast.index.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
@@ -1824,12 +1811,12 @@ pub const CFG = struct {
                 if (ast_expanded_type.product.was_slice) {
                     // Indexing a slice; retval := lhs._0^[rhs]
                     const addr_type = ast_expanded_type.product.terms.items[0];
-                    const addr_slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
-                    ast_lval = try L_Value.create_select(ast_lval.?, 0, 0, addr_slots, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
-                    ast_lval = try L_Value.create_dereference(ast_lval.?, addr_slots, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
+                    const addr_size = (try _type.expand_type(scope, errors, allocator)).sizeof();
+                    ast_lval = try L_Value.create_select(ast_lval.?, 0, 0, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
+                    ast_lval = try L_Value.create_dereference(ast_lval.?, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
                 }
                 // Surround with L_Value node
-                return try L_Value.create_index(ast_lval.?, rhs.?, slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                return try L_Value.create_index(ast_lval.?, rhs.?, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
             },
             .select => {
                 // Recursively get select's ast L_Value node
@@ -1897,7 +1884,7 @@ pub const CFG = struct {
                 //     return error.typeError;
                 // } else
                 { // Dynamically confirm that lower <= upper
-                    const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                    const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
                     const compare = try self.create_temp_lvalue(primitives.bool_type, errors, allocator);
                     const ir = try IR.create(.greater_int, compare, lower, upper, ast.getToken().span, allocator);
                     self.appendInstruction(ir);
@@ -1914,8 +1901,8 @@ pub const CFG = struct {
 
                 const slice_type = try ast.typeof(scope, errors, allocator);
                 const data_type = slice_type.product.terms.items[0];
-                const slots = (try data_type.expand_type(scope, errors, allocator)).get_slots();
-                const data_ptr = try L_Value.create_select(arr, 0, 0, slots, data_type, try data_type.expand_type(scope, errors, allocator), allocator);
+                const size = (try data_type.expand_type(scope, errors, allocator)).sizeof();
+                const data_ptr = try L_Value.create_select(arr, 0, 0, size, data_type, try data_type.expand_type(scope, errors, allocator), allocator);
 
                 const new_data_ptr = try self.create_temp_lvalue(data_type, errors, allocator);
                 const new_data_ptr_ir = try IR.create(.add_int, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator);
@@ -1962,8 +1949,8 @@ pub const CFG = struct {
                 }
 
                 // Labels used
-                const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const else_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 // Test lhs, branch
                 const condition = (try self.flattenAST(ast._if.scope.?, ast._if.condition, return_label, break_label, continue_label, error_label, errors, allocator)) orelse return null;
@@ -2015,9 +2002,9 @@ pub const CFG = struct {
                 const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Exit label of match
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
                 // Label jumped to if all tests fail and no `else` mapping
-                const none_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const none_label = try IR.createLabel(self, ast.getToken().span, allocator);
                 // List of labels to branch to on an unsuccessful test (ie "next pattern")
                 var lhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer lhs_label_list.deinit();
@@ -2025,8 +2012,8 @@ pub const CFG = struct {
                 var rhs_label_list = std.ArrayList(*IR).init(allocator);
                 defer rhs_label_list.deinit();
                 for (ast.match.mappings.items) |_| {
-                    try lhs_label_list.append(try IR.createLabel(null, ast.getToken().span, allocator));
-                    try rhs_label_list.append(try IR.createLabel(null, ast.getToken().span, allocator));
+                    try lhs_label_list.append(try IR.createLabel(self, ast.getToken().span, allocator));
+                    try rhs_label_list.append(try IR.createLabel(self, ast.getToken().span, allocator));
                 }
                 std.debug.assert(lhs_label_list.items.len == ast.match.mappings.items.len);
 
@@ -2098,10 +2085,10 @@ pub const CFG = struct {
                 const temp = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
 
                 // Labels used
-                const cond_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const current_continue_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const else_label = try IR.createLabel(null, ast.getToken().span, allocator);
-                const end_label = try IR.createLabel(null, ast.getToken().span, allocator);
+                const cond_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const current_continue_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const else_label = try IR.createLabel(self, ast.getToken().span, allocator);
+                const end_label = try IR.createLabel(self, ast.getToken().span, allocator);
 
                 // If there's a let, then do it, dumby!
                 if (ast._while.let) |let| {
@@ -2165,14 +2152,14 @@ pub const CFG = struct {
                     var error_labels = std.ArrayList(*IR).init(allocator);
                     defer error_labels.deinit();
                     for (ast.block.scope.?.defers.items) |_| {
-                        try continue_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
-                        try break_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
-                        try return_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
+                        try continue_labels.append(try IR.createLabel(self, ast.getToken().span, allocator));
+                        try break_labels.append(try IR.createLabel(self, ast.getToken().span, allocator));
+                        try return_labels.append(try IR.createLabel(self, ast.getToken().span, allocator));
                     }
                     for (ast.block.scope.?.errdefers.items) |_| {
-                        try error_labels.append(try IR.createLabel(null, ast.getToken().span, allocator));
+                        try error_labels.append(try IR.createLabel(self, ast.getToken().span, allocator));
                     }
-                    const end = try IR.createLabel(null, ast.getToken().span, allocator);
+                    const end = try IR.createLabel(self, ast.getToken().span, allocator);
 
                     // These are the labels to go to on each final statement. These are updated to point to different places in the defer chain at the end of this block.
                     var current_continue_label = if (continue_label != null) continue_label else end;
@@ -2308,9 +2295,9 @@ pub const CFG = struct {
         if (lhs_type.* == .product) {
             for (0..lhs_type.product.terms.items.len) |i| {
                 const _type = lhs_type.product.terms.items[i];
-                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
-                const lhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                const rhs_select = try L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
+                const lhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const rhs_select = try L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), allocator);
                 try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
             }
         } else if (lhs_type.* == .sum) {
@@ -2351,8 +2338,8 @@ pub const CFG = struct {
                     continue;
                 }
                 const _type = rhs.get_type().product.terms.items[i];
-                const slots = (try _type.expand_type(scope, errors, allocator)).get_slots();
-                const select = try L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), slots, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
+                const select = try L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), allocator);
                 _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
             }
             return null;
@@ -2385,16 +2372,16 @@ pub const CFG = struct {
         } else if (pattern.* == .product) {
             for (pattern.product.terms.items, 0..) |term, i| {
                 const subscript_type = _type.product.terms.items[i];
-                const slots = (try subscript_type.expand_type(scope, errors, allocator)).get_slots();
-                const offset = try pattern.product.get_offset(i, scope, errors, allocator);
-                const lval = try L_Value.create_select(def, i, offset, slots, subscript_type, try subscript_type.expand_type(scope, errors, allocator), allocator);
+                const size = (try subscript_type.expand_type(scope, errors, allocator)).sizeof();
+                const offset = try _type.product.get_offset(i, scope, errors, allocator);
+                const lval = try L_Value.create_select(def, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), allocator);
                 try self.generate_pattern(scope, term, subscript_type, lval, errors, allocator);
             }
         } else if (pattern.* == .inject) {
             const lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
             const domain = try validate.domainof(pattern, lhs_type, scope, errors, allocator);
-            const slots = (try domain.expand_type(scope, errors, allocator)).get_slots();
-            const lval = try L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, slots, domain, try domain.expand_type(scope, errors, allocator), allocator);
+            const size = (try domain.expand_type(scope, errors, allocator)).sizeof();
+            const lval = try L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, try domain.expand_type(scope, errors, allocator), allocator);
             try self.generate_pattern(scope, pattern.inject.rhs, domain, lval, errors, allocator);
         }
     }
@@ -2440,9 +2427,10 @@ pub const CFG = struct {
             .product => {
                 for (pattern.?.product.terms.items, 0..) |term, i| {
                     const subscript_type = new_expr.get_type().product.terms.items[i];
-                    const slots = (try subscript_type.expand_type(scope, errors, allocator)).get_slots();
-                    const offset = try pattern.?.product.get_offset(i, scope, errors, allocator);
-                    const lval = try L_Value.create_select(new_expr, i, offset, slots, subscript_type, try subscript_type.expand_type(scope, errors, allocator), allocator);
+                    const size = (try subscript_type.expand_type(scope, errors, allocator)).sizeof();
+                    const pattern_type = try (try pattern.?.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+                    const offset = try pattern_type.product.get_offset(i, scope, errors, allocator);
+                    const lval = try L_Value.create_select(new_expr, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), allocator);
                     try self.generate_match_pattern_check(scope, term, lval, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
             },

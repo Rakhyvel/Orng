@@ -373,11 +373,14 @@ fn validate_AST_internal(
             defer scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = try Context.init(cfg, &scope.module.?.instructions, ast._comptime.symbol.?._type.function.rhs.get_slots(), cfg.offset.?);
-            var ir_data = try context.interpret();
+            const ret_type = try ast._comptime.symbol.?._type.function.rhs.expand_type(scope, errors, allocator);
+            var context = Context.init(cfg, &scope.module.?.instructions, ret_type, cfg.offset.?);
+            context.interpret() catch |err| switch (err) {
+                error.interpreter_panic => return ast.enpoison(),
+            };
 
             // Extract the retval
-            return try ir_data.to_ast(ast.getToken(), allocator);
+            return try context.extract_ast(0, ret_type, allocator);
         },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);

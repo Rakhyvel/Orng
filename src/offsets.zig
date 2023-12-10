@@ -6,20 +6,20 @@ const symbol_ = @import("symbol.zig");
 // ```
 //       |         |
 // sp -> |         |
-//    +4 | ------- | \
-//    +3 | local 2 |  |
-//    +2 | ------- |  |
-//    +1 | local 1 |  |
+//       | ------- | \
+//       | local 2 |  |
+//       | ------- |  |
+//       | local 1 |  |
 // bp -> | ret-adr |  | - callee stack frame
-//    -1 | prev-bp |  |
-//    -2 | prev-sp |  |
-//    -3 | &retval |  | \
-//    -4 | ------- |  |  |
-//    -5 | arg 1   |  |  |
-//    -6 | ------- |  |  |
-//    -7 | arg 2   | /   | - caller stack frame
-//    -8 | ------- |     |
-//    -9 | local 2 |     |
+//    -8 | prev-bp |  |
+//   -16 | prev-sp |  |
+//   -24 | &retval |  | \
+//       | ------- |  |  |
+//       | arg 1   |  |  |
+//       | ------- |  |  |
+//       | arg 2   | /   | - caller stack frame
+//       | ------- |     |
+//       | local 2 |     |
 // ```
 //
 // - Entry (caller)
@@ -40,13 +40,14 @@ const symbol_ = @import("symbol.zig");
 //     * bp := pop  (set bp to prev-bp)
 //     * sp := pop  (deallocate all params)
 
-pub const retval_offset = -3;
-pub const locals_starting_offset = 1;
+// bp offset of a frame's retval address
+pub const retval_offset: i64 = -3 * @sizeOf(i64);
+pub const locals_starting_offset = 8;
 
 /// Calculate offsets for each local and parameter in a function.
 pub fn calculate_offsets(
     symbol: *symbol_.Symbol, //< Represents the symbol of a function.
-) i64 //< Number of slots used for locals by the function.
+) i64 //< Number of bytes used for locals by the function.
 {
     symbol.cfg.?.return_symbol.offset = null; // return value is set using an out-parameter
 
@@ -54,7 +55,7 @@ pub fn calculate_offsets(
     var param_offsets: i64 = retval_offset;
     if (symbol.decl.?.* == .fnDecl) {
         for (symbol.decl.?.fnDecl.param_symbols.items) |param| {
-            param_offsets -= param.expanded_type.?.get_slots();
+            param_offsets -= @as(i64, @intCast(param.expanded_type.?.sizeof()));
             param.offset = param_offsets;
         }
     }
@@ -64,10 +65,15 @@ pub fn calculate_offsets(
     for (symbol.cfg.?.symbvers.items) |symbver| {
         if (symbver.symbol.offset == null) {
             symbver.symbol.offset = local_offsets;
-            local_offsets += symbver.symbol.expanded_type.?.get_slots();
+            local_offsets += @as(i64, @intCast(symbver.symbol.expanded_type.?.sizeof()));
         }
     }
 
-    // The total number of slots used for locals
-    return local_offsets - locals_starting_offset - 1;
+    // The total number of bytes used for locals
+    return local_offsets - locals_starting_offset - 8;
+}
+
+pub fn next_alignment(address: i64, align_to: i64) i64 {
+    const div = @divTrunc(address - 1, align_to);
+    return div * align_to + align_to;
 }

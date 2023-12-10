@@ -13,23 +13,23 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1142_main(void);
+int64_t _1166_main(void);
 
 /* Function definitions */
-int64_t _1142_main(void) {
-    int64_t _1142_t1;
-    int64_t _1142_t2;
-    struct0 _1143_x;
-    int64_t _1142_$retval;
-    _1142_t1 = 50;
-    _1142_t2 = 5;
-    _1143_x = (struct0) {_1142_t1, _1142_t2};
-    _1143_x._1 = 6;
-    _1142_$retval = $add_int64_t(_1143_x._0, _1143_x._1, "tests/integration/tuples/select-copy.orng:5:10:\n    x.a + x.b\n        ^");
-    return _1142_$retval;
+int64_t _1166_main(void) {
+    int64_t _1166_t1;
+    int64_t _1166_t2;
+    struct0 _1167_x;
+    int64_t _1166_$retval;
+    _1166_t1 = 50;
+    _1166_t2 = 5;
+    _1167_x = (struct0) {_1166_t1, _1166_t2};
+    _1167_x._1 = 6;
+    _1166_$retval = $add_int64_t(_1167_x._0, _1167_x._1, "tests/integration/tuples/select-copy.orng:5:10:\n    x.a + x.b\n        ^");
+    return _1166_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1142_main());
+  printf("%ld",_1166_main());
   return 0;
 }

@@ -6,6 +6,7 @@ const module_ = @import("module.zig");
 const offsets = @import("offsets.zig");
 const optimizations = @import("optimizations.zig");
 const _span = @import("span.zig");
+const primitives_ = @import("primitives.zig");
 
 const AST = ast.AST;
 const CFG = ir_.CFG;
@@ -257,7 +258,7 @@ pub const Symbol = struct {
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
             try self.cfg.?.collect_generated_symbvers();
-            self.cfg.?.slots = offsets.calculate_offsets(self);
+            self.cfg.?.locals_size = offsets.calculate_offsets(self);
         }
         return self.cfg.?;
     }
@@ -542,6 +543,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
         .symbol => {
             // TODO: Clean this up
             if (pattern.symbol.kind == ._const) {
+                // `const` symbol, surround with comptime
                 const definition = try AST.createComptime(init.getToken(), init, allocator);
                 const comptime_symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
                 if (scope.lookup(comptime_symbol.name, false)) |first| {
@@ -569,6 +571,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
                 pattern.symbol.symbol = symbol;
                 try symbols.append(symbol);
             } else if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
+                // Regular `let` or `mut` symbol, not `_`
                 const symbol = try Symbol.create(
                     scope,
                     pattern.symbol.name,
@@ -582,11 +585,15 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
                 pattern.symbol.symbol = symbol;
                 try symbols.append(symbol);
             } else if (pattern.symbol.kind != .let) {
+                // It is an error for `_` to be marked as `const` or `mut`
                 errors.addError(Error{ .discard_marked = .{
                     .span = pattern.getToken().span,
                     .kind = pattern.symbol.kind,
                 } });
                 return error.symbolError;
+            } else {
+                // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
+                pattern.symbol.symbol = primitives_.blackhole;
             }
         },
         .product => {

@@ -340,7 +340,8 @@
         - [x] `default` prefix operator, which takes a type and returns the default value for that type
         - [x] define type inference and defaults for variable declarations in terms of `typeof` and `default`
             > This will require some fenangling, but it should be possible.
-        - [ ] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
+        - [x] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
+            - [ ] stretch goal: `<` and `>` for subtypes
         - [ ] `sizeof`
             > Don't like this. Interpreter memory unit is the slot, not the byte. Would cause confusion. Perhaps sizeof should trap for interpretation.
 - [ ] build system (built upon compile-time evaluation) (1/21/24)
@@ -354,13 +355,13 @@
             - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
         > be able to include C source files, and header directories
         > be able to link static and dynamic libraries
+    - [ ] `pub` keyword
     - [ ] import syntax before any definitions `["from" package {"." package}] "import" module ["as" ident]`
         > Packages are directories, mapped in the build file
         > This allows dependencies to be simple
         > Also makes canonical names the norm
         > `module` is the filename in the package without the `.orng`, so file names have to abide by identifier syntax
     - [ ] `::` for module selection
-    - [ ] `pub` keyword
     - [ ] `fn main(sys: System)->!()`
         > System contains:
             - args: []String // the command line args
@@ -401,16 +402,66 @@
 - [ ] Collections
     - [ ] List
         - [ ] `map`, `filter`, `reduce`
+        - [ ] `Array_List`, `Double_Linked_List`
     - [ ] HashMap
 - [ ] IO
+    - [ ] `class Writer`
+    - [ ] `class Reader`
 - [ ] Debug (?)
+    - [ ] `print()`
+    - [ ] `assert()`
+    - [ ] `dump_currect_stack_trace()`
 - [ ] Memory
+    - [ ] `class Allocator`
+    - [ ] `let const Fixed_Buffer_Allocator`
+    - [ ] `let const Arena_Allocator`
+    - [ ] `impl Eq for []T\Eq`
 - [ ] Strings
     - [ ] String Buffer
-    - [ ] Ascii and Unicode stuff
+- [ ] UTF8
+    - [ ] `utf8_byte_sequence_length()`
+    - [ ] `utf8_decode()`
+    - [ ] `utf8_count_codepoints`
+- [ ] ASCII
+    - [ ] `is_whitespace()`
+    - [ ] `is_lower()`
+    - [ ] `is_upper()`
+    - [ ] `is_digit()`
+    - [ ] `is_alphanumeric()`
 - [ ] Testing
+    - [ ] `expect()`
+    - [ ] `expect_equal()`
 - [ ] Process
+    - [ ] something like `subprocess.Popen` in Python
 - [ ] Threads
+- [ ] Fmt
+    - [ ] `class Format`
+    - [ ] `parse_int()`
+    - [ ] `parse_float()`
+- [ ] Rand
+    - [ ] `prng()`
+- [ ] File System
+    - [ ] `let const MAX_PATH_BYTES`
+    - [ ] `realpath()`
+    - [ ] `cwd()`
+- [ ] Math
+    - [ ] `add() // does overflow check`
+    - [ ] `sub() // does overflow check`
+    - [ ] `mul() // does overflow check`
+    - [ ] `lossy_cast()`
+- [ ] prelude?
+    - [ ] `@::tag_name()`
+    - [ ] `@::as()`
+    - [ ] `@::int_cast()`
+    - [ ] `@::int_from_sum_tag()`
+    - [ ] `@::div_trunc()`
+    - [ ] `@::rem()`
+    - [ ] `@::mod()`
+    - [ ] `@::int_from_float()`
+    - [ ] `@::int_from_bool()`
+    - [ ] `@::truncate()`
+    - [ ] `@::sum_from_tag()`
+- [ ] C stdlib headers, even python imports!
 
 ### Language Server
 - [ ] Highlighting

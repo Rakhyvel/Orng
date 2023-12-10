@@ -1,39 +1,51 @@
 const std = @import("std");
+const ast_ = @import("ast.zig");
 const ir_ = @import("ir.zig");
+const primitives_ = @import("primitives.zig");
 const offsets_ = @import("offsets.zig");
+const token_ = @import("token.zig");
 const span_ = @import("span.zig");
+const symbol_ = @import("symbol.zig");
 
-const stack_limit = 2048;
+const stack_limit = 0x4000;
+const uninit_byte: u8 = 0x58; // It is, in general, not a good idea to memset to 0x00!
+const halt_trap: i64 = 0xFFFF_FFFF_FFF0;
 
 pub const Context = struct {
-    stack: [stack_limit]ir_.IRData,
-    stack_pointer: i128,
-    base_pointer: i128,
+    stack: [stack_limit]u8,
+    stack_pointer: i64,
+    base_pointer: i64,
 
     instructions: *std.ArrayList(*ir_.IR),
-    instruction_pointer: i128,
+    instruction_pointer: i64,
 
-    pub fn init(cfg: *ir_.CFG, instructions: *std.ArrayList(*ir_.IR), ret_slots: i64, entry_point: i128) !Context {
+    pub fn init(
+        cfg: *ir_.CFG,
+        instructions: *std.ArrayList(*ir_.IR), // Flat list of instructions to interpret
+        ret_type: *ast_.AST,
+        entry_point: i64, // Address of the intruction to start execution at
+    ) Context {
+        const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
         var retval = Context{
-            .stack = [_]ir_.IRData{.none} ** stack_limit,
-            .stack_pointer = 5 + cfg.slots.?,
-            .base_pointer = 4,
+            .stack = [_]u8{uninit_byte} ** stack_limit,
+            .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
+            .base_pointer = (4 * @sizeOf(i64)) + frame_address,
 
             .instructions = instructions,
             .instruction_pointer = entry_point,
         };
 
-        // First `ret_slots` slots are reserved for the return value
+        // First `ret_type.sizeof()` bytes are reserved for the return value
         // Initial stack frame is setup immediately after
-        retval.stack[@as(usize, @intCast(ret_slots + 0))] = ir_.IRData{ .int = 0 }; // Set the return value address to 0
-        retval.stack[@as(usize, @intCast(ret_slots + 1))] = ir_.IRData{ .int = 0 }; // Set the prev-bp to 0
-        retval.stack[@as(usize, @intCast(ret_slots + 2))] = ir_.IRData{ .int = 0 }; // Set the prev-sp to 0
-        retval.stack[@as(usize, @intCast(ret_slots + 3))] = ir_.IRData{ .int = -2 }; // Set the return address to -2 (negative is sentinel to halt)
+        retval.store_int(frame_address + 0 * @sizeOf(i64), @sizeOf(i64), 0); // Set the return value address to 0
+        retval.store_int(frame_address + 1 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-bp to 0
+        retval.store_int(frame_address + 2 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-sp to 0
+        retval.store_int(frame_address + 3 * @sizeOf(i64), @sizeOf(i64), halt_trap); // Set the return address to halt trap value
 
         return retval;
     }
 
-    fn get_lval(self: *Context, lval: *ir_.L_Value) i128 {
+    fn get_lval(self: *Context, lval: *ir_.L_Value) i64 {
         switch (lval.*) {
             .symbver => {
                 if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
@@ -41,18 +53,18 @@ pub const Context = struct {
                     //     retval := val
                     // and replace with:
                     //     retval^ := val
-                    return self.load(self.base_pointer + offsets_.retval_offset).int;
+                    return self.load(i64, self.base_pointer + offsets_.retval_offset);
                 } else {
                     return self.base_pointer + lval.symbver.symbol.offset.?;
                 }
             },
             .dereference => {
-                return self.load(self.get_lval(lval.dereference.expr)).int;
+                return self.load(i64, self.get_lval(lval.dereference.expr));
             },
             .index => {
                 const base = self.get_lval(lval.index.lhs);
-                const index = self.load(self.get_lval(lval.index.rhs)).int;
-                return base + index * lval.index.slots;
+                const index = self.load(i64, self.get_lval(lval.index.rhs));
+                return base + index * lval.index.size;
             },
             .select => {
                 const base = self.get_lval(lval.select.lhs);
@@ -61,64 +73,102 @@ pub const Context = struct {
         }
     }
 
-    // Stores a value into a slot addressed with an absolute address
-    inline fn store(self: *Context, address: i128, val: ir_.IRData) void {
-        // std.debug.print("{}^ := {}\n", .{ address, val });
-        self.stack[@as(usize, @intCast(address))] = val;
+    fn store(self: *Context, comptime T: type, address: i64, val: T) void {
+        // std.debug.print("store {} {}\n", .{ address, @alignOf(T) });
+        @as(*T, @alignCast(@ptrCast(&self.stack[@as(usize, @intCast(address))]))).* = val;
     }
 
-    inline fn store_lval(self: *Context, dest: *ir_.L_Value, val: ir_.IRData) void {
-        const addr = self.get_lval(dest);
-        self.store(addr, val);
-    }
-
-    // Loads a value from a slot addressed with an absolute address
-    inline fn load(self: *Context, address: i128) ir_.IRData {
-        return self.stack[@as(usize, @intCast(address))];
-    }
-
-    fn move(self: *Context, dest: i128, src: i128, slots: i128) void {
-        std.debug.assert(slots >= 0); // slots=0 for units!
-        for (0..@as(usize, @intCast(slots))) |i| {
-            self.store(dest + i, self.load(src + i));
+    fn store_int(self: *Context, address: i64, size: i64, val: i128) void {
+        switch (size) {
+            1 => self.store(i8, address, @as(i8, @intCast(val))),
+            2 => self.store(i16, address, @as(i16, @intCast(val))),
+            4 => self.store(i32, address, @as(i32, @intCast(val))),
+            8 => self.store(i64, address, @as(i64, @intCast(val))),
+            else => {
+                std.debug.print("cannot store an int of size {}\n", .{size});
+                unreachable;
+            },
         }
     }
 
-    fn move_symbver_list(self: *Context, dest: i128, list: *std.ArrayList(*ir_.L_Value)) void {
+    fn store_float(self: *Context, address: i64, size: i64, val: f64) void {
+        switch (size) {
+            4 => self.store(f32, address, @as(f32, @floatCast(val))),
+            8 => self.store(f64, address, val),
+            else => unreachable,
+        }
+    }
+
+    fn load(self: *Context, comptime T: type, address: i64) T {
+        // std.debug.print("store {} {}\n", .{ address, @alignOf(T) });
+        return @as(*T, @ptrCast(@alignCast(&self.stack[@as(usize, @intCast(address))]))).*;
+    }
+
+    fn load_int(self: *Context, address: i64, size: i64) i128 {
+        return switch (size) {
+            1 => self.load(i8, address),
+            2 => self.load(i16, address),
+            4 => self.load(i32, address),
+            8 => self.load(i64, address),
+            else => unreachable,
+        };
+    }
+
+    fn load_float(self: *Context, address: i64, size: i64) f64 {
+        return switch (size) {
+            4 => self.load(f32, address),
+            8 => self.load(f64, address),
+            else => unreachable,
+        };
+    }
+
+    fn move(self: *Context, dest: i64, src: i64, len: i64) void {
+        if (len == 0) {
+            // moving no bytes is a no-op
+            return;
+        }
+        std.debug.assert(dest != src); // dest is not src
+        if (dest > src) {
+            std.debug.assert(dest >= src + len); // dest is not within src
+        } else {
+            std.debug.assert(src >= dest + len); // src is not within dest
+        }
+        @memcpy(self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))], self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))]);
+    }
+
+    fn move_symbver_list(self: *Context, dest: i64, list: *std.ArrayList(*ir_.L_Value)) void {
         var cursor = dest;
         for (list.items) |lval| {
-            const slots = lval.get_slots();
-            self.move(cursor, self.get_lval(lval), slots);
-            cursor += slots;
+            const len = lval.sizeof();
+            self.move(cursor, self.get_lval(lval), len);
+            cursor += len;
         }
     }
 
-    inline fn push(self: *Context, val: ir_.IRData) void {
-        self.stack[@as(usize, @intCast(self.stack_pointer))] = val;
-        self.stack_pointer += 1;
+    fn push_int(self: *Context, size: i64, val: i128) void {
+        self.store_int(self.stack_pointer, size, val);
+        self.stack_pointer += size;
     }
 
-    fn push_move(self: *Context, addr: i128, slots: i128) void {
-        for (0..@as(usize, @intCast(slots))) |i| {
-            self.stack[@as(usize, @intCast(self.stack_pointer))] = self.stack[@as(usize, @intCast(addr + i))];
-            self.stack_pointer += 1;
-        }
+    fn push_move(self: *Context, addr: i64, size: i64) void {
+        self.move(self.stack_pointer, addr, size);
+        self.stack_pointer += size;
     }
 
-    inline fn pop(self: *Context) ir_.IRData {
-        self.stack_pointer -= 1;
-        return self.stack[@as(usize, @intCast(self.stack_pointer))];
+    fn pop_int(self: *Context, size: i64) i128 {
+        self.stack_pointer -= size;
+        return self.load_int(self.stack_pointer, size);
     }
 
-    inline fn ret(self: *Context) void {
+    fn ret(self: *Context) void {
         // deallocate locals
-        self.stack_pointer = self.base_pointer + 1;
+        self.stack_pointer = self.base_pointer + 8;
         // jump to return-address
-        self.instruction_pointer = self.pop().int;
+        self.instruction_pointer = @as(i64, @intCast(self.pop_int(8)));
         // restore previous base-pointer
-        self.base_pointer = self.pop().int;
+        self.base_pointer = @as(i64, @intCast(self.pop_int(8)));
         // restore previous stack-pointer, deallocate params, deallocate return-pointer
-        self.stack_pointer = self.pop().int;
+        self.stack_pointer = @as(i64, @intCast(self.pop_int(8)));
         // self.print_registers();
     }
 
@@ -134,64 +184,26 @@ pub const Context = struct {
             } else if (i == self.base_pointer) {
                 std.debug.print("bp:", .{});
             }
-            std.debug.print("{} ", .{self.stack[i]});
+            std.debug.print("{x:0>2.}", .{self.stack[i]});
+            if (@rem(i, 8) == 7) {
+                std.debug.print(" ", .{});
+            }
         }
         std.debug.print("]\n", .{});
     }
 
-    pub fn interpret(self: *Context) !ir_.IRData {
+    pub fn interpret(self: *Context) error{interpreter_panic}!void {
         var buffer: [1024]u8 = undefined;
         var fba = std.heap.FixedBufferAllocator.init(&buffer);
         var debug_call_stack: std.ArrayList(span_.Span) = std.ArrayList(span_.Span).init(fba.allocator());
         defer debug_call_stack.deinit();
 
         // Halt whenever instruction pointer is negative
-        while (self.instruction_pointer >= 0) : (self.instruction_pointer += 1) {
+        while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
             // self.print_stack();
+            // self.print_registers();
             // std.debug.print("\n{}", .{ir});
-
-            if (ir.meta == .bounds_check) {
-                // IR has a bounds to be checked
-                const length = self.load(self.get_lval(ir.meta.bounds_check.length));
-                const src2_data = self.load(self.get_lval(ir.src2.?));
-                if (0 > src2_data.int or src2_data.int >= length.int) {
-                    // Bounds check fails, append line and panic
-                    try debug_call_stack.append(ir.span);
-                    var i = debug_call_stack.items.len - 1;
-                    while (true) {
-                        // var span = debug_call_stack.items[i];
-                        // try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
-
-                        if (i == 0) {
-                            break;
-                        } else {
-                            i -= 1;
-                        }
-                    }
-                    return ir_.IRData.none;
-                }
-            } else if (ir.meta == .active_field_check) {
-                // IR has an active field to check
-                const tag = self.load(self.get_lval(ir.meta.active_field_check.tag));
-                if (tag.int != ir.meta.active_field_check.selection) {
-                    // Active field check fails, append line and panic
-                    try debug_call_stack.append(ir.span);
-                    var i = debug_call_stack.items.len - 1;
-                    std.debug.print("panic: attempt to access field {} when field {} was active\n", .{ ir.meta.active_field_check.selection, tag.int });
-                    while (true) {
-                        // var span = debug_call_stack.items[i];
-                        // try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
-
-                        if (i == 0) {
-                            break;
-                        } else {
-                            i -= 1;
-                        }
-                    }
-                    return ir_.IRData.none;
-                }
-            }
 
             switch (ir.kind) {
                 // Invalid interpreter operations
@@ -202,149 +214,150 @@ pub const Context = struct {
                 // Nop
                 .loadUnit => {},
 
-                // 1-slot literals
-                .loadInt,
-                .loadFloat,
-                .loadString,
-                .loadSymbol,
-                .loadAST,
-                => self.store_lval(ir.dest.?, ir.data),
+                // Data
+                .loadInt => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int),
+                .loadFloat => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
+                .loadString => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
+                .loadSymbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
+                .loadAST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
 
                 // Tuples
                 .loadStruct => self.move_symbver_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
 
                 .loadUnion => {
                     if (ir.src1 != null) {
-                        // Store data
-                        self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.dest.?.get_slots());
+                        // Store data into first field
+                        self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                     }
-                    // Store tag in last slot
-                    self.store(self.get_lval(ir.dest.?) + ir.dest.?.get_slots() - 1, ir.data);
+                    // Store tag in last field
+                    self.store(i64, self.get_lval(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
                 },
 
                 // Monadic operations
                 .copy => {
-                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.dest.?.get_slots()); // TODO: Integration test that all ir.dest.?.get_slots() work with data of more than one slot
+                    std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
+                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.dest.?.sizeof());
                 },
                 .not => {
-                    var data = self.load(self.get_lval(ir.src1.?));
-                    data.int = if (data.int != 0) 0 else 1;
-                    self.store_lval(ir.dest.?, data);
+                    var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    data = if (data != 0) 0 else 1;
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
                 },
                 .negate_int => {
-                    var data = self.load(self.get_lval(ir.src1.?));
-                    data.int = -data.int;
-                    self.store_lval(ir.dest.?, data);
+                    var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    data = -data;
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
                 },
                 .negate_float => {
-                    var data = self.load(self.get_lval(ir.src1.?));
-                    data.float = -data.float;
-                    self.store_lval(ir.dest.?, data);
+                    var data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    data = -data;
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
                 },
                 .addrOf => {
-                    const data = ir_.IRData{ .int = self.get_lval(ir.src1.?) };
-                    self.store_lval(ir.dest.?, data);
+                    const data = self.get_lval(ir.src1.?);
+                    self.store_int(self.get_lval(ir.dest.?), 8, data);
                 },
 
                 // Diadic instructions
                 .equal => {
-                    var src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.equals(src2_data)) 1 else 0 });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data == src2_data) 1 else 0);
                 },
                 .not_equal => {
-                    var src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (!src1_data.equals(src2_data)) 1 else 0 });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data != src2_data) 1 else 0);
                 },
                 .greater_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int > src2_data.int) 1 else 0 });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
                 },
                 .greater_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float > src2_data.float) 1 else 0 });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
                 },
                 .lesser_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int < src2_data.int) 1 else 0 });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
                 },
                 .lesser_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float < src2_data.float) 1 else 0 });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
                 },
                 .greater_equal_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int >= src2_data.int) 1 else 0 });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
                 },
                 .greater_equal_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float >= src2_data.float) 1 else 0 });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
                 },
                 .lesser_equal_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.int <= src2_data.int) 1 else 0 });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
                 },
                 .lesser_equal_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = if (src1_data.float <= src2_data.float) 1 else 0 });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
                 },
                 .add_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int + src2_data.int });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data + src2_data);
                 },
                 .add_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float + src2_data.float });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data + src2_data);
                 },
                 .sub_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int - src2_data.int });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data - src2_data);
                 },
                 .sub_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float - src2_data.float });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data - src2_data);
                 },
                 .mult_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = src1_data.int * src2_data.int });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data * src2_data);
                 },
                 .mult_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float * src2_data.float });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data * src2_data);
                 },
                 .div_int => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = @divTrunc(src1_data.int, src2_data.int) });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(src1_data, src2_data));
                 },
                 .div_float => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .float = src1_data.float / src2_data.float });
+                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(src1_data, src2_data));
                 },
                 .mod => {
-                    const src1_data = self.load(self.get_lval(ir.src1.?));
-                    const src2_data = self.load(self.get_lval(ir.src2.?));
-                    self.store_lval(ir.dest.?, ir_.IRData{ .int = @rem(src1_data.int, src2_data.int) });
+                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @rem(src1_data, src2_data));
                 },
                 .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
-                    const last_slot_offset = ir.src1.?.get_slots() - 1;
-                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + last_slot_offset, 1);
+                    const tag_offset = ir.src1.?.sizeof() - 8;
+                    std.debug.assert(ir.dest.?.sizeof() == 8);
+                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + tag_offset, 8);
                 },
                 .cast => {
                     std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
@@ -363,7 +376,7 @@ pub const Context = struct {
                     }
                 },
                 .branchIfFalse => {
-                    if (self.load(self.get_lval(ir.src1.?)).int != 0) {
+                    if (self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof()) != 0) {
                         if (ir.data.branch_bb.next) |next| {
                             self.instruction_pointer = next.offset.?;
                         } else {
@@ -380,35 +393,35 @@ pub const Context = struct {
                     }
                 },
                 .call => { // dest = src1(lval_list...)
-                    const symbol = self.load(self.get_lval(ir.src1.?)).symbol;
+                    const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(self.get_lval(ir.src1.?), 8))));
 
                     // Save old stack pointer
                     const old_sp = self.stack_pointer;
                     //  push args in reverse order
                     if (ir.data.lval_list.items.len > 0) {
                         var i = ir.data.lval_list.items.len - 1;
-                        var slots: i128 = undefined;
+                        var size: i64 = undefined;
                         while (i > 0) : (i -= 1) {
-                            slots = ir.data.lval_list.items[i].get_expanded_type().get_slots();
-                            self.push_move(self.get_lval(ir.data.lval_list.items[i]), slots);
+                            size = ir.data.lval_list.items[i].get_expanded_type().sizeof();
+                            self.push_move(self.get_lval(ir.data.lval_list.items[i]), size);
                         }
-                        slots = ir.data.lval_list.items[i].get_expanded_type().get_slots();
-                        self.push_move(self.get_lval(ir.data.lval_list.items[i]), slots);
+                        size = ir.data.lval_list.items[i].get_expanded_type().sizeof();
+                        self.push_move(self.get_lval(ir.data.lval_list.items[i]), size);
                     }
 
-                    //  push dest address
-                    self.push(ir_.IRData{ .int = self.get_lval(ir.dest.?) });
-                    //  push old sp
-                    self.push(ir_.IRData{ .int = old_sp });
-                    //  push bp
-                    self.push(ir_.IRData{ .int = self.base_pointer });
-                    //  push ret-addr
-                    self.push(ir_.IRData{ .int = self.instruction_pointer });
-                    //  bp := sp
-                    self.base_pointer = self.stack_pointer - 1;
+                    // push return-value address
+                    self.push_int(8, self.get_lval(ir.dest.?));
+                    // push old sp
+                    self.push_int(8, old_sp);
+                    // push bp
+                    self.push_int(8, self.base_pointer);
+                    // push return address
+                    self.push_int(8, self.instruction_pointer);
+                    // bp := sp
+                    self.base_pointer = self.stack_pointer - 8;
 
                     // allocate space for locals
-                    self.stack_pointer += symbol.cfg.?.slots.?;
+                    self.stack_pointer += symbol.cfg.?.locals_size.?;
 
                     // jump to symbol addr
                     self.instruction_pointer = symbol.cfg.?.offset.?;
@@ -420,7 +433,7 @@ pub const Context = struct {
 
                 // Errors
                 .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
-                    try debug_call_stack.append(ir.span);
+                    debug_call_stack.append(ir.span) catch unreachable;
                 },
                 .popStackTrace => { // Pops a message off the stack after a function is successfully called
                     _ = debug_call_stack.pop();
@@ -437,11 +450,51 @@ pub const Context = struct {
                             i -= 1;
                         }
                     }
-                    return ir_.IRData.none;
+                    return error.interpreter_panic;
                 },
             }
         }
+    }
 
-        return self.load(0);
+    pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST {
+        switch (_type.*) {
+            .identifier => {
+                const info = primitives_.get(_type.getToken().data);
+                switch (info.type_kind) {
+                    .type => return @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8)))),
+                    .none => unreachable,
+                    .signed_integer => return try ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator),
+                    .unsigned_integer => return try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, info.size), allocator),
+                    .floating_point => return try ast_.AST.createFloat(token_.Token.create_simple("float"), self.load_float(address, info.size), allocator),
+                }
+            },
+            .addrOf, .function => return try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator),
+            .unit_type => return try ast_.AST.createUnitValue(_type.getToken(), allocator),
+            .sum => {
+                var retval = try ast_.AST.createInferredMember(_type.getToken(), try ast_.AST.createIdentifier(token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                const tag = self.load_int(address + _type.sizeof() - 8, 8);
+                retval.inferredMember.pos = tag;
+                retval.inferredMember.base = _type;
+                const proper_term: *ast_.AST = _type.sum.terms.items[@as(usize, @intCast(tag))];
+                retval.inferredMember.init = try self.extract_ast(address, proper_term, allocator);
+                return retval;
+            },
+            .product => {
+                var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+                errdefer value_terms.deinit();
+                var offset: i64 = 0;
+                for (_type.product.terms.items) |term| {
+                    const extracted_term = try self.extract_ast(address + offset, term, allocator);
+                    try value_terms.append(extracted_term);
+                    offset += term.sizeof();
+                }
+                return try ast_.AST.createProduct(_type.getToken(), value_terms, allocator);
+            },
+            .annotation => return try self.extract_ast(address, _type.annotation.type, allocator),
+            else => {
+                std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
+                return error.Unimplemented;
+            },
+        }
     }
 };

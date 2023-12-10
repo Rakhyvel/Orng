@@ -21,40 +21,40 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _987_main(void);
+int64_t _1011_main(void);
 
 /* Function definitions */
-int64_t _987_main(void) {
-    int64_t _987_t1;
-    int64_t _987_t2;
-    int64_t _987_t3;
-    int64_t _987_t4;
-    int64_t _987_t5;
-    struct0 _988_x;
-    int64_t _987_t7;
-    int64_t* _987_t8;
-    int64_t _987_t9;
-    struct1 _988_y;
-    int64_t _987_t10;
-    int64_t _987_t11;
-    int64_t _987_$retval;
-    _987_t1 = 1;
-    _987_t2 = 2;
-    _987_t3 = 3;
-    _987_t4 = 4;
-    _987_t5 = 5;
-    _988_x = (struct0) {_987_t1, _987_t2, _987_t3, _987_t4, _987_t5};
-    _987_t7 = 0;
-    _987_t8 = ((int64_t*)&_988_x + _987_t7);
-    _987_t9 = 5;
-    _988_y = (struct1) {_987_t8, _987_t9};
-    _987_t10 = 2;
-    _987_t11 = 77;
-    _987_$retval = $add_int64_t(*((int64_t*)_988_y._0 + _987_t10), _987_t11, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
-    return _987_$retval;
+int64_t _1011_main(void) {
+    int64_t _1011_t1;
+    int64_t _1011_t2;
+    int64_t _1011_t3;
+    int64_t _1011_t4;
+    int64_t _1011_t5;
+    struct0 _1012_x;
+    int64_t _1011_t7;
+    int64_t* _1011_t8;
+    int64_t _1011_t9;
+    struct1 _1012_y;
+    int64_t _1011_t10;
+    int64_t _1011_t11;
+    int64_t _1011_$retval;
+    _1011_t1 = 1;
+    _1011_t2 = 2;
+    _1011_t3 = 3;
+    _1011_t4 = 4;
+    _1011_t5 = 5;
+    _1012_x = (struct0) {_1011_t1, _1011_t2, _1011_t3, _1011_t4, _1011_t5};
+    _1011_t7 = 0;
+    _1011_t8 = ((int64_t*)&_1012_x + _1011_t7);
+    _1011_t9 = 5;
+    _1012_y = (struct1) {_1011_t8, _1011_t9};
+    _1011_t10 = 2;
+    _1011_t11 = 77;
+    _1011_$retval = $add_int64_t(*((int64_t*)_1012_y._0 + _1011_t10), _1011_t11, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
+    return _1011_$retval;
 }
 
 int main(void) {
-  printf("%ld",_987_main());
+  printf("%ld",_1011_main());
   return 0;
 }

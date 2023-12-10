@@ -15,29 +15,29 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1108_main(void);
+int64_t _1132_main(void);
 
 /* Function definitions */
-int64_t _1108_main(void) {
-    int64_t _1108_t1;
-    int64_t _1108_t2;
-    int64_t _1108_t3;
-    int64_t _1108_t4;
-    struct0 _1109_x;
-    int64_t* _1109_y;
-    int64_t _1108_$retval;
-    _1108_t1 = 1;
-    _1108_t2 = 2;
-    _1108_t3 = 3;
-    _1108_t4 = 4;
-    _1109_x = (struct0) {_1108_t1, _1108_t2, _1108_t3, _1108_t4};
-    _1109_y = &_1109_x._3;
-    *_1109_y = 66;
-    _1108_$retval = _1109_x._3;
-    return _1108_$retval;
+int64_t _1132_main(void) {
+    int64_t _1132_t1;
+    int64_t _1132_t2;
+    int64_t _1132_t3;
+    int64_t _1132_t4;
+    struct0 _1133_x;
+    int64_t* _1133_y;
+    int64_t _1132_$retval;
+    _1132_t1 = 1;
+    _1132_t2 = 2;
+    _1132_t3 = 3;
+    _1132_t4 = 4;
+    _1133_x = (struct0) {_1132_t1, _1132_t2, _1132_t3, _1132_t4};
+    _1133_y = &_1133_x._3;
+    *_1133_y = 66;
+    _1132_$retval = _1133_x._3;
+    return _1132_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1108_main());
+  printf("%ld",_1132_main());
   return 0;
 }

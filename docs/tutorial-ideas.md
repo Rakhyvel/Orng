@@ -54,6 +54,9 @@
 - Compile-time execution
     - When is it done?!
     - Type reflection
+- Packages/modules/build system
+    - `main` entry function
+    - `sys: System` input tuple
 - Traits
     - Implementing Iterable and Iterator for custom types
     - Implementing generators

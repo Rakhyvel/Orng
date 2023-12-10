@@ -214,18 +214,18 @@ pub const Module = struct {
     /// instructions for the CFG start.
     ///
     /// Returns the index in the cfg in the cfgs list.
-    pub fn append_instructions(self: *Module, cfg: *CFG) !usize {
-        const len = self.cfgs.items.len;
+    pub fn append_instructions(self: *Module, cfg: *CFG) !i64 {
+        const len = @as(i64, @intCast(self.cfgs.items.len));
         if (cfg.offset != null) {
             // Already visited, do nothing
             return len;
         } else if (cfg.block_graph_head == null) {
             // CFG doesn't have any real instructions. Insert phony BB.
-            cfg.offset = try self.append_phony_block();
+            cfg.offset = try self.append_phony_block(cfg);
             try self.cfgs.append(cfg);
         } else {
             // Normal CFG with instructions, append BBs to instructions list, recursively append children
-            cfg.offset = try self.append_basic_block(cfg.block_graph_head.?);
+            cfg.offset = try self.append_basic_block(cfg.block_graph_head.?, cfg);
             try self.cfgs.append(cfg);
 
             for (cfg.children.items) |child| {
@@ -237,7 +237,7 @@ pub const Module = struct {
 
     /// Appends the instructions in a BasicBlock to the module's instructions.
     /// Returns the offset of the basic block
-    fn append_basic_block(self: *Module, first_bb: *ir_.BasicBlock) !i128 {
+    fn append_basic_block(self: *Module, first_bb: *ir_.BasicBlock, cfg: *ir_.CFG) !i64 {
         var work_queue = std.ArrayList(*ir_.BasicBlock).init(self.allocator);
         defer work_queue.deinit();
         try work_queue.append(first_bb);
@@ -249,8 +249,8 @@ pub const Module = struct {
                 continue;
             }
 
-            bb.offset = self.instructions.items.len;
-            var label = try ir_.IR.createLabel(bb.uid, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
+            bb.offset = @as(i64, @intCast(self.instructions.items.len));
+            var label = try ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
             label.uid = bb.uid;
             try self.instructions.append(label);
 
@@ -280,15 +280,17 @@ pub const Module = struct {
     /// This function inserts a label and a return instruction. It is needed for functions which do not have
     /// instructions. The label is needed so that codegen can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
-    fn append_phony_block(self: *Module) !i128 {
-        const offset = self.instructions.items.len;
-        try self.instructions.append(try ir_.IR.createLabel(0, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+    fn append_phony_block(self: *Module, cfg: *CFG) !i64 {
+        const offset = @as(i64, @intCast(self.instructions.items.len));
+        // Append a label which has a back-reference to the CFG
+        try self.instructions.append(try ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+        // Append a return instruction (a jump to null)
         try self.instructions.append(try ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
         return offset;
     }
 
-    pub fn pop_cfg(self: *Module, idx: usize) void {
-        _ = self.cfgs.orderedRemove(idx);
+    pub fn pop_cfg(self: *Module, idx: i64) void {
+        _ = self.cfgs.orderedRemove(@as(usize, @intCast(idx)));
     }
 
     pub fn print_instructions(self: *Module) void {

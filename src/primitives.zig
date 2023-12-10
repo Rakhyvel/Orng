@@ -30,6 +30,8 @@ pub var word16_type: *AST = undefined;
 pub var word32_type: *AST = undefined;
 pub var word64_type: *AST = undefined;
 
+pub var blackhole: *Symbol = undefined;
+
 pub const Primitive_Info = struct {
     name: []const u8,
     c_name: []const u8,
@@ -37,8 +39,9 @@ pub const Primitive_Info = struct {
     ast: *AST,
     symbol: *Symbol,
     type_class: Type_Class,
-    signed_integer: bool,
+    type_kind: Type_Kind,
     default_value: ?*AST,
+    size: i64,
 
     pub fn is_eq(self: Primitive_Info) bool {
         return self.type_class == .eq or self.is_ord();
@@ -63,6 +66,14 @@ pub const Type_Class = enum {
     eq,
     ord,
     num,
+};
+
+pub const Type_Kind = enum {
+    type,
+    none,
+    signed_integer,
+    unsigned_integer,
+    floating_point,
 };
 
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
@@ -101,7 +112,7 @@ pub fn get_scope() !*Scope {
         _ = try create_prelude_symbol("String", type_type, byte_slice_type, true);
         _ = try create_prelude_symbol("Type", type_type, null, true);
         _ = try create_prelude_symbol("Void", type_type, null, true);
-        _ = try create_prelude_symbol("_", unit_type, try AST.createUnitValue(Token.create_simple("{}"), std.heap.page_allocator), true);
+        blackhole = try create_prelude_symbol("_", unit_type, try AST.createUnitValue(Token.create_simple("{}"), std.heap.page_allocator), true);
 
         // Setup default values
         const default_bool = try AST.createFalse(Token.create_simple("false"), std.heap.page_allocator);
@@ -112,23 +123,23 @@ pub fn get_scope() !*Scope {
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
-        try create_info("Bool", null, "uint8_t", bool_type, null, .eq, false, default_bool);
-        try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num, false, default_int);
-        try create_info("Char", null, "uint32_t", char_type, null, .ord, false, default_char);
-        try create_info("Float", null, "double", float_type, null, .num, false, default_float);
-        try create_info("Float32", null, "float", float32_type, null, .num, false, default_float);
-        try create_info("Float64", null, "double", float64_type, float_type, .num, false, default_float);
-        try create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num, true, default_int);
-        try create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num, true, default_int);
-        try create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num, true, default_int);
-        try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, true, default_int);
-        try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, true, default_int);
-        try create_info("String", null, "NO C EQUIVALENT!", string_type, byte_slice_type, .none, false, default_string);
-        try create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .eq, false, null);
-        try create_info("Void", null, "NO C EQUIVALENT!", void_type, null, .none, false, null);
-        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, false, default_int);
-        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, false, default_int);
-        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, false, default_int);
+        try create_info("Bool", null, "uint8_t", bool_type, null, .eq, .unsigned_integer, default_bool, 1);
+        try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num, .unsigned_integer, default_int, 1);
+        try create_info("Char", null, "uint32_t", char_type, null, .ord, .unsigned_integer, default_char, 4);
+        try create_info("Float", null, "double", float_type, null, .num, .floating_point, default_float, 8);
+        try create_info("Float32", null, "float", float32_type, null, .num, .floating_point, default_float, 4);
+        try create_info("Float64", null, "double", float64_type, float_type, .num, .floating_point, default_float, 8);
+        try create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num, .signed_integer, default_int, 8);
+        try create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num, .signed_integer, default_int, 1);
+        try create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num, .signed_integer, default_int, 2);
+        try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, .signed_integer, default_int, 4);
+        try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, .signed_integer, default_int, 8);
+        try create_info("String", null, "NO C EQUIVALENT!", string_type, byte_slice_type, .none, .none, default_string, 0);
+        try create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .eq, .type, null, 8);
+        try create_info("Void", null, "NO C EQUIVALENT!", void_type, null, .none, .none, null, 0);
+        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, .unsigned_integer, default_int, 2);
+        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, .unsigned_integer, default_int, 4);
+        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, .unsigned_integer, default_int, 8);
     }
     return prelude.?;
 }
@@ -152,8 +163,9 @@ fn create_info(
     _ast: *AST, // The AST representation of the type
     alias: ?*AST, // Optional alias for primitive (TODO: Aliases aren't actually supported... this is a new type!)
     type_class: Type_Class, // Typeclass this primitive belongs to
-    signed_integer: bool, // Whether the primitive is a signed integer (TODO: This is goobersville)
+    type_kind: Type_Kind, // What kind of type this type is
     default_value: ?*AST, // Optional AST of default value for the primitive
+    size: i64, // Size of values of the type in bytes
 ) !void {
     const symbol = try create_prelude_symbol(name, type_type, alias, true);
     try primitives.put(name, Primitive_Info{
@@ -163,8 +175,9 @@ fn create_info(
         .ast = _ast,
         .symbol = symbol,
         .type_class = type_class,
-        .signed_integer = signed_integer,
+        .type_kind = type_kind,
         .default_value = default_value,
+        .size = size,
     });
 }
 
@@ -205,5 +218,5 @@ pub fn represents_signed_primitive(_type: *AST) bool {
         return false;
     }
     const info = primitives.get(_type.getToken().data) orelse return false;
-    return info.signed_integer;
+    return info.type_kind == .signed_integer;
 }
