@@ -75,9 +75,7 @@ pub const Parser = struct {
         or nextKind == .STRING //
         or nextKind == .MULTI_LINE //
         or nextKind == .NOT or
-            nextKind == .TYPEOF or
-            nextKind == .DEFAULT or
-            nextKind == .SIZEOF;
+            nextKind == .AT;
     }
 
     fn next_is_statement(self: *Parser) bool {
@@ -420,12 +418,26 @@ pub const Parser = struct {
             return try AST.createNot(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.COMPTIME)) |token| {
             return try AST.createComptime(token, try self.invoke_expr(), self.astAllocator);
-        } else if (self.accept(.TYPEOF)) |token| {
-            return try AST.createTypeOf(token, try self.prefix_expr(), self.astAllocator);
-        } else if (self.accept(.DEFAULT)) |token| {
-            return try AST.createDefault(token, try self.invoke_expr(), self.astAllocator);
-        } else if (self.accept(.SIZEOF)) |token| {
-            return try AST.createSizeOf(token, try self.prefix_expr(), self.astAllocator);
+        } else if (self.accept(.AT)) |_| {
+            if (self.accept(.TYPEOF)) |token| {
+                _ = try self.expect(.L_PAREN);
+                const exp = try self.annotation_expr();
+                _ = try self.expect(.R_PAREN);
+                return try AST.createTypeOf(token, exp, self.astAllocator);
+            } else if (self.accept(.DEFAULT)) |token| {
+                _ = try self.expect(.L_PAREN);
+                const exp = try self.annotation_expr();
+                _ = try self.expect(.R_PAREN);
+                return try AST.createDefault(token, exp, self.astAllocator);
+            } else if (self.accept(.SIZEOF)) |token| {
+                _ = try self.expect(.L_PAREN);
+                const exp = try self.annotation_expr();
+                _ = try self.expect(.R_PAREN);
+                return try AST.createSizeOf(token, exp, self.astAllocator);
+            } else {
+                self.errors.addError(Error{ .comptime_known = .{ .span = self.peek().span, .what = "array lengths" } });
+                return error.parserError;
+            }
         } else if (self.accept(.MINUS)) |token| {
             return try AST.createNegate(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {

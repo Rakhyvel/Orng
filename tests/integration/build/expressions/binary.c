@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _404_main(void);
+int64_t _423_main(void);
 
 /* Function definitions */
-int64_t _404_main(void) {
-    int64_t _404_$retval;
-    _404_$retval = 10;
-    return _404_$retval;
+int64_t _423_main(void) {
+    int64_t _423_$retval;
+    _423_$retval = 10;
+    return _423_$retval;
 }
 
 int main(void) {
-  printf("%ld",_404_main());
+  printf("%ld",_423_main());
   return 0;
 }

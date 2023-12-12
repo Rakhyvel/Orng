@@ -45,6 +45,10 @@ pub const Error = union(enum) {
         span: Span,
         what: []const u8, // what must be compile-time known?
     },
+    unrecognized_builtin: struct {
+        span: Span,
+        what: []const u8, // what's unrecognized?
+    },
 
     // Symbol
     redefinition: struct {
@@ -163,6 +167,7 @@ pub const Error = union(enum) {
             .expected2Token => return self.expected2Token.got.span,
             .missing_close => return self.missing_close.got.span,
             .comptime_known => return self.comptime_known.span,
+            .unrecognized_builtin => return self.unrecognized_builtin.span,
 
             .redefinition => return self.redefinition.redefined_span,
             .symbol_error => return self.symbol_error.span,
@@ -242,6 +247,9 @@ pub const Errors = struct {
                 },
                 .comptime_known => {
                     try out.print("{s} must be compile-time known\n", .{err.comptime_known.what});
+                },
+                .unrecognized_builtin => {
+                    try out.print("`@{s}` is not a recognized built-in function\n", .{err.unrecognized_builtin.what});
                 },
 
                 // Symbol

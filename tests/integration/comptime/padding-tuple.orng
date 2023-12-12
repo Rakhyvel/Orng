@@ -7,7 +7,7 @@ let const My_Type = (
 
 fn main() -> Int {
     let m: My_Type = (100, 50, 7)
-    f(m) + sizeof typeof m
+    f(m) + @sizeof(@typeof(m))
 }
 
 fn f(m: My_Type) -> Int {

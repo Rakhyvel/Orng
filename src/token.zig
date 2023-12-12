@@ -85,6 +85,7 @@ pub const TokenKind = enum(u32) {
     PERIOD,
     Q_MARK,
     SEMICOLON,
+    AT,
 
     // Open/Close
     L_BRACE,
@@ -105,6 +106,7 @@ pub const TokenKind = enum(u32) {
     EOF,
 
     // HACK: Used to count how many constructors are in the enum
+    // (yes, this is needed in Zig)
     len,
 
     pub fn is_binop(self: TokenKind) bool {
@@ -333,6 +335,7 @@ pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
         .Q_MARK => "?",
         .SEMICOLON => ";",
         .MULTI_LINE => "<multi-line>",
+        .AT => "@",
 
         // Open/Close
         .L_BRACE => "{",

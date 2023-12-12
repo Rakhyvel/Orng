@@ -10,6 +10,6 @@ fn main() -> Int {
 
 // A way to provide a default value for a type
 // This is _really_ useful for generic functions (soon!)
-fn add_fields(scale: Int, mt: My_Type = default My_Type) -> Int {
+fn add_fields(scale: Int, mt: My_Type = @default(My_Type)) -> Int {
     (mt.x + mt.y) / scale
 }

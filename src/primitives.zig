@@ -152,7 +152,7 @@ pub fn get_scope() !*Scope {
         default_int8.int.represents = int8_type;
         default_int16.int.represents = int16_type;
         default_int32.int.represents = int32_type;
-        default_int64.int.represents = int64_type;
+        default_int64.int.represents = int_type;
 
         default_word8.int.represents = byte_type;
         default_word16.int.represents = word16_type;

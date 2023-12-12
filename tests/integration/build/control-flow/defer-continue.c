@@ -7,54 +7,54 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _190_main(void);
+int64_t _209_main(void);
 
 /* Function definitions */
-int64_t _190_main(void) {
-    int64_t _191_x;
-    int64_t _190_t2;
-    uint8_t _190_t3;
-    int64_t _190_t5;
-    int64_t _190_t6;
-    int64_t _190_t7;
-    uint8_t _190_t9;
-    int64_t _190_t10;
-    int64_t _190_$retval;
-    int64_t _190_t12;
-    _191_x = 17;
+int64_t _209_main(void) {
+    int64_t _210_x;
+    int64_t _209_t2;
+    uint8_t _209_t3;
+    int64_t _209_t5;
+    int64_t _209_t6;
+    int64_t _209_t7;
+    uint8_t _209_t9;
+    int64_t _209_t10;
+    int64_t _209_$retval;
+    int64_t _209_t12;
+    _210_x = 17;
     goto BB1;
 BB1:
-    _190_t2 = 36;
-    _190_t3 = _191_x < _190_t2;
-    if (_190_t3) {
+    _209_t2 = 36;
+    _209_t3 = _210_x < _209_t2;
+    if (_209_t3) {
         goto BB2;
     } else {
         goto BB14;
     }
 BB2:
-    _190_t5 = 2;
-    _190_t6 = $mod_int64_t(_191_x, _190_t5, "tests/integration/control-flow/defer-continue.orng:6:15:\n        if x % 2 == 0 {continue}\n             ^");
-    _190_t7 = 0;
-    _190_t9 = _190_t6 == _190_t7;
-    if (_190_t9) {
+    _209_t5 = 2;
+    _209_t6 = $mod_int64_t(_210_x, _209_t5, "tests/integration/control-flow/defer-continue.orng:6:15:\n        if x % 2 == 0 {continue}\n             ^");
+    _209_t7 = 0;
+    _209_t9 = _209_t6 == _209_t7;
+    if (_209_t9) {
         goto BB6;
     } else {
         goto BB10;
     }
 BB14:
-    _190_$retval = _191_x;
-    return _190_$retval;
+    _209_$retval = _210_x;
+    return _209_$retval;
 BB6:
-    _190_t12 = 9;
-    _191_x = $add_int64_t(_191_x, _190_t12, "tests/integration/control-flow/defer-continue.orng:5:19:\n        defer x += 9\n                 ^");
+    _209_t12 = 9;
+    _210_x = $add_int64_t(_210_x, _209_t12, "tests/integration/control-flow/defer-continue.orng:5:19:\n        defer x += 9\n                 ^");
     goto BB1;
 BB10:
-    _190_t10 = 1;
-    _191_x = $add_int64_t(_191_x, _190_t10, "tests/integration/control-flow/defer-continue.orng:7:13:\n        x += 1\n           ^");
+    _209_t10 = 1;
+    _210_x = $add_int64_t(_210_x, _209_t10, "tests/integration/control-flow/defer-continue.orng:7:13:\n        x += 1\n           ^");
     goto BB6;
 }
 
 int main(void) {
-  printf("%ld",_190_main());
+  printf("%ld",_209_main());
   return 0;
 }
