@@ -1,0 +1,12 @@
+// 255
+fn main() -> Int {
+    comptime f(20, 40, 60)
+}
+
+fn f(x: Int8, y: Int16, z: Int8) -> Int {
+    if x == 20 and y == 40 and z == 60 {
+        255
+    } else {
+        unreachable
+    }
+}

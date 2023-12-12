@@ -7,38 +7,38 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _241_main(void);
+int64_t _249_main(void);
 
 /* Function definitions */
-int64_t _241_main(void) {
-    int64_t _243_x;
-    int64_t _241_t2;
-    uint8_t _241_t3;
-    int64_t _241_t4;
-    int64_t _241_t7;
-    int64_t _241_$retval;
-    _243_x = 0;
+int64_t _249_main(void) {
+    int64_t _251_x;
+    int64_t _249_t2;
+    uint8_t _249_t3;
+    int64_t _249_t4;
+    int64_t _249_t7;
+    int64_t _249_$retval;
+    _251_x = 0;
     goto BB1;
 BB1:
-    _241_t2 = 10;
-    _241_t3 = _243_x < _241_t2;
-    if (_241_t3) {
+    _249_t2 = 10;
+    _249_t3 = _251_x < _249_t2;
+    if (_249_t3) {
         goto BB2;
     } else {
         goto BB6;
     }
 BB2:
-    _241_t4 = 1;
-    _243_x = $add_int64_t(_243_x, _241_t4, "tests/integration/control-flow/while-else.orng:4:13:\n        x += 1\n           ^");
-    _241_t7 = 1;
-    _243_x = $add_int64_t(_243_x, _241_t7, "tests/integration/control-flow/while-else.orng:3:43:\n    while let mut x: Int = 0; x < 10; x += 1 {\n                                         ^");
+    _249_t4 = 1;
+    _251_x = $add_int64_t(_251_x, _249_t4, "tests/integration/control-flow/while-else.orng:4:13:\n        x += 1\n           ^");
+    _249_t7 = 1;
+    _251_x = $add_int64_t(_251_x, _249_t7, "tests/integration/control-flow/while-else.orng:3:43:\n    while let mut x: Int = 0; x < 10; x += 1 {\n                                         ^");
     goto BB1;
 BB6:
-    _241_$retval = _243_x;
-    return _241_$retval;
+    _249_$retval = _251_x;
+    return _249_$retval;
 }
 
 int main(void) {
-  printf("%ld",_241_main());
+  printf("%ld",_249_main());
   return 0;
 }

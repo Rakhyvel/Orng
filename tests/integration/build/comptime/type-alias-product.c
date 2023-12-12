@@ -13,22 +13,22 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _148_main(void);
+int64_t _156_main(void);
 
 /* Function definitions */
-int64_t _148_main(void) {
-    int64_t _148_t1;
-    int64_t _148_t2;
-    struct0 _149_x;
-    int64_t _148_$retval;
-    _148_t1 = 200;
-    _148_t2 = 40;
-    _149_x = (struct0) {_148_t1, _148_t2};
-    _148_$retval = $add_int64_t(_149_x._0, _149_x._1, "tests/integration/comptime/type-alias-product.orng:6:10:\n    x.a + x.b\n        ^");
-    return _148_$retval;
+int64_t _156_main(void) {
+    int64_t _156_t1;
+    int64_t _156_t2;
+    struct0 _157_x;
+    int64_t _156_$retval;
+    _156_t1 = 200;
+    _156_t2 = 40;
+    _157_x = (struct0) {_156_t1, _156_t2};
+    _156_$retval = $add_int64_t(_157_x._0, _157_x._1, "tests/integration/comptime/type-alias-product.orng:6:10:\n    x.a + x.b\n        ^");
+    return _156_$retval;
 }
 
 int main(void) {
-  printf("%ld",_148_main());
+  printf("%ld",_156_main());
   return 0;
 }

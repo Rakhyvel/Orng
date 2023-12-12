@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint32_t _1021_main(void);
+uint32_t _1029_main(void);
 
 /* Function definitions */
-uint32_t _1021_main(void) {
-    uint32_t _1021_$retval;
-    _1021_$retval = 34;
-    return _1021_$retval;
+uint32_t _1029_main(void) {
+    uint32_t _1029_$retval;
+    _1029_$retval = 34;
+    return _1029_$retval;
 }
 
 int main(void) {
-  printf("%d",_1021_main());
+  printf("%d",_1029_main());
   return 0;
 }

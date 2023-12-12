@@ -91,6 +91,10 @@ const ASTCommon = struct {
     /// TODO: Postfix with _ to signify private
     size: ?i64 = null,
 
+    /// The alignment for values of this type.
+    /// In general it is *NOT* true that size == alignof, especially for products and sums.
+    alignof: ?i64 = null,
+
     /// The validation status of the AST
     validation_state: Validation_State = .unvalidated,
 };
@@ -462,8 +466,7 @@ pub const AST = union(enum) {
     /// Retrieves the size in bytes of an AST node.
     pub fn sizeof(self: *AST) i64 {
         if (self.getCommon().size == null) {
-            // memoize call
-            self.getCommon().size = self.sizeof_internal();
+            self.getCommon().size = self.sizeof_internal(); // memoize call
         }
 
         return self.getCommon().size.?;
@@ -503,6 +506,49 @@ pub const AST = union(enum) {
 
             else => {
                 std.debug.print("Unimplemented sizeof for {}\n", .{self});
+                unreachable;
+            },
+        }
+    }
+
+    pub fn alignof(self: *AST) i64 {
+        if (self.getCommon().alignof == null) {
+            self.getCommon().alignof = self.alignof_internal(); // memoize call
+        }
+
+        return self.getCommon().alignof.?;
+    }
+
+    fn alignof_internal(self: *AST) i64 {
+        switch (self.*) {
+            .identifier => {
+                const info = primitives.get(self.getToken().data);
+                return info.size;
+            },
+
+            .product => {
+                return self.product.terms.items[0].alignof();
+            },
+
+            .sum => {
+                var max_align: i64 = 0;
+                for (self.sum.terms.items) |child| {
+                    const child_align = child.alignof();
+                    if (max_align < child_align) {
+                        max_align = child_align;
+                    }
+                }
+                return max_align;
+            },
+
+            .function, .addrOf => return 8,
+
+            .unit_type => return 1, // fogedda bout it
+
+            .annotation => return self.annotation.type.alignof(),
+
+            else => {
+                std.debug.print("Unimplemented alignof for {}\n", .{self});
                 unreachable;
             },
         }

@@ -7,23 +7,23 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _402_main(void);
+int64_t _410_main(void);
 
 /* Function definitions */
-int64_t _402_main(void) {
-    int64_t _403_x;
-    int64_t* _402_t2;
-    int64_t* _402_t3;
-    int64_t _402_$retval;
-    _403_x = 5;
-    _402_t2 = &_403_x;
-    *_402_t2 = 74;
-    _402_t3 = &_403_x;
-    _402_$retval = *_402_t3;
-    return _402_$retval;
+int64_t _410_main(void) {
+    int64_t _411_x;
+    int64_t* _410_t2;
+    int64_t* _410_t3;
+    int64_t _410_$retval;
+    _411_x = 5;
+    _410_t2 = &_411_x;
+    *_410_t2 = 74;
+    _410_t3 = &_411_x;
+    _410_$retval = *_410_t3;
+    return _410_$retval;
 }
 
 int main(void) {
-  printf("%ld",_402_main());
+  printf("%ld",_410_main());
   return 0;
 }

@@ -15,20 +15,20 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _759_main(void);
+int64_t _767_main(void);
 
 /* Function definitions */
-int64_t _759_main(void) {
-    int64_t _759_t2;
-    struct0 _760_x;
-    int64_t _759_$retval;
-    _759_t2 = 125;
-    _760_x = (struct0) {.tag=1, ._1=_759_t2};
-    _759_$retval = _760_x._1;
-    return _759_$retval;
+int64_t _767_main(void) {
+    int64_t _767_t2;
+    struct0 _768_x;
+    int64_t _767_$retval;
+    _767_t2 = 125;
+    _768_x = (struct0) {.tag=1, ._1=_767_t2};
+    _767_$retval = _768_x._1;
+    return _767_$retval;
 }
 
 int main(void) {
-  printf("%ld",_759_main());
+  printf("%ld",_767_main());
   return 0;
 }

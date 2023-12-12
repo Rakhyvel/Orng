@@ -15,10 +15,14 @@ const symbol_ = @import("symbol.zig");
 //   -16 | prev-sp |  |
 //   -24 | &retval |  | \
 //       | ------- |  |  |
-//       | arg 1   |  |  |
+//       | - pad - |  |  |
 //       | ------- |  |  |
-//       | arg 2   | /   | - caller stack frame
-//       | ------- |     |
+//   -28 | arg 1   |  |  |
+//       | arg 2   |  |  |
+//   -30 | arg 2   | /   | - caller stack frame
+//       | - pad - |     |
+//   -32 | arg 3   |     |
+//       | - pad - |     |
 //       | local 2 |     |
 // ```
 //
@@ -39,6 +43,9 @@ const symbol_ = @import("symbol.zig");
 //     * ip := pop  (set ip to ret-addr)
 //     * bp := pop  (set bp to prev-bp)
 //     * sp := pop  (deallocate all params)
+//
+// There is padding before, in between, and after parameters, locals, and tuple fields so that each
+// location is aligned to a multiple of it's size in bytes.
 
 // bp offset of a frame's retval address
 pub const retval_offset: i64 = -3 * @sizeOf(i64);
@@ -52,11 +59,27 @@ pub fn calculate_offsets(
     symbol.cfg.?.return_symbol.offset = null; // return value is set using an out-parameter
 
     // Calculate parameters offsets, descending from retval address offset
-    var param_offsets: i64 = retval_offset;
+    var phony_sp: i64 = 0;
     if (symbol.decl.?.* == .fnDecl) {
-        for (symbol.decl.?.fnDecl.param_symbols.items) |param| {
-            param_offsets -= @as(i64, @intCast(param.expanded_type.?.sizeof()));
-            param.offset = param_offsets;
+        const items = symbol.decl.?.fnDecl.param_symbols.items;
+        // Go through params, as if we were pushing them
+        var i: i64 = @as(i64, @intCast(items.len)) - 1;
+        while (i >= 0) : (i -= 1) {
+            var param: *symbol_.Symbol = items[@as(usize, @intCast(i))];
+            const size = param.expanded_type.?.sizeof();
+            const alignof = param.expanded_type.?.alignof();
+            phony_sp = next_alignment(phony_sp, alignof);
+            param.offset = phony_sp;
+            phony_sp += size;
+        }
+
+        // Push a "header" word of alignment 8. Pretend this has the offset of the header. Adjust the offsets
+        // set before accordingly
+        const header = next_alignment(phony_sp, 8);
+        // Have to do this stupid round-a-bout way because we don't know how much padding to include after the
+        // parameters until we get the offsets of each parameter.
+        for (items) |param| {
+            param.offset.? -= header - retval_offset;
         }
     }
 
@@ -64,6 +87,7 @@ pub fn calculate_offsets(
     var local_offsets: i64 = locals_starting_offset;
     for (symbol.cfg.?.symbvers.items) |symbver| {
         if (symbver.symbol.offset == null) {
+            local_offsets = next_alignment(local_offsets, symbver.symbol.expanded_type.?.alignof());
             symbver.symbol.offset = local_offsets;
             local_offsets += @as(i64, @intCast(symbver.symbol.expanded_type.?.sizeof()));
         }
@@ -74,6 +98,13 @@ pub fn calculate_offsets(
 }
 
 pub fn next_alignment(address: i64, align_to: i64) i64 {
-    const div = @divTrunc(address - 1, align_to);
-    return div * align_to + align_to;
+    if (address == 0) {
+        return address;
+    } else if (address > 0) {
+        const div = @divTrunc(address - 1, align_to);
+        return div * align_to + align_to;
+    } else {
+        const div = @divTrunc(address + 1, align_to);
+        return div * align_to - align_to;
+    }
 }

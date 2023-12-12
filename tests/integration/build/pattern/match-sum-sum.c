@@ -24,51 +24,51 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _942_main(void);
+int64_t _950_main(void);
 
 /* Function definitions */
-int64_t _942_main(void) {
-    int64_t _942_t1;
-    struct0 _942_t2;
-    struct1 _943_x;
-    struct0 _949_y;
-    uint64_t _942_t19;
-    uint64_t _942_t20;
-    uint8_t _942_t21;
-    uint64_t _942_t22;
-    uint64_t _942_t23;
-    uint8_t _942_t24;
-    int64_t _942_$retval;
-    int64_t _942_t18;
-    _942_t1 = 173;
-    _942_t2 = (struct0) {.tag=0, ._0=_942_t1};
-    _943_x = (struct1) {.tag=1, ._1=_942_t2};
-    _949_y = _943_x._1;
-    _942_t19 = 0;
-    _942_t20 = _949_y.tag;
-    _942_t21 = _942_t20 == _942_t19;
-    if (_942_t21) {
+int64_t _950_main(void) {
+    int64_t _950_t1;
+    struct0 _950_t2;
+    struct1 _951_x;
+    struct0 _957_y;
+    uint64_t _950_t19;
+    uint64_t _950_t20;
+    uint8_t _950_t21;
+    uint64_t _950_t22;
+    uint64_t _950_t23;
+    uint8_t _950_t24;
+    int64_t _950_$retval;
+    int64_t _950_t18;
+    _950_t1 = 173;
+    _950_t2 = (struct0) {.tag=0, ._0=_950_t1};
+    _951_x = (struct1) {.tag=1, ._1=_950_t2};
+    _957_y = _951_x._1;
+    _950_t19 = 0;
+    _950_t20 = _957_y.tag;
+    _950_t21 = _950_t20 == _950_t19;
+    if (_950_t21) {
         goto BB20;
     } else {
         goto BB22;
     }
 BB20:
-    _942_t18 = _949_y._0;
+    _950_t18 = _957_y._0;
     goto BB21;
 BB22:
-    _942_t22 = 1;
-    _942_t23 = _949_y.tag;
-    _942_t24 = _942_t23 == _942_t22;
-    if (_942_t24) {
+    _950_t22 = 1;
+    _950_t23 = _957_y.tag;
+    _950_t24 = _950_t23 == _950_t22;
+    if (_950_t24) {
         goto BB24;
     } else {
         goto BB26;
     }
 BB21:
-    _942_$retval = _942_t18;
-    return _942_$retval;
+    _950_$retval = _950_t18;
+    return _950_$retval;
 BB24:
-    _942_t18 = _949_y._1;
+    _950_t18 = _957_y._1;
     goto BB21;
 BB26:
     $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:15:32:\n            else => unreachable\n                              ^";
@@ -76,6 +76,6 @@ BB26:
 }
 
 int main(void) {
-  printf("%ld",_942_main());
+  printf("%ld",_950_main());
   return 0;
 }

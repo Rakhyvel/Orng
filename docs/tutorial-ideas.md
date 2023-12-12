@@ -1,4 +1,5 @@
 ## Basic of the language
+<!-- I like https://qmonnet.github.io/whirl-offload/ blog's theme, make it Orange! -->
 - Basic types
     - Math
     - Booleans

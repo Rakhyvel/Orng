@@ -14,49 +14,49 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _812_main(void);
+int64_t _820_main(void);
 
 /* Function definitions */
-int64_t _812_main(void) {
-    int64_t _812_t1;
-    int64_t _812_t2;
-    int64_t _812_t3;
-    struct0 _813_x;
-    int64_t _812_t4;
-    int64_t* _813_a;
-    int64_t _812_t6;
-    int64_t* _813_b;
-    int64_t _812_t8;
-    int64_t* _813_c;
-    int64_t _812_t11;
-    int64_t _812_t12;
-    int64_t _812_t13;
-    struct0 _812_t10;
-    int64_t _812_t14;
-    int64_t _812_$retval;
-    _812_t1 = 0;
-    _812_t2 = 0;
-    _812_t3 = 0;
-    _813_x = (struct0) {_812_t1, _812_t2, _812_t3};
-    _812_t4 = 0;
-    _813_a = ((int64_t*)&_813_x + _812_t4);
-    _812_t6 = 1;
-    _813_b = ((int64_t*)&_813_x + _812_t6);
-    _812_t8 = 2;
-    _813_c = ((int64_t*)&_813_x + _812_t8);
-    _812_t11 = 100;
-    _812_t12 = 30;
-    _812_t13 = 30;
-    _812_t10 = (struct0) {_812_t11, _812_t12, _812_t13};
-    *_813_a = _812_t10._0;
-    *_813_b = _812_t10._1;
-    *_813_c = _812_t10._2;
-    _812_t14 = $add_int64_t(*_813_a, *_813_b, "tests/integration/pattern/assign-deref-product.orng:8:9:\n    a^ + b^ + c^\n       ^");
-    _812_$retval = $add_int64_t(_812_t14, *_813_c, "tests/integration/pattern/assign-deref-product.orng:8:14:\n    a^ + b^ + c^\n            ^");
-    return _812_$retval;
+int64_t _820_main(void) {
+    int64_t _820_t1;
+    int64_t _820_t2;
+    int64_t _820_t3;
+    struct0 _821_x;
+    int64_t _820_t4;
+    int64_t* _821_a;
+    int64_t _820_t6;
+    int64_t* _821_b;
+    int64_t _820_t8;
+    int64_t* _821_c;
+    int64_t _820_t11;
+    int64_t _820_t12;
+    int64_t _820_t13;
+    struct0 _820_t10;
+    int64_t _820_t14;
+    int64_t _820_$retval;
+    _820_t1 = 0;
+    _820_t2 = 0;
+    _820_t3 = 0;
+    _821_x = (struct0) {_820_t1, _820_t2, _820_t3};
+    _820_t4 = 0;
+    _821_a = ((int64_t*)&_821_x + _820_t4);
+    _820_t6 = 1;
+    _821_b = ((int64_t*)&_821_x + _820_t6);
+    _820_t8 = 2;
+    _821_c = ((int64_t*)&_821_x + _820_t8);
+    _820_t11 = 100;
+    _820_t12 = 30;
+    _820_t13 = 30;
+    _820_t10 = (struct0) {_820_t11, _820_t12, _820_t13};
+    *_821_a = _820_t10._0;
+    *_821_b = _820_t10._1;
+    *_821_c = _820_t10._2;
+    _820_t14 = $add_int64_t(*_821_a, *_821_b, "tests/integration/pattern/assign-deref-product.orng:8:9:\n    a^ + b^ + c^\n       ^");
+    _820_$retval = $add_int64_t(_820_t14, *_821_c, "tests/integration/pattern/assign-deref-product.orng:8:14:\n    a^ + b^ + c^\n            ^");
+    return _820_$retval;
 }
 
 int main(void) {
-  printf("%ld",_812_main());
+  printf("%ld",_820_main());
   return 0;
 }

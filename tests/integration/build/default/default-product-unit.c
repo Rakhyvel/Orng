@@ -12,24 +12,24 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _288_main(void);
+int64_t _296_main(void);
 
 /* Function definitions */
-int64_t _288_main(void) {
-    int64_t _288_t2;
-    struct0 _289_x;
-    struct0* _289_y;
-    int64_t _288_t5;
-    int64_t _288_$retval;
-    _288_t2 = 0;
-    _289_x = (struct0) {_288_t2, };
-    _289_y = &_289_x;
-    _288_t5 = 140;
-    _288_$retval = $add_int64_t(_288_t5, (*_289_y)._1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
-    return _288_$retval;
+int64_t _296_main(void) {
+    int64_t _296_t2;
+    struct0 _297_x;
+    struct0* _297_y;
+    int64_t _296_t5;
+    int64_t _296_$retval;
+    _296_t2 = 0;
+    _297_x = (struct0) {_296_t2, };
+    _297_y = &_297_x;
+    _296_t5 = 140;
+    _296_$retval = $add_int64_t(_296_t5, (*_297_y)._1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
+    return _296_$retval;
 }
 
 int main(void) {
-  printf("%ld",_288_main());
+  printf("%ld",_296_main());
   return 0;
 }

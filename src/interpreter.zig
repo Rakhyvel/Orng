@@ -7,7 +7,7 @@ const token_ = @import("token.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const stack_limit = 0x4000;
+const stack_limit = 0x1000;
 const uninit_byte: u8 = 0x58; // It is, in general, not a good idea to memset to 0x00!
 const halt_trap: i64 = 0xFFFF_FFFF_FFF0;
 
@@ -74,7 +74,6 @@ pub const Context = struct {
     }
 
     fn store(self: *Context, comptime T: type, address: i64, val: T) void {
-        // std.debug.print("store {} {}\n", .{ address, @alignOf(T) });
         @as(*T, @alignCast(@ptrCast(&self.stack[@as(usize, @intCast(address))]))).* = val;
     }
 
@@ -397,17 +396,17 @@ pub const Context = struct {
 
                     // Save old stack pointer
                     const old_sp = self.stack_pointer;
+                    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
                     //  push args in reverse order
-                    if (ir.data.lval_list.items.len > 0) {
-                        var i = ir.data.lval_list.items.len - 1;
-                        var size: i64 = undefined;
-                        while (i > 0) : (i -= 1) {
-                            size = ir.data.lval_list.items[i].get_expanded_type().sizeof();
-                            self.push_move(self.get_lval(ir.data.lval_list.items[i]), size);
-                        }
-                        size = ir.data.lval_list.items[i].get_expanded_type().sizeof();
-                        self.push_move(self.get_lval(ir.data.lval_list.items[i]), size);
+                    var i: i64 = @as(i64, @intCast(ir.data.lval_list.items.len)) - 1;
+                    while (i >= 0) : (i -= 1) {
+                        const arg = ir.data.lval_list.items[@as(usize, @intCast(i))];
+                        const size = arg.get_expanded_type().sizeof();
+                        const alignof = arg.get_expanded_type().alignof();
+                        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
+                        self.push_move(self.get_lval(arg), size);
                     }
+                    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
 
                     // push return-value address
                     self.push_int(8, self.get_lval(ir.dest.?));

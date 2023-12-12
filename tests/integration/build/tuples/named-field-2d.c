@@ -18,34 +18,34 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1152_main(void);
+int64_t _1160_main(void);
 
 /* Function definitions */
-int64_t _1152_main(void) {
-    int64_t _1152_t2;
-    int64_t _1152_t3;
-    struct0 _1152_t1;
-    int64_t _1152_t5;
-    int64_t _1152_t6;
-    struct0 _1152_t4;
-    struct1 _1153_x;
-    int64_t _1152_t7;
-    int64_t _1152_t8;
-    int64_t _1152_$retval;
-    _1152_t2 = 25;
-    _1152_t3 = 75;
-    _1152_t1 = (struct0) {_1152_t2, _1152_t3};
-    _1152_t5 = 5;
-    _1152_t6 = 90;
-    _1152_t4 = (struct0) {_1152_t5, _1152_t6};
-    _1153_x = (struct1) {_1152_t1, _1152_t4};
-    _1152_t7 = $add_int64_t(_1153_x._0._0, _1153_x._0._1, "tests/integration/tuples/named-field-2d.orng:10:12:\n    x.a.c + x.a.d + x.b.e + x.b.f\n          ^");
-    _1152_t8 = $add_int64_t(_1152_t7, _1153_x._1._0, "tests/integration/tuples/named-field-2d.orng:10:20:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                  ^");
-    _1152_$retval = $add_int64_t(_1152_t8, _1153_x._1._1, "tests/integration/tuples/named-field-2d.orng:10:28:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                          ^");
-    return _1152_$retval;
+int64_t _1160_main(void) {
+    int64_t _1160_t2;
+    int64_t _1160_t3;
+    struct0 _1160_t1;
+    int64_t _1160_t5;
+    int64_t _1160_t6;
+    struct0 _1160_t4;
+    struct1 _1161_x;
+    int64_t _1160_t7;
+    int64_t _1160_t8;
+    int64_t _1160_$retval;
+    _1160_t2 = 25;
+    _1160_t3 = 75;
+    _1160_t1 = (struct0) {_1160_t2, _1160_t3};
+    _1160_t5 = 5;
+    _1160_t6 = 90;
+    _1160_t4 = (struct0) {_1160_t5, _1160_t6};
+    _1161_x = (struct1) {_1160_t1, _1160_t4};
+    _1160_t7 = $add_int64_t(_1161_x._0._0, _1161_x._0._1, "tests/integration/tuples/named-field-2d.orng:10:12:\n    x.a.c + x.a.d + x.b.e + x.b.f\n          ^");
+    _1160_t8 = $add_int64_t(_1160_t7, _1161_x._1._0, "tests/integration/tuples/named-field-2d.orng:10:20:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                  ^");
+    _1160_$retval = $add_int64_t(_1160_t8, _1161_x._1._1, "tests/integration/tuples/named-field-2d.orng:10:28:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                          ^");
+    return _1160_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1152_main());
+  printf("%ld",_1160_main());
   return 0;
 }
