@@ -294,6 +294,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .poison,
         .symbol,
         .domainOf,
+        .sizeOf,
         => {},
 
         ._typeOf => try symbolTableFromAST(definition._typeOf.expr, scope, errors, allocator),

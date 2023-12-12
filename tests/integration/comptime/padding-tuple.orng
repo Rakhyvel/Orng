@@ -1,0 +1,19 @@
+// 257
+let const My_Type = (
+    x: Int8,
+    y: Int16,
+    z: Int8,
+)
+
+fn main() -> Int {
+    let m: My_Type = (100, 50, 7)
+    f(m) + sizeof typeof m
+}
+
+fn f(m: My_Type) -> Int {
+    if m.x == 100 and m.y == 50 and m.z == 7 {
+        252
+    } else {
+        unreachable
+    }
+}

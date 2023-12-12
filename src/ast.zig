@@ -4,6 +4,7 @@ const std = @import("std");
 const _symbol = @import("symbol.zig");
 const tokens = @import("token.zig");
 const _validate = @import("validate.zig");
+const offset_ = @import("offsets.zig");
 
 const Error = errs.Error;
 const Scope = _symbol.Scope;
@@ -289,6 +290,10 @@ pub const AST = union(enum) {
         common: ASTCommon,
         expr: *AST,
     },
+    sizeOf: struct {
+        common: ASTCommon,
+        expr: *AST,
+    },
     domainOf: struct {
         common: ASTCommon,
         sum_expr: *AST,
@@ -405,6 +410,7 @@ pub const AST = union(enum) {
             .discard => return &self.discard.common,
             ._typeOf => return &self._typeOf.common,
             .default => return &self.default.common,
+            .sizeOf => return &self.sizeOf.common,
             .domainOf => return &self.domainOf.common,
             ._comptime => return &self._comptime.common,
 
@@ -482,7 +488,8 @@ pub const AST = union(enum) {
             .product => {
                 var total_size: i64 = 0;
                 for (self.product.terms.items) |child| {
-                    total_size += child.sizeof(); // TODO: Padding
+                    total_size = offset_.next_alignment(total_size, child.alignof());
+                    total_size += child.sizeof();
                 }
                 return total_size;
             },
@@ -495,7 +502,7 @@ pub const AST = union(enum) {
                         max_size = child_size;
                     }
                 }
-                return 8 + max_size; // TODO: Padding :(
+                return offset_.next_alignment(max_size, 8) + 8;
             },
 
             .function, .addrOf => return 8,
@@ -635,6 +642,10 @@ pub const AST = union(enum) {
 
     pub fn createDefault(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .default = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+    }
+
+    pub fn createSizeOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .sizeOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
     pub fn createDomainOf(token: Token, sum_expr: *AST, expr: *AST, allocator: std.mem.Allocator) !*AST {
@@ -1782,6 +1793,7 @@ pub const AST = union(enum) {
             .discard => try out.writer().print("discard()", .{}),
             ._typeOf => try out.writer().print("typeof({})", .{self._typeOf.expr}),
             .default => try out.writer().print("default({})", .{self.default.expr}),
+            .sizeOf => try out.writer().print("sizeOf({})", .{self.sizeOf.expr}),
             .domainOf => try out.writer().print("domainof()", .{}),
             ._comptime => {
                 try out.writer().print("comptime({})", .{self._comptime.expr});

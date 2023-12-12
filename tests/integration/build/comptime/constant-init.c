@@ -7,23 +7,23 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _101_add(int64_t _101_x,int64_t _101_y);
-int64_t _99_main(void);
+int64_t _18_add(int64_t _18_x,int64_t _18_y);
+int64_t _16_main(void);
 
 /* Function definitions */
-int64_t _101_add(int64_t _101_x,int64_t _101_y) {
-    int64_t _101_$retval;
-    _101_$retval = $add_int64_t(_101_x, _101_y, "tests/integration/comptime/constant-init.orng:8:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
-    return _101_$retval;
+int64_t _18_add(int64_t _18_x,int64_t _18_y) {
+    int64_t _18_$retval;
+    _18_$retval = $add_int64_t(_18_x, _18_y, "tests/integration/comptime/constant-init.orng:8:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
+    return _18_$retval;
 }
 
-int64_t _99_main(void) {
-    int64_t _99_$retval;
-    _99_$retval = 238;
-    return _99_$retval;
+int64_t _16_main(void) {
+    int64_t _16_$retval;
+    _16_$retval = 238;
+    return _16_$retval;
 }
 
 int main(void) {
-  printf("%ld",_99_main());
+  printf("%ld",_16_main());
   return 0;
 }

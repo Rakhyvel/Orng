@@ -74,7 +74,10 @@ pub const Parser = struct {
         or nextKind == .FLOAT //
         or nextKind == .STRING //
         or nextKind == .MULTI_LINE //
-        or nextKind == .NOT;
+        or nextKind == .NOT or
+            nextKind == .TYPEOF or
+            nextKind == .DEFAULT or
+            nextKind == .SIZEOF;
     }
 
     fn next_is_statement(self: *Parser) bool {
@@ -421,6 +424,8 @@ pub const Parser = struct {
             return try AST.createTypeOf(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.DEFAULT)) |token| {
             return try AST.createDefault(token, try self.invoke_expr(), self.astAllocator);
+        } else if (self.accept(.SIZEOF)) |token| {
+            return try AST.createSizeOf(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.MINUS)) |token| {
             return try AST.createNegate(token, try self.prefix_expr(), self.astAllocator);
         } else if (self.accept(.AMPERSAND)) |token| {

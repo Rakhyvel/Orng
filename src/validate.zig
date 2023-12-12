@@ -161,7 +161,7 @@ fn validate_AST_internal(
         .int => {
             // Check if data fits in expected type bounds
             // typeOf should be untyped int, matches any int type
-            // TODO: Add emit a separate error if not representable because the value doesn't fit!
+            // TODO: Add emit a separate error if not representable because the value doesn't fit, vs because it's not an integer primitive type at all
             if (expected != null and !try expected.?.can_represent_integer(ast.int.data, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.int_type } });
                 return ast.enpoison();
@@ -351,12 +351,20 @@ fn validate_AST_internal(
             return try ast._typeOf.expr.typeof(scope, errors, allocator);
         },
         .default => {
-            ast.default.expr = try validateAST(ast.default.expr, null, scope, errors, allocator);
+            ast.default.expr = try validateAST(ast.default.expr, primitives.type_type, scope, errors, allocator);
             if (expected != null and !try ast.default.expr.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast.default.expr } });
                 return ast.enpoison();
             }
             return try ast.default.expr.generate_default(scope, errors, allocator);
+        },
+        .sizeOf => {
+            ast.sizeOf.expr = try validateAST(ast.sizeOf.expr, primitives.type_type, scope, errors, allocator);
+            if (expected != null and !try primitives.int_type.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.int_type } });
+                return ast.enpoison();
+            }
+            return try AST.createInt(ast.getToken(), (try ast.sizeOf.expr.expand_type(scope, errors, allocator)).sizeof(), allocator);
         },
         ._comptime => {
             // Validate symbol

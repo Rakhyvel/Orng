@@ -117,29 +117,50 @@ pub fn get_scope() !*Scope {
         // Setup default values
         const default_bool = try AST.createFalse(Token.create_simple("false"), std.heap.page_allocator);
         const default_char = try AST.createChar(Token.create_simple("'\\\\0'"), std.heap.page_allocator);
-        const default_float = try AST.createFloat(Token.create_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_int = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_float32 = try AST.createFloat(Token.create_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_float64 = try AST.createFloat(Token.create_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_int8 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_int16 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_int32 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_int64 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_word8 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_word16 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_word32 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
+        const default_word64 = try AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
         const default_string = try AST.createString(Token.create_simple("\"\""), "", std.heap.page_allocator);
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
         try create_info("Bool", null, "uint8_t", bool_type, null, .eq, .unsigned_integer, default_bool, 1);
-        try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num, .unsigned_integer, default_int, 1);
+        try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num, .unsigned_integer, default_word8, 1);
         try create_info("Char", null, "uint32_t", char_type, null, .ord, .unsigned_integer, default_char, 4);
-        try create_info("Float", null, "double", float_type, null, .num, .floating_point, default_float, 8);
-        try create_info("Float32", null, "float", float32_type, null, .num, .floating_point, default_float, 4);
-        try create_info("Float64", null, "double", float64_type, float_type, .num, .floating_point, default_float, 8);
-        try create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num, .signed_integer, default_int, 8);
-        try create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num, .signed_integer, default_int, 1);
-        try create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num, .signed_integer, default_int, 2);
-        try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, .signed_integer, default_int, 4);
-        try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, .signed_integer, default_int, 8);
+        try create_info("Float", null, "double", float_type, null, .num, .floating_point, default_float64, 8);
+        try create_info("Float32", null, "float", float32_type, null, .num, .floating_point, default_float32, 4);
+        try create_info("Float64", null, "double", float64_type, float_type, .num, .floating_point, default_float64, 8);
+        try create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num, .signed_integer, default_int64, 8);
+        try create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num, .signed_integer, default_int8, 1);
+        try create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num, .signed_integer, default_int16, 2);
+        try create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, .signed_integer, default_int32, 4);
+        try create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, .signed_integer, default_int64, 8);
         try create_info("String", null, "NO C EQUIVALENT!", string_type, byte_slice_type, .none, .none, default_string, 0);
         try create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .eq, .type, null, 8);
         try create_info("Void", null, "NO C EQUIVALENT!", void_type, null, .none, .none, null, 0);
-        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, .unsigned_integer, default_int, 2);
-        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, .unsigned_integer, default_int, 4);
-        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, .unsigned_integer, default_int, 8);
+        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, .unsigned_integer, default_word16, 2);
+        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, .unsigned_integer, default_word32, 4);
+        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, .unsigned_integer, default_word64, 8);
+
+        default_int8.int.represents = int8_type;
+        default_int16.int.represents = int16_type;
+        default_int32.int.represents = int32_type;
+        default_int64.int.represents = int64_type;
+
+        default_word8.int.represents = byte_type;
+        default_word16.int.represents = word16_type;
+        default_word32.int.represents = word32_type;
+        default_word64.int.represents = word64_type;
+
+        default_float32.float.represents = float32_type;
+        default_float64.float.represents = float64_type;
     }
     return prelude.?;
 }
