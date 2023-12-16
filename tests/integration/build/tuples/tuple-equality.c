@@ -26,105 +26,105 @@ typedef struct {
 typedef uint8_t(*function2)(struct1, struct1);
 
 /* Function forward definitions */
-int64_t _1211_main(void);
-uint8_t _1216_f(struct1 _1216_x,struct1 _1216_y);
+int64_t _1540_main(void);
+uint8_t _1545_f(struct1 _1545_x,struct1 _1545_y);
 
 /* Function definitions */
-int64_t _1211_main(void) {
-    int64_t _1211_t1;
-    int64_t _1211_t3;
-    double _1211_t4;
-    struct0 _1211_t2;
-    uint32_t _1211_t5;
-    struct1 _1212_x;
-    int64_t _1211_t7;
-    int64_t _1211_t9;
-    double _1211_t10;
-    struct0 _1211_t8;
-    uint32_t _1211_t11;
-    struct1 _1212_y;
-    function2 _1211_t13;
-    uint8_t _1211_t14;
-    int64_t _1211_t12;
-    int64_t _1211_$retval;
-    _1211_t1 = 1;
-    _1211_t3 = 2;
-    _1211_t4 = 3.4e+00;
-    _1211_t2 = (struct0) {_1211_t3, _1211_t4};
-    _1211_t5 = 114;
-    _1212_x = (struct1) {_1211_t1, _1211_t2, _1211_t5};
-    _1211_t7 = 1;
-    _1211_t9 = 2;
-    _1211_t10 = 3.4e+00;
-    _1211_t8 = (struct0) {_1211_t9, _1211_t10};
-    _1211_t11 = 114;
-    _1212_y = (struct1) {_1211_t7, _1211_t8, _1211_t11};
-    _1211_t13 = _1216_f;
+int64_t _1540_main(void) {
+    int64_t _1540_t1;
+    int64_t _1540_t3;
+    double _1540_t4;
+    struct0 _1540_t2;
+    uint32_t _1540_t5;
+    struct1 _1541_x;
+    int64_t _1540_t7;
+    int64_t _1540_t9;
+    double _1540_t10;
+    struct0 _1540_t8;
+    uint32_t _1540_t11;
+    struct1 _1541_y;
+    function2 _1540_t13;
+    uint8_t _1540_t14;
+    int64_t _1540_t12;
+    int64_t _1540_$retval;
+    _1540_t1 = 1;
+    _1540_t3 = 2;
+    _1540_t4 = 3.4e+00;
+    _1540_t2 = (struct0) {_1540_t3, _1540_t4};
+    _1540_t5 = 114;
+    _1541_x = (struct1) {_1540_t1, _1540_t2, _1540_t5};
+    _1540_t7 = 1;
+    _1540_t9 = 2;
+    _1540_t10 = 3.4e+00;
+    _1540_t8 = (struct0) {_1540_t9, _1540_t10};
+    _1540_t11 = 114;
+    _1541_y = (struct1) {_1540_t7, _1540_t8, _1540_t11};
+    _1540_t13 = _1545_f;
     $lines[$line_idx++] = "tests/integration/tuples/tuple-equality.orng:5:10:\n    if f(x, y) {\n        ^";
-    _1211_t14 = _1211_t13(_1212_x, _1212_y);
+    _1540_t14 = _1540_t13(_1541_x, _1541_y);
     $line_idx--;
-    if (_1211_t14) {
+    if (_1540_t14) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _1211_t12 = 238;
+    _1540_t12 = 238;
     goto BB4;
 BB5:
-    _1211_t12 = 832;
+    _1540_t12 = 832;
     goto BB4;
 BB4:
-    _1211_$retval = _1211_t12;
-    return _1211_$retval;
+    _1540_$retval = _1540_t12;
+    return _1540_$retval;
 }
 
-uint8_t _1216_f(struct1 _1216_x,struct1 _1216_y) {
-    uint8_t _1216_t2;
-    uint8_t _1216_t4;
-    uint8_t _1216_t5;
-    uint8_t _1216_t6;
-    uint8_t _1216_t0;
-    uint8_t _1216_$retval;
-    _1216_t2 = _1216_x._0 == _1216_y._0;
-    if (_1216_t2) {
+uint8_t _1545_f(struct1 _1545_x,struct1 _1545_y) {
+    uint8_t _1545_t2;
+    uint8_t _1545_t4;
+    uint8_t _1545_t5;
+    uint8_t _1545_t6;
+    uint8_t _1545_t0;
+    uint8_t _1545_$retval;
+    _1545_t2 = _1545_x._0 == _1545_y._0;
+    if (_1545_t2) {
         goto BB1;
     } else {
         goto BB7;
     }
 BB1:
-    _1216_t4 = _1216_x._1._0 == _1216_y._1._0;
-    if (_1216_t4) {
+    _1545_t4 = _1545_x._1._0 == _1545_y._1._0;
+    if (_1545_t4) {
         goto BB2;
     } else {
         goto BB7;
     }
 BB7:
-    _1216_t0 = 0;
+    _1545_t0 = 0;
     goto BB6;
 BB2:
-    _1216_t5 = _1216_x._1._1 == _1216_y._1._1;
-    if (_1216_t5) {
+    _1545_t5 = _1545_x._1._1 == _1545_y._1._1;
+    if (_1545_t5) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB6:
-    _1216_$retval = _1216_t0;
-    return _1216_$retval;
+    _1545_$retval = _1545_t0;
+    return _1545_$retval;
 BB3:
-    _1216_t6 = _1216_x._2 == _1216_y._2;
-    if (_1216_t6) {
+    _1545_t6 = _1545_x._2 == _1545_y._2;
+    if (_1545_t6) {
         goto BB4;
     } else {
         goto BB7;
     }
 BB4:
-    _1216_t0 = 1;
+    _1545_t0 = 1;
     goto BB6;
 }
 
 int main(void) {
-  printf("%ld",_1211_main());
+  printf("%ld",_1540_main());
   return 0;
 }

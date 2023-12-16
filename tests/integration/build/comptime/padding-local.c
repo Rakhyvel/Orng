@@ -16,108 +16,108 @@ typedef struct {
 typedef int64_t(*function0)(int8_t, int16_t, int8_t);
 
 /* Function forward definitions */
-int64_t _129_main(void);
-int64_t _131_f(int8_t _131_x,int16_t _131_y,int8_t _131_z);
+int64_t _230_main(void);
+int64_t _232_f(int8_t _232_x,int16_t _232_y,int8_t _232_z);
 
 /* Function definitions */
-int64_t _129_main(void) {
-    int8_t _130_x;
-    int16_t _130_y;
-    int8_t _130_z;
-    function0 _129_t3;
-    int64_t _129_t4;
-    int64_t _129_$retval;
-    _130_x = 50;
-    _130_y = 200;
-    _130_z = 6;
-    _129_t3 = _131_f;
+int64_t _230_main(void) {
+    int8_t _231_x;
+    int16_t _231_y;
+    int8_t _231_z;
+    function0 _230_t3;
+    int64_t _230_t4;
+    int64_t _230_$retval;
+    _231_x = 50;
+    _231_y = 200;
+    _231_z = 6;
+    _230_t3 = _232_f;
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:6:7:\n    f(x, y, z)\n     ^";
-    _129_t4 = _129_t3(_130_x, _130_y, _130_z);
+    _230_t4 = _230_t3(_231_x, _231_y, _231_z);
     $line_idx--;
-    _129_$retval = _129_t4;
-    return _129_$retval;
+    _230_$retval = _230_t4;
+    return _230_$retval;
 }
 
-int64_t _131_f(int8_t _131_x,int16_t _131_y,int8_t _131_z) {
-    int8_t _131_t3;
-    uint8_t _131_t5;
-    uint8_t _131_t7;
-    int16_t _131_t6;
-    uint8_t _131_t8;
-    uint8_t _131_t2;
-    int8_t _131_t9;
-    uint8_t _131_t11;
-    uint8_t _131_t10;
-    uint8_t _131_t1;
-    int64_t _131_$retval;
-    _131_t3 = 50;
-    _131_t5 = _131_x == _131_t3;
-    if (_131_t5) {
+int64_t _232_f(int8_t _232_x,int16_t _232_y,int8_t _232_z) {
+    int8_t _232_t3;
+    uint8_t _232_t5;
+    uint8_t _232_t7;
+    int16_t _232_t6;
+    uint8_t _232_t8;
+    uint8_t _232_t2;
+    int8_t _232_t9;
+    uint8_t _232_t11;
+    uint8_t _232_t10;
+    uint8_t _232_t1;
+    int64_t _232_$retval;
+    _232_t3 = 50;
+    _232_t5 = _232_x == _232_t3;
+    if (_232_t5) {
         goto BB3;
     } else {
         goto BB19;
     }
 BB3:
-    _131_t6 = 200;
-    _131_t8 = _131_y == _131_t6;
-    if (_131_t8) {
+    _232_t6 = 200;
+    _232_t8 = _232_y == _232_t6;
+    if (_232_t8) {
         goto BB4;
     } else {
         goto BB18;
     }
 BB19:
-    _131_t2 = 0;
+    _232_t2 = 0;
     goto BB17;
 BB4:
-    _131_t7 = 1;
+    _232_t7 = 1;
     goto BB5;
 BB18:
-    _131_t7 = 0;
+    _232_t7 = 0;
     goto BB5;
 BB17:
-    _131_t1 = 0;
+    _232_t1 = 0;
     goto BB15;
 BB5:
-    _131_t2 = _131_t7;
+    _232_t2 = _232_t7;
     goto BB6;
 BB15:
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:13:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 BB6:
-    if (_131_t2) {
+    if (_232_t2) {
         goto BB7;
     } else {
         goto BB17;
     }
 BB7:
-    _131_t9 = 6;
-    _131_t11 = _131_z == _131_t9;
-    if (_131_t11) {
+    _232_t9 = 6;
+    _232_t11 = _232_z == _232_t9;
+    if (_232_t11) {
         goto BB8;
     } else {
         goto BB16;
     }
 BB8:
-    _131_t10 = 1;
+    _232_t10 = 1;
     goto BB9;
 BB16:
-    _131_t10 = 0;
+    _232_t10 = 0;
     goto BB9;
 BB9:
-    _131_t1 = _131_t10;
+    _232_t1 = _232_t10;
     goto BB10;
 BB10:
-    if (_131_t1) {
+    if (_232_t1) {
         goto BB11;
     } else {
         goto BB15;
     }
 BB11:
-    _131_$retval = 256;
-    return _131_$retval;
+    _232_$retval = 256;
+    return _232_$retval;
 }
 
 int main(void) {
-  printf("%ld",_129_main());
+  printf("%ld",_230_main());
   return 0;
 }

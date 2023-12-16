@@ -18,31 +18,31 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1197_main(void);
+int64_t _1515_main(void);
 
 /* Function definitions */
-int64_t _1197_main(void) {
-    int64_t _1197_t2;
-    int64_t _1197_t3;
-    struct0 _1197_t1;
-    int64_t _1197_t5;
-    int64_t _1197_t6;
-    struct0 _1197_t4;
-    struct1 _1198_x;
-    int64_t _1197_$retval;
-    _1197_t2 = 1;
-    _1197_t3 = 2;
-    _1197_t1 = (struct0) {_1197_t2, _1197_t3};
-    _1197_t5 = 3;
-    _1197_t6 = 4;
-    _1197_t4 = (struct0) {_1197_t5, _1197_t6};
-    _1198_x = (struct1) {_1197_t1, _1197_t4};
-    _1198_x._0._0 = 77;
-    _1197_$retval = _1198_x._0._0;
-    return _1197_$retval;
+int64_t _1515_main(void) {
+    int64_t _1515_t2;
+    int64_t _1515_t3;
+    struct0 _1515_t1;
+    int64_t _1515_t5;
+    int64_t _1515_t6;
+    struct0 _1515_t4;
+    struct1 _1516_x;
+    int64_t _1515_$retval;
+    _1515_t2 = 1;
+    _1515_t3 = 2;
+    _1515_t1 = (struct0) {_1515_t2, _1515_t3};
+    _1515_t5 = 3;
+    _1515_t6 = 4;
+    _1515_t4 = (struct0) {_1515_t5, _1515_t6};
+    _1516_x = (struct1) {_1515_t1, _1515_t4};
+    _1516_x._0._0 = 77;
+    _1515_$retval = _1516_x._0._0;
+    return _1515_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1197_main());
+  printf("%ld",_1515_main());
   return 0;
 }

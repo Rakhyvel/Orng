@@ -10,48 +10,48 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _569_main(void);
-int64_t _571_f(int64_t _571_x);
+int64_t _737_main(void);
+int64_t _739_f(int64_t _739_x);
 
 /* Function definitions */
-int64_t _569_main(void) {
-    function0 _569_t0;
-    int64_t _569_t2;
-    int64_t _569_t1;
-    int64_t _569_$retval;
-    _569_t0 = _571_f;
-    _569_t2 = 1;
+int64_t _737_main(void) {
+    function0 _737_t0;
+    int64_t _737_t2;
+    int64_t _737_t1;
+    int64_t _737_$retval;
+    _737_t0 = _739_f;
+    _737_t2 = 1;
     $lines[$line_idx++] = "tests/integration/expressions/neq-0-lhs.orng:3:7:\n    f(1)\n     ^";
-    _569_t1 = _569_t0(_569_t2);
+    _737_t1 = _737_t0(_737_t2);
     $line_idx--;
-    _569_$retval = _569_t1;
-    return _569_$retval;
+    _737_$retval = _737_t1;
+    return _737_$retval;
 }
 
-int64_t _571_f(int64_t _571_x) {
-    int64_t _571_t1;
-    uint8_t _571_t2;
-    int64_t _571_t0;
-    int64_t _571_$retval;
-    _571_t1 = 0;
-    _571_t2 = _571_t1 != _571_x;
-    if (_571_t2) {
+int64_t _739_f(int64_t _739_x) {
+    int64_t _739_t1;
+    uint8_t _739_t2;
+    int64_t _739_t0;
+    int64_t _739_$retval;
+    _739_t1 = 0;
+    _739_t2 = _739_t1 != _739_x;
+    if (_739_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _571_t0 = 174;
+    _739_t0 = 174;
     goto BB4;
 BB5:
-    _571_t0 = 3;
+    _739_t0 = 3;
     goto BB4;
 BB4:
-    _571_$retval = _571_t0;
-    return _571_$retval;
+    _739_$retval = _739_t0;
+    return _739_$retval;
 }
 
 int main(void) {
-  printf("%ld",_569_main());
+  printf("%ld",_737_main());
   return 0;
 }

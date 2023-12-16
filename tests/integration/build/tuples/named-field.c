@@ -13,22 +13,22 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1182_main(void);
+int64_t _1497_main(void);
 
 /* Function definitions */
-int64_t _1182_main(void) {
-    int64_t _1182_t1;
-    int64_t _1182_t2;
-    struct0 _1183_x;
-    int64_t _1182_$retval;
-    _1182_t1 = 20;
-    _1182_t2 = 3;
-    _1183_x = (struct0) {_1182_t1, _1182_t2};
-    _1182_$retval = $mult_int64_t(_1183_x._0, _1183_x._1, "tests/integration/tuples/named-field.orng:4:10:\n    x.a * x.b\n        ^");
-    return _1182_$retval;
+int64_t _1497_main(void) {
+    int64_t _1497_t1;
+    int64_t _1497_t2;
+    struct0 _1498_x;
+    int64_t _1497_$retval;
+    _1497_t1 = 20;
+    _1497_t2 = 3;
+    _1498_x = (struct0) {_1497_t1, _1497_t2};
+    _1497_$retval = $mult_int64_t(_1498_x._0, _1498_x._1, "tests/integration/tuples/named-field.orng:4:10:\n    x.a * x.b\n        ^");
+    return _1497_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1182_main());
+  printf("%ld",_1497_main());
   return 0;
 }

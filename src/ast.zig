@@ -206,7 +206,7 @@ pub const AST = union(enum) {
         // TODO: Duck type this with product/sum
         pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var offset: i64 = 0;
-            for (0..field) |i| {
+            for (0..field + 1) |i| {
                 var item = self.terms.items[i];
                 offset += (try item.expand_type(scope, errors, allocator)).sizeof(); // TODO: Is it necessary to expand here?
             }
@@ -262,8 +262,9 @@ pub const AST = union(enum) {
         pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
-                var item = self.terms.items[i];
-                offset += (try item.expand_type(scope, errors, allocator)).sizeof(); // TODO: Is it necessary to expand here?
+                var item = (try self.terms.items[i].expand_type(scope, errors, allocator));
+                offset += item.sizeof();
+                offset = offset_.next_alignment(offset, self.terms.items[i + 1].alignof());
             }
             return offset;
         }
@@ -534,7 +535,14 @@ pub const AST = union(enum) {
             },
 
             .product => {
-                return self.product.terms.items[0].alignof();
+                var max_align: i64 = 0;
+                for (self.product.terms.items) |child| {
+                    const child_align = child.alignof();
+                    if (max_align < child_align) {
+                        max_align = child_align;
+                    }
+                }
+                return max_align;
             },
 
             .sum => {
@@ -574,6 +582,9 @@ pub const AST = union(enum) {
     }
 
     pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
+        if (data == 1482163968) {
+            unreachable;
+        }
         return try AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.int_type } }, allocator);
     }
 
@@ -952,9 +963,21 @@ pub const AST = union(enum) {
         var retval: *AST = undefined;
         switch (self.*) {
             .identifier => {
-                const symbol = scope.lookup(self.getToken().data, false) orelse {
-                    errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .scope = scope, .expected = null } });
-                    return error.typeError;
+                const res = scope.lookup(self.getToken().data, false);
+                const symbol = switch (res) {
+                    .found => res.found,
+                    .not_found => {
+                        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .scope = scope, .expected = null } });
+                        return error.typeError;
+                    },
+                    .found_but_rt => {
+                        errors.addError(Error{ .comptime_access_runtime = .{ .identifier = self.getToken() } });
+                        return error.typeError;
+                    },
+                    .found_but_fn => {
+                        errors.addError(Error{ .inner_fn_access_runtime = .{ .identifier = self.getToken() } });
+                        return error.typeError;
+                    },
                 };
                 try _validate.validateSymbol(symbol, errors, allocator);
                 if (symbol.init.* == .poison) {
@@ -1697,6 +1720,23 @@ pub const AST = union(enum) {
     pub fn enpoison(self: *AST) *AST {
         self.getCommon().validation_state = .invalid;
         return poisoned;
+    }
+
+    pub fn assert_valid(self: *AST) *AST {
+        self.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = self } };
+        return self;
+    }
+
+    pub fn set_representation(self: *AST, _type: *AST) *AST {
+        switch (self.*) {
+            .int => self.int.represents = _type,
+            .float => self.float.represents = _type,
+            else => {
+                std.debug.print("cannot set representation for {}\n", .{self});
+                unreachable;
+            },
+        }
+        return self;
     }
 
     pub fn c_typesMatch(self: *AST, other: *AST) bool {

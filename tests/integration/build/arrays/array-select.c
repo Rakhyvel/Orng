@@ -19,41 +19,41 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _44_main(void);
+int64_t _72_main(void);
 
 /* Function definitions */
-int64_t _44_main(void) {
-    int64_t _44_t2;
-    int64_t _44_t3;
-    struct0 _44_t1;
-    int64_t _44_t5;
-    int64_t _44_t6;
-    struct0 _44_t4;
-    int64_t _44_t8;
-    int64_t _44_t9;
-    struct0 _44_t7;
-    struct1 _45_x;
-    int64_t _44_t11;
-    int64_t _44_t12;
-    int64_t _44_$retval;
-    _44_t2 = 1;
-    _44_t3 = 2;
-    _44_t1 = (struct0) {_44_t2, _44_t3};
-    _44_t5 = 3;
-    _44_t6 = 4;
-    _44_t4 = (struct0) {_44_t5, _44_t6};
-    _44_t8 = 5;
-    _44_t9 = 6;
-    _44_t7 = (struct0) {_44_t8, _44_t9};
-    _45_x = (struct1) {_44_t1, _44_t4, _44_t7};
-    _44_t11 = 1;
-    (*((struct0*)&_45_x + _44_t11))._0 = 73;
-    _44_t12 = 1;
-    _44_$retval = (*((struct0*)&_45_x + _44_t12))._0;
-    return _44_$retval;
+int64_t _72_main(void) {
+    int64_t _72_t2;
+    int64_t _72_t3;
+    struct0 _72_t1;
+    int64_t _72_t5;
+    int64_t _72_t6;
+    struct0 _72_t4;
+    int64_t _72_t8;
+    int64_t _72_t9;
+    struct0 _72_t7;
+    struct1 _73_x;
+    int64_t _72_t11;
+    int64_t _72_t12;
+    int64_t _72_$retval;
+    _72_t2 = 1;
+    _72_t3 = 2;
+    _72_t1 = (struct0) {_72_t2, _72_t3};
+    _72_t5 = 3;
+    _72_t6 = 4;
+    _72_t4 = (struct0) {_72_t5, _72_t6};
+    _72_t8 = 5;
+    _72_t9 = 6;
+    _72_t7 = (struct0) {_72_t8, _72_t9};
+    _73_x = (struct1) {_72_t1, _72_t4, _72_t7};
+    _72_t11 = 1;
+    (*((struct0*)&_73_x + _72_t11))._0 = 73;
+    _72_t12 = 1;
+    _72_$retval = (*((struct0*)&_73_x + _72_t12))._0;
+    return _72_$retval;
 }
 
 int main(void) {
-  printf("%ld",_44_main());
+  printf("%ld",_72_main());
   return 0;
 }

@@ -214,6 +214,8 @@ fn create_prelude_symbol(name: []const u8, _type: *AST, init: ?*AST, is_temp: bo
         std.heap.page_allocator,
     );
     symbol.is_temp = is_temp;
+    symbol.validation_state = .valid;
+    symbol.expanded_type = _type;
     try prelude.?.symbols.put(name, symbol);
     return symbol;
 }

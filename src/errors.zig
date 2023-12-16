@@ -104,6 +104,12 @@ pub const Error = union(enum) {
         scope: *_symbol.Scope,
         expected: ?*AST,
     },
+    comptime_access_runtime: struct {
+        identifier: Token,
+    },
+    inner_fn_access_runtime: struct {
+        identifier: Token,
+    },
     useBeforeDef: struct {
         identifier: Token,
         symbol: *_symbol.Symbol,
@@ -180,6 +186,8 @@ pub const Error = union(enum) {
             .sum_duplicate => return self.sum_duplicate.span,
             .member_not_in => return self.member_not_in.span,
             .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
+            .comptime_access_runtime => return self.comptime_access_runtime.identifier.span,
+            .inner_fn_access_runtime => return self.inner_fn_access_runtime.identifier.span,
             .useBeforeDef => return self.useBeforeDef.identifier.span,
             .modifyImmutable => return self.modifyImmutable.identifier.span,
             .notIndexable => return self.notIndexable.span,
@@ -323,6 +331,12 @@ pub const Errors = struct {
                         }
                         try out.print("?\n", .{});
                     }
+                },
+                .comptime_access_runtime => {
+                    try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data});
+                },
+                .inner_fn_access_runtime => {
+                    try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{err.inner_fn_access_runtime.identifier.data});
                 },
                 .useBeforeDef => {
                     try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});

@@ -15,33 +15,33 @@ typedef struct {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _707_main(void);
-int64_t _709_add(int64_t _709_x,int64_t _709_y);
+int64_t _877_main(void);
+int64_t _879_add(int64_t _879_x,int64_t _879_y);
 
 /* Function definitions */
-int64_t _707_main(void) {
-    function0 _707_t0;
-    int64_t _707_t2;
-    int64_t _707_t3;
-    int64_t _707_t1;
-    int64_t _707_$retval;
-    _707_t0 = _709_add;
-    _707_t2 = 40;
-    _707_t3 = 3;
+int64_t _877_main(void) {
+    function0 _877_t0;
+    int64_t _877_t2;
+    int64_t _877_t3;
+    int64_t _877_t1;
+    int64_t _877_$retval;
+    _877_t0 = _879_add;
+    _877_t2 = 40;
+    _877_t3 = 3;
     $lines[$line_idx++] = "tests/integration/functions/call.orng:2:23:\nfn main() -> Int {add(40, 3)}\n                     ^";
-    _707_t1 = _707_t0(_707_t2, _707_t3);
+    _877_t1 = _877_t0(_877_t2, _877_t3);
     $line_idx--;
-    _707_$retval = _707_t1;
-    return _707_$retval;
+    _877_$retval = _877_t1;
+    return _877_$retval;
 }
 
-int64_t _709_add(int64_t _709_x,int64_t _709_y) {
-    int64_t _709_$retval;
-    _709_$retval = $add_int64_t(_709_x, _709_y, "tests/integration/functions/call.orng:4:35:\nfn add(x: Int, y: Int) -> Int {x + y}\n                                 ^");
-    return _709_$retval;
+int64_t _879_add(int64_t _879_x,int64_t _879_y) {
+    int64_t _879_$retval;
+    _879_$retval = $add_int64_t(_879_x, _879_y, "tests/integration/functions/call.orng:4:35:\nfn add(x: Int, y: Int) -> Int {x + y}\n                                 ^");
+    return _879_$retval;
 }
 
 int main(void) {
-  printf("%ld",_707_main());
+  printf("%ld",_877_main());
   return 0;
 }

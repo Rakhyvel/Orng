@@ -35,28 +35,23 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     }
     symbol.validation_state = .validating;
 
-    if (symbol.kind == ._fn or symbol.kind == ._comptime) {
-        symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
+    std.debug.assert(symbol.init.* != .poison);
+    symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
+    if (symbol._type.* != .poison) {
         symbol.validation_state = .valid;
-        if (symbol._type.* != .poison) {
-            symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
-            symbol.init = try validateAST(symbol.init, symbol._type.function.rhs, symbol.scope, errors, allocator);
-            if (symbol._type.function.rhs.* == .inferred_error) {
-                const terms = symbol._type.function.rhs.inferred_error.terms;
-                symbol._type.function.rhs.* = AST{ .sum = .{ .common = symbol._type.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
-            }
-        } else {
-            symbol.init = _ast.poisoned;
+        symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
+        const expected = if (symbol.kind == ._fn or symbol.kind == ._comptime) symbol._type.function.rhs else symbol._type;
+        symbol.init = try validateAST(symbol.init, expected, symbol.scope, errors, allocator);
+        if (symbol.init.* == .poison) {
+            symbol.validation_state = .invalid;
+            return error.typeError;
+        } else if ((symbol.kind == ._fn or symbol.kind == ._comptime) and symbol._type.function.rhs.* == .inferred_error) {
+            const terms = symbol._type.function.rhs.inferred_error.terms;
+            symbol._type.function.rhs.* = AST{ .sum = .{ .common = symbol._type.function.rhs.getCommon().*, .terms = terms, .was_error = true } };
         }
     } else {
-        symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
-        symbol.validation_state = .valid;
-        if (symbol._type.* != .poison) {
-            symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
-            symbol.init = try validateAST(symbol.init, symbol._type, symbol.scope, errors, allocator);
-        } else {
-            symbol.init = _ast.poisoned;
-        }
+        symbol.validation_state = .invalid;
+        return error.typeError;
     }
 
     // Symbol's name must be capitalizes iff it type is Type
@@ -213,6 +208,8 @@ fn validate_AST_internal(
             if (expected != null and !try symbol._type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type } });
                 return ast.enpoison();
+            } else if (symbol.kind == ._const and symbol.decl != null) {
+                return symbol.decl.?;
             } else {
                 return ast;
             }
@@ -384,11 +381,14 @@ fn validate_AST_internal(
             const ret_type = try ast._comptime.symbol.?._type.function.rhs.expand_type(scope, errors, allocator);
             var context = Context.init(cfg, &scope.module.?.instructions, ret_type, cfg.offset.?);
             context.interpret() catch |err| switch (err) {
-                error.interpreter_panic => return ast.enpoison(),
+                error.interpreter_panic => {
+                    return ast.enpoison();
+                },
             };
 
             // Extract the retval
-            return try context.extract_ast(0, ret_type, allocator);
+            const extracted = try context.extract_ast(0, ret_type, allocator);
+            return extracted;
         },
         .assign => {
             ast.assign.lhs = try validateAST(ast.assign.lhs, null, scope, errors, allocator);
@@ -1876,9 +1876,21 @@ fn putAnnotation(ast: *AST, arg_map: *std.StringArrayHashMap(*AST), errors: *err
 
 // TODO: Move this elsewhere
 pub fn findSymbol(ast: *AST, expected: ?*AST, scope: *Scope, errors: *errs.Errors) !*Symbol {
-    const symbol = scope.lookup(ast.getToken().data, false) orelse {
-        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .scope = scope, .expected = expected } });
-        return error.typeError;
+    const res = scope.lookup(ast.getToken().data, false);
+    const symbol = switch (res) {
+        .found => res.found,
+        .not_found => {
+            errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .scope = scope, .expected = expected } });
+            return error.typeError;
+        },
+        .found_but_rt => {
+            errors.addError(Error{ .comptime_access_runtime = .{ .identifier = ast.getToken() } });
+            return error.typeError;
+        },
+        .found_but_fn => {
+            errors.addError(Error{ .inner_fn_access_runtime = .{ .identifier = ast.getToken() } });
+            return error.typeError;
+        },
     };
     if (!symbol.defined) {
         errors.addError(Error{ .useBeforeDef = .{ .identifier = ast.getToken(), .symbol = symbol } });

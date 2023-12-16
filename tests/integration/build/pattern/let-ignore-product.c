@@ -14,28 +14,28 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _863_main(void);
+int64_t _1069_main(void);
 
 /* Function definitions */
-int64_t _863_main(void) {
-    int64_t _863_t1;
-    int64_t _863_t2;
-    int64_t _863_t3;
-    struct0 _863_t0;
-    int64_t _864_a;
-    int64_t _864_c;
-    int64_t _863_$retval;
-    _863_t1 = 100;
-    _863_t2 = 300;
-    _863_t3 = 56;
-    _863_t0 = (struct0) {_863_t1, _863_t2, _863_t3};
-    _864_a = _863_t0._0;
-    _864_c = _863_t0._2;
-    _863_$retval = $add_int64_t(_864_a, _864_c, "tests/integration/pattern/let-ignore-product.orng:4:8:\n    a + c\n      ^");
-    return _863_$retval;
+int64_t _1069_main(void) {
+    int64_t _1069_t1;
+    int64_t _1069_t2;
+    int64_t _1069_t3;
+    struct0 _1069_t0;
+    int64_t _1070_a;
+    int64_t _1070_c;
+    int64_t _1069_$retval;
+    _1069_t1 = 100;
+    _1069_t2 = 300;
+    _1069_t3 = 56;
+    _1069_t0 = (struct0) {_1069_t1, _1069_t2, _1069_t3};
+    _1070_a = _1069_t0._0;
+    _1070_c = _1069_t0._2;
+    _1069_$retval = $add_int64_t(_1070_a, _1070_c, "tests/integration/pattern/let-ignore-product.orng:4:8:\n    a + c\n      ^");
+    return _1069_$retval;
 }
 
 int main(void) {
-  printf("%ld",_863_main());
+  printf("%ld",_1069_main());
   return 0;
 }

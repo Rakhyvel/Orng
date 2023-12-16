@@ -335,16 +335,17 @@
     - [x] eval array sizes
     - [x] eval type annotations
     - [x] should be able to index heterogenous tuples with a comptime value
-    - [ ] various type operations
+    - [x] various type operations
         - [x] `typeof` prefix operator which returns type expression of expression
         - [x] `default` prefix operator, which takes a type and returns the default value for that type
         - [x] define type inference and defaults for variable declarations in terms of `typeof` and `default`
             > This will require some fenangling, but it should be possible.
         - [x] define `==` and `!=` operators for types, do at comptime. Defined to be `lhs <: rhs and rhs <: lhs`
             - [ ] stretch goal: `<` and `>` for subtypes
-        - [ ] `sizeof`
-            > Don't like this. Interpreter memory unit is the slot, not the byte. Would cause confusion. Perhaps sizeof should trap for interpretation.
-        - [ ] make `typeof`, `default`, `sizeof` functions that start with `@`
+        - [x] `sizeof`
+        - [x] make `typeof`, `default`, `sizeof` functions that start with `@`
+    - [ ] reduce `if`, `and`, `or`, `while`, and look into `match` at comptime
+    - [ ] IVAOC, InMOP
 - [ ] build system (built upon compile-time evaluation) (1/21/24)
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] `test` to do tests

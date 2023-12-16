@@ -86,7 +86,7 @@ pub fn calculate_offsets(
     // Calculate locals offsets, ascending from local starting offset
     var local_offsets: i64 = locals_starting_offset;
     for (symbol.cfg.?.symbvers.items) |symbver| {
-        if (symbver.symbol.offset == null) {
+        if (symbver.symbol.offset == null and !std.mem.eql(u8, symbver.symbol.name, "$retval")) {
             local_offsets = next_alignment(local_offsets, symbver.symbol.expanded_type.?.alignof());
             symbver.symbol.offset = local_offsets;
             local_offsets += @as(i64, @intCast(symbver.symbol.expanded_type.?.sizeof()));

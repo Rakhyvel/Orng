@@ -7,7 +7,7 @@ const token_ = @import("token.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const stack_limit = 0x1000;
+const stack_limit = 0x4000; // 16 KiB
 const uninit_byte: u8 = 0x58; // It is, in general, not a good idea to memset to 0x00!
 const halt_trap: i64 = 0xFFFF_FFFF_FFF0;
 
@@ -54,7 +54,11 @@ pub const Context = struct {
                     // and replace with:
                     //     retval^ := val
                     return self.load(i64, self.base_pointer + offsets_.retval_offset);
+                } else if (lval.symbver.symbol.offset == null) {
+                    std.debug.print("cannot use `{s}` because its comptime, lol!\n", .{lval.symbver.symbol.name});
+                    unreachable; // TODO: Make proper error ( :( )
                 } else {
+                    // std.debug.print("{s}\n", .{lval.symbver.symbol.name});
                     return self.base_pointer + lval.symbver.symbol.offset.?;
                 }
             },
@@ -74,6 +78,7 @@ pub const Context = struct {
     }
 
     fn store(self: *Context, comptime T: type, address: i64, val: T) void {
+        // std.debug.print("[0x{X}:{}] = {}\n", .{ address, @alignOf(T), val });
         @as(*T, @alignCast(@ptrCast(&self.stack[@as(usize, @intCast(address))]))).* = val;
     }
 
@@ -99,8 +104,9 @@ pub const Context = struct {
     }
 
     fn load(self: *Context, comptime T: type, address: i64) T {
-        // std.debug.print("store {} {}\n", .{ address, @alignOf(T) });
-        return @as(*T, @ptrCast(@alignCast(&self.stack[@as(usize, @intCast(address))]))).*;
+        const val = @as(*T, @ptrCast(@alignCast(&self.stack[@as(usize, @intCast(address))]))).*;
+        // std.debug.print("[0x{X}:{}] \t// {}\n", .{ address, @alignOf(T), val });
+        return val;
     }
 
     fn load_int(self: *Context, address: i64, size: i64) i128 {
@@ -138,6 +144,7 @@ pub const Context = struct {
     fn move_symbver_list(self: *Context, dest: i64, list: *std.ArrayList(*ir_.L_Value)) void {
         var cursor = dest;
         for (list.items) |lval| {
+            cursor = offsets_.next_alignment(cursor, lval.alignof());
             const len = lval.sizeof();
             self.move(cursor, self.get_lval(lval), len);
             cursor += len;
@@ -172,23 +179,22 @@ pub const Context = struct {
     }
 
     fn print_registers(self: *Context) void {
-        std.debug.print("bp:{} sp:{} ip:{}\n", .{ self.base_pointer, self.stack_pointer, self.instruction_pointer });
+        std.debug.print("bp:0x{X} sp:0x{X} ip:0x{X}\n", .{ self.base_pointer, self.stack_pointer, self.instruction_pointer });
     }
 
     fn print_stack(self: *Context) void {
-        std.debug.print("[ ", .{});
         for (0..@as(usize, @intCast(self.stack_pointer))) |i| {
-            if (i == self.stack_pointer) {
-                std.debug.print("sp:", .{});
-            } else if (i == self.base_pointer) {
-                std.debug.print("bp:", .{});
+            if (@rem(i, 8) == 0) {
+                std.debug.print("0x{0X:0>2.}: ", .{i});
             }
-            std.debug.print("{x:0>2.}", .{self.stack[i]});
+            std.debug.print("{X:0>2.}", .{self.stack[i]});
             if (@rem(i, 8) == 7) {
                 std.debug.print(" ", .{});
             }
+            if (@rem(i, 32) == 31) {
+                std.debug.print("\n", .{});
+            }
         }
-        std.debug.print("]\n", .{});
     }
 
     pub fn interpret(self: *Context) error{interpreter_panic}!void {
@@ -200,9 +206,9 @@ pub const Context = struct {
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
-            // self.print_stack();
             // self.print_registers();
-            // std.debug.print("\n{}", .{ir});
+            // self.print_stack();
+            // std.debug.print("\n\n\n\n{}=>\n", .{ir});
 
             switch (ir.kind) {
                 // Invalid interpreter operations
@@ -438,10 +444,11 @@ pub const Context = struct {
                     _ = debug_call_stack.pop();
                 },
                 .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
+                    std.io.getStdErr().writer().print("compile-time interpreter panic!\n", .{}) catch return error.interpreter_panic;
                     var i = debug_call_stack.items.len - 1;
                     while (true) {
-                        // var span = debug_call_stack.items[i];
-                        // try span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format);
+                        var span = debug_call_stack.items[i];
+                        span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.interpreter_panic;
 
                         if (i == 0) {
                             break;
@@ -459,18 +466,25 @@ pub const Context = struct {
         switch (_type.*) {
             .identifier => {
                 const info = primitives_.get(_type.getToken().data);
+                // TODO: `represent` field should be set to _type. Create another inline modifier method for it
                 switch (info.type_kind) {
                     .type => return @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8)))),
                     .none => unreachable,
-                    .signed_integer => return try ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator),
-                    .unsigned_integer => return try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, info.size), allocator),
-                    .floating_point => return try ast_.AST.createFloat(token_.Token.create_simple("float"), self.load_float(address, info.size), allocator),
+                    .signed_integer => return (try ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator))
+                        .set_representation(_type)
+                        .assert_valid(),
+                    .unsigned_integer => return (try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, info.size), allocator))
+                        .set_representation(_type)
+                        .assert_valid(),
+                    .floating_point => return (try ast_.AST.createFloat(token_.Token.create_simple("float"), self.load_float(address, info.size), allocator))
+                        .set_representation(_type)
+                        .assert_valid(),
                 }
             },
-            .addrOf, .function => return try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator),
-            .unit_type => return try ast_.AST.createUnitValue(_type.getToken(), allocator),
+            .addrOf, .function => return (try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator)).assert_valid(),
+            .unit_type => return (try ast_.AST.createUnitValue(_type.getToken(), allocator)).assert_valid(),
             .sum => {
-                var retval = try ast_.AST.createInferredMember(_type.getToken(), try ast_.AST.createIdentifier(token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                var retval = (try ast_.AST.createInferredMember(_type.getToken(), (try ast_.AST.createIdentifier(token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0), allocator)).assert_valid(), allocator)).assert_valid();
                 const tag = self.load_int(address + _type.sizeof() - 8, 8);
                 retval.inferredMember.pos = tag;
                 retval.inferredMember.base = _type;
@@ -483,11 +497,12 @@ pub const Context = struct {
                 errdefer value_terms.deinit();
                 var offset: i64 = 0;
                 for (_type.product.terms.items) |term| {
+                    offset = offsets_.next_alignment(offset, term.alignof());
                     const extracted_term = try self.extract_ast(address + offset, term, allocator);
                     try value_terms.append(extracted_term);
                     offset += term.sizeof();
                 }
-                return try ast_.AST.createProduct(_type.getToken(), value_terms, allocator);
+                return (try ast_.AST.createProduct(_type.getToken(), value_terms, allocator)).assert_valid();
             },
             .annotation => return try self.extract_ast(address, _type.annotation.type, allocator),
             else => {

@@ -472,6 +472,10 @@ pub const L_Value = union(enum) {
         return self.get_expanded_type().sizeof();
     }
 
+    pub fn alignof(self: *L_Value) i64 {
+        return self.get_expanded_type().alignof();
+    }
+
     pub fn get_type(self: *L_Value) *AST {
         switch (self.*) {
             .symbver => return self.symbver.type,
@@ -1367,7 +1371,22 @@ pub const CFG = struct {
                 return temp;
             },
             .identifier => {
-                var symbol = scope.lookup(ast.getToken().data, false).?;
+                const res = scope.lookup(ast.getToken().data, false);
+                const symbol = switch (res) {
+                    .found => res.found,
+                    .not_found => {
+                        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .scope = scope, .expected = null } });
+                        return error.typeError;
+                    },
+                    .found_but_rt => {
+                        errors.addError(Error{ .comptime_access_runtime = .{ .identifier = ast.getToken() } });
+                        return error.typeError;
+                    },
+                    .found_but_fn => {
+                        errors.addError(Error{ .inner_fn_access_runtime = .{ .identifier = ast.getToken() } });
+                        return error.typeError;
+                    },
+                };
                 if (symbol.kind == ._fn) {
                     _ = try symbol.get_cfg(self, self.interned_strings, errors, allocator);
                     const lval = try self.create_temp_lvalue(symbol._type, errors, allocator);
@@ -1823,15 +1842,16 @@ pub const CFG = struct {
                 const ast_lval = try self.flattenAST(scope, ast.select.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
                 // Get the offset into the struct that this select does
-                var ast_expanded_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-                const offset = if (ast_expanded_type.* == .product)
-                    try ast_expanded_type.product.get_offset(ast.select.pos.?, scope, errors, allocator)
+                var lhs_expanded_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+                const offset = if (lhs_expanded_type.* == .product)
+                    try lhs_expanded_type.product.get_offset(ast.select.pos.?, scope, errors, allocator)
                 else
-                    try ast_expanded_type.sum.get_offset(ast.select.pos.?, scope, errors, allocator);
+                    try lhs_expanded_type.sum.get_offset(ast.select.pos.?, scope, errors, allocator);
 
                 // Surround with L_Value node
                 const _type = try ast.typeof(scope, errors, allocator);
-                return try L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, try ast.select.offset_at(scope, errors, allocator), _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const expanded_type = try _type.expand_type(scope, errors, allocator);
+                return try L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, expanded_type.sizeof(), _type, expanded_type, allocator);
             },
             .product => {
                 if (try (try ast.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(primitives.type_type, scope, errors, allocator)) {
@@ -2274,7 +2294,7 @@ pub const CFG = struct {
 
             else => {
                 std.debug.print("Unimplemented flattenAST() for: AST.{s}\n", .{@tagName(ast.*)});
-                return error.Unimplemented;
+                unreachable;
             },
         }
     }

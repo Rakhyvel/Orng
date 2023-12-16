@@ -306,14 +306,8 @@ pub const Module = struct {
 // The above should work
 fn collect_types(cfg: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
     // Add parameter types to type set
-    if (cfg.symbol._type.function.lhs.* == .product) {
-        // Function has more than one parameter, add types of product terms
-        for (cfg.symbol._type.function.lhs.product.terms.items) |param_type| {
-            _ = try type_set_append(param_type, set, allocator);
-        }
-    } else {
-        // Function has one parameter, add it's type
-        _ = try type_set_append(cfg.symbol._type.function.lhs, set, allocator);
+    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+        _ = try type_set_append(param.expanded_type.?, set, allocator);
     }
 
     for (cfg.basic_blocks.items) |bb| {

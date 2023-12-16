@@ -18,6 +18,8 @@ const Token = @import("token.zig").Token;
 
 const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
 
+const LookupResult = union(enum) { found_but_rt, found_but_fn, not_found, found: *Symbol };
+
 var scopeUID: usize = 0;
 pub const Scope = struct {
     parent: ?*Scope,
@@ -58,17 +60,27 @@ pub const Scope = struct {
         return retval;
     }
 
-    pub fn lookup(self: *Scope, name: []const u8, crossed_boundary: bool) ?*Symbol {
+    pub fn lookup(self: *Scope, name: []const u8, crossed_boundary: bool) LookupResult {
         if (self.symbols.get(name)) |symbol| {
             if (crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
-                return null;
+                // Found the symbol, but it's non-const and we've crossed an inner-function boundary
+                return .found_but_fn;
             } else {
-                return symbol;
+                // Found the symbol just fine
+                return LookupResult{ .found = symbol };
             }
         } else if (self.parent) |parent| {
-            return parent.lookup(name, parent.in_function < self.in_function or crossed_boundary);
+            const res = parent.lookup(name, parent.in_function < self.in_function or crossed_boundary);
+            if (false and res == .found_but_fn and self.inner_function.?.kind == ._comptime) {
+                // If have to cross a `comptime` boundary, change fn error to rt error
+                return .found_but_rt;
+            } else {
+                // (normal recursion)
+                return res;
+            }
         } else {
-            return null;
+            // Did not find the symbol at all
+            return .not_found;
         }
     }
 
@@ -215,10 +227,11 @@ pub const Symbol = struct {
     discard_span: ?Span,
 
     defined: bool,
-    validation_state: enum {
+    validation_state: enum { // TODO: Move to common file with AST's
         unvalidated, // Has not attempted to validate to validate symbol yet
         validating, // Symbol is currently being validated
         valid, // Symbol has been validated and is valid. Specifically, the type of the symbol is valid and may be used.
+        invalid,
     },
     decld: bool, // When a local variable, whether or not the variable has been printed out or not
     param: bool,
@@ -254,6 +267,7 @@ pub const Symbol = struct {
 
     pub fn get_cfg(self: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
         std.debug.assert(self.kind == ._fn or self.kind == ._comptime);
+        std.debug.assert(self.validation_state == .valid);
         if (self.cfg == null) {
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
@@ -306,15 +320,18 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         .discard => try symbolTableFromAST(definition.discard.expr, scope, errors, allocator),
         ._comptime => {
             const symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
-            if (scope.lookup(symbol.name, false)) |first| {
-                errors.addError(Error{ .redefinition = .{
-                    .first_defined_span = first.span,
-                    .redefined_span = symbol.span,
-                    .name = symbol.name,
-                } });
-                return error.symbolError;
-            } else {
-                try scope.symbols.put(symbol.name, symbol);
+            const res = scope.lookup(symbol.name, false);
+            switch (res) {
+                .found => {
+                    const first = res.found;
+                    errors.addError(Error{ .redefinition = .{
+                        .first_defined_span = first.span,
+                        .redefined_span = symbol.span,
+                        .name = symbol.name,
+                    } });
+                    return error.symbolError;
+                },
+                else => try scope.symbols.put(symbol.name, symbol),
             }
             definition._comptime.symbol = symbol;
         },
@@ -507,15 +524,18 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
                 return;
             }
             const symbol = try createFunctionSymbol(definition, scope, errors, allocator);
-            if (scope.lookup(symbol.name, false)) |first| {
-                errors.addError(Error{ .redefinition = .{
-                    .first_defined_span = first.span,
-                    .redefined_span = symbol.span,
-                    .name = symbol.name,
-                } });
-                return error.symbolError;
-            } else {
-                try scope.symbols.put(symbol.name, symbol);
+            const res = scope.lookup(symbol.name, false);
+            switch (res) {
+                .found => {
+                    const first = res.found;
+                    errors.addError(Error{ .redefinition = .{
+                        .first_defined_span = first.span,
+                        .redefined_span = symbol.span,
+                        .name = symbol.name,
+                    } });
+                    return error.symbolError;
+                },
+                else => try scope.symbols.put(symbol.name, symbol),
             }
             definition.fnDecl.symbol = symbol;
         },
@@ -526,15 +546,18 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
 
 fn put_all_symbols(symbols: *std.ArrayList(*Symbol), scope: *Scope, errors: *errs.Errors) !void {
     for (symbols.items) |symbol| {
-        if (scope.lookup(symbol.name, false)) |first| {
-            errors.addError(Error{ .redefinition = .{
-                .first_defined_span = first.span,
-                .redefined_span = symbol.span,
-                .name = symbol.name,
-            } });
-            return error.symbolError;
-        } else {
-            try scope.symbols.put(symbol.name, symbol);
+        const res = scope.lookup(symbol.name, false);
+        switch (res) {
+            .found => {
+                const first = res.found;
+                errors.addError(Error{ .redefinition = .{
+                    .first_defined_span = first.span,
+                    .redefined_span = symbol.span,
+                    .name = symbol.name,
+                } });
+                return error.symbolError;
+            },
+            else => try scope.symbols.put(symbol.name, symbol),
         }
     }
 }
@@ -547,15 +570,18 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
                 // `const` symbol, surround with comptime
                 const definition = try AST.createComptime(init.getToken(), init, allocator);
                 const comptime_symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
-                if (scope.lookup(comptime_symbol.name, false)) |first| {
-                    errors.addError(Error{ .redefinition = .{
-                        .first_defined_span = first.span,
-                        .redefined_span = comptime_symbol.span,
-                        .name = comptime_symbol.name,
-                    } });
-                    return error.symbolError;
-                } else {
-                    try scope.symbols.put(comptime_symbol.name, comptime_symbol);
+                const res = scope.lookup(comptime_symbol.name, false);
+                switch (res) {
+                    .found => {
+                        const first = res.found;
+                        errors.addError(Error{ .redefinition = .{
+                            .first_defined_span = first.span,
+                            .redefined_span = comptime_symbol.span,
+                            .name = comptime_symbol.name,
+                        } });
+                        return error.symbolError;
+                    },
+                    else => try scope.symbols.put(comptime_symbol.name, comptime_symbol),
                 }
                 definition._comptime.symbol = comptime_symbol;
 
@@ -608,8 +634,12 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
         .inject => {
             const lhs_type = try AST.createTypeOf(pattern.getToken(), init, allocator);
             const rhs_type = try AST.createDomainOf(pattern.getToken(), lhs_type, pattern, allocator);
-            try create_symbol(symbols, pattern.inject.lhs, lhs_type, ast.poisoned, scope, errors, allocator);
-            try create_symbol(symbols, pattern.inject.rhs, rhs_type, ast.poisoned, scope, errors, allocator);
+            // All symbols need inits, this is just a phony init since these symbols are more like parameters.
+            // We do the same for parameters, btw!
+            const phony_init = try AST.createDefault(pattern.getToken(), rhs_type, allocator);
+
+            try create_symbol(symbols, pattern.inject.lhs, lhs_type, phony_init, scope, errors, allocator);
+            try create_symbol(symbols, pattern.inject.rhs, rhs_type, phony_init, scope, errors, allocator);
         },
         else => {},
     }
@@ -732,16 +762,9 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
     const _type = try AST.createFunction(definition._comptime.expr.getToken(), lhs, rhs, allocator);
 
     // Create the comptime scope
-
-    // const keySet = scope.symbols.keys();
-    // var i: usize = 0;
-    // while (i < keySet.len) : (i += 1) {
-    //     const key = keySet[i];
-    //     var symbol = scope.symbols.get(key).?;
-    //     symbol.defined = true;
-    //     symbol.decld = true;
-    //     symbol.param = true;
-    // }
+    // This is to prevent `comptime` expressions from using runtime variables
+    var comptime_scope = try Scope.init(scope, "", allocator);
+    comptime_scope.in_function = scope.in_function;
 
     // Choose name
     var buf: []const u8 = undefined;
@@ -749,7 +772,7 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
 
     // Create the symbol
     const retval = try Symbol.create(
-        scope,
+        comptime_scope,
         buf,
         definition.getToken().span,
         _type,
@@ -758,8 +781,9 @@ fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *err
         ._comptime,
         allocator,
     );
+    comptime_scope.inner_function = retval;
 
-    try symbolTableFromAST(definition._comptime.expr, scope, errors, allocator);
+    try symbolTableFromAST(definition._comptime.expr, comptime_scope, errors, allocator);
     return retval;
 }
 
