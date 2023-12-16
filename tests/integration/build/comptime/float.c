@@ -7,54 +7,54 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _207_f(float _207_x,double _207_y,float _207_z,double _207_a);
-int64_t _204_main(void);
+int64_t _65_f(float _65_x,double _65_y,float _65_z,double _65_a);
+int64_t _62_main(void);
 
 /* Function definitions */
-int64_t _207_f(float _207_x,double _207_y,float _207_z,double _207_a){
-    float _207_t3;
-    float _207_t4;
-    uint8_t _207_t6;
-    int64_t _207_$retval;
-    double _207_t7;
-    double _207_t8;
-    uint8_t _207_t10;
-    float _207_t12;
-    uint8_t _207_t14;
-    double _207_t15;
-    uint8_t _207_t17;
-    _207_t3 = _207_x + _207_z;
-    _207_t4 = 3.5e+00;
-    _207_t6 = _207_t3 == _207_t4;
-    if (_207_t6) {
+int64_t _65_f(float _65_x,double _65_y,float _65_z,double _65_a){
+    float _65_t3;
+    float _65_t4;
+    uint8_t _65_t6;
+    int64_t _65_$retval;
+    double _65_t7;
+    double _65_t8;
+    uint8_t _65_t10;
+    float _65_t12;
+    uint8_t _65_t14;
+    double _65_t15;
+    uint8_t _65_t17;
+    _65_t3 = _65_x + _65_z;
+    _65_t4 = 3.5e+00;
+    _65_t6 = _65_t3 == _65_t4;
+    if (_65_t6) {
         goto BB3;
     } else {
         goto BB14;
     }
 BB3:
-    _207_t7 = _207_y + _207_a;
-    _207_t8 = 4.14e+00;
-    _207_t10 = _207_t7 == _207_t8;
-    if (_207_t10) {
+    _65_t7 = _65_y + _65_a;
+    _65_t8 = 4.14e+00;
+    _65_t10 = _65_t7 == _65_t8;
+    if (_65_t10) {
         goto BB9;
     } else {
         goto BB14;
     }
 BB14:
-    _207_t12 = 2.5e+00;
-    _207_t14 = _207_x == _207_t12;
-    if (_207_t14) {
+    _65_t12 = 2.5e+00;
+    _65_t14 = _65_x == _65_t12;
+    if (_65_t14) {
         goto BB17;
     } else {
         goto BB13;
     }
 BB9:
-    _207_$retval = 259;
-    return _207_$retval;
+    _65_$retval = 259;
+    return _65_$retval;
 BB17:
-    _207_t15 = 3.14e+00;
-    _207_t17 = _207_y == _207_t15;
-    if (_207_t17) {
+    _65_t15 = 3.14e+00;
+    _65_t17 = _65_y == _65_t15;
+    if (_65_t17) {
         goto BB9;
     } else {
         goto BB13;
@@ -64,13 +64,13 @@ BB13:
     $panic("reached unreachable code\n");
 }
 
-int64_t _204_main(void){
-    int64_t _204_$retval;
-    _204_$retval = 259;
-    return _204_$retval;
+int64_t _62_main(void){
+    int64_t _62_$retval;
+    _62_$retval = 259;
+    return _62_$retval;
 }
 
 int main(void) {
-  printf("%ld",_204_main());
+  printf("%ld",_62_main());
   return 0;
 }

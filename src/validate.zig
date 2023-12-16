@@ -723,6 +723,7 @@ fn validate_AST_internal(
             var lhs_type = try ast.call.lhs.typeof(scope, errors, allocator);
             const expanded_lhs_type = try lhs_type.expand_identifier(scope, errors, allocator);
             if (expanded_lhs_type.* != .function) {
+                // TODO: Emit expanded_lhs_type for user
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "call is not to a function" } });
                 return ast.enpoison();
             }

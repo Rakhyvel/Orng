@@ -1,0 +1,6 @@
+// 262
+fn main() -> Int {
+    f(comptime {})
+}
+
+fn f(x: ()) -> Int { _ = x; 262 }

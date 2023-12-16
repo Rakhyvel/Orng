@@ -1191,6 +1191,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
         } });
         return error.typeError;
     } else if (symbol.kind != ._const and symbol.discards == 0 and symbol.uses == 0) {
+        // TODO: Shouldn't do this if the type is unit!
         errors.addError(Error{ .symbol_error = .{
             .span = symbol.span,
             .context_span = null,

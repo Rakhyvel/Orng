@@ -1407,6 +1407,26 @@ pub const CFG = struct {
                     return src;
                 }
             },
+            .symbol => {
+                const symbol = ast.symbol.symbol;
+                if (symbol.kind == ._fn) {
+                    _ = try symbol.get_cfg(self, self.interned_strings, errors, allocator);
+                    const lval = try self.create_temp_lvalue(symbol._type, errors, allocator);
+                    var ir = try IR.create(.loadSymbol, lval, null, null, ast.getToken().span, allocator);
+                    ir.data = IRData{ .symbol = symbol };
+                    self.appendInstruction(ir);
+                    return lval;
+                } else if (try symbol.expanded_type.?.typesMatch(primitives.type_type, scope, errors, allocator)) {
+                    const lval = try self.create_temp_lvalue(symbol._type, errors, allocator);
+                    self.appendInstruction(try IR.create_ast(lval, ast, ast.getToken().span, allocator));
+                    return lval;
+                } else if (symbol.kind == ._const) {
+                    return try self.flattenAST(scope, symbol.init, return_label, break_label, continue_label, error_label, errors, allocator);
+                } else {
+                    const src = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
+                    return src;
+                }
+            },
             ._true => {
                 const temp = try self.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
                 const ir = try IR.createInt(temp, 1, ast.getToken().span, allocator);

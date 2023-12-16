@@ -482,7 +482,18 @@ pub const Context = struct {
                         .assert_valid(),
                 }
             },
-            .addrOf, .function => return (try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator)).assert_valid(),
+            .addrOf => return (try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator)).assert_valid(),
+            .function => {
+                const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
+                const ast = try ast_.AST.createSymbol(
+                    token_.Token.create_simple("function"),
+                    ._fn,
+                    symbol.name,
+                    allocator,
+                );
+                ast.symbol.symbol = symbol;
+                return ast.assert_valid();
+            },
             .unit_type => return (try ast_.AST.createUnitValue(_type.getToken(), allocator)).assert_valid(),
             .sum => {
                 var retval = (try ast_.AST.createInferredMember(_type.getToken(), (try ast_.AST.createIdentifier(token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0), allocator)).assert_valid(), allocator)).assert_valid();

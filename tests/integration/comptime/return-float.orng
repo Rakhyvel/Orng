@@ -1,0 +1,10 @@
+// 263
+fn main() -> Int {
+    if comptime f() == 3.14 {
+        263
+    } else {
+        unreachable
+    }
+}
+
+fn f() -> Float { 3.14 }

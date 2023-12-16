@@ -1,0 +1,20 @@
+// 264
+fn main() -> Int {
+    let const f = comptime g(2)
+    f(66, 4)
+}
+
+fn g(x: Int) -> ((Int, Int) -> Int) {
+    match x {
+        0 => add
+        1 => sub
+        2 => mul
+        3 => div
+        else => unreachable
+    }
+}
+
+fn add(x: Int, y: Int) -> Int { x + y }
+fn sub(x: Int, y: Int) -> Int { x - y }
+fn mul(x: Int, y: Int) -> Int { x * y }
+fn div(x: Int, y: Int) -> Int { x / y }
