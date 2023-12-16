@@ -17,44 +17,44 @@ typedef struct {
 typedef int64_t(*function1)(function0, int64_t);
 
 /* Function forward definitions */
-int64_t _868_main(void);
-int64_t _870_$anon160(int64_t _870_x);
-int64_t _872_apply(function0 _872_f,int64_t _872_x);
+int64_t _876_main(void);
+int64_t _878_$anon163(int64_t _878_x);
+int64_t _880_apply(function0 _880_f,int64_t _880_x);
 
 /* Function definitions */
-int64_t _868_main(void) {
-    function0 _869_id;
-    function1 _868_t1;
-    int64_t _868_t3;
-    int64_t _868_t2;
-    int64_t _868_$retval;
-    _869_id = _870_$anon160;
-    _868_t1 = _872_apply;
-    _868_t3 = 43;
+int64_t _876_main(void){
+    function0 _877_id;
+    function1 _876_t1;
+    int64_t _876_t3;
+    int64_t _876_t2;
+    int64_t _876_$retval;
+    _877_id = _878_$anon163;
+    _876_t1 = _880_apply;
+    _876_t3 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _868_t2 = _868_t1(_869_id, _868_t3);
+    _876_t2 = _876_t1(_877_id, _876_t3);
     $line_idx--;
-    _868_$retval = _868_t2;
-    return _868_$retval;
+    _876_$retval = _876_t2;
+    return _876_$retval;
 }
 
-int64_t _870_$anon160(int64_t _870_x) {
-    int64_t _870_$retval;
-    _870_$retval = _870_x;
-    return _870_$retval;
+int64_t _878_$anon163(int64_t _878_x){
+    int64_t _878_$retval;
+    _878_$retval = _878_x;
+    return _878_$retval;
 }
 
-int64_t _872_apply(function0 _872_f,int64_t _872_x) {
-    int64_t _872_t0;
-    int64_t _872_$retval;
+int64_t _880_apply(function0 _880_f,int64_t _880_x){
+    int64_t _880_t0;
+    int64_t _880_$retval;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
-    _872_t0 = _872_f(_872_x);
+    _880_t0 = _880_f(_880_x);
     $line_idx--;
-    _872_$retval = _872_t0;
-    return _872_$retval;
+    _880_$retval = _880_t0;
+    return _880_$retval;
 }
 
 int main(void) {
-  printf("%ld",_868_main());
+  printf("%ld",_876_main());
   return 0;
 }

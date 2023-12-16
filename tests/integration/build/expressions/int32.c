@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int32_t _661_main(void);
+int32_t _669_main(void);
 
 /* Function definitions */
-int32_t _661_main(void) {
-    int32_t _661_$retval;
-    _661_$retval = 201;
-    return _661_$retval;
+int32_t _669_main(void){
+    int32_t _669_$retval;
+    _669_$retval = 201;
+    return _669_$retval;
 }
 
 int main(void) {
-  printf("%d",_661_main());
+  printf("%d",_669_main());
   return 0;
 }

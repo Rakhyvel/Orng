@@ -17,13 +17,13 @@ int64_t _196_add(int64_t _196_a,int64_t _196_b);
 int64_t _186_main(void);
 
 /* Function definitions */
-int64_t _196_add(int64_t _196_a,int64_t _196_b) {
+int64_t _196_add(int64_t _196_a,int64_t _196_b){
     int64_t _196_$retval;
     _196_$retval = $add_int64_t(_196_a, _196_b, "tests/integration/comptime/default-init.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
     return _196_$retval;
 }
 
-int64_t _186_main(void) {
+int64_t _186_main(void){
     int64_t _186_t1;
     int64_t _186_t2;
     struct0 _187_x;

@@ -26,7 +26,7 @@ int64_t _130_main(void);
 struct2 _134_get_array(int64_t _134_a,int64_t _134_b);
 
 /* Function definitions */
-int64_t _130_main(void) {
+int64_t _130_main(void){
     function0 _130_t0;
     int64_t _130_t2;
     int64_t _130_t3;
@@ -56,7 +56,7 @@ int64_t _130_main(void) {
     return _130_$retval;
 }
 
-struct2 _134_get_array(int64_t _134_a,int64_t _134_b) {
+struct2 _134_get_array(int64_t _134_a,int64_t _134_b){
     struct2 _134_$retval;
     _134_$retval = (struct2) {_134_a, _134_b, _134_a, _134_b};
     return _134_$retval;

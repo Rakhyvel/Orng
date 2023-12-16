@@ -16,7 +16,7 @@ typedef struct {
 int64_t _295_main(void);
 
 /* Function definitions */
-int64_t _295_main(void) {
+int64_t _295_main(void){
     int64_t _295_t1;
     int64_t _295_t2;
     struct0 _296_x;

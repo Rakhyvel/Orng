@@ -23,7 +23,7 @@ typedef struct {
 int64_t _138_main(void);
 
 /* Function definitions */
-int64_t _138_main(void) {
+int64_t _138_main(void){
     int64_t _138_t2;
     int64_t _138_t3;
     int64_t _138_t4;

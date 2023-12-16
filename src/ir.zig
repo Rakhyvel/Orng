@@ -761,6 +761,9 @@ pub const IR = struct {
             .loadAST => {
                 try out.writer().print("    {} := AST({})\n", .{ self.dest.?, self.data.ast });
             },
+            .loadUnit => {
+                try out.writer().print("    {} := {{}}\n", .{self.dest.?});
+            },
 
             .copy => {
                 try out.writer().print("    {} := {?}\n", .{ self.dest.?, self.src1 });
@@ -1247,7 +1250,6 @@ pub const CFG = struct {
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and
                     ir.dest.?.* == .symbver and
-                    ir.dest.?.symbver.symbol.expanded_type.?.* != .unit_type and
                     ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null)
                 {
                     _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
@@ -1324,7 +1326,7 @@ pub const CFG = struct {
             },
             .unit_value => {
                 const lval = try self.create_temp_lvalue(primitives.unit_type, errors, allocator);
-                self.appendInstruction(try IR.create(.loadUnit, null, null, null, ast.getToken().span, allocator));
+                self.appendInstruction(try IR.create(.loadUnit, lval, null, null, ast.getToken().span, allocator));
                 return lval;
             },
             .int => {

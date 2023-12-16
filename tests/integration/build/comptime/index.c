@@ -10,7 +10,7 @@
 int64_t _220_main(void);
 
 /* Function definitions */
-int64_t _220_main(void) {
+int64_t _220_main(void){
     int64_t _220_$retval;
     _220_$retval = 233;
     return _220_$retval;

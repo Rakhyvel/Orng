@@ -24,7 +24,7 @@ int64_t _83_main(void);
 int64_t _87_f(struct1 _87_x);
 
 /* Function definitions */
-int64_t _83_main(void) {
+int64_t _83_main(void){
     struct0 _83_t1;
     struct0 _83_t2;
     struct0 _83_t3;
@@ -44,7 +44,7 @@ int64_t _83_main(void) {
     return _83_$retval;
 }
 
-int64_t _87_f(struct1 _87_x) {
+int64_t _87_f(struct1 _87_x){
     int64_t _87_t1;
     uint64_t _87_t5;
     uint64_t _87_t6;

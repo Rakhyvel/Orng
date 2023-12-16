@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-float _628_main(void);
+float _636_main(void);
 
 /* Function definitions */
-float _628_main(void) {
-    float _628_$retval;
-    _628_$retval = 2.07e+02;
-    return _628_$retval;
+float _636_main(void){
+    float _636_$retval;
+    _636_$retval = 2.07e+02;
+    return _636_$retval;
 }
 
 int main(void) {
-  printf("%f",_628_main());
+  printf("%f",_636_main());
   return 0;
 }

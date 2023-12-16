@@ -188,33 +188,13 @@ fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer:
     }
 }
 
-fn output_forward_function(cfg: *CFG, writer: anytype) !void {
-    try output_type(cfg.symbol.expanded_type.?.function.rhs, writer);
-    try writer.print(" ", .{});
-    try output_symbol(cfg.symbol, writer);
-    try writer.print("(", .{});
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
-        if (!param.expanded_type.?.c_typesMatch(primitives.unit_type)) {
-            // Print out parameter declarations
-            try output_var_decl(param, writer, true);
-            if (i + 1 < cfg.symbol.decl.?.fnDecl.param_symbols.items.len) {
-                try writer.print(",", .{});
-            }
-        }
-    }
-    if (cfg.symbol.decl.?.fnDecl.param_symbols.items.len == 0) {
-        // If there are no parameters, mark as void
-        try writer.print("void", .{});
-    }
-    try writer.print(");\n", .{});
-}
-
-fn output_function_definition(cfg: *CFG, writer: anytype) !void {
+fn output_function_prototype(cfg: *CFG, writer: anytype) !void {
     // Print function return type, name, parameter list
     try output_type(cfg.symbol.expanded_type.?.function.rhs, writer);
     try writer.print(" ", .{});
     try output_symbol(cfg.symbol, writer);
     try writer.print("(", .{});
+    var num_non_unit_params: i64 = 0;
     for (cfg.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
         if (!param.expanded_type.?.c_typesMatch(primitives.unit_type)) {
             // Print out parameter declarations
@@ -222,16 +202,30 @@ fn output_function_definition(cfg: *CFG, writer: anytype) !void {
             if (i + 1 < cfg.symbol.decl.?.fnDecl.param_symbols.items.len) {
                 try writer.print(",", .{});
             }
+            num_non_unit_params += 1;
         }
     }
-    if (cfg.symbol.decl.?.fnDecl.param_symbols.items.len == 0) {
+    if (num_non_unit_params == 0) {
         // If there are no parameters, mark as void
         try writer.print("void", .{});
     }
-    try writer.print(") {{\n", .{});
+    try writer.print(")", .{});
+}
+
+fn output_forward_function(cfg: *CFG, writer: anytype) !void {
+    try output_function_prototype(cfg, writer);
+    try writer.print(";\n", .{});
+}
+
+fn output_function_definition(cfg: *CFG, writer: anytype) !void {
+    try output_function_prototype(cfg, writer);
+    try writer.print("{{\n", .{});
 
     // Collect and then declare all local variables
     for (cfg.symbvers.items) |symbver| {
+        if (symbver.symbol.expanded_type.?.* == .unit_type) {
+            continue; // Do not output unit variables
+        }
         try output_var_decl(symbver.symbol, writer, false);
         symbver.symbol.decld = true;
     }

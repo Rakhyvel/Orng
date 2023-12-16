@@ -1,6 +1,7 @@
 const errs = @import("errors.zig");
 const _ir = @import("ir.zig");
 const std = @import("std");
+const primitives_ = @import("primitives.zig");
 
 const BasicBlock = _ir.BasicBlock;
 const CFG = _ir.CFG;
@@ -562,9 +563,14 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
-            // `x == x` => `true`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
-                log("equal; self equality");
+            // `x == x => true (where x is NOT floating-point type)`
+            // NOTE: Cannot do `x == x  ==> true` optimization for floats, `NaN == NaN` is false!
+            else if (ir.src1.?.* == .symbver and
+                ir.src2.?.* == .symbver and
+                ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol and
+                !ir.src1.?.symbver.symbol.expanded_type.?.can_expanded_represent_float())
+            {
+                log("equal; self inequality");
                 ir.kind = .loadInt;
                 ir.data = _ir.IRData{ .int = 1 };
                 ir.src1 = null;
@@ -736,15 +742,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
-            // `x >= x` => `true`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
-                log("greater_equal_float; self compare");
-                ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 1 };
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
+            // NOTE: Cannot do `x >= x  ==> true` optimization for floats, `NaN >= NaN` is false!
         },
 
         .lesser_equal_int => {
@@ -778,15 +776,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 ir.src2 = null;
                 retval = true;
             }
-            // `x <= x` => `true`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
-                log("lesser_equal_float; self compare");
-                ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 1 };
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
+            // NOTE: Cannot do `x <= x  ==> true` optimization, `NaN <= NaN` is false!
         },
 
         .add_int => {

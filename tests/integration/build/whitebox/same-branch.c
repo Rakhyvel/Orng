@@ -7,30 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1631_main(void);
+int64_t _1639_main(void);
 
 /* Function definitions */
-int64_t _1631_main(void) {
-    uint8_t _1632_x;
-    int64_t _1632_z;
-    uint8_t* _1631_t3;
-    int64_t _1631_$retval;
-    _1632_x = 1;
-    _1632_z = 40;
-    _1631_t3 = &_1632_x;
-    if (*_1631_t3) {
-        goto BB1;
-    } else {
-        goto BB3;
-    }
-BB1:
-    goto BB3;
-BB3:
-    _1631_$retval = _1632_z;
-    return _1631_$retval;
+int64_t _1639_main(void){
+    int64_t _1639_$retval;
+    _1639_$retval = 40;
+    return _1639_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1631_main());
+  printf("%ld",_1639_main());
   return 0;
 }

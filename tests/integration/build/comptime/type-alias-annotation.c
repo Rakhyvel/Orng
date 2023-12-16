@@ -10,7 +10,7 @@
 int64_t _285_main(void);
 
 /* Function definitions */
-int64_t _285_main(void) {
+int64_t _285_main(void){
     int64_t _286_x;
     int64_t _285_$retval;
     _286_x = 241;

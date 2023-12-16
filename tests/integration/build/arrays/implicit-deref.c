@@ -19,7 +19,7 @@ typedef struct {
 int64_t _109_main(void);
 
 /* Function definitions */
-int64_t _109_main(void) {
+int64_t _109_main(void){
     int64_t _109_t1;
     int64_t _109_t2;
     int64_t _109_t3;

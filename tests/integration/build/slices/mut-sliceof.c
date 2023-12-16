@@ -21,41 +21,41 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1281_main(void);
+int64_t _1289_main(void);
 
 /* Function definitions */
-int64_t _1281_main(void) {
-    int64_t _1281_t1;
-    int64_t _1281_t2;
-    int64_t _1281_t3;
-    int64_t _1281_t4;
-    int64_t _1281_t5;
-    struct0 _1282_x;
-    int64_t _1281_t7;
-    int64_t* _1281_t8;
-    int64_t _1281_t9;
-    struct1 _1282_y;
-    int64_t _1281_t11;
-    int64_t _1281_t12;
-    int64_t _1281_$retval;
-    _1281_t1 = 1;
-    _1281_t2 = 2;
-    _1281_t3 = 3;
-    _1281_t4 = 4;
-    _1281_t5 = 5;
-    _1282_x = (struct0) {_1281_t1, _1281_t2, _1281_t3, _1281_t4, _1281_t5};
-    _1281_t7 = 0;
-    _1281_t8 = ((int64_t*)&_1282_x + _1281_t7);
-    _1281_t9 = 5;
-    _1282_y = (struct1) {_1281_t8, _1281_t9};
-    _1281_t11 = 2;
-    *((int64_t*)_1282_y._0 + _1281_t11) = 81;
-    _1281_t12 = 2;
-    _1281_$retval = *((int64_t*)_1282_y._0 + _1281_t12);
-    return _1281_$retval;
+int64_t _1289_main(void){
+    int64_t _1289_t1;
+    int64_t _1289_t2;
+    int64_t _1289_t3;
+    int64_t _1289_t4;
+    int64_t _1289_t5;
+    struct0 _1290_x;
+    int64_t _1289_t7;
+    int64_t* _1289_t8;
+    int64_t _1289_t9;
+    struct1 _1290_y;
+    int64_t _1289_t11;
+    int64_t _1289_t12;
+    int64_t _1289_$retval;
+    _1289_t1 = 1;
+    _1289_t2 = 2;
+    _1289_t3 = 3;
+    _1289_t4 = 4;
+    _1289_t5 = 5;
+    _1290_x = (struct0) {_1289_t1, _1289_t2, _1289_t3, _1289_t4, _1289_t5};
+    _1289_t7 = 0;
+    _1289_t8 = ((int64_t*)&_1290_x + _1289_t7);
+    _1289_t9 = 5;
+    _1290_y = (struct1) {_1289_t8, _1289_t9};
+    _1289_t11 = 2;
+    *((int64_t*)_1290_y._0 + _1289_t11) = 81;
+    _1289_t12 = 2;
+    _1289_$retval = *((int64_t*)_1290_y._0 + _1289_t12);
+    return _1289_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1281_main());
+  printf("%ld",_1289_main());
   return 0;
 }

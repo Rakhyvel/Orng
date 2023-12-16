@@ -10,7 +10,7 @@
 int64_t _180_main(void);
 
 /* Function definitions */
-int64_t _180_main(void) {
+int64_t _180_main(void){
     int64_t _180_$retval;
     _180_$retval = 236;
     return _180_$retval;

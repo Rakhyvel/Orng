@@ -46,7 +46,7 @@ struct3 _51_safe_div_vec(struct2 _51_x,struct2 _51_y);
 struct4 _66_safe_div(int64_t _66_x,int64_t _66_y);
 
 /* Function definitions */
-int64_t _49_main(void) {
+int64_t _49_main(void){
     function0 _49_t0;
     int64_t _49_t3;
     int64_t _49_t4;
@@ -78,7 +78,7 @@ int64_t _49_main(void) {
     return _49_$retval;
 }
 
-struct3 _51_safe_div_vec(struct2 _51_x,struct2 _51_y) {
+struct3 _51_safe_div_vec(struct2 _51_x,struct2 _51_y){
     struct4 _51_t2;
     struct4 _51_t4;
     struct4 _51_t6;
@@ -131,7 +131,7 @@ struct3 _51_safe_div_vec(struct2 _51_x,struct2 _51_y) {
     return _51_$retval;
 }
 
-struct4 _66_safe_div(int64_t _66_x,int64_t _66_y) {
+struct4 _66_safe_div(int64_t _66_x,int64_t _66_y){
     int64_t _66_t1;
     uint8_t _66_t3;
     int64_t _66_t6;

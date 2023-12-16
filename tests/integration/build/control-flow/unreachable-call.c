@@ -10,41 +10,41 @@
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
-int64_t _380_main(void);
-int64_t _382_f(void);
-int64_t _384_g(void);
+int64_t _388_main(void);
+int64_t _390_f(void);
+int64_t _392_g(void);
 
 /* Function definitions */
-int64_t _380_main(void) {
-    function0 _380_t0;
-    int64_t _380_t1;
-    int64_t _380_$retval;
-    _380_t0 = _382_f;
+int64_t _388_main(void){
+    function0 _388_t0;
+    int64_t _388_t1;
+    int64_t _388_$retval;
+    _388_t0 = _390_f;
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:2:21:\nfn main() -> Int {f()}\n                   ^";
-    _380_t1 = _380_t0();
+    _388_t1 = _388_t0();
     $line_idx--;
-    _380_$retval = _380_t1;
-    return _380_$retval;
+    _388_$retval = _388_t1;
+    return _388_$retval;
 }
 
-int64_t _382_f(void) {
-    function0 _382_t0;
-    int64_t _382_t1;
-    int64_t _382_$retval;
-    _382_t0 = _384_g;
+int64_t _390_f(void){
+    function0 _390_t0;
+    int64_t _390_t1;
+    int64_t _390_$retval;
+    _390_t0 = _392_g;
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:4:18:\nfn f() -> Int {g()}\n                ^";
-    _382_t1 = _382_t0();
+    _390_t1 = _390_t0();
     $line_idx--;
-    _382_$retval = _382_t1;
-    return _382_$retval;
+    _390_$retval = _390_t1;
+    return _390_$retval;
 }
 
-int64_t _384_g(void) {
+int64_t _392_g(void){
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:6:27:\nfn g() -> Int {unreachable}\n                         ^";
     $panic("reached unreachable code\n");
 }
 
 int main(void) {
-  printf("%ld",_380_main());
+  printf("%ld",_388_main());
   return 0;
 }

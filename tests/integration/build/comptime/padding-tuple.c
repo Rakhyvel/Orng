@@ -18,7 +18,7 @@ int64_t _256_f(struct0 _256_m);
 int64_t _252_main(void);
 
 /* Function definitions */
-int64_t _256_f(struct0 _256_m) {
+int64_t _256_f(struct0 _256_m){
     int8_t _256_t3;
     uint8_t _256_t5;
     int64_t _256_t0;
@@ -61,7 +61,7 @@ BB11:
     goto BB14;
 }
 
-int64_t _252_main(void) {
+int64_t _252_main(void){
     int64_t _252_$retval;
     _252_$retval = 257;
     return _252_$retval;

@@ -1636,9 +1636,12 @@ pub const AST = union(enum) {
         return false;
     }
 
-    const float_types = [_][]const u8{ "Float", "Float32", "Float64" };
     pub fn can_represent_float(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-        var expanded = try self.expand_type(scope, errors, allocator);
+        return can_expanded_represent_float(try self.expand_type(scope, errors, allocator));
+    }
+
+    pub fn can_expanded_represent_float(self: *AST) bool {
+        var expanded = self;
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
         }
@@ -1649,12 +1652,8 @@ pub const AST = union(enum) {
             // Clearly not a float type
             return false;
         }
-        for (float_types) |name| {
-            if (std.mem.eql(u8, name, expanded.getToken().data)) {
-                return true;
-            }
-        }
-        return false;
+        const info = primitives.get(expanded.getToken().data);
+        return info.type_kind == .floating_point;
     }
 
     pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {

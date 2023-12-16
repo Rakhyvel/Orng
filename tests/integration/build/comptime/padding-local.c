@@ -20,7 +20,7 @@ int64_t _230_main(void);
 int64_t _232_f(int8_t _232_x,int16_t _232_y,int8_t _232_z);
 
 /* Function definitions */
-int64_t _230_main(void) {
+int64_t _230_main(void){
     int8_t _231_x;
     int16_t _231_y;
     int8_t _231_z;
@@ -38,7 +38,7 @@ int64_t _230_main(void) {
     return _230_$retval;
 }
 
-int64_t _232_f(int8_t _232_x,int16_t _232_y,int8_t _232_z) {
+int64_t _232_f(int8_t _232_x,int16_t _232_y,int8_t _232_z){
     int8_t _232_t3;
     uint8_t _232_t5;
     uint8_t _232_t7;

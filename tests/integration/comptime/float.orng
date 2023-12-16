@@ -1,10 +1,10 @@
 // 259
 fn main() -> Int {
-    comptime f(2.5, 3.14, 1.0)
+    comptime f(2.5, 3.14, 1.0, 1.0)
 }
 
-fn f(x: Float32, y: Float, z: Float32) -> Int {
-    if (x + z == 3.5) or (x == 2.5 and y == 3.14) {
+fn f(x: Float32, y: Float, z: Float32, a: Float) -> Int {
+    if (x + z == 3.5 and y + a == 4.14) or (x == 2.5 and y == 3.14) {
         259
     } else {
         unreachable

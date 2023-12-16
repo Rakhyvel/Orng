@@ -22,7 +22,7 @@ typedef struct {
 int64_t _72_main(void);
 
 /* Function definitions */
-int64_t _72_main(void) {
+int64_t _72_main(void){
     int64_t _72_t2;
     int64_t _72_t3;
     struct0 _72_t1;

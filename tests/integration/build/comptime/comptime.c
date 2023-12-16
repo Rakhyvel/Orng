@@ -10,7 +10,7 @@
 int64_t _170_main(void);
 
 /* Function definitions */
-int64_t _170_main(void) {
+int64_t _170_main(void){
     int64_t _170_$retval;
     _170_$retval = 241;
     return _170_$retval;

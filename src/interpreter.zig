@@ -55,6 +55,7 @@ pub const Context = struct {
                     //     retval^ := val
                     return self.load(i64, self.base_pointer + offsets_.retval_offset);
                 } else if (lval.symbver.symbol.offset == null) {
+                    // If this is triggered for a temporary or a constant, you didn't offset it correctly
                     std.debug.print("cannot use `{s}` because its comptime, lol!\n", .{lval.symbver.symbol.name});
                     unreachable; // TODO: Make proper error ( :( )
                 } else {

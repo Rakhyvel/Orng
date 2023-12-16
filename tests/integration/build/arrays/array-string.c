@@ -27,7 +27,7 @@ char* string_2 = "\x57\x6F\x72\x6C\x64\x21";
 struct0 _77_main(void);
 
 /* Function definitions */
-struct0 _77_main(void) {
+struct0 _77_main(void){
     struct0 _77_t1;
     struct0 _77_t2;
     struct0 _77_t3;

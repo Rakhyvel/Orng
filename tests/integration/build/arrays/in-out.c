@@ -20,7 +20,7 @@ int64_t _114_main(void);
 void _118_f(struct0* _118_x);
 
 /* Function definitions */
-int64_t _114_main(void) {
+int64_t _114_main(void){
     int64_t _114_t1;
     int64_t _114_t2;
     int64_t _114_t3;
@@ -43,7 +43,7 @@ int64_t _114_main(void) {
     return _114_$retval;
 }
 
-void _118_f(struct0* _118_x) {
+void _118_f(struct0* _118_x){
     int64_t _118_t1;
     _118_t1 = 1;
     *((int64_t*)_118_x + _118_t1) = 217;

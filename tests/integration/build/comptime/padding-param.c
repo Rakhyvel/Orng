@@ -11,7 +11,7 @@ int64_t _241_f(int8_t _241_x,int16_t _241_y,int8_t _241_z);
 int64_t _238_main(void);
 
 /* Function definitions */
-int64_t _241_f(int8_t _241_x,int16_t _241_y,int8_t _241_z) {
+int64_t _241_f(int8_t _241_x,int16_t _241_y,int8_t _241_z){
     int8_t _241_t3;
     uint8_t _241_t5;
     uint8_t _241_t7;
@@ -90,7 +90,7 @@ BB11:
     return _241_$retval;
 }
 
-int64_t _238_main(void) {
+int64_t _238_main(void){
     int64_t _238_$retval;
     _238_$retval = 255;
     return _238_$retval;

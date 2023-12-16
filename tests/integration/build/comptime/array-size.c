@@ -19,13 +19,13 @@ int64_t _160_add(int64_t _160_a,int64_t _160_b);
 int64_t _152_main(void);
 
 /* Function definitions */
-int64_t _160_add(int64_t _160_a,int64_t _160_b) {
+int64_t _160_add(int64_t _160_a,int64_t _160_b){
     int64_t _160_$retval;
     _160_$retval = $add_int64_t(_160_a, _160_b, "tests/integration/comptime/array-size.orng:12:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
     return _160_$retval;
 }
 
-int64_t _152_main(void) {
+int64_t _152_main(void){
     int64_t _152_t1;
     int64_t _152_t2;
     int64_t _152_t3;

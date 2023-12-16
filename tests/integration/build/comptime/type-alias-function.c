@@ -19,7 +19,7 @@ int64_t _289_main(void);
 int64_t _291_add(int64_t _291_x,int64_t _291_y);
 
 /* Function definitions */
-int64_t _289_main(void) {
+int64_t _289_main(void){
     function0 _290_f;
     int64_t _289_t2;
     int64_t _289_t3;
@@ -35,7 +35,7 @@ int64_t _289_main(void) {
     return _289_$retval;
 }
 
-int64_t _291_add(int64_t _291_x,int64_t _291_y) {
+int64_t _291_add(int64_t _291_x,int64_t _291_y){
     int64_t _291_$retval;
     _291_$retval = $add_int64_t(_291_x, _291_y, "tests/integration/comptime/type-alias-function.orng:9:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
     return _291_$retval;

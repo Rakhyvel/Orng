@@ -21,7 +21,7 @@ int64_t _97_main(void);
 struct0* _101_f(struct0* _101_x);
 
 /* Function definitions */
-int64_t _97_main(void) {
+int64_t _97_main(void){
     int64_t _97_t1;
     int64_t _97_t2;
     int64_t _97_t3;
@@ -47,7 +47,7 @@ int64_t _97_main(void) {
     return _97_$retval;
 }
 
-struct0* _101_f(struct0* _101_x) {
+struct0* _101_f(struct0* _101_x){
     int64_t _101_t1;
     struct0* _101_$retval;
     _101_t1 = 3;

@@ -38,7 +38,7 @@ int64_t _46_halve(int64_t _46_x);
 int64_t _40_mult(int64_t _40_x,int64_t _40_y);
 
 /* Function definitions */
-int64_t _30_main(void) {
+int64_t _30_main(void){
     function0 _30_t1;
     function0 _30_t2;
     function0 _30_t3;
@@ -79,25 +79,25 @@ int64_t _30_main(void) {
     return _30_$retval;
 }
 
-int64_t _36_sum(int64_t _36_x,int64_t _36_y) {
+int64_t _36_sum(int64_t _36_x,int64_t _36_y){
     int64_t _36_$retval;
     _36_$retval = $add_int64_t(_36_x, _36_y, "tests/integration/arrays/array-function-pointer.orng:10:8:\n    x + y\n      ^");
     return _36_$retval;
 }
 
-int64_t _38_diff(int64_t _38_x,int64_t _38_y) {
+int64_t _38_diff(int64_t _38_x,int64_t _38_y){
     int64_t _38_$retval;
     _38_$retval = $sub_int64_t(_38_x, _38_y, "tests/integration/arrays/array-function-pointer.orng:14:8:\n    x - y\n      ^");
     return _38_$retval;
 }
 
-int64_t _42_div(int64_t _42_x,int64_t _42_y) {
+int64_t _42_div(int64_t _42_x,int64_t _42_y){
     int64_t _42_$retval;
     _42_$retval = $div_int64_t(_42_x, _42_y, "tests/integration/arrays/array-function-pointer.orng:22:8:\n    x / y\n      ^");
     return _42_$retval;
 }
 
-int64_t _44_double(int64_t _44_x) {
+int64_t _44_double(int64_t _44_x){
     int64_t _44_t0;
     int64_t _44_$retval;
     _44_t0 = 2;
@@ -105,7 +105,7 @@ int64_t _44_double(int64_t _44_x) {
     return _44_$retval;
 }
 
-int64_t _46_halve(int64_t _46_x) {
+int64_t _46_halve(int64_t _46_x){
     int64_t _46_t0;
     int64_t _46_$retval;
     _46_t0 = 2;
@@ -113,7 +113,7 @@ int64_t _46_halve(int64_t _46_x) {
     return _46_$retval;
 }
 
-int64_t _40_mult(int64_t _40_x,int64_t _40_y) {
+int64_t _40_mult(int64_t _40_x,int64_t _40_y){
     int64_t _40_$retval;
     _40_$retval = $mult_int64_t(_40_x, _40_y, "tests/integration/arrays/array-function-pointer.orng:18:8:\n    x * y\n      ^");
     return _40_$retval;

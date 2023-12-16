@@ -18,7 +18,7 @@ typedef struct {
 int64_t _248_main(void);
 
 /* Function definitions */
-int64_t _248_main(void) {
+int64_t _248_main(void){
     int8_t _248_t0;
     struct0 _249_a;
     int64_t _248_$retval;

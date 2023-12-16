@@ -18,7 +18,7 @@ typedef struct {
 int64_t _125_main(void);
 
 /* Function definitions */
-int64_t _125_main(void) {
+int64_t _125_main(void){
     int64_t _125_t1;
     int64_t _125_t2;
     int64_t _125_t3;

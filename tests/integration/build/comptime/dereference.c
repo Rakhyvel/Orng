@@ -10,7 +10,7 @@
 int64_t _199_main(void);
 
 /* Function definitions */
-int64_t _199_main(void) {
+int64_t _199_main(void){
     int64_t _199_$retval;
     _199_$retval = 234;
     return _199_$retval;

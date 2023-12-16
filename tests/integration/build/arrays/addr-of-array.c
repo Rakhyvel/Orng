@@ -20,7 +20,7 @@ int64_t _18_main(void);
 int64_t _20_sum(struct1* _20_xs);
 
 /* Function definitions */
-int64_t _18_main(void) {
+int64_t _18_main(void){
     function0 _18_t0;
     int64_t _18_t3;
     int64_t _18_t4;
@@ -42,7 +42,7 @@ int64_t _18_main(void) {
     return _18_$retval;
 }
 
-int64_t _20_sum(struct1* _20_xs) {
+int64_t _20_sum(struct1* _20_xs){
     int64_t _20_t0;
     int64_t _20_t1;
     int64_t _20_t2;
