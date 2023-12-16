@@ -15,37 +15,37 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _484_main(void);
+int64_t _495_main(void);
 
 /* Function definitions */
-int64_t _484_main(void){
-    int64_t _484_t0;
-    struct0 _485_x;
-    int64_t _484_t3;
-    uint8_t _484_t5;
-    int64_t _484_t2;
-    int64_t _484_$retval;
-    _484_t0 = 0;
-    _485_x = (struct0) {.tag=0, ._0=_484_t0};
-    _484_t3 = 0;
-    _484_t5 = _485_x._0 == _484_t3;
-    if (_484_t5) {
+int64_t _495_main(void){
+    int64_t _495_t0;
+    struct0 _496_x;
+    int64_t _495_t3;
+    uint8_t _495_t5;
+    int64_t _495_t2;
+    int64_t _495_$retval;
+    _495_t0 = 0;
+    _496_x = (struct0) {.tag=0, ._0=_495_t0};
+    _495_t3 = 0;
+    _495_t5 = _496_x._0 == _495_t3;
+    if (_495_t5) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _484_t2 = 133;
+    _495_t2 = 133;
     goto BB6;
 BB7:
-    _484_t2 = 0;
+    _495_t2 = 0;
     goto BB6;
 BB6:
-    _484_$retval = _484_t2;
-    return _484_$retval;
+    _495_$retval = _495_t2;
+    return _495_$retval;
 }
 
 int main(void) {
-  printf("%ld",_484_main());
+  printf("%ld",_495_main());
   return 0;
 }

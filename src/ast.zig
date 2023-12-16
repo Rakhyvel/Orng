@@ -545,18 +545,10 @@ pub const AST = union(enum) {
                 return max_align;
             },
 
-            .sum => {
-                var max_align: i64 = 0;
-                for (self.sum.terms.items) |child| {
-                    const child_align = child.alignof();
-                    if (max_align < child_align) {
-                        max_align = child_align;
-                    }
-                }
-                return max_align;
-            },
-
-            .function, .addrOf => return 8,
+            .sum, // this pains me :-( but has to be this way for the tag
+            .function,
+            .addrOf,
+            => return 8,
 
             .unit_type => return 1, // fogedda bout it
 
@@ -916,10 +908,24 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        const none_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("none", null, "", "", 0, 0), allocator), primitives.unit_type, null, primitives.unit_type, allocator);
+        const none_type = try AST.createAnnotation(
+            of_type.getToken(),
+            try AST.createIdentifier(Token.create_simple("none"), allocator),
+            primitives.unit_type,
+            null,
+            try AST.createUnitValue(Token.create_simple("none init"), allocator),
+            allocator,
+        );
         try term_types.append(none_type);
 
-        const some_type = try AST.createAnnotation(of_type.getToken(), try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator), of_type, null, null, allocator);
+        const some_type = try AST.createAnnotation(
+            of_type.getToken(),
+            try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator),
+            of_type,
+            null,
+            null,
+            allocator,
+        );
         try term_types.append(some_type);
 
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);

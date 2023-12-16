@@ -7,21 +7,21 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _614_main(void);
+int64_t _625_main(void);
 
 /* Function definitions */
-int64_t _614_main(void){
-    int64_t _615_x;
-    int64_t* _615_y;
-    int64_t _614_$retval;
-    _615_x = 4;
-    _615_y = &_615_x;
-    *_615_y = 28;
-    _614_$retval = *_615_y;
-    return _614_$retval;
+int64_t _625_main(void){
+    int64_t _626_x;
+    int64_t* _626_y;
+    int64_t _625_$retval;
+    _626_x = 4;
+    _626_y = &_626_x;
+    *_626_y = 28;
+    _625_$retval = *_626_y;
+    return _625_$retval;
 }
 
 int main(void) {
-  printf("%ld",_614_main());
+  printf("%ld",_625_main());
   return 0;
 }

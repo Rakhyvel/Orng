@@ -1422,6 +1422,8 @@ fn validate_AST_internal(
                         poisoned = poisoned or new_mapping.* == .poison;
                     } else {
                         // match has no else, not expecting an optional type => type error
+                        // TODO: Include all that ^ in the error message, because this is kinda confusing
+                        // TODO: Matches should have to be exhaustive, so they would never return none :-)
                         var new_map = try validateAST(mapping, expected.?, ast.match.scope.?, errors, allocator);
                         const new_map_type = try new_map.typeof(scope, errors, allocator);
                         ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };

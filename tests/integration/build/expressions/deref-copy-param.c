@@ -10,33 +10,33 @@
 typedef void(*function0)(int64_t*);
 
 /* Function forward definitions */
-int64_t _603_main(void);
-void _606_f(int64_t* _606_y);
+int64_t _614_main(void);
+void _617_f(int64_t* _617_y);
 
 /* Function definitions */
-int64_t _603_main(void){
-    int64_t _604_x;
-    int64_t* _604_y;
-    function0 _603_t2;
-    int64_t _603_$retval;
-    _604_x = 4;
-    _604_y = &_604_x;
-    _603_t2 = _606_f;
+int64_t _614_main(void){
+    int64_t _615_x;
+    int64_t* _615_y;
+    function0 _614_t2;
+    int64_t _614_$retval;
+    _615_x = 4;
+    _615_y = &_615_x;
+    _614_t2 = _617_f;
     $lines[$line_idx++] = "tests/integration/expressions/deref-copy-param.orng:5:7:\n    f(y)\n     ^";
-    _603_t2(_604_y);
+    _614_t2(_615_y);
     $line_idx--;
-    _603_$retval = *_604_y;
-    return _603_$retval;
+    _614_$retval = *_615_y;
+    return _614_$retval;
 }
 
-void _606_f(int64_t* _606_y){
-    int64_t* _609_z;
-    _609_z = _606_y;
-    *_609_z = 195;
+void _617_f(int64_t* _617_y){
+    int64_t* _620_z;
+    _620_z = _617_y;
+    *_620_z = 195;
     return;
 }
 
 int main(void) {
-  printf("%ld",_603_main());
+  printf("%ld",_614_main());
   return 0;
 }

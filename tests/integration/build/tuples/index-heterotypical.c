@@ -14,24 +14,24 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1481_main(void);
+int64_t _1492_main(void);
 
 /* Function definitions */
-int64_t _1481_main(void){
-    uint32_t _1481_t1;
-    int64_t _1481_t2;
-    double _1481_t3;
-    struct0 _1482_x;
-    int64_t _1481_$retval;
-    _1481_t1 = 960;
-    _1481_t2 = 247;
-    _1481_t3 = 3.14e+00;
-    _1482_x = (struct0) {_1481_t1, _1481_t2, _1481_t3};
-    _1481_$retval = _1482_x._1;
-    return _1481_$retval;
+int64_t _1492_main(void){
+    uint32_t _1492_t1;
+    int64_t _1492_t2;
+    double _1492_t3;
+    struct0 _1493_x;
+    int64_t _1492_$retval;
+    _1492_t1 = 960;
+    _1492_t2 = 247;
+    _1492_t3 = 3.14e+00;
+    _1493_x = (struct0) {_1492_t1, _1492_t2, _1492_t3};
+    _1492_$retval = _1493_x._1;
+    return _1492_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1481_main());
+  printf("%ld",_1492_main());
   return 0;
 }

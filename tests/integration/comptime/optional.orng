@@ -1,0 +1,12 @@
+// 261
+fn main() -> Int {
+    comptime (f(.some <- 250) + f(.none))
+}
+
+fn f(x: ?Int32) -> Int {
+    match x {
+        .some => 250
+        .none => 11
+        else => unreachable
+    }
+}
