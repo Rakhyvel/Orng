@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint32_t _1343_main(void);
+uint32_t _1403_main(void);
 
 /* Function definitions */
-uint32_t _1343_main(void){
-    uint32_t _1343_$retval;
-    _1343_$retval = 13;
-    return _1343_$retval;
+uint32_t _1403_main(void){
+    uint32_t _1403_$retval;
+    _1403_$retval = 13;
+    return _1403_$retval;
 }
 
 int main(void) {
-  printf("%d",_1343_main());
+  printf("%d",_1403_main());
   return 0;
 }

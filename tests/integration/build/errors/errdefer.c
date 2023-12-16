@@ -19,60 +19,60 @@ typedef struct {
 typedef struct2(*function0)(int64_t*, uint8_t);
 
 /* Function forward definitions */
-int64_t _512_main(void);
-struct2 _514_f(int64_t* _514_x,uint8_t _514_fail);
+int64_t _572_main(void);
+struct2 _574_f(int64_t* _574_x,uint8_t _574_fail);
 
 /* Function definitions */
-int64_t _512_main(void){
-    int64_t _513_x;
-    int64_t _513_y;
-    function0 _512_t2;
-    int64_t* _512_t4;
-    uint8_t _512_t5;
-    struct2 _512_t3;
-    function0 _512_t7;
-    int64_t* _512_t9;
-    uint8_t _512_t10;
-    struct2 _512_t8;
-    int64_t _512_$retval;
-    _513_x = 10;
-    _513_y = 10;
-    _512_t2 = _514_f;
-    _512_t4 = &_513_x;
-    _512_t5 = 1;
+int64_t _572_main(void){
+    int64_t _573_x;
+    int64_t _573_y;
+    function0 _572_t2;
+    int64_t* _572_t4;
+    uint8_t _572_t5;
+    struct2 _572_t3;
+    function0 _572_t7;
+    int64_t* _572_t9;
+    uint8_t _572_t10;
+    struct2 _572_t8;
+    int64_t _572_$retval;
+    _573_x = 10;
+    _573_y = 10;
+    _572_t2 = _574_f;
+    _572_t4 = &_573_x;
+    _572_t5 = 1;
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:11:\n    _ = f(&mut x, true)\n         ^";
-    _512_t3 = _512_t2(_512_t4, _512_t5);
+    _572_t3 = _572_t2(_572_t4, _572_t5);
     $line_idx--;
-    (void)_512_t3;
-    _512_t7 = _514_f;
-    _512_t9 = &_513_y;
-    _512_t10 = 0;
+    (void)_572_t3;
+    _572_t7 = _574_f;
+    _572_t9 = &_573_y;
+    _572_t10 = 0;
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:11:\n    _ = f(&mut y, false)\n         ^";
-    _512_t8 = _512_t7(_512_t9, _512_t10);
+    _572_t8 = _572_t7(_572_t9, _572_t10);
     $line_idx--;
-    (void)_512_t8;
-    _512_$retval = $add_int64_t(_513_x, _513_y, "tests/integration/errors/errdefer.orng:7:8:\n    x + y\n      ^");
-    return _512_$retval;
+    (void)_572_t8;
+    _572_$retval = $add_int64_t(_573_x, _573_y, "tests/integration/errors/errdefer.orng:7:8:\n    x + y\n      ^");
+    return _572_$retval;
 }
 
-struct2 _514_f(int64_t* _514_x,uint8_t _514_fail){
-    struct2 _514_$retval;
-    *_514_x = 4;
-    if (_514_fail) {
+struct2 _574_f(int64_t* _574_x,uint8_t _574_fail){
+    struct2 _574_$retval;
+    *_574_x = 4;
+    if (_574_fail) {
         goto BB1;
     } else {
         goto BB4;
     }
 BB1:
-    _514_$retval = (struct2) {.tag=1};
-    *_514_x = 115;
-    return _514_$retval;
+    _574_$retval = (struct2) {.tag=1};
+    *_574_x = 115;
+    return _574_$retval;
 BB4:
-    _514_$retval = (struct2) {.tag=0};
-    return _514_$retval;
+    _574_$retval = (struct2) {.tag=0};
+    return _574_$retval;
 }
 
 int main(void) {
-  printf("%ld",_512_main());
+  printf("%ld",_572_main());
   return 0;
 }

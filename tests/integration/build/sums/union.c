@@ -27,29 +27,29 @@ char* string_0 = "\x4C\x6D\x61\x6F\x21";
 char* string_1 = "\x6C\x6F\x6C";
 
 /* Function forward definitions */
-int64_t _1462_main(void);
+int64_t _1522_main(void);
 
 /* Function definitions */
-int64_t _1462_main(void){
-    int64_t _1462_t0;
-    struct0 _1463_x;
-    struct1 _1462_t2;
-    struct1 _1462_t4;
-    int64_t _1462_t6;
-    int64_t _1462_$retval;
-    _1462_t0 = 3;
-    _1463_x = (struct0) {.tag=0, ._0=_1462_t0};
-    _1462_t2 = (struct1) {(uint8_t*)string_0, 5};
-    _1463_x = (struct0) {.tag=1, ._1=_1462_t2};
-    _1462_t4 = (struct1) {(uint8_t*)string_1, 3};
-    _1463_x = (struct0) {.tag=3, ._3=_1462_t4};
-    _1462_t6 = 108;
-    _1463_x = (struct0) {.tag=2, ._2=_1462_t6};
-    _1462_$retval = _1463_x._2;
-    return _1462_$retval;
+int64_t _1522_main(void){
+    int64_t _1522_t0;
+    struct0 _1523_x;
+    struct1 _1522_t2;
+    struct1 _1522_t4;
+    int64_t _1522_t6;
+    int64_t _1522_$retval;
+    _1522_t0 = 3;
+    _1523_x = (struct0) {.tag=0, ._0=_1522_t0};
+    _1522_t2 = (struct1) {(uint8_t*)string_0, 5};
+    _1523_x = (struct0) {.tag=1, ._1=_1522_t2};
+    _1522_t4 = (struct1) {(uint8_t*)string_1, 3};
+    _1523_x = (struct0) {.tag=3, ._3=_1522_t4};
+    _1522_t6 = 108;
+    _1523_x = (struct0) {.tag=2, ._2=_1522_t6};
+    _1522_$retval = _1523_x._2;
+    return _1522_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1462_main());
+  printf("%ld",_1522_main());
   return 0;
 }

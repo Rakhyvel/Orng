@@ -1,0 +1,19 @@
+// 265
+fn main() -> Int {
+    match comptime f(53) {
+        .ok <- x => x
+        .err1 => unreachable
+        .err2 => unreachable
+        else => unreachable
+    }
+}
+
+fn f(x: Int) -> !Int {
+    if x == 53 {
+        .ok <- x * 5
+    } else if x == 4 {
+        .err1
+    } else {
+        .err2
+    }
+}

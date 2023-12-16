@@ -25,6 +25,7 @@ pub const Context = struct {
         ret_type: *ast_.AST,
         entry_point: i64, // Address of the intruction to start execution at
     ) Context {
+        std.debug.assert(entry_point >= 0);
         const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
         var retval = Context{
             .stack = [_]u8{uninit_byte} ** stack_limit,
@@ -79,11 +80,13 @@ pub const Context = struct {
     }
 
     fn store(self: *Context, comptime T: type, address: i64, val: T) void {
+        std.debug.assert(address >= 0);
         // std.debug.print("[0x{X}:{}] = {}\n", .{ address, @alignOf(T), val });
         @as(*T, @alignCast(@ptrCast(&self.stack[@as(usize, @intCast(address))]))).* = val;
     }
 
     fn store_int(self: *Context, address: i64, size: i64, val: i128) void {
+        std.debug.assert(address >= 0);
         switch (size) {
             1 => self.store(i8, address, @as(i8, @intCast(val))),
             2 => self.store(i16, address, @as(i16, @intCast(val))),
@@ -97,6 +100,7 @@ pub const Context = struct {
     }
 
     fn store_float(self: *Context, address: i64, size: i64, val: f64) void {
+        std.debug.assert(address >= 0);
         switch (size) {
             4 => self.store(f32, address, @as(f32, @floatCast(val))),
             8 => self.store(f64, address, val),
@@ -105,12 +109,14 @@ pub const Context = struct {
     }
 
     fn load(self: *Context, comptime T: type, address: i64) T {
+        std.debug.assert(address >= 0);
         const val = @as(*T, @ptrCast(@alignCast(&self.stack[@as(usize, @intCast(address))]))).*;
         // std.debug.print("[0x{X}:{}] \t// {}\n", .{ address, @alignOf(T), val });
         return val;
     }
 
     fn load_int(self: *Context, address: i64, size: i64) i128 {
+        std.debug.assert(address >= 0);
         return switch (size) {
             1 => self.load(i8, address),
             2 => self.load(i16, address),
@@ -121,6 +127,7 @@ pub const Context = struct {
     }
 
     fn load_float(self: *Context, address: i64, size: i64) f64 {
+        std.debug.assert(address >= 0);
         return switch (size) {
             4 => self.load(f32, address),
             8 => self.load(f64, address),
@@ -129,6 +136,8 @@ pub const Context = struct {
     }
 
     fn move(self: *Context, dest: i64, src: i64, len: i64) void {
+        std.debug.assert(dest >= 0);
+        std.debug.assert(src >= 0);
         if (len == 0) {
             // moving no bytes is a no-op
             return;
@@ -143,6 +152,7 @@ pub const Context = struct {
     }
 
     fn move_symbver_list(self: *Context, dest: i64, list: *std.ArrayList(*ir_.L_Value)) void {
+        std.debug.assert(dest >= 0);
         var cursor = dest;
         for (list.items) |lval| {
             cursor = offsets_.next_alignment(cursor, lval.alignof());
@@ -464,6 +474,7 @@ pub const Context = struct {
     }
 
     pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST {
+        std.debug.assert(address >= 0);
         switch (_type.*) {
             .identifier => {
                 const info = primitives_.get(_type.getToken().data);

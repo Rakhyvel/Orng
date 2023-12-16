@@ -14,60 +14,60 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _125_f(struct0 _125_m);
-int64_t _121_main(void);
+int64_t _281_f(struct0 _281_m);
+int64_t _277_main(void);
 
 /* Function definitions */
-int64_t _125_f(struct0 _125_m){
-    int8_t _125_t3;
-    uint8_t _125_t5;
-    int64_t _125_t0;
-    int32_t _125_t6;
-    uint8_t _125_t8;
-    int8_t _125_t9;
-    uint8_t _125_t11;
-    int64_t _125_$retval;
-    _125_t3 = 100;
-    _125_t5 = _125_m._0 == _125_t3;
-    if (_125_t5) {
+int64_t _281_f(struct0 _281_m){
+    int8_t _281_t3;
+    uint8_t _281_t5;
+    int64_t _281_t0;
+    int32_t _281_t6;
+    uint8_t _281_t8;
+    int8_t _281_t9;
+    uint8_t _281_t11;
+    int64_t _281_$retval;
+    _281_t3 = 100;
+    _281_t5 = _281_m._0 == _281_t3;
+    if (_281_t5) {
         goto BB3;
     } else {
         goto BB15;
     }
 BB3:
-    _125_t6 = 50;
-    _125_t8 = _125_m._1 == _125_t6;
-    if (_125_t8) {
+    _281_t6 = 50;
+    _281_t8 = _281_m._1 == _281_t6;
+    if (_281_t8) {
         goto BB7;
     } else {
         goto BB15;
     }
 BB15:
-    _125_t0 = 0;
+    _281_t0 = 0;
     goto BB14;
 BB7:
-    _125_t9 = 7;
-    _125_t11 = _125_m._2 == _125_t9;
-    if (_125_t11) {
+    _281_t9 = 7;
+    _281_t11 = _281_m._2 == _281_t9;
+    if (_281_t11) {
         goto BB11;
     } else {
         goto BB15;
     }
 BB14:
-    _125_$retval = _125_t0;
-    return _125_$retval;
+    _281_$retval = _281_t0;
+    return _281_$retval;
 BB11:
-    _125_t0 = 248;
+    _281_t0 = 248;
     goto BB14;
 }
 
-int64_t _121_main(void){
-    int64_t _121_$retval;
-    _121_$retval = 257;
-    return _121_$retval;
+int64_t _277_main(void){
+    int64_t _277_$retval;
+    _277_$retval = 257;
+    return _277_$retval;
 }
 
 int main(void) {
-  printf("%ld",_121_main());
+  printf("%ld",_277_main());
   return 0;
 }

@@ -17,44 +17,44 @@ typedef struct {
 typedef int64_t(*function1)(function0, int64_t);
 
 /* Function forward definitions */
-int64_t _887_main(void);
-int64_t _889_$anon166(int64_t _889_x);
-int64_t _891_apply(function0 _891_f,int64_t _891_x);
+int64_t _947_main(void);
+int64_t _949_$anon176(int64_t _949_x);
+int64_t _951_apply(function0 _951_f,int64_t _951_x);
 
 /* Function definitions */
-int64_t _887_main(void){
-    function0 _888_id;
-    function1 _887_t1;
-    int64_t _887_t3;
-    int64_t _887_t2;
-    int64_t _887_$retval;
-    _888_id = _889_$anon166;
-    _887_t1 = _891_apply;
-    _887_t3 = 43;
+int64_t _947_main(void){
+    function0 _948_id;
+    function1 _947_t1;
+    int64_t _947_t3;
+    int64_t _947_t2;
+    int64_t _947_$retval;
+    _948_id = _949_$anon176;
+    _947_t1 = _951_apply;
+    _947_t3 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _887_t2 = _887_t1(_888_id, _887_t3);
+    _947_t2 = _947_t1(_948_id, _947_t3);
     $line_idx--;
-    _887_$retval = _887_t2;
-    return _887_$retval;
+    _947_$retval = _947_t2;
+    return _947_$retval;
 }
 
-int64_t _889_$anon166(int64_t _889_x){
-    int64_t _889_$retval;
-    _889_$retval = _889_x;
-    return _889_$retval;
+int64_t _949_$anon176(int64_t _949_x){
+    int64_t _949_$retval;
+    _949_$retval = _949_x;
+    return _949_$retval;
 }
 
-int64_t _891_apply(function0 _891_f,int64_t _891_x){
-    int64_t _891_t0;
-    int64_t _891_$retval;
+int64_t _951_apply(function0 _951_f,int64_t _951_x){
+    int64_t _951_t0;
+    int64_t _951_$retval;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
-    _891_t0 = _891_f(_891_x);
+    _951_t0 = _951_f(_951_x);
     $line_idx--;
-    _891_$retval = _891_t0;
-    return _891_$retval;
+    _951_$retval = _951_t0;
+    return _951_$retval;
 }
 
 int main(void) {
-  printf("%ld",_887_main());
+  printf("%ld",_947_main());
   return 0;
 }

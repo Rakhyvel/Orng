@@ -208,8 +208,6 @@ fn validate_AST_internal(
             if (expected != null and !try symbol._type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type } });
                 return ast.enpoison();
-            } else if (symbol.kind == ._const and symbol.decl != null) {
-                return symbol.decl.?;
             } else {
                 return ast;
             }
@@ -349,11 +347,12 @@ fn validate_AST_internal(
         },
         .default => {
             ast.default.expr = try validateAST(ast.default.expr, primitives.type_type, scope, errors, allocator);
-            if (expected != null and !try ast.default.expr.typesMatch(expected.?, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast.default.expr } });
+            const ast_type = (try ast.typeof(scope, errors, allocator));
+            if (expected != null and !try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
                 return ast.enpoison();
             }
-            return try ast.default.expr.generate_default(scope, errors, allocator);
+            return try ast_type.generate_default(scope, errors, allocator);
         },
         .sizeOf => {
             ast.sizeOf.expr = try validateAST(ast.sizeOf.expr, primitives.type_type, scope, errors, allocator);
@@ -367,6 +366,11 @@ fn validate_AST_internal(
             // Validate symbol
             try validateSymbol(ast._comptime.symbol.?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
             if (ast._comptime.symbol.?._type.* == .poison) {
+                return ast.enpoison();
+            }
+            var expr_expanded_type = try (try ast.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+            if (expected != null and !try expr_expanded_type.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = expr_expanded_type } });
                 return ast.enpoison();
             }
 

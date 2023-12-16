@@ -10,45 +10,45 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _801_main(void);
-uint8_t _806_f(int64_t _806_x);
+int64_t _861_main(void);
+uint8_t _866_f(int64_t _866_x);
 
 /* Function definitions */
-int64_t _801_main(void){
-    function0 _801_t1;
-    int64_t _801_t3;
-    uint8_t _801_t2;
-    int64_t _801_t0;
-    int64_t _801_$retval;
-    _801_t1 = _806_f;
-    _801_t3 = 4;
+int64_t _861_main(void){
+    function0 _861_t1;
+    int64_t _861_t3;
+    uint8_t _861_t2;
+    int64_t _861_t0;
+    int64_t _861_$retval;
+    _861_t1 = _866_f;
+    _861_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-greater.orng:3:10:\n    if f(4) {\n        ^";
-    _801_t2 = _801_t1(_801_t3);
+    _861_t2 = _861_t1(_861_t3);
     $line_idx--;
-    if (_801_t2) {
+    if (_861_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _801_t0 = 0;
+    _861_t0 = 0;
     goto BB4;
 BB5:
-    _801_t0 = 224;
+    _861_t0 = 224;
     goto BB4;
 BB4:
-    _801_$retval = _801_t0;
-    return _801_$retval;
+    _861_$retval = _861_t0;
+    return _861_$retval;
 }
 
-uint8_t _806_f(int64_t _806_x){
-    uint8_t _806_$retval;
-    (void)_806_x;
-    _806_$retval = 0;
-    return _806_$retval;
+uint8_t _866_f(int64_t _866_x){
+    uint8_t _866_$retval;
+    (void)_866_x;
+    _866_$retval = 0;
+    return _866_$retval;
 }
 
 int main(void) {
-  printf("%ld",_801_main());
+  printf("%ld",_861_main());
   return 0;
 }

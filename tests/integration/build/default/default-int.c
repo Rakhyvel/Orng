@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _443_main(void);
+int64_t _503_main(void);
 
 /* Function definitions */
-int64_t _443_main(void){
-    int64_t _443_$retval;
-    _443_$retval = 131;
-    return _443_$retval;
+int64_t _503_main(void){
+    int64_t _503_$retval;
+    _503_$retval = 131;
+    return _503_$retval;
 }
 
 int main(void) {
-  printf("%ld",_443_main());
+  printf("%ld",_503_main());
   return 0;
 }

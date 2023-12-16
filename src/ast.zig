@@ -1218,6 +1218,7 @@ pub const AST = union(enum) {
             .inferred_error,
             ._union,
             .function,
+            ._typeOf,
             => retval = primitives.type_type,
 
             // Unit type
