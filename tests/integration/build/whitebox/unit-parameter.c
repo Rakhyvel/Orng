@@ -14,31 +14,31 @@ typedef struct {
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _1723_main(void);
-int64_t _1725_f(int64_t _1725_x);
+int64_t _1808_main(void);
+int64_t _1810_f(int64_t _1810_x);
 
 /* Function definitions */
-int64_t _1723_main(void){
-    function0 _1723_t0;
-    int64_t _1723_t3;
-    int64_t _1723_t1;
-    int64_t _1723_$retval;
-    _1723_t0 = _1725_f;
-    _1723_t3 = 219;
+int64_t _1808_main(void){
+    function0 _1808_t0;
+    int64_t _1808_t3;
+    int64_t _1808_t1;
+    int64_t _1808_$retval;
+    _1808_t0 = _1810_f;
+    _1808_t3 = 219;
     $lines[$line_idx++] = "tests/integration/whitebox/unit-parameter.orng:3:7:\n    f({}, 219)\n     ^";
-    _1723_t1 = _1723_t0(_1723_t3);
+    _1808_t1 = _1808_t0(_1808_t3);
     $line_idx--;
-    _1723_$retval = _1723_t1;
-    return _1723_$retval;
+    _1808_$retval = _1808_t1;
+    return _1808_$retval;
 }
 
-int64_t _1725_f(int64_t _1725_x){
-    int64_t _1725_$retval;
-    _1725_$retval = _1725_x;
-    return _1725_$retval;
+int64_t _1810_f(int64_t _1810_x){
+    int64_t _1810_$retval;
+    _1810_$retval = _1810_x;
+    return _1810_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1723_main());
+  printf("%ld",_1808_main());
   return 0;
 }

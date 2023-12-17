@@ -74,6 +74,7 @@ pub const Type_Kind = enum {
     signed_integer,
     unsigned_integer,
     floating_point,
+    boolean,
 };
 
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
@@ -131,7 +132,7 @@ pub fn get_scope() !*Scope {
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
-        try create_info("Bool", null, "uint8_t", bool_type, null, .eq, .unsigned_integer, default_bool, 1);
+        try create_info("Bool", null, "uint8_t", bool_type, null, .eq, .boolean, default_bool, 1);
         try create_info("Byte", Bounds{ .lower = 0, .upper = 255 }, "uint8_t", byte_type, null, .num, .unsigned_integer, default_word8, 1);
         try create_info("Char", null, "uint32_t", char_type, null, .ord, .unsigned_integer, default_char, 4);
         try create_info("Float", null, "double", float_type, null, .num, .floating_point, default_float64, 8);

@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint8_t _451_main(void);
+uint8_t _536_main(void);
 
 /* Function definitions */
-uint8_t _451_main(void){
-    uint8_t _451_$retval;
-    _451_$retval = 1;
-    return _451_$retval;
+uint8_t _536_main(void){
+    uint8_t _536_$retval;
+    _536_$retval = 1;
+    return _536_$retval;
 }
 
 int main(void) {
-  printf("%d",_451_main());
+  printf("%d",_536_main());
   return 0;
 }

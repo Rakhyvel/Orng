@@ -10,63 +10,63 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _899_main(void);
-uint8_t _904_f(int64_t _904_x);
+int64_t _984_main(void);
+uint8_t _989_f(int64_t _989_x);
 
 /* Function definitions */
-int64_t _899_main(void){
-    function0 _899_t1;
-    int64_t _899_t3;
-    uint8_t _899_t2;
-    int64_t _899_t0;
-    int64_t _899_$retval;
-    _899_t1 = _904_f;
-    _899_t3 = 4;
+int64_t _984_main(void){
+    function0 _984_t1;
+    int64_t _984_t3;
+    uint8_t _984_t2;
+    int64_t _984_t0;
+    int64_t _984_$retval;
+    _984_t1 = _989_f;
+    _984_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/sub-zero.orng:3:10:\n    if f(4) {\n        ^";
-    _899_t2 = _899_t1(_899_t3);
+    _984_t2 = _984_t1(_984_t3);
     $line_idx--;
-    if (_899_t2) {
+    if (_984_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _899_t0 = 184;
+    _984_t0 = 184;
     goto BB4;
 BB5:
-    _899_t0 = 4;
+    _984_t0 = 4;
     goto BB4;
 BB4:
-    _899_$retval = _899_t0;
-    return _899_$retval;
+    _984_$retval = _984_t0;
+    return _984_$retval;
 }
 
-uint8_t _904_f(int64_t _904_x){
-    uint8_t _904_$retval;
-    uint8_t _904_t8;
-    int64_t _904_t6;
-    int64_t _904_t7;
-    uint8_t _904_t9;
-    _904_t6 = $negate_int64_t(_904_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^");
-    _904_t7 = $negate_int64_t(_904_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
-    _904_t9 = _904_t6 == _904_t7;
-    if (_904_t9) {
+uint8_t _989_f(int64_t _989_x){
+    uint8_t _989_$retval;
+    uint8_t _989_t8;
+    int64_t _989_t6;
+    int64_t _989_t7;
+    uint8_t _989_t9;
+    _989_t6 = $negate_int64_t(_989_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^");
+    _989_t7 = $negate_int64_t(_989_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
+    _989_t9 = _989_t6 == _989_t7;
+    if (_989_t9) {
         goto BB4;
     } else {
         goto BB8;
     }
 BB4:
-    _904_t8 = 1;
+    _989_t8 = 1;
     goto BB5;
 BB8:
-    _904_t8 = 0;
+    _989_t8 = 0;
     goto BB5;
 BB5:
-    _904_$retval = _904_t8;
-    return _904_$retval;
+    _989_$retval = _989_t8;
+    return _989_$retval;
 }
 
 int main(void) {
-  printf("%ld",_899_main());
+  printf("%ld",_984_main());
   return 0;
 }

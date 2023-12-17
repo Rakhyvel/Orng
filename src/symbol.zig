@@ -319,7 +319,7 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
         ._try => try symbolTableFromAST(definition._try.expr, scope, errors, allocator),
         .discard => try symbolTableFromAST(definition.discard.expr, scope, errors, allocator),
         ._comptime => {
-            const symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
+            const symbol = try create_temp_comptime_symbol(definition, null, scope, errors, allocator);
             const res = scope.lookup(symbol.name, false);
             switch (res) {
                 .found => {
@@ -569,7 +569,7 @@ fn create_symbol(symbols: *std.ArrayList(*Symbol), pattern: *ast.AST, _type: *as
             if (pattern.symbol.kind == ._const) {
                 // `const` symbol, surround with comptime
                 const definition = try AST.createComptime(init.getToken(), init, allocator);
-                const comptime_symbol = try create_temp_comptime_symbol(definition, scope, errors, allocator);
+                const comptime_symbol = try create_temp_comptime_symbol(definition, _type, scope, errors, allocator);
                 const res = scope.lookup(comptime_symbol.name, false);
                 switch (res) {
                     .found => {
@@ -755,11 +755,11 @@ fn extractDomain(params: std.ArrayList(*AST), token: Token, allocator: std.mem.A
 }
 
 // definition is a `comptime` ast
-fn create_temp_comptime_symbol(definition: *ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
+fn create_temp_comptime_symbol(definition: *ast.AST, rhs_type_hint: ?*ast.AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = try AST.createUnitType(definition._comptime.expr.getToken(), allocator);
     const rhs = try AST.createTypeOf(definition._comptime.expr.getToken(), definition._comptime.expr, allocator);
-    const _type = try AST.createFunction(definition._comptime.expr.getToken(), lhs, rhs, allocator);
+    const _type = try AST.createFunction(definition._comptime.expr.getToken(), lhs, rhs_type_hint orelse rhs, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables

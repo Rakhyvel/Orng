@@ -36,6 +36,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     symbol.validation_state = .validating;
 
     std.debug.assert(symbol.init.* != .poison);
+    // std.debug.print("{s}: {} = {}\n", .{ symbol.name, symbol._type, symbol.init });
     symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
     if (symbol._type.* != .poison) {
         symbol.validation_state = .valid;
@@ -100,6 +101,7 @@ fn validateAST(
     } else if (ast.getCommon().validation_state == .valid) {
         return ast.getCommon().validation_state.valid.valid_form;
     }
+    // std.debug.print("{}\n", .{ast});
     ast.getCommon().validation_state = .validating;
 
     if (expected) |_| {
@@ -366,11 +368,6 @@ fn validate_AST_internal(
             // Validate symbol
             try validateSymbol(ast._comptime.symbol.?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
             if (ast._comptime.symbol.?._type.* == .poison) {
-                return ast.enpoison();
-            }
-            var expr_expanded_type = try (try ast.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-            if (expected != null and !try expr_expanded_type.typesMatch(expected.?, scope, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = expr_expanded_type } });
                 return ast.enpoison();
             }
 
@@ -708,6 +705,7 @@ fn validate_AST_internal(
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, scope, errors, allocator);
             var lhs_expanded_type = try (try ast._orelse.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
+                // TODO: What type is it?
                 errors.addError(Error{ .basic = .{ .span = ast._orelse.lhs.getToken().span, .msg = "left-hand side of orelse is not an optional type" } });
                 return ast.enpoison();
             } else if (expected != null and !try lhs_expanded_type.get_some_type().annotation.type.typesMatch(expected.?, scope, errors, allocator)) {
@@ -1304,15 +1302,9 @@ fn validate_AST_internal(
                 return ast.enpoison();
             } else if (expected_expanded.* == .inferred_error) {
                 ast.inferredMember.base = expected;
-                const name = ast.inferredMember.ident.getToken().data;
-                for (expected_expanded.inferred_error.terms.items, 0..) |term, i| {
-                    if (std.mem.eql(u8, term.annotation.pattern.getToken().data, name)) {
-                        ast.inferredMember.pos = i;
-                        break;
-                    }
-                }
+                ast.inferredMember.pos = expected_expanded.inferred_error.get_pos(ast.inferredMember.ident.getToken().data);
                 if (ast.inferredMember.pos == null) {
-                    // Put in inferred_error
+                    // Wasn't in inferred error set, put in inferred error set
                     const annot_type = if (ast.inferredMember.init == null) primitives.unit_type else try ast.inferredMember.init.?.typeof(scope, errors, allocator);
                     const annot = try AST.createAnnotation(ast.getToken(), try AST.createIdentifier(ast.inferredMember.ident.getToken(), allocator), annot_type, null, null, allocator);
                     try expected_expanded.inferred_error.terms.append(annot);
@@ -1324,24 +1316,14 @@ fn validate_AST_internal(
                 return ast.enpoison();
             } else {
                 ast.inferredMember.base = expected;
-                for (expected_expanded.sum.terms.items, 0..) |term, i| {
-                    if (std.mem.eql(u8, term.annotation.pattern.getToken().data, ast.inferredMember.ident.getToken().data)) {
-                        ast.inferredMember.pos = i;
-                        break;
-                    }
-                }
-                if (ast.inferredMember.pos == null) {
+                ast.inferredMember.pos = expected_expanded.sum.get_pos(ast.inferredMember.ident.getToken().data) orelse {
                     errors.addError(Error{ .member_not_in = .{ .span = ast.getToken().span, .identifier = ast.inferredMember.ident.getToken().data, .group_name = "sum" } });
                     return ast.enpoison();
-                }
-
-                const pos: i128 = ast.inferredMember.pos.?;
-                const proper_term: *AST = expected_expanded.sum.terms.items[@as(usize, @intCast(pos))];
-
+                };
+                const proper_term: *AST = expected_expanded.sum.terms.items[@as(usize, @intCast(ast.inferredMember.pos.?))];
                 if (proper_term.annotation.init) |_init| {
                     ast.inferredMember.init = _init; // This will be overriden by an inject expression's rhs
                 }
-
                 return ast;
             }
         },
@@ -1349,39 +1331,81 @@ fn validate_AST_internal(
             if (ast._if.let) |let| {
                 ast._if.let = try validateAST(let, null, scope, errors, allocator);
             }
+
             ast._if.condition = try validateAST(ast._if.condition, primitives.bool_type, ast._if.scope.?, errors, allocator);
-            if (expected != null) {
-                // expecting a type
-                var expected_expanded = try expected.?.expand_type(scope, errors, allocator);
+            if (ast._if.condition.* == .poison) {
+                return ast.enpoison();
+            }
+
+            // expecting a type
+            const has_else = ast._if.elseBlock != null;
+            var expected_type: ?*AST = undefined;
+            var expected_expanded: *AST = undefined;
+            if (expected == null) {
+                expected_type = null;
+            } else {
+                expected_expanded = try expected.?.expand_type(scope, errors, allocator);
                 const is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
-                const has_else = ast._if.elseBlock != null;
                 if (has_else) {
-                    ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
-                    ast._if.elseBlock = try validateAST(ast._if.elseBlock.?, expected.?, ast._if.scope.?, errors, allocator);
+                    expected_type = expected.?;
                 } else if (is_expected_optional) {
-                    const full_type = expected_expanded.get_some_type();
-                    ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, full_type, ast._if.scope.?, errors, allocator);
+                    expected_type = expected_expanded.get_some_type();
                 } else {
-                    ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected.?, ast._if.scope.?, errors, allocator);
                     ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return ast.enpoison();
                 }
-            } else {
-                // expecting nothing
-                ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, null, ast._if.scope.?, errors, allocator);
-                if (ast._if.elseBlock) |elseBlock| {
-                    ast._if.elseBlock = try validateAST(elseBlock, null, ast._if.scope.?, errors, allocator);
-                }
             }
+
+            if (ast._if.condition.* != ._false) {
+                ast._if.bodyBlock = try validateAST(ast._if.bodyBlock, expected_type, ast._if.scope.?, errors, allocator);
+            }
+
+            if (has_else and ast._if.condition.* != ._true) {
+                ast._if.elseBlock = try validateAST(ast._if.elseBlock.?, expected_type, ast._if.scope.?, errors, allocator);
+            }
+
             if ((ast._if.let != null and ast._if.let.?.* == .poison) or
-                ast._if.condition.* == .poison or
                 ast._if.bodyBlock.* == .poison or
                 (ast._if.elseBlock != null and ast._if.elseBlock.?.* == .poison))
             {
                 return ast.enpoison();
             }
-            return ast;
+
+            if (ast._if.condition.* == ._true and ast._if.elseBlock != null) {
+                // condition is true and theres an else => return {let; body}
+                if (ast._if.let != null) {
+                    try ast._if.bodyBlock.block.statements.insert(0, ast._if.let.?);
+                }
+                return ast._if.bodyBlock;
+            } else if (ast._if.condition.* == ._true and ast._if.elseBlock == null) {
+                // condition is true and theres no else => return {let; some(body)}
+                if (ast._if.let != null) {
+                    try ast._if.bodyBlock.block.statements.insert(0, ast._if.let.?);
+                }
+                const opt_type = try AST.create_optional_type(try ast._if.bodyBlock.typeof(scope, errors, allocator), allocator);
+                return try AST.create_some_value(opt_type, ast._if.bodyBlock, allocator);
+            } else if (ast._if.condition.* == ._false and ast._if.elseBlock != null) {
+                // condition is false and theres an else => return {let; else}
+                if (ast._if.let != null) {
+                    try ast._if.elseBlock.?.block.statements.insert(0, ast._if.let.?);
+                }
+                return ast._if.elseBlock.?;
+            } else if (ast._if.condition.* == ._false and ast._if.elseBlock == null) {
+                // condition is false and theres no else => return {let; none()}
+                const opt_type = try AST.create_optional_type(try ast._if.bodyBlock.typeof(scope, errors, allocator), allocator);
+                var statements = std.ArrayList(*AST).init(allocator);
+                if (ast._if.let != null) {
+                    try statements.append(ast._if.let.?);
+                }
+                try statements.append(try AST.create_none_value(opt_type, allocator));
+                const ret_block = try AST.createBlock(Token.create_simple("{"), statements, null, allocator);
+                ret_block.block.scope = scope;
+                return ret_block;
+            } else {
+                // condition is undeterminable at compile-time, return if AST
+                return ast;
+            }
         },
         .match => { // TODO: TOO LONG!
             var poisoned = false;

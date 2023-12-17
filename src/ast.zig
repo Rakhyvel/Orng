@@ -203,6 +203,15 @@ pub const AST = union(enum) {
             return res;
         }
 
+        pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
+            for (self.terms.items, 0..) |term, i| {
+                if (std.mem.eql(u8, term.annotation.pattern.getToken().data, field_name)) {
+                    return i;
+                }
+            }
+            return null;
+        }
+
         // TODO: Duck type this with product/sum
         pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var offset: i64 = 0;
@@ -232,6 +241,15 @@ pub const AST = union(enum) {
             }
             // No duplicate found, add to inferred error set
             try self.terms.append(addend);
+        }
+
+        pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
+            for (self.terms.items, 0..) |term, i| {
+                if (std.mem.eql(u8, term.annotation.pattern.getToken().data, field_name)) {
+                    return i;
+                }
+            }
+            return null;
         }
     },
     inject: struct { common: ASTCommon, lhs: *AST, rhs: *AST },
@@ -346,7 +364,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         scope: ?*Scope,
         statements: std.ArrayList(*AST),
-        final: ?*AST,
+        final: ?*AST, // either `return`, `continue`, or `break`
     },
 
     // Control-flow statements
@@ -805,6 +823,9 @@ pub const AST = union(enum) {
     }
 
     pub fn createBlock(token: Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
+        if (final) |_final| {
+            std.debug.assert(_final.* == ._return or _final.* == ._continue or _final.* == ._break);
+        }
         return try AST.box(AST{ .block = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .statements = statements, .final = final } }, allocator);
     }
 
@@ -878,26 +899,22 @@ pub const AST = union(enum) {
     // Expr must be a product value of length `l`. Slice value is `(&expr[0], l)`.
     pub fn create_slice_value(expr: *AST, mut: bool, expr_type: *AST, allocator: std.mem.Allocator) !*AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
-        var zero = try AST.createInt(expr.getToken(), 0, allocator);
-        zero.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = zero } };
-        var index = try AST.createIndex(
+        const zero = (try AST.createInt(expr.getToken(), 0, allocator)).assert_valid();
+        const index = (try AST.createIndex(
             expr.getToken(),
             expr,
             zero,
             allocator,
-        );
-        index.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = index } };
-        var addr = try AST.createAddrOf(
+        )).assert_valid();
+        const addr = (try AST.createAddrOf(
             expr.getToken(),
             index,
             mut,
             allocator,
-        );
-        addr.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = addr } };
+        )).assert_valid();
         try new_terms.append(addr);
 
-        var length = try AST.createInt(expr.getToken(), expr_type.product.terms.items.len, allocator);
-        length.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = length } };
+        const length = (try AST.createInt(expr.getToken(), expr_type.product.terms.items.len, allocator)).assert_valid();
         try new_terms.append(length);
 
         var retval = try AST.createProduct(expr.getToken(), new_terms, allocator);
@@ -931,6 +948,21 @@ pub const AST = union(enum) {
         var retval = try AST.createSum(of_type.getToken(), term_types, allocator);
         retval.sum.was_optional = true;
         return retval;
+    }
+
+    pub fn create_some_value(opt_type: *AST, value: *AST, allocator: std.mem.Allocator) !*AST {
+        const member = try createInferredMember(value.getToken(), try AST.createIdentifier(Token.create_simple("some"), allocator), allocator);
+        member.inferredMember.base = opt_type;
+        member.inferredMember.init = value;
+        member.inferredMember.pos = opt_type.sum.get_pos("some");
+        return member.assert_valid();
+    }
+
+    pub fn create_none_value(opt_type: *AST, allocator: std.mem.Allocator) !*AST {
+        const member = try createInferredMember(Token.create_simple("none"), try AST.createIdentifier(Token.create_simple("none"), allocator), allocator);
+        member.inferredMember.base = opt_type;
+        member.inferredMember.pos = opt_type.sum.get_pos("none");
+        return member.assert_valid();
     }
 
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
@@ -1176,7 +1208,7 @@ pub const AST = union(enum) {
 
     // Must always return a valid type!
     pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-        std.debug.assert(self.getCommon().validation_state != .unvalidated);
+        // std.debug.assert(self.getCommon().validation_state != .unvalidated);
         if (self.getCommon()._type) |_type| {
             return _type;
         }
@@ -1894,7 +1926,7 @@ pub const AST = union(enum) {
             .sliceOf => try out.writer().print("sliceOf()", .{}),
             .subSlice => try out.writer().print("subSlice()", .{}),
             .annotation => try out.writer().print("annotation(.type={},.init={?})", .{ self.annotation.type, self.annotation.init }),
-            .inferredMember => try out.writer().print("inferredMember()", .{}),
+            .inferredMember => try out.writer().print("inferredMember(.ident={s})", .{self.inferredMember.ident.getToken().data}),
 
             ._if => try out.writer().print("if()", .{}),
             .match => try out.writer().print("match()", .{}),

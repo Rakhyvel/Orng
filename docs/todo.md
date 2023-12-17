@@ -349,8 +349,7 @@
         - [x] `sizeof`
         - [x] make `typeof`, `default`, `sizeof` functions that start with `@`
     - [ ] reduce `if`, `and`, `or`, `while`, and look into `match` at comptime
-    - [ ] ABAP, panic for div by zero, if int type cannot represent value, out of bounds (redo this for codegen!!)
-    - [ ] MOP
+    - [ ] Panic for div by zero, if int type cannot represent value, out of bounds (redo this for codegen!!)
 - [ ] build system (built upon compile-time evaluation) (1/21/24)
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] `test` to do tests

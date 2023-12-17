@@ -478,10 +478,17 @@ pub const Context = struct {
         switch (_type.*) {
             .identifier => {
                 const info = primitives_.get(_type.getToken().data);
-                // TODO: `represent` field should be set to _type. Create another inline modifier method for it
                 switch (info.type_kind) {
                     .type => return @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8)))),
                     .none => unreachable,
+                    .boolean => {
+                        const val = self.load_int(address, info.size);
+                        if (val == 0) {
+                            return (try ast_.AST.createFalse(token_.Token.create_simple("false"), allocator)).assert_valid();
+                        } else {
+                            return (try ast_.AST.createTrue(token_.Token.create_simple("true"), allocator)).assert_valid();
+                        }
+                    },
                     .signed_integer => return (try ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator))
                         .set_representation(_type)
                         .assert_valid(),
