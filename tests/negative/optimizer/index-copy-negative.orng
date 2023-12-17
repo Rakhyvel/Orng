@@ -1,5 +1,0 @@
-fn main() -> Int {
-    let mut x: [4]Int
-    x[-10] = 0
-    0
-}

@@ -1,0 +1,5 @@
+fn main() -> () {
+    _ = comptime add(100, 50)
+}
+
+fn add(x: Int8, y: Int8) -> Int8 { x + y }

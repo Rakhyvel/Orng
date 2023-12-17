@@ -57,8 +57,8 @@ pub const Primitive_Info = struct {
 };
 
 pub const Bounds = struct {
-    lower: i128,
-    upper: i128,
+    lower: i128, // inclusive
+    upper: i128, // inclusive
 };
 
 pub const Type_Class = enum {
@@ -227,6 +227,23 @@ pub fn keys() [][]const u8 {
 
 pub fn get(name: []const u8) Primitive_Info {
     return primitives.get(name).?;
+}
+
+pub fn get_bounds(_type: *AST) Bounds {
+    // _type is expanded
+    switch (_type.*) {
+        .identifier => {
+            const info = get(_type.getToken().data);
+            return switch (info.type_kind) {
+                .signed_integer => info.bounds.?,
+                .unsigned_integer => info.bounds.?,
+                .boolean => Bounds{ .lower = 0, .upper = 2 },
+                else => unreachable,
+            };
+        },
+        .addrOf, .function => return Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
+        else => unreachable,
+    }
 }
 
 pub fn from_ast(_type: *AST) Primitive_Info {

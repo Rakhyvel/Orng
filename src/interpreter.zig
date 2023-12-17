@@ -19,6 +19,9 @@ pub const Context = struct {
     instructions: *std.ArrayList(*ir_.IR),
     instruction_pointer: i64,
 
+    debug_call_mem: [stack_limit]u8,
+    debug_call_stack: std.ArrayList(span_.Span),
+
     pub fn init(
         cfg: *ir_.CFG,
         instructions: *std.ArrayList(*ir_.IR), // Flat list of instructions to interpret
@@ -34,7 +37,12 @@ pub const Context = struct {
 
             .instructions = instructions,
             .instruction_pointer = entry_point,
+            .debug_call_mem = [_]u8{uninit_byte} ** stack_limit,
+            .debug_call_stack = undefined,
         };
+
+        var fba = std.heap.FixedBufferAllocator.init(&retval.debug_call_mem);
+        retval.debug_call_stack = std.ArrayList(span_.Span).init(fba.allocator());
 
         // First `ret_type.sizeof()` bytes are reserved for the return value
         // Initial stack frame is setup immediately after
@@ -209,11 +217,6 @@ pub const Context = struct {
     }
 
     pub fn interpret(self: *Context) error{interpreter_panic}!void {
-        var buffer: [1024]u8 = undefined;
-        var fba = std.heap.FixedBufferAllocator.init(&buffer);
-        var debug_call_stack: std.ArrayList(span_.Span) = std.ArrayList(span_.Span).init(fba.allocator());
-        defer debug_call_stack.deinit();
-
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
             var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
@@ -231,7 +234,13 @@ pub const Context = struct {
                 .loadUnit => {},
 
                 // Data
-                .loadInt => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int),
+                .loadInt => {
+                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                    if (ir.data.int < bounds.lower or ir.data.int > bounds.upper) {
+                        try self.panic(ir.span, "error: the value {} is out of bounds\n", .{ir.data.int});
+                    }
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
+                },
                 .loadFloat => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
                 .loadString => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
                 .loadSymbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
@@ -328,7 +337,12 @@ pub const Context = struct {
                 .add_int => {
                     const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                     const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data + src2_data);
+                    const val = src1_data + src2_data;
+                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                    if (val < bounds.lower or val > bounds.upper) {
+                        try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
+                    }
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
                 },
                 .add_float => {
                     const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
@@ -338,7 +352,12 @@ pub const Context = struct {
                 .sub_int => {
                     const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                     const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data - src2_data);
+                    const val = src1_data - src2_data;
+                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                    if (val < bounds.lower or val > bounds.upper) {
+                        try self.panic(ir.span, "error: subtraction result is out of bounds; value={}\n", .{val});
+                    }
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
                 },
                 .sub_float => {
                     const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
@@ -348,7 +367,12 @@ pub const Context = struct {
                 .mult_int => {
                     const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                     const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data * src2_data);
+                    const val = src1_data * src2_data;
+                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                    if (val < bounds.lower or val > bounds.upper) {
+                        try self.panic(ir.span, "error: multiplication result is out of bounds; value={}\n", .{val});
+                    }
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
                 },
                 .mult_float => {
                     const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
@@ -358,7 +382,15 @@ pub const Context = struct {
                 .div_int => {
                     const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                     const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(src1_data, src2_data));
+                    if (src2_data == 0) {
+                        try self.panic(ir.span, "error: division by zero\n", .{});
+                    }
+                    const val = @divTrunc(src1_data, src2_data);
+                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                    if (val < bounds.lower or val > bounds.upper) {
+                        try self.panic(ir.span, "error: division result is out of bounds; value={}\n", .{val});
+                    }
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
                 },
                 .div_float => {
                     const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
@@ -368,7 +400,12 @@ pub const Context = struct {
                 .mod => {
                     const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                     const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @rem(src1_data, src2_data));
+                    const val = @rem(src1_data, src2_data);
+                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                    if (val < bounds.lower or val > bounds.upper) {
+                        try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
+                    }
+                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
                 },
                 .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
                     const tag_offset = ir.src1.?.sizeof() - 8;
@@ -449,28 +486,34 @@ pub const Context = struct {
 
                 // Errors
                 .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
-                    debug_call_stack.append(ir.span) catch unreachable;
+                    self.debug_call_stack.append(ir.span) catch unreachable;
                 },
                 .popStackTrace => { // Pops a message off the stack after a function is successfully called
-                    _ = debug_call_stack.pop();
+                    _ = self.debug_call_stack.pop();
                 },
                 .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
-                    std.io.getStdErr().writer().print("compile-time interpreter panic!\n", .{}) catch return error.interpreter_panic;
-                    var i = debug_call_stack.items.len - 1;
-                    while (true) {
-                        var span = debug_call_stack.items[i];
-                        span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.interpreter_panic;
-
-                        if (i == 0) {
-                            break;
-                        } else {
-                            i -= 1;
-                        }
-                    }
-                    return error.interpreter_panic;
+                    try self.panic(ir.span, "error: reached unreachable code\n", .{});
                 },
             }
         }
+    }
+
+    fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) !void {
+        std.io.getStdErr().writer().print(msg, args) catch return error.interpreter_panic;
+        self.debug_call_stack.append(span) catch unreachable;
+
+        var i = self.debug_call_stack.items.len - 1;
+        while (true) {
+            var stack_span = self.debug_call_stack.items[i];
+            stack_span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.interpreter_panic;
+
+            if (i == 0) {
+                break;
+            } else {
+                i -= 1;
+            }
+        }
+        return error.interpreter_panic;
     }
 
     pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST {

@@ -1,4 +1,0 @@
-fn main() -> Int {
-    let x: [4]Int
-    x[-10]
-}

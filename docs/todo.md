@@ -83,6 +83,7 @@
 - [ ] Nothing is indented more than 5 times, excluding switches
 - [ ] In import graph, 1.5 <= (E+1)/N <= 4.0
 - [ ] (if you can figure out how to calculate it) cyclomatic complexity higher than 10 is bad
+- [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [ ] Figure out how to do lints before GCC does
 - [ ] Go through MISRA when writing reqs
@@ -348,7 +349,7 @@
             - [ ] stretch goal: `<` and `>` for subtypes
         - [x] `sizeof`
         - [x] make `typeof`, `default`, `sizeof` functions that start with `@`
-    - [ ] reduce `if`, `and`, `or`, `while`, and look into `match` at comptime
+    - [x] reduce `if` at comptime
     - [ ] Panic for div by zero, if int type cannot represent value, out of bounds (redo this for codegen!!)
 - [ ] build system (built upon compile-time evaluation) (1/21/24)
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.

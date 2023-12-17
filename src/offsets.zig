@@ -92,9 +92,10 @@ pub fn calculate_offsets(
             local_offsets += @as(i64, @intCast(symbver.symbol.expanded_type.?.sizeof()));
         }
     }
+    local_offsets = next_alignment(local_offsets, 8);
 
     // The total number of bytes used for locals
-    return local_offsets - locals_starting_offset - 8;
+    return local_offsets - locals_starting_offset;
 }
 
 pub fn next_alignment(address: i64, align_to: i64) i64 {

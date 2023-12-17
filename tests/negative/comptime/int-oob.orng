@@ -1,0 +1,4 @@
+let const x: Int8 = 100 + 50
+fn main() -> Int8 {
+    x
+}

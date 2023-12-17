@@ -1,1 +1,0 @@
-fn not_main() -> Int {0}

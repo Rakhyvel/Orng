@@ -1216,7 +1216,13 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocato
             if (ir.kind == .discard) {
                 continue;
             }
-            if (ir.dest != null and !ir.removed and ir.dest.?.* == .symbver and ir.dest.?.symbver.uses == 0 and ir.dest.?.symbver.symbol.uses == 0 and ir.dest.?.symbver.symbol != cfg.return_symbol) {
+            if (ir.dest != null and
+                !ir.removed and
+                ir.dest.?.* == .symbver and
+                ir.dest.?.symbver.uses == 0 and
+                ir.dest.?.symbver.symbol.uses == 0 and
+                ir.dest.?.symbver.symbol != cfg.return_symbol)
+            {
                 if (debug) {
                     std.debug.print("removing: {}", .{ir});
                 }
