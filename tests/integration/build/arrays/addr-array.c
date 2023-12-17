@@ -27,6 +27,8 @@ int64_t _7_main(void){
     struct0* _8_y;
     int64_t _7_t7;
     int64_t _7_t8;
+    int64_t _7_t9;
+    int64_t _7_t10;
     int64_t _7_$retval;
     _7_t1 = 1;
     _7_t2 = 2;
@@ -35,9 +37,13 @@ int64_t _7_main(void){
     _8_x = (struct0) {_7_t1, _7_t2, _7_t3, _7_t4};
     _8_y = &_8_x;
     _7_t7 = 2;
+    _7_t8 = 4;
+    $bounds_check(_7_t7, _7_t8, "tests/integration/arrays/addr-array.orng:5:15:\n    y^[2] = 70\n             ^");
     *((int64_t*)_8_y + _7_t7) = 70;
-    _7_t8 = 2;
-    _7_$retval = *((int64_t*)_8_y + _7_t8);
+    _7_t9 = 2;
+    _7_t10 = 4;
+    $bounds_check(_7_t9, _7_t10, "tests/integration/arrays/addr-array.orng:2:3:\nfn main() -> Int {\n ^");
+    _7_$retval = *((int64_t*)_8_y + _7_t9);
     return _7_$retval;
 }
 

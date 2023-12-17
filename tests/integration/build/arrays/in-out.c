@@ -28,6 +28,7 @@ int64_t _114_main(void){
     function1 _114_t4;
     struct0* _114_t6;
     int64_t _114_t7;
+    int64_t _114_t8;
     int64_t _114_$retval;
     _114_t1 = 1;
     _114_t2 = 2;
@@ -39,13 +40,18 @@ int64_t _114_main(void){
     _114_t4(_114_t6);
     $line_idx--;
     _114_t7 = 1;
+    _114_t8 = 3;
+    $bounds_check(_114_t7, _114_t8, "tests/integration/arrays/in-out.orng:2:3:\nfn main() -> Int {\n ^");
     _114_$retval = *((int64_t*)&_115_x + _114_t7);
     return _114_$retval;
 }
 
 void _118_f(struct0* _118_x){
     int64_t _118_t1;
+    int64_t _118_t2;
     _118_t1 = 1;
+    _118_t2 = 3;
+    $bounds_check(_118_t1, _118_t2, "tests/integration/arrays/in-out.orng:9:15:\n    x[1] = 217\n             ^");
     *((int64_t*)_118_x + _118_t1) = 217;
     return;
 }

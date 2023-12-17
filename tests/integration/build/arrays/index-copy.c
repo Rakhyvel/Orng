@@ -26,6 +26,8 @@ int64_t _125_main(void){
     struct0 _126_x;
     int64_t _125_t6;
     int64_t _125_t7;
+    int64_t _125_t8;
+    int64_t _125_t9;
     int64_t _125_$retval;
     _125_t1 = 1;
     _125_t2 = 2;
@@ -33,9 +35,13 @@ int64_t _125_main(void){
     _125_t4 = 4;
     _126_x = (struct0) {_125_t1, _125_t2, _125_t3, _125_t4};
     _125_t6 = 2;
+    _125_t7 = 4;
+    $bounds_check(_125_t6, _125_t7, "tests/integration/arrays/index-copy.orng:4:14:\n    x[2] = 62\n            ^");
     *((int64_t*)&_126_x + _125_t6) = 62;
-    _125_t7 = 2;
-    _125_$retval = *((int64_t*)&_126_x + _125_t7);
+    _125_t8 = 2;
+    _125_t9 = 4;
+    $bounds_check(_125_t8, _125_t9, "tests/integration/arrays/index-copy.orng:2:3:\nfn main() -> Int {\n ^");
+    _125_$retval = *((int64_t*)&_126_x + _125_t8);
     return _125_$retval;
 }
 

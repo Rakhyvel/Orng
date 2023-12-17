@@ -32,8 +32,9 @@ int64_t _1451_main(void){
     int64_t _1451_t6;
     int64_t _1451_t7;
     struct2 _1451_t4;
-    int64_t* _1451_t8;
-    int64_t _1451_t9;
+    int64_t _1451_t8;
+    int64_t* _1451_t9;
+    int64_t _1451_t10;
     struct1 _1451_t2;
     int64_t _1451_t1;
     int64_t _1451_$retval;
@@ -43,9 +44,11 @@ int64_t _1451_main(void){
     _1451_t6 = 0;
     _1451_t7 = 8;
     _1451_t4 = (struct2) {_1451_t5, _1451_t6, _1451_t7};
-    _1451_t8 = ((int64_t*)&_1451_t4 + _1451_t3);
-    _1451_t9 = 3;
-    _1451_t2 = (struct1) {_1451_t8, _1451_t9};
+    _1451_t8 = 3;
+    $bounds_check(_1451_t3, _1451_t8, "tests/integration/slices/slice-literal.orng:3:16:\n    sum([](200, 0, 8)) // Slice of product literal\n              ^");
+    _1451_t9 = ((int64_t*)&_1451_t4 + _1451_t3);
+    _1451_t10 = 3;
+    _1451_t2 = (struct1) {_1451_t9, _1451_t10};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:3:9:\n    sum([](200, 0, 8)) // Slice of product literal\n       ^";
     _1451_t1 = _1451_t0(_1451_t2);
     $line_idx--;
@@ -99,6 +102,7 @@ BB9:
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:21:\n        xs[0] + sum(xs[1..])\n                   ^";
     _1453_t7 = _1453_t6(_1453_t12);
     $line_idx--;
+    $bounds_check(_1453_t5, _1453_xs._1, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
     _1453_t0 = $add_int64_t(*((int64_t*)_1453_xs._0 + _1453_t5), _1453_t7, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
     goto BB6;
 }

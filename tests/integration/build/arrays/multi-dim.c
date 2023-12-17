@@ -40,10 +40,16 @@ int64_t _138_main(void){
     int64_t _138_t13;
     int64_t _138_t14;
     int64_t _138_t15;
+    int64_t _138_t16;
     int64_t _138_t17;
-    int64_t _138_t18;
     int64_t _138_t19;
     int64_t _138_t20;
+    int64_t _138_t21;
+    int64_t _138_t22;
+    int64_t _138_t23;
+    int64_t _138_t24;
+    int64_t _138_t25;
+    int64_t _138_t26;
     int64_t _138_$retval;
     _138_t2 = 1;
     _138_t3 = 2;
@@ -60,13 +66,25 @@ int64_t _138_main(void){
     _139_x = (struct1) {_138_t1, _138_t5, _138_t9};
     _138_t13 = 2;
     _138_t14 = 1;
-    _138_t15 = 1;
-    _138_t17 = 2;
-    _138_t18 = 1;
-    *((int64_t*)((struct0*)&_139_x + _138_t18) + _138_t17) = $add_int64_t(*((int64_t*)((struct0*)&_139_x + _138_t14) + _138_t13), _138_t15, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    _138_t15 = 3;
+    _138_t16 = 3;
+    _138_t17 = 1;
     _138_t19 = 2;
     _138_t20 = 1;
-    _138_$retval = *((int64_t*)((struct0*)&_139_x + _138_t20) + _138_t19);
+    _138_t21 = 3;
+    _138_t22 = 3;
+    $bounds_check(_138_t20, _138_t21, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    $bounds_check(_138_t19, _138_t22, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    $bounds_check(_138_t14, _138_t15, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    $bounds_check(_138_t13, _138_t16, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    *((int64_t*)((struct0*)&_139_x + _138_t20) + _138_t19) = $add_int64_t(*((int64_t*)((struct0*)&_139_x + _138_t14) + _138_t13), _138_t17, "tests/integration/arrays/multi-dim.orng:8:15:\n    x[1][2] += 1 // nice\n             ^");
+    _138_t23 = 2;
+    _138_t24 = 1;
+    _138_t25 = 3;
+    _138_t26 = 3;
+    $bounds_check(_138_t24, _138_t25, "tests/integration/arrays/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_138_t23, _138_t26, "tests/integration/arrays/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
+    _138_$retval = *((int64_t*)((struct0*)&_139_x + _138_t24) + _138_t23);
     return _138_$retval;
 }
 

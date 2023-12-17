@@ -37,14 +37,15 @@ int64_t _1413_main(void){
     int64_t _1413_t6;
     struct0 _1414_x;
     int64_t _1413_t8;
-    int64_t* _1413_t9;
-    int64_t _1413_t10;
+    int64_t _1413_t9;
+    int64_t* _1413_t10;
+    int64_t _1413_t11;
     struct1 _1414_y;
-    int64_t _1413_t14;
-    int64_t* _1413_t15;
+    int64_t _1413_t15;
+    int64_t* _1413_t16;
     struct1 _1414_z;
-    function2 _1413_t17;
-    int64_t _1413_t18;
+    function2 _1413_t18;
+    int64_t _1413_t19;
     int64_t _1413_$retval;
     _1413_t1 = 100;
     _1413_t2 = 8;
@@ -54,17 +55,19 @@ int64_t _1413_main(void){
     _1413_t6 = 6;
     _1414_x = (struct0) {_1413_t1, _1413_t2, _1413_t3, _1413_t4, _1413_t5, _1413_t6};
     _1413_t8 = 0;
-    _1413_t9 = ((int64_t*)&_1414_x + _1413_t8);
-    _1413_t10 = 6;
-    _1414_y = (struct1) {_1413_t9, _1413_t10};
-    _1413_t14 = 3;
-    _1413_t15 = _1414_y._0;
-    _1414_z = (struct1) {_1413_t15, _1413_t14};
-    _1413_t17 = _1418_sum_up;
+    _1413_t9 = 6;
+    $bounds_check(_1413_t8, _1413_t9, "tests/integration/slices/infer-lower.orng:4:19:\n    let y = [mut]x\n                 ^");
+    _1413_t10 = ((int64_t*)&_1414_x + _1413_t8);
+    _1413_t11 = 6;
+    _1414_y = (struct1) {_1413_t10, _1413_t11};
+    _1413_t15 = 3;
+    _1413_t16 = _1414_y._0;
+    _1414_z = (struct1) {_1413_t16, _1413_t15};
+    _1413_t18 = _1418_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
-    _1413_t18 = _1413_t17(_1414_z);
+    _1413_t19 = _1413_t18(_1414_z);
     $line_idx--;
-    _1413_$retval = _1413_t18;
+    _1413_$retval = _1413_t19;
     return _1413_$retval;
 }
 
@@ -85,6 +88,7 @@ BB1:
         goto BB7;
     }
 BB2:
+    $bounds_check(_1422_i, _1418_xs._1, "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
     _1421_sum = $add_int64_t(_1421_sum, *((int64_t*)_1418_xs._0 + _1422_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
     _1418_t5 = 1;
     _1422_i = $add_int64_t(_1422_i, _1418_t5, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");

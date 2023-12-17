@@ -25,6 +25,7 @@ uint8_t _1518_main(void){
     uint8_t _1518_$retval;
     _1519_x = (struct0) {(uint8_t*)string_0, 1};
     _1518_t1 = 0;
+    $bounds_check(_1518_t1, _1519_x._1, "tests/integration/strings/string-slash.orng:2:3:\nfn main() -> Byte {\n ^");
     _1518_$retval = *((uint8_t*)_1519_x._0 + _1518_t1);
     return _1518_$retval;
 }

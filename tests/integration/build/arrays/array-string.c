@@ -33,12 +33,15 @@ struct0 _77_main(void){
     struct0 _77_t3;
     struct1 _78_x;
     int64_t _77_t4;
+    int64_t _77_t5;
     struct0 _77_$retval;
     _77_t1 = (struct0) {(uint8_t*)string_0, 7};
     _77_t2 = (struct0) {(uint8_t*)string_1, 3};
     _77_t3 = (struct0) {(uint8_t*)string_2, 6};
     _78_x = (struct1) {_77_t1, _77_t2, _77_t3};
     _77_t4 = 1;
+    _77_t5 = 3;
+    $bounds_check(_77_t4, _77_t5, "tests/integration/arrays/array-string.orng:2:3:\nfn main() -> String {\n ^");
     _77_$retval = *((struct0*)&_78_x + _77_t4);
     return _77_$retval;
 }

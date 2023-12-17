@@ -355,7 +355,8 @@ pub const L_Value = union(enum) {
     /// L-Value is L-Value of lhs, + rhs * size
     index: struct {
         lhs: *L_Value,
-        rhs: *L_Value, // TODO: Rename to rhs
+        rhs: *L_Value,
+        upper_bound: ?*L_Value, // Debug UB info
         size: i64,
         type: *AST,
         expanded_type: *AST,
@@ -369,6 +370,7 @@ pub const L_Value = union(enum) {
         size: i64,
         type: *AST,
         expanded_type: *AST,
+        tag: ?*L_Value, // Debug UB info
         allocator: std.mem.Allocator,
     },
 
@@ -389,15 +391,15 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    fn create_index(lhs: *L_Value, rhs: *L_Value, size: i64, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
+    fn create_index(lhs: *L_Value, rhs: *L_Value, upper_bound: ?*L_Value, size: i64, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .upper_bound = upper_bound, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
-    fn create_select(lhs: *L_Value, field: i128, offset: i64, size: i64, _type: *AST, expanded_type: *AST, allocator: std.mem.Allocator) !*L_Value {
+    fn create_select(lhs: *L_Value, field: i128, offset: i64, size: i64, _type: *AST, expanded_type: *AST, tag: ?*L_Value, allocator: std.mem.Allocator) !*L_Value {
         const retval = try allocator.create(L_Value);
-        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .size = size, .type = _type, .expanded_type = expanded_type, .tag = tag, .allocator = allocator } };
         return retval;
     }
 
@@ -1483,7 +1485,7 @@ pub const CFG = struct {
                 // Else, store the error in retval, return through error
                 self.appendInstruction(err);
 
-                const ok_lval = try L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().sizeof(), expanded_expr_type.get_ok_type(), try expanded_expr_type.get_ok_type().expand_type(scope, errors, allocator), allocator);
+                const ok_lval = try L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().sizeof(), expanded_expr_type.get_ok_type(), try expanded_expr_type.get_ok_type().expand_type(scope, errors, allocator), null, allocator);
                 self.appendInstruction(try IR.createJump(end, ast.getToken().span, allocator));
                 self.appendInstruction(end);
 
@@ -1756,7 +1758,7 @@ pub const CFG = struct {
                 // tag was `.ok`, store lhs.some in temp
                 const _type = try ast.typeof(scope, errors, allocator);
                 const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-                const val = try L_Value.create_select(lhs, 0, 0, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const val = try L_Value.create_select(lhs, 0, 0, size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
                 const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
 
@@ -1787,7 +1789,7 @@ pub const CFG = struct {
                 const _type = try ast.typeof(scope, errors, allocator);
                 const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
                 const offset = try (try lhs.get_type().expand_type(scope, errors, allocator)).sum.get_offset(1, scope, errors, allocator);
-                const val = try L_Value.create_select(lhs, 1, offset, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const val = try L_Value.create_select(lhs, 1, offset, size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
                 const some_lval = try L_Value.create_unversioned_symbver(symbol, symbol._type, allocator);
                 self.appendInstruction(try IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
                 self.appendInstruction(try IR.createJump(end_label, ast.getToken().span, allocator));
@@ -1833,17 +1835,32 @@ pub const CFG = struct {
                 const rhs = try self.flattenAST(scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
                 // Recursively get index's ast L_Value node
-                var ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                const pre_ast_lval = try self.flattenAST(scope, ast.index.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
+                var ast_lval = pre_ast_lval;
 
                 if (ast_expanded_type.product.was_slice) {
-                    // Indexing a slice; retval := lhs._0^[rhs]
+                    // Indexing a slice; index_val := lhs._0^[rhs]
                     const addr_type = ast_expanded_type.product.terms.items[0];
                     const addr_size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-                    ast_lval = try L_Value.create_select(ast_lval.?, 0, 0, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
+                    ast_lval = try L_Value.create_select(ast_lval.?, 0, 0, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), null, allocator);
                     ast_lval = try L_Value.create_dereference(ast_lval.?, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
                 }
+
+                // Do bounds-check
+                var length: *L_Value = undefined;
+                if (ast_expanded_type.* == .product and ast_expanded_type.product.was_slice) {
+                    const offset = try ast_expanded_type.product.get_offset(1, scope, errors, allocator);
+                    length = try L_Value.create_select(pre_ast_lval.?, 1, offset, 8, primitives.int64_type, primitives.int64_type, null, allocator);
+                } else if (ast_expanded_type.* == .product and !ast_expanded_type.product.was_slice) {
+                    length = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
+                    const ir = try IR.createInt(length, ast_expanded_type.product.terms.items.len, ast.getToken().span, allocator);
+                    self.appendInstruction(ir);
+                } else {
+                    unreachable;
+                }
+
                 // Surround with L_Value node
-                return try L_Value.create_index(ast_lval.?, rhs.?, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                return try L_Value.create_index(ast_lval.?, rhs.?, length, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
             },
             .select => {
                 // Recursively get select's ast L_Value node
@@ -1856,10 +1873,17 @@ pub const CFG = struct {
                 else
                     try lhs_expanded_type.sum.get_offset(ast.select.pos.?, scope, errors, allocator);
 
+                var tag: ?*L_Value = null;
+                if (lhs_expanded_type.* == .sum) {
+                    // Check that the sum value has the proper tag before a selection
+                    tag = try self.create_temp_lvalue(primitives.word64_type, errors, allocator);
+                    self.appendInstruction(try IR.createGetTag(tag.?, ast_lval.?, ast.getToken().span, allocator));
+                }
+
                 // Surround with L_Value node
                 const _type = try ast.typeof(scope, errors, allocator);
                 const expanded_type = try _type.expand_type(scope, errors, allocator);
-                return try L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, expanded_type.sizeof(), _type, expanded_type, allocator);
+                return try L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, expanded_type.sizeof(), _type, expanded_type, tag, allocator);
             },
             .product => {
                 if (try (try ast.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(primitives.type_type, scope, errors, allocator)) {
@@ -1930,7 +1954,7 @@ pub const CFG = struct {
                 const slice_type = try ast.typeof(scope, errors, allocator);
                 const data_type = slice_type.product.terms.items[0];
                 const size = (try data_type.expand_type(scope, errors, allocator)).sizeof();
-                const data_ptr = try L_Value.create_select(arr, 0, 0, size, data_type, try data_type.expand_type(scope, errors, allocator), allocator);
+                const data_ptr = try L_Value.create_select(arr, 0, 0, size, data_type, try data_type.expand_type(scope, errors, allocator), null, allocator);
 
                 const new_data_ptr = try self.create_temp_lvalue(data_type, errors, allocator);
                 const new_data_ptr_ir = try IR.create(.add_int, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator);
@@ -2324,8 +2348,8 @@ pub const CFG = struct {
             for (0..lhs_type.product.terms.items.len) |i| {
                 const _type = lhs_type.product.terms.items[i];
                 const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-                const lhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), allocator);
-                const rhs_select = try L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const lhs_select = try L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
+                const rhs_select = try L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
                 try self.generate_tuple_equality(scope, lhs_select, rhs_select, fail_label, errors, allocator);
             }
         } else if (lhs_type.* == .sum) {
@@ -2367,7 +2391,7 @@ pub const CFG = struct {
                 }
                 const _type = rhs.get_type().product.terms.items[i];
                 const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-                const select = try L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+                const select = try L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
                 _ = try self.generate_assign(scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
             }
             return null;
@@ -2402,14 +2426,14 @@ pub const CFG = struct {
                 const subscript_type = _type.product.terms.items[i];
                 const size = (try subscript_type.expand_type(scope, errors, allocator)).sizeof();
                 const offset = try _type.product.get_offset(i, scope, errors, allocator);
-                const lval = try L_Value.create_select(def, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), allocator);
+                const lval = try L_Value.create_select(def, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), null, allocator);
                 try self.generate_pattern(scope, term, subscript_type, lval, errors, allocator);
             }
         } else if (pattern.* == .inject) {
             const lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
             const domain = try validate.domainof(pattern, lhs_type, scope, errors, allocator);
             const size = (try domain.expand_type(scope, errors, allocator)).sizeof();
-            const lval = try L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, try domain.expand_type(scope, errors, allocator), allocator);
+            const lval = try L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, try domain.expand_type(scope, errors, allocator), null, allocator);
             try self.generate_pattern(scope, pattern.inject.rhs, domain, lval, errors, allocator);
         }
     }
@@ -2458,7 +2482,7 @@ pub const CFG = struct {
                     const size = (try subscript_type.expand_type(scope, errors, allocator)).sizeof();
                     const pattern_type = try (try pattern.?.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
                     const offset = try pattern_type.product.get_offset(i, scope, errors, allocator);
-                    const lval = try L_Value.create_select(new_expr, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), allocator);
+                    const lval = try L_Value.create_select(new_expr, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), null, allocator);
                     try self.generate_match_pattern_check(scope, term, lval, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
                 }
             },
@@ -2686,9 +2710,15 @@ pub const CFG = struct {
             .index => {
                 try version_lvalue(lval.index.rhs, bb, ir, parameters);
                 try version_lvalue(lval.index.lhs, bb, ir, parameters);
+                if (lval.index.upper_bound != null) {
+                    try version_lvalue(lval.index.upper_bound.?, bb, ir, parameters);
+                }
             },
             .select => {
                 try version_lvalue(lval.select.lhs, bb, ir, parameters);
+                if (lval.select.tag != null) {
+                    try version_lvalue(lval.select.tag.?, bb, ir, parameters);
+                }
             },
         }
     }

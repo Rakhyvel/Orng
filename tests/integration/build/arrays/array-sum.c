@@ -46,16 +46,19 @@ int64_t _83_main(void){
 
 int64_t _87_f(struct1 _87_x){
     int64_t _87_t1;
-    uint64_t _87_t5;
+    int64_t _87_t2;
     uint64_t _87_t6;
-    uint8_t _87_t4;
+    uint64_t _87_t7;
+    uint8_t _87_t5;
     int64_t _87_t0;
     int64_t _87_$retval;
     _87_t1 = 1;
-    _87_t5 = (*((struct0*)&_87_x + _87_t1)).tag;
-    _87_t6 = 1;
-    _87_t4 = _87_t5 == _87_t6;
-    if (_87_t4) {
+    _87_t2 = 3;
+    $bounds_check(_87_t1, _87_t2, "tests/integration/arrays/array-sum.orng:9:7:\nfn f(x: [3]My_Type) -> Int {\n     ^");
+    _87_t6 = (*((struct0*)&_87_x + _87_t1)).tag;
+    _87_t7 = 1;
+    _87_t5 = _87_t6 == _87_t7;
+    if (_87_t5) {
         goto BB3;
     } else {
         goto BB7;

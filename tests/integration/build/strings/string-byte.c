@@ -25,6 +25,7 @@ uint8_t _1503_main(void){
     uint8_t _1503_$retval;
     _1504_x = (struct0) {(uint8_t*)string_0, 1};
     _1503_t1 = 0;
+    $bounds_check(_1503_t1, _1504_x._1, "tests/integration/strings/string-byte.orng:2:3:\nfn main() -> Byte {\n ^");
     _1503_$retval = *((uint8_t*)_1504_x._0 + _1503_t1);
     return _1503_$retval;
 }

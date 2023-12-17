@@ -38,6 +38,10 @@ int64_t _130_main(void){
     int64_t _130_t7;
     int64_t _130_t8;
     int64_t _130_t9;
+    int64_t _130_t10;
+    int64_t _130_t11;
+    int64_t _130_t12;
+    int64_t _130_t13;
     int64_t _130_$retval;
     _130_t0 = _134_get_array;
     _130_t2 = 15;
@@ -47,12 +51,20 @@ int64_t _130_main(void){
     $line_idx--;
     _131_x = _130_t1;
     _130_t4 = 0;
-    _130_t5 = 1;
-    _130_t6 = $add_int64_t(*((int64_t*)&_131_x + _130_t4), *((int64_t*)&_131_x + _130_t5), "tests/integration/arrays/index.orng:4:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
-    _130_t7 = 2;
-    _130_t8 = $add_int64_t(_130_t6, *((int64_t*)&_131_x + _130_t7), "tests/integration/arrays/index.orng:4:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
-    _130_t9 = 3;
-    _130_$retval = $add_int64_t(_130_t8, *((int64_t*)&_131_x + _130_t9), "tests/integration/arrays/index.orng:4:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
+    _130_t5 = 4;
+    _130_t6 = 1;
+    _130_t7 = 4;
+    $bounds_check(_130_t4, _130_t5, "tests/integration/arrays/index.orng:4:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    $bounds_check(_130_t6, _130_t7, "tests/integration/arrays/index.orng:4:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    _130_t8 = $add_int64_t(*((int64_t*)&_131_x + _130_t4), *((int64_t*)&_131_x + _130_t6), "tests/integration/arrays/index.orng:4:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    _130_t9 = 2;
+    _130_t10 = 4;
+    $bounds_check(_130_t9, _130_t10, "tests/integration/arrays/index.orng:4:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
+    _130_t11 = $add_int64_t(_130_t8, *((int64_t*)&_131_x + _130_t9), "tests/integration/arrays/index.orng:4:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
+    _130_t12 = 3;
+    _130_t13 = 4;
+    $bounds_check(_130_t12, _130_t13, "tests/integration/arrays/index.orng:4:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
+    _130_$retval = $add_int64_t(_130_t11, *((int64_t*)&_131_x + _130_t12), "tests/integration/arrays/index.orng:4:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
     return _130_$retval;
 }
 

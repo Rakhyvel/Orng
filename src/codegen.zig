@@ -319,32 +319,19 @@ fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer:
 }
 
 fn output_IR(ir: *IR, writer: anytype) !void {
-    if (ir.meta == .bounds_check) {
-        var spaces = String.init(std.heap.page_allocator);
-        defer spaces.deinit();
-        for (1..ir.span.col - 1) |i| {
-            _ = i;
-            try spaces.insert(" ", spaces.size);
+    if (ir.dest != null) {
+        try output_lvalue_check(ir.span, ir.dest.?, writer);
+    }
+    if (ir.src1 != null) {
+        try output_lvalue_check(ir.span, ir.src1.?, writer);
+    }
+    if (ir.src2 != null) {
+        try output_lvalue_check(ir.span, ir.src2.?, writer);
+    }
+    if (ir.data == .lval_list) {
+        for (ir.data.lval_list.items) |lval| {
+            try output_lvalue_check(ir.span, lval, writer);
         }
-        try writer.print("    $bounds_check(", .{});
-        try output_lvalue(ir.src2.?, HIGHEST_PRECEDENCE, writer); // idx
-        try writer.print(", ", .{});
-        try output_rvalue(ir.meta.bounds_check.length, HIGHEST_PRECEDENCE, writer); // length
-        try writer.print(", ", .{});
-        try ir.span.print_debug_line(writer, span_.c_format);
-        try writer.print(");\n", .{});
-    } else if (ir.meta == .active_field_check) {
-        var spaces = String.init(std.heap.page_allocator);
-        defer spaces.deinit();
-        for (1..ir.span.col - 1) |i| {
-            _ = i;
-            try spaces.insert(" ", spaces.size);
-        }
-        try writer.print("    $tag_check(", .{});
-        try output_rvalue(ir.meta.active_field_check.tag, HIGHEST_PRECEDENCE, writer); // tag
-        try writer.print(", {}, ", .{ir.meta.active_field_check.selection});
-        try ir.span.print_debug_line(writer, span_.c_format);
-        try writer.print(");\n", .{});
     }
 
     if (ir.dest != null and ir.dest.?.get_type().* == .unit_type and ir.kind != .call) {
@@ -635,6 +622,38 @@ fn output_IR(ir: *IR, writer: anytype) !void {
             try writer.print("    (void)", .{});
             try output_rvalue(ir.src1.?, IRKind.cast.precedence(), writer);
             try writer.print(";\n", .{});
+        },
+    }
+}
+
+fn output_lvalue_check(span: span_.Span, lvalue: *ir_.L_Value, writer: anytype) CodeGen_Error!void {
+    switch (lvalue.*) {
+        .symbver => {},
+        .dereference => try output_lvalue_check(span, lvalue.dereference.expr, writer),
+        .index => {
+            try output_lvalue_check(span, lvalue.index.lhs, writer);
+            try output_lvalue_check(span, lvalue.index.rhs, writer);
+
+            if (lvalue.index.upper_bound != null) {
+                try writer.print("    $bounds_check(", .{});
+                try output_rvalue(lvalue.index.rhs, HIGHEST_PRECEDENCE, writer); // idx
+                try writer.print(", ", .{});
+                try output_rvalue(lvalue.index.upper_bound.?, HIGHEST_PRECEDENCE, writer); // length
+                try writer.print(", ", .{});
+                try span.print_debug_line(writer, span_.c_format);
+                try writer.print(");\n", .{});
+            }
+        },
+        .select => {
+            try output_lvalue_check(span, lvalue.select.lhs, writer);
+
+            if (lvalue.select.tag != null) {
+                try writer.print("    $tag_check(", .{});
+                try output_rvalue(lvalue.select.tag.?, HIGHEST_PRECEDENCE, writer); // tag
+                try writer.print(", {}, ", .{lvalue.select.field});
+                try span.print_debug_line(writer, span_.c_format);
+                try writer.print(");\n", .{});
+            }
         },
     }
 }

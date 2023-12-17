@@ -22,47 +22,51 @@ typedef struct {
 typedef int64_t(*function2)(void);
 
 /* Function forward definitions */
-int64_t _45_main(void);
-int64_t _47_f(void);
+int64_t _73_main(void);
+int64_t _79_f(void);
 
 /* Function definitions */
-int64_t _45_main(void) {
-    int64_t _45_t1;
-    int64_t _45_t2;
-    int64_t _45_t3;
-    int64_t _45_t4;
-    struct0 _46_x;
-    int64_t _45_t6;
-    int64_t* _45_t7;
-    int64_t _45_t8;
-    struct1 _46_y;
-    function2 _45_t9;
-    int64_t _45_t10;
-    int64_t _45_$retval;
-    _45_t1 = 0;
-    _45_t2 = 0;
-    _45_t3 = 0;
-    _45_t4 = 0;
-    _46_x = (struct0) {_45_t1, _45_t2, _45_t3, _45_t4};
-    _45_t6 = 0;
-    _45_t7 = ((int64_t*)&_46_x + _45_t6);
-    _45_t8 = 4;
-    _46_y = (struct1) {_45_t7, _45_t8};
-    _45_t9 = _47_f;
+int64_t _73_main(void){
+    int64_t _73_t1;
+    int64_t _73_t2;
+    int64_t _73_t3;
+    int64_t _73_t4;
+    struct0 _74_x;
+    int64_t _73_t6;
+    int64_t _73_t7;
+    int64_t* _73_t8;
+    int64_t _73_t9;
+    struct1 _74_y;
+    function2 _73_t10;
+    int64_t _73_t11;
+    int64_t _73_$retval;
+    _73_t1 = 0;
+    _73_t2 = 0;
+    _73_t3 = 0;
+    _73_t4 = 0;
+    _74_x = (struct0) {_73_t1, _73_t2, _73_t3, _73_t4};
+    _73_t6 = 0;
+    _73_t7 = 4;
+    $bounds_check(_73_t6, _73_t7, "tests/integration/lint/slice-pos-bounds-check.orng:4:16:\n    let y = []x\n              ^");
+    _73_t8 = ((int64_t*)&_74_x + _73_t6);
+    _73_t9 = 4;
+    _74_y = (struct1) {_73_t8, _73_t9};
+    _73_t10 = _79_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-pos-bounds-check.orng:5:9:\n    y[f()]\n       ^";
-    _45_t10 = _45_t9();
+    _73_t11 = _73_t10();
     $line_idx--;
-    _45_$retval = *((int64_t*)&_46_y._0 + _45_t10);
-    return _45_$retval;
+    $bounds_check(_73_t11, _74_y._1, "tests/integration/lint/slice-pos-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
+    _73_$retval = *((int64_t*)_74_y._0 + _73_t11);
+    return _73_$retval;
 }
 
-int64_t _47_f(void) {
-    int64_t _47_$retval;
-    _47_$retval = 100;
-    return _47_$retval;
+int64_t _79_f(void){
+    int64_t _79_$retval;
+    _79_$retval = 100;
+    return _79_$retval;
 }
 
 int main(void) {
-  printf("%ld",_45_main());
+  printf("%ld",_73_main());
   return 0;
 }

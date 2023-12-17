@@ -25,6 +25,7 @@ uint8_t _1521_main(void){
     uint8_t _1521_$retval;
     _1522_x = (struct0) {(uint8_t*)string_0, 5};
     _1521_t1 = 3;
+    $bounds_check(_1521_t1, _1522_x._1, "tests/integration/strings/string-squote.orng:2:3:\nfn main() -> Byte {\n ^");
     _1521_$retval = *((uint8_t*)_1522_x._0 + _1521_t1);
     return _1521_$retval;
 }

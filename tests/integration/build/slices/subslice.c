@@ -37,16 +37,17 @@ int64_t _1467_main(void){
     int64_t _1467_t6;
     struct0 _1468_x;
     int64_t _1467_t8;
-    int64_t* _1467_t9;
-    int64_t _1467_t10;
-    struct1 _1468_y;
+    int64_t _1467_t9;
+    int64_t* _1467_t10;
     int64_t _1467_t11;
-    int64_t _1467_t14;
-    int64_t* _1467_t15;
+    struct1 _1468_y;
+    int64_t _1467_t12;
+    int64_t _1467_t15;
+    int64_t* _1467_t16;
     struct1 _1468_z;
-    int64_t _1467_t18;
-    function2 _1467_t19;
-    int64_t _1467_t20;
+    int64_t _1467_t19;
+    function2 _1467_t20;
+    int64_t _1467_t21;
     int64_t _1467_$retval;
     _1467_t1 = 1;
     _1467_t2 = 15;
@@ -56,20 +57,23 @@ int64_t _1467_main(void){
     _1467_t6 = 6;
     _1468_x = (struct0) {_1467_t1, _1467_t2, _1467_t3, _1467_t4, _1467_t5, _1467_t6};
     _1467_t8 = 0;
-    _1467_t9 = ((int64_t*)&_1468_x + _1467_t8);
-    _1467_t10 = 6;
-    _1468_y = (struct1) {_1467_t9, _1467_t10};
-    _1467_t11 = 1;
-    _1467_t14 = 4;
-    _1467_t15 = _1468_y._0 + _1467_t11;
-    _1468_z = (struct1) {_1467_t15, _1467_t14};
-    _1467_t18 = 2;
-    *((int64_t*)_1468_z._0 + _1467_t18) = 10;
-    _1467_t19 = _1472_sum_up;
+    _1467_t9 = 6;
+    $bounds_check(_1467_t8, _1467_t9, "tests/integration/slices/subslice.orng:4:19:\n    let y = [mut]x\n                 ^");
+    _1467_t10 = ((int64_t*)&_1468_x + _1467_t8);
+    _1467_t11 = 6;
+    _1468_y = (struct1) {_1467_t10, _1467_t11};
+    _1467_t12 = 1;
+    _1467_t15 = 4;
+    _1467_t16 = _1468_y._0 + _1467_t12;
+    _1468_z = (struct1) {_1467_t16, _1467_t15};
+    _1467_t19 = 2;
+    $bounds_check(_1467_t19, _1468_z._1, "tests/integration/slices/subslice.orng:6:14:\n    z[2] = 10\n            ^");
+    *((int64_t*)_1468_z._0 + _1467_t19) = 10;
+    _1467_t20 = _1472_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
-    _1467_t20 = _1467_t19(_1468_z);
+    _1467_t21 = _1467_t20(_1468_z);
     $line_idx--;
-    _1467_$retval = _1467_t20;
+    _1467_$retval = _1467_t21;
     return _1467_$retval;
 }
 
@@ -90,6 +94,7 @@ BB1:
         goto BB7;
     }
 BB2:
+    $bounds_check(_1476_i, _1472_xs._1, "tests/integration/slices/subslice.orng:13:15:\n        sum += xs[i]\n             ^");
     _1475_sum = $add_int64_t(_1475_sum, *((int64_t*)_1472_xs._0 + _1476_i), "tests/integration/slices/subslice.orng:13:15:\n        sum += xs[i]\n             ^");
     _1472_t5 = 1;
     _1476_i = $add_int64_t(_1476_i, _1472_t5, "tests/integration/slices/subslice.orng:12:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");

@@ -30,6 +30,8 @@ int64_t _27_main(void){
     struct0 _28_x;
     int64_t _27_t10;
     int64_t _27_t11;
+    int64_t _27_t12;
+    int64_t _27_t13;
     int64_t _27_$retval;
     _28_a = 1;
     _28_b = 2;
@@ -41,9 +43,13 @@ int64_t _27_main(void){
     _27_t8 = &_28_d;
     _28_x = (struct0) {_27_t5, _27_t6, _27_t7, _27_t8};
     _27_t10 = 2;
+    _27_t11 = 4;
+    $bounds_check(_27_t10, _27_t11, "tests/integration/arrays/array-addr.orng:8:15:\n    x[2]^ = 71\n             ^");
     **((int64_t**)&_28_x + _27_t10) = 71;
-    _27_t11 = 2;
-    _27_$retval = **((int64_t**)&_28_x + _27_t11);
+    _27_t12 = 2;
+    _27_t13 = 4;
+    $bounds_check(_27_t12, _27_t13, "tests/integration/arrays/array-addr.orng:2:3:\nfn main() -> Int {\n ^");
+    _27_$retval = **((int64_t**)&_28_x + _27_t12);
     return _27_$retval;
 }
 

@@ -24,21 +24,24 @@ int64_t _1315_main(void){
     struct0 _1316_x;
     int64_t _1315_t5;
     int64_t _1315_t6;
-    uint8_t _1315_t7;
+    int64_t _1315_t7;
+    uint8_t _1315_t8;
     int64_t _1315_t0;
-    int64_t _1315_t10;
-    uint8_t _1315_t11;
+    int64_t _1315_t11;
+    uint8_t _1315_t12;
     int64_t _1315_$retval;
-    int64_t _1315_t8;
-    uint8_t _1315_t9;
+    int64_t _1315_t9;
+    uint8_t _1315_t10;
     _1315_t2 = 1;
     _1315_t3 = 2;
     _1315_t4 = 3;
     _1316_x = (struct0) {_1315_t2, _1315_t3, _1315_t4};
     _1315_t5 = 2;
-    _1315_t6 = 1;
-    _1315_t7 = *((int64_t*)&_1316_x + _1315_t5) == _1315_t6;
-    if (_1315_t7) {
+    _1315_t6 = 3;
+    _1315_t7 = 1;
+    $bounds_check(_1315_t5, _1315_t6, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
+    _1315_t8 = *((int64_t*)&_1316_x + _1315_t5) == _1315_t7;
+    if (_1315_t8) {
         goto BB3;
     } else {
         goto BB6;
@@ -47,9 +50,10 @@ BB3:
     _1315_t0 = 2;
     goto BB5;
 BB6:
-    _1315_t8 = 2;
-    _1315_t9 = *((int64_t*)&_1316_x + _1315_t5) == _1315_t8;
-    if (_1315_t9) {
+    _1315_t9 = 2;
+    $bounds_check(_1315_t5, _1315_t6, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
+    _1315_t10 = *((int64_t*)&_1316_x + _1315_t5) == _1315_t9;
+    if (_1315_t10) {
         goto BB8;
     } else {
         goto BB9;
@@ -61,9 +65,10 @@ BB8:
     _1315_t0 = 22;
     goto BB5;
 BB9:
-    _1315_t10 = 3;
-    _1315_t11 = *((int64_t*)&_1316_x + _1315_t5) == _1315_t10;
-    if (_1315_t11) {
+    _1315_t11 = 3;
+    $bounds_check(_1315_t5, _1315_t6, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
+    _1315_t12 = *((int64_t*)&_1316_x + _1315_t5) == _1315_t11;
+    if (_1315_t12) {
         goto BB11;
     } else {
         goto BB13;

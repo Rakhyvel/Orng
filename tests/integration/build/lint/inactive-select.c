@@ -18,33 +18,36 @@ typedef struct {
 typedef struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _25_main(void);
-struct1 _27_f(void);
+int64_t _41_main(void);
+struct1 _43_f(void);
 
 /* Function definitions */
-int64_t _25_main(void) {
-    function0 _25_t0;
-    struct1 _25_t1;
-    struct1 _26_x;
-    int64_t _25_$retval;
-    _25_t0 = _27_f;
+int64_t _41_main(void){
+    function0 _41_t0;
+    struct1 _41_t1;
+    struct1 _42_x;
+    uint64_t _41_t2;
+    int64_t _41_$retval;
+    _41_t0 = _43_f;
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
-    _25_t1 = _25_t0();
+    _41_t1 = _41_t0();
     $line_idx--;
-    _26_x = _25_t1;
-    _25_$retval = _26_x._1;
-    return _25_$retval;
+    _42_x = _41_t1;
+    _41_t2 = _41_t1.tag;
+    $tag_check(_41_t2, 1, "tests/integration/lint/inactive-select.orng:2:3:\nfn main() -> Int {\n ^");
+    _41_$retval = _42_x._1;
+    return _41_$retval;
 }
 
-struct1 _27_f(void) {
-    int64_t _27_t0;
-    struct1 _27_$retval;
-    _27_t0 = 4;
-    _27_$retval = (struct1) {.tag=0, ._0=_27_t0};
-    return _27_$retval;
+struct1 _43_f(void){
+    int64_t _43_t0;
+    struct1 _43_$retval;
+    _43_t0 = 4;
+    _43_$retval = (struct1) {.tag=0, ._0=_43_t0};
+    return _43_$retval;
 }
 
 int main(void) {
-  printf("%ld",_25_main());
+  printf("%ld",_41_main());
   return 0;
 }

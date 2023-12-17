@@ -45,12 +45,21 @@ int64_t _1104_add(struct1 _1104_x){
     int64_t _1104_t1;
     int64_t _1104_t2;
     int64_t _1104_t3;
+    int64_t _1104_t4;
+    int64_t _1104_t5;
+    int64_t _1104_t6;
     int64_t _1104_$retval;
     _1104_t0 = 0;
-    _1104_t1 = 1;
-    _1104_t2 = $add_int64_t(*((int64_t*)&_1104_x + _1104_t0), *((int64_t*)&_1104_x + _1104_t1), "tests/integration/functions/tuple-arg.orng:7:11:\n    x[0] + x[1] + x[2]\n         ^");
-    _1104_t3 = 2;
-    _1104_$retval = $add_int64_t(_1104_t2, *((int64_t*)&_1104_x + _1104_t3), "tests/integration/functions/tuple-arg.orng:7:18:\n    x[0] + x[1] + x[2]\n                ^");
+    _1104_t1 = 3;
+    _1104_t2 = 1;
+    _1104_t3 = 3;
+    $bounds_check(_1104_t0, _1104_t1, "tests/integration/functions/tuple-arg.orng:7:11:\n    x[0] + x[1] + x[2]\n         ^");
+    $bounds_check(_1104_t2, _1104_t3, "tests/integration/functions/tuple-arg.orng:7:11:\n    x[0] + x[1] + x[2]\n         ^");
+    _1104_t4 = $add_int64_t(*((int64_t*)&_1104_x + _1104_t0), *((int64_t*)&_1104_x + _1104_t2), "tests/integration/functions/tuple-arg.orng:7:11:\n    x[0] + x[1] + x[2]\n         ^");
+    _1104_t5 = 2;
+    _1104_t6 = 3;
+    $bounds_check(_1104_t5, _1104_t6, "tests/integration/functions/tuple-arg.orng:7:18:\n    x[0] + x[1] + x[2]\n                ^");
+    _1104_$retval = $add_int64_t(_1104_t4, *((int64_t*)&_1104_x + _1104_t5), "tests/integration/functions/tuple-arg.orng:7:18:\n    x[0] + x[1] + x[2]\n                ^");
     return _1104_$retval;
 }
 

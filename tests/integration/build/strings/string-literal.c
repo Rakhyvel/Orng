@@ -25,6 +25,7 @@ uint8_t _1509_main(void){
     uint8_t _1509_$retval;
     _1510_x = (struct0) {(uint8_t*)string_0, 14};
     _1509_t1 = 5;
+    $bounds_check(_1509_t1, _1510_x._1, "tests/integration/strings/string-literal.orng:2:3:\nfn main() -> Byte {\n ^");
     _1509_$retval = *((uint8_t*)_1510_x._0 + _1509_t1);
     return _1509_$retval;
 }

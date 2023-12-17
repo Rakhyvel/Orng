@@ -1360,9 +1360,15 @@ fn reset_usage_lval(lval: *L_Value) void {
         .index => {
             reset_usage_lval(lval.index.lhs);
             reset_usage_lval(lval.index.rhs);
+            if (lval.index.upper_bound != null) {
+                reset_usage_lval(lval.index.upper_bound.?);
+            }
         },
         .select => {
             reset_usage_lval(lval.select.lhs);
+            if (lval.select.tag != null) {
+                reset_usage_lval(lval.select.tag.?);
+            }
         },
     }
 }
@@ -1379,9 +1385,15 @@ fn calculate_usage_lval(lval: *L_Value) void {
         .index => {
             calculate_usage_lval(lval.index.lhs);
             calculate_usage_lval(lval.index.rhs);
+            if (lval.index.upper_bound != null) {
+                calculate_usage_lval(lval.index.upper_bound.?);
+            }
         },
         .select => {
             calculate_usage_lval(lval.select.lhs);
+            if (lval.select.tag != null) {
+                calculate_usage_lval(lval.select.tag.?);
+            }
         },
     }
 }

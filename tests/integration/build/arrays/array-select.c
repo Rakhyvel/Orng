@@ -35,6 +35,8 @@ int64_t _72_main(void){
     struct1 _73_x;
     int64_t _72_t11;
     int64_t _72_t12;
+    int64_t _72_t13;
+    int64_t _72_t14;
     int64_t _72_$retval;
     _72_t2 = 1;
     _72_t3 = 2;
@@ -47,9 +49,13 @@ int64_t _72_main(void){
     _72_t7 = (struct0) {_72_t8, _72_t9};
     _73_x = (struct1) {_72_t1, _72_t4, _72_t7};
     _72_t11 = 1;
+    _72_t12 = 3;
+    $bounds_check(_72_t11, _72_t12, "tests/integration/arrays/array-select.orng:7:16:\n    x[1].a = 73\n              ^");
     (*((struct0*)&_73_x + _72_t11))._0 = 73;
-    _72_t12 = 1;
-    _72_$retval = (*((struct0*)&_73_x + _72_t12))._0;
+    _72_t13 = 1;
+    _72_t14 = 3;
+    $bounds_check(_72_t13, _72_t14, "tests/integration/arrays/array-select.orng:2:3:\nfn main() -> Int {\n ^");
+    _72_$retval = (*((struct0*)&_73_x + _72_t13))._0;
     return _72_$retval;
 }
 

@@ -49,11 +49,14 @@ int64_t _30_main(void){
     struct4 _31_y;
     int64_t _30_t9;
     int64_t _30_t10;
+    int64_t _30_t11;
     int64_t _30_t12;
     int64_t _30_t14;
     int64_t _30_t15;
+    int64_t _30_t17;
+    int64_t _30_t18;
+    int64_t _30_t16;
     int64_t _30_t13;
-    int64_t _30_t11;
     int64_t _30_$retval;
     _30_t1 = _36_sum;
     _30_t2 = _38_diff;
@@ -64,18 +67,24 @@ int64_t _30_main(void){
     _30_t7 = _44_double;
     _31_y = (struct4) {_30_t5, _30_t6, _30_t7};
     _30_t9 = 1;
+    _30_t10 = 3;
+    $bounds_check(_30_t9, _30_t10, "tests/integration/arrays/array-function-pointer.orng:5:16:\n    x[1] = mult\n              ^");
     *((function0*)&_31_x + _30_t9) = _40_mult;
-    _30_t10 = 1;
-    _30_t12 = 1;
-    _30_t14 = 4;
-    _30_t15 = 107;
+    _30_t11 = 1;
+    _30_t12 = 3;
+    _30_t14 = 1;
+    _30_t15 = 3;
+    _30_t17 = 4;
+    _30_t18 = 107;
     $lines[$line_idx++] = "tests/integration/arrays/array-function-pointer.orng:6:15:\n    y[1](x[1](4, 107))\n             ^";
-    _30_t13 = (*((function0*)&_31_x + _30_t12))(_30_t14, _30_t15);
+    $bounds_check(_30_t14, _30_t15, "tests/integration/arrays/array-function-pointer.orng:6:15:\n    y[1](x[1](4, 107))\n             ^");
+    _30_t16 = (*((function0*)&_31_x + _30_t14))(_30_t17, _30_t18);
     $line_idx--;
     $lines[$line_idx++] = "tests/integration/arrays/array-function-pointer.orng:6:10:\n    y[1](x[1](4, 107))\n        ^";
-    _30_t11 = (*((function3*)&_31_y + _30_t10))(_30_t13);
+    $bounds_check(_30_t11, _30_t12, "tests/integration/arrays/array-function-pointer.orng:6:10:\n    y[1](x[1](4, 107))\n        ^");
+    _30_t13 = (*((function3*)&_31_y + _30_t11))(_30_t16);
     $line_idx--;
-    _30_$retval = _30_t11;
+    _30_$retval = _30_t13;
     return _30_$retval;
 }
 
