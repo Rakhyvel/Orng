@@ -27,32 +27,32 @@ char* string_0 = "\x4C\x6D\x61\x6F\x21";
 char* string_1 = "\x6C\x6F\x6C";
 
 /* Function forward definitions */
-int64_t _1696_main(void);
+int64_t _1706_main(void);
 
 /* Function definitions */
-int64_t _1696_main(void){
-    int64_t _1696_t0;
-    struct0 _1697_x;
-    struct1 _1696_t2;
-    struct1 _1696_t4;
-    int64_t _1696_t6;
-    uint64_t _1696_t8;
-    int64_t _1696_$retval;
-    _1696_t0 = 3;
-    _1697_x = (struct0) {.tag=0, ._0=_1696_t0};
-    _1696_t2 = (struct1) {(uint8_t*)string_0, 5};
-    _1697_x = (struct0) {.tag=1, ._1=_1696_t2};
-    _1696_t4 = (struct1) {(uint8_t*)string_1, 3};
-    _1697_x = (struct0) {.tag=3, ._3=_1696_t4};
-    _1696_t6 = 108;
-    _1697_x = (struct0) {.tag=2, ._2=_1696_t6};
-    _1696_t8 = 2;
-    $tag_check(_1696_t8, 2, "tests/integration/sums/union.orng:6:3:\nfn main()->Int {\n ^");
-    _1696_$retval = _1697_x._2;
-    return _1696_$retval;
+int64_t _1706_main(void){
+    int64_t _1706_t0;
+    struct0 _1707_x;
+    struct1 _1706_t2;
+    struct1 _1706_t4;
+    int64_t _1706_t6;
+    uint64_t _1706_t8;
+    int64_t _1706_$retval;
+    _1706_t0 = 3;
+    _1707_x = (struct0) {.tag=0, ._0=_1706_t0};
+    _1706_t2 = (struct1) {(uint8_t*)string_0, 5};
+    _1707_x = (struct0) {.tag=1, ._1=_1706_t2};
+    _1706_t4 = (struct1) {(uint8_t*)string_1, 3};
+    _1707_x = (struct0) {.tag=3, ._3=_1706_t4};
+    _1706_t6 = 108;
+    _1707_x = (struct0) {.tag=2, ._2=_1706_t6};
+    _1706_t8 = 2;
+    $tag_check(_1706_t8, 2, "tests/integration/sums/union.orng:6:3:\nfn main()->Int {\n ^");
+    _1706_$retval = _1707_x._2;
+    return _1706_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1696_main());
+  printf("%ld",_1706_main());
   return 0;
 }

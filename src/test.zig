@@ -242,12 +242,14 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                 error.lexerError,
                 error.symbolError,
                 error.typeError,
+                error.interpreter_panic,
                 => {
                     try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                     return true;
                 },
                 error.parserError => {
-                    const str = try String.init_with_contents(allocator, filename);
+                    var str = try String.init_with_contents(allocator, filename);
+                    defer str.deinit();
                     if (str.find("regression") != null) {
                         std.debug.print("{}\n", .{err});
                         try term.outputColor(fail_color, "[ ... FAILED ] ", out);
@@ -322,7 +324,7 @@ fn fuzzTests() !void {
             defer lines.deinit();
             i += 1;
             const module = Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
-                // try errors.printErrors(&lines, "");
+                try errors.printErrors();
                 switch (err) {
                     error.lexerError,
                     error.symbolError,

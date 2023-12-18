@@ -1302,6 +1302,7 @@ pub const CFG = struct {
         NotAnLValue,
         Unimplemented,
         InvalidRange,
+        interpreter_panic,
         // Utf8ExpectedContinuation,
         // Utf8OverlongEncoding,
         // Utf8EncodesSurrogateHalf,

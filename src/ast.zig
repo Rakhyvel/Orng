@@ -1596,7 +1596,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    fn generate_default_unvalidated(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
+    fn generate_default_unvalidated(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
         switch (_type.*) {
             .identifier => {
                 const expanded_type = try _type.expand_type(scope, errors, allocator);

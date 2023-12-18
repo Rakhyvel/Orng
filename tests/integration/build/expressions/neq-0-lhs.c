@@ -10,48 +10,48 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _901_main(void);
-int64_t _903_f(int64_t _903_x);
+int64_t _908_main(void);
+int64_t _910_f(int64_t _910_x);
 
 /* Function definitions */
-int64_t _901_main(void){
-    function0 _901_t0;
-    int64_t _901_t2;
-    int64_t _901_t1;
-    int64_t _901_$retval;
-    _901_t0 = _903_f;
-    _901_t2 = 1;
+int64_t _908_main(void){
+    function0 _908_t0;
+    int64_t _908_t2;
+    int64_t _908_t1;
+    int64_t _908_$retval;
+    _908_t0 = _910_f;
+    _908_t2 = 1;
     $lines[$line_idx++] = "tests/integration/expressions/neq-0-lhs.orng:3:7:\n    f(1)\n     ^";
-    _901_t1 = _901_t0(_901_t2);
+    _908_t1 = _908_t0(_908_t2);
     $line_idx--;
-    _901_$retval = _901_t1;
-    return _901_$retval;
+    _908_$retval = _908_t1;
+    return _908_$retval;
 }
 
-int64_t _903_f(int64_t _903_x){
-    int64_t _903_t1;
-    uint8_t _903_t2;
-    int64_t _903_t0;
-    int64_t _903_$retval;
-    _903_t1 = 0;
-    _903_t2 = _903_t1 != _903_x;
-    if (_903_t2) {
+int64_t _910_f(int64_t _910_x){
+    int64_t _910_t1;
+    uint8_t _910_t2;
+    int64_t _910_t0;
+    int64_t _910_$retval;
+    _910_t1 = 0;
+    _910_t2 = _910_t1 != _910_x;
+    if (_910_t2) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _903_t0 = 174;
+    _910_t0 = 174;
     goto BB4;
 BB5:
-    _903_t0 = 3;
+    _910_t0 = 3;
     goto BB4;
 BB4:
-    _903_$retval = _903_t0;
-    return _903_$retval;
+    _910_$retval = _910_t0;
+    return _910_$retval;
 }
 
 int main(void) {
-  printf("%ld",_901_main());
+  printf("%ld",_908_main());
   return 0;
 }

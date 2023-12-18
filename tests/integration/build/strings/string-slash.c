@@ -16,21 +16,21 @@ typedef struct {
 char* string_0 = "\x5C";
 
 /* Function forward definitions */
-uint8_t _1607_main(void);
+uint8_t _1617_main(void);
 
 /* Function definitions */
-uint8_t _1607_main(void){
-    struct0 _1608_x;
-    int64_t _1607_t1;
-    uint8_t _1607_$retval;
-    _1608_x = (struct0) {(uint8_t*)string_0, 1};
-    _1607_t1 = 0;
-    $bounds_check(_1607_t1, _1608_x._1, "tests/integration/strings/string-slash.orng:2:3:\nfn main() -> Byte {\n ^");
-    _1607_$retval = *((uint8_t*)_1608_x._0 + _1607_t1);
-    return _1607_$retval;
+uint8_t _1617_main(void){
+    struct0 _1618_x;
+    int64_t _1617_t1;
+    uint8_t _1617_$retval;
+    _1618_x = (struct0) {(uint8_t*)string_0, 1};
+    _1617_t1 = 0;
+    $bounds_check(_1617_t1, _1618_x._1, "tests/integration/strings/string-slash.orng:2:3:\nfn main() -> Byte {\n ^");
+    _1617_$retval = *((uint8_t*)_1618_x._0 + _1617_t1);
+    return _1617_$retval;
 }
 
 int main(void) {
-  printf("%d",_1607_main());
+  printf("%d",_1617_main());
   return 0;
 }

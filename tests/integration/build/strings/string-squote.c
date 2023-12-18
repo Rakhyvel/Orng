@@ -16,21 +16,21 @@ typedef struct {
 char* string_0 = "\x0A\x0D\x09\x27\x22";
 
 /* Function forward definitions */
-uint8_t _1610_main(void);
+uint8_t _1620_main(void);
 
 /* Function definitions */
-uint8_t _1610_main(void){
-    struct0 _1611_x;
-    int64_t _1610_t1;
-    uint8_t _1610_$retval;
-    _1611_x = (struct0) {(uint8_t*)string_0, 5};
-    _1610_t1 = 3;
-    $bounds_check(_1610_t1, _1611_x._1, "tests/integration/strings/string-squote.orng:2:3:\nfn main() -> Byte {\n ^");
-    _1610_$retval = *((uint8_t*)_1611_x._0 + _1610_t1);
-    return _1610_$retval;
+uint8_t _1620_main(void){
+    struct0 _1621_x;
+    int64_t _1620_t1;
+    uint8_t _1620_$retval;
+    _1621_x = (struct0) {(uint8_t*)string_0, 5};
+    _1620_t1 = 3;
+    $bounds_check(_1620_t1, _1621_x._1, "tests/integration/strings/string-squote.orng:2:3:\nfn main() -> Byte {\n ^");
+    _1620_$retval = *((uint8_t*)_1621_x._0 + _1620_t1);
+    return _1620_$retval;
 }
 
 int main(void) {
-  printf("%d",_1610_main());
+  printf("%d",_1620_main());
   return 0;
 }

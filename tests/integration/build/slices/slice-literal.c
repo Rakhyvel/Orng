@@ -21,93 +21,93 @@ typedef struct {
 } struct2;
 
 /* Function forward definitions */
-int64_t _1540_main(void);
-int64_t _1542_sum(struct1 _1542_xs);
+int64_t _1549_main(void);
+int64_t _1551_sum(struct1 _1551_xs);
 
 /* Function definitions */
-int64_t _1540_main(void){
-    function0 _1540_t0;
-    int64_t _1540_t3;
-    int64_t _1540_t5;
-    int64_t _1540_t6;
-    int64_t _1540_t7;
-    struct2 _1540_t4;
-    int64_t _1540_t8;
-    int64_t* _1540_t9;
-    int64_t _1540_t10;
-    struct1 _1540_t2;
-    int64_t _1540_t1;
-    int64_t _1540_$retval;
-    _1540_t0 = _1542_sum;
-    _1540_t3 = 0;
-    _1540_t5 = 200;
-    _1540_t6 = 0;
-    _1540_t7 = 8;
-    _1540_t4 = (struct2) {_1540_t5, _1540_t6, _1540_t7};
-    _1540_t8 = 3;
-    $bounds_check(_1540_t3, _1540_t8, "tests/integration/slices/slice-literal.orng:3:16:\n    sum([](200, 0, 8)) // Slice of product literal\n              ^");
-    _1540_t9 = ((int64_t*)&_1540_t4 + _1540_t3);
-    _1540_t10 = 3;
-    _1540_t2 = (struct1) {_1540_t9, _1540_t10};
+int64_t _1549_main(void){
+    function0 _1549_t0;
+    int64_t _1549_t3;
+    int64_t _1549_t5;
+    int64_t _1549_t6;
+    int64_t _1549_t7;
+    struct2 _1549_t4;
+    int64_t _1549_t8;
+    int64_t* _1549_t9;
+    int64_t _1549_t10;
+    struct1 _1549_t2;
+    int64_t _1549_t1;
+    int64_t _1549_$retval;
+    _1549_t0 = _1551_sum;
+    _1549_t3 = 0;
+    _1549_t5 = 200;
+    _1549_t6 = 0;
+    _1549_t7 = 8;
+    _1549_t4 = (struct2) {_1549_t5, _1549_t6, _1549_t7};
+    _1549_t8 = 3;
+    $bounds_check(_1549_t3, _1549_t8, "tests/integration/slices/slice-literal.orng:3:16:\n    sum([](200, 0, 8)) // Slice of product literal\n              ^");
+    _1549_t9 = ((int64_t*)&_1549_t4 + _1549_t3);
+    _1549_t10 = 3;
+    _1549_t2 = (struct1) {_1549_t9, _1549_t10};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:3:9:\n    sum([](200, 0, 8)) // Slice of product literal\n       ^";
-    _1540_t1 = _1540_t0(_1540_t2);
+    _1549_t1 = _1549_t0(_1549_t2);
     $line_idx--;
-    _1540_$retval = _1540_t1;
-    return _1540_$retval;
+    _1549_$retval = _1549_t1;
+    return _1549_$retval;
 }
 
-int64_t _1542_sum(struct1 _1542_xs){
-    int64_t _1542_t1;
-    uint8_t _1542_t3;
-    int64_t _1542_t10;
-    int64_t* _1542_t11;
-    struct1 _1542_t12;
-    int64_t _1542_t7;
-    int64_t _1542_t0;
-    int64_t _1542_$retval;
-    int64_t _1542_t5;
-    function0 _1542_t6;
-    int64_t _1542_t8;
-    uint8_t _1542_t9;
-    _1542_t1 = 0;
-    _1542_t3 = _1542_xs._1 == _1542_t1;
-    if (_1542_t3) {
+int64_t _1551_sum(struct1 _1551_xs){
+    int64_t _1551_t1;
+    uint8_t _1551_t3;
+    int64_t _1551_t10;
+    int64_t* _1551_t11;
+    struct1 _1551_t12;
+    int64_t _1551_t7;
+    int64_t _1551_t0;
+    int64_t _1551_$retval;
+    int64_t _1551_t5;
+    function0 _1551_t6;
+    int64_t _1551_t8;
+    uint8_t _1551_t9;
+    _1551_t1 = 0;
+    _1551_t3 = _1551_xs._1 == _1551_t1;
+    if (_1551_t3) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _1542_t0 = 0;
+    _1551_t0 = 0;
     goto BB6;
 BB7:
-    _1542_t5 = 0;
-    _1542_t6 = _1542_sum;
-    _1542_t8 = 1;
-    _1542_t9 = _1542_t8 > _1542_xs._1;
-    if (_1542_t9) {
+    _1551_t5 = 0;
+    _1551_t6 = _1551_sum;
+    _1551_t8 = 1;
+    _1551_t9 = _1551_t8 > _1551_xs._1;
+    if (_1551_t9) {
         goto BB8;
     } else {
         goto BB9;
     }
 BB6:
-    _1542_$retval = _1542_t0;
-    return _1542_$retval;
+    _1551_$retval = _1551_t0;
+    return _1551_$retval;
 BB8:
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^";
     $panic("subslice lower bound is greater than upper bound\n");
 BB9:
-    _1542_t10 = $sub_int64_t(_1542_xs._1, _1542_t8, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^");
-    _1542_t11 = _1542_xs._0 + _1542_t8;
-    _1542_t12 = (struct1) {_1542_t11, _1542_t10};
+    _1551_t10 = $sub_int64_t(_1551_xs._1, _1551_t8, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^");
+    _1551_t11 = _1551_xs._0 + _1551_t8;
+    _1551_t12 = (struct1) {_1551_t11, _1551_t10};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:21:\n        xs[0] + sum(xs[1..])\n                   ^";
-    _1542_t7 = _1542_t6(_1542_t12);
+    _1551_t7 = _1551_t6(_1551_t12);
     $line_idx--;
-    $bounds_check(_1542_t5, _1542_xs._1, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
-    _1542_t0 = $add_int64_t(*((int64_t*)_1542_xs._0 + _1542_t5), _1542_t7, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
+    $bounds_check(_1551_t5, _1551_xs._1, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
+    _1551_t0 = $add_int64_t(*((int64_t*)_1551_xs._0 + _1551_t5), _1551_t7, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
     goto BB6;
 }
 
 int main(void) {
-  printf("%ld",_1540_main());
+  printf("%ld",_1549_main());
   return 0;
 }

@@ -14,37 +14,37 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1312_main(void);
+int64_t _1318_main(void);
 
 /* Function definitions */
-int64_t _1312_main(void){
-    int64_t _1312_t1;
-    int64_t _1312_t2;
-    int64_t _1312_t3;
-    struct0 _1313_x;
-    int64_t _1312_t5;
-    int64_t _1312_t6;
-    int64_t _1312_t7;
-    struct0 _1312_t4;
-    int64_t _1312_t8;
-    int64_t _1312_$retval;
-    _1312_t1 = 1;
-    _1312_t2 = 2;
-    _1312_t3 = 3;
-    _1313_x = (struct0) {_1312_t1, _1312_t2, _1312_t3};
-    _1312_t5 = 60;
-    _1312_t6 = 23;
-    _1312_t7 = 200;
-    _1312_t4 = (struct0) {_1312_t5, _1312_t6, _1312_t7};
-    _1313_x._1 = _1312_t4._0;
-    _1313_x._2 = _1312_t4._1;
-    _1313_x._0 = _1312_t4._2;
-    _1312_t8 = $sub_int64_t(_1313_x._0, _1313_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^");
-    _1312_$retval = $add_int64_t(_1312_t8, _1313_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
-    return _1312_$retval;
+int64_t _1318_main(void){
+    int64_t _1318_t1;
+    int64_t _1318_t2;
+    int64_t _1318_t3;
+    struct0 _1319_x;
+    int64_t _1318_t5;
+    int64_t _1318_t6;
+    int64_t _1318_t7;
+    struct0 _1318_t4;
+    int64_t _1318_t8;
+    int64_t _1318_$retval;
+    _1318_t1 = 1;
+    _1318_t2 = 2;
+    _1318_t3 = 3;
+    _1319_x = (struct0) {_1318_t1, _1318_t2, _1318_t3};
+    _1318_t5 = 60;
+    _1318_t6 = 23;
+    _1318_t7 = 200;
+    _1318_t4 = (struct0) {_1318_t5, _1318_t6, _1318_t7};
+    _1319_x._1 = _1318_t4._0;
+    _1319_x._2 = _1318_t4._1;
+    _1319_x._0 = _1318_t4._2;
+    _1318_t8 = $sub_int64_t(_1319_x._0, _1319_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^");
+    _1318_$retval = $add_int64_t(_1318_t8, _1319_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
+    return _1318_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1312_main());
+  printf("%ld",_1318_main());
   return 0;
 }

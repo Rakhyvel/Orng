@@ -29,7 +29,7 @@ fn validate_scope(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Alloca
     }
 }
 
-pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!void {
+pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, interpreter_panic, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!void {
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -89,7 +89,7 @@ fn validateAST(
     scope: *Scope,
     errors: *errs.Errors,
     allocator: std.mem.Allocator,
-) error{ typeError, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!*AST {
+) error{ typeError, interpreter_panic, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!*AST {
     var expected = old_expected;
     var ast = old_ast;
 
@@ -135,7 +135,7 @@ fn validate_AST_internal(
     scope: *Scope,
     errors: *errs.Errors,
     allocator: std.mem.Allocator,
-) error{ OutOfMemory, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
+) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
     // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => return ast,
@@ -388,7 +388,8 @@ fn validate_AST_internal(
             var context = Context.init(cfg, &scope.module.?.instructions, ret_type, cfg.offset.?);
             context.interpret() catch |err| switch (err) {
                 error.interpreter_panic => {
-                    return ast.enpoison();
+                    _ = ast.enpoison();
+                    return err;
                 },
             };
 
@@ -743,6 +744,7 @@ fn validate_AST_internal(
                 error.Unimplemented => return error.Unimplemented,
                 error.InvalidRange => return error.InvalidRange,
                 error.NotAnLValue => return error.NotAnLValue,
+                error.interpreter_panic => return error.interpreter_panic,
             };
 
             // Validate
@@ -1014,6 +1016,7 @@ fn validate_AST_internal(
                     error.Unimplemented => return error.Unimplemented,
                     error.InvalidRange => return error.InvalidRange,
                     error.NotAnLValue => return error.NotAnLValue,
+                    error.interpreter_panic => return error.interpreter_panic,
                 };
             }
 
@@ -1282,10 +1285,13 @@ fn validate_AST_internal(
         },
         .annotation => {
             ast.annotation.type = try validateAST(ast.annotation.type, primitives.type_type, scope, errors, allocator);
+            if (ast.annotation.type.* == .poison) {
+                return ast.enpoison();
+            }
             if (ast.annotation.init != null) {
                 ast.annotation.init = try validateAST(ast.annotation.init.?, ast.annotation.type, scope, errors, allocator);
             }
-            if (ast.annotation.type.* == .poison or (ast.annotation.init != null and ast.annotation.init.?.* == .poison)) {
+            if (ast.annotation.init != null and ast.annotation.init.?.* == .poison) {
                 return ast.enpoison();
             }
 

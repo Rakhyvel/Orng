@@ -474,14 +474,15 @@ pub fn symbolTableFromAST(maybe_definition: ?*ast.AST, scope: *Scope, errors: *e
             try symbolTableFromAST(definition.mapping.lhs, scope, errors, allocator);
         },
         ._while => {
-            var new_scope = try Scope.init(scope, "", allocator);
-            new_scope.in_loop = true;
+            const new_scope = try Scope.init(scope, "", allocator);
+            var loop_scope = try Scope.init(new_scope, "", allocator); // let, cond, and post are NOT in loop scope, `break` and `continue` are not appropriate
+            loop_scope.in_loop = true;
             definition._while.scope = new_scope;
             try symbolTableFromAST(definition._while.let, new_scope, errors, allocator);
             try symbolTableFromAST(definition._while.condition, new_scope, errors, allocator);
             try symbolTableFromAST(definition._while.post, new_scope, errors, allocator);
-            try symbolTableFromAST(definition._while.bodyBlock, new_scope, errors, allocator);
-            try symbolTableFromAST(definition._while.elseBlock, new_scope, errors, allocator);
+            try symbolTableFromAST(definition._while.bodyBlock, loop_scope, errors, allocator);
+            try symbolTableFromAST(definition._while.elseBlock, loop_scope, errors, allocator);
         },
         ._for => {
             const new_scope = try Scope.init(scope, "", allocator);

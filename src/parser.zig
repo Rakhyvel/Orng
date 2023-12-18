@@ -13,6 +13,7 @@ const TokenKind = _token.TokenKind;
 
 const ParserErrorEnum = error{
     parserError, // For general parsing errors. Error is logged in errors.zig.errors. Likely
+    not_comptime_known,
     InvalidCharacter, // If parsing a float goes wrong. Likely
     Overflow, // If parsing an integer goes wrong. Unlikely
     InvalidRange, // When inserting into a string, possible if bug
@@ -435,7 +436,7 @@ pub const Parser = struct {
                 _ = try self.expect(.R_PAREN);
                 return try AST.createSizeOf(token, exp, self.astAllocator);
             } else {
-                self.errors.addError(Error{ .comptime_known = .{ .span = self.peek().span, .what = "array lengths" } });
+                self.errors.addError(Error{ .expectedBasicToken = .{ .expected = "a built-in function", .got = self.peek() } });
                 return error.parserError;
             }
         } else if (self.accept(.MINUS)) |token| {
@@ -455,7 +456,7 @@ pub const Parser = struct {
                 const pre_len = try self.inject_expr();
                 if (!pre_len.is_comptime_expr()) {
                     self.errors.addError(Error{ .comptime_known = .{ .span = pre_len.getToken().span, .what = "array lengths" } });
-                    return error.parserError;
+                    return error.not_comptime_known;
                 }
                 len = try AST.createComptime(token, pre_len, self.astAllocator);
             } else {
