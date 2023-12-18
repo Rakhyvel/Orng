@@ -60,6 +60,7 @@ int64_t _49_main(void){
     struct3 _50_res;
     int64_t _49_t10;
     int64_t _49_t11;
+    uint64_t _49_t12;
     int64_t _49_$retval;
     _49_t0 = _51_safe_div_vec;
     _49_t3 = 216;
@@ -76,7 +77,10 @@ int64_t _49_main(void){
     _50_res = _49_t1;
     _49_t10 = 1;
     _49_t11 = 3;
+    $bounds_check(_49_t10, _49_t11, "tests/integration/arrays/array-optional.orng:4:12:\n    res[1].some\n          ^");
+    _49_t12 = (*((struct4*)&_50_res + _49_t10)).tag;
     $bounds_check(_49_t10, _49_t11, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_49_t12, 1, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
     _49_$retval = (*((struct4*)&_50_res + _49_t10))._1;
     return _49_$retval;
 }

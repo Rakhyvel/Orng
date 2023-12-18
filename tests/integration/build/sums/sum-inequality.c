@@ -15,20 +15,23 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1597_main(void);
+int64_t _1686_main(void);
 
 /* Function definitions */
-int64_t _1597_main(void){
-    int64_t _1597_t0;
-    struct0 _1598_x;
-    int64_t _1597_$retval;
-    _1597_t0 = 211;
-    _1598_x = (struct0) {.tag=1, ._1=_1597_t0};
-    _1597_$retval = _1598_x._1;
-    return _1597_$retval;
+int64_t _1686_main(void){
+    int64_t _1686_t0;
+    struct0 _1687_x;
+    uint64_t _1686_t8;
+    int64_t _1686_$retval;
+    _1686_t0 = 211;
+    _1687_x = (struct0) {.tag=1, ._1=_1686_t0};
+    _1686_t8 = 1;
+    $tag_check(_1686_t8, 1, "tests/integration/sums/sum-inequality.orng:2:3:\nfn main() -> Int {\n ^");
+    _1686_$retval = _1687_x._1;
+    return _1686_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1597_main());
+  printf("%ld",_1686_main());
   return 0;
 }

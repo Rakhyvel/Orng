@@ -1,4 +1,5 @@
 const std = @import("std");
+const ast_ = @import("ast.zig");
 const errs = @import("errors.zig");
 const primitives = @import("primitives.zig");
 const module_ = @import("module.zig");
@@ -38,7 +39,9 @@ pub fn main() !void {
     var errors = errs.Errors.init(allocator);
     defer errors.deinit();
 
-    const prelude = try primitives.init();
+    // MUST init ast before primitives
+    try ast_.init_structures();
+    const prelude = try primitives.get_scope();
 
     if (fuzz_tokens) {
         compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator) catch {};
@@ -92,15 +95,4 @@ pub fn compile(
         }
     };
     try module.output(out_name, errors, allocator);
-    // catch |err| {
-    //     switch (err) {
-    //         error.symbolError,
-    //         error.typeError,
-    //         => if (!fuzz_tokens) {
-    //             try errors.printErrors();
-    //             return err;
-    //         },
-    //         else => return err,
-    //     }
-    // };
 }

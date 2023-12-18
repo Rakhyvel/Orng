@@ -19,69 +19,69 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1199_main(void);
+int64_t _1288_main(void);
 
 /* Function definitions */
-int64_t _1199_main(void){
-    int64_t _1199_t1;
-    int64_t _1199_t2;
-    int64_t _1199_t3;
-    struct0 _1200_x;
-    int64_t _1199_t5;
-    int64_t _1199_t6;
-    int64_t _1199_t7;
-    int64_t _1199_t8;
-    struct1 _1199_t4;
-    int64_t _1199_t11;
-    int64_t _1199_t12;
-    int64_t _1199_t15;
-    int64_t _1199_t16;
-    int64_t _1199_t18;
-    int64_t _1199_t19;
-    int64_t _1199_t20;
-    int64_t _1199_t21;
-    uint8_t _1199_t22;
-    int64_t _1199_$retval;
-    _1199_t1 = 0;
-    _1199_t2 = 1;
-    _1199_t3 = 2;
-    _1200_x = (struct0) {_1199_t1, _1199_t2, _1199_t3};
-    _1199_t5 = 1;
-    _1199_t6 = 3;
-    _1199_t7 = 0;
-    _1199_t8 = 3;
-    $bounds_check(_1199_t5, _1199_t6, "tests/integration/pattern/assign-index-product.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
-    $bounds_check(_1199_t7, _1199_t8, "tests/integration/pattern/assign-index-product.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
-    _1199_t4 = (struct1) {(*((int64_t*)&_1200_x + _1199_t5)), (*((int64_t*)&_1200_x + _1199_t7))};
-    _1199_t11 = 0;
-    _1199_t12 = 3;
-    $bounds_check(_1199_t11, _1199_t12, "tests/integration/pattern/assign-index-product.orng:4:8:\n    (x[0], x[1]) = (x[1], x[0])\n      ^");
-    *((int64_t*)&_1200_x + _1199_t11) = _1199_t4._0;
-    _1199_t15 = 1;
-    _1199_t16 = 3;
-    $bounds_check(_1199_t15, _1199_t16, "tests/integration/pattern/assign-index-product.orng:4:14:\n    (x[0], x[1]) = (x[1], x[0])\n            ^");
-    *((int64_t*)&_1200_x + _1199_t15) = _1199_t4._1;
-    _1199_t18 = 0;
-    _1199_t19 = 3;
-    _1199_t20 = 1;
-    _1199_t21 = 3;
-    $bounds_check(_1199_t18, _1199_t19, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
-    $bounds_check(_1199_t20, _1199_t21, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
-    _1199_t22 = *((int64_t*)&_1200_x + _1199_t18) > *((int64_t*)&_1200_x + _1199_t20);
-    if (_1199_t22) {
+int64_t _1288_main(void){
+    int64_t _1288_t1;
+    int64_t _1288_t2;
+    int64_t _1288_t3;
+    struct0 _1289_x;
+    int64_t _1288_t5;
+    int64_t _1288_t6;
+    int64_t _1288_t7;
+    int64_t _1288_t8;
+    struct1 _1288_t4;
+    int64_t _1288_t11;
+    int64_t _1288_t12;
+    int64_t _1288_t15;
+    int64_t _1288_t16;
+    int64_t _1288_t18;
+    int64_t _1288_t19;
+    int64_t _1288_t20;
+    int64_t _1288_t21;
+    uint8_t _1288_t22;
+    int64_t _1288_$retval;
+    _1288_t1 = 0;
+    _1288_t2 = 1;
+    _1288_t3 = 2;
+    _1289_x = (struct0) {_1288_t1, _1288_t2, _1288_t3};
+    _1288_t5 = 1;
+    _1288_t6 = 3;
+    _1288_t7 = 0;
+    _1288_t8 = 3;
+    $bounds_check(_1288_t5, _1288_t6, "tests/integration/pattern/assign-index-product.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
+    $bounds_check(_1288_t7, _1288_t8, "tests/integration/pattern/assign-index-product.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
+    _1288_t4 = (struct1) {(*((int64_t*)&_1289_x + _1288_t5)), (*((int64_t*)&_1289_x + _1288_t7))};
+    _1288_t11 = 0;
+    _1288_t12 = 3;
+    $bounds_check(_1288_t11, _1288_t12, "tests/integration/pattern/assign-index-product.orng:4:8:\n    (x[0], x[1]) = (x[1], x[0])\n      ^");
+    *((int64_t*)&_1289_x + _1288_t11) = _1288_t4._0;
+    _1288_t15 = 1;
+    _1288_t16 = 3;
+    $bounds_check(_1288_t15, _1288_t16, "tests/integration/pattern/assign-index-product.orng:4:14:\n    (x[0], x[1]) = (x[1], x[0])\n            ^");
+    *((int64_t*)&_1289_x + _1288_t15) = _1288_t4._1;
+    _1288_t18 = 0;
+    _1288_t19 = 3;
+    _1288_t20 = 1;
+    _1288_t21 = 3;
+    $bounds_check(_1288_t18, _1288_t19, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
+    $bounds_check(_1288_t20, _1288_t21, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
+    _1288_t22 = *((int64_t*)&_1289_x + _1288_t18) > *((int64_t*)&_1289_x + _1288_t20);
+    if (_1288_t22) {
         goto BB1;
     } else {
         goto BB5;
     }
 BB1:
-    _1199_$retval = 162;
-    return _1199_$retval;
+    _1288_$retval = 162;
+    return _1288_$retval;
 BB5:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
 int main(void) {
-  printf("%ld",_1199_main());
+  printf("%ld",_1288_main());
   return 0;
 }

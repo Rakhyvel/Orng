@@ -1865,7 +1865,7 @@ pub const AST = union(enum) {
             ._false => try out.writer().print("false", .{}),
 
             .not => try out.writer().print("not()", .{}),
-            .negate => try out.writer().print("negate()", .{}),
+            .negate => try out.writer().print("negate({})", .{self.negate.expr}),
             .dereference => try out.writer().print("dereference()", .{}),
             ._try => try out.writer().print("try()", .{}),
             .discard => try out.writer().print("discard()", .{}),

@@ -101,7 +101,7 @@ fn validateAST(
     } else if (ast.getCommon().validation_state == .valid) {
         return ast.getCommon().validation_state.valid.valid_form;
     }
-    // std.debug.print("{}\n", .{ast});
+    // std.debug.print("{}: {?}\n", .{ ast, expected });
     ast.getCommon().validation_state = .validating;
 
     if (expected) |_| {
@@ -109,6 +109,7 @@ fn validateAST(
         std.debug.assert(expected.?.* != .poison);
         std.debug.assert(expected.?.getCommon().validation_state == .valid);
         var expected_type = try expected.?.typeof(scope, errors, allocator);
+        // std.debug.print("typeof({?}) = {}\n", .{ expected, expected_type });
         std.debug.assert(try expected_type.typesMatch(primitives.type_type, scope, errors, allocator));
 
         if (expected.?.* == .annotation) {
@@ -245,7 +246,7 @@ fn validate_AST_internal(
             }
         },
         .negate => {
-            ast.negate.expr = try validateAST(ast.negate.expr, null, scope, errors, allocator);
+            ast.negate.expr = try validateAST(ast.negate.expr, expected, scope, errors, allocator);
             var expr_type = try ast.negate.expr.typeof(scope, errors, allocator);
 
             if (ast.negate.expr.* == .poison) {
@@ -368,6 +369,10 @@ fn validate_AST_internal(
             // Validate symbol
             try validateSymbol(ast._comptime.symbol.?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
             if (ast._comptime.symbol.?._type.* == .poison) {
+                return ast.enpoison();
+            }
+            if (expected != null and !try ast._comptime.symbol.?._type.function.rhs.typesMatch(expected.?, scope, errors, allocator)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast._comptime.symbol.?._type } });
                 return ast.enpoison();
             }
 

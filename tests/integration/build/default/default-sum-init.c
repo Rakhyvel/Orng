@@ -21,9 +21,12 @@ int64_t _633_main(void);
 int64_t _633_main(void){
     int64_t _633_t0;
     struct0 _634_x;
+    uint64_t _633_t2;
     int64_t _633_$retval;
     _633_t0 = 134;
     _634_x = (struct0) {.tag=0, ._0=_633_t0};
+    _633_t2 = 0;
+    $tag_check(_633_t2, 0, "tests/integration/default/default-sum-init.orng:2:3:\nfn main() -> Int {\n ^");
     _633_$retval = _634_x._0;
     return _633_$retval;
 }

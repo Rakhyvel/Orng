@@ -15,29 +15,29 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1615_main(void);
+int64_t _1704_main(void);
 
 /* Function definitions */
-int64_t _1615_main(void){
-    int64_t _1615_t1;
-    int64_t _1615_t2;
-    int64_t _1615_t3;
-    int64_t _1615_t4;
-    struct0 _1616_x;
-    int64_t* _1616_y;
-    int64_t _1615_$retval;
-    _1615_t1 = 1;
-    _1615_t2 = 2;
-    _1615_t3 = 3;
-    _1615_t4 = 4;
-    _1616_x = (struct0) {_1615_t1, _1615_t2, _1615_t3, _1615_t4};
-    _1616_y = &_1616_x._3;
-    *_1616_y = 66;
-    _1615_$retval = _1616_x._3;
-    return _1615_$retval;
+int64_t _1704_main(void){
+    int64_t _1704_t1;
+    int64_t _1704_t2;
+    int64_t _1704_t3;
+    int64_t _1704_t4;
+    struct0 _1705_x;
+    int64_t* _1705_y;
+    int64_t _1704_$retval;
+    _1704_t1 = 1;
+    _1704_t2 = 2;
+    _1704_t3 = 3;
+    _1704_t4 = 4;
+    _1705_x = (struct0) {_1704_t1, _1704_t2, _1704_t3, _1704_t4};
+    _1705_y = &_1705_x._3;
+    *_1705_y = 66;
+    _1704_$retval = _1705_x._3;
+    return _1704_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1615_main());
+  printf("%ld",_1704_main());
   return 0;
 }

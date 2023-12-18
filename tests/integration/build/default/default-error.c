@@ -22,9 +22,12 @@ int64_t _575_main(void);
 int64_t _575_main(void){
     int64_t _575_t0;
     struct0 _576_x;
+    uint64_t _575_t2;
     int64_t _575_$retval;
     _575_t0 = 139;
     _576_x = (struct0) {.tag=0, ._0=_575_t0};
+    _575_t2 = 0;
+    $tag_check(_575_t2, 0, "tests/integration/default/default-error.orng:2:3:\nfn main() -> Int {\n ^");
     _575_$retval = _576_x._0;
     return _575_$retval;
 }

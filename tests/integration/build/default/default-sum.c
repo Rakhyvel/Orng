@@ -21,15 +21,18 @@ int64_t _640_main(void);
 int64_t _640_main(void){
     int64_t _640_t0;
     struct0 _641_x;
-    int64_t _640_t3;
-    uint8_t _640_t5;
+    uint64_t _640_t3;
+    int64_t _640_t4;
+    uint8_t _640_t6;
     int64_t _640_t2;
     int64_t _640_$retval;
     _640_t0 = 0;
     _641_x = (struct0) {.tag=0, ._0=_640_t0};
     _640_t3 = 0;
-    _640_t5 = _641_x._0 == _640_t3;
-    if (_640_t5) {
+    _640_t4 = 0;
+    $tag_check(_640_t3, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
+    _640_t6 = _641_x._0 == _640_t4;
+    if (_640_t6) {
         goto BB3;
     } else {
         goto BB7;
