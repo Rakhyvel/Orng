@@ -67,7 +67,7 @@ pub const CFG = struct {
         retval.symbol = symbol;
         retval.number_temps = 0;
         retval.return_symbol = try symbol_.Symbol.create(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
-        retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(errors, allocator);
+        retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
         retval.offset = null;
@@ -153,24 +153,24 @@ pub const CFG = struct {
         }
     }
 
-    pub fn createTempSymbol(self: *CFG, _type: *ast_.AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*symbol_.Symbol {
+    pub fn createTempSymbol(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) !*symbol_.Symbol {
         var buf = try String.init_with_contents(allocator, "t");
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
         var temp_symbol = try symbol_.Symbol.create(self.symbol.scope, (try buf.toOwned()).?, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, _type, ast_.poisoned, null, .mut, allocator);
-        temp_symbol.expanded_type = try _type.expand_type(errors, allocator);
+        temp_symbol.expanded_type = try _type.expand_type(allocator);
         temp_symbol.is_temp = true;
         return temp_symbol;
     }
 
-    pub fn createTempSymbolVersion(self: *CFG, _type: *ast_.AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*lval_.Symbol_Version {
-        const temp_symbol = try self.createTempSymbol(_type, errors, allocator);
+    pub fn createTempSymbolVersion(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) !*lval_.Symbol_Version {
+        const temp_symbol = try self.createTempSymbol(_type, allocator);
         const retval = try lval_.Symbol_Version.createUnversioned(temp_symbol, _type, allocator);
         return retval;
     }
 
-    pub fn create_temp_lvalue(self: *CFG, _type: *ast_.AST, errors: *errs.Errors, allocator: std.mem.Allocator) !*lval_.L_Value {
-        const temp_symbol = try self.createTempSymbol(_type, errors, allocator);
+    pub fn create_temp_lvalue(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) !*lval_.L_Value {
+        const temp_symbol = try self.createTempSymbol(_type, allocator);
         const retval = try lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
         return retval;
     }

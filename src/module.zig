@@ -40,19 +40,15 @@ pub const Module = struct {
     // The root scope node for the module
     scope: *symbol_.Scope,
 
-    // Errors, used as context
-    errors: *errs.Errors,
-
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    fn init(scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Module {
+    fn init(scope: *symbol_.Scope, allocator: std.mem.Allocator) !*Module {
         var retval = try allocator.create(Module);
         retval.uid = module_uids;
         module_uids += 1;
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
-        retval.errors = errors;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
@@ -121,7 +117,7 @@ pub const Module = struct {
 
         // Module/Symbol-Tree construction
         var file_root = try symbol_.Scope.init(prelude, name, allocator);
-        const module = try Module.init(file_root, errors, allocator);
+        const module = try Module.init(file_root, allocator);
         file_root.module = module;
         try expand_.expand_from_list(module_ast, errors, allocator);
         try symbol_tree_.symbolTableFromASTList(module_ast, file_root, errors, allocator);

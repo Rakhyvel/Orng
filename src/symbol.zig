@@ -134,15 +134,13 @@ pub const Scope = struct {
     ///   1. have an identical expected type
     ///   2. spelled similarly (levenshtein distance is less than half)
     pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast.AST, allocator: std.mem.Allocator) !void {
-        var errors = errs.Errors.init(allocator);
-        defer errors.deinit();
         for (self.symbols.keys()) |key| {
             var symbol: *Symbol = self.symbols.get(key).?;
             if (std.mem.eql(u8, symbol.name, "_")) {
                 continue; // never suggest `_`
             }
 
-            const matches = expected == null or try symbol._type.typesMatch(expected.?, &errors, allocator);
+            const matches = expected == null or try symbol._type.typesMatch(expected.?);
             const dist = try levenshteinDistance2(allocator, symbol.name, name);
             if (matches and dist <= name.len / 2) {
                 try out.append(key);

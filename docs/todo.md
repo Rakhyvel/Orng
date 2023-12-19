@@ -77,17 +77,19 @@
 - [x] ir -> {(IR, IRKind, IRData), (SymbolVersion, L_Value), BasicBlock, CFG}, lower.zig
 - [x] Move DAG to its own file, along with the type set functions
 - [x] Keep Symbol and Scope together, remove SymbolKind, create a new file for creating the tree
-- [ ] Separate symbol pass to map identifiers to symbols
+- [x] Separate symbol pass to map identifiers to symbols
     - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field
     - Remove anything that now doesn't need to pass scope
-    - Do we need symbol ast?
+    - typeof, expand_type, typesMatch
 - [ ] Look into any AST transformations that are being done in validate, move them to expand.zig
     - Select pos
     - Union expansion to sums
+- [ ] Post-lower pass that searches for unused symbols/call results
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Create a `Labels` struct for lower, to simplify things
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Nothing is indented more than 5 times, excluding switches
+- [ ] Try to keep lines less than 100 characters in width (not length!)
 - [ ] In import graph, 1.5 <= (E+1)/N <= 4.0
     - Remove unused imports
     - Sort imports, remove type-renamings
@@ -97,6 +99,7 @@
     - Data structure files have only type definitions, all public
     - Process files have **one** public function which does the process. If there's two, think if there *really* needs to be, and if not, then split it up
     - Data structure member functions should be queries. If they're commands, and only used by one process, separate out to that process.
+    - Data structures should not interact with Errors, unless it's the Errors data structure of course
 - [ ] (if you can figure out how to calculate it) cyclomatic complexity higher than 10 is bad
 - [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)

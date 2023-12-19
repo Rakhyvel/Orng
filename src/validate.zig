@@ -40,7 +40,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     symbol._type = try validateAST(symbol._type, primitives.type_type, errors, allocator);
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
-        symbol.expanded_type = try symbol._type.expand_type(errors, allocator);
+        symbol.expanded_type = try symbol._type.expand_type(allocator);
         const expected = if (symbol.kind == ._fn or symbol.kind == ._comptime) symbol._type.function.rhs else symbol._type;
         symbol.init = try validateAST(symbol.init, expected, errors, allocator);
         if (symbol.init.* == .poison) {
@@ -107,9 +107,9 @@ fn validateAST(
         // expected must be a valid Type type
         std.debug.assert(expected.?.* != .poison);
         std.debug.assert(expected.?.getCommon().validation_state == .valid);
-        var expected_type = try expected.?.typeof(errors, allocator);
+        var expected_type = try expected.?.typeof(allocator);
         // std.debug.print("typeof({?}) = {}\n", .{ expected, expected_type });
-        std.debug.assert(try expected_type.typesMatch(primitives.type_type, errors, allocator));
+        std.debug.assert(try expected_type.typesMatch(primitives.type_type));
 
         if (expected.?.* == .annotation) {
             expected = expected.?.annotation.type;
@@ -119,8 +119,8 @@ fn validateAST(
     var retval = try validate_AST_internal(ast, expected, errors, allocator);
 
     // Might as well memoize expanded_type
-    if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
-        _ = try retval.expand_type(errors, allocator);
+    if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
+        _ = try retval.expand_type(allocator);
     }
 
     ast.getCommon().validation_state = _ast.AST_Validation_State{ .valid = .{ .valid_form = retval } };
@@ -138,7 +138,7 @@ fn validate_AST_internal(
     switch (ast.*) {
         .poison => return ast,
         .unit_type => {
-            if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.type_type } });
                 return ast.enpoison();
             } else {
@@ -146,7 +146,7 @@ fn validate_AST_internal(
             }
         },
         .unit_value => {
-            if (expected != null and !try primitives.unit_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.unit_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.unit_type } });
                 return ast.enpoison();
             } else {
@@ -158,7 +158,7 @@ fn validate_AST_internal(
             // Check if data fits in expected type bounds
             // typeOf should be untyped int, matches any int type
             // TODO: Add emit a separate error if not representable because the value doesn't fit, vs because it's not an integer primitive type at all
-            if (expected != null and !try expected.?.can_represent_integer(ast.int.data, errors, allocator)) {
+            if (expected != null and !try expected.?.can_represent_integer(ast.int.data, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.int_type } });
                 return ast.enpoison();
             } else {
@@ -168,7 +168,7 @@ fn validate_AST_internal(
         },
 
         .char => {
-            if (expected != null and !try primitives.char_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.char_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.char_type } });
                 return ast.enpoison();
             } else {
@@ -177,7 +177,7 @@ fn validate_AST_internal(
         },
 
         .string => {
-            if (expected != null and !try primitives.string_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.string_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.string_type } });
                 return ast.enpoison();
             } else {
@@ -186,7 +186,7 @@ fn validate_AST_internal(
         },
 
         .float => {
-            if (expected != null and !try expected.?.can_represent_float(errors, allocator)) {
+            if (expected != null and !try expected.?.can_represent_float(allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.float_type } });
                 return ast.enpoison();
             } else {
@@ -203,7 +203,7 @@ fn validate_AST_internal(
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "recursive definition detected" } });
                 return ast.enpoison();
             }
-            if (expected != null and !try symbol._type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try symbol._type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = symbol._type } });
                 return ast.enpoison();
             } else {
@@ -212,7 +212,7 @@ fn validate_AST_internal(
         },
 
         ._true => {
-            if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             } else {
@@ -221,7 +221,7 @@ fn validate_AST_internal(
         },
 
         ._false => {
-            if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             } else {
@@ -233,7 +233,7 @@ fn validate_AST_internal(
             ast.not.expr = try validateAST(ast.not.expr, primitives.bool_type, errors, allocator);
             if (ast.not.expr.* == .poison) {
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.float_type } });
                 return ast.enpoison();
             } else {
@@ -242,14 +242,14 @@ fn validate_AST_internal(
         },
         .negate => {
             ast.negate.expr = try validateAST(ast.negate.expr, expected, errors, allocator);
-            var expr_type = try ast.negate.expr.typeof(errors, allocator);
+            var expr_type = try ast.negate.expr.typeof(allocator);
 
             if (ast.negate.expr.* == .poison) {
                 return ast.enpoison();
-            } else if (!try expr_type.is_num_type(errors, allocator)) {
+            } else if (!try expr_type.is_num_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = expr_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try expr_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try expr_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = expr_type } });
                 return ast.enpoison();
             } else {
@@ -266,8 +266,8 @@ fn validate_AST_internal(
             if (ast.dereference.expr.* == .poison) {
                 return ast.enpoison();
             }
-            var expr_type = try ast.dereference.expr.typeof(errors, allocator);
-            const expanded_expr_type = try expr_type.expand_type(errors, allocator);
+            var expr_type = try ast.dereference.expr.typeof(allocator);
+            const expanded_expr_type = try expr_type.expand_type(allocator);
             if (expanded_expr_type.* != .addrOf) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "expected an address" } });
                 return ast.enpoison();
@@ -281,26 +281,26 @@ fn validate_AST_internal(
             if (ast._try.expr.* == .poison) {
                 return ast.enpoison();
             }
-            var expr_expanded_type = try (try ast._try.expr.typeof(errors, allocator)).expand_type(errors, allocator);
+            var expr_expanded_type = try (try ast._try.expr.typeof(allocator)).expand_type(allocator);
             if (expr_expanded_type.* != .sum or !expr_expanded_type.sum.was_error) {
                 // expr is not even an error type
                 errors.addError(Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
                 return ast.enpoison();
-            } else if (expected != null and expected.?.* != .inferred_error and !try expr_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and expected.?.* != .inferred_error and !try expr_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?)) {
                 // expr is error union, but .err field types don't match with expected
                 errors.addError(Error{ .expected2Type = .{ .span = expr_span, .expected = expected.?, .got = expr_expanded_type.get_ok_type().annotation.type } });
                 return ast.enpoison();
             } else {
-                var expanded_function_return = try ast._try.function.?._type.function.rhs.expand_type(errors, allocator);
+                var expanded_function_return = try ast._try.function.?._type.function.rhs.expand_type(allocator);
                 if (expanded_function_return.* == .inferred_error) {
                     // This checks that the `ok` fields match, for free!
                     for (expr_expanded_type.sum.terms.items) |term| {
-                        try expanded_function_return.inferred_error.add_term(term, errors, allocator);
+                        try expanded_function_return.inferred_error.add_term(term, errors);
                     }
                 } else if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return an error" } });
                     return ast.enpoison();
-                } else if (!try expr_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expanded_function_return.sum.terms.items[1].annotation.type, errors, allocator)) {
+                } else if (!try expr_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expanded_function_return.sum.terms.items[1].annotation.type)) {
                     // MASSIVE TODO: Check ALL sum terms, not just the first one
                     // expr error union's `.err` member is not a compatible type with the function's error type
                     errors.addError(Error{ .expected2Type = .{
@@ -318,7 +318,7 @@ fn validate_AST_internal(
             if (ast.discard.expr.* == .poison) {
                 return ast.enpoison();
             }
-            if (expected != null and !try primitives.unit_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.unit_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -333,16 +333,16 @@ fn validate_AST_internal(
         },
         ._typeOf => {
             ast._typeOf.expr = try validateAST(ast._typeOf.expr, null, errors, allocator);
-            if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.type_type } });
                 return ast.enpoison();
             }
-            return try ast._typeOf.expr.typeof(errors, allocator);
+            return try ast._typeOf.expr.typeof(allocator);
         },
         .default => {
             ast.default.expr = try validateAST(ast.default.expr, primitives.type_type, errors, allocator);
-            const ast_type = (try ast.typeof(errors, allocator));
-            if (expected != null and !try ast_type.typesMatch(expected.?, errors, allocator)) {
+            const ast_type = (try ast.typeof(allocator));
+            if (expected != null and !try ast_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
                 return ast.enpoison();
             }
@@ -350,11 +350,11 @@ fn validate_AST_internal(
         },
         .sizeOf => {
             ast.sizeOf.expr = try validateAST(ast.sizeOf.expr, primitives.type_type, errors, allocator);
-            if (expected != null and !try primitives.int_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.int_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.int_type } });
                 return ast.enpoison();
             }
-            return try AST.createInt(ast.getToken(), (try ast.sizeOf.expr.expand_type(errors, allocator)).sizeof(), allocator);
+            return try AST.createInt(ast.getToken(), (try ast.sizeOf.expr.expand_type(allocator)).sizeof(), allocator);
         },
         ._comptime => {
             // Validate symbol
@@ -362,7 +362,7 @@ fn validate_AST_internal(
             if (ast._comptime.symbol.?._type.* == .poison) {
                 return ast.enpoison();
             }
-            if (expected != null and !try ast._comptime.symbol.?._type.function.rhs.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try ast._comptime.symbol.?._type.function.rhs.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast._comptime.symbol.?._type } });
                 return ast.enpoison();
             }
@@ -375,7 +375,7 @@ fn validate_AST_internal(
             defer ast._comptime.symbol.?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            const ret_type = try ast._comptime.symbol.?._type.function.rhs.expand_type(errors, allocator);
+            const ret_type = try ast._comptime.symbol.?._type.function.rhs.expand_type(allocator);
             var context = Context.init(cfg, &ast._comptime.symbol.?.scope.module.?.instructions, ret_type, cfg.offset.?);
             context.interpret() catch |err| switch (err) {
                 error.interpreter_panic => {
@@ -394,7 +394,7 @@ fn validate_AST_internal(
                 error.typeError => return ast.enpoison(),
                 else => return err,
             };
-            const lhs_type = try ast.assign.lhs.typeof(errors, allocator);
+            const lhs_type = try ast.assign.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -402,7 +402,7 @@ fn validate_AST_internal(
             if (ast.assign.lhs.* == .poison or ast.assign.rhs.* == .poison) {
                 return ast.enpoison();
             }
-            if (expected != null and !try primitives.unit_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.unit_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -417,7 +417,7 @@ fn validate_AST_internal(
             ast._or.rhs = try validateAST(ast._or.rhs, primitives.bool_type, errors, allocator);
             if (ast._or.lhs.* == .poison or ast._or.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             } else {
@@ -429,7 +429,7 @@ fn validate_AST_internal(
             ast._and.rhs = try validateAST(ast._and.rhs, primitives.bool_type, errors, allocator);
             if (ast._and.lhs.* == .poison or ast._and.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             } else {
@@ -438,7 +438,7 @@ fn validate_AST_internal(
         },
         .add => {
             ast.add.lhs = try validateAST(ast.add.lhs, expected, errors, allocator);
-            var lhs_type = try ast.add.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.add.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -446,10 +446,10 @@ fn validate_AST_internal(
 
             if (ast.add.lhs.* == .poison or ast.add.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (!try lhs_type.is_num_type(errors, allocator)) {
+            } else if (!try lhs_type.is_num_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try lhs_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
                 return ast.enpoison();
             } else {
@@ -458,7 +458,7 @@ fn validate_AST_internal(
         },
         .sub => {
             ast.sub.lhs = try validateAST(ast.sub.lhs, expected, errors, allocator);
-            var lhs_type = try ast.sub.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.sub.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -466,10 +466,10 @@ fn validate_AST_internal(
 
             if (ast.sub.lhs.* == .poison or ast.sub.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (!try lhs_type.is_num_type(errors, allocator)) {
+            } else if (!try lhs_type.is_num_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try lhs_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
                 return ast.enpoison();
             } else {
@@ -478,7 +478,7 @@ fn validate_AST_internal(
         },
         .mult => {
             ast.mult.lhs = try validateAST(ast.mult.lhs, expected, errors, allocator);
-            var lhs_type = try ast.mult.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.mult.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -486,10 +486,10 @@ fn validate_AST_internal(
 
             if (ast.mult.lhs.* == .poison or ast.mult.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (!try lhs_type.is_num_type(errors, allocator)) {
+            } else if (!try lhs_type.is_num_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try lhs_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
                 return ast.enpoison();
             } else {
@@ -498,7 +498,7 @@ fn validate_AST_internal(
         },
         .div => {
             ast.div.lhs = try validateAST(ast.div.lhs, expected, errors, allocator);
-            var lhs_type = try ast.div.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.div.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -506,10 +506,10 @@ fn validate_AST_internal(
 
             if (ast.div.lhs.* == .poison or ast.div.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (!try lhs_type.is_num_type(errors, allocator)) {
+            } else if (!try lhs_type.is_num_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.getToken().span, .expected = "arithmetic", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try lhs_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
                 return ast.enpoison();
             } else {
@@ -518,7 +518,7 @@ fn validate_AST_internal(
         },
         .mod => {
             ast.mod.lhs = try validateAST(ast.mod.lhs, primitives.int_type, errors, allocator);
-            const lhs_type = try ast.mod.lhs.typeof(errors, allocator);
+            const lhs_type = try ast.mod.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -526,7 +526,7 @@ fn validate_AST_internal(
 
             if (ast.mod.lhs.* == .poison or ast.mod.rhs.* == .poison) {
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.int_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.int_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type } });
                 return ast.enpoison();
             } else {
@@ -535,7 +535,7 @@ fn validate_AST_internal(
         },
         .equal => {
             ast.equal.lhs = try validateAST(ast.equal.lhs, null, errors, allocator);
-            var lhs_type = try ast.equal.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.equal.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -544,19 +544,19 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            const expanded_lhs_type = try lhs_type.expand_type(errors, allocator);
-            if (try primitives.type_type.typesMatch(expanded_lhs_type, errors, allocator)) {
-                if (!try ast.equal.lhs.typesMatch(ast.equal.rhs, errors, allocator)) {
+            const expanded_lhs_type = try lhs_type.expand_type(allocator);
+            if (try primitives.type_type.typesMatch(expanded_lhs_type)) {
+                if (!try ast.equal.lhs.typesMatch(ast.equal.rhs)) {
                     return try AST.createFalse(ast.getToken(), allocator);
-                } else if (!try ast.equal.rhs.typesMatch(ast.equal.lhs, errors, allocator)) {
+                } else if (!try ast.equal.rhs.typesMatch(ast.equal.lhs)) {
                     return try AST.createFalse(ast.getToken(), allocator);
                 } else {
                     return try AST.createTrue(ast.getToken(), allocator);
                 }
-            } else if (!try lhs_type.is_eq_type(errors, allocator)) {
+            } else if (!try lhs_type.is_eq_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -564,7 +564,7 @@ fn validate_AST_internal(
         },
         .not_equal => {
             ast.not_equal.lhs = try validateAST(ast.not_equal.lhs, null, errors, allocator);
-            var lhs_type = try ast.not_equal.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.not_equal.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -573,19 +573,19 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            const expanded_lhs_type = try lhs_type.expand_type(errors, allocator);
-            if (try primitives.type_type.typesMatch(expanded_lhs_type, errors, allocator)) {
-                if (try ast.not_equal.lhs.typesMatch(ast.not_equal.rhs, errors, allocator)) {
+            const expanded_lhs_type = try lhs_type.expand_type(allocator);
+            if (try primitives.type_type.typesMatch(expanded_lhs_type)) {
+                if (try ast.not_equal.lhs.typesMatch(ast.not_equal.rhs)) {
                     return try AST.createFalse(ast.getToken(), allocator);
-                } else if (try ast.not_equal.rhs.typesMatch(ast.not_equal.lhs, errors, allocator)) {
+                } else if (try ast.not_equal.rhs.typesMatch(ast.not_equal.lhs)) {
                     return try AST.createFalse(ast.getToken(), allocator);
                 } else {
                     return try AST.createTrue(ast.getToken(), allocator);
                 }
-            } else if (!try lhs_type.is_eq_type(errors, allocator)) {
+            } else if (!try lhs_type.is_eq_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.not_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -593,7 +593,7 @@ fn validate_AST_internal(
         },
         .greater => {
             ast.greater.lhs = try validateAST(ast.greater.lhs, null, errors, allocator);
-            var lhs_type = try ast.greater.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.greater.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -602,10 +602,10 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (!try lhs_type.is_ord_type(errors, allocator)) {
+            if (!try lhs_type.is_ord_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.greater.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -613,7 +613,7 @@ fn validate_AST_internal(
         },
         .lesser => {
             ast.lesser.lhs = try validateAST(ast.lesser.lhs, null, errors, allocator);
-            var lhs_type = try ast.lesser.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.lesser.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -622,10 +622,10 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (!try lhs_type.is_ord_type(errors, allocator)) {
+            if (!try lhs_type.is_ord_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.lesser.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -633,7 +633,7 @@ fn validate_AST_internal(
         },
         .greater_equal => {
             ast.greater_equal.lhs = try validateAST(ast.greater_equal.lhs, null, errors, allocator);
-            var lhs_type = try ast.greater_equal.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.greater_equal.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -642,13 +642,13 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (!try lhs_type.is_ord_type(errors, allocator)) {
+            if (!try lhs_type.is_ord_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.greater_equal.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (!try lhs_type.is_eq_type(errors, allocator)) {
+            } else if (!try lhs_type.is_eq_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.greater_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -656,7 +656,7 @@ fn validate_AST_internal(
         },
         .lesser_equal => {
             ast.lesser_equal.lhs = try validateAST(ast.lesser_equal.lhs, null, errors, allocator);
-            var lhs_type = try ast.lesser_equal.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.lesser_equal.lhs.typeof(allocator);
             if (lhs_type.* == .poison) {
                 return ast.enpoison();
             }
@@ -665,13 +665,13 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (!try lhs_type.is_ord_type(errors, allocator)) {
+            if (!try lhs_type.is_ord_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.lesser_equal.lhs.getToken().span, .expected = "ordered", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (!try lhs_type.is_eq_type(errors, allocator)) {
+            } else if (!try lhs_type.is_eq_type(allocator)) {
                 errors.addError(Error{ .expectedBuiltinTypeclass = .{ .span = ast.lesser_equal.lhs.getToken().span, .expected = "equalable", .got = lhs_type } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.bool_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.bool_type } });
                 return ast.enpoison();
             }
@@ -680,11 +680,11 @@ fn validate_AST_internal(
         ._catch => {
             ast._catch.lhs = try validateAST(ast._catch.lhs, null, errors, allocator);
             ast._catch.rhs = try validateAST(ast._catch.rhs, expected, errors, allocator);
-            var lhs_expanded_type = try (try ast._catch.lhs.typeof(errors, allocator)).expand_type(errors, allocator);
+            var lhs_expanded_type = try (try ast._catch.lhs.typeof(allocator)).expand_type(allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_error) {
                 errors.addError(Error{ .basic = .{ .span = ast._catch.lhs.getToken().span, .msg = "left-hand side of catch is not an error type" } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try lhs_expanded_type.get_ok_type().annotation.type.typesMatch(expected.?)) {
                 // MASSIVE TODO: Print the correct expected and got type, to match orelse for this error.
                 // Tough because we don't have the lhs error information... or maybe not?
                 errors.addError(Error{ .expected2Type = .{ .span = ast._catch.lhs.getToken().span, .expected = expected.?, .got = lhs_expanded_type.sum.terms.items[1].annotation.type } });
@@ -700,12 +700,12 @@ fn validate_AST_internal(
         ._orelse => {
             ast._orelse.lhs = try validateAST(ast._orelse.lhs, null, errors, allocator);
             ast._orelse.rhs = try validateAST(ast._orelse.rhs, expected, errors, allocator);
-            var lhs_expanded_type = try (try ast._orelse.lhs.typeof(errors, allocator)).expand_type(errors, allocator);
+            var lhs_expanded_type = try (try ast._orelse.lhs.typeof(allocator)).expand_type(allocator);
             if (lhs_expanded_type.* != .sum or !lhs_expanded_type.sum.was_optional) {
                 // TODO: What type is it?
                 errors.addError(Error{ .basic = .{ .span = ast._orelse.lhs.getToken().span, .msg = "left-hand side of orelse is not an optional type" } });
                 return ast.enpoison();
-            } else if (expected != null and !try lhs_expanded_type.get_some_type().annotation.type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try lhs_expanded_type.get_some_type().annotation.type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast._orelse.lhs.getToken().span, .expected = expected.?, .got = lhs_expanded_type.get_some_type().annotation.type } });
                 return ast.enpoison();
             }
@@ -719,7 +719,7 @@ fn validate_AST_internal(
             if (ast.call.lhs.* == .poison) {
                 return ast.enpoison();
             }
-            var lhs_type = try ast.call.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.call.lhs.typeof(allocator);
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (expanded_lhs_type.* != .function) {
                 // TODO: Emit expanded_lhs_type for user
@@ -781,7 +781,7 @@ fn validate_AST_internal(
                 ast.call.args.items[0] = try validateAST(ast.call.args.items[0], expanded_lhs_type.function.lhs, errors, allocator);
             }
 
-            if (expected != null and !try expanded_lhs_type.function.rhs.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try expanded_lhs_type.function.rhs.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = expanded_lhs_type.function.rhs } });
                 return ast.enpoison();
             } else if (poisoned) {
@@ -795,7 +795,7 @@ fn validate_AST_internal(
         },
         .index => { // TODO: TOO LONG!
             const lhs_span = ast.index.lhs.getToken().span; // Used for error reporting
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
                 ast.index.lhs = try validateAST(ast.index.lhs, primitives.type_type, errors, allocator);
             } else {
                 ast.index.lhs = try validateAST(ast.index.lhs, null, errors, allocator);
@@ -805,11 +805,11 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            var lhs_type = try ast.index.lhs.typeof(errors, allocator);
+            var lhs_type = try ast.index.lhs.typeof(allocator);
             if (lhs_type.* == .addrOf) {
                 // Implicit dereference
                 ast.index.lhs = try validateAST(try AST.createDereference(ast.getToken(), ast.index.lhs, allocator), null, errors, allocator);
-                lhs_type = try ast.index.lhs.typeof(errors, allocator);
+                lhs_type = try ast.index.lhs.typeof(allocator);
                 if (ast.index.lhs.* == .poison) {
                     return ast.enpoison();
                 }
@@ -817,14 +817,15 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (try lhs_type.typesMatch(primitives.type_type, errors, allocator) and ast.index.lhs.* == .product and ast.index.rhs.* == .int and ast.index.lhs.product.terms.items.len > ast.index.rhs.int.data) {
+            const lhs_expanded_type = try lhs_type.expand_type(allocator);
+            if (try lhs_type.typesMatch(primitives.type_type) and ast.index.lhs.* == .product and ast.index.rhs.* == .int and ast.index.lhs.product.terms.items.len > ast.index.rhs.int.data) {
                 // Index a product type, resolve immediately
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
                 return ast.index.lhs.product.terms.items[@as(usize, @intCast(ast.index.rhs.int.data))];
-            } else if (lhs_type.* != .product and !(lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String"))) {
-                errors.addError(Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_type } });
+            } else if (lhs_expanded_type.* != .product) {
+                errors.addError(Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
                 return ast.enpoison();
-            } else if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(errors, allocator)) {
+            } else if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice and !try lhs_expanded_type.product.is_homotypical()) {
                 if (ast.index.rhs.* == .int) {
                     // rhs is compile-time known, change to select
                     var select = (try AST.createSelect(ast.getToken(), ast.index.lhs, try AST.createIdentifier(Token.create("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator), allocator)).assert_valid();
@@ -836,11 +837,11 @@ fn validate_AST_internal(
                     return ast.enpoison();
                 }
             } else if (expected != null) {
-                if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.terms.items[0].typesMatch(expected.?, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.product.terms.items[0] } });
+                if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice and !try lhs_expanded_type.product.terms.items[0].typesMatch(expected.?)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_expanded_type.product.terms.items[0] } });
                     return ast.enpoison();
-                } else if (lhs_type.* == .product and lhs_type.product.was_slice and !try lhs_type.product.terms.items[0].annotation.type.addrOf.expr.typesMatch(expected.?, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_type.product.terms.items[0].annotation.type.addrOf.expr } });
+                } else if (lhs_expanded_type.* == .product and lhs_expanded_type.product.was_slice and !try lhs_expanded_type.product.terms.items[0].annotation.type.addrOf.expr.typesMatch(expected.?)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = lhs_expanded_type.product.terms.items[0].annotation.type.addrOf.expr } });
                     return ast.enpoison();
                 } else {
                     return ast;
@@ -855,22 +856,60 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            var lhs_type = try ast.select.lhs.typeof(errors, allocator);
-            var select_lhs_type = try lhs_type.expand_type(errors, allocator);
+            var lhs_type = try ast.select.lhs.typeof(allocator);
+            var select_lhs_type = try lhs_type.expand_type(allocator);
 
             // Implicit dereference
             if (select_lhs_type.* == .addrOf) {
                 ast.select.lhs = try validateAST(try AST.createDereference(ast.getToken(), ast.select.lhs, allocator), null, errors, allocator);
-                select_lhs_type = try (try ast.select.lhs.typeof(errors, allocator)).expand_type(errors, allocator);
+                select_lhs_type = try (try ast.select.lhs.typeof(allocator)).expand_type(allocator);
                 if (ast.select.lhs.* == .poison) {
                     return ast.enpoison();
                 }
             }
 
-            if (try select_lhs_type.typesMatch(primitives.type_type, errors, allocator) and (try ast.select.lhs.expand_type(errors, allocator)).* == .sum) {
+            if (try select_lhs_type.typesMatch(primitives.type_type) and (try ast.select.lhs.expand_type(allocator)).* == .sum) {
+                // Select on a Type (only valid for a sum type), change to inferred-member
                 const inferred_member = try AST.createInferredMember(ast.getToken(), ast.select.rhs, allocator);
                 return try validateAST(inferred_member, ast.select.lhs, errors, allocator);
-            } else if (select_lhs_type.* != .product and select_lhs_type.* != .sum) {
+            } else {
+                // Select on something annot-list-like, get the pos
+                var annot_list: *std.ArrayList(*AST) = undefined;
+                if (select_lhs_type.* == .product) {
+                    annot_list = &select_lhs_type.product.terms;
+                } else if (select_lhs_type.* == .sum) {
+                    annot_list = &select_lhs_type.sum.terms;
+                } else if (select_lhs_type.* == .inferred_error) {
+                    annot_list = &select_lhs_type.inferred_error.terms;
+                } else {
+                    std.debug.print("{}\n", .{select_lhs_type});
+                    unreachable;
+                }
+                if (ast.select.pos == null) {
+                    for (annot_list.items, 0..) |term, i| {
+                        if (term.* != .annotation) {
+                            errors.addError(errs.Error{ .basic = .{
+                                .span = ast.getToken().span,
+                                .msg = "left-hand-side of select is not selectable",
+                            } });
+                            return error.typeError;
+                        }
+                        if (std.mem.eql(u8, term.annotation.pattern.getToken().data, ast.select.rhs.getToken().data)) {
+                            ast.select.pos = i;
+                            break;
+                        }
+                    } else {
+                        errors.addError(errs.Error{ .member_not_in = .{
+                            .span = ast.getToken().span,
+                            .identifier = ast.select.rhs.getToken().data,
+                            .group_name = "tuple",
+                        } });
+                        return error.typeError;
+                    }
+                }
+            }
+
+            if (select_lhs_type.* != .product and select_lhs_type.* != .sum) {
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
                     .msg = "left-hand-side of select is not selectable",
@@ -878,8 +917,8 @@ fn validate_AST_internal(
                 return ast.enpoison();
             } else {
                 _ = ast.assert_valid();
-                var ast_type = try ast.typeof(errors, allocator);
-                if (expected != null and !try ast_type.typesMatch(expected.?, errors, allocator)) {
+                var ast_type = try ast.typeof(allocator);
+                if (expected != null and !try ast_type.typesMatch(expected.?)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
                     return ast.enpoison();
                 } else {
@@ -893,7 +932,7 @@ fn validate_AST_internal(
             if (ast.function.lhs.* == .poison or ast.function.rhs.* == .poison) {
                 return ast.enpoison();
             }
-            if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.type_type } });
                 return ast.enpoison();
             } else {
@@ -922,7 +961,7 @@ fn validate_AST_internal(
             } else {
                 new_terms.deinit();
             }
-            if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.type_type } });
                 return ast.enpoison();
             } else {
@@ -938,8 +977,8 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(errors, allocator) } });
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(allocator) } });
                 return ast.enpoison();
             } else {
                 return ast;
@@ -973,7 +1012,7 @@ fn validate_AST_internal(
             var poisoned = false;
             var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
-            var expanded_expected: ?*AST = if (expected == null) null else try expected.?.expand_type(errors, allocator);
+            var expanded_expected: ?*AST = if (expected == null) null else try expected.?.expand_type(allocator);
 
             if (expanded_expected != null and expanded_expected.?.* == .product) {
                 _ = ast.assert_valid();
@@ -984,7 +1023,7 @@ fn validate_AST_internal(
                 };
             }
 
-            if (expanded_expected != null and try expanded_expected.?.typesMatch(primitives.type_type, errors, allocator)) {
+            if (expanded_expected != null and try expanded_expected.?.typesMatch(primitives.type_type)) {
                 // Expecting ast to be a product type
                 for (ast.product.terms.items) |term| {
                     const new_term = try validateAST(term, primitives.type_type, errors, allocator);
@@ -1045,16 +1084,16 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            const expand_lhs = try ast._union.lhs.expand_type(errors, allocator);
-            const expand_rhs = try ast._union.rhs.expand_type(errors, allocator);
+            const expand_lhs = try ast._union.lhs.expand_type(allocator);
+            const expand_rhs = try ast._union.rhs.expand_type(allocator);
             if (expand_lhs.* != .sum) {
                 errors.addError(Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type" } });
                 return ast.enpoison();
             } else if (expand_rhs.* != .sum) {
                 errors.addError(Error{ .basic = .{ .span = rhs_span, .msg = "right hand side of union is not a sum type" } });
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
-                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(errors, allocator) } });
+            } else if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(allocator) } });
                 return ast.enpoison();
             } else {
                 var new_terms = std.ArrayList(*AST).init(allocator);
@@ -1095,7 +1134,7 @@ fn validate_AST_internal(
                     else => return err,
                 };
             } else {
-                if (try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+                if (try primitives.type_type.typesMatch(expected.?)) {
                     // Address type, type of this ast must be a type, inner must be a type
                     ast.addrOf.expr = try validateAST(ast.addrOf.expr, primitives.type_type, errors, allocator);
                     if (ast.addrOf.expr.* == .poison) {
@@ -1103,14 +1142,14 @@ fn validate_AST_internal(
                     }
                 } else {
                     // Address value, expected must be an address, inner must match with expected's inner
-                    const expanded_expected = try expected.?.expand_type(errors, allocator); // Call is memoized
+                    const expanded_expected = try expected.?.expand_type(allocator); // Call is memoized
                     if (expanded_expected.* != .addrOf) {
                         // Didn't expect an address type. Validate expr and report error
                         ast.addrOf.expr = try validateAST(ast.addrOf.expr, null, errors, allocator);
                         if (ast.addrOf.expr.* == .poison) {
                             return ast.enpoison();
                         }
-                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(errors, allocator) } });
+                        errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(allocator) } });
                         return ast.enpoison();
                     }
 
@@ -1145,9 +1184,9 @@ fn validate_AST_internal(
             if (ast.sliceOf.expr.* == .poison) {
                 return ast.enpoison();
             }
-            var expr_type = try ast.sliceOf.expr.typeof(errors, allocator);
+            var expr_type = try ast.sliceOf.expr.typeof(allocator);
 
-            if (expr_type.* != .unit_type and try primitives.type_type.typesMatch(expr_type, errors, allocator)) {
+            if (expr_type.* != .unit_type and try primitives.type_type.typesMatch(expr_type)) {
                 // Slice-of type, type of this ast must be a type, inner must be a type
                 if (ast.sliceOf.len) |len| {
                     ast.sliceOf.len = try validateAST(len, primitives.int_type, errors, allocator);
@@ -1182,14 +1221,14 @@ fn validate_AST_internal(
                 }
 
                 // ast.sliceOf.expr must be homotypical product type of expected
-                if (expr_type.* != .product or !try expr_type.product.is_homotypical(errors, allocator)) {
+                if (expr_type.* != .product or !try expr_type.product.is_homotypical()) {
                     errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "attempt to take slice-of something that is not an array" } });
                     return ast.enpoison();
                 }
 
                 _ = ast.assert_valid();
-                if (expected != null and !try (try ast.typeof(errors, allocator)).typesMatch(expected.?, errors, allocator)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(errors, allocator) } });
+                if (expected != null and !try (try ast.typeof(allocator)).typesMatch(expected.?)) {
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(allocator) } });
                     return ast.enpoison();
                 }
 
@@ -1217,7 +1256,7 @@ fn validate_AST_internal(
             if (ast.subSlice.super.* == .poison) {
                 return ast.enpoison();
             }
-            const super_type = try ast.subSlice.super.typeof(errors, allocator);
+            const super_type = try ast.subSlice.super.typeof(allocator);
             if (super_type.* != .product or !super_type.product.was_slice) {
                 errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot take a sub-slice of something that is not a slice" } });
                 return ast.enpoison();
@@ -1258,7 +1297,7 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            if (expected != null and !try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and !try primitives.type_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.type_type } });
                 return ast.enpoison();
             } else {
@@ -1268,7 +1307,7 @@ fn validate_AST_internal(
         .inferredMember => { // TODO: TOO LONG!
             var expected_expanded: *AST = undefined;
             if (expected != null) {
-                expected_expanded = try expected.?.expand_type(errors, allocator);
+                expected_expanded = try expected.?.expand_type(allocator);
             }
 
             if (expected == null) {
@@ -1279,7 +1318,7 @@ fn validate_AST_internal(
                 ast.inferredMember.pos = expected_expanded.inferred_error.get_pos(ast.inferredMember.ident.getToken().data);
                 if (ast.inferredMember.pos == null) {
                     // Wasn't in inferred error set, put in inferred error set
-                    const annot_type = if (ast.inferredMember.init == null) primitives.unit_type else try ast.inferredMember.init.?.typeof(errors, allocator);
+                    const annot_type = if (ast.inferredMember.init == null) primitives.unit_type else try ast.inferredMember.init.?.typeof(allocator);
                     const annot = try AST.createAnnotation(ast.getToken(), try AST.createIdentifier(ast.inferredMember.ident.getToken(), allocator), annot_type, null, null, allocator);
                     try expected_expanded.inferred_error.terms.append(annot);
                     ast.inferredMember.pos = expected_expanded.inferred_error.terms.items.len - 1;
@@ -1318,7 +1357,7 @@ fn validate_AST_internal(
             if (expected == null) {
                 expected_type = null;
             } else {
-                expected_expanded = try expected.?.expand_type(errors, allocator);
+                expected_expanded = try expected.?.expand_type(allocator);
                 const is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
                 if (has_else) {
                     expected_type = expected.?;
@@ -1326,7 +1365,7 @@ fn validate_AST_internal(
                     expected_type = expected_expanded.get_some_type();
                 } else {
                     _ = ast.assert_valid();
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(errors, allocator) } });
+                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(allocator) } });
                     return ast.enpoison();
                 }
             }
@@ -1357,7 +1396,7 @@ fn validate_AST_internal(
                 if (ast._if.let != null) {
                     try ast._if.bodyBlock.block.statements.insert(0, ast._if.let.?);
                 }
-                const opt_type = try AST.create_optional_type(try ast._if.bodyBlock.typeof(errors, allocator), allocator);
+                const opt_type = try AST.create_optional_type(try ast._if.bodyBlock.typeof(allocator), allocator);
                 return try AST.create_some_value(opt_type, ast._if.bodyBlock, allocator);
             } else if (ast._if.condition.* == ._false and ast._if.elseBlock != null) {
                 // condition is false and theres an else => return {let; else}
@@ -1367,7 +1406,7 @@ fn validate_AST_internal(
                 return ast._if.elseBlock.?;
             } else if (ast._if.condition.* == ._false and ast._if.elseBlock == null) {
                 // condition is false and theres no else => return {let; none()}
-                const opt_type = try AST.create_optional_type(try ast._if.bodyBlock.typeof(errors, allocator), allocator);
+                const opt_type = try AST.create_optional_type(try ast._if.bodyBlock.typeof(allocator), allocator);
                 var statements = std.ArrayList(*AST).init(allocator);
                 if (ast._if.let != null) {
                     try statements.append(ast._if.let.?);
@@ -1390,8 +1429,8 @@ fn validate_AST_internal(
             ast.match.expr = try validateAST(ast.match.expr, null, errors, allocator);
             poisoned = ast.match.expr.* == .poison or poisoned;
 
-            var expr_type = try ast.match.expr.typeof(errors, allocator);
-            const expr_type_expanded = try expr_type.expand_type(errors, allocator);
+            var expr_type = try ast.match.expr.typeof(allocator);
+            const expr_type_expanded = try expr_type.expand_type(allocator);
             if (expr_type_expanded.* == .poison) {
                 return ast.enpoison(); // Can't do anything with this
             }
@@ -1407,7 +1446,7 @@ fn validate_AST_internal(
             for (ast.match.mappings.items) |mapping| {
                 if (expected != null) {
                     // Expecting a type from the match
-                    var expected_expanded = try expected.?.expand_type(errors, allocator);
+                    var expected_expanded = try expected.?.expand_type(allocator);
                     const is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.was_optional;
                     const has_else = ast.match.has_else;
                     if (has_else) {
@@ -1428,7 +1467,7 @@ fn validate_AST_internal(
                         // TODO: Include all that ^ in the error message, because this is kinda confusing
                         // TODO: Matches should have to be exhaustive, so they would never return none :-)
                         var new_map = try validateAST(mapping, expected.?, errors, allocator);
-                        const new_map_type = try new_map.typeof(errors, allocator);
+                        const new_map_type = try new_map.typeof(allocator);
                         _ = ast.assert_valid();
                         errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try AST.create_optional_type(new_map_type, allocator) } });
                         return ast.enpoison();
@@ -1473,7 +1512,7 @@ fn validate_AST_internal(
 
             var optional_type = false; //< Set if expected is an optional type
             if (expected != null) {
-                var expected_expanded = try expected.?.expand_type(errors, allocator);
+                var expected_expanded = try expected.?.expand_type(allocator);
                 if (expected_expanded.* == .sum and expected_expanded.sum.was_optional) {
                     const full_type = expected_expanded.get_some_type();
                     ast._while.bodyBlock = try validateAST(ast._while.bodyBlock, full_type, errors, allocator);
@@ -1533,8 +1572,8 @@ fn validate_AST_internal(
                 }
 
                 _ = ast.assert_valid(); // So that the typeof code can be reused. All children should be validated at this point
-                var block_type = try ast.typeof(errors, allocator);
-                if (expected != null and !try block_type.typesMatch(expected.?, errors, allocator)) {
+                var block_type = try ast.typeof(allocator);
+                if (expected != null and !try block_type.typesMatch(expected.?)) {
                     // std.debug.assert(ast.block.statements.items.len == 0); // is this true? what about a block that ends in a defer? or a decl?
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = block_type } });
                     return ast.enpoison();
@@ -1549,7 +1588,7 @@ fn validate_AST_internal(
 
         // no return
         ._break => {
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
                 // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.void_type } });
                 return ast.enpoison();
@@ -1557,7 +1596,7 @@ fn validate_AST_internal(
             return ast;
         },
         ._continue => {
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
                 // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.void_type } });
                 return ast.enpoison();
@@ -1571,7 +1610,7 @@ fn validate_AST_internal(
                 if (ast._return.expr.?.* == .poison) {
                     return ast.enpoison();
                 }
-            } else if (expected != null and (try expected.?.expand_type(errors, allocator)).* != .unit_type) {
+            } else if (expected != null and (try expected.?.expand_type(allocator)).* != .unit_type) {
                 // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.void_type } });
                 return ast.enpoison();
@@ -1579,7 +1618,7 @@ fn validate_AST_internal(
             return ast;
         },
         ._unreachable => {
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.void_type } });
                 return ast.enpoison();
             }
@@ -1591,7 +1630,7 @@ fn validate_AST_internal(
             if (ast._defer.statement.* == .poison) {
                 return ast.enpoison();
             }
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
                 // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.void_type } });
                 return ast.enpoison();
@@ -1603,7 +1642,7 @@ fn validate_AST_internal(
             if (ast._errdefer.statement.* == .poison) {
                 return ast.enpoison();
             }
-            if (expected != null and try primitives.type_type.typesMatch(expected.?, errors, allocator)) {
+            if (expected != null and try primitives.type_type.typesMatch(expected.?)) {
                 // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives.void_type } });
                 return ast.enpoison();
@@ -1616,9 +1655,9 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
             if (expected) |_expected| {
-                var expected_expanded = try _expected.expand_type(errors, allocator);
-                const self_type = try ast.typeof(errors, allocator);
-                if (!try expected_expanded.typesMatch(self_type, errors, allocator)) {
+                var expected_expanded = try _expected.expand_type(allocator);
+                const self_type = try ast.typeof(allocator);
+                if (!try expected_expanded.typesMatch(self_type)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected_expanded, .got = self_type } });
                     return ast.enpoison();
                 }
@@ -1643,7 +1682,7 @@ fn validate_AST_internal(
             // statement, no type
             if (poisoned) {
                 return ast.enpoison();
-            } else if (expected != null and !try primitives.unit_type.typesMatch(expected.?, errors, allocator)) {
+            } else if (expected != null and !try primitives.unit_type.typesMatch(expected.?)) {
                 errors.addError(Error{ .expectedType = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast } });
                 return ast.enpoison();
             }
@@ -1769,8 +1808,8 @@ fn named_args(asts: std.ArrayList(*AST), expected: *AST, errors: *errs.Errors, a
     var retval = std.ArrayList(*AST).init(allocator);
     errdefer retval.deinit();
     var new_expected = expected;
-    if (expected.* == .annotation and (try expected.annotation.type.expand_type(errors, allocator)).* == .product) {
-        new_expected = try expected.annotation.type.expand_type(errors, allocator);
+    if (expected.* == .annotation and (try expected.annotation.type.expand_type(allocator)).* == .product) {
+        new_expected = try expected.annotation.type.expand_type(allocator);
     }
     switch (new_expected.*) {
         .annotation => {
@@ -1900,7 +1939,7 @@ fn assertMutable(ast: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) 
 
         .dereference => {
             var child = ast.dereference.expr;
-            const child_type = try child.typeof(errors, allocator);
+            const child_type = try child.typeof(allocator);
             if (!child_type.addrOf.mut) {
                 errors.addError(Error{ .basic = .{
                     .span = ast.getToken().span,
@@ -1911,7 +1950,7 @@ fn assertMutable(ast: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) 
         },
 
         .index => {
-            const lhs_type = try ast.index.lhs.typeof(errors, allocator);
+            const lhs_type = try ast.index.lhs.typeof(allocator);
             if (lhs_type.* == .product and lhs_type.product.was_slice) {
                 const child_type = lhs_type.product.terms.items[0];
                 if (!child_type.annotation.type.addrOf.mut) {
@@ -1944,45 +1983,45 @@ fn assertMutable(ast: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) 
 fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
     switch (pattern.*) {
         .unit_value => {
-            if (!try expr_type.typesMatch(primitives.unit_type, errors, allocator)) {
+            if (!try expr_type.typesMatch(primitives.unit_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.unit_type } });
                 return error.typeError;
             }
         },
         .int => {
             // TODO: These should check for `can_represent`, not straight match
-            if (!try expr_type.typesMatch(primitives.int_type, errors, allocator)) {
+            if (!try expr_type.typesMatch(primitives.int_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.int_type } });
                 return error.typeError;
             }
         },
         .char => {
-            if (!try expr_type.typesMatch(primitives.char_type, errors, allocator)) {
+            if (!try expr_type.typesMatch(primitives.char_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.char_type } });
                 return error.typeError;
             }
         },
         .string => {
-            if (!try expr_type.typesMatch(primitives.string_type, errors, allocator)) {
+            if (!try expr_type.typesMatch(primitives.string_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.string_type } });
                 return error.typeError;
             }
         },
         .float => {
-            if (!try expr_type.typesMatch(primitives.float_type, errors, allocator)) {
+            if (!try expr_type.typesMatch(primitives.float_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.float_type } });
                 return error.typeError;
             }
         },
         ._true, ._false => {
-            if (!try expr_type.typesMatch(primitives.bool_type, errors, allocator)) {
+            if (!try expr_type.typesMatch(primitives.bool_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.bool_type } });
                 return error.typeError;
             }
         },
         .block => {
             var new_pattern = try validateAST(pattern, expr_type, errors, allocator);
-            if (!try expr_type.typesMatch(try new_pattern.typeof(errors, allocator), errors, allocator)) {
+            if (!try expr_type.typesMatch(try new_pattern.typeof(allocator))) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = primitives.int_type } });
                 return error.typeError;
             }
@@ -1994,8 +2033,8 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, 
                 return error.typeError;
             }
             pattern.select.pos = @as(usize, @intCast(new_pattern.inferredMember.pos.?));
-            const pattern_type = try new_pattern.typeof(errors, allocator);
-            if (!try expr_type.typesMatch(pattern_type, errors, allocator)) {
+            const pattern_type = try new_pattern.typeof(allocator);
+            if (!try expr_type.typesMatch(pattern_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern_type } });
                 return error.typeError;
             }
@@ -2007,8 +2046,8 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, 
                 return error.typeError;
             }
             pattern.inferredMember.pos = new_pattern.inferredMember.pos.?;
-            const pattern_type = try new_pattern.typeof(errors, allocator);
-            if (!try expr_type.typesMatch(pattern_type, errors, allocator)) {
+            const pattern_type = try new_pattern.typeof(allocator);
+            if (!try expr_type.typesMatch(pattern_type)) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern_type } });
                 return error.typeError;
             }
@@ -2021,7 +2060,7 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, 
             try assert_pattern_matches(pattern.inject.rhs, domain, errors, allocator);
         },
         .product => {
-            const expanded_expr = try expr_type.expand_type(errors, allocator);
+            const expanded_expr = try expr_type.expand_type(allocator);
             if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {
                 errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = _ast.poisoned } });
                 return error.typeError;
@@ -2109,15 +2148,15 @@ pub fn domainof(ast: *AST, sum_type: ?*AST, errors: *errs.Errors, allocator: std
     if (ast.inject.lhs.* == .poison) { // Don't bother moving on...
         return _ast.poisoned;
     }
-    var lhs_type = try ast.inject.lhs.typeof(errors, allocator);
-    const expanded_lhs_type = try lhs_type.expand_type(errors, allocator);
+    var lhs_type = try ast.inject.lhs.typeof(allocator);
+    const expanded_lhs_type = try lhs_type.expand_type(allocator);
     if (expanded_lhs_type.* == .sum and ast.inject.lhs.* == .inferredMember) {
-        if (sum_type != null and !try sum_type.?.typesMatch(lhs_type, errors, allocator)) {
+        if (sum_type != null and !try sum_type.?.typesMatch(lhs_type)) {
             errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = sum_type.?, .got = ast.inject.lhs.inferredMember.base.? } });
             return _ast.poisoned;
         }
         const pos: i128 = ast.inject.lhs.inferredMember.pos.?;
-        const proper_term: *AST = (try ast.inject.lhs.typeof(errors, allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+        const proper_term: *AST = (try ast.inject.lhs.typeof(allocator)).sum.terms.items[@as(usize, @intCast(pos))];
         return proper_term.annotation.type;
     } else {
         errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });
