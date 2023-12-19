@@ -103,8 +103,7 @@ pub fn get_scope() !*Scope {
         word32_type = try create_identifier("Word32");
         word64_type = try create_identifier("Word64");
         // Slice types must be AFTER int_type
-        byte_slice_type = try AST.create_slice_type(byte_type, false, std.heap.page_allocator);
-        byte_slice_type.getCommon().validation_state = ast.Validation_State{ .valid = .{ .valid_form = byte_slice_type } };
+        byte_slice_type = (try AST.create_slice_type(byte_type, false, std.heap.page_allocator)).assert_valid();
 
         // Create prelude scope
         prelude = try Scope.init(null, "", std.heap.page_allocator);
@@ -167,15 +166,11 @@ pub fn get_scope() !*Scope {
 }
 
 fn create_identifier(name: []const u8) !*AST {
-    var retval = try AST.createIdentifier(Token.create_simple(name), std.heap.page_allocator);
-    retval.getCommon().validation_state = ast.Validation_State{ .valid = .{ .valid_form = retval } };
-    return retval;
+    return (try AST.createIdentifier(Token.create_simple(name), std.heap.page_allocator)).assert_valid();
 }
 
 fn create_unit_type() !*AST {
-    var retval = try AST.createUnitType(Token.create_simple("("), std.heap.page_allocator);
-    retval.getCommon().validation_state = ast.Validation_State{ .valid = .{ .valid_form = retval } };
-    return retval;
+    return (try AST.createUnitType(Token.create_simple("("), std.heap.page_allocator)).assert_valid();
 }
 
 fn create_info(
@@ -204,7 +199,7 @@ fn create_info(
 }
 
 fn create_prelude_symbol(name: []const u8, _type: *AST, init: ?*AST, is_temp: bool) !*Symbol {
-    var symbol = try Symbol.create(
+    var symbol = (try Symbol.create(
         prelude.?,
         name,
         Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
@@ -213,9 +208,8 @@ fn create_prelude_symbol(name: []const u8, _type: *AST, init: ?*AST, is_temp: bo
         null,
         ._const,
         std.heap.page_allocator,
-    );
+    )).assert_valid();
     symbol.is_temp = is_temp;
-    symbol.validation_state = .valid;
     symbol.expanded_type = _type;
     try prelude.?.symbols.put(name, symbol);
     return symbol;

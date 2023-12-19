@@ -1,4 +1,6 @@
 # The Orng Programming Language
+Orng is a general purpose, medium-level programming language with a minimal runtime that enables the programmer to write efficient, readable, and maintainable code.
+
 ## General Design Philosphy
 1. Programs are a collection of types, and functions that act on values of those types.
 2. Explicit over implicit. Readability over writability

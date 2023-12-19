@@ -5,6 +5,7 @@ const _symbol = @import("symbol.zig");
 const tokens = @import("token.zig");
 const _validate = @import("validate.zig");
 const offset_ = @import("offsets.zig");
+const validation_state_ = @import("validation_state.zig");
 
 const Error = errs.Error;
 const Scope = _symbol.Scope;
@@ -13,6 +14,8 @@ const String = @import("zig-string/zig-string.zig").String;
 const Symbol = _symbol.Symbol;
 const Token = tokens.Token;
 const TokenKind = tokens.TokenKind;
+
+pub const AST_Validation_State = validation_state_.Validation_State(*AST);
 
 pub var poisoned: *AST = undefined;
 var inited: bool = false;
@@ -32,45 +35,9 @@ pub const SliceKind = union(enum) {
     MUT, // mutable data ptr and len
     MULTIPTR, // c-style `*` pointer, no len
     ARRAY, // static homogenous tuple, compile-time len
-
-    /// Serializes a `SliceKind` variant into a string representation.
-    pub fn serialize(self: SliceKind, out: *String) !void {
-        switch (self) {
-            .SLICE => {
-                try out.insert("SLICE", out.len());
-            },
-            .MUT => {
-                try out.insert("MUT", out.len());
-            },
-            .MULTIPTR => {
-                try out.insert("MULTIPTR", out.len());
-            },
-            .ARRAY => {
-                try out.insert("ARRAY", out.len());
-            },
-        }
-    }
 };
 
 const Errors = error{ InvalidRange, OutOfMemory };
-
-/// Represents different validation states of an AST.
-pub const Validation_State = union(enum) {
-    /// Validation has not been done, undetermined state.
-    unvalidated,
-
-    /// Validation is currently in progress, undetermined state.
-    validating,
-
-    /// Validation completed successfully.
-    valid: struct {
-        /// The valid form of the AST.
-        valid_form: *AST,
-    },
-
-    /// Validation completed unsuccessfully.
-    invalid,
-};
 
 /// Contains common properties of all AST nodes
 const ASTCommon = struct {
@@ -97,7 +64,7 @@ const ASTCommon = struct {
     alignof: ?i64 = null,
 
     /// The validation status of the AST
-    validation_state: Validation_State = .unvalidated,
+    validation_state: AST_Validation_State = .unvalidated,
 };
 
 /// Represents an Abstract Syntax Tree.
@@ -872,15 +839,13 @@ pub const AST = union(enum) {
 
     pub fn create_slice_type(of: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
-        var data_type = try AST.createAddrOf(
+        const data_type = (try AST.createAddrOf(
             of.getToken(),
             of,
             mut,
             allocator,
-        );
-        var annot_type = try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator);
-        data_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = data_type } };
-        annot_type.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = annot_type } };
+        )).assert_valid();
+        const annot_type = (try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator)).assert_valid();
         try term_types.append(annot_type);
         try term_types.append(try AST.createAnnotation(
             of.getToken(),
@@ -890,8 +855,7 @@ pub const AST = union(enum) {
             null,
             allocator,
         ));
-        var retval = try AST.createProduct(of.getToken(), term_types, allocator);
-        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
+        var retval = (try AST.createProduct(of.getToken(), term_types, allocator)).assert_valid();
         retval.product.was_slice = true;
         return retval;
     }
@@ -1080,8 +1044,7 @@ pub const AST = union(enum) {
 
             else => retval = self,
         }
-        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
-        self.getCommon().expanded_type = retval;
+        self.getCommon().expanded_type = retval.assert_valid();
         return retval;
     }
 
@@ -1447,8 +1410,7 @@ pub const AST = union(enum) {
                 unreachable;
             },
         }
-        self.getCommon()._type = retval;
-        self.getCommon()._type.?.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
+        self.getCommon()._type = retval.assert_valid();
         return retval;
     }
 
@@ -1591,9 +1553,7 @@ pub const AST = union(enum) {
     }
 
     pub fn generate_default(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
-        var retval = try generate_default_unvalidated(_type, scope, errors, allocator);
-        retval.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = retval } };
-        return retval;
+        return (try generate_default_unvalidated(_type, scope, errors, allocator)).assert_valid();
     }
 
     fn generate_default_unvalidated(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
@@ -1761,7 +1721,7 @@ pub const AST = union(enum) {
     }
 
     pub fn assert_valid(self: *AST) *AST {
-        self.getCommon().validation_state = Validation_State{ .valid = .{ .valid_form = self } };
+        self.getCommon().validation_state = AST_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }
 

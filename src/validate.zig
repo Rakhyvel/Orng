@@ -39,7 +39,7 @@ pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.
     // std.debug.print("{s}: {} = {}\n", .{ symbol.name, symbol._type, symbol.init });
     symbol._type = try validateAST(symbol._type, primitives.type_type, symbol.scope, errors, allocator);
     if (symbol._type.* != .poison) {
-        symbol.validation_state = .valid;
+        _ = symbol.assert_valid();
         symbol.expanded_type = try symbol._type.expand_type(symbol.scope, errors, allocator);
         const expected = if (symbol.kind == ._fn or symbol.kind == ._comptime) symbol._type.function.rhs else symbol._type;
         symbol.init = try validateAST(symbol.init, expected, symbol.scope, errors, allocator);
@@ -124,8 +124,8 @@ fn validateAST(
         _ = try retval.expand_type(scope, errors, allocator);
     }
 
-    ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = retval } };
-    retval.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = retval } };
+    ast.getCommon().validation_state = _ast.AST_Validation_State{ .valid = .{ .valid_form = retval } };
+    retval.getCommon().validation_state = _ast.AST_Validation_State{ .valid = .{ .valid_form = retval } };
     return retval;
 }
 
@@ -263,8 +263,7 @@ fn validate_AST_internal(
         },
         .dereference => {
             if (expected != null) {
-                var addr_of = try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator);
-                addr_of.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = addr_of } };
+                const addr_of = (try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator)).assert_valid();
                 ast.dereference.expr = try validateAST(ast.dereference.expr, addr_of, scope, errors, allocator);
             } else {
                 ast.dereference.expr = try validateAST(ast.dereference.expr, null, scope, errors, allocator);
@@ -350,7 +349,6 @@ fn validate_AST_internal(
         },
         .default => {
             ast.default.expr = try validateAST(ast.default.expr, primitives.type_type, scope, errors, allocator);
-            std.debug.print("{}\n", .{ast.default.expr});
             const ast_type = (try ast.typeof(scope, errors, allocator));
             if (expected != null and !try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
@@ -837,9 +835,8 @@ fn validate_AST_internal(
             } else if (lhs_type.* == .product and !lhs_type.product.was_slice and !try lhs_type.product.is_homotypical(scope, errors, allocator)) {
                 if (ast.index.rhs.* == .int) {
                     // rhs is compile-time known, change to select
-                    var select = try AST.createSelect(ast.getToken(), ast.index.lhs, try AST.createIdentifier(Token.create("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                    var select = (try AST.createSelect(ast.getToken(), ast.index.lhs, try AST.createIdentifier(Token.create("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator), allocator)).assert_valid();
                     select.select.pos = @as(usize, @intCast(ast.index.rhs.int.data));
-                    select.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = select } };
                     return select;
                 } else {
                     // rhs is not int, error
@@ -888,7 +885,7 @@ fn validate_AST_internal(
                 } });
                 return ast.enpoison();
             } else {
-                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                _ = ast.assert_valid();
                 var ast_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
@@ -933,8 +930,7 @@ fn validate_AST_internal(
                         return ast.enpoison();
                     }
                 } else if (term.* == .identifier) {
-                    var new_annotation = try AST.createAnnotation(term.getToken(), term, primitives.unit_type, null, null, allocator);
-                    new_annotation.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = new_annotation } };
+                    const new_annotation = (try AST.createAnnotation(term.getToken(), term, primitives.unit_type, null, null, allocator)).assert_valid();
                     changed = true;
                     try new_terms.append(new_annotation);
                     const name = term.getToken().data;
@@ -986,7 +982,7 @@ fn validate_AST_internal(
                 if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
                     return ast.enpoison();
                 }
-                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                _ = ast.assert_valid();
                 return ast.inject.lhs;
             } else {
                 const domain = try domainof(ast, expected, scope, errors, allocator);
@@ -997,7 +993,7 @@ fn validate_AST_internal(
                 if (ast.inject.lhs.inferredMember.init.?.* == .poison) {
                     return ast.enpoison();
                 }
-                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                _ = ast.assert_valid();
                 return ast.inject.lhs;
             }
         },
@@ -1009,7 +1005,7 @@ fn validate_AST_internal(
             var expanded_expected: ?*AST = if (expected == null) null else try expected.?.expand_type(scope, errors, allocator);
 
             if (expanded_expected != null and expanded_expected.?.* == .product) {
-                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                _ = ast.assert_valid();
                 ast.product.terms = default_args(ast.product.terms, expanded_expected.?, scope, errors, allocator) catch |err| switch (err) {
                     error.NoDefault => std.ArrayList(*AST).init(allocator),
                     error.typeError => return ast.enpoison(),
@@ -1156,7 +1152,7 @@ fn validate_AST_internal(
                     if (ast.addrOf.expr.* == .poison) {
                         return ast.enpoison();
                     }
-                    ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                    _ = ast.assert_valid();
                     if (ast.addrOf.expr.* != .product) {
                         // Validate that expr is an L-value *only if* expr is not a product
                         // It is possible to take a addr of a product. The address is the address of the temporary
@@ -1269,13 +1265,12 @@ fn validate_AST_internal(
                 ast.subSlice.lower = try validateAST(lower, primitives.int_type, scope, errors, allocator);
             } else {
                 ast.subSlice.lower = try AST.createInt(ast.getToken(), 0, allocator);
-                ast.subSlice.lower.?.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast.subSlice.lower.? } };
+                _ = ast.subSlice.lower.?.assert_valid();
             }
             if (ast.subSlice.upper) |upper| {
                 ast.subSlice.upper = try validateAST(upper, primitives.int_type, scope, errors, allocator);
             } else {
-                var length = try AST.createIdentifier(Token.create("length", null, "", "", 0, 0), allocator);
-                length.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = length } };
+                const length = (try AST.createIdentifier(Token.create("length", null, "", "", 0, 0), allocator)).assert_valid();
                 const index = try AST.createSelect(
                     ast.getToken(),
                     ast.subSlice.super,
@@ -1368,7 +1363,7 @@ fn validate_AST_internal(
                 } else if (is_expected_optional) {
                     expected_type = expected_expanded.get_some_type();
                 } else {
-                    ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                    _ = ast.assert_valid();
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return ast.enpoison();
                 }
@@ -1472,7 +1467,7 @@ fn validate_AST_internal(
                         // TODO: Matches should have to be exhaustive, so they would never return none :-)
                         var new_map = try validateAST(mapping, expected.?, ast.match.scope.?, errors, allocator);
                         const new_map_type = try new_map.typeof(scope, errors, allocator);
-                        ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                        _ = ast.assert_valid();
                         errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try AST.create_optional_type(new_map_type, allocator) } });
                         return ast.enpoison();
                     }
@@ -1581,7 +1576,7 @@ fn validate_AST_internal(
                     new_statements.deinit();
                 }
 
-                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } }; // So that the typeof code can be reused. All children should be validated at this point
+                _ = ast.assert_valid(); // So that the typeof code can be reused. All children should be validated at this point
                 var block_type = try ast.typeof(scope, errors, allocator);
                 if (expected != null and !try block_type.typesMatch(expected.?, scope, errors, allocator)) {
                     // std.debug.assert(ast.block.statements.items.len == 0); // is this true? what about a block that ends in a defer? or a decl?
@@ -2135,7 +2130,7 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, scope: *Scope, errors:
             unreachable;
         },
     }
-    pattern.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = pattern } };
+    _ = pattern.assert_valid();
 }
 
 fn indexof(list: *std.ArrayList(usize), elem: usize) ?usize {

@@ -7,6 +7,7 @@ const offsets = @import("offsets.zig");
 const optimizations = @import("optimizations.zig");
 const _span = @import("span.zig");
 const primitives_ = @import("primitives.zig");
+const validation_state_ = @import("validation_state.zig");
 
 const AST = ast.AST;
 const CFG = ir_.CFG;
@@ -208,6 +209,8 @@ pub const SymbolKind = enum {
     }
 };
 
+pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);
+
 var number_of_comptime: usize = 0;
 pub const Symbol = struct {
     scope: *Scope, // Enclosing parent scope
@@ -227,12 +230,7 @@ pub const Symbol = struct {
     discard_span: ?Span,
 
     defined: bool,
-    validation_state: enum { // TODO: Move to common file with AST's
-        unvalidated, // Has not attempted to validate to validate symbol yet
-        validating, // Symbol is currently being validated
-        valid, // Symbol has been validated and is valid. Specifically, the type of the symbol is valid and may be used.
-        invalid,
-    },
+    validation_state: Symbol_Validation_State,
     decld: bool, // When a local variable, whether or not the variable has been printed out or not
     param: bool,
     is_temp: bool = false,
@@ -275,6 +273,11 @@ pub const Symbol = struct {
             self.cfg.?.locals_size = offsets.calculate_offsets(self);
         }
         return self.cfg.?;
+    }
+
+    pub fn assert_valid(self: *Symbol) *Symbol {
+        self.validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
+        return self;
     }
 };
 
