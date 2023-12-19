@@ -78,7 +78,7 @@ pub fn compile(
     const module = Module.compile(contents, in_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
         switch (err) {
             error.lexerError,
-            error.parserError,
+            error.parseError,
             => {
                 try errors.printErrors();
                 return err;

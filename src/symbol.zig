@@ -224,7 +224,7 @@ pub const Symbol = struct {
     discards: u64 = 0, // May be 0 if symbol is uses > 0; may be 1 if uses = 0; may not be greater than 1
     discard_span: ?Span,
 
-    defined: bool,
+    defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,
     decld: bool, // When a local variable, whether or not the variable has been printed out or not
     param: bool,

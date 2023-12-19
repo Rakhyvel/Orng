@@ -21,16 +21,16 @@ int64_t _1268_main(void);
 int64_t _1268_main(void){
     int64_t _1268_t0;
     struct0 _1269_x;
-    int64_t _1268_t4;
-    uint64_t _1268_t6;
+    int64_t _1268_t3;
+    uint64_t _1268_t5;
     int64_t _1268_$retval;
     _1268_t0 = 4;
     _1269_x = (struct0) {.tag=1, ._1=_1268_t0};
     _1269_x = (struct0) {.tag=0};
-    _1268_t4 = 113;
-    _1269_x = (struct0) {.tag=1, ._1=_1268_t4};
-    _1268_t6 = 1;
-    $tag_check(_1268_t6, 1, "tests/integration/optional/optional.orng:2:3:\nfn main() -> Int {\n ^");
+    _1268_t3 = 113;
+    _1269_x = (struct0) {.tag=1, ._1=_1268_t3};
+    _1268_t5 = 1;
+    $tag_check(_1268_t5, 1, "tests/integration/optional/optional.orng:2:3:\nfn main() -> Int {\n ^");
     _1268_$retval = _1269_x._1;
     return _1268_$retval;
 }

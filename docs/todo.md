@@ -82,7 +82,6 @@
     - Remove anything that now doesn't need to pass scope
     - typeof, expand_type, typesMatch
 - [ ] Look into any AST transformations that are being done in validate, move them to expand.zig
-    - Select pos
     - Union expansion to sums
 - [ ] Post-lower pass that searches for unused symbols/call results
 - [ ] Move `reprFromTokenKind` into TokenKind

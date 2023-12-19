@@ -138,12 +138,12 @@ pub const AST = union(enum) {
         rhs: *AST,
         pos: ?usize,
 
-        pub fn offset_at(self: *@This(), errors: *errs_.Errors, allocator: std.mem.Allocator) !i64 {
+        pub fn offset_at(self: *@This(), allocator: std.mem.Allocator) !i64 {
             var lhs_expanded_type = try (try self.lhs.typeof(allocator)).expand_type(allocator);
             if (lhs_expanded_type.* == .product) {
-                return try lhs_expanded_type.product.get_offset(self.pos.?, errors, allocator);
+                return try lhs_expanded_type.product.get_offset(self.pos.?, allocator);
             } else if (lhs_expanded_type.* == .sum) {
-                return try lhs_expanded_type.sum.get_offset(self.pos.?, errors, allocator);
+                return try lhs_expanded_type.sum.get_offset(self.pos.?, allocator);
             } else {
                 std.debug.print("{s}\n", .{@tagName(lhs_expanded_type.*)});
                 unreachable;

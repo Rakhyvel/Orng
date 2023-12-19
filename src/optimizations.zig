@@ -301,7 +301,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("integer constant propagation");
                 ir.kind = .loadInt;
-                ir.data = src1_def.?.data;
+                ir.data = src1_def.?.data; // TODO: Check with the type's bounds and see if data fits
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
@@ -771,7 +771,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("add_int; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = ir_.Data{
-                    .int = if (std.math.add(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
+                    .int = if (std.math.add(i128, src1_def.?.data.int, src2_def.?.data.int)) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
                             .msg = "addition integer overflow",
@@ -839,7 +839,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("sub; known int,int value");
                 ir.kind = .loadInt;
                 ir.data = ir_.Data{
-                    .int = if (std.math.sub(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
+                    .int = if (std.math.sub(i128, src1_def.?.data.int, src2_def.?.data.int)) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
                             .msg = "subtraction integer overflow",
@@ -906,7 +906,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
                 ir.data = ir_.Data{
-                    .int = if (std.math.mul(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
+                    .int = if (std.math.mul(i128, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
                             .msg = "multiplication integer overflow",

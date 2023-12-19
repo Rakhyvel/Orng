@@ -127,7 +127,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
             try term.outputColor(fail_color, "[ ... FAILED ] ", out);
             switch (err) {
                 error.lexerError,
-                error.parserError,
+                error.parseError,
                 error.symbolError,
                 error.typeError,
                 => try out.print("Orng -> C.\n", .{}),
@@ -247,7 +247,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                     try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                     return true;
                 },
-                error.parserError => {
+                error.parseError => {
                     var str = try String.init_with_contents(allocator, filename);
                     defer str.deinit();
                     if (str.find("regression") != null) {
@@ -335,7 +335,7 @@ fn fuzzTests() !void {
                         // try out.print("Orng -> IR. {}\n", .{i});
                         continue;
                     },
-                    error.parserError => {
+                    error.parseError => {
                         failed += 1;
                         try term.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});

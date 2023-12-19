@@ -882,8 +882,11 @@ fn validate_AST_internal(
                 } else if (select_lhs_type.* == .inferred_error) {
                     annot_list = &select_lhs_type.inferred_error.terms;
                 } else {
-                    std.debug.print("{}\n", .{select_lhs_type});
-                    unreachable;
+                    errors.addError(Error{ .basic = .{
+                        .span = ast.getToken().span,
+                        .msg = "left-hand-side of select is not selectable",
+                    } });
+                    return ast.enpoison();
                 }
                 if (ast.select.pos == null) {
                     for (annot_list.items, 0..) |term, i| {
@@ -909,21 +912,13 @@ fn validate_AST_internal(
                 }
             }
 
-            if (select_lhs_type.* != .product and select_lhs_type.* != .sum) {
-                errors.addError(Error{ .basic = .{
-                    .span = ast.getToken().span,
-                    .msg = "left-hand-side of select is not selectable",
-                } });
+            _ = ast.assert_valid();
+            var ast_type = try ast.typeof(allocator);
+            if (expected != null and !try ast_type.typesMatch(expected.?)) {
+                errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
                 return ast.enpoison();
             } else {
-                _ = ast.assert_valid();
-                var ast_type = try ast.typeof(allocator);
-                if (expected != null and !try ast_type.typesMatch(expected.?)) {
-                    errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
-                    return ast.enpoison();
-                } else {
-                    return ast;
-                }
+                return ast;
             }
         },
         .function => {
@@ -1336,6 +1331,8 @@ fn validate_AST_internal(
                 const proper_term: *AST = expected_expanded.sum.terms.items[@as(usize, @intCast(ast.inferredMember.pos.?))];
                 if (proper_term.annotation.init) |_init| {
                     ast.inferredMember.init = _init; // This will be overriden by an inject expression's rhs
+                } else {
+                    ast.inferredMember.init = try AST.generate_default(proper_term, errors, allocator);
                 }
                 return ast;
             }
@@ -1675,7 +1672,6 @@ fn validate_AST_internal(
             }
 
             for (ast.decl.symbols.items) |symbol| {
-                symbol.defined = true;
                 try validateSymbol(symbol, errors, allocator);
             }
 

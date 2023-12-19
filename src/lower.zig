@@ -351,7 +351,7 @@ pub fn lower_AST(
             const fail_label = try ir_.IR.createLabel(cfg, ast.getToken().span, allocator);
             const end_label = try ir_.IR.createLabel(cfg, ast.getToken().span, allocator);
 
-            try generate_tuple_equality(cfg, lhs.?, rhs.?, fail_label, errors, allocator);
+            try generate_tuple_equality(cfg, lhs.?, rhs.?, fail_label, allocator);
 
             cfg.appendInstruction(try ir_.IR.createInt(temp, 1, ast.getToken().span, allocator));
             cfg.appendInstruction(try ir_.IR.createJump(end_label, ast.getToken().span, allocator));
@@ -675,11 +675,8 @@ pub fn lower_AST(
             var init: ?*lval_.L_Value = null;
             const pos: i128 = ast.inferredMember.pos.?;
             const proper_term: *ast_.AST = (try ast.typeof(allocator)).sum.terms.items[@as(usize, @intCast(pos))];
-            if (ast.inferredMember.init) |_init| {
-                init = try lower_AST(cfg, _init, return_label, break_label, continue_label, error_label, errors, allocator);
-            } else if (proper_term.annotation.init == null and proper_term.annotation.type.* != .unit_type) {
-                errors.addError(errs.Error{ .basic = .{ .span = ast.getToken().span, .msg = "no value provided, and no default value available" } });
-                return error.typeError;
+            if (proper_term.annotation.type.* != .unit_type) {
+                init = try lower_AST(cfg, ast.inferredMember.init.?, return_label, break_label, continue_label, error_label, errors, allocator);
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(allocator), allocator);
 
@@ -1034,7 +1031,6 @@ fn generate_tuple_equality(
     lhs: *lval_.L_Value,
     rhs: *lval_.L_Value,
     fail_label: *ir_.IR,
-    errors: *errs.Errors,
     allocator: std.mem.Allocator,
 ) FlattenASTError!void {
     const new_lhs = lhs; // try L_Value.create_unversioned_symbver(lhs.symbol, lhs.symbol._type.?, allocator);
@@ -1047,7 +1043,7 @@ fn generate_tuple_equality(
             const size = (try _type.expand_type(allocator)).sizeof();
             const lhs_select = try lval_.L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, allocator), size, _type, try _type.expand_type(allocator), null, allocator);
             const rhs_select = try lval_.L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, allocator), size, _type, try _type.expand_type(allocator), null, allocator);
-            try generate_tuple_equality(cfg, lhs_select, rhs_select, fail_label, errors, allocator);
+            try generate_tuple_equality(cfg, lhs_select, rhs_select, fail_label, allocator);
         }
     } else if (lhs_type.* == .sum) {
         const lhs_tag = try cfg.create_temp_lvalue(primitives_.word64_type, allocator);

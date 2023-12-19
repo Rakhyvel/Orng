@@ -61,6 +61,10 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
                     return error.symbolError;
                 },
             }
+            if (!ast.identifier.symbol.?.defined) {
+                errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.getToken(), .symbol = ast.identifier.symbol.? } });
+                return error.symbolError;
+            }
         },
 
         ._typeOf => try decorate_identifiers(ast._typeOf.expr, scope, errors, allocator),
@@ -237,6 +241,9 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         .decl => {
             try decorate_identifiers(ast.decl.type, scope, errors, allocator);
             try decorate_identifiers(ast.decl.init, scope, errors, allocator);
+            for (ast.decl.symbols.items) |symbol| {
+                symbol.defined = true;
+            }
         },
         .fnDecl => {
             try decorate_identifiers(ast.fnDecl.init, ast.fnDecl.symbol.?.scope, errors, allocator);

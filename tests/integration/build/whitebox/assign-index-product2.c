@@ -13,56 +13,56 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1815_main(void);
+int64_t _1822_main(void);
 
 /* Function definitions */
-int64_t _1815_main(void){
-    int64_t _1815_t1;
-    int64_t _1815_t2;
-    struct0 _1816_x;
-    int64_t _1815_t4;
-    int64_t _1815_t5;
-    int64_t _1815_t6;
-    int64_t _1815_t7;
-    struct0 _1815_t3;
-    int64_t _1815_t10;
-    int64_t _1815_t11;
-    int64_t _1815_t14;
-    int64_t _1815_t15;
-    int64_t _1815_t16;
-    int64_t _1815_t17;
-    int64_t _1815_t18;
-    int64_t _1815_t19;
-    int64_t _1815_$retval;
-    _1815_t1 = 2;
-    _1815_t2 = 324;
-    _1816_x = (struct0) {_1815_t1, _1815_t2};
-    _1815_t4 = 1;
-    _1815_t5 = 2;
-    _1815_t6 = 0;
-    _1815_t7 = 2;
-    $bounds_check(_1815_t4, _1815_t5, "tests/integration/whitebox/assign-index-product2.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
-    $bounds_check(_1815_t6, _1815_t7, "tests/integration/whitebox/assign-index-product2.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
-    _1815_t3 = (struct0) {(*((int64_t*)&_1816_x + _1815_t4)), (*((int64_t*)&_1816_x + _1815_t6))};
-    _1815_t10 = 0;
-    _1815_t11 = 2;
-    $bounds_check(_1815_t10, _1815_t11, "tests/integration/whitebox/assign-index-product2.orng:4:8:\n    (x[0], x[1]) = (x[1], x[0])\n      ^");
-    *((int64_t*)&_1816_x + _1815_t10) = _1815_t3._0;
-    _1815_t14 = 1;
-    _1815_t15 = 2;
-    $bounds_check(_1815_t14, _1815_t15, "tests/integration/whitebox/assign-index-product2.orng:4:14:\n    (x[0], x[1]) = (x[1], x[0])\n            ^");
-    *((int64_t*)&_1816_x + _1815_t14) = _1815_t3._1;
-    _1815_t16 = 0;
-    _1815_t17 = 2;
-    _1815_t18 = 1;
-    _1815_t19 = 2;
-    $bounds_check(_1815_t16, _1815_t17, "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
-    $bounds_check(_1815_t18, _1815_t19, "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
-    _1815_$retval = $div_int64_t(*((int64_t*)&_1816_x + _1815_t16), *((int64_t*)&_1816_x + _1815_t18), "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
-    return _1815_$retval;
+int64_t _1822_main(void){
+    int64_t _1822_t1;
+    int64_t _1822_t2;
+    struct0 _1823_x;
+    int64_t _1822_t4;
+    int64_t _1822_t5;
+    int64_t _1822_t6;
+    int64_t _1822_t7;
+    struct0 _1822_t3;
+    int64_t _1822_t10;
+    int64_t _1822_t11;
+    int64_t _1822_t14;
+    int64_t _1822_t15;
+    int64_t _1822_t16;
+    int64_t _1822_t17;
+    int64_t _1822_t18;
+    int64_t _1822_t19;
+    int64_t _1822_$retval;
+    _1822_t1 = 2;
+    _1822_t2 = 324;
+    _1823_x = (struct0) {_1822_t1, _1822_t2};
+    _1822_t4 = 1;
+    _1822_t5 = 2;
+    _1822_t6 = 0;
+    _1822_t7 = 2;
+    $bounds_check(_1822_t4, _1822_t5, "tests/integration/whitebox/assign-index-product2.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
+    $bounds_check(_1822_t6, _1822_t7, "tests/integration/whitebox/assign-index-product2.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
+    _1822_t3 = (struct0) {(*((int64_t*)&_1823_x + _1822_t4)), (*((int64_t*)&_1823_x + _1822_t6))};
+    _1822_t10 = 0;
+    _1822_t11 = 2;
+    $bounds_check(_1822_t10, _1822_t11, "tests/integration/whitebox/assign-index-product2.orng:4:8:\n    (x[0], x[1]) = (x[1], x[0])\n      ^");
+    *((int64_t*)&_1823_x + _1822_t10) = _1822_t3._0;
+    _1822_t14 = 1;
+    _1822_t15 = 2;
+    $bounds_check(_1822_t14, _1822_t15, "tests/integration/whitebox/assign-index-product2.orng:4:14:\n    (x[0], x[1]) = (x[1], x[0])\n            ^");
+    *((int64_t*)&_1823_x + _1822_t14) = _1822_t3._1;
+    _1822_t16 = 0;
+    _1822_t17 = 2;
+    _1822_t18 = 1;
+    _1822_t19 = 2;
+    $bounds_check(_1822_t16, _1822_t17, "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
+    $bounds_check(_1822_t18, _1822_t19, "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
+    _1822_$retval = $div_int64_t(*((int64_t*)&_1823_x + _1822_t16), *((int64_t*)&_1823_x + _1822_t18), "tests/integration/whitebox/assign-index-product2.orng:5:11:\n    x[0] / x[1]\n         ^");
+    return _1822_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1815_main());
+  printf("%ld",_1822_main());
   return 0;
 }

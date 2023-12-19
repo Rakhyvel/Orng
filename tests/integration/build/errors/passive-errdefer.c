@@ -57,8 +57,8 @@ int64_t _708_main(void){
 
 struct2 _710_f(int64_t* _710_x,uint8_t _710_fail){
     struct2 _710_$retval;
-    int64_t _710_t6;
-    int64_t _710_t14;
+    int64_t _710_t5;
+    int64_t _710_t12;
     *_710_x = 6;
     if (_710_fail) {
         goto BB8;
@@ -66,10 +66,10 @@ struct2 _710_f(int64_t* _710_x,uint8_t _710_fail){
         goto BB9;
     }
 BB8:
-    _710_t6 = 100;
-    *_710_x = $add_int64_t(*_710_x, _710_t6, "tests/integration/errors/passive-errdefer.orng:14:23:\n        errdefer x^ += 100\n                     ^");
-    _710_t14 = 9;
-    *_710_x = $add_int64_t(*_710_x, _710_t14, "tests/integration/errors/passive-errdefer.orng:11:19:\n    errdefer x^ += 9\n                 ^");
+    _710_t5 = 100;
+    *_710_x = $add_int64_t(*_710_x, _710_t5, "tests/integration/errors/passive-errdefer.orng:14:23:\n        errdefer x^ += 100\n                     ^");
+    _710_t12 = 9;
+    *_710_x = $add_int64_t(*_710_x, _710_t12, "tests/integration/errors/passive-errdefer.orng:11:19:\n    errdefer x^ += 9\n                 ^");
     return _710_$retval;
 BB9:
     _710_$retval = (struct2) {.tag=0};

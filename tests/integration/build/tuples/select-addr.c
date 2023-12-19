@@ -13,27 +13,27 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1769_main(void);
+int64_t _1776_main(void);
 
 /* Function definitions */
-int64_t _1769_main(void){
-    int64_t _1769_t1;
-    int64_t _1769_t2;
-    struct0 _1770_x;
-    struct0* _1769_t4;
-    struct0* _1769_t5;
-    int64_t _1769_$retval;
-    _1769_t1 = 1;
-    _1769_t2 = 2;
-    _1770_x = (struct0) {_1769_t1, _1769_t2};
-    _1769_t4 = &_1770_x;
-    (*_1769_t4)._0 = 76;
-    _1769_t5 = &_1770_x;
-    _1769_$retval = (*_1769_t5)._0;
-    return _1769_$retval;
+int64_t _1776_main(void){
+    int64_t _1776_t1;
+    int64_t _1776_t2;
+    struct0 _1777_x;
+    struct0* _1776_t4;
+    struct0* _1776_t5;
+    int64_t _1776_$retval;
+    _1776_t1 = 1;
+    _1776_t2 = 2;
+    _1777_x = (struct0) {_1776_t1, _1776_t2};
+    _1776_t4 = &_1777_x;
+    (*_1776_t4)._0 = 76;
+    _1776_t5 = &_1777_x;
+    _1776_$retval = (*_1776_t5)._0;
+    return _1776_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1769_main());
+  printf("%ld",_1776_main());
   return 0;
 }
