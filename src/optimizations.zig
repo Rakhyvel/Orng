@@ -299,7 +299,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("integer constant propagation");
                 ir.kind = .loadInt;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
@@ -310,7 +309,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("float constant propagation");
                 ir.kind = .loadFloat;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
@@ -321,7 +319,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("string constant propagation");
                 ir.kind = .loadString;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
@@ -332,7 +329,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("struct constant propagation");
                 ir.kind = .loadStruct;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = null;
                 ir.src2 = null;
@@ -343,7 +339,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("union constant propagation");
                 ir.kind = .loadUnion;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
@@ -354,7 +349,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("symbol constant propagation");
                 ir.kind = .loadSymbol;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
@@ -365,7 +359,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("symbol constant propagation");
                 ir.kind = .loadAST;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
@@ -382,7 +375,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("addrof propagation");
                 ir.kind = .addrOf;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src1 = src1_def.?.src1;
                 ir.src2 = null;
@@ -393,7 +385,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("add propagation");
                 ir.kind = .add_int;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -404,7 +395,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("add propagation");
                 ir.kind = .add_float;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -415,7 +405,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("sub propagation");
                 ir.kind = .sub_int;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -426,7 +415,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("sub propagation");
                 ir.kind = .sub_float;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -437,7 +425,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("mult propagation");
                 ir.kind = .mult_int;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -448,7 +435,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("mult propagation");
                 ir.kind = .mult_float;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -459,7 +445,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("div propagation");
                 ir.kind = .div_int;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -470,7 +455,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("div propagation");
                 ir.kind = .div_float;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -481,7 +465,6 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
                 log("mod propagation");
                 ir.kind = .mod;
                 ir.data = src1_def.?.data;
-                ir.meta = src1_def.?.meta;
                 ir.span = src1_def.?.span;
                 ir.src2 = src1_def.?.src2;
                 ir.src1 = src1_def.?.src1;
@@ -1329,14 +1312,6 @@ fn calculateUsage(cfg: *CFG) void {
                 for (ir.data.lval_list.items) |lval| {
                     calculate_usage_lval(lval);
                 }
-            }
-
-            if (ir.meta == .bounds_check) {
-                ir.meta.bounds_check.length.extract_symbver().uses += 1;
-                ir.meta.bounds_check.length.extract_symbver().symbol.uses += 1;
-            } else if (ir.meta == .active_field_check) {
-                ir.meta.active_field_check.tag.extract_symbver().uses += 1;
-                ir.meta.active_field_check.tag.extract_symbver().symbol.uses += 1;
             }
         }
 

@@ -506,48 +506,6 @@ pub const L_Value = union(enum) {
     }
 };
 
-pub const IRMeta = union(enum) {
-    bounds_check: struct {
-        length: *L_Value, // lower bounds is always 0
-    },
-    active_field_check: struct {
-        tag: *L_Value,
-        selection: usize,
-    },
-
-    none,
-
-    pub fn pprint(self: IRMeta, allocator: std.mem.Allocator) ![]const u8 {
-        var out = String.init(allocator);
-        defer out.deinit();
-
-        switch (self) {
-            .bounds_check => {
-                try out.writer().print("// bounds_check: {}", .{self.bounds_check.length});
-            },
-
-            .active_field_check => {
-                try out.writer().print("// active_field_check: {{tag:{} selection:{}}}", .{ self.active_field_check.tag, self.active_field_check.selection });
-            },
-
-            .none => return "",
-        }
-
-        return (try out.toOwned()).?;
-    }
-
-    pub fn format(self: IRMeta, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
-        _ = options;
-        _ = fmt;
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
-        defer arena.deinit();
-
-        const out = self.pprint(arena.allocator()) catch unreachable;
-
-        try writer.print("{s}", .{out});
-    }
-};
-
 pub const IR = struct {
     uid: u64,
     kind: IRKind,
@@ -556,7 +514,6 @@ pub const IR = struct {
     src2: ?*L_Value,
 
     data: IRData,
-    meta: IRMeta,
     next: ?*IR,
     prev: ?*IR,
 
@@ -579,7 +536,6 @@ pub const IR = struct {
         retval.prev = null;
         retval.next = null;
         retval.data = IRData.none;
-        retval.meta = IRMeta.none;
         retval.span = span;
         retval.allocator = allocator;
         ir_uid += 1;
@@ -2531,22 +2487,6 @@ pub const CFG = struct {
                 unreachable;
             },
         }
-    }
-
-    /// \param ast The index AST
-    fn generate_bounds_check(self: *CFG, scope: *Scope, ast: *AST, lhs: *SymbolVersion, errors: *errs.Errors, allocator: std.mem.Allocator) !IRMeta {
-        const length: *SymbolVersion = try self.create_temp_lvalue(primitives.int_type, errors, allocator);
-        var lhs_type = try lhs.type.expand_type(scope, errors, allocator);
-        if (lhs_type.* == .product and lhs_type.product.was_slice) {
-            const ir = try IR.createSelect(length, lhs, 1, try lhs_type.product.get_offset(1, scope, errors, allocator), ast.index.lhs.getToken().span, allocator);
-            self.appendInstruction(ir);
-        } else if (lhs_type.* == .product and !lhs_type.product.was_slice) {
-            const ir = try IR.createInt(length, lhs_type.product.terms.items.len, ast.getToken().span, allocator);
-            self.appendInstruction(ir);
-        } else {
-            unreachable;
-        }
-        return IRMeta{ .bounds_check = .{ .length = length } };
     }
 
     fn generateDefers(self: *CFG, defers: *std.ArrayList(*AST), deferLabels: *std.ArrayList(*IR), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!void {
