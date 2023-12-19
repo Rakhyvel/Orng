@@ -142,7 +142,7 @@ pub const Scope = struct {
                 continue; // never suggest `_`
             }
 
-            const matches = expected == null or try symbol._type.typesMatch(expected.?, self, &errors, allocator);
+            const matches = expected == null or try symbol._type.typesMatch(expected.?, &errors, allocator);
             const dist = try levenshteinDistance2(allocator, symbol.name, name);
             if (matches and dist <= name.len / 2) {
                 try out.append(key);

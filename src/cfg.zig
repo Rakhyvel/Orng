@@ -67,7 +67,7 @@ pub const CFG = struct {
         retval.symbol = symbol;
         retval.number_temps = 0;
         retval.return_symbol = try symbol_.Symbol.create(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
-        retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(symbol.scope, errors, allocator);
+        retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(errors, allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
         retval.offset = null;
@@ -158,7 +158,7 @@ pub const CFG = struct {
         try buf.writer().print("{}", .{self.number_temps});
         self.number_temps += 1;
         var temp_symbol = try symbol_.Symbol.create(self.symbol.scope, (try buf.toOwned()).?, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, _type, ast_.poisoned, null, .mut, allocator);
-        temp_symbol.expanded_type = try _type.expand_type(self.symbol.scope, errors, allocator);
+        temp_symbol.expanded_type = try _type.expand_type(errors, allocator);
         temp_symbol.is_temp = true;
         return temp_symbol;
     }

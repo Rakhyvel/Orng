@@ -80,6 +80,10 @@
 - [ ] Separate symbol pass to map identifiers to symbols
     - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field
     - Remove anything that now doesn't need to pass scope
+    - Do we need symbol ast?
+- [ ] Look into any AST transformations that are being done in validate, move them to expand.zig
+    - Select pos
+    - Union expansion to sums
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Nothing is indented more than 5 times, excluding switches

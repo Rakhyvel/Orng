@@ -9,7 +9,7 @@ const ir_ = @import("ir.zig");
 const layout = @import("layout.zig");
 const lexer = @import("lexer.zig");
 const Parser = @import("parser.zig").Parser;
-const sum_expand_ = @import("sum-expand.zig");
+const expand_ = @import("expand.zig");
 const symbol_ = @import("symbol.zig");
 const symbol_tree_ = @import("symbol-tree.zig");
 const Span = @import("span.zig").Span;
@@ -123,7 +123,7 @@ pub const Module = struct {
         var file_root = try symbol_.Scope.init(prelude, name, allocator);
         const module = try Module.init(file_root, errors, allocator);
         file_root.module = module;
-        try sum_expand_.expand_sums_from_list(module_ast, errors, allocator);
+        try expand_.expand_from_list(module_ast, errors, allocator);
         try symbol_tree_.symbolTableFromASTList(module_ast, file_root, errors, allocator);
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, errors, allocator);
 

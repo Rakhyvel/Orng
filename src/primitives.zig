@@ -109,10 +109,10 @@ pub fn get_scope() !*Scope {
         prelude = try Scope.init(null, "", std.heap.page_allocator);
 
         // Create Symbols for primitives
-        _ = try create_prelude_symbol("String", type_type, byte_slice_type, true);
-        _ = try create_prelude_symbol("Type", type_type, null, true);
-        _ = try create_prelude_symbol("Void", type_type, null, true);
-        blackhole = try create_prelude_symbol("_", unit_type, try AST.createUnitValue(Token.create_simple("{}"), std.heap.page_allocator), true);
+        _ = try create_prelude_symbol("String", type_type, byte_slice_type);
+        _ = try create_prelude_symbol("Type", type_type, type_type);
+        _ = try create_prelude_symbol("Void", type_type, void_type);
+        blackhole = try create_prelude_symbol("_", unit_type, unit_type);
 
         // Setup default values
         const default_bool = try AST.createFalse(Token.create_simple("false"), std.heap.page_allocator);
@@ -145,9 +145,9 @@ pub fn get_scope() !*Scope {
         try create_info("String", null, "NO C EQUIVALENT!", string_type, byte_slice_type, .none, .none, default_string, 0);
         try create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .eq, .type, null, 8);
         try create_info("Void", null, "NO C EQUIVALENT!", void_type, null, .none, .none, null, 0);
-        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", int16_type, null, .num, .unsigned_integer, default_word16, 2);
-        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", int32_type, null, .num, .unsigned_integer, default_word32, 4);
-        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", int64_type, null, .num, .unsigned_integer, default_word64, 8);
+        try create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", word16_type, null, .num, .unsigned_integer, default_word16, 2);
+        try create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", word32_type, null, .num, .unsigned_integer, default_word32, 4);
+        try create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", word64_type, null, .num, .unsigned_integer, default_word64, 8);
 
         default_int8.int.represents = int8_type;
         default_int16.int.represents = int16_type;
@@ -184,7 +184,7 @@ fn create_info(
     default_value: ?*AST, // Optional AST of default value for the primitive
     size: i64, // Size of values of the type in bytes
 ) !void {
-    const symbol = try create_prelude_symbol(name, type_type, alias, true);
+    const symbol = try create_prelude_symbol(name, type_type, alias orelse _ast);
     _ast.identifier.symbol = symbol;
     try primitives.put(name, Primitive_Info{
         .name = name,
@@ -199,18 +199,18 @@ fn create_info(
     });
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *AST, init: ?*AST, is_temp: bool) !*Symbol {
+fn create_prelude_symbol(name: []const u8, _type: *AST, init: *AST) !*Symbol {
     var symbol = (try Symbol.create(
         prelude.?,
         name,
         Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
         _type,
-        init orelse ast.poisoned,
+        init,
         null,
         ._const,
         std.heap.page_allocator,
     )).assert_valid();
-    symbol.is_temp = is_temp;
+    symbol.is_temp = true;
     symbol.expanded_type = _type;
     try prelude.?.symbols.put(name, symbol);
     return symbol;

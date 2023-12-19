@@ -160,11 +160,10 @@ pub const IR = struct {
         src1: ?*lval_.L_Value,
         src2: ?*lval_.L_Value,
         span: span_.Span,
-        scope: *symbol_.Scope,
         errors: *errs.Errors,
         allocator: std.mem.Allocator,
     ) !*IR {
-        if (try src1.?.get_type().can_represent_float(scope, errors, allocator)) {
+        if (try src1.?.get_type().can_represent_float(errors, allocator)) {
             return try create(float_kind, dest, src1, src2, span, allocator);
         } else {
             return try create(int_kind, dest, src1, src2, span, allocator);

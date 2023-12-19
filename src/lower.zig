@@ -114,7 +114,7 @@ pub fn lower_AST(
                 ir.data = ir_.Data{ .symbol = symbol };
                 cfg.appendInstruction(ir);
                 return lval;
-            } else if (try symbol.expanded_type.?.typesMatch(primitives_.type_type, scope, errors, allocator)) {
+            } else if (try symbol.expanded_type.?.typesMatch(primitives_.type_type, errors, allocator)) {
                 const lval = try cfg.create_temp_lvalue(symbol._type, errors, allocator);
                 cfg.appendInstruction(try ir_.IR.create_ast(lval, ast, ast.getToken().span, allocator));
                 return lval;
@@ -167,7 +167,7 @@ pub fn lower_AST(
             }
             var temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create(if (try temp.get_type().can_represent_float(scope, errors, allocator)) .negate_float else .negate_int, temp, expr, null, ast.getToken().span, allocator);
+            const ir = try ir_.IR.create(if (try temp.get_type().can_represent_float(errors, allocator)) .negate_float else .negate_int, temp, expr, null, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -177,8 +177,8 @@ pub fn lower_AST(
                 return null;
             }
             const _type = try ast.typeof(scope, errors, allocator);
-            const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-            const temp = try lval_.L_Value.create_dereference(expr.?, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+            const size = (try _type.expand_type(errors, allocator)).sizeof();
+            const temp = try lval_.L_Value.create_dereference(expr.?, size, _type, try _type.expand_type(errors, allocator), allocator);
             return temp;
         },
         ._try => {
@@ -187,7 +187,7 @@ pub fn lower_AST(
             const end = try ir_.IR.createLabel(cfg, ast.getToken().span, allocator);
             const err = try ir_.IR.createLabel(cfg, ast.getToken().span, allocator);
 
-            var expanded_expr_type = try expr.get_type().expand_type(scope, errors, allocator);
+            var expanded_expr_type = try expr.get_type().expand_type(errors, allocator);
             // Trying error sum, runtime check if error, branch to error path
             const condition = try cfg.create_temp_lvalue(primitives_.word64_type, errors, allocator);
             cfg.appendInstruction(try ir_.IR.createGetTag(condition, expr, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
@@ -201,7 +201,7 @@ pub fn lower_AST(
             // Else, store the error in retval, return through error
             cfg.appendInstruction(err);
 
-            const ok_lval = try lval_.L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().sizeof(), expanded_expr_type.get_ok_type(), try expanded_expr_type.get_ok_type().expand_type(scope, errors, allocator), null, allocator);
+            const ok_lval = try lval_.L_Value.create_select(expr, 0, 0, expanded_expr_type.get_ok_type().sizeof(), expanded_expr_type.get_ok_type(), try expanded_expr_type.get_ok_type().expand_type(errors, allocator), null, allocator);
             cfg.appendInstruction(try ir_.IR.createJump(end, ast.getToken().span, allocator));
             cfg.appendInstruction(end);
 
@@ -304,7 +304,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.add_int, .add_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.add_int, .add_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -316,7 +316,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.sub_int, .sub_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.sub_int, .sub_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -328,7 +328,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.mult_int, .mult_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.mult_int, .mult_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -340,7 +340,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.div_int, .div_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.div_int, .div_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -386,7 +386,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const lhs_type = try (try ast.not_equal.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+            const lhs_type = try (try ast.not_equal.lhs.typeof(scope, errors, allocator)).expand_type(errors, allocator);
             if (lhs_type.* == .sum) {
                 const lhs_tag = try cfg.create_temp_lvalue(primitives_.word64_type, errors, allocator);
                 const rhs_tag = try cfg.create_temp_lvalue(primitives_.word64_type, errors, allocator);
@@ -406,7 +406,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.greater_int, .greater_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.greater_int, .greater_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -418,7 +418,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.lesser_int, .lesser_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.lesser_int, .lesser_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -430,7 +430,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.greater_equal_int, .greater_equal_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.greater_equal_int, .greater_equal_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -442,7 +442,7 @@ pub fn lower_AST(
             }
             const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
 
-            const ir = try ir_.IR.create_int_float_kind(.lesser_equal_int, .lesser_equal_float, temp, lhs, rhs, ast.getToken().span, scope, errors, allocator);
+            const ir = try ir_.IR.create_int_float_kind(.lesser_equal_int, .lesser_equal_float, temp, lhs, rhs, ast.getToken().span, errors, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -473,8 +473,8 @@ pub fn lower_AST(
 
             // tag was `.ok`, store lhs.some in temp
             const _type = try ast.typeof(scope, errors, allocator);
-            const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-            const val = try lval_.L_Value.create_select(lhs, 0, 0, size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
+            const size = (try _type.expand_type(errors, allocator)).sizeof();
+            const val = try lval_.L_Value.create_select(lhs, 0, 0, size, _type, try _type.expand_type(errors, allocator), null, allocator);
             const some_lval = try lval_.L_Value.create_unversioned_symbver(symbol, allocator);
             cfg.appendInstruction(try ir_.IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
 
@@ -503,9 +503,9 @@ pub fn lower_AST(
 
             // tag was `.some`, store lhs.some in temp
             const _type = try ast.typeof(scope, errors, allocator);
-            const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-            const offset = try (try lhs.get_type().expand_type(scope, errors, allocator)).sum.get_offset(1, scope, errors, allocator);
-            const val = try lval_.L_Value.create_select(lhs, 1, offset, size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
+            const size = (try _type.expand_type(errors, allocator)).sizeof();
+            const offset = try (try lhs.get_type().expand_type(errors, allocator)).sum.get_offset(1, errors, allocator);
+            const val = try lval_.L_Value.create_select(lhs, 1, offset, size, _type, try _type.expand_type(errors, allocator), null, allocator);
             const some_lval = try lval_.L_Value.create_unversioned_symbver(symbol, allocator);
             cfg.appendInstruction(try ir_.IR.create_simple_copy(some_lval, val, ast.getToken().span, allocator));
             cfg.appendInstruction(try ir_.IR.createJump(end_label, ast.getToken().span, allocator));
@@ -542,10 +542,10 @@ pub fn lower_AST(
         },
         .index => {
             const _type = try ast.typeof(scope, errors, allocator);
-            const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
+            const size = (try _type.expand_type(errors, allocator)).sizeof();
 
             // Get the type of the index ast. This will determine if this is an array index or a slice index
-            const ast_expanded_type = try (try ast.index.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+            const ast_expanded_type = try (try ast.index.lhs.typeof(scope, errors, allocator)).expand_type(errors, allocator);
 
             // Flatten index expr
             const rhs = try lower_AST(cfg, scope, ast.index.rhs, return_label, break_label, continue_label, error_label, errors, allocator);
@@ -557,15 +557,15 @@ pub fn lower_AST(
             if (ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
                 const addr_type = ast_expanded_type.product.terms.items[0];
-                const addr_size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-                ast_lval = try lval_.L_Value.create_select(ast_lval.?, 0, 0, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), null, allocator);
-                ast_lval = try lval_.L_Value.create_dereference(ast_lval.?, addr_size, addr_type, try _type.expand_type(scope, errors, allocator), allocator);
+                const addr_size = (try _type.expand_type(errors, allocator)).sizeof();
+                ast_lval = try lval_.L_Value.create_select(ast_lval.?, 0, 0, addr_size, addr_type, try _type.expand_type(errors, allocator), null, allocator);
+                ast_lval = try lval_.L_Value.create_dereference(ast_lval.?, addr_size, addr_type, try _type.expand_type(errors, allocator), allocator);
             }
 
             // Do bounds-check
             var length: *lval_.L_Value = undefined;
             if (ast_expanded_type.* == .product and ast_expanded_type.product.was_slice) {
-                const offset = try ast_expanded_type.product.get_offset(1, scope, errors, allocator);
+                const offset = try ast_expanded_type.product.get_offset(1, errors, allocator);
                 length = try lval_.L_Value.create_select(pre_ast_lval.?, 1, offset, 8, primitives_.int64_type, primitives_.int64_type, null, allocator);
             } else if (ast_expanded_type.* == .product and !ast_expanded_type.product.was_slice) {
                 length = try cfg.create_temp_lvalue(primitives_.int_type, errors, allocator);
@@ -576,18 +576,18 @@ pub fn lower_AST(
             }
 
             // Surround with L_Value node
-            return try lval_.L_Value.create_index(ast_lval.?, rhs.?, length, size, _type, try _type.expand_type(scope, errors, allocator), allocator);
+            return try lval_.L_Value.create_index(ast_lval.?, rhs.?, length, size, _type, try _type.expand_type(errors, allocator), allocator);
         },
         .select => {
             // Recursively get select's ast L_Value node
             const ast_lval = try lower_AST(cfg, scope, ast.select.lhs, return_label, break_label, continue_label, error_label, errors, allocator);
 
             // Get the offset into the struct that this select does
-            var lhs_expanded_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+            var lhs_expanded_type = try (try ast.select.lhs.typeof(scope, errors, allocator)).expand_type(errors, allocator);
             const offset = if (lhs_expanded_type.* == .product)
-                try lhs_expanded_type.product.get_offset(ast.select.pos.?, scope, errors, allocator)
+                try lhs_expanded_type.product.get_offset(ast.select.pos.?, errors, allocator)
             else
-                try lhs_expanded_type.sum.get_offset(ast.select.pos.?, scope, errors, allocator);
+                try lhs_expanded_type.sum.get_offset(ast.select.pos.?, errors, allocator);
 
             var tag: ?*lval_.L_Value = null;
             if (lhs_expanded_type.* == .sum) {
@@ -598,11 +598,11 @@ pub fn lower_AST(
 
             // Surround with L_Value node
             const _type = try ast.typeof(scope, errors, allocator);
-            const expanded_type = try _type.expand_type(scope, errors, allocator);
+            const expanded_type = try _type.expand_type(errors, allocator);
             return try lval_.L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, expanded_type.sizeof(), _type, expanded_type, tag, allocator);
         },
         .product => {
-            if (try (try ast.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(primitives_.type_type, scope, errors, allocator)) {
+            if (try (try ast.product.terms.items[0].typeof(scope, errors, allocator)).typesMatch(primitives_.type_type, errors, allocator)) {
                 const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
                 cfg.appendInstruction(try ir_.IR.create_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
@@ -624,7 +624,7 @@ pub fn lower_AST(
 
         // Fancy Operators
         .addrOf => {
-            if (try (try ast.typeof(scope, errors, allocator)).typesMatch(primitives_.type_type, scope, errors, allocator)) {
+            if (try (try ast.typeof(scope, errors, allocator)).typesMatch(primitives_.type_type, errors, allocator)) {
                 const temp = try cfg.create_temp_lvalue(try ast.typeof(scope, errors, allocator), errors, allocator);
                 cfg.appendInstruction(try ir_.IR.create_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
@@ -669,8 +669,8 @@ pub fn lower_AST(
 
             const slice_type = try ast.typeof(scope, errors, allocator);
             const data_type = slice_type.product.terms.items[0];
-            const size = (try data_type.expand_type(scope, errors, allocator)).sizeof();
-            const data_ptr = try lval_.L_Value.create_select(arr, 0, 0, size, data_type, try data_type.expand_type(scope, errors, allocator), null, allocator);
+            const size = (try data_type.expand_type(errors, allocator)).sizeof();
+            const data_ptr = try lval_.L_Value.create_select(arr, 0, 0, size, data_type, try data_type.expand_type(errors, allocator), null, allocator);
 
             const new_data_ptr = try cfg.create_temp_lvalue(data_type, errors, allocator);
             const new_data_ptr_ir = try ir_.IR.create(.add_int, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator);
@@ -953,7 +953,7 @@ pub fn lower_AST(
                 if (ast.block.final) |final| {
                     temp = try lower_AST(cfg, ast.block.scope.?, final, current_return_label, current_break_label, current_continue_label, current_error_label, errors, allocator);
                 } else if (temp) |_temp| {
-                    const expanded_temp_type = try _temp.get_type().expand_type(scope, errors, allocator);
+                    const expanded_temp_type = try _temp.get_type().expand_type(errors, allocator);
                     if (current_error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
                         // Returning error sum, runtime check if error, branch to error path
                         const condition = try cfg.create_temp_lvalue(primitives_.word64_type, errors, allocator);
@@ -988,7 +988,7 @@ pub fn lower_AST(
             if (def == null) {
                 return null;
             }
-            try generate_pattern(cfg, scope, ast.decl.pattern, try ast.decl.type.expand_type(scope, errors, allocator), def.?, errors, allocator);
+            try generate_pattern(cfg, scope, ast.decl.pattern, try ast.decl.type.expand_type(errors, allocator), def.?, errors, allocator);
             return null;
         },
         .fnDecl => {
@@ -1023,7 +1023,7 @@ pub fn lower_AST(
                 const retval_copy = try ir_.IR.create_simple_copy(retval_lval, retval, ast.getToken().span, allocator);
                 cfg.appendInstruction(retval_copy);
 
-                const expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+                const expanded_expr_type = try (try expr.typeof(scope, errors, allocator)).expand_type(errors, allocator);
                 if (expanded_expr_type.* == .sum and expanded_expr_type.sum.was_error) {
                     // Returning error sum, runtime check if error, branch to error path
                     const condition = try cfg.create_temp_lvalue(primitives_.word64_type, errors, allocator);
@@ -1059,13 +1059,13 @@ fn generate_tuple_equality(
     const new_lhs = lhs; // try L_Value.create_unversioned_symbver(lhs.symbol, lhs.symbol._type.?, allocator);
     const new_rhs = rhs; // try L_Value.create_unversioned_symbver(rhs.symbol, rhs.symbol._type.?, allocator);
     const temp = try cfg.create_temp_lvalue(primitives_.bool_type, errors, allocator);
-    var lhs_type = try lhs.get_type().expand_type(scope, errors, allocator);
+    var lhs_type = try lhs.get_type().expand_type(errors, allocator);
     if (lhs_type.* == .product) {
         for (0..lhs_type.product.terms.items.len) |i| {
             const _type = lhs_type.product.terms.items[i];
-            const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-            const lhs_select = try lval_.L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
-            const rhs_select = try lval_.L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
+            const size = (try _type.expand_type(errors, allocator)).sizeof();
+            const lhs_select = try lval_.L_Value.create_select(new_lhs, i, try lhs_type.product.get_offset(i, errors, allocator), size, _type, try _type.expand_type(errors, allocator), null, allocator);
+            const rhs_select = try lval_.L_Value.create_select(new_rhs, i, try lhs_type.product.get_offset(i, errors, allocator), size, _type, try _type.expand_type(errors, allocator), null, allocator);
             try generate_tuple_equality(cfg, scope, lhs_select, rhs_select, fail_label, errors, allocator);
         }
     } else if (lhs_type.* == .sum) {
@@ -1099,15 +1099,15 @@ fn generate_assign(
         // product-assigns may be nested, for example:
         //     ((x, y), (a, b)) = get_tuple()
         // So it's important that this is recursive
-        var lhs_expanded_type = try (try lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
+        var lhs_expanded_type = try (try lhs.typeof(scope, errors, allocator)).expand_type(errors, allocator);
         for (lhs.product.terms.items, 0..) |term, i| {
             const product_lhs = try lower_AST(cfg, scope, term, return_label, break_label, continue_label, error_label, errors, allocator);
             if (product_lhs == null) {
                 continue;
             }
             const _type = rhs.get_type().product.terms.items[i];
-            const size = (try _type.expand_type(scope, errors, allocator)).sizeof();
-            const select = try lval_.L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, scope, errors, allocator), size, _type, try _type.expand_type(scope, errors, allocator), null, allocator);
+            const size = (try _type.expand_type(errors, allocator)).sizeof();
+            const select = try lval_.L_Value.create_select(rhs, i, try lhs_expanded_type.product.get_offset(i, errors, allocator), size, _type, try _type.expand_type(errors, allocator), null, allocator);
             _ = try generate_assign(cfg, scope, term, select, return_label, break_label, continue_label, error_label, errors, allocator);
         }
         return null;
@@ -1140,16 +1140,16 @@ fn generate_pattern(
     } else if (pattern.* == .product) {
         for (pattern.product.terms.items, 0..) |term, i| {
             const subscript_type = _type.product.terms.items[i];
-            const size = (try subscript_type.expand_type(scope, errors, allocator)).sizeof();
-            const offset = try _type.product.get_offset(i, scope, errors, allocator);
-            const lval = try lval_.L_Value.create_select(def, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), null, allocator);
+            const size = (try subscript_type.expand_type(errors, allocator)).sizeof();
+            const offset = try _type.product.get_offset(i, errors, allocator);
+            const lval = try lval_.L_Value.create_select(def, i, offset, size, subscript_type, try subscript_type.expand_type(errors, allocator), null, allocator);
             try generate_pattern(cfg, scope, term, subscript_type, lval, errors, allocator);
         }
     } else if (pattern.* == .inject) {
         const lhs_type = try pattern.inject.lhs.typeof(scope, errors, allocator);
         const domain = try validate_.domainof(pattern, lhs_type, scope, errors, allocator);
-        const size = (try domain.expand_type(scope, errors, allocator)).sizeof();
-        const lval = try lval_.L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, try domain.expand_type(scope, errors, allocator), null, allocator);
+        const size = (try domain.expand_type(errors, allocator)).sizeof();
+        const lval = try lval_.L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, try domain.expand_type(errors, allocator), null, allocator);
         try generate_pattern(cfg, scope, pattern.inject.rhs, domain, lval, errors, allocator);
     }
 }
@@ -1195,10 +1195,10 @@ fn generate_match_pattern_check(
         .product => {
             for (pattern.?.product.terms.items, 0..) |term, i| {
                 const subscript_type = new_expr.get_type().product.terms.items[i];
-                const size = (try subscript_type.expand_type(scope, errors, allocator)).sizeof();
-                const pattern_type = try (try pattern.?.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
-                const offset = try pattern_type.product.get_offset(i, scope, errors, allocator);
-                const lval = try lval_.L_Value.create_select(new_expr, i, offset, size, subscript_type, try subscript_type.expand_type(scope, errors, allocator), null, allocator);
+                const size = (try subscript_type.expand_type(errors, allocator)).sizeof();
+                const pattern_type = try (try pattern.?.typeof(scope, errors, allocator)).expand_type(errors, allocator);
+                const offset = try pattern_type.product.get_offset(i, errors, allocator);
+                const lval = try lval_.L_Value.create_select(new_expr, i, offset, size, subscript_type, try subscript_type.expand_type(errors, allocator), null, allocator);
                 try generate_match_pattern_check(cfg, scope, term, lval, next_pattern, return_label, break_label, continue_label, error_label, errors, allocator);
             }
         },
