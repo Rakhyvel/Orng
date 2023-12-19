@@ -79,7 +79,7 @@ pub const CFG = struct {
             try caller_node.children.append(retval);
         }
 
-        const eval: ?*lval_.L_Value = try lower_.lower_AST(retval, symbol.scope, symbol.init, null, null, null, null, errors, allocator);
+        const eval: ?*lval_.L_Value = try lower_.lower_AST(retval, symbol.init, null, null, null, null, errors, allocator);
         if (retval.symbol.decl.?.* == .fnDecl) {
             // `_comptime` symbols don't have parameters anyway
             for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {

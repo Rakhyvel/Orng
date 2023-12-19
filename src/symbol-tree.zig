@@ -33,8 +33,6 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
         ._unreachable,
         ._true,
         ._false,
-        ._break,
-        ._continue,
         .inferredMember,
         .poison,
         .symbol,
@@ -42,12 +40,39 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
         .sizeOf,
         => {},
 
+        ._break => {
+            if (!scope.in_loop) {
+                errors.addError(errs_.Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "`break` must be inside a loop",
+                } });
+                return error.symbolError;
+            }
+        },
+
+        ._continue => {
+            if (!scope.in_loop) {
+                errors.addError(errs_.Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "`continue` must be inside a loop",
+                } });
+                return error.symbolError;
+            }
+        },
+
         ._typeOf => try symbolTableFromAST(ast._typeOf.expr, scope, errors, allocator),
         .default => try symbolTableFromAST(ast.default.expr, scope, errors, allocator),
         .not => try symbolTableFromAST(ast.not.expr, scope, errors, allocator),
         .negate => try symbolTableFromAST(ast.negate.expr, scope, errors, allocator),
         .dereference => try symbolTableFromAST(ast.dereference.expr, scope, errors, allocator),
-        ._try => try symbolTableFromAST(ast._try.expr, scope, errors, allocator),
+        ._try => {
+            if (scope.inner_function == null) {
+                errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
+                return error.symbolError;
+            }
+            ast._try.function = scope.inner_function;
+            try symbolTableFromAST(ast._try.expr, scope, errors, allocator);
+        },
         .discard => try symbolTableFromAST(ast.discard.expr, scope, errors, allocator),
         ._comptime => {
             const symbol = try create_temp_comptime_symbol(ast, null, scope, errors, allocator);
@@ -233,7 +258,17 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
             }
         },
 
-        ._return => try symbolTableFromAST(ast._return.expr, scope, errors, allocator),
+        ._return => {
+            if (scope.in_function == 0 or scope.inner_function == null) {
+                errors.addError(errs_.Error{ .basic = .{
+                    .span = ast.getToken().span,
+                    .msg = "`return` must be inside in a function",
+                } });
+                return error.symbolError;
+            }
+            ast._return.function = scope.inner_function;
+            try symbolTableFromAST(ast._return.expr, scope, errors, allocator);
+        },
         .decl => {
             // Both put a Symbol in the current scope, and recurse
             try create_symbol(&ast.decl.symbols, ast.decl.pattern, ast.decl.type, ast.decl.init, scope, errors, allocator);
@@ -271,8 +306,14 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
             }
             ast.fnDecl.symbol = symbol;
         },
-        ._defer => try symbolTableFromAST(ast._defer.statement, scope, errors, allocator),
-        ._errdefer => try symbolTableFromAST(ast._errdefer.statement, scope, errors, allocator),
+        ._defer => {
+            try scope.defers.append(ast._defer.statement);
+            try symbolTableFromAST(ast._defer.statement, scope, errors, allocator);
+        },
+        ._errdefer => {
+            try scope.errdefers.append(ast._errdefer.statement);
+            try symbolTableFromAST(ast._errdefer.statement, scope, errors, allocator);
+        },
     }
 }
 

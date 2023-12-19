@@ -85,9 +85,12 @@
     - Select pos
     - Union expansion to sums
 - [ ] Move `reprFromTokenKind` into TokenKind
+- [ ] Create a `Labels` struct for lower, to simplify things
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Nothing is indented more than 5 times, excluding switches
 - [ ] In import graph, 1.5 <= (E+1)/N <= 4.0
+    - Remove unused imports
+    - Sort imports, remove type-renamings
     - Split files into "data structres" which define data strcutres, and "processes" which act on data structures
     - Files can only import data structure files
     - Process files can only be imported by main.zig, test.zig, and module.zig

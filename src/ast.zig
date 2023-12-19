@@ -6,7 +6,6 @@ const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const tokens_ = @import("token.zig");
-const validate_ = @import("validate.zig");
 const validation_state_ = @import("validation_state.zig");
 
 pub const AST_Validation_State = validation_state_.Validation_State(*AST);
@@ -101,7 +100,11 @@ pub const AST = union(enum) {
     not: struct { common: ASTCommon, expr: *AST },
     negate: struct { common: ASTCommon, expr: *AST },
     dereference: struct { common: ASTCommon, expr: *AST },
-    _try: struct { common: ASTCommon, expr: *AST },
+    _try: struct {
+        common: ASTCommon,
+        expr: *AST,
+        function: ?*symbol_.Symbol, // `try`'s must be in functions. This is the function's symbol.
+    },
     discard: struct { common: ASTCommon, expr: *AST },
     _comptime: struct {
         common: ASTCommon,
@@ -135,12 +138,12 @@ pub const AST = union(enum) {
         rhs: *AST,
         pos: ?usize,
 
-        pub fn offset_at(self: *@This(), scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !i64 {
-            var lhs_expanded_type = try (try self.lhs.typeof(scope, errors, allocator)).expand_type(errors, allocator);
+        pub fn offset_at(self: *@This(), errors: *errs_.Errors, allocator: std.mem.Allocator) !i64 {
+            var lhs_expanded_type = try (try self.lhs.typeof(errors, allocator)).expand_type(errors, allocator);
             if (lhs_expanded_type.* == .product) {
-                return try lhs_expanded_type.product.get_offset(self.pos.?, scope, errors, allocator);
+                return try lhs_expanded_type.product.get_offset(self.pos.?, errors, allocator);
             } else if (lhs_expanded_type.* == .sum) {
-                return try lhs_expanded_type.sum.get_offset(self.pos.?, scope, errors, allocator);
+                return try lhs_expanded_type.sum.get_offset(self.pos.?, errors, allocator);
             } else {
                 std.debug.print("{s}\n", .{@tagName(lhs_expanded_type.*)});
                 unreachable;
@@ -335,7 +338,11 @@ pub const AST = union(enum) {
     _break: struct { common: ASTCommon },
     _continue: struct { common: ASTCommon },
     _unreachable: struct { common: ASTCommon },
-    _return: struct { common: ASTCommon, expr: ?*AST },
+    _return: struct {
+        common: ASTCommon,
+        expr: ?*AST,
+        function: ?*symbol_.Symbol, // `retrun`'s must be in functions. This is the function's symbol.
+    },
     symbol: struct {
         common: ASTCommon,
         name: []const u8,
@@ -615,7 +622,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createTry(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._try = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+        return try AST.box(AST{ ._try = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .function = null } }, allocator);
     }
 
     pub fn createDiscard(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
@@ -807,7 +814,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createReturn(token: tokens_.Token, expr: ?*AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
+        return try AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .function = null } }, allocator);
     }
 
     pub fn createSymbol(token: tokens_.Token, kind: symbol_.SymbolKind, name: []const u8, allocator: std.mem.Allocator) !*AST {
@@ -1156,7 +1163,7 @@ pub const AST = union(enum) {
     }
 
     // Must always return a valid type!
-    pub fn typeof(self: *AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !*AST {
+    pub fn typeof(self: *AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*AST {
         // std.debug.assert(self.getCommon().validation_state != .unvalidated);
         if (self.getCommon()._type) |_type| {
             return _type;
@@ -1219,27 +1226,27 @@ pub const AST = union(enum) {
             => retval = primitives_.void_type,
 
             // Binary operators
-            .add => retval = try self.add.lhs.typeof(scope, errors, allocator),
-            .sub => retval = try self.sub.lhs.typeof(scope, errors, allocator),
-            .mult => retval = try self.mult.lhs.typeof(scope, errors, allocator),
-            .div => retval = try self.div.lhs.typeof(scope, errors, allocator),
-            .mod => retval = try self.mod.lhs.typeof(scope, errors, allocator),
-            ._catch => retval = try self._catch.rhs.typeof(scope, errors, allocator),
-            ._orelse => retval = try self._orelse.rhs.typeof(scope, errors, allocator),
+            .add => retval = try self.add.lhs.typeof(errors, allocator),
+            .sub => retval = try self.sub.lhs.typeof(errors, allocator),
+            .mult => retval = try self.mult.lhs.typeof(errors, allocator),
+            .div => retval = try self.div.lhs.typeof(errors, allocator),
+            .mod => retval = try self.mod.lhs.typeof(errors, allocator),
+            ._catch => retval = try self._catch.rhs.typeof(errors, allocator),
+            ._orelse => retval = try self._orelse.rhs.typeof(errors, allocator),
 
             .product => {
-                var first_type = try self.product.terms.items[0].typeof(scope, errors, allocator);
+                var first_type = try self.product.terms.items[0].typeof(errors, allocator);
                 if (try first_type.typesMatch(primitives_.type_type, errors, allocator)) {
                     // typeof product type is Type
                     retval = primitives_.type_type;
                 } else if (self.product.was_slice) {
                     var addr: *AST = self.product.terms.items[0];
-                    retval = try create_slice_type(try addr.addrOf.expr.typeof(scope, errors, allocator), addr.addrOf.mut, allocator);
+                    retval = try create_slice_type(try addr.addrOf.expr.typeof(errors, allocator), addr.addrOf.mut, allocator);
                     retval.product.was_slice = true;
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
                     for (self.product.terms.items) |term| {
-                        const term_type = try term.typeof(scope, errors, allocator);
+                        const term_type = try term.typeof(errors, allocator);
                         try terms.append(term_type);
                     }
                     retval = try AST.createProduct(self.getToken(), terms, allocator);
@@ -1248,7 +1255,7 @@ pub const AST = union(enum) {
             },
 
             .index => {
-                var lhs_type = try self.index.lhs.typeof(scope, errors, allocator);
+                var lhs_type = try self.index.lhs.typeof(errors, allocator);
                 if (try lhs_type.typesMatch(primitives_.type_type, errors, allocator) and self.index.lhs.* == .product) {
                     retval = self.index.lhs.product.terms.items[0];
                 } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
@@ -1268,7 +1275,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = (try self.select.lhs.typeof(scope, errors, allocator)).expand_identifier();
+                var select_lhs_type = (try self.select.lhs.typeof(errors, allocator)).expand_identifier();
                 var annot_list: *std.ArrayList(*AST) = undefined;
                 if (select_lhs_type.* == .product) {
                     annot_list = &select_lhs_type.product.terms;
@@ -1314,13 +1321,13 @@ pub const AST = union(enum) {
             },
 
             // Unary Operators
-            .negate => retval = try self.negate.expr.typeof(scope, errors, allocator),
+            .negate => retval = try self.negate.expr.typeof(errors, allocator),
             .dereference => {
-                const _type = (try self.dereference.expr.typeof(scope, errors, allocator)).expand_identifier();
+                const _type = (try self.dereference.expr.typeof(errors, allocator)).expand_identifier();
                 retval = _type.addrOf.expr;
             },
             .addrOf => {
-                var child_type = try self.addrOf.expr.typeof(scope, errors, allocator);
+                var child_type = try self.addrOf.expr.typeof(errors, allocator);
                 if (try child_type.typesMatch(primitives_.type_type, errors, allocator)) {
                     retval = primitives_.type_type;
                 } else {
@@ -1328,7 +1335,7 @@ pub const AST = union(enum) {
                 }
             },
             .sliceOf => {
-                var expr_type = try self.sliceOf.expr.typeof(scope, errors, allocator);
+                var expr_type = try self.sliceOf.expr.typeof(errors, allocator);
                 if (expr_type.* != .product or !try expr_type.product.is_homotypical(errors, allocator)) {
                     retval = poisoned;
                 } else {
@@ -1340,33 +1347,29 @@ pub const AST = union(enum) {
                     }
                 }
             },
-            .subSlice => retval = try self.subSlice.super.typeof(scope, errors, allocator),
+            .subSlice => retval = try self.subSlice.super.typeof(errors, allocator),
             .inferredMember => retval = try self.inferredMember.base.?.expand_type(errors, allocator),
-            ._try => retval = (try self._try.expr.typeof(scope, errors, allocator)).get_ok_type(),
-            ._comptime => retval = try self._comptime.expr.typeof(scope, errors, allocator),
+            ._try => retval = (try self._try.expr.typeof(errors, allocator)).get_ok_type(),
+            ._comptime => retval = try self._comptime.expr.typeof(errors, allocator),
             .default => retval = self.default.expr,
 
             // Control-flow expressions
             ._if => {
-                const body_type = try self._if.bodyBlock.typeof(self._if.scope.?, errors, allocator);
+                const body_type = try self._if.bodyBlock.typeof(errors, allocator);
                 if (self._if.elseBlock) |_| {
                     retval = body_type;
                 } else {
                     retval = try create_optional_type(body_type, allocator);
                 }
             },
-            .match => retval = try self.match.mappings.items[0].typeof(self.match.scope.?, errors, allocator),
+            .match => retval = try self.match.mappings.items[0].typeof(errors, allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
-                if (self.mapping.scope) |new_scope| {
-                    retval = try rhs.typeof(new_scope, errors, allocator);
-                } else {
-                    retval = try rhs.typeof(scope, errors, allocator);
-                }
+                retval = try rhs.typeof(errors, allocator);
             } else {
                 retval = primitives_.unit_type;
             },
             ._while => {
-                const body_type = try self._while.bodyBlock.typeof(self._while.scope.?, errors, allocator);
+                const body_type = try self._while.bodyBlock.typeof(errors, allocator);
                 if (self._while.elseBlock) |_| {
                     retval = body_type;
                 } else {
@@ -1378,10 +1381,10 @@ pub const AST = union(enum) {
             } else if (self.block.statements.items.len == 0) {
                 retval = primitives_.unit_type;
             } else {
-                retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(self.block.scope.?, errors, allocator);
+                retval = try self.block.statements.items[self.block.statements.items.len - 1].typeof(errors, allocator);
             },
             .call => {
-                const fn_type: *AST = (try self.call.lhs.typeof(scope, errors, allocator)).expand_identifier();
+                const fn_type: *AST = (try self.call.lhs.typeof(errors, allocator)).expand_identifier();
                 retval = fn_type.function.rhs;
             },
             .fnDecl => {
@@ -1538,11 +1541,11 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn generate_default(_type: *AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !*AST {
-        return (try generate_default_unvalidated(_type, scope, errors, allocator)).assert_valid();
+    pub fn generate_default(_type: *AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*AST {
+        return (try generate_default_unvalidated(_type, errors, allocator)).assert_valid();
     }
 
-    fn generate_default_unvalidated(_type: *AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
+    fn generate_default_unvalidated(_type: *AST, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
         switch (_type.*) {
             .identifier => {
                 const expanded_type = try _type.expand_type(errors, allocator);
@@ -1555,7 +1558,7 @@ pub const AST = union(enum) {
                         return error.typeError;
                     }
                 } else {
-                    return try generate_default(expanded_type, scope, errors, allocator);
+                    return try generate_default(expanded_type, errors, allocator);
                 }
             },
             .addrOf,
@@ -1571,14 +1574,14 @@ pub const AST = union(enum) {
                 retval.inferredMember.pos = 0;
                 retval.inferredMember.base = _type;
                 const proper_term: *AST = _type.sum.terms.items[0];
-                retval.inferredMember.init = try proper_term.generate_default(scope, errors, allocator);
+                retval.inferredMember.init = try proper_term.generate_default(errors, allocator);
                 return retval;
             },
             .product => {
                 var value_terms = std.ArrayList(*AST).init(allocator);
                 errdefer value_terms.deinit();
                 for (_type.product.terms.items) |term| {
-                    const default_term = try term.generate_default(scope, errors, allocator);
+                    const default_term = try term.generate_default(errors, allocator);
                     try value_terms.append(default_term);
                 }
                 return try AST.createProduct(_type.getToken(), value_terms, allocator);
@@ -1586,7 +1589,7 @@ pub const AST = union(enum) {
             .annotation => if (_type.annotation.init != null) {
                 return _type.annotation.init.?;
             } else {
-                return _type.annotation.type.generate_default(scope, errors, allocator);
+                return _type.annotation.type.generate_default(errors, allocator);
             },
             else => {
                 std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
