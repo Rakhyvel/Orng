@@ -11,20 +11,40 @@ pub const Span = struct {
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: Span, writer: anytype, comptime format: []const u8) !void {
+    pub fn print_debug_line(self: Span, writer: anytype, comptime span_format: []const u8) !void {
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
 
         for (1..self.col - 1) |_| {
             try spaces.insert(" ", spaces.size);
         }
-        try writer.print(format, .{
+        try writer.print(span_format, .{
             self.filename,
             self.line,
             self.col,
             try sanitize_string(self.line_text, std.heap.page_allocator),
             spaces.str(),
         });
+    }
+
+    pub fn pprint(self: Span, allocator: std.mem.Allocator) ![]const u8 {
+        var out = String.init(allocator);
+        defer out.deinit();
+
+        try out.writer().print("{s}:{}:{}", .{ self.filename, self.line, self.col });
+
+        return (try out.toOwned()).?;
+    }
+
+    pub fn format(self: Span, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
+        _ = options;
+        _ = fmt;
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        defer arena.deinit();
+
+        const out = self.pprint(arena.allocator()) catch unreachable;
+
+        try writer.print("{s}", .{out});
     }
 };
 

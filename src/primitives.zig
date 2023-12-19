@@ -185,6 +185,7 @@ fn create_info(
     size: i64, // Size of values of the type in bytes
 ) !void {
     const symbol = try create_prelude_symbol(name, type_type, alias, true);
+    _ast.identifier.symbol = symbol;
     try primitives.put(name, Primitive_Info{
         .name = name,
         .bounds = bounds,

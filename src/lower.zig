@@ -1,4 +1,4 @@
-// This entire file's purpose is to convert an AST into a list of IR
+// Lowers an AST into a list of IR.
 
 const std = @import("std");
 const ast_ = @import("ast.zig");

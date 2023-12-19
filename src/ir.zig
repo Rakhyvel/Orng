@@ -536,7 +536,7 @@ pub const Data = union(enum) {
     int: i128,
     float: f64,
     string_id: usize,
-    cfg: *cfg_.CFG, // Used by the interpreter to know how much space to leave for a CFGs locals
+    cfg: *cfg_.CFG, // Used by the interpreter to know how much space to leave for a CFGs locals // TODO: Couldn't this just be the integer? Why import cfg for this?
     string: []const u8,
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),

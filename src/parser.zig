@@ -519,10 +519,7 @@ pub const Parser = struct {
                 exp = try AST.createSelect(
                     token,
                     exp,
-                    try AST.createIdentifier(
-                        try self.expect(.IDENTIFIER),
-                        self.astAllocator,
-                    ),
+                    try AST.createField(try self.expect(.IDENTIFIER), self.astAllocator),
                     self.astAllocator,
                 );
             } else if (self.accept(.CARET)) |token| {
@@ -588,8 +585,8 @@ pub const Parser = struct {
         } else if (self.peek_kind(.FN)) {
             return self.fn_declaration();
         } else if (self.accept(.PERIOD)) |token| {
-            const ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
-            return try AST.createInferredMember(token, ident, self.astAllocator);
+            const field = try AST.createField(try self.expect(.IDENTIFIER), self.astAllocator);
+            return try AST.createInferredMember(token, field, self.astAllocator);
         } else if (self.accept(.UNREACHABLE)) |token| {
             return try AST.createUnreachable(token, self.astAllocator);
         } else if (self.peek_kind(.L_PAREN)) {
@@ -900,7 +897,7 @@ pub const Parser = struct {
                     exp = try AST.createSelect(
                         token,
                         exp,
-                        try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator),
+                        try AST.createField(try self.expect(.IDENTIFIER), self.astAllocator),
                         self.astAllocator,
                     );
                 }
@@ -931,7 +928,7 @@ pub const Parser = struct {
         } else if (self.peek_kind(.L_BRACE)) {
             return try self.block_expr();
         } else if (self.accept(.PERIOD)) |token| {
-            const ident = try AST.createIdentifier(try self.expect(.IDENTIFIER), self.astAllocator);
+            const ident = try AST.createField(try self.expect(.IDENTIFIER), self.astAllocator);
             return try AST.createInferredMember(token, ident, self.astAllocator);
         } else if (self.accept(.L_PAREN)) |_| {
             const pattern = try self.match_pattern_product();

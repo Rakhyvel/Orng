@@ -198,6 +198,7 @@ fn validate_AST_internal(
         },
 
         .identifier => {
+            std.debug.assert(ast.identifier.symbol != null);
             // look up symbol, that's the type
             var symbol = findSymbol(ast, expected, scope, errors) catch |err| switch (err) {
                 error.typeError => return ast.enpoison(),
@@ -908,40 +909,19 @@ fn validate_AST_internal(
                 return ast;
             }
         },
-        .sum => { // TODO: TOO LONG!
+        .sum => {
             var poisoned = false;
             var changed = false;
             var new_terms = std.ArrayList(*AST).init(allocator);
             var idents_seen = std.StringArrayHashMap(*AST).init(allocator);
             defer idents_seen.deinit();
             for (ast.sum.terms.items) |term| {
-                // Make sure identifiers aren't repeated
-                if (term.* == .annotation) {
-                    const new_term = try validateAST(term, primitives.type_type, scope, errors, allocator);
-                    changed = changed or new_term != term;
-                    try new_terms.append(new_term);
-                    if (new_term.* == .poison) {
-                        poisoned = true;
-                    }
-                    const name = term.annotation.pattern.getToken().data;
-                    const res = try idents_seen.fetchPut(name, term);
-                    if (res) |_res| {
-                        errors.addError(Error{ .sum_duplicate = .{ .span = term.getToken().span, .identifier = name, .first = _res.value.getToken().span } });
-                        return ast.enpoison();
-                    }
-                } else if (term.* == .identifier) {
-                    const new_annotation = (try AST.createAnnotation(term.getToken(), term, primitives.unit_type, null, null, allocator)).assert_valid();
-                    changed = true;
-                    try new_terms.append(new_annotation);
-                    const name = term.getToken().data;
-                    const res = try idents_seen.fetchPut(name, term);
-                    if (res) |_res| {
-                        errors.addError(Error{ .sum_duplicate = .{ .span = term.getToken().span, .identifier = name, .first = _res.value.getToken().span } });
-                        return ast.enpoison();
-                    }
-                } else {
-                    errors.addError(Error{ .basic = .{ .span = term.getToken().span, .msg = "invalid sum expression, must be annotation or identifier" } });
-                    return ast.enpoison();
+                std.debug.assert(term.* == .annotation); // sums are expanded in sum-expand.zig
+                const new_term = try validateAST(term, primitives.type_type, scope, errors, allocator);
+                changed = changed or new_term != term;
+                try new_terms.append(new_term);
+                if (new_term.* == .poison) {
+                    poisoned = true;
                 }
             }
             if (poisoned) {

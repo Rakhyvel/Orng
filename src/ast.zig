@@ -92,8 +92,11 @@ pub const AST = union(enum) {
     _true: struct { common: ASTCommon },
     /// False constant
     _false: struct { common: ASTCommon },
+    /// Field
+    /// This tag is used for the right-hand-side of selects. They do not refer to symbols.
+    field: struct { common: ASTCommon },
     /// Identifier
-    identifier: struct { common: ASTCommon },
+    identifier: struct { common: ASTCommon, symbol: ?*symbol_.Symbol = null },
 
     not: struct { common: ASTCommon, expr: *AST },
     negate: struct { common: ASTCommon, expr: *AST },
@@ -378,6 +381,7 @@ pub const AST = union(enum) {
             .char => return &self.char.common,
             .float => return &self.float.common,
             .string => return &self.string.common,
+            .field => return &self.field.common,
             .identifier => return &self.identifier.common,
             ._unreachable => return &self._unreachable.common,
             ._true => return &self._true.common,
@@ -576,6 +580,10 @@ pub const AST = union(enum) {
         allocator: std.mem.Allocator,
     ) !*AST {
         return try AST.box(AST{ .string = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
+    }
+
+    pub fn createField(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .field = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
     pub fn createIdentifier(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
@@ -1813,6 +1821,7 @@ pub const AST = union(enum) {
             .char => try out.writer().print("char()", .{}),
             .float => try out.writer().print("float()", .{}),
             .string => try out.writer().print("string()", .{}),
+            .field => try out.writer().print("field(\"{s}\")", .{self.field.common.token.data}),
             .identifier => try out.writer().print("identifier(\"{s}\")", .{self.identifier.common.token.data}),
             ._unreachable => try out.writer().print("unreachable", .{}),
             ._true => try out.writer().print("true", .{}),
@@ -1879,7 +1888,7 @@ pub const AST = union(enum) {
             .addrOf => try out.writer().print("addrOf({})", .{self.addrOf.expr}),
             .sliceOf => try out.writer().print("sliceOf()", .{}),
             .subSlice => try out.writer().print("subSlice()", .{}),
-            .annotation => try out.writer().print("annotation(.type={},.init={?})", .{ self.annotation.type, self.annotation.init }),
+            .annotation => try out.writer().print("annotation(.field={}, .type={},.init={?})", .{ self.annotation.pattern, self.annotation.type, self.annotation.init }),
             .inferredMember => try out.writer().print("inferredMember(.ident={s})", .{self.inferredMember.ident.getToken().data}),
 
             ._if => try out.writer().print("if()", .{}),

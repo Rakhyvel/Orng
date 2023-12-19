@@ -29,7 +29,7 @@ pub const Basic_Block = struct {
     /// Used for IR interpretation
     offset: ?i64,
 
-    pub fn create(self: *cfg_.CFG, allocator: std.mem.Allocator) !*Basic_Block {
+    pub fn create(cfg: *cfg_.CFG, allocator: std.mem.Allocator) !*Basic_Block {
         var retval = try allocator.create(Basic_Block);
         retval.ir_head = null;
         retval.condition = null;
@@ -41,9 +41,9 @@ pub const Basic_Block = struct {
         retval.next_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.branch = null;
         retval.branch_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
-        retval.uid = self.basic_blocks.items.len;
+        retval.uid = cfg.basic_blocks.items.len;
         retval.allocator = allocator;
-        try self.basic_blocks.append(retval);
+        try cfg.basic_blocks.append(retval);
         return retval;
     }
 
