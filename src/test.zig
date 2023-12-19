@@ -254,7 +254,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                         std.debug.print("{}\n", .{err});
                         try term.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Regression tests should parse!\n", .{});
-                        std.debug.dumpCurrentStackTrace(128);
+                        try errors.printErrors();
                         return false;
                     } else {
                         try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);

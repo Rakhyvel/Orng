@@ -350,6 +350,7 @@ fn validate_AST_internal(
         },
         .default => {
             ast.default.expr = try validateAST(ast.default.expr, primitives.type_type, scope, errors, allocator);
+            std.debug.print("{}\n", .{ast.default.expr});
             const ast_type = (try ast.typeof(scope, errors, allocator));
             if (expected != null and !try ast_type.typesMatch(expected.?, scope, errors, allocator)) {
                 errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = ast_type } });
@@ -1183,7 +1184,7 @@ fn validate_AST_internal(
             }
             var expr_type = try ast.sliceOf.expr.typeof(scope, errors, allocator);
 
-            if (try primitives.type_type.typesMatch(expr_type, scope, errors, allocator)) {
+            if (expr_type.* != .unit_type and try primitives.type_type.typesMatch(expr_type, scope, errors, allocator)) {
                 // Slice-of type, type of this ast must be a type, inner must be a type
                 if (ast.sliceOf.len) |len| {
                     ast.sliceOf.len = try validateAST(len, primitives.int_type, scope, errors, allocator);
@@ -1223,7 +1224,12 @@ fn validate_AST_internal(
                     return ast.enpoison();
                 }
 
-                ast.getCommon().validation_state = _ast.Validation_State{ .valid = .{ .valid_form = ast } };
+                _ = ast.assert_valid();
+                // if (expected != null and try primitives.type_type.typesMatch(expected.?, scope, errors, allocator)) {
+                //     // TODO: Better error mes
+                //     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
+                //     return ast.enpoison();
+                // }
                 if (expected != null and !try (try ast.typeof(scope, errors, allocator)).typesMatch(expected.?, scope, errors, allocator)) {
                     errors.addError(Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = try ast.typeof(scope, errors, allocator) } });
                     return ast.enpoison();
