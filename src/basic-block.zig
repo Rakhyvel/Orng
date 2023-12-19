@@ -120,7 +120,7 @@ pub const Basic_Block = struct {
         }
     }
 
-    pub fn printSymbverList(list: *std.ArrayList(*lval_.lval_.Symbol_Version)) void {
+    pub fn printSymbverList(list: *std.ArrayList(*lval_.Symbol_Version)) void {
         std.debug.print("(", .{});
         var i: usize = 0;
         while (i < list.items.len) : (i += 1) {

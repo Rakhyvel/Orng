@@ -74,7 +74,7 @@
 - [x] Some function call lines are prepended and then popped before function call
 - [x] IRs should use L_Values for sources too (its not harder to optimize btw)
 - [x] Put Validation_State in its own file, bring along poisoned and init_structures
-- [ ] ir -> {(IR, IRKind, IRData), (SymbolVersion, L_Value), BasicBlock, CFG}, lower.zig
+- [x] ir -> {(IR, IRKind, IRData), (SymbolVersion, L_Value), BasicBlock, CFG}, lower.zig
 - [ ] Move DAG to its own file, along with the type set functions
 - [ ] Keep Symbol and Scope together, remove SymbolKind, create a new file for creating the tree
 - [ ] Separate symbol pass to map identifiers to symbols
