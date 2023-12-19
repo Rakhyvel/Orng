@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast = @import("ast.zig");
+const cfg_ = @import("cfg.zig");
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const module_ = @import("module.zig");
@@ -10,7 +11,7 @@ const primitives_ = @import("primitives.zig");
 const validation_state_ = @import("validation_state.zig");
 
 const AST = ast.AST;
-const CFG = ir_.CFG;
+const CFG = cfg_.CFG;
 const Error = errs.Error;
 const Module = module_.Module;
 const Span = _span.Span;

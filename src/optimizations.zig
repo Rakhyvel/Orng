@@ -1,16 +1,19 @@
-const errs = @import("errors.zig");
-const _ir = @import("ir.zig");
 const std = @import("std");
+const basic_block_ = @import("basic-block.zig");
+const cfg_ = @import("cfg.zig");
+const errs = @import("errors.zig");
+const ir_ = @import("ir.zig");
+const lval_ = @import("lval.zig");
 const primitives_ = @import("primitives.zig");
 
-const BasicBlock = _ir.BasicBlock;
-const CFG = _ir.CFG;
+const Basic_Block = basic_block_.Basic_Block;
+const CFG = cfg_.CFG;
 const Error = errs.Error;
-const IR = _ir.IR;
-const L_Value = _ir.L_Value;
+const IR = ir_.IR;
+const L_Value = lval_.L_Value;
 const String = @import("zig-string/zig-string.zig").String;
 const Symbol = @import("symbol.zig").Symbol;
-const SymbolVersion = _ir.SymbolVersion;
+const Symbol_Version = lval_.Symbol_Version;
 
 const debug = false;
 
@@ -62,7 +65,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
             defer log_optimization_pass("remove unused block", cfg);
-            removeBasicBlock(cfg, bb, true);
+            removeBasic_Block(cfg, bb, true);
             return true; // Perhaps mark these and remove them in a sweep pass?
         }
     }
@@ -95,7 +98,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
             }
 
             // Remove the next block
-            removeBasicBlock(cfg, bb.next.?, false);
+            removeBasic_Block(cfg, bb.next.?, false);
             bb.next = bb.next.?.next;
             retval = true;
             break;
@@ -204,7 +207,7 @@ fn countPredecessors(cfg: *CFG) void {
     _countPredecessors(cfg.block_graph_head orelse return);
 }
 
-fn _countPredecessors(bb: *BasicBlock) void {
+fn _countPredecessors(bb: *Basic_Block) void {
     bb.number_predecessors += 1;
     if (bb.visited) {
         return;
@@ -220,7 +223,7 @@ fn _countPredecessors(bb: *BasicBlock) void {
     }
 }
 
-fn removeBasicBlock(cfg: *CFG, bb: *BasicBlock, wipeIR: bool) void {
+fn removeBasic_Block(cfg: *CFG, bb: *Basic_Block, wipeIR: bool) void {
     var i: usize = 0;
     while (i < cfg.basic_blocks.items.len) : (i += 1) {
         if (bb == cfg.basic_blocks.items[i]) {
@@ -245,7 +248,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
-        var def_map = std.AutoArrayHashMap(*SymbolVersion, ?*IR).init(allocator);
+        var def_map = std.AutoArrayHashMap(*Symbol_Version, ?*IR).init(allocator);
         defer def_map.deinit();
 
         var maybe_ir = bb.ir_head;
@@ -478,7 +481,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("not; known int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int == 0) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int == 0) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -490,7 +493,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("negate_int; known value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = -src1_def.?.data.int };
+                ir.data = ir_.Data{ .int = -src1_def.?.data.int };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -502,7 +505,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src1_def.?.kind == .loadFloat) {
                 log("negate_float; known value");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = -src1_def.?.data.float };
+                ir.data = ir_.Data{ .float = -src1_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -514,7 +517,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("equal; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -523,7 +526,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("equal; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -532,7 +535,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("equal; lhs 0");
                 ir.kind = .not;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -541,7 +544,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("equal; rhs 0");
                 ir.kind = .not;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 // ir.src1 is already ir.src1
                 ir.src2 = null;
                 retval = true;
@@ -555,7 +558,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             {
                 log("equal; self inequality");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 1 };
+                ir.data = ir_.Data{ .int = 1 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -567,7 +570,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("not_equal; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -576,7 +579,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("not_equal; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -585,7 +588,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("not_equal; lhs 0");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -594,7 +597,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("not_equal; rhs 0");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 // ir.src1 is already ir.src1
                 ir.src2 = null;
                 retval = true;
@@ -603,7 +606,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("not_equal; self inequality");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -615,7 +618,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("greater_int; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -624,7 +627,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("greater_int; self compare");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -636,7 +639,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("greater_float; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -645,7 +648,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("greater_float; self compare");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -657,7 +660,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("lesser_int; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -666,7 +669,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("lesser_int; self compare");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -678,7 +681,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("lesser_float; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -687,7 +690,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("lesser_float; self compare");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -699,7 +702,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("greater_equal_int; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -708,7 +711,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("greater_equal_int; self compare");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 1 };
+                ir.data = ir_.Data{ .int = 1 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -720,7 +723,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("greater_equal_float; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -733,7 +736,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("lesser_equal_int; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -742,7 +745,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 log("lesser_equal_int; self compare");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 1 };
+                ir.data = ir_.Data{ .int = 1 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -754,7 +757,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("lesser_equal_float; known float,float value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 };
+                ir.data = ir_.Data{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -767,7 +770,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("add_int; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{
+                ir.data = ir_.Data{
                     .int = if (std.math.add(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
@@ -784,7 +787,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("add_int; add 0 lhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -793,7 +796,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("add_int; add 0 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -805,7 +808,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("add_float; known float,float value");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = src1_def.?.data.float + src2_def.?.data.float };
+                ir.data = ir_.Data{ .float = src1_def.?.data.float + src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -814,7 +817,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
                 log("add_float; add 0 lhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -823,7 +826,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
                 log("add_float; add 0 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -835,7 +838,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("sub; known int,int value");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{
+                ir.data = ir_.Data{
                     .int = if (std.math.sub(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
@@ -852,7 +855,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("sub; sub 0 lhs");
                 ir.kind = .negate_int;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -861,7 +864,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("sub; sub 0 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -873,7 +876,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("sub; known float,float value");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = src1_def.?.data.float - src2_def.?.data.float };
+                ir.data = ir_.Data{ .float = src1_def.?.data.float - src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -882,7 +885,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
                 log("sub; sub 0 lhs");
                 ir.kind = .negate_float;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -891,7 +894,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
                 log("sub; sub 0 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -902,7 +905,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{
+                ir.data = ir_.Data{
                     .int = if (std.math.mul(i64, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
                         errors.addError(Error{ .basic = .{
                             .span = ir.span,
@@ -919,7 +922,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 1) {
                 log("mult; mult 1 lhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -928,7 +931,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
                 log("mult; mult 1 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -937,7 +940,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("mult; mult 0 lhs int");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -946,7 +949,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("mult; mult 0 rhs int");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -957,7 +960,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = src1_def.?.data.float * src2_def.?.data.float };
+                ir.data = ir_.Data{ .float = src1_def.?.data.float * src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -966,7 +969,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 1.0) {
                 log("mult; mult 1 lhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -975,7 +978,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0) {
                 log("mult; mult 1 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -984,7 +987,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
                 log("mult; mult 0 lhs float");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = 0.0 };
+                ir.data = ir_.Data{ .float = 0.0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -993,7 +996,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
                 log("mult; mult 0 rhs float");
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = 0.0 };
+                ir.data = ir_.Data{ .float = 0.0 };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -1012,7 +1015,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Known int, int value
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) };
+                ir.data = ir_.Data{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -1021,7 +1024,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
                 log("div; div 1 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -1040,7 +1043,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Known float, float value
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 ir.kind = .loadFloat;
-                ir.data = _ir.IRData{ .float = src1_def.?.data.float / src2_def.?.data.float };
+                ir.data = ir_.Data{ .float = src1_def.?.data.float / src2_def.?.data.float };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -1049,7 +1052,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0) {
                 log("div; div 1 rhs");
                 ir.kind = .copy;
-                ir.data = _ir.IRData.none;
+                ir.data = ir_.Data.none;
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;
@@ -1068,7 +1071,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Known int, int value
             else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) };
+                ir.data = ir_.Data{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) };
                 ir.src1 = null;
                 ir.src2 = null;
                 retval = true;
@@ -1077,7 +1080,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("mod; mod 0 lhs");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = ir.src2;
                 ir.src2 = null;
                 retval = true;
@@ -1086,7 +1089,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
                 log("mod; mod 1 rhs");
                 ir.kind = .loadInt;
-                ir.data = _ir.IRData{ .int = 0 };
+                ir.data = ir_.Data{ .int = 0 };
                 ir.src1 = ir.src1;
                 ir.src2 = null;
                 retval = true;

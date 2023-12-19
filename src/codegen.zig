@@ -1,5 +1,8 @@
 const _ast = @import("ast.zig");
+const basic_block_ = @import("basic-block.zig");
+const cfg_ = @import("cfg.zig");
 const ir_ = @import("ir.zig");
+const lval_ = @import("lval.zig");
 const primitives = @import("primitives.zig");
 const module_ = @import("module.zig");
 const span_ = @import("span.zig");
@@ -8,10 +11,10 @@ const strings = @import("zig-string/zig-string.zig");
 const _symbol = @import("symbol.zig");
 
 const AST = _ast.AST;
-const BasicBlock = ir_.BasicBlock;
-const CFG = ir_.CFG;
+const Basic_Block = basic_block_.Basic_Block;
+const CFG = cfg_.CFG;
 const IR = ir_.IR;
-const IRKind = ir_.IRKind;
+const Kind = ir_.Kind;
 const Module = module_.Module;
 const Scope = _symbol.Scope;
 const Span = span_.Span;
@@ -250,15 +253,15 @@ fn output_function_definition(cfg: *CFG, writer: anytype) !void {
     try writer.print("}}\n\n", .{});
 }
 
-fn output_basic_block(cfg: *CFG, start_bb: *BasicBlock, symbol: *Symbol, writer: anytype) !void {
-    var bb_queue = std.ArrayList(*BasicBlock).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
+fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer: anytype) !void {
+    var bb_queue = std.ArrayList(*Basic_Block).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
     defer bb_queue.deinit();
     try bb_queue.append(start_bb);
     start_bb.visited = true;
 
     var head: usize = 0;
     while (head < bb_queue.items.len) {
-        const bb: *BasicBlock = bb_queue.items[head];
+        const bb: *Basic_Block = bb_queue.items[head];
         head += 1;
 
         const is_head_bb = cfg.block_graph_head != null and cfg.block_graph_head.? == bb;
@@ -588,7 +591,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
         .branchIfFalse,
         => {},
         else => {
-            std.debug.print("Unimplemented output_IR() for: IRKind.{s}\n", .{@tagName(ir.kind)});
+            std.debug.print("Unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)});
             return error.Unimplemented;
         },
 
@@ -620,13 +623,13 @@ fn output_IR(ir: *IR, writer: anytype) !void {
         },
         .discard => if (ir.src1.?.get_expanded_type().* != .unit_type) {
             try writer.print("    (void)", .{});
-            try output_rvalue(ir.src1.?, IRKind.cast.precedence(), writer);
+            try output_rvalue(ir.src1.?, Kind.cast.precedence(), writer);
             try writer.print(";\n", .{});
         },
     }
 }
 
-fn output_lvalue_check(span: span_.Span, lvalue: *ir_.L_Value, writer: anytype) CodeGen_Error!void {
+fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: anytype) CodeGen_Error!void {
     switch (lvalue.*) {
         .symbver => {},
         .dereference => try output_lvalue_check(span, lvalue.dereference.expr, writer),
@@ -658,7 +661,7 @@ fn output_lvalue_check(span: span_.Span, lvalue: *ir_.L_Value, writer: anytype) 
     }
 }
 
-fn output_lvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) CodeGen_Error!void {
+fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: anytype) CodeGen_Error!void {
     switch (lvalue.*) {
         .dereference => {
             // lvalue of a dereference is just the rvalue of it's expression
@@ -694,7 +697,7 @@ fn output_lvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) 
     }
 }
 
-fn output_rvalue(lvalue: *ir_.L_Value, outer_precedence: i128, writer: anytype) CodeGen_Error!void {
+fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: anytype) CodeGen_Error!void {
     switch (lvalue.*) {
         .dereference => {
             if (outer_precedence < lvalue.precedence()) {
@@ -773,7 +776,7 @@ fn output_type(_type: *AST, writer: anytype) CodeGen_Error!void {
 
 /// Outputs an assignment to a symbol template. It is expected that a value is output immediately
 /// after this to complete the assignment.
-fn output_var_assign(lval: *ir_.L_Value, writer: anytype) !void {
+fn output_var_assign(lval: *lval_.L_Value, writer: anytype) !void {
     try writer.print("    ", .{});
     try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
     try writer.print(" = ", .{});

@@ -1,4 +1,6 @@
 const ast_ = @import("ast.zig");
+const basic_block_ = @import("basic-block.zig");
+const cfg_ = @import("cfg.zig");
 const codegen = @import("codegen.zig");
 const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
@@ -10,17 +12,13 @@ const symbol_ = @import("symbol.zig");
 const Span = @import("span.zig").Span;
 const validate_ = @import("validate.zig");
 
-const AST = ast_.AST;
-const CFG = ir_.CFG;
-const Scope = symbol_.Scope;
-
 pub const DAG = struct {
-    base: *AST,
+    base: *ast_.AST,
     uid: usize,
     dependencies: std.ArrayList(*DAG),
     visited: bool,
 
-    fn init(base: *AST, uid: usize, allocator: std.mem.Allocator) !*DAG {
+    fn init(base: *ast_.AST, uid: usize, allocator: std.mem.Allocator) !*DAG {
         var retval = try allocator.create(DAG);
         retval.base = base;
         retval.uid = uid;
@@ -43,16 +41,16 @@ pub const Module = struct {
     instructions: std.ArrayList(*ir_.IR),
 
     // List of CFGs defined in this module
-    cfgs: std.ArrayList(*ir_.CFG),
+    cfgs: std.ArrayList(*cfg_.CFG),
 
     // Main function. TODO: Temporary
-    entry: *ir_.CFG,
+    entry: *cfg_.CFG,
 
     // Interned strings
     interned_strings: std.ArrayList([]const u8),
 
     // The root scope node for the module
-    scope: *Scope,
+    scope: *symbol_.Scope,
 
     // Errors, used as context
     errors: *errs.Errors,
@@ -60,7 +58,7 @@ pub const Module = struct {
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    fn init(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Module {
+    fn init(scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*Module {
         var retval = try allocator.create(Module);
         retval.uid = module_uids;
         module_uids += 1;
@@ -69,7 +67,7 @@ pub const Module = struct {
         retval.errors = errors;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
-        retval.cfgs = std.ArrayList(*ir_.CFG).init(allocator);
+        retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
         retval.types = std.ArrayList(*DAG).init(allocator);
         return retval;
     }
@@ -166,7 +164,7 @@ pub const Module = struct {
     }
 
     // This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
-    fn collect_cfgs(self: *Module, cfg: *CFG) !void {
+    fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) !void {
         if (cfg.visited) {
             return;
         }
@@ -214,7 +212,7 @@ pub const Module = struct {
     /// instructions for the CFG start.
     ///
     /// Returns the index in the cfg in the cfgs list.
-    pub fn append_instructions(self: *Module, cfg: *CFG) !i64 {
+    pub fn append_instructions(self: *Module, cfg: *cfg_.CFG) !i64 {
         const len = @as(i64, @intCast(self.cfgs.items.len));
         if (cfg.offset != null) {
             // Already visited, do nothing
@@ -237,8 +235,8 @@ pub const Module = struct {
 
     /// Appends the instructions in a BasicBlock to the module's instructions.
     /// Returns the offset of the basic block
-    fn append_basic_block(self: *Module, first_bb: *ir_.BasicBlock, cfg: *ir_.CFG) !i64 {
-        var work_queue = std.ArrayList(*ir_.BasicBlock).init(self.allocator);
+    fn append_basic_block(self: *Module, first_bb: *basic_block_.Basic_Block, cfg: *cfg_.CFG) !i64 {
+        var work_queue = std.ArrayList(*basic_block_.Basic_Block).init(self.allocator);
         defer work_queue.deinit();
         try work_queue.append(first_bb);
 
@@ -280,7 +278,7 @@ pub const Module = struct {
     /// This function inserts a label and a return instruction. It is needed for functions which do not have
     /// instructions. The label is needed so that codegen can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
-    fn append_phony_block(self: *Module, cfg: *CFG) !i64 {
+    fn append_phony_block(self: *Module, cfg: *cfg_.CFG) !i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
         try self.instructions.append(try ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
@@ -304,7 +302,7 @@ pub const Module = struct {
 //     let const A = (x: &B, y: Int)
 //     let const B = (x: &A, y: Int)
 // The above should work
-fn collect_types(cfg: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
+fn collect_types(cfg: *cfg_.CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
     // Add parameter types to type set
     for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
         _ = try type_set_append(param.expanded_type.?, set, allocator);
@@ -320,7 +318,7 @@ fn collect_types(cfg: *CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Alloca
     }
 }
 
-fn type_set_append(oldast_: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
+fn type_set_append(oldast_: *ast_.AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
     const ast = oldast_;
     if (type_set_get(ast, set)) |dag| {
         // Type is already in the set, return DAG entry for it
@@ -362,7 +360,7 @@ fn type_set_append(oldast_: *AST, set: *std.ArrayList(*DAG), allocator: std.mem.
     }
 }
 
-pub fn type_set_get(oldast_: *AST, set: *std.ArrayList(*DAG)) ?*DAG {
+pub fn type_set_get(oldast_: *ast_.AST, set: *std.ArrayList(*DAG)) ?*DAG {
     const ast = oldast_;
     for (set.items) |dag| {
         if (dag.base.c_typesMatch(ast)) {

@@ -77,6 +77,9 @@
 - [ ] ir -> {(IR, IRKind, IRData), (SymbolVersion, L_Value), BasicBlock, CFG}, lower.zig
 - [ ] Move DAG to its own file, along with the type set functions
 - [ ] Keep Symbol and Scope together, remove SymbolKind, create a new file for creating the tree
+- [ ] Separate symbol pass to map identifiers to symbols
+    - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field
+    - Remove anything that now doesn't need to pass scope
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Nothing is indented more than 5 times, excluding switches

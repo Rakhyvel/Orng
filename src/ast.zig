@@ -1,19 +1,13 @@
-const errs = @import("errors.zig");
-const primitives = @import("primitives.zig");
 const std = @import("std");
-const _symbol = @import("symbol.zig");
-const tokens = @import("token.zig");
-const _validate = @import("validate.zig");
+const errs = @import("errors.zig");
 const offset_ = @import("offsets.zig");
-const validation_state_ = @import("validation_state.zig");
-
-const Error = errs.Error;
-const Scope = _symbol.Scope;
-const Span = @import("span.zig").Span;
+const primitives = @import("primitives.zig");
+const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const Symbol = _symbol.Symbol;
-const Token = tokens.Token;
-const TokenKind = tokens.TokenKind;
+const symbol_ = @import("symbol.zig");
+const tokens_ = @import("token.zig");
+const _validate = @import("validate.zig");
+const validation_state_ = @import("validation_state.zig");
 
 pub const AST_Validation_State = validation_state_.Validation_State(*AST);
 
@@ -23,7 +17,7 @@ var inited: bool = false;
 /// Initializes internal structures if they are not already initialized.
 pub fn init_structures() !void {
     if (!inited) {
-        poisoned = try AST.createPoison(Token{ .kind = .L_PAREN, .data = "LMAO GET POISONED", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
+        poisoned = try AST.createPoison(tokens_.Token{ .kind = .L_PAREN, .data = "LMAO GET POISONED", .span = span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, std.heap.page_allocator);
         poisoned.getCommon().validation_state = .invalid;
         inited = true;
     }
@@ -42,7 +36,7 @@ const Errors = error{ InvalidRange, OutOfMemory };
 /// Contains common properties of all AST nodes
 const ASTCommon = struct {
     /// Token that defined the AST node in text.
-    token: Token,
+    token: tokens_.Token,
 
     /// The type of the AST as an expression.
     /// Memoized, use `typeof()`.
@@ -110,7 +104,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         expr: *AST,
         name: ?*AST = null,
-        symbol: ?*Symbol = null,
+        symbol: ?*symbol_.Symbol = null,
     },
 
     // Binary operators
@@ -138,7 +132,7 @@ pub const AST = union(enum) {
         rhs: *AST,
         pos: ?usize,
 
-        pub fn offset_at(self: *@This(), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
+        pub fn offset_at(self: *@This(), scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var lhs_expanded_type = try (try self.lhs.typeof(scope, errors, allocator)).expand_type(scope, errors, allocator);
             if (lhs_expanded_type.* == .product) {
                 return try lhs_expanded_type.product.get_offset(self.pos.?, scope, errors, allocator);
@@ -180,7 +174,7 @@ pub const AST = union(enum) {
         }
 
         // TODO: Duck type this with product/sum
-        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
+        pub fn get_offset(self: *@This(), field: usize, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var offset: i64 = 0;
             for (0..field + 1) |i| {
                 var item = self.terms.items[i];
@@ -193,12 +187,12 @@ pub const AST = union(enum) {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
 
-        pub fn add_term(self: *@This(), addend: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
+        pub fn add_term(self: *@This(), addend: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !void {
             std.debug.assert(addend.* == .annotation);
             for (self.terms.items) |term| {
                 if (std.mem.eql(u8, term.annotation.pattern.getToken().data, addend.annotation.pattern.getToken().data)) {
                     if (!try term.annotation.type.typesMatch(term, scope, errors, allocator)) {
-                        errors.addError(Error{ .sum_duplicate = .{ .span = self.common.token.span, .identifier = term.annotation.pattern.getToken().data, .first = term.getToken().span } });
+                        errors.addError(errs.Error{ .sum_duplicate = .{ .span = self.common.token.span, .identifier = term.annotation.pattern.getToken().data, .first = term.getToken().span } });
                         return error.typeError;
                     } else {
                         // Duplicate found, types match. OK!
@@ -226,7 +220,7 @@ pub const AST = union(enum) {
         homotypical: ?bool = null,
         was_slice: bool = false,
 
-        pub fn is_homotypical(self: *@This(), scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+        pub fn is_homotypical(self: *@This(), scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
             if (self.homotypical) |homotypical| {
                 return homotypical;
             }
@@ -244,7 +238,7 @@ pub const AST = union(enum) {
             return true;
         }
 
-        pub fn get_offset(self: *@This(), field: usize, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
+        pub fn get_offset(self: *@This(), field: usize, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
                 var item = (try self.terms.items[i].expand_type(scope, errors, allocator));
@@ -289,7 +283,7 @@ pub const AST = union(enum) {
     // Control-flow expressions
     _if: struct {
         common: ASTCommon,
-        scope: ?*Scope,
+        scope: ?*symbol_.Scope,
         let: ?*AST,
         condition: *AST,
         bodyBlock: *AST,
@@ -297,7 +291,7 @@ pub const AST = union(enum) {
     },
     match: struct {
         common: ASTCommon,
-        scope: ?*Scope,
+        scope: ?*symbol_.Scope,
         let: ?*AST,
         expr: *AST,
         mappings: std.ArrayList(*AST),
@@ -307,11 +301,11 @@ pub const AST = union(enum) {
         common: ASTCommon,
         lhs: ?*AST,
         rhs: ?*AST,
-        scope: ?*Scope, // Scope used for `match` mappings. Captures live in this scope, rhs of mapping lives in this scope. Lives in `match`'s scope
+        scope: ?*symbol_.Scope, // Scope used for `match` mappings. Captures live in this scope, rhs of mapping lives in this scope. Lives in `match`'s scope
     },
     _while: struct {
         common: ASTCommon,
-        scope: ?*Scope,
+        scope: ?*symbol_.Scope,
         let: ?*AST,
         condition: *AST,
         post: ?*AST,
@@ -320,7 +314,7 @@ pub const AST = union(enum) {
     },
     _for: struct {
         common: ASTCommon,
-        scope: ?*Scope,
+        scope: ?*symbol_.Scope,
         let: ?*AST,
         elem: *AST,
         iterable: *AST,
@@ -329,7 +323,7 @@ pub const AST = union(enum) {
     },
     block: struct {
         common: ASTCommon,
-        scope: ?*Scope,
+        scope: ?*symbol_.Scope,
         statements: std.ArrayList(*AST),
         final: ?*AST, // either `return`, `continue`, or `break`
     },
@@ -342,12 +336,12 @@ pub const AST = union(enum) {
     symbol: struct {
         common: ASTCommon,
         name: []const u8,
-        kind: _symbol.SymbolKind,
-        symbol: *Symbol = undefined,
+        kind: symbol_.SymbolKind,
+        symbol: *symbol_.Symbol = undefined,
     },
     decl: struct {
         common: ASTCommon,
-        symbols: std.ArrayList(*Symbol), // List of symbols that are defined with this statement
+        symbols: std.ArrayList(*symbol_.Symbol), // List of symbols that are defined with this statement
         pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
         type: *AST,
         init: *AST,
@@ -357,11 +351,11 @@ pub const AST = union(enum) {
         common: ASTCommon,
         name: ?*AST,
         params: std.ArrayList(*AST), // List of the AST declarations for the parameters
-        param_symbols: std.ArrayList(*Symbol), // List of the actual symbols for the parameters
+        param_symbols: std.ArrayList(*symbol_.Symbol), // List of the actual symbols for the parameters
         retType: *AST,
         refinement: ?*AST,
         init: *AST,
-        symbol: ?*Symbol = null,
+        symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
     },
     _defer: struct { common: ASTCommon, statement: *AST },
@@ -451,7 +445,7 @@ pub const AST = union(enum) {
     }
 
     /// Retrieves the token of an AST node
-    pub fn getToken(self: *AST) Token {
+    pub fn getToken(self: *AST) tokens_.Token {
         return self.getCommon().token;
     }
 
@@ -546,19 +540,19 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn createPoison(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createPoison(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .poison = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createUnitType(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createUnitType(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .unit_type = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createUnitValue(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createUnitValue(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .unit_value = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createInt(token: Token, data: i128, allocator: std.mem.Allocator) !*AST {
+    pub fn createInt(token: tokens_.Token, data: i128, allocator: std.mem.Allocator) !*AST {
         if (data == 1482163968) {
             unreachable;
         }
@@ -566,262 +560,262 @@ pub const AST = union(enum) {
     }
 
     pub fn createChar(
-        token: Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings. TODO: Maybe make it like strings?
+        token: tokens_.Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings. TODO: Maybe make it like strings?
         allocator: std.mem.Allocator,
     ) !*AST {
         return try AST.box(AST{ .char = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createFloat(token: Token, data: f64, allocator: std.mem.Allocator) !*AST {
+    pub fn createFloat(token: tokens_.Token, data: f64, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives.float_type } }, allocator);
     }
 
     pub fn createString(
-        token: Token,
+        token: tokens_.Token,
         data: []const u8, // Raw bytes of the string, not containing `"`'s, with escapes escaped
         allocator: std.mem.Allocator,
     ) !*AST {
         return try AST.box(AST{ .string = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data } }, allocator);
     }
 
-    pub fn createIdentifier(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createIdentifier(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .identifier = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createUnreachable(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createUnreachable(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._unreachable = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createTrue(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createTrue(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._true = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createFalse(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createFalse(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._false = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createNot(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createNot(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .not = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createNegate(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createNegate(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .negate = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createDereference(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDereference(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .dereference = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createTry(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createTry(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._try = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createDiscard(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDiscard(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .discard = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createComptime(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createComptime(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._comptime = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .name = null, .symbol = null } }, allocator);
     }
 
-    pub fn createTypeOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createTypeOf(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._typeOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createDefault(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDefault(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .default = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createSizeOf(token: Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createSizeOf(token: tokens_.Token, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .sizeOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createDomainOf(token: Token, sum_expr: *AST, expr: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDomainOf(token: tokens_.Token, sum_expr: *AST, expr: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .domainOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .sum_expr = sum_expr, .expr = expr } }, allocator);
     }
 
-    pub fn createAssign(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createAssign(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .assign = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createOr(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createOr(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._or = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createAnd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createAnd(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._and = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createEqual(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createNotEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createNotEqual(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .not_equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createGreater(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createGreater(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .greater = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createLesser(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createLesser(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .lesser = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createGreaterEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createGreaterEqual(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .greater_equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createLesserEqual(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createLesserEqual(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .lesser_equal = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createAdd(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createAdd(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .add = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createSub(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createSub(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .sub = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createMult(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createMult(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .mult = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createDiv(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createDiv(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .div = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createMod(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createMod(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .mod = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createCatch(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createCatch(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._catch = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createOrelse(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createOrelse(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._orelse = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createCall(token: Token, lhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+    pub fn createCall(token: tokens_.Token, lhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .call = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .args = args } }, allocator);
     }
 
-    pub fn createIndex(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createIndex(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .index = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createSelect(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createSelect(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .select = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs, .pos = null } }, allocator);
     }
 
-    pub fn createSum(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+    pub fn createSum(token: tokens_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
-    pub fn createInferredError(token: Token, ok: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createInferredError(token: tokens_.Token, ok: *AST, allocator: std.mem.Allocator) !*AST {
         var retval: AST = AST{ .inferred_error = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = std.ArrayList(*AST).init(allocator) } };
-        const ok_annot = try createAnnotation(token, try AST.createIdentifier(Token{ .kind = .IDENTIFIER, .data = "ok", .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
+        const ok_annot = try createAnnotation(token, try AST.createIdentifier(tokens_.Token{ .kind = .IDENTIFIER, .data = "ok", .span = span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
         try retval.inferred_error.terms.append(ok_annot);
 
         return try AST.box(retval, allocator);
     }
 
-    pub fn createInject(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
+    pub fn createInject(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) error{OutOfMemory}!*AST {
         return try AST.box(AST{ .inject = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createFunction(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createFunction(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .function = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createInvoke(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createInvoke(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .invoke = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createProduct(token: Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
+    pub fn createProduct(token: tokens_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) !*AST {
         // std.debug.assert(terms.items.len >= 2);
         return try AST.box(AST{ .product = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
-    pub fn createUnion(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createUnion(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._union = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs } }, allocator);
     }
 
-    pub fn createAddrOf(token: Token, expr: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
+    pub fn createAddrOf(token: tokens_.Token, expr: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .addrOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .mut = mut } }, allocator);
     }
 
-    pub fn createSliceOf(token: Token, expr: *AST, len: ?*AST, kind: SliceKind, allocator: std.mem.Allocator) !*AST {
+    pub fn createSliceOf(token: tokens_.Token, expr: *AST, len: ?*AST, kind: SliceKind, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .sliceOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .len = len, .kind = kind } }, allocator);
     }
 
-    pub fn createSubSlice(token: Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createSubSlice(token: tokens_.Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .subSlice = .{ .common = ASTCommon{ .token = token, ._type = null }, .super = super, .lower = lower, .upper = upper } }, allocator);
     }
 
-    pub fn createAnnotation(token: Token, pattern: *AST, _type: *AST, predicate: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createAnnotation(token: tokens_.Token, pattern: *AST, _type: *AST, predicate: ?*AST, init: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .annotation = .{ .common = ASTCommon{ .token = token, ._type = null }, .pattern = pattern, .type = _type, .predicate = predicate, .init = init } }, allocator);
     }
 
-    pub fn createInferredMember(token: Token, ident: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createInferredMember(token: tokens_.Token, ident: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .inferredMember = .{ .common = ASTCommon{ .token = token, ._type = null }, .ident = ident } }, allocator);
     }
 
-    pub fn createIf(token: Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createIf(token: tokens_.Token, let: ?*AST, condition: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._if = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .condition = condition, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
-    pub fn createMatch(token: Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) !*AST {
+    pub fn createMatch(token: tokens_.Token, let: ?*AST, expr: *AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .expr = expr, .mappings = mappings, .has_else = has_else } }, allocator);
     }
 
-    pub fn createMapping(token: Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createMapping(token: tokens_.Token, lhs: ?*AST, rhs: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .mapping = .{ .common = ASTCommon{ .token = token, ._type = null }, .lhs = lhs, .rhs = rhs, .scope = null } }, allocator);
     }
 
-    pub fn createWhile(token: Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createWhile(token: tokens_.Token, let: ?*AST, condition: *AST, post: ?*AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._while = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .condition = condition, .post = post, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
-    pub fn createFor(token: Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createFor(token: tokens_.Token, let: ?*AST, elem: *AST, iterable: *AST, bodyBlock: *AST, elseBlock: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._for = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, .elem = elem, .iterable = iterable, .bodyBlock = bodyBlock, .elseBlock = elseBlock } }, allocator);
     }
 
-    pub fn createBlock(token: Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createBlock(token: tokens_.Token, statements: std.ArrayList(*AST), final: ?*AST, allocator: std.mem.Allocator) !*AST {
         if (final) |_final| {
             std.debug.assert(_final.* == ._return or _final.* == ._continue or _final.* == ._break);
         }
         return try AST.box(AST{ .block = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .statements = statements, .final = final } }, allocator);
     }
 
-    pub fn createBreak(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createBreak(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._break = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createContinue(token: Token, allocator: std.mem.Allocator) !*AST {
+    pub fn createContinue(token: tokens_.Token, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._continue = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createReturn(token: Token, expr: ?*AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createReturn(token: tokens_.Token, expr: ?*AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr } }, allocator);
     }
 
-    pub fn createSymbol(token: Token, kind: _symbol.SymbolKind, name: []const u8, allocator: std.mem.Allocator) !*AST {
+    pub fn createSymbol(token: tokens_.Token, kind: symbol_.SymbolKind, name: []const u8, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .symbol = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .name = name } }, allocator);
     }
 
-    pub fn createDecl(token: Token, pattern: *AST, _type: *AST, init: *AST, allocator: std.mem.Allocator) !*AST {
-        return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbols = std.ArrayList(*Symbol).init(allocator), .pattern = pattern, .type = _type, .init = init, .top_level = false } }, allocator);
+    pub fn createDecl(token: tokens_.Token, pattern: *AST, _type: *AST, init: *AST, allocator: std.mem.Allocator) !*AST {
+        return try AST.box(AST{ .decl = .{ .common = ASTCommon{ .token = token, ._type = null }, .symbols = std.ArrayList(*symbol_.Symbol).init(allocator), .pattern = pattern, .type = _type, .init = init, .top_level = false } }, allocator);
     }
 
-    pub fn createFnDecl(token: Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, infer_error: bool, allocator: std.mem.Allocator) !*AST {
+    pub fn createFnDecl(token: tokens_.Token, name: ?*AST, params: std.ArrayList(*AST), retType: *AST, refinement: ?*AST, init: *AST, infer_error: bool, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ .fnDecl = .{
             .common = ASTCommon{ .token = token, ._type = null },
             .name = name,
             .params = params,
-            .param_symbols = std.ArrayList(*Symbol).init(allocator),
+            .param_symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
             .retType = retType,
             .refinement = refinement,
             .init = init,
@@ -829,11 +823,11 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn createDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createDefer(token: tokens_.Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
     }
 
-    pub fn createErrDefer(token: Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createErrDefer(token: tokens_.Token, statement: *AST, allocator: std.mem.Allocator) !*AST {
         return try AST.box(AST{ ._errdefer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
     }
 
@@ -845,11 +839,11 @@ pub const AST = union(enum) {
             mut,
             allocator,
         )).assert_valid();
-        const annot_type = (try AST.createAnnotation(of.getToken(), try AST.createIdentifier(Token.create("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator)).assert_valid();
+        const annot_type = (try AST.createAnnotation(of.getToken(), try AST.createIdentifier(tokens_.Token.create("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator)).assert_valid();
         try term_types.append(annot_type);
         try term_types.append(try AST.createAnnotation(
             of.getToken(),
-            try AST.createIdentifier(Token.create("length", null, "", "", 0, 0), allocator),
+            try AST.createIdentifier(tokens_.Token.create("length", null, "", "", 0, 0), allocator),
             primitives.int_type,
             null,
             null,
@@ -891,17 +885,17 @@ pub const AST = union(enum) {
 
         const none_type = try AST.createAnnotation(
             of_type.getToken(),
-            try AST.createIdentifier(Token.create_simple("none"), allocator),
+            try AST.createIdentifier(tokens_.Token.create_simple("none"), allocator),
             primitives.unit_type,
             null,
-            try AST.createUnitValue(Token.create_simple("none init"), allocator),
+            try AST.createUnitValue(tokens_.Token.create_simple("none init"), allocator),
             allocator,
         );
         try term_types.append(none_type);
 
         const some_type = try AST.createAnnotation(
             of_type.getToken(),
-            try AST.createIdentifier(Token.create("some", null, "", "", 0, 0), allocator),
+            try AST.createIdentifier(tokens_.Token.create("some", null, "", "", 0, 0), allocator),
             of_type,
             null,
             null,
@@ -915,7 +909,7 @@ pub const AST = union(enum) {
     }
 
     pub fn create_some_value(opt_type: *AST, value: *AST, allocator: std.mem.Allocator) !*AST {
-        const member = try createInferredMember(value.getToken(), try AST.createIdentifier(Token.create_simple("some"), allocator), allocator);
+        const member = try createInferredMember(value.getToken(), try AST.createIdentifier(tokens_.Token.create_simple("some"), allocator), allocator);
         member.inferredMember.base = opt_type;
         member.inferredMember.init = value;
         member.inferredMember.pos = opt_type.sum.get_pos("some");
@@ -923,14 +917,14 @@ pub const AST = union(enum) {
     }
 
     pub fn create_none_value(opt_type: *AST, allocator: std.mem.Allocator) !*AST {
-        const member = try createInferredMember(Token.create_simple("none"), try AST.createIdentifier(Token.create_simple("none"), allocator), allocator);
+        const member = try createInferredMember(tokens_.Token.create_simple("none"), try AST.createIdentifier(tokens_.Token.create_simple("none"), allocator), allocator);
         member.inferredMember.base = opt_type;
         member.inferredMember.pos = opt_type.sum.get_pos("none");
         return member.assert_valid();
     }
 
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) !*AST {
-        const ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(Token.create("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
+        const ok_annot = try AST.createAnnotation(ok_type.getToken(), try AST.createIdentifier(tokens_.Token.create("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
         var ok_sum_terms = std.ArrayList(*AST).init(allocator);
         try ok_sum_terms.append(ok_annot);
         var ok_sum = try AST.createSum(ok_type.getToken(), ok_sum_terms, allocator);
@@ -957,7 +951,7 @@ pub const AST = union(enum) {
         return err_union.sum.terms.items[0];
     }
 
-    pub fn expand_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    pub fn expand_type(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         if (self.getCommon().expanded_type) |expaned_type| {
             return expaned_type;
         }
@@ -969,15 +963,15 @@ pub const AST = union(enum) {
                 const symbol = switch (res) {
                     .found => res.found,
                     .not_found => {
-                        errors.addError(Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .scope = scope, .expected = null } });
+                        errors.addError(errs.Error{ .undeclaredIdentifier = .{ .identifier = self.getToken(), .scope = scope, .expected = null } });
                         return error.typeError;
                     },
                     .found_but_rt => {
-                        errors.addError(Error{ .comptime_access_runtime = .{ .identifier = self.getToken() } });
+                        errors.addError(errs.Error{ .comptime_access_runtime = .{ .identifier = self.getToken() } });
                         return error.typeError;
                     },
                     .found_but_fn => {
-                        errors.addError(Error{ .inner_fn_access_runtime = .{ .identifier = self.getToken() } });
+                        errors.addError(errs.Error{ .inner_fn_access_runtime = .{ .identifier = self.getToken() } });
                         return error.typeError;
                     },
                 };
@@ -1048,7 +1042,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    pub fn createBinop(token: Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
+    pub fn createBinop(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) !*AST {
         switch (token.kind) {
             .PLUS_EQUALS => return createAdd(token, lhs, rhs, allocator),
             .MINUS_EQUALS => return createSub(token, lhs, rhs, allocator),
@@ -1170,7 +1164,7 @@ pub const AST = union(enum) {
     }
 
     // Must always return a valid type!
-    pub fn typeof(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    pub fn typeof(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         // std.debug.assert(self.getCommon().validation_state != .unvalidated);
         if (self.getCommon()._type) |_type| {
             return _type;
@@ -1298,7 +1292,7 @@ pub const AST = union(enum) {
                     // pos not known...
                     for (annot_list.items, 0..) |term, i| {
                         if (term.* != .annotation) {
-                            errors.addError(Error{ .basic = .{
+                            errors.addError(errs.Error{ .basic = .{
                                 .span = self.getToken().span,
                                 .msg = "left-hand-side of select is not selectable",
                             } });
@@ -1310,7 +1304,7 @@ pub const AST = union(enum) {
                             break;
                         }
                     } else {
-                        errors.addError(Error{ .member_not_in = .{
+                        errors.addError(errs.Error{ .member_not_in = .{
                             .span = self.getToken().span,
                             .identifier = self.select.rhs.getToken().data,
                             .group_name = "tuple",
@@ -1415,7 +1409,7 @@ pub const AST = union(enum) {
     }
 
     // Expands an ast one level if it is an identifier
-    pub fn expand_identifier(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    pub fn expand_identifier(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         if (self.* == .identifier) {
             const symbol = try _validate.findSymbol(self, null, scope, errors);
             try _validate.validateSymbol(symbol, errors, allocator);
@@ -1447,7 +1441,7 @@ pub const AST = union(enum) {
     /// Also, `&mut T <: &T`, because for every `t: &mut T`, `t: &T`.
     ///
     /// Also, (x: T,) == T == (x: T,)
-    pub fn typesMatch(A: *AST, B: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    pub fn typesMatch(A: *AST, B: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         if (A.* == .annotation) {
             return try typesMatch(A.annotation.type, B, scope, errors, allocator);
         } else if (B.* == .annotation) {
@@ -1552,11 +1546,11 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn generate_default(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
+    pub fn generate_default(_type: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !*AST {
         return (try generate_default_unvalidated(_type, scope, errors, allocator)).assert_valid();
     }
 
-    fn generate_default_unvalidated(_type: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
+    fn generate_default_unvalidated(_type: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) error{ OutOfMemory, interpreter_panic, InvalidRange, typeError, Unimplemented, NotAnLValue }!*AST {
         switch (_type.*) {
             .identifier => {
                 const expanded_type = try _type.expand_type(scope, errors, allocator);
@@ -1565,7 +1559,7 @@ pub const AST = union(enum) {
                     if (primitive_info.default_value != null) {
                         return primitive_info.default_value.?;
                     } else {
-                        errors.addError(Error{ .no_default = .{ .span = _type.getToken().span, ._type = _type } });
+                        errors.addError(errs.Error{ .no_default = .{ .span = _type.getToken().span, ._type = _type } });
                         return error.typeError;
                     }
                 } else {
@@ -1581,7 +1575,7 @@ pub const AST = union(enum) {
                 return try AST.createUnitValue(_type.getToken(), allocator);
             },
             .sum => {
-                var retval = try AST.createInferredMember(_type.getToken(), try AST.createIdentifier(Token.create("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                var retval = try AST.createInferredMember(_type.getToken(), try AST.createIdentifier(tokens_.Token.create("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
                 retval.inferredMember.pos = 0;
                 retval.inferredMember.base = _type;
                 const proper_term: *AST = _type.sum.terms.items[0];
@@ -1610,7 +1604,7 @@ pub const AST = union(enum) {
     }
 
     /// Determines if a given integer type can represent a given integer value.
-    pub fn can_represent_integer(self: *AST, value: i128, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    pub fn can_represent_integer(self: *AST, value: i128, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
@@ -1635,7 +1629,7 @@ pub const AST = union(enum) {
         return false;
     }
 
-    pub fn can_represent_float(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    pub fn can_represent_float(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         return can_expanded_represent_float(try self.expand_type(scope, errors, allocator));
     }
 
@@ -1655,7 +1649,7 @@ pub const AST = union(enum) {
         return info.type_kind == .floating_point;
     }
 
-    pub fn is_eq_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    pub fn is_eq_type(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
@@ -1678,7 +1672,7 @@ pub const AST = union(enum) {
     }
 
     /// Ord <: Eq
-    pub fn is_ord_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    pub fn is_ord_type(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
@@ -1690,7 +1684,7 @@ pub const AST = union(enum) {
     }
 
     /// Num <: Ord
-    pub fn is_num_type(self: *AST, scope: *Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+    pub fn is_num_type(self: *AST, scope: *symbol_.Scope, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
         var expanded = try self.expand_type(scope, errors, allocator);
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;

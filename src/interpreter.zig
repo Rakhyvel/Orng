@@ -1,6 +1,8 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
+const cfg_ = @import("cfg.zig");
 const ir_ = @import("ir.zig");
+const lval_ = @import("lval.zig");
 const primitives_ = @import("primitives.zig");
 const offsets_ = @import("offsets.zig");
 const token_ = @import("token.zig");
@@ -23,7 +25,7 @@ pub const Context = struct {
     debug_call_stack: std.ArrayList(span_.Span),
 
     pub fn init(
-        cfg: *ir_.CFG,
+        cfg: *cfg_.CFG,
         instructions: *std.ArrayList(*ir_.IR), // Flat list of instructions to interpret
         ret_type: *ast_.AST,
         entry_point: i64, // Address of the intruction to start execution at
@@ -54,7 +56,7 @@ pub const Context = struct {
         return retval;
     }
 
-    fn get_lval(self: *Context, lval: *ir_.L_Value) i64 {
+    fn get_lval(self: *Context, lval: *lval_.L_Value) i64 {
         switch (lval.*) {
             .symbver => {
                 if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
@@ -159,7 +161,7 @@ pub const Context = struct {
         @memcpy(self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))], self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))]);
     }
 
-    fn move_symbver_list(self: *Context, dest: i64, list: *std.ArrayList(*ir_.L_Value)) void {
+    fn move_lval_list(self: *Context, dest: i64, list: *std.ArrayList(*lval_.L_Value)) void {
         std.debug.assert(dest >= 0);
         var cursor = dest;
         for (list.items) |lval| {
@@ -247,7 +249,7 @@ pub const Context = struct {
                 .loadAST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
 
                 // Tuples
-                .loadStruct => self.move_symbver_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
+                .loadStruct => self.move_lval_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
 
                 .loadUnion => {
                     if (ir.src1 != null) {
