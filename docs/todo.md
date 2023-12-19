@@ -75,7 +75,7 @@
 - [x] IRs should use L_Values for sources too (its not harder to optimize btw)
 - [x] Put Validation_State in its own file, bring along poisoned and init_structures
 - [x] ir -> {(IR, IRKind, IRData), (SymbolVersion, L_Value), BasicBlock, CFG}, lower.zig
-- [ ] Move DAG to its own file, along with the type set functions
+- [x] Move DAG to its own file, along with the type set functions
 - [ ] Keep Symbol and Scope together, remove SymbolKind, create a new file for creating the tree
 - [ ] Separate symbol pass to map identifiers to symbols
     - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field

@@ -10,23 +10,8 @@ const Parser = @import("parser.zig").Parser;
 const std = @import("std");
 const symbol_ = @import("symbol.zig");
 const Span = @import("span.zig").Span;
+const type_set_ = @import("type-set.zig");
 const validate_ = @import("validate.zig");
-
-pub const DAG = struct {
-    base: *ast_.AST,
-    uid: usize,
-    dependencies: std.ArrayList(*DAG),
-    visited: bool,
-
-    fn init(base: *ast_.AST, uid: usize, allocator: std.mem.Allocator) !*DAG {
-        var retval = try allocator.create(DAG);
-        retval.base = base;
-        retval.uid = uid;
-        retval.dependencies = std.ArrayList(*DAG).init(allocator);
-        retval.visited = false;
-        return retval;
-    }
-};
 
 var module_uids: usize = 0;
 /// This structure represents a module being compiled.
@@ -35,7 +20,7 @@ pub const Module = struct {
     uid: i128,
 
     // A graph of type dependencies
-    types: std.ArrayList(*DAG),
+    type_set: type_set_.Type_Set,
 
     // Flat list of instructions
     instructions: std.ArrayList(*ir_.IR),
@@ -68,7 +53,7 @@ pub const Module = struct {
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
-        retval.types = std.ArrayList(*DAG).init(allocator);
+        retval.type_set = type_set_.Type_Set.init(allocator);
         return retval;
     }
 
@@ -157,8 +142,24 @@ pub const Module = struct {
             }
         }
 
+        // TODO: I don't think this works with addresses
+        //     let const A = (x: &B, y: Int)
+        //     let const B = (x: &A, y: Int)
+        // The above should work
         for (module.cfgs.items) |cfg| {
-            try collect_types(cfg, &module.types, allocator);
+            // Add parameter types to type set
+            for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+                _ = try module.type_set.add(param.expanded_type.?, allocator);
+            }
+
+            for (cfg.basic_blocks.items) |bb| {
+                var maybe_ir = bb.ir_head;
+                while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                    if (ir.dest != null) {
+                        _ = try module.type_set.add(ir.dest.?.get_expanded_type(), allocator);
+                    }
+                }
+            }
         }
         return module;
     }
@@ -297,78 +298,6 @@ pub const Module = struct {
         }
     }
 };
-
-// TODO: I don't think this works with addresses
-//     let const A = (x: &B, y: Int)
-//     let const B = (x: &A, y: Int)
-// The above should work
-fn collect_types(cfg: *cfg_.CFG, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !void {
-    // Add parameter types to type set
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-        _ = try type_set_append(param.expanded_type.?, set, allocator);
-    }
-
-    for (cfg.basic_blocks.items) |bb| {
-        var maybe_ir = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null) {
-                _ = try type_set_append(ir.dest.?.get_expanded_type(), set, allocator);
-            }
-        }
-    }
-}
-
-fn type_set_append(oldast_: *ast_.AST, set: *std.ArrayList(*DAG), allocator: std.mem.Allocator) !?*DAG {
-    const ast = oldast_;
-    if (type_set_get(ast, set)) |dag| {
-        // Type is already in the set, return DAG entry for it
-        return dag;
-    } else if (ast.* == .function) {
-        var dag = try DAG.init(ast, set.items.len, allocator);
-        try set.append(dag);
-        if (try type_set_append(ast.function.lhs, set, allocator)) |domain| {
-            try dag.dependencies.append(domain);
-        }
-        if (try type_set_append(ast.function.rhs, set, allocator)) |codomain| {
-            try dag.dependencies.append(codomain);
-        }
-        return dag;
-    } else if (ast.* == .product) {
-        var dag = try DAG.init(ast, set.items.len, allocator);
-        try set.append(dag);
-        for (ast.product.terms.items) |term| {
-            if (try type_set_append(term, set, allocator)) |dependency| {
-                try dag.dependencies.append(dependency);
-            }
-        }
-        return dag;
-    } else if (ast.* == .sum) {
-        var dag = try DAG.init(ast, set.items.len, allocator);
-        try set.append(dag);
-        for (ast.sum.terms.items) |term| {
-            if (try type_set_append(term, set, allocator)) |dependency| {
-                try dag.dependencies.append(dependency);
-            }
-        }
-        return dag;
-    } else if (ast.* == .annotation) {
-        return try type_set_append(ast.annotation.type, set, allocator);
-    } else if (ast.* == .addrOf) {
-        return try type_set_append(ast.addrOf.expr, set, allocator);
-    } else {
-        return null;
-    }
-}
-
-pub fn type_set_get(oldast_: *ast_.AST, set: *std.ArrayList(*DAG)) ?*DAG {
-    const ast = oldast_;
-    for (set.items) |dag| {
-        if (dag.base.c_typesMatch(ast)) {
-            return dag;
-        }
-    }
-    return null;
-}
 
 pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8)) !void {
     for (set.items) |item| {

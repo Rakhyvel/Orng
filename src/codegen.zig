@@ -8,6 +8,7 @@ const module_ = @import("module.zig");
 const span_ = @import("span.zig");
 const std = @import("std");
 const strings = @import("zig-string/zig-string.zig");
+const type_set_ = @import("type-set.zig");
 const _symbol = @import("symbol.zig");
 
 const AST = _ast.AST;
@@ -39,7 +40,7 @@ pub fn generate(module: *Module, writer: anytype) !void {
         \\
     , .{});
 
-    try output_typedefs(&module.types, writer);
+    try output_typedefs(&module.type_set, writer);
     try output_interned_strings(&module.interned_strings, writer);
     try writer.print("/* Function forward definitions */\n", .{});
     for (module.cfgs.items) |cfg| {
@@ -106,16 +107,16 @@ fn output_main_function(cfg: *CFG, writer: anytype) !void {
     }
 }
 
-fn output_typedefs(dags: *std.ArrayList(*module_.DAG), writer: anytype) !void {
-    if (dags.items.len > 0) {
+fn output_typedefs(type_set: *type_set_.Type_Set, writer: anytype) !void {
+    if (type_set.types.items.len > 0) {
         try writer.print("/* Typedefs */\n", .{});
     }
-    for (dags.items) |dag| {
+    for (type_set.types.items) |dag| {
         try output_typedef(dag, writer);
     }
 }
 
-fn output_typedef(dag: *module_.DAG, writer: anytype) !void {
+fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
     if (dag.visited) {
         return;
     }
@@ -754,11 +755,11 @@ fn output_type(_type: *AST, writer: anytype) CodeGen_Error!void {
             try writer.print("*", .{});
         },
         .function => {
-            const i = (module_.type_set_get(_type, &cheat_module.types)).?.uid;
+            const i = (cheat_module.type_set.get(_type)).?.uid;
             try writer.print("function{}", .{i});
         },
         .sum, .product => {
-            const i = (module_.type_set_get(_type, &cheat_module.types)).?.uid;
+            const i = (cheat_module.type_set.get(_type)).?.uid;
             try writer.print("struct{}", .{i});
         },
         .unit_type => {
