@@ -137,7 +137,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
         }
         return false;
     };
-    try module.output(out_name.str(), &errors, allocator);
+    try module.output(out_name.str());
     if (coverage) {
         return false;
     }
@@ -349,7 +349,7 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            module.output("tests/fuzz/fuzz-out.c", &errors, allocator) catch |err| {
+            module.output("tests/fuzz/fuzz-out.c") catch |err| {
                 switch (err) {
                     error.typeError,
                     error.Unimplemented,

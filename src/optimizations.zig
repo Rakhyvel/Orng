@@ -46,9 +46,9 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     try findUnused(cfg, errors);
 
     while (try propagate(cfg, interned_strings, errors, allocator) or
-        try removeUnusedDefs(cfg, errors, allocator) or
+        try removeUnusedDefs(cfg, errors) or
         try bbOptimizations(cfg, allocator) or
-        try removeUnusedDefs(cfg, errors, allocator))
+        try removeUnusedDefs(cfg, errors))
     {}
     cfg.clearVisitedBBs();
 
@@ -1189,8 +1189,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
     }
 }
 
-fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
-    _ = allocator;
+fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
     var retval = false;
 
     calculateUsage(cfg);

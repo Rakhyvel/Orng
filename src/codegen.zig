@@ -600,8 +600,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
         .pushStackTrace => {
             var spaces = String.init(std.heap.page_allocator);
             defer spaces.deinit();
-            for (1..ir.span.col - 1) |i| {
-                _ = i;
+            for (1..ir.span.col - 1) |_| {
                 try spaces.insert(" ", spaces.size);
             }
             try writer.print("    $lines[$line_idx++] = ", .{});

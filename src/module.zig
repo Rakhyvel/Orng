@@ -188,12 +188,7 @@ pub const Module = struct {
     pub fn output(
         self: *Module,
         out_name: []const u8, // TODO: Replace with writer, shouldn't be responsible for handling files
-        errors: *errs.Errors,
-        allocator: std.mem.Allocator,
     ) !void {
-        _ = allocator;
-        _ = errors;
-
         // Open the output file
         var output_file = std.fs.cwd().createFile(
             out_name,
