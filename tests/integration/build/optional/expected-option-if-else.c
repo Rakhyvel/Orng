@@ -15,23 +15,23 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1218_main(void);
+int64_t _1050_main(void);
 
 /* Function definitions */
-int64_t _1218_main(void){
-    int64_t _1218_t0;
-    struct0 _1219_x;
-    uint64_t _1218_t2;
-    int64_t _1218_$retval;
-    _1218_t0 = 125;
-    _1219_x = (struct0) {.tag=1, ._1=_1218_t0};
-    _1218_t2 = 1;
-    $tag_check(_1218_t2, 1, "tests/integration/optional/expected-option-if-else.orng:2:3:\nfn main() -> Int {\n ^");
-    _1218_$retval = _1219_x._1;
-    return _1218_$retval;
+int64_t _1050_main(void){
+    int64_t _1050_t0;
+    struct0 _1051_x;
+    uint64_t _1050_t2;
+    int64_t _1050_$retval;
+    _1050_t0 = 125;
+    _1051_x = (struct0) {.tag=1, ._1=_1050_t0};
+    _1050_t2 = 1;
+    $tag_check(_1050_t2, 1, "tests/integration/optional/expected-option-if-else.orng:2:3:\nfn main() -> Int {\n ^");
+    _1050_$retval = _1051_x._1;
+    return _1050_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1218_main());
+  printf("%ld",_1050_main());
   return 0;
 }

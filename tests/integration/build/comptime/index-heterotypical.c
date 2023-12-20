@@ -14,31 +14,31 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _316_add(int64_t _316_a,int64_t _316_b);
-int64_t _312_main(void);
+int64_t _233_add(int64_t _233_a,int64_t _233_b);
+int64_t _230_main(void);
 
 /* Function definitions */
-int64_t _316_add(int64_t _316_a,int64_t _316_b){
-    int64_t _316_$retval;
-    _316_$retval = $add_int64_t(_316_a, _316_b, "tests/integration/comptime/index-heterotypical.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
-    return _316_$retval;
+int64_t _233_add(int64_t _233_a,int64_t _233_b){
+    int64_t _233_$retval;
+    _233_$retval = $add_int64_t(_233_a, _233_b, "tests/integration/comptime/index-heterotypical.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
+    return _233_$retval;
 }
 
-int64_t _312_main(void){
-    uint32_t _312_t1;
-    int64_t _312_t2;
-    double _312_t3;
-    struct0 _313_x;
-    int64_t _312_$retval;
-    _312_t1 = 960;
-    _312_t2 = 248;
-    _312_t3 = 3.14e+00;
-    _313_x = (struct0) {_312_t1, _312_t2, _312_t3};
-    _312_$retval = _313_x._1;
-    return _312_$retval;
+int64_t _230_main(void){
+    uint32_t _230_t1;
+    int64_t _230_t2;
+    double _230_t3;
+    struct0 _231_x;
+    int64_t _230_$retval;
+    _230_t1 = 960;
+    _230_t2 = 248;
+    _230_t3 = 3.14e+00;
+    _231_x = (struct0) {_230_t1, _230_t2, _230_t3};
+    _230_$retval = _231_x._1;
+    return _230_$retval;
 }
 
 int main(void) {
-  printf("%ld",_312_main());
+  printf("%ld",_230_main());
   return 0;
 }

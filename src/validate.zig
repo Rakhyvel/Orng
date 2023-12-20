@@ -29,7 +29,7 @@ fn validate_scope(scope: *Scope, errors: *errs.Errors, allocator: std.mem.Alloca
     }
 }
 
-pub fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, interpreter_panic, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!void {
+fn validateSymbol(symbol: *Symbol, errors: *errs.Errors, allocator: std.mem.Allocator) error{ typeError, interpreter_panic, Unimplemented, OutOfMemory, InvalidRange, NotAnLValue }!void {
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -258,7 +258,7 @@ fn validate_AST_internal(
         },
         .dereference => {
             if (expected != null) {
-                const addr_of = (try _ast.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator)).assert_valid();
+                const addr_of = (try AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator)).assert_valid();
                 ast.dereference.expr = try validateAST(ast.dereference.expr, addr_of, errors, allocator);
             } else {
                 ast.dereference.expr = try validateAST(ast.dereference.expr, null, errors, allocator);
@@ -992,7 +992,7 @@ fn validate_AST_internal(
             } else {
                 const domain = try domainof(ast, expected, errors, allocator);
                 if (domain.* == .poison) {
-                    return domain;
+                    return ast.enpoison();
                 }
                 ast.inject.lhs.inferredMember.init = try validateAST(ast.inject.rhs, domain, errors, allocator);
                 if (ast.inject.lhs.inferredMember.init.?.* == .poison) {

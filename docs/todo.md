@@ -83,6 +83,16 @@
     - typeof, expand_type, typesMatch
 - [ ] Look into any AST transformations that are being done in validate, move them to expand.zig
     - Union expansion to sums
+    ? domainOf
+    ? typeOf
+    ? default
+    ? sizeOf
+    ? comptime
+    ? type equality
+    ? comptime index => select
+    ? sum type select
+    ? slice-of => product
+    ? if comptime reduction
 - [ ] Post-lower pass that searches for unused symbols/call results
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Create a `Labels` struct for lower, to simplify things

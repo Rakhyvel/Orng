@@ -16,37 +16,37 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _109_main(void);
+int64_t _64_main(void);
 
 /* Function definitions */
-int64_t _109_main(void){
-    int64_t _109_t1;
-    int64_t _109_t2;
-    int64_t _109_t3;
-    int64_t _109_t4;
-    int64_t _109_t5;
-    struct0 _110_x;
-    struct0* _110_y;
-    int64_t _109_t7;
-    int64_t _109_t8;
-    int64_t _109_t9;
-    int64_t _109_$retval;
-    _109_t1 = 1;
-    _109_t2 = 2;
-    _109_t3 = 3;
-    _109_t4 = 4;
-    _109_t5 = 5;
-    _110_x = (struct0) {_109_t1, _109_t2, _109_t3, _109_t4, _109_t5};
-    _110_y = &_110_x;
-    _109_t7 = 2;
-    _109_t8 = 5;
-    _109_t9 = 77;
-    $bounds_check(_109_t7, _109_t8, "tests/integration/arrays/implicit-deref.orng:5:11:\n    y[2] + 77\n         ^");
-    _109_$retval = $add_int64_t(*((int64_t*)_110_y + _109_t7), _109_t9, "tests/integration/arrays/implicit-deref.orng:5:11:\n    y[2] + 77\n         ^");
-    return _109_$retval;
+int64_t _64_main(void){
+    int64_t _64_t1;
+    int64_t _64_t2;
+    int64_t _64_t3;
+    int64_t _64_t4;
+    int64_t _64_t5;
+    struct0 _65_x;
+    struct0* _65_y;
+    int64_t _64_t7;
+    int64_t _64_t8;
+    int64_t _64_t9;
+    int64_t _64_$retval;
+    _64_t1 = 1;
+    _64_t2 = 2;
+    _64_t3 = 3;
+    _64_t4 = 4;
+    _64_t5 = 5;
+    _65_x = (struct0) {_64_t1, _64_t2, _64_t3, _64_t4, _64_t5};
+    _65_y = &_65_x;
+    _64_t7 = 2;
+    _64_t8 = 5;
+    _64_t9 = 77;
+    $bounds_check(_64_t7, _64_t8, "tests/integration/arrays/implicit-deref.orng:5:11:\n    y[2] + 77\n         ^");
+    _64_$retval = $add_int64_t(*((int64_t*)_65_y + _64_t7), _64_t9, "tests/integration/arrays/implicit-deref.orng:5:11:\n    y[2] + 77\n         ^");
+    return _64_$retval;
 }
 
 int main(void) {
-  printf("%ld",_109_main());
+  printf("%ld",_64_main());
   return 0;
 }

@@ -15,23 +15,23 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _640_main(void);
+int64_t _537_main(void);
 
 /* Function definitions */
-int64_t _640_main(void){
-    int64_t _640_t0;
-    struct0 _641_x;
-    uint64_t _640_t2;
-    int64_t _640_$retval;
-    _640_t0 = 134;
-    _641_x = (struct0) {.tag=0, ._0=_640_t0};
-    _640_t2 = 0;
-    $tag_check(_640_t2, 0, "tests/integration/default/default-sum-init.orng:2:3:\nfn main() -> Int {\n ^");
-    _640_$retval = _641_x._0;
-    return _640_$retval;
+int64_t _537_main(void){
+    int64_t _537_t0;
+    struct0 _538_x;
+    uint64_t _537_t2;
+    int64_t _537_$retval;
+    _537_t0 = 134;
+    _538_x = (struct0) {.tag=0, ._0=_537_t0};
+    _537_t2 = 0;
+    $tag_check(_537_t2, 0, "tests/integration/default/default-sum-init.orng:2:3:\nfn main() -> Int {\n ^");
+    _537_$retval = _538_x._0;
+    return _537_$retval;
 }
 
 int main(void) {
-  printf("%ld",_640_main());
+  printf("%ld",_537_main());
   return 0;
 }

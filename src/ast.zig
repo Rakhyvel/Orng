@@ -849,6 +849,16 @@ pub const AST = union(enum) {
         return try AST.box(AST{ ._errdefer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
     }
 
+    pub fn create_array_type(len: *AST, of: *AST, allocator: std.mem.Allocator) !*AST {
+        // Inflate an array-of to a product with `len` `of`'s
+        var new_terms = std.ArrayList(*AST).init(allocator);
+        std.debug.assert(len.int.data >= 0);
+        for (0..@as(usize, @intCast(len.int.data))) |_| {
+            try new_terms.append(of);
+        }
+        return try AST.createProduct(of.getToken(), new_terms, allocator);
+    }
+
     pub fn create_slice_type(of: *AST, mut: bool, allocator: std.mem.Allocator) !*AST {
         var term_types = std.ArrayList(*AST).init(allocator);
         const data_type = (try AST.createAddrOf(
@@ -1258,7 +1268,7 @@ pub const AST = union(enum) {
             },
 
             .index => {
-                var lhs_type = try self.index.lhs.typeof(allocator);
+                var lhs_type = try (try self.index.lhs.typeof(allocator)).expand_type(allocator);
                 if (try lhs_type.typesMatch(primitives_.type_type) and self.index.lhs.* == .product) {
                     retval = self.index.lhs.product.terms.items[0];
                 } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
@@ -1303,7 +1313,7 @@ pub const AST = union(enum) {
             // Unary Operators
             .negate => retval = try self.negate.expr.typeof(allocator),
             .dereference => {
-                const _type = (try self.dereference.expr.typeof(allocator)).expand_identifier();
+                const _type = try (try self.dereference.expr.typeof(allocator)).expand_type(allocator);
                 retval = _type.addrOf.expr;
             },
             .addrOf => {
@@ -1371,6 +1381,7 @@ pub const AST = union(enum) {
                 retval = self.fnDecl.symbol.?._type;
             },
             .symbol => retval = self.symbol.symbol._type,
+            .inject => retval = try self.inject.lhs.typeof(allocator),
 
             else => {
                 std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
@@ -1429,11 +1440,6 @@ pub const AST = union(enum) {
             // If only B is an identifier, and B isn't an atom type, dive
             return try typesMatch(A, B.expand_identifier());
         }
-        // if (A.* == .product and B.* != .product and A.product.terms.items.len == 1) {
-        //     return try typesMatch(A.product.terms.items[0], B, scope, errors, allocator);
-        // } else if (B.* == .product and A.* != .product and B.product.terms.items.len == 1) {
-        //     return try typesMatch(A, B.product.terms.items[0], scope, errors, allocator);
-        // }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
         }

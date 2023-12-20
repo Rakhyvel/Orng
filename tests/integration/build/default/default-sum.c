@@ -15,40 +15,40 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _647_main(void);
+int64_t _542_main(void);
 
 /* Function definitions */
-int64_t _647_main(void){
-    int64_t _647_t0;
-    struct0 _648_x;
-    uint64_t _647_t3;
-    int64_t _647_t4;
-    uint8_t _647_t6;
-    int64_t _647_t2;
-    int64_t _647_$retval;
-    _647_t0 = 0;
-    _648_x = (struct0) {.tag=0, ._0=_647_t0};
-    _647_t3 = 0;
-    _647_t4 = 0;
-    $tag_check(_647_t3, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
-    _647_t6 = _648_x._0 == _647_t4;
-    if (_647_t6) {
+int64_t _542_main(void){
+    int64_t _542_t0;
+    struct0 _543_x;
+    uint64_t _542_t3;
+    int64_t _542_t4;
+    uint8_t _542_t6;
+    int64_t _542_t2;
+    int64_t _542_$retval;
+    _542_t0 = 0;
+    _543_x = (struct0) {.tag=0, ._0=_542_t0};
+    _542_t3 = 0;
+    _542_t4 = 0;
+    $tag_check(_542_t3, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
+    _542_t6 = _543_x._0 == _542_t4;
+    if (_542_t6) {
         goto BB3;
     } else {
         goto BB7;
     }
 BB3:
-    _647_t2 = 133;
+    _542_t2 = 133;
     goto BB6;
 BB7:
-    _647_t2 = 0;
+    _542_t2 = 0;
     goto BB6;
 BB6:
-    _647_$retval = _647_t2;
-    return _647_$retval;
+    _542_$retval = _542_t2;
+    return _542_$retval;
 }
 
 int main(void) {
-  printf("%ld",_647_main());
+  printf("%ld",_542_main());
   return 0;
 }

@@ -4,4 +4,4 @@ fn main() -> Int {
     x[0] + x[1] + x[2] + x[3]
 }
 
-fn get_array(a: Int, b: Int) -> [4]Int {(a, b, a, b)}
+fn get_array(a: Int, b: Int) -> [4]Int { (a, b, a, b) }

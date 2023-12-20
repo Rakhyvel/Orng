@@ -143,9 +143,6 @@ pub const Parser = struct {
 
         if (self.accept(.COLON)) |_| {
             _type = try self.inject_expr();
-            if (_type.?.* != .identifier) {
-                _type = try AST.createComptime(token, _type.?, self.astAllocator);
-            }
             if (self.peek_kind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
                 init = try self.inject_expr();
@@ -275,10 +272,7 @@ pub const Parser = struct {
     fn annotation_expr(self: *Parser) ParserErrorEnum!*AST {
         const exp = try self.assignment_expr();
         if (self.accept(.COLON)) |token| {
-            var _type = try self.inject_expr();
-            if (_type.* != .identifier) {
-                _type = try AST.createComptime(token, _type, self.astAllocator);
-            }
+            const _type = try self.inject_expr();
             var predicate: ?*AST = null;
             var init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
@@ -453,12 +447,11 @@ pub const Parser = struct {
                 sliceKind = .MULTIPTR;
             } else if (self.next_is_expr()) {
                 sliceKind = .ARRAY;
-                const pre_len = try self.inject_expr();
-                if (!pre_len.is_comptime_expr()) {
-                    self.errors.addError(Error{ .comptime_known = .{ .span = pre_len.getToken().span, .what = "array lengths" } });
+                len = try self.inject_expr();
+                if (!len.?.is_comptime_expr()) {
+                    self.errors.addError(Error{ .comptime_known = .{ .span = len.?.getToken().span, .what = "array lengths" } });
                     return error.not_comptime_known;
                 }
-                len = try AST.createComptime(token, pre_len, self.astAllocator);
             } else {
                 sliceKind = .SLICE;
             }
@@ -776,9 +769,6 @@ pub const Parser = struct {
 
         _ = try self.expect(.COLON);
         _type = try self.inject_expr();
-        if (_type.* != .identifier) {
-            _type = try AST.createComptime(_type.getToken(), _type, self.astAllocator);
-        }
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
             init = try self.inject_expr();
