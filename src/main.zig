@@ -40,8 +40,8 @@ pub fn main() !void {
     defer errors.deinit();
 
     // MUST init ast before primitives
-    try ast_.init_structures();
-    const prelude = try primitives.get_scope();
+    ast_.init_structures();
+    const prelude = primitives.get_scope();
 
     if (fuzz_tokens) {
         compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator) catch {};

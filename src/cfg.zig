@@ -56,7 +56,7 @@ pub const CFG = struct {
         if (symbol.cfg) |cfg| {
             return cfg;
         }
-        var retval = try allocator.create(CFG);
+        var retval = allocator.create(CFG) catch unreachable;
         retval.ir_head = null;
         retval.ir_tail = null;
         retval.block_graph_head = null;
@@ -66,8 +66,8 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = try symbol_.Symbol.create(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
-        retval.return_symbol.expanded_type = try retval.return_symbol._type.expand_type(allocator);
+        retval.return_symbol = symbol_.Symbol.create(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
+        retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
         retval.offset = null;
@@ -76,23 +76,23 @@ pub const CFG = struct {
         symbol.cfg = retval;
 
         if (caller) |caller_node| {
-            try caller_node.children.append(retval);
+            caller_node.children.append(retval) catch unreachable;
         }
 
         const eval: ?*lval_.L_Value = try lower_.lower_AST(retval, symbol.init, null, null, null, null, errors, allocator);
         if (retval.symbol.decl.?.* == .fnDecl) {
             // `_comptime` symbols don't have parameters anyway
             for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-                try retval.parameters.append(try lval_.Symbol_Version.createUnversioned(param, allocator));
+                retval.parameters.append(lval_.Symbol_Version.createUnversioned(param, allocator)) catch unreachable;
             }
         }
-        const return_version = try lval_.L_Value.create_unversioned_symbver(retval.return_symbol, allocator);
+        const return_version = lval_.L_Value.create_unversioned_symbver(retval.return_symbol, allocator);
         if (eval != null) {
-            retval.appendInstruction(try ir_.IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
+            retval.appendInstruction(ir_.IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
         }
-        retval.appendInstruction(try ir_.IR.createJump(null, symbol.span, allocator));
+        retval.appendInstruction(ir_.IR.createJump(null, symbol.span, allocator));
 
-        retval.block_graph_head = try retval.basicBlockFromIR(retval.ir_head, allocator);
+        retval.block_graph_head = retval.basicBlockFromIR(retval.ir_head, allocator);
         retval.removeBasicBlockLastInstruction();
 
         // for (retval.basic_blocks.items) |bb| {
@@ -100,7 +100,7 @@ pub const CFG = struct {
         // }
         // retval.clearVisitedBBs();
 
-        try retval.calculatePhiParamsAndArgs(allocator);
+        retval.calculatePhiParamsAndArgs(allocator);
 
         return retval;
     }
@@ -139,7 +139,7 @@ pub const CFG = struct {
     }
 
     // Fills in a passed in list with symbol versions which are used in the CFG
-    pub fn collect_generated_symbvers(self: *CFG) !void {
+    pub fn collect_generated_symbvers(self: *CFG) void {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
@@ -147,31 +147,40 @@ pub const CFG = struct {
                     ir.dest.?.* == .symbver and
                     ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null)
                 {
-                    _ = try ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
+                    _ = ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
                 }
             }
         }
     }
 
-    pub fn createTempSymbol(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) !*symbol_.Symbol {
-        var buf = try String.init_with_contents(allocator, "t");
-        try buf.writer().print("{}", .{self.number_temps});
+    pub fn createTempSymbol(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
+        var buf = String.init_with_contents(allocator, "t") catch unreachable;
+        buf.writer().print("{}", .{self.number_temps}) catch unreachable;
         self.number_temps += 1;
-        var temp_symbol = try symbol_.Symbol.create(self.symbol.scope, (try buf.toOwned()).?, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, _type, ast_.poisoned, null, .mut, allocator);
-        temp_symbol.expanded_type = try _type.expand_type(allocator);
+        var temp_symbol = symbol_.Symbol.create(
+            self.symbol.scope,
+            (buf.toOwned() catch unreachable).?,
+            span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+            _type,
+            ast_.poisoned,
+            null,
+            .mut,
+            allocator,
+        );
+        temp_symbol.expanded_type = _type.expand_type(allocator);
         temp_symbol.is_temp = true;
         return temp_symbol;
     }
 
-    pub fn createTempSymbolVersion(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) !*lval_.Symbol_Version {
-        const temp_symbol = try self.createTempSymbol(_type, allocator);
-        const retval = try lval_.Symbol_Version.createUnversioned(temp_symbol, _type, allocator);
+    pub fn createTempSymbolVersion(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.Symbol_Version {
+        const temp_symbol = self.createTempSymbol(_type, allocator);
+        const retval = lval_.Symbol_Version.createUnversioned(temp_symbol, _type, allocator);
         return retval;
     }
 
-    pub fn create_temp_lvalue(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) !*lval_.L_Value {
-        const temp_symbol = try self.createTempSymbol(_type, allocator);
-        const retval = try lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
+    pub fn create_temp_lvalue(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
+        const temp_symbol = self.createTempSymbol(_type, allocator);
+        const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
         return retval;
     }
 
@@ -191,13 +200,13 @@ pub const CFG = struct {
 
     /// Converts the list of IR to a web of BB's
     /// Also versions IR dest's if they are symbvers. This versioning should persist and should not be wiped.
-    fn basicBlockFromIR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) !?*basic_block_.Basic_Block {
+    fn basicBlockFromIR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
         if (maybe_ir == null) {
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
             return in_block;
         } else {
-            var retval: *basic_block_.Basic_Block = try basic_block_.Basic_Block.create(self, allocator);
+            var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.create(self, allocator);
             retval.ir_head = maybe_ir;
             var _maybe_ir = maybe_ir;
             while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
@@ -210,7 +219,7 @@ pub const CFG = struct {
                 if (ir.kind == .label) {
                     // If you find a label declaration, end this block and jump to new block
                     retval.has_branch = false;
-                    retval.next = try self.basicBlockFromIR(ir.next, allocator);
+                    retval.next = self.basicBlockFromIR(ir.next, allocator);
                     if (ir.next) |_| {
                         ir.next.?.prev = null;
                         ir.next = null;
@@ -221,9 +230,9 @@ pub const CFG = struct {
                     retval.has_branch = false;
                     if (ir.data == .branch) {
                         if (ir.data.branch) |branch| {
-                            retval.next = try self.basicBlockFromIR(branch.next, allocator);
+                            retval.next = self.basicBlockFromIR(branch.next, allocator);
                         } else {
-                            retval.next = try self.basicBlockFromIR(null, allocator);
+                            retval.next = self.basicBlockFromIR(null, allocator);
                         }
                     } else {
                         retval.next = null;
@@ -252,8 +261,8 @@ pub const CFG = struct {
                     } else {
                         branchNext = null;
                     }
-                    retval.next = try self.basicBlockFromIR(ir.next, allocator);
-                    retval.branch = try self.basicBlockFromIR(branchNext, allocator);
+                    retval.next = self.basicBlockFromIR(ir.next, allocator);
+                    retval.branch = self.basicBlockFromIR(branchNext, allocator);
                     retval.condition = ir.src1;
                     if (ir.next) |_| {
                         ir.next.?.prev = null;
@@ -281,7 +290,7 @@ pub const CFG = struct {
     }
 
     // Determines which symbol versions need to be requested as phi parameters, and which need to be passed to children basic-blocks as phi arguments
-    pub fn calculatePhiParamsAndArgs(self: *CFG, allocator: std.mem.Allocator) !void {
+    pub fn calculatePhiParamsAndArgs(self: *CFG, allocator: std.mem.Allocator) void {
         // clear arguments
         for (self.basic_blocks.items) |bb| {
             bb.parameters.clearRetainingCapacity();
@@ -293,71 +302,71 @@ pub const CFG = struct {
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and ir.dest.?.* != .symbver) {
                     // Recursively version L_Value symbvers, if they are not a leaf symbver.
-                    try version_lvalue(ir.dest.?, bb, ir, &bb.parameters);
+                    version_lvalue(ir.dest.?, bb, ir, &bb.parameters);
                 }
                 if (ir.src1 != null) {
                     // If src1 version is not null, and is not defined in this BB, request it as a parameter
-                    try version_lvalue(ir.src1.?, bb, ir, &bb.parameters);
+                    version_lvalue(ir.src1.?, bb, ir, &bb.parameters);
                 }
                 if (ir.src2 != null) {
                     // If src2 version is not null, and is not defined in this BB, request it as a parameter
-                    try version_lvalue(ir.src2.?, bb, ir, &bb.parameters);
+                    version_lvalue(ir.src2.?, bb, ir, &bb.parameters);
                 }
 
                 if (ir.data == .lval_list) {
                     // Do the same as above for each symbver in a symbver list, if there is one
                     for (ir.data.lval_list.items) |lval| {
-                        try version_lvalue(lval, bb, ir, &bb.parameters);
+                        version_lvalue(lval, bb, ir, &bb.parameters);
                     }
                 }
             }
 
             if (bb.has_branch) {
                 // Do the same as above for the condition of a branch, if there is one
-                try version_lvalue(bb.condition.?, bb, null, &bb.parameters);
+                version_lvalue(bb.condition.?, bb, null, &bb.parameters);
             }
         }
 
         // Find phi arguments
         self.clearVisitedBBs();
         var i: usize = 0;
-        while (try self.childrenArgPropagation(self.block_graph_head orelse return, allocator)) {
+        while (self.childrenArgPropagation(self.block_graph_head orelse return, allocator)) {
             self.clearVisitedBBs();
             i += 1;
         }
         self.clearVisitedBBs();
     }
 
-    fn version_lvalue(lval: *lval_.L_Value, bb: *basic_block_.Basic_Block, ir: ?*ir_.IR, parameters: *std.ArrayList(*lval_.Symbol_Version)) !void {
+    fn version_lvalue(lval: *lval_.L_Value, bb: *basic_block_.Basic_Block, ir: ?*ir_.IR, parameters: *std.ArrayList(*lval_.Symbol_Version)) void {
         switch (lval.*) {
             .symbver => {
                 var retval = lval.symbver.findVersion(bb.ir_head, ir);
                 if (retval.version == null) {
-                    _ = try retval.putSymbolVersionSet(parameters);
+                    _ = retval.putSymbolVersionSet(parameters);
                 }
                 lval.symbver = retval;
             },
             .dereference => {
-                try version_lvalue(lval.dereference.expr, bb, ir, parameters);
+                version_lvalue(lval.dereference.expr, bb, ir, parameters);
             },
             .index => {
-                try version_lvalue(lval.index.rhs, bb, ir, parameters);
-                try version_lvalue(lval.index.lhs, bb, ir, parameters);
+                version_lvalue(lval.index.rhs, bb, ir, parameters);
+                version_lvalue(lval.index.lhs, bb, ir, parameters);
                 if (lval.index.upper_bound != null) {
-                    try version_lvalue(lval.index.upper_bound.?, bb, ir, parameters);
+                    version_lvalue(lval.index.upper_bound.?, bb, ir, parameters);
                 }
             },
             .select => {
-                try version_lvalue(lval.select.lhs, bb, ir, parameters);
+                version_lvalue(lval.select.lhs, bb, ir, parameters);
                 if (lval.select.tag != null) {
-                    try version_lvalue(lval.select.tag.?, bb, ir, parameters);
+                    version_lvalue(lval.select.tag.?, bb, ir, parameters);
                 }
             },
         }
     }
 
     /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters* it needs to include.
-    fn childrenArgPropagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) !bool {
+    fn childrenArgPropagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
         var retval: bool = false;
         if (bb.visited) {
             return false;
@@ -366,7 +375,7 @@ pub const CFG = struct {
 
         if (bb.next) |next| {
             // Have the next block request parameters
-            retval = try self.childrenArgPropagation(next, allocator) or retval;
+            retval = self.childrenArgPropagation(next, allocator) or retval;
 
             // Go through the parameters the next block requested, see if they exist in this block.
             // Request them if they do not.
@@ -377,17 +386,17 @@ pub const CFG = struct {
                     if (myParam) |_myParam| {
                         symbver = _myParam;
                     } else {
-                        symbver = try lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
-                        _ = try symbver.putSymbolVersionSet(&bb.parameters);
+                        symbver = lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
+                        _ = symbver.putSymbolVersionSet(&bb.parameters);
                     }
                 } // else found in this block already, add it to the arguments
-                retval = try symbver.putSymbolVersionSet(&bb.next_arguments) or retval;
+                retval = symbver.putSymbolVersionSet(&bb.next_arguments) or retval;
             }
         }
 
         if (bb.has_branch) {
             if (bb.branch) |branch| {
-                retval = try self.childrenArgPropagation(branch, allocator) or retval;
+                retval = self.childrenArgPropagation(branch, allocator) or retval;
                 for (branch.parameters.items) |param| { // go through branch BB's params
                     var symbver = param.findVersion(bb.ir_head, null); // look for definition of param in this block
                     if (symbver == param) {
@@ -397,11 +406,11 @@ pub const CFG = struct {
                             symbver = _myParam; // if so, we will add param to arglist
                         } else {
                             // else, create a new param and add to paramlist. (will later be added to arglist too)
-                            symbver = try lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
-                            _ = try symbver.putSymbolVersionSet(&bb.parameters);
+                            symbver = lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
+                            _ = symbver.putSymbolVersionSet(&bb.parameters);
                         }
                     } // else found in this block already, add it to the arguments
-                    retval = try symbver.putSymbolVersionSet(&bb.branch_arguments) or retval;
+                    retval = symbver.putSymbolVersionSet(&bb.branch_arguments) or retval;
                 }
             }
         }

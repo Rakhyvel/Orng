@@ -43,8 +43,8 @@ pub const Module = struct {
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    fn init(scope: *symbol_.Scope, allocator: std.mem.Allocator) !*Module {
-        var retval = try allocator.create(Module);
+    fn init(scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
+        var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
@@ -85,7 +85,7 @@ pub const Module = struct {
 
         // Layout
         if (!fuzz_tokens) {
-            try layout.doLayout(&tokens);
+            layout.doLayout(&tokens);
         }
 
         if (false) { // Print out tokens after layout
@@ -111,13 +111,13 @@ pub const Module = struct {
         }
 
         // Parse
-        try ast_.init_structures();
-        var parser = try Parser.create(&tokens, errors, allocator);
+        ast_.init_structures();
+        var parser = Parser.create(&tokens, errors, allocator);
         const module_ast = try parser.parse();
 
         // Module/Symbol-Tree construction
-        var file_root = try symbol_.Scope.init(prelude, name, allocator);
-        const module = try Module.init(file_root, allocator);
+        var file_root = symbol_.Scope.init(prelude, name, allocator);
+        const module = Module.init(file_root, allocator);
         file_root.module = module;
         try expand_.expand_from_list(module_ast, errors, allocator);
         try symbol_tree_.symbolTableFromASTList(module_ast, file_root, errors, allocator);
@@ -136,7 +136,7 @@ pub const Module = struct {
             }
             // IR translation
             const cfg = try symbol.get_cfg(null, &module.interned_strings, errors, allocator);
-            try module.collect_cfgs(cfg);
+            module.collect_cfgs(cfg);
 
             if (std.mem.eql(u8, key, "main")) {
                 module.entry = cfg;
@@ -150,14 +150,14 @@ pub const Module = struct {
         for (module.cfgs.items) |cfg| {
             // Add parameter types to type set
             for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-                _ = try module.type_set.add(param.expanded_type.?, allocator);
+                _ = module.type_set.add(param.expanded_type.?, allocator);
             }
 
             for (cfg.basic_blocks.items) |bb| {
                 var maybe_ir = bb.ir_head;
                 while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                     if (ir.dest != null) {
-                        _ = try module.type_set.add(ir.dest.?.get_expanded_type(), allocator);
+                        _ = module.type_set.add(ir.dest.?.get_expanded_type(), allocator);
                     }
                 }
             }
@@ -166,17 +166,17 @@ pub const Module = struct {
     }
 
     // This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
-    fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) !void {
+    fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) void {
         if (cfg.visited) {
             return;
         }
         cfg.visited = true;
 
-        try cfg.collect_generated_symbvers();
-        _ = try self.append_instructions(cfg);
+        cfg.collect_generated_symbvers();
+        _ = self.append_instructions(cfg);
 
         for (cfg.children.items) |child| {
-            try self.collect_cfgs(child);
+            self.collect_cfgs(child);
         }
     }
 
@@ -209,22 +209,22 @@ pub const Module = struct {
     /// instructions for the CFG start.
     ///
     /// Returns the index in the cfg in the cfgs list.
-    pub fn append_instructions(self: *Module, cfg: *cfg_.CFG) !i64 {
+    pub fn append_instructions(self: *Module, cfg: *cfg_.CFG) i64 {
         const len = @as(i64, @intCast(self.cfgs.items.len));
         if (cfg.offset != null) {
             // Already visited, do nothing
             return len;
         } else if (cfg.block_graph_head == null) {
             // CFG doesn't have any real instructions. Insert phony BB.
-            cfg.offset = try self.append_phony_block(cfg);
-            try self.cfgs.append(cfg);
+            cfg.offset = self.append_phony_block(cfg);
+            self.cfgs.append(cfg) catch unreachable;
         } else {
             // Normal CFG with instructions, append BBs to instructions list, recursively append children
-            cfg.offset = try self.append_basic_block(cfg.block_graph_head.?, cfg);
-            try self.cfgs.append(cfg);
+            cfg.offset = self.append_basic_block(cfg.block_graph_head.?, cfg);
+            self.cfgs.append(cfg) catch unreachable;
 
             for (cfg.children.items) |child| {
-                _ = try self.append_instructions(child);
+                _ = self.append_instructions(child);
             }
         }
         return len;
@@ -232,10 +232,10 @@ pub const Module = struct {
 
     /// Appends the instructions in a BasicBlock to the module's instructions.
     /// Returns the offset of the basic block
-    fn append_basic_block(self: *Module, first_bb: *basic_block_.Basic_Block, cfg: *cfg_.CFG) !i64 {
+    fn append_basic_block(self: *Module, first_bb: *basic_block_.Basic_Block, cfg: *cfg_.CFG) i64 {
         var work_queue = std.ArrayList(*basic_block_.Basic_Block).init(self.allocator);
         defer work_queue.deinit();
-        try work_queue.append(first_bb);
+        work_queue.append(first_bb) catch unreachable;
 
         while (work_queue.items.len > 0) {
             var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
@@ -245,28 +245,28 @@ pub const Module = struct {
             }
 
             bb.offset = @as(i64, @intCast(self.instructions.items.len));
-            var label = try ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
+            var label = ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
             label.uid = bb.uid;
-            try self.instructions.append(label);
+            self.instructions.append(label) catch unreachable;
 
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                try self.instructions.append(ir);
+                self.instructions.append(ir) catch unreachable;
             }
 
             if (bb.has_branch) {
                 if (bb.next) |next| {
-                    try work_queue.append(next);
+                    work_queue.append(next) catch unreachable;
                 }
                 if (bb.branch) |branch| {
-                    try work_queue.append(branch);
+                    work_queue.append(branch) catch unreachable;
                 }
-                try self.instructions.append(try ir_.IR.create_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+                self.instructions.append(ir_.IR.create_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
             } else {
                 if (bb.next) |next| {
-                    try work_queue.append(next);
+                    work_queue.append(next) catch unreachable;
                 }
-                try self.instructions.append(try ir_.IR.create_jump_addr(bb.next, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+                self.instructions.append(ir_.IR.create_jump_addr(bb.next, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
             }
         }
         return first_bb.offset.?;
@@ -275,12 +275,12 @@ pub const Module = struct {
     /// This function inserts a label and a return instruction. It is needed for functions which do not have
     /// instructions. The label is needed so that codegen can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
-    fn append_phony_block(self: *Module, cfg: *cfg_.CFG) !i64 {
+    fn append_phony_block(self: *Module, cfg: *cfg_.CFG) i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        try self.instructions.append(try ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+        self.instructions.append(ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
         // Append a return instruction (a jump to null)
-        try self.instructions.append(try ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator));
+        self.instructions.append(ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
         return offset;
     }
 
@@ -295,12 +295,12 @@ pub const Module = struct {
     }
 };
 
-pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8)) !void {
+pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8)) void {
     for (set.items) |item| {
         if (std.mem.eql(u8, item, str)) {
             return;
         }
     }
     // sanitized_str must not be in set, add it
-    try set.append(str);
+    set.append(str) catch unreachable;
 }

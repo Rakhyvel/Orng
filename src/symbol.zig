@@ -33,8 +33,8 @@ pub const Scope = struct {
     errdefers: std.ArrayList(*AST),
     inner_function: ?*Symbol = null,
 
-    pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) !*Scope {
-        var retval = try allocator.create(Scope);
+    pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) *Scope {
+        var retval = allocator.create(Scope) catch unreachable;
         retval.parent = parent;
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
@@ -44,7 +44,7 @@ pub const Scope = struct {
         retval.errdefers = std.ArrayList(*AST).init(allocator);
         scopeUID += 1;
         if (parent) |_parent| {
-            try _parent.children.append(retval);
+            _parent.children.append(retval) catch unreachable;
             retval.in_loop = _parent.in_loop;
             retval.in_function = _parent.in_function;
             retval.inner_function = _parent.inner_function;
@@ -133,21 +133,21 @@ pub const Scope = struct {
     /// This function collects all visible symbols from a scope that:
     ///   1. have an identical expected type
     ///   2. spelled similarly (levenshtein distance is less than half)
-    pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast.AST, allocator: std.mem.Allocator) !void {
+    pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast.AST, allocator: std.mem.Allocator) void {
         for (self.symbols.keys()) |key| {
             var symbol: *Symbol = self.symbols.get(key).?;
             if (std.mem.eql(u8, symbol.name, "_")) {
                 continue; // never suggest `_`
             }
 
-            const matches = expected == null or try symbol._type.typesMatch(expected.?);
-            const dist = try levenshteinDistance2(allocator, symbol.name, name);
+            const matches = expected == null or symbol._type.typesMatch(expected.?);
+            const dist = levenshteinDistance2(allocator, symbol.name, name);
             if (matches and dist <= name.len / 2) {
-                try out.append(key);
+                out.append(key) catch unreachable;
             }
         }
         if (self.parent) |_parent| {
-            try _parent.collect_similar(name, out, expected, allocator);
+            _parent.collect_similar(name, out, expected, allocator);
         }
     }
 
@@ -155,10 +155,10 @@ pub const Scope = struct {
         return i * cols + j;
     }
 
-    pub fn levenshteinDistance2(allocator: std.mem.Allocator, a: []const u8, b: []const u8) !u16 {
+    pub fn levenshteinDistance2(allocator: std.mem.Allocator, a: []const u8, b: []const u8) u16 {
         const n = a.len;
         const m = b.len;
-        const table = try allocator.alloc(u8, n * m);
+        const table = allocator.alloc(u8, n * m) catch unreachable;
         defer allocator.free(table);
         table[0] = 0;
 
@@ -233,8 +233,8 @@ pub const Symbol = struct {
     // Offset
     offset: ?i64, // The offset from the BP that this symbol
 
-    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: *ast.AST, _init: *ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) !*Symbol {
-        var retval = try allocator.create(Symbol);
+    pub fn create(scope: *Scope, name: []const u8, span: Span, _type: *ast.AST, _init: *ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) *Symbol {
+        var retval = allocator.create(Symbol) catch unreachable;
         retval.scope = scope;
         retval.name = name;
         retval.span = span;
@@ -264,7 +264,7 @@ pub const Symbol = struct {
         if (self.cfg == null) {
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
             try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
-            try self.cfg.?.collect_generated_symbvers();
+            self.cfg.?.collect_generated_symbvers();
             self.cfg.?.locals_size = offsets.calculate_offsets(self);
         }
         return self.cfg.?;

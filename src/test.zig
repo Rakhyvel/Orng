@@ -55,8 +55,8 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
-    try ast_.init_structures();
-    const prelude = try primitives.get_scope();
+    ast_.init_structures();
+    const prelude = primitives.get_scope();
     while (args.next()) |next| {
         const res = try test_file(next, prelude, coverage);
         if (res) {
@@ -296,7 +296,7 @@ fn fuzzTests() !void {
     var failed: usize = 0;
     var i: usize = 0;
 
-    const prelude = try primitives.get_scope();
+    const prelude = primitives.get_scope();
 
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"').? + 1;
@@ -352,7 +352,6 @@ fn fuzzTests() !void {
             module.output("tests/fuzz/fuzz-out.c") catch |err| {
                 switch (err) {
                     error.typeError,
-                    error.Unimplemented,
                     error.NotAnLValue,
                     => {
                         // passed += 1;

@@ -29,8 +29,8 @@ pub const Basic_Block = struct {
     /// Used for IR interpretation
     offset: ?i64,
 
-    pub fn create(cfg: *cfg_.CFG, allocator: std.mem.Allocator) !*Basic_Block {
-        var retval = try allocator.create(Basic_Block);
+    pub fn create(cfg: *cfg_.CFG, allocator: std.mem.Allocator) *Basic_Block {
+        var retval = allocator.create(Basic_Block) catch unreachable;
         retval.ir_head = null;
         retval.condition = null;
         retval.has_panic = false;
@@ -43,7 +43,7 @@ pub const Basic_Block = struct {
         retval.branch_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.uid = cfg.basic_blocks.items.len;
         retval.allocator = allocator;
-        try cfg.basic_blocks.append(retval);
+        cfg.basic_blocks.append(retval) catch unreachable;
         return retval;
     }
 
@@ -145,7 +145,7 @@ pub const Basic_Block = struct {
         return ir;
     }
 
-    pub fn removeInstruction(bb: *Basic_Block, ir: *ir_.IR) !void {
+    pub fn removeInstruction(bb: *Basic_Block, ir: *ir_.IR) void {
         ir.removed = true;
         if (bb.ir_head != null and bb.ir_head == ir) {
             bb.ir_head = bb.ir_head.?.next;
@@ -156,7 +156,7 @@ pub const Basic_Block = struct {
         if (ir.next != null) {
             ir.next.?.prev = ir.prev;
         }
-        try bb.removed_irs.append(ir);
+        bb.removed_irs.append(ir) catch unreachable;
     }
 
     /// This functions is O(n)

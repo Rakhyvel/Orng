@@ -39,31 +39,31 @@ pub const L_Value = union(enum) {
         allocator: std.mem.Allocator,
     },
 
-    fn create_symbver(symbver: *Symbol_Version, allocator: std.mem.Allocator) !*L_Value {
-        const retval = try allocator.create(L_Value);
+    fn create_symbver(symbver: *Symbol_Version, allocator: std.mem.Allocator) *L_Value {
+        const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{ .symbver = symbver };
         return retval;
     }
 
-    pub fn create_unversioned_symbver(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) !*L_Value {
-        const retval = try L_Value.create_symbver(try Symbol_Version.createUnversioned(symbol, allocator), allocator);
+    pub fn create_unversioned_symbver(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *L_Value {
+        const retval = L_Value.create_symbver(Symbol_Version.createUnversioned(symbol, allocator), allocator);
         return retval;
     }
 
-    pub fn create_dereference(lhs: *L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) !*L_Value {
-        const retval = try allocator.create(L_Value);
+    pub fn create_dereference(lhs: *L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
+        const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{ .dereference = .{ .expr = lhs, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
-    pub fn create_index(lhs: *L_Value, rhs: *L_Value, upper_bound: ?*L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) !*L_Value {
-        const retval = try allocator.create(L_Value);
+    pub fn create_index(lhs: *L_Value, rhs: *L_Value, upper_bound: ?*L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
+        const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .upper_bound = upper_bound, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
         return retval;
     }
 
-    pub fn create_select(lhs: *L_Value, field: i128, offset: i64, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, tag: ?*L_Value, allocator: std.mem.Allocator) !*L_Value {
-        const retval = try allocator.create(L_Value);
+    pub fn create_select(lhs: *L_Value, field: i128, offset: i64, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, tag: ?*L_Value, allocator: std.mem.Allocator) *L_Value {
+        const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .size = size, .type = _type, .expanded_type = expanded_type, .tag = tag, .allocator = allocator } };
         return retval;
     }
@@ -180,8 +180,8 @@ pub const Symbol_Version = struct {
 
     allocator: std.mem.Allocator,
 
-    pub fn createUnversioned(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) !*Symbol_Version {
-        var retval = try allocator.create(Symbol_Version);
+    pub fn createUnversioned(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Symbol_Version {
+        var retval = allocator.create(Symbol_Version) catch unreachable;
         retval.symbol = symbol;
         retval.uses = 0;
         retval.version = null;
@@ -248,13 +248,13 @@ pub const Symbol_Version = struct {
         return null;
     }
 
-    pub fn putSymbolVersionSet(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) !bool {
+    pub fn putSymbolVersionSet(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) bool {
         for (set.items) |v| {
             if (v.symbol == self.symbol) {
                 return false;
             }
         }
-        try set.append(self);
+        set.append(self) catch unreachable;
         return true;
     }
 

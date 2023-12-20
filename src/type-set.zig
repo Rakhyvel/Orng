@@ -12,43 +12,43 @@ pub const Type_Set = struct {
         self.types.deinit();
     }
 
-    pub fn add(self: *Type_Set, oldast_: *ast_.AST, allocator: std.mem.Allocator) !?*DAG {
+    pub fn add(self: *Type_Set, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*DAG {
         const ast = oldast_;
         if (self.get(ast)) |dag| {
             // Type is already in the set, return DAG entry for it
             return dag;
         } else if (ast.* == .function) {
-            var dag = try DAG.init(ast, self.types.items.len, allocator);
-            try self.types.append(dag);
-            if (try self.add(ast.function.lhs, allocator)) |domain| {
-                try dag.dependencies.append(domain);
+            var dag = DAG.init(ast, self.types.items.len, allocator);
+            self.types.append(dag) catch unreachable;
+            if (self.add(ast.function.lhs, allocator)) |domain| {
+                dag.dependencies.append(domain) catch unreachable;
             }
-            if (try self.add(ast.function.rhs, allocator)) |codomain| {
-                try dag.dependencies.append(codomain);
+            if (self.add(ast.function.rhs, allocator)) |codomain| {
+                dag.dependencies.append(codomain) catch unreachable;
             }
             return dag;
         } else if (ast.* == .product) {
-            var dag = try DAG.init(ast, self.types.items.len, allocator);
-            try self.types.append(dag);
+            var dag = DAG.init(ast, self.types.items.len, allocator);
+            self.types.append(dag) catch unreachable;
             for (ast.product.terms.items) |term| {
-                if (try self.add(term, allocator)) |dependency| {
-                    try dag.dependencies.append(dependency);
+                if (self.add(term, allocator)) |dependency| {
+                    dag.dependencies.append(dependency) catch unreachable;
                 }
             }
             return dag;
         } else if (ast.* == .sum) {
-            var dag = try DAG.init(ast, self.types.items.len, allocator);
-            try self.types.append(dag);
+            var dag = DAG.init(ast, self.types.items.len, allocator);
+            self.types.append(dag) catch unreachable;
             for (ast.sum.terms.items) |term| {
-                if (try self.add(term, allocator)) |dependency| {
-                    try dag.dependencies.append(dependency);
+                if (self.add(term, allocator)) |dependency| {
+                    dag.dependencies.append(dependency) catch unreachable;
                 }
             }
             return dag;
         } else if (ast.* == .annotation) {
-            return try self.add(ast.annotation.type, allocator);
+            return self.add(ast.annotation.type, allocator);
         } else if (ast.* == .addrOf) {
-            return try self.add(ast.addrOf.expr, allocator);
+            return self.add(ast.addrOf.expr, allocator);
         } else {
             return null;
         }
@@ -71,8 +71,8 @@ pub const DAG = struct {
     dependencies: std.ArrayList(*DAG),
     visited: bool,
 
-    fn init(base: *ast_.AST, uid: usize, allocator: std.mem.Allocator) !*DAG {
-        var retval = try allocator.create(DAG);
+    fn init(base: *ast_.AST, uid: usize, allocator: std.mem.Allocator) *DAG {
+        var retval = allocator.create(DAG) catch unreachable;
         retval.base = base;
         retval.uid = uid;
         retval.dependencies = std.ArrayList(*DAG).init(allocator);

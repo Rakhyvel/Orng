@@ -5,7 +5,7 @@ const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
 const primitives_ = @import("primitives.zig");
 
-pub const Expand_Error = error{ OutOfMemory, parseError };
+pub const Expand_Error = error{parseError};
 
 pub fn expand_from_list(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!void {
     for (asts.items) |ast| {
@@ -145,15 +145,15 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                 if (term.* == .annotation) {
                     annotation = term;
                 } else if (term.* == .identifier) {
-                    annotation = (try ast_.AST.createAnnotation(term.getToken(), term, primitives_.unit_type, null, null, allocator)).assert_valid();
+                    annotation = ast_.AST.createAnnotation(term.getToken(), term, primitives_.unit_type, null, null, allocator).assert_valid();
                     changed = true;
                 } else {
                     errors.addError(errs_.Error{ .basic = .{ .span = term.getToken().span, .msg = "invalid sum expression, must be annotation or identifier" } });
                     return error.parseError;
                 }
-                try new_terms.append(annotation);
+                new_terms.append(annotation) catch unreachable;
                 const name = annotation.annotation.pattern.getToken().data;
-                const res = try idents_seen.fetchPut(name, annotation);
+                const res = idents_seen.fetchPut(name, annotation) catch unreachable;
                 if (res) |_res| {
                     errors.addError(errs_.Error{ .sum_duplicate = .{ .span = term.getToken().span, .identifier = name, .first = _res.value.getToken().span } });
                     return error.parseError;

@@ -33,4 +33,19 @@ int64_t _72_main(void){
     _72_t2 = 2;
     _72_t3 = 3;
     _72_t4 = 4;
-    _73
+    _73_x = (struct0) {_72_t1, _72_t2, _72_t3, _72_t4};
+    _72_t6 = 2;
+    _72_t7 = 4;
+    $bounds_check(_72_t6, _72_t7, "tests/integration/arrays/index-copy.orng:4:14:\n    x[2] = 62\n            ^");
+    *((int64_t*)&_73_x + _72_t6) = 62;
+    _72_t8 = 2;
+    _72_t9 = 4;
+    $bounds_check(_72_t8, _72_t9, "tests/integration/arrays/index-copy.orng:2:3:\nfn main() -> Int {\n ^");
+    _72_$retval = *((int64_t*)&_73_x + _72_t8);
+    return _72_$retval;
+}
+
+int main(void) {
+  printf("%ld",_72_main());
+  return 0;
+}

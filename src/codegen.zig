@@ -257,7 +257,7 @@ fn output_function_definition(cfg: *CFG, writer: anytype) !void {
 fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer: anytype) !void {
     var bb_queue = std.ArrayList(*Basic_Block).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
     defer bb_queue.deinit();
-    try bb_queue.append(start_bb);
+    bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
 
     var head: usize = 0;
@@ -286,7 +286,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer
                 if (bb.next) |next| {
                     try writer.print("        goto BB{};\n    }}", .{next.uid});
                     if (!next.visited) {
-                        try bb_queue.append(next);
+                        bb_queue.append(next) catch unreachable;
                         next.visited = true;
                     }
                 } else {
@@ -298,7 +298,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer
                 // Generate the `branch` BB if it isn't the next one up
                 if (bb.branch) |branch| {
                     if (!branch.visited) {
-                        try bb_queue.append(branch);
+                        bb_queue.append(branch) catch unreachable;
                         branch.visited = true;
                     }
                     try writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
@@ -310,7 +310,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer
             } else {
                 if (bb.next) |next| {
                     if (!next.visited) {
-                        try bb_queue.append(next);
+                        bb_queue.append(next) catch unreachable;
                         next.visited = true;
                     }
                     try writer.print("    goto BB{};\n", .{next.uid});
@@ -806,7 +806,6 @@ const CodeGen_Error = error{
     DiskQuota,
     FileTooBig,
     InputOutput,
-    NoSpaceLeft,
     DeviceBusy,
     InvalidArgument,
     AccessDenied,
@@ -818,10 +817,8 @@ const CodeGen_Error = error{
     WouldBlock,
     ConnectionResetByPeer,
     Unexpected,
-    OutOfMemory,
+    NoSpaceLeft,
     typeError,
-    Unimplemented,
-    InvalidRange,
     NotAnLValue,
 };
 

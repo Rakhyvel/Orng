@@ -518,7 +518,7 @@ pub const Context = struct {
         return error.interpreter_panic;
     }
 
-    pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST {
+    pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
         std.debug.assert(address >= 0);
         switch (_type.*) {
             .identifier => {
@@ -529,26 +529,26 @@ pub const Context = struct {
                     .boolean => {
                         const val = self.load_int(address, info.size);
                         if (val == 0) {
-                            return (try ast_.AST.createFalse(token_.Token.create_simple("false"), allocator)).assert_valid();
+                            return ast_.AST.createFalse(token_.Token.create_simple("false"), allocator).assert_valid();
                         } else {
-                            return (try ast_.AST.createTrue(token_.Token.create_simple("true"), allocator)).assert_valid();
+                            return ast_.AST.createTrue(token_.Token.create_simple("true"), allocator).assert_valid();
                         }
                     },
-                    .signed_integer => return (try ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator))
+                    .signed_integer => return ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator)
                         .set_representation(_type)
                         .assert_valid(),
-                    .unsigned_integer => return (try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, info.size), allocator))
+                    .unsigned_integer => return ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, info.size), allocator)
                         .set_representation(_type)
                         .assert_valid(),
-                    .floating_point => return (try ast_.AST.createFloat(token_.Token.create_simple("float"), self.load_float(address, info.size), allocator))
+                    .floating_point => return ast_.AST.createFloat(token_.Token.create_simple("float"), self.load_float(address, info.size), allocator)
                         .set_representation(_type)
                         .assert_valid(),
                 }
             },
-            .addrOf => return (try ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator)).assert_valid(),
+            .addrOf => return ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator).assert_valid(),
             .function => {
                 const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
-                const ast = try ast_.AST.createSymbol(
+                const ast = ast_.AST.createSymbol(
                     token_.Token.create_simple("function"),
                     ._fn,
                     symbol.name,
@@ -557,14 +557,21 @@ pub const Context = struct {
                 ast.symbol.symbol = symbol;
                 return ast.assert_valid();
             },
-            .unit_type => return (try ast_.AST.createUnitValue(_type.getToken(), allocator)).assert_valid(),
+            .unit_type => return ast_.AST.createUnitValue(_type.getToken(), allocator).assert_valid(),
             .sum => {
-                var retval = (try ast_.AST.createInferredMember(_type.getToken(), (try ast_.AST.createIdentifier(token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0), allocator)).assert_valid(), allocator)).assert_valid();
+                var retval = ast_.AST.createInferredMember(
+                    _type.getToken(),
+                    ast_.AST.createIdentifier(
+                        token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0),
+                        allocator,
+                    ).assert_valid(),
+                    allocator,
+                ).assert_valid();
                 const tag = self.load_int(address + _type.sizeof() - 8, 8);
                 retval.inferredMember.pos = tag;
                 retval.inferredMember.base = _type;
                 const proper_term: *ast_.AST = _type.sum.terms.items[@as(usize, @intCast(tag))];
-                retval.inferredMember.init = try self.extract_ast(address, proper_term, allocator);
+                retval.inferredMember.init = self.extract_ast(address, proper_term, allocator);
                 return retval;
             },
             .product => {
@@ -573,16 +580,16 @@ pub const Context = struct {
                 var offset: i64 = 0;
                 for (_type.product.terms.items) |term| {
                     offset = offsets_.next_alignment(offset, term.alignof());
-                    const extracted_term = try self.extract_ast(address + offset, term, allocator);
-                    try value_terms.append(extracted_term);
+                    const extracted_term = self.extract_ast(address + offset, term, allocator);
+                    value_terms.append(extracted_term) catch unreachable;
                     offset += term.sizeof();
                 }
-                return (try ast_.AST.createProduct(_type.getToken(), value_terms, allocator)).assert_valid();
+                return ast_.AST.createProduct(_type.getToken(), value_terms, allocator).assert_valid();
             },
-            .annotation => return try self.extract_ast(address, _type.annotation.type, allocator),
+            .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
             else => {
                 std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
-                return error.Unimplemented;
+                unreachable;
             },
         }
     }

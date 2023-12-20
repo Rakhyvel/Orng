@@ -6,7 +6,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-const SymbolErrorEnum = error{ symbolError, OutOfMemory, NoSpaceLeft, InvalidRange };
+const SymbolErrorEnum = error{symbolError};
 
 pub fn symbolTableFromASTList(asts: std.ArrayList(*ast_.AST), scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     for (asts.items) |ast| {
@@ -87,7 +87,7 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
                     } });
                     return error.symbolError;
                 },
-                else => try scope.symbols.put(symbol.name, symbol),
+                else => scope.symbols.put(symbol.name, symbol) catch unreachable,
             }
             ast._comptime.symbol = symbol;
         },
@@ -211,7 +211,7 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
         },
 
         ._if => {
-            const new_scope = try symbol_.Scope.init(scope, "", allocator);
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast._if.scope = new_scope;
             try symbolTableFromAST(ast._if.let, scope, errors, allocator);
             try symbolTableFromAST(ast._if.condition, new_scope, errors, allocator);
@@ -219,7 +219,7 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
             try symbolTableFromAST(ast._if.elseBlock, new_scope, errors, allocator);
         },
         .match => {
-            const new_scope = try symbol_.Scope.init(scope, "", allocator);
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.match.scope = new_scope;
             try symbolTableFromAST(ast.match.let, scope, errors, allocator);
             try symbolTableFromAST(ast.match.expr, new_scope, errors, allocator);
@@ -230,8 +230,8 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
             try symbolTableFromAST(ast.mapping.lhs, scope, errors, allocator);
         },
         ._while => {
-            const new_scope = try symbol_.Scope.init(scope, "", allocator);
-            var loop_scope = try symbol_.Scope.init(new_scope, "", allocator); // let, cond, and post are NOT in loop scope, `break` and `continue` are not appropriate
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
+            var loop_scope = symbol_.Scope.init(new_scope, "", allocator); // let, cond, and post are NOT in loop scope, `break` and `continue` are not appropriate
             loop_scope.in_loop = true;
             ast._while.scope = new_scope;
             try symbolTableFromAST(ast._while.let, new_scope, errors, allocator);
@@ -241,7 +241,7 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
             try symbolTableFromAST(ast._while.elseBlock, loop_scope, errors, allocator);
         },
         ._for => {
-            const new_scope = try symbol_.Scope.init(scope, "", allocator);
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast._for.scope = new_scope;
             try symbolTableFromAST(ast._for.let, scope, errors, allocator);
             try symbolTableFromAST(ast._for.elem, scope, errors, allocator);
@@ -250,7 +250,7 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
             try symbolTableFromAST(ast._for.elseBlock, scope, errors, allocator);
         },
         .block => {
-            const new_scope = try symbol_.Scope.init(scope, "", allocator);
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.block.scope = new_scope;
             try symbolTableFromASTList(ast.block.statements, new_scope, errors, allocator);
             if (ast.block.final) |final| {
@@ -302,16 +302,16 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
                     } });
                     return error.symbolError;
                 },
-                else => try scope.symbols.put(symbol.name, symbol),
+                else => scope.symbols.put(symbol.name, symbol) catch unreachable,
             }
             ast.fnDecl.symbol = symbol;
         },
         ._defer => {
-            try scope.defers.append(ast._defer.statement);
+            scope.defers.append(ast._defer.statement) catch unreachable;
             try symbolTableFromAST(ast._defer.statement, scope, errors, allocator);
         },
         ._errdefer => {
-            try scope.errdefers.append(ast._errdefer.statement);
+            scope.errdefers.append(ast._errdefer.statement) catch unreachable;
             try symbolTableFromAST(ast._errdefer.statement, scope, errors, allocator);
         },
     }
@@ -330,7 +330,7 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
                 } });
                 return error.symbolError;
             },
-            else => try scope.symbols.put(symbol.name, symbol),
+            else => scope.symbols.put(symbol.name, symbol) catch unreachable,
         }
     }
 }
@@ -341,7 +341,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
             // TODO: Clean this up
             if (pattern.symbol.kind == ._const) {
                 // `const` symbol, surround with comptime
-                const ast = try ast_.AST.createComptime(init.getToken(), init, allocator);
+                const ast = ast_.AST.createComptime(init.getToken(), init, allocator);
                 const comptime_symbol = try create_temp_comptime_symbol(ast, _type, scope, errors, allocator);
                 const res = scope.lookup(comptime_symbol.name, false);
                 switch (res) {
@@ -354,11 +354,11 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                         } });
                         return error.symbolError;
                     },
-                    else => try scope.symbols.put(comptime_symbol.name, comptime_symbol),
+                    else => scope.symbols.put(comptime_symbol.name, comptime_symbol) catch unreachable,
                 }
                 ast._comptime.symbol = comptime_symbol;
 
-                const symbol = try symbol_.Symbol.create(
+                const symbol = symbol_.Symbol.create(
                     scope,
                     pattern.symbol.name,
                     pattern.getToken().span,
@@ -369,10 +369,10 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                     allocator,
                 );
                 pattern.symbol.symbol = symbol;
-                try symbols.append(symbol);
+                symbols.append(symbol) catch unreachable;
             } else if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
                 // Regular `let` or `mut` symbol, not `_`
-                const symbol = try symbol_.Symbol.create(
+                const symbol = symbol_.Symbol.create(
                     scope,
                     pattern.symbol.name,
                     pattern.getToken().span,
@@ -383,7 +383,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                     allocator,
                 );
                 pattern.symbol.symbol = symbol;
-                try symbols.append(symbol);
+                symbols.append(symbol) catch unreachable;
             } else if (pattern.symbol.kind != .let) {
                 // It is an error for `_` to be marked as `const` or `mut`
                 errors.addError(errs_.Error{ .discard_marked = .{
@@ -398,18 +398,18 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
         },
         .product => {
             for (pattern.product.terms.items, 0..) |term, i| {
-                const index = try ast_.AST.createInt(pattern.getToken(), i, allocator);
-                const new_type: *ast_.AST = try ast_.AST.createIndex(_type.getToken(), _type, index, allocator);
-                const new_init: *ast_.AST = try ast_.AST.createIndex(init.getToken(), init, index, allocator);
+                const index = ast_.AST.createInt(pattern.getToken(), i, allocator);
+                const new_type: *ast_.AST = ast_.AST.createIndex(_type.getToken(), _type, index, allocator);
+                const new_init: *ast_.AST = ast_.AST.createIndex(init.getToken(), init, index, allocator);
                 try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
             }
         },
         .inject => {
-            const lhs_type = try ast_.AST.createTypeOf(pattern.getToken(), init, allocator);
-            const rhs_type = try ast_.AST.createDomainOf(pattern.getToken(), lhs_type, pattern, allocator);
+            const lhs_type = ast_.AST.createTypeOf(pattern.getToken(), init, allocator);
+            const rhs_type = ast_.AST.createDomainOf(pattern.getToken(), lhs_type, pattern, allocator);
             // All symbols need inits, this is just a phony init since these symbols are more like parameters.
             // We do the same for parameters, btw!
-            const phony_init = try ast_.AST.createDefault(pattern.getToken(), rhs_type, allocator);
+            const phony_init = ast_.AST.createDefault(pattern.getToken(), rhs_type, allocator);
 
             try create_symbol(symbols, pattern.inject.lhs, lhs_type, phony_init, scope, errors, allocator);
             try create_symbol(symbols, pattern.inject.rhs, rhs_type, phony_init, scope, errors, allocator);
@@ -421,11 +421,11 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
     for (match.match.mappings.items) |mapping| {
         if (mapping.mapping.lhs != null) {
-            const new_scope = try symbol_.Scope.init(scope, "", allocator);
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
             mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
             defer symbols.deinit();
-            const _type = try ast_.AST.createTypeOf(match.match.expr.getToken(), match.match.expr, allocator);
+            const _type = ast_.AST.createTypeOf(match.match.expr.getToken(), match.match.expr, allocator);
             try create_symbol(&symbols, mapping.mapping.lhs.?, _type, match.match.expr, new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;
@@ -440,14 +440,14 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
 
 fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
     // Calculate the domain type from the function paramter types
-    const domain = try extractDomain(
+    const domain = extractDomain(
         ast.fnDecl.params,
         ast.fnDecl.retType.getToken(),
         allocator,
     );
 
     // Create the function type
-    const _type = try ast_.AST.createFunction(
+    const _type = ast_.AST.createFunction(
         ast.fnDecl.retType.getToken(),
         domain,
         ast.fnDecl.retType,
@@ -455,7 +455,7 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     );
 
     // Create the function scope
-    var fnScope = try symbol_.Scope.init(scope, "", allocator);
+    var fnScope = symbol_.Scope.init(scope, "", allocator);
     fnScope.in_function = scope.in_function + 1;
 
     // Recurse parameters and init
@@ -465,7 +465,7 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     // Put the param symbols in the param symbols list
     for (ast.fnDecl.params.items) |param| {
         const symbol = param.decl.symbols.items[0];
-        try ast.fnDecl.param_symbols.append(symbol);
+        ast.fnDecl.param_symbols.append(symbol) catch unreachable;
     }
 
     const keySet = fnScope.symbols.keys();
@@ -483,9 +483,9 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     if (ast.fnDecl.name) |name| {
         buf = name.getToken().data;
     } else {
-        buf = try nextAnonFunctionName(allocator);
+        buf = nextAnonFunctionName(allocator);
     }
-    const retval = try symbol_.Symbol.create(
+    const retval = symbol_.Symbol.create(
         fnScope,
         buf,
         ast.getToken().span,
@@ -502,17 +502,17 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
 }
 
 var numAnonFunctions: usize = 0;
-fn nextAnonFunctionName(allocator: std.mem.Allocator) SymbolErrorEnum![]const u8 {
+fn nextAnonFunctionName(allocator: std.mem.Allocator) []const u8 {
     defer numAnonFunctions += 1;
     var out = String.init(allocator);
     defer out.deinit();
-    try out.writer().print("$anon{}", .{numAnonFunctions});
-    return (try out.toOwned()).?;
+    out.writer().print("$anon{}", .{numAnonFunctions}) catch unreachable;
+    return (out.toOwned() catch unreachable).?;
 }
 
-fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocator: std.mem.Allocator) SymbolErrorEnum!*ast_.AST {
+fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocator: std.mem.Allocator) *ast_.AST {
     if (params.items.len == 0) {
-        return try ast_.AST.createUnitType(token, allocator);
+        return ast_.AST.createUnitType(token, allocator);
     } else if (params.items.len <= 1) {
         return ast_.AST.createAnnotation(params.items[0].getToken(), params.items[0].decl.pattern, params.items[0].decl.type, null, params.items[0].decl.init, allocator);
     } else {
@@ -520,9 +520,9 @@ fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocato
         var param_types = std.ArrayList(*ast_.AST).init(allocator);
         var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
-            try param_types.append(try ast_.AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type, null, params.items[i].decl.init, allocator));
+            param_types.append(ast_.AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type, null, params.items[i].decl.init, allocator)) catch unreachable;
         }
-        const retval = try ast_.AST.createProduct(params.items[0].getToken(), param_types, allocator);
+        const retval = ast_.AST.createProduct(params.items[0].getToken(), param_types, allocator);
         return retval;
     }
 }
@@ -530,21 +530,21 @@ fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocato
 // ast is a `comptime` ast
 fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
-    const lhs = try ast_.AST.createUnitType(ast._comptime.expr.getToken(), allocator);
-    const rhs = try ast_.AST.createTypeOf(ast._comptime.expr.getToken(), ast._comptime.expr, allocator);
-    const _type = try ast_.AST.createFunction(ast._comptime.expr.getToken(), lhs, rhs_type_hint orelse rhs, allocator);
+    const lhs = ast_.AST.createUnitType(ast._comptime.expr.getToken(), allocator);
+    const rhs = ast_.AST.createTypeOf(ast._comptime.expr.getToken(), ast._comptime.expr, allocator);
+    const _type = ast_.AST.createFunction(ast._comptime.expr.getToken(), lhs, rhs_type_hint orelse rhs, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
-    var comptime_scope = try symbol_.Scope.init(scope, "", allocator);
+    var comptime_scope = symbol_.Scope.init(scope, "", allocator);
     comptime_scope.in_function = scope.in_function;
 
     // Choose name
     var buf: []const u8 = undefined;
-    buf = try next_comptime_name(allocator);
+    buf = next_comptime_name(allocator);
 
     // Create the symbol
-    const retval = try symbol_.Symbol.create(
+    const retval = symbol_.Symbol.create(
         comptime_scope,
         buf,
         ast.getToken().span,
@@ -561,11 +561,11 @@ fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope:
 }
 
 var num_comptime: usize = 0;
-fn next_comptime_name(allocator: std.mem.Allocator) SymbolErrorEnum![]const u8 {
+fn next_comptime_name(allocator: std.mem.Allocator) []const u8 {
     // TODO: Idk maybe generalize this with the anon function name
     defer numAnonFunctions += 1;
     var out = String.init(allocator);
     defer out.deinit();
-    try out.writer().print("$comptime{}", .{numAnonFunctions});
-    return (try out.toOwned()).?;
+    out.writer().print("$comptime{}", .{numAnonFunctions}) catch unreachable;
+    return (out.toOwned() catch unreachable).?;
 }

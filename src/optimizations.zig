@@ -36,7 +36,8 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     }
 }
 
-pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) error{ typeError, OutOfMemory, InvalidRange }!void {
+// TODO: typeError? No.
+pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) error{typeError}!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -47,7 +48,7 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
 
     while (try propagate(cfg, interned_strings, errors, allocator) or
         try removeUnusedDefs(cfg, errors) or
-        try bbOptimizations(cfg, allocator) or
+        bbOptimizations(cfg, allocator) or
         try removeUnusedDefs(cfg, errors))
     {}
     cfg.clearVisitedBBs();
@@ -55,11 +56,11 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
     log_optimization_pass("final", cfg);
 }
 
-fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
+fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 
     countPredecessors(cfg);
-    try cfg.calculatePhiParamsAndArgs(allocator);
+    cfg.calculatePhiParamsAndArgs(allocator);
     calculateVersions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
@@ -75,7 +76,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
             var log_msg = String.init(allocator);
             defer log_msg.deinit();
-            try log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid });
+            log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
             defer log_optimization_pass(log_msg.str(), cfg);
             var end: *IR = bb.ir_head.?.getTail();
 
@@ -134,7 +135,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
         if (bb.next) |next| {
             if (next.ir_head == null and !next.has_branch) {
                 var s = String.init(allocator);
-                try s.writer().print("remove jump chain BB{}", .{next.uid});
+                s.writer().print("remove jump chain BB{}", .{next.uid}) catch unreachable;
                 defer s.deinit();
                 defer log_optimization_pass(s.str(), cfg);
                 bb.next = next.next;
@@ -193,7 +194,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) !bool {
     }
 
     if (retval) {
-        try cfg.calculatePhiParamsAndArgs(allocator);
+        cfg.calculatePhiParamsAndArgs(allocator);
     }
 
     return retval;
@@ -259,12 +260,12 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
             retval = try propagateIR(ir, src1_def, src2_def, interned_strings, errors) or retval;
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
-                try def_map.put(ir.dest.?.extract_symbver(), null);
+                def_map.put(ir.dest.?.extract_symbver(), null) catch unreachable;
             } else if (ir.kind == .addrOf) {
-                try def_map.put(ir.src1.?.extract_symbver(), null);
+                def_map.put(ir.src1.?.extract_symbver(), null) catch unreachable;
             }
             if (ir.dest != null and ir.dest.?.* == .symbver) {
-                try def_map.put(ir.dest.?.symbver, ir);
+                def_map.put(ir.dest.?.symbver, ir) catch unreachable;
             }
         }
         if (bb.has_branch and bb.condition.?.* == .symbver) {
@@ -289,12 +290,12 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.A
             // Unit-copy elimination
             if (ir.src1 == null) {
                 log("unit-copy elimination");
-                try ir.in_block.?.removeInstruction(ir);
+                ir.in_block.?.removeInstruction(ir);
             }
             // Self-copy elimination
             else if (ir.dest.?.* == .symbver and ir.src1.?.* == .symbver and ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and src1_def != null and ir.dest.?.symbver.version == ir.src1.?.symbver.version) {
                 log("self-copy elimination");
-                try ir.in_block.?.removeInstruction(ir);
+                ir.in_block.?.removeInstruction(ir);
                 retval = true;
             }
             // Integer constant propagation
@@ -1223,7 +1224,7 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
                         return error.typeError;
                     }
                 } else {
-                    try bb.removeInstruction(ir);
+                    bb.removeInstruction(ir);
                     retval = true;
                 }
             }

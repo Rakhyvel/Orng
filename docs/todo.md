@@ -81,21 +81,15 @@
     - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field
     - Remove anything that now doesn't need to pass scope
     - typeof, expand_type, typesMatch
-- [ ] Look into any AST transformations that are being done in validate, move them to expand.zig
-    - Union expansion to sums
-    ? domainOf
-    ? typeOf
-    ? default
-    ? sizeOf
-    ? comptime
-    ? type equality
-    ? comptime index => select
-    ? sum type select
-    ? slice-of => product
-    ? if comptime reduction
+- [ ] Simplify validate
+    - OutOfMemory is *NOT* a recoverable error
+        - append for ArrayList
+        - create for Allocators
 - [ ] Post-lower pass that searches for unused symbols/call results
 - [ ] Move `reprFromTokenKind` into TokenKind
+- [ ] Split Parser and parse
 - [ ] Create a `Labels` struct for lower, to simplify things
+- [ ] If a `create()` function is inerrant, call it `init` instead
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
 - [ ] Nothing is indented more than 5 times, excluding switches
 - [ ] Try to keep lines less than 100 characters in width (not length!)

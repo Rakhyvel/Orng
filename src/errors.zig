@@ -314,7 +314,7 @@ pub const Errors = struct {
                     var similar = std.ArrayList([]const u8).init(self.allocator);
                     defer similar.deinit();
 
-                    try err.undeclaredIdentifier.scope.collect_similar(err.undeclaredIdentifier.identifier.data, &similar, err.undeclaredIdentifier.expected, self.allocator);
+                    err.undeclaredIdentifier.scope.collect_similar(err.undeclaredIdentifier.identifier.data, &similar, err.undeclaredIdentifier.expected, self.allocator);
 
                     if (similar.items.len == 0) {
                         try out.print("\n", .{});

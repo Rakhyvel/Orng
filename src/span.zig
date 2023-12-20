@@ -16,13 +16,13 @@ pub const Span = struct {
         defer spaces.deinit();
 
         for (1..self.col - 1) |_| {
-            try spaces.insert(" ", spaces.size);
+            spaces.insert(" ", spaces.size) catch unreachable;
         }
         try writer.print(span_format, .{
             self.filename,
             self.line,
             self.col,
-            try sanitize_string(self.line_text, std.heap.page_allocator),
+            sanitize_string(self.line_text, std.heap.page_allocator),
             spaces.str(),
         });
     }
@@ -57,14 +57,14 @@ pub const Span = struct {
 ///
 /// Would produce an error diagnostic in debug mode, which needs to escape the `\` correctly so
 /// that the error shown to the user is identical to the text in the file.
-fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) ![]const u8 {
+fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) []const u8 {
     var builder = String.init(allocator);
     for (str) |byte| {
         if (byte == '\\' or byte == '"') {
-            try builder.insert("\\", builder.len());
+            builder.insert("\\", builder.len()) catch unreachable;
         }
         const insert_me_daddy: [1]u8 = .{byte};
-        try builder.insert(&insert_me_daddy, builder.len());
+        builder.insert(&insert_me_daddy, builder.len()) catch unreachable;
     }
-    return (try builder.toOwned()).?;
+    return (builder.toOwned() catch unreachable).?;
 }
