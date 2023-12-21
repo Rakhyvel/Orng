@@ -37,7 +37,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
 }
 
 // TODO: typeError should be called something else
-pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) error{typeError}!void {
+pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) error{typeError}!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -46,7 +46,7 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayLis
 
     try findUnused(cfg, errors);
 
-    while (try propagate(cfg, interned_strings, errors, allocator) or
+    while (try propagate(cfg, errors, allocator) or
         try removeUnusedDefs(cfg, errors) or
         bbOptimizations(cfg, allocator) or
         try removeUnusedDefs(cfg, errors))
@@ -241,7 +241,7 @@ fn removeBasic_Block(cfg: *CFG, bb: *Basic_Block, wipeIR: bool) void {
     bb.removed = true;
 }
 
-fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+fn propagate(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
     var retval = false;
 
     calculateVersions(cfg);
@@ -257,7 +257,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
             // Walk through IR in BB, update map of src1 and src2 defs
             const src1_def: ?*IR = if (ir.src1 != null and ir.src1.?.* == .symbver) def_map.get(ir.src1.?.symbver) orelse null else null;
             const src2_def: ?*IR = if (ir.src2 != null and ir.src2.?.* == .symbver) def_map.get(ir.src2.?.symbver) orelse null else null;
-            retval = try propagateIR(ir, src1_def, src2_def, interned_strings, errors) or retval;
+            retval = try propagateIR(ir, src1_def, src2_def, errors) or retval;
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
                 def_map.put(ir.dest.?.extract_symbver(), null) catch unreachable;
@@ -281,8 +281,7 @@ fn propagate(cfg: *CFG, interned_strings: *std.ArrayList([]const u8), errors: *e
     return retval;
 }
 
-fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors) !bool {
-    _ = interned_strings;
+fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !bool {
     var retval = false;
 
     switch (ir.kind) {

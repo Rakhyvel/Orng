@@ -342,6 +342,10 @@ fn output_IR(ir: *IR, writer: anytype) !void {
         return;
     }
 
+    try output_IR_post_check(ir, writer);
+}
+
+fn output_IR_post_check(ir: *IR, writer: anytype) !void {
     switch (ir.kind) {
         .loadUnit => {}, // Nop!
         .loadSymbol => {

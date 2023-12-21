@@ -5,7 +5,7 @@ const cfg_ = @import("cfg.zig");
 const errs = @import("errors.zig");
 const lval_ = @import("lval.zig");
 const span_ = @import("span.zig");
-const String = @import("zig-string/zig-string.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 var ir_uid: u64 = 0;

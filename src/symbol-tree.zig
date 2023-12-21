@@ -20,7 +20,7 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
     if (maybe_ast == null) {
         return;
     }
-    var ast = maybe_ast.?;
+    const ast = maybe_ast.?;
     switch (ast.*) {
         .unit_type,
         .unit_value,

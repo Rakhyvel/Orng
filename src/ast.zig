@@ -981,15 +981,19 @@ pub const AST = union(enum) {
         if (self.getCommon().expanded_type) |expaned_type| {
             return expaned_type;
         }
+        const retval = expand_type_internal(self, allocator).assert_valid();
+        self.getCommon().expanded_type = retval;
+        return retval;
+    }
 
-        var retval: *AST = undefined;
+    fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             .identifier => {
                 const symbol = self.identifier.symbol.?;
                 if (symbol.init == self) {
-                    retval = self;
+                    return self;
                 } else {
-                    retval = symbol.init.expand_type(allocator);
+                    return symbol.init.expand_type(allocator);
                 }
             },
             .product => {
@@ -1001,11 +1005,12 @@ pub const AST = union(enum) {
                     change = new_term != term or change;
                 }
                 if (change) {
-                    retval = AST.createProduct(self.getToken(), terms, allocator);
+                    var retval = AST.createProduct(self.getToken(), terms, allocator);
                     retval.product.was_slice = self.product.was_slice;
+                    return retval;
                 } else {
                     terms.deinit();
-                    retval = self;
+                    return self;
                 }
             },
             .sum => {
@@ -1017,39 +1022,36 @@ pub const AST = union(enum) {
                     change = new_term != term or change;
                 }
                 if (change) {
-                    retval = AST.createSum(self.getToken(), terms, allocator);
+                    var retval = AST.createSum(self.getToken(), terms, allocator);
                     retval.sum.was_error = self.sum.was_error;
                     retval.sum.was_optional = self.sum.was_optional;
+                    return retval;
                 } else {
                     terms.deinit();
-                    retval = self;
+                    return self;
                 }
             },
             .addrOf => {
                 const expr = self.addrOf.expr.expand_type(allocator);
-                retval = AST.createAddrOf(self.getToken(), expr, self.addrOf.mut, allocator);
+                return AST.createAddrOf(self.getToken(), expr, self.addrOf.mut, allocator);
             },
             .function => {
                 const lhs = self.function.lhs.expand_type(allocator);
                 const rhs = self.function.rhs.expand_type(allocator);
-                retval = AST.createFunction(self.getToken(), lhs, rhs, allocator);
+                return AST.createFunction(self.getToken(), lhs, rhs, allocator);
             },
             .annotation => {
                 const expr = self.annotation.type.expand_type(allocator);
-                retval = AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
+                return AST.createAnnotation(self.getToken(), self.annotation.pattern, expr, self.annotation.predicate, self.annotation.init, allocator);
             },
             .index => {
                 const expr = self.index.lhs.expand_type(allocator);
-                retval = expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
+                return expr.product.terms.items[@as(usize, @intCast(self.index.rhs.int.data))];
             },
-            .poison,
-            .unit_type,
-            => retval = self,
+            .poison, .unit_type => return self,
 
-            else => retval = self,
+            else => return self,
         }
-        self.getCommon().expanded_type = retval.assert_valid();
-        return retval;
     }
 
     pub fn createBinop(token: tokens_.Token, lhs: *AST, rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -1179,10 +1181,15 @@ pub const AST = union(enum) {
         if (self.getCommon()._type) |_type| {
             return _type;
         }
-        var retval: *AST = undefined;
+        const retval: *AST = self.typeof_internal(allocator).assert_valid();
+        self.getCommon()._type = retval;
+        return retval;
+    }
+
+    fn typeof_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             // Poisoned type
-            .poison => retval = poisoned,
+            .poison => return poisoned,
 
             // Bool type
             ._true,
@@ -1196,19 +1203,19 @@ pub const AST = union(enum) {
             .lesser,
             .greater_equal,
             .lesser_equal,
-            => retval = primitives_.bool_type,
+            => return primitives_.bool_type,
 
             // Char type
-            .char => retval = primitives_.char_type,
+            .char => return primitives_.char_type,
 
             // Float constant type
-            .float => retval = self.float.represents,
+            .float => return self.float.represents,
 
             // Int constant type
-            .int => retval = self.int.represents,
+            .int => return self.int.represents,
 
             // String type
-            .string => retval = primitives_.string_type,
+            .string => return primitives_.string_type,
 
             // Type type
             .unit_type,
@@ -1218,7 +1225,7 @@ pub const AST = union(enum) {
             ._union,
             .function,
             ._typeOf,
-            => retval = primitives_.type_type,
+            => return primitives_.type_type,
 
             // Unit type
             .unit_value,
@@ -1227,58 +1234,60 @@ pub const AST = union(enum) {
             ._defer,
             ._errdefer,
             .discard,
-            => retval = primitives_.unit_type,
+            => return primitives_.unit_type,
 
             // Void type
             ._continue,
             ._break,
             ._return,
             ._unreachable,
-            => retval = primitives_.void_type,
+            => return primitives_.void_type,
 
             // Binary operators
-            .add => retval = self.add.lhs.typeof(allocator),
-            .sub => retval = self.sub.lhs.typeof(allocator),
-            .mult => retval = self.mult.lhs.typeof(allocator),
-            .div => retval = self.div.lhs.typeof(allocator),
-            .mod => retval = self.mod.lhs.typeof(allocator),
-            ._catch => retval = self._catch.rhs.typeof(allocator),
-            ._orelse => retval = self._orelse.rhs.typeof(allocator),
+            .add => return self.add.lhs.typeof(allocator),
+            .sub => return self.sub.lhs.typeof(allocator),
+            .mult => return self.mult.lhs.typeof(allocator),
+            .div => return self.div.lhs.typeof(allocator),
+            .mod => return self.mod.lhs.typeof(allocator),
+            ._catch => return self._catch.rhs.typeof(allocator),
+            ._orelse => return self._orelse.rhs.typeof(allocator),
 
             .product => {
                 var first_type = self.product.terms.items[0].typeof(allocator);
                 if (first_type.typesMatch(primitives_.type_type)) {
                     // typeof product type is Type
-                    retval = primitives_.type_type;
+                    return primitives_.type_type;
                 } else if (self.product.was_slice) {
                     var addr: *AST = self.product.terms.items[0];
-                    retval = create_slice_type(addr.addrOf.expr.typeof(allocator), addr.addrOf.mut, allocator);
+                    var retval = create_slice_type(addr.addrOf.expr.typeof(allocator), addr.addrOf.mut, allocator);
                     retval.product.was_slice = true;
+                    return retval;
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
                     for (self.product.terms.items) |term| {
                         const term_type = term.typeof(allocator);
                         terms.append(term_type) catch unreachable;
                     }
-                    retval = AST.createProduct(self.getToken(), terms, allocator);
+                    var retval = AST.createProduct(self.getToken(), terms, allocator);
                     retval.product.was_slice = self.product.was_slice;
+                    return retval;
                 }
             },
 
             .index => {
                 var lhs_type = self.index.lhs.typeof(allocator).expand_type(allocator);
                 if (lhs_type.typesMatch(primitives_.type_type) and self.index.lhs.* == .product) {
-                    retval = self.index.lhs.product.terms.items[0];
+                    return self.index.lhs.product.terms.items[0];
                 } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
                     if (lhs_type.product.was_slice) {
-                        retval = lhs_type.product.terms.items[0].annotation.type.addrOf.expr;
+                        return lhs_type.product.terms.items[0].annotation.type.addrOf.expr;
                     } else {
-                        retval = lhs_type.product.terms.items[0];
+                        return lhs_type.product.terms.items[0];
                     }
                 } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String")) {
-                    retval = primitives_.byte_type;
+                    return primitives_.byte_type;
                 } else if (lhs_type.* == .poison) {
-                    retval = poisoned;
+                    return poisoned;
                 } else {
                     std.debug.print("{s} is not indexable\n", .{@tagName(lhs_type.*)});
                     unreachable;
@@ -1295,99 +1304,98 @@ pub const AST = union(enum) {
                 } else {
                     unreachable;
                 }
-                retval = annot_list.items[self.select.pos.?];
+                var retval = annot_list.items[self.select.pos.?];
                 while (retval.* == .annotation) {
                     retval = retval.annotation.type;
                 }
+                return retval;
             },
 
             // Identifier
             .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
-                retval = primitives_.unit_type;
+                return primitives_.unit_type;
             } else {
-                retval = self.identifier.symbol.?._type;
+                return self.identifier.symbol.?._type;
             },
 
             // Unary Operators
-            .negate => retval = self.negate.expr.typeof(allocator),
+            .negate => return self.negate.expr.typeof(allocator),
             .dereference => {
                 const _type = self.dereference.expr.typeof(allocator).expand_type(allocator);
-                retval = _type.addrOf.expr;
+                return _type.addrOf.expr;
             },
             .addrOf => {
                 var child_type = self.addrOf.expr.typeof(allocator);
                 if (child_type.typesMatch(primitives_.type_type)) {
-                    retval = primitives_.type_type;
+                    return primitives_.type_type;
                 } else {
-                    retval = createAddrOf(self.getToken(), child_type, self.addrOf.mut, std.heap.page_allocator);
+                    return createAddrOf(self.getToken(), child_type, self.addrOf.mut, std.heap.page_allocator);
                 }
             },
             .sliceOf => {
                 var expr_type = self.sliceOf.expr.typeof(allocator);
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
-                    retval = poisoned;
+                    return poisoned;
                 } else {
                     var child_type = expr_type.product.terms.items[0];
                     if (child_type.typesMatch(primitives_.type_type)) {
-                        retval = primitives_.type_type;
+                        return primitives_.type_type;
                     } else {
-                        retval = create_slice_type(expr_type.product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
+                        return create_slice_type(expr_type.product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
                     }
                 }
             },
-            .subSlice => retval = self.subSlice.super.typeof(allocator),
-            .inferredMember => retval = self.inferredMember.base.?.expand_type(allocator),
-            ._try => retval = (self._try.expr.typeof(allocator)).get_ok_type(),
-            ._comptime => retval = self._comptime.expr.typeof(allocator),
-            .default => retval = self.default.expr,
+            .subSlice => return self.subSlice.super.typeof(allocator),
+            .inferredMember => return self.inferredMember.base.?.expand_type(allocator),
+            ._try => return (self._try.expr.typeof(allocator)).get_ok_type(),
+            ._comptime => return self._comptime.expr.typeof(allocator),
+            .default => return self.default.expr,
 
             // Control-flow expressions
             ._if => {
                 const body_type = self._if.bodyBlock.typeof(allocator);
                 if (self._if.elseBlock) |_| {
-                    retval = body_type;
+                    return body_type;
                 } else {
-                    retval = create_optional_type(body_type, allocator);
+                    return create_optional_type(body_type, allocator);
                 }
             },
-            .match => retval = self.match.mappings.items[0].typeof(allocator),
+            .match => return self.match.mappings.items[0].typeof(allocator),
             .mapping => if (self.mapping.rhs) |rhs| {
-                retval = rhs.typeof(allocator);
+                return rhs.typeof(allocator);
             } else {
-                retval = primitives_.unit_type;
+                return primitives_.unit_type;
             },
             ._while => {
                 const body_type = self._while.bodyBlock.typeof(allocator);
                 if (self._while.elseBlock) |_| {
-                    retval = body_type;
+                    return body_type;
                 } else {
-                    retval = create_optional_type(body_type, allocator);
+                    return create_optional_type(body_type, allocator);
                 }
             },
             .block => if (self.block.final) |_| {
-                retval = primitives_.void_type;
+                return primitives_.void_type;
             } else if (self.block.statements.items.len == 0) {
-                retval = primitives_.unit_type;
+                return primitives_.unit_type;
             } else {
-                retval = self.block.statements.items[self.block.statements.items.len - 1].typeof(allocator);
+                return self.block.statements.items[self.block.statements.items.len - 1].typeof(allocator);
             },
             .call => {
                 const fn_type: *AST = self.call.lhs.typeof(allocator).expand_identifier();
-                retval = fn_type.function.rhs;
+                return fn_type.function.rhs;
             },
             .fnDecl => {
-                retval = self.fnDecl.symbol.?._type;
+                return self.fnDecl.symbol.?._type;
             },
-            .symbol => retval = self.symbol.symbol._type,
-            .inject => retval = self.inject.lhs.typeof(allocator),
+            .symbol => return self.symbol.symbol._type,
+            .inject => return self.inject.lhs.typeof(allocator),
 
             else => {
                 std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
                 unreachable;
             },
         }
-        self.getCommon()._type = retval.assert_valid();
-        return retval;
     }
 
     // Expands an ast one level if it is an identifier
@@ -1450,73 +1458,39 @@ pub const AST = union(enum) {
         std.debug.assert(A.getCommon().validation_state == .valid);
         std.debug.assert(B.getCommon().validation_state == .valid);
 
-        switch (A.*) {
-            .identifier => {
-                if (B.* != .identifier) {
-                    return false;
-                } else {
-                    return std.mem.eql(u8, A.getToken().data, B.getToken().data);
-                }
-            },
-            .addrOf => {
-                if (B.* != .addrOf) {
-                    return false;
-                } else {
-                    return (B.addrOf.mut == false or B.addrOf.mut == A.addrOf.mut) and typesMatch(A.addrOf.expr, B.addrOf.expr);
-                }
-            },
-            .sliceOf => {
-                if (B.* != .sliceOf) {
-                    return false;
-                } else {
-                    return (B.sliceOf.kind != .MUT or @intFromEnum(B.sliceOf.kind) == @intFromEnum(A.sliceOf.kind)) and typesMatch(A.sliceOf.expr, B.sliceOf.expr);
-                }
-            },
-            .annotation => unreachable,
+        if (@intFromEnum(A.*) != @intFromEnum(B.*)) {
+            return false;
+        }
 
-            .unit_type => {
-                return B.* == .unit_type;
-            },
+        switch (A.*) {
+            .identifier => return std.mem.eql(u8, A.getToken().data, B.getToken().data),
+            .addrOf => return (B.addrOf.mut == false or B.addrOf.mut == A.addrOf.mut) and typesMatch(A.addrOf.expr, B.addrOf.expr),
+            .sliceOf => return (B.sliceOf.kind != .MUT or @intFromEnum(B.sliceOf.kind) == @intFromEnum(A.sliceOf.kind)) and typesMatch(A.sliceOf.expr, B.sliceOf.expr),
+            .unit_type => return true,
             .product => {
-                if (B.* != .product) {
+                if (B.product.terms.items.len != A.product.terms.items.len) {
                     return false;
-                } else {
-                    if (B.product.terms.items.len != A.product.terms.items.len) {
-                        return false;
-                    }
-                    var retval = true;
-                    for (A.product.terms.items, B.product.terms.items) |term, B_term| {
-                        retval = retval and term.typesMatch(B_term);
-                    }
-                    return retval;
                 }
+                var retval = true;
+                for (A.product.terms.items, B.product.terms.items) |term, B_term| {
+                    retval = retval and term.typesMatch(B_term);
+                }
+                return retval;
             },
             .sum => {
-                if (B.* != .sum) {
+                if (B.sum.terms.items.len != A.sum.terms.items.len) {
                     return false;
-                } else {
-                    if (B.sum.terms.items.len != A.sum.terms.items.len) {
-                        return false;
-                    }
-                    var retval = true;
-                    for (A.sum.terms.items, B.sum.terms.items) |term, B_term| {
-                        const this_name = term.annotation.pattern.getToken().data;
-                        const B_name = B_term.annotation.pattern.getToken().data;
-                        retval = retval and std.mem.eql(u8, this_name, B_name) and term.typesMatch(B_term);
-                    }
-                    return retval;
                 }
-            },
-            .function => {
-                if (B.* != .function) {
-                    return false;
-                } else {
-                    return A.function.lhs.typesMatch(B.function.lhs) and A.function.rhs.typesMatch(B.function.rhs);
+                var retval = true;
+                for (A.sum.terms.items, B.sum.terms.items) |term, B_term| {
+                    const this_name = term.annotation.pattern.getToken().data;
+                    const B_name = B_term.annotation.pattern.getToken().data;
+                    retval = retval and std.mem.eql(u8, this_name, B_name) and term.typesMatch(B_term);
                 }
+                return retval;
             },
-            .inferred_error => {
-                return A == B;
-            },
+            .function => return A.function.lhs.typesMatch(B.function.lhs) and A.function.rhs.typesMatch(B.function.rhs),
+            .inferred_error => return A == B,
             else => {
                 // TODO: May need to evaluate types, possibly done somewhere else though
                 std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(A.*)});
@@ -1545,14 +1519,8 @@ pub const AST = union(enum) {
                     return try generate_default(expanded_type, errors, allocator);
                 }
             },
-            .addrOf,
-            .function,
-            => {
-                return AST.createInt(_type.getToken(), 0, allocator);
-            },
-            .unit_type => {
-                return AST.createUnitValue(_type.getToken(), allocator);
-            },
+            .addrOf, .function => return AST.createInt(_type.getToken(), 0, allocator),
+            .unit_type => return AST.createUnitValue(_type.getToken(), allocator),
             .sum => {
                 var retval = AST.createInferredMember(_type.getToken(), AST.createIdentifier(tokens_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
                 retval.inferredMember.pos = 0;
@@ -1731,60 +1699,36 @@ pub const AST = union(enum) {
         std.debug.assert(self.getCommon().validation_state == .valid);
         std.debug.assert(other.getCommon().validation_state == .valid);
 
-        switch (self.*) {
-            .identifier => {
-                if (other.* != .identifier) {
-                    return false;
-                } else {
-                    return std.mem.eql(u8, self.getToken().data, other.getToken().data);
-                }
-            },
-            .addrOf => {
-                if (other.* != .addrOf) {
-                    return false;
-                } else {
-                    return c_typesMatch(self.addrOf.expr, other.addrOf.expr);
-                }
-            },
+        if (@intFromEnum(self.*) != @intFromEnum(other.*)) {
+            return false;
+        }
 
-            .unit_type => {
-                return other.* == .unit_type;
-            },
+        switch (self.*) {
+            .identifier => return std.mem.eql(u8, self.getToken().data, other.getToken().data),
+            .addrOf => return c_typesMatch(self.addrOf.expr, other.addrOf.expr),
+
+            .unit_type => return other.* == .unit_type,
             .product => {
-                if (other.* != .product) {
+                if (other.product.terms.items.len != self.product.terms.items.len) {
                     return false;
-                } else {
-                    if (other.product.terms.items.len != self.product.terms.items.len) {
-                        return false;
-                    }
-                    var retval = true;
-                    for (self.product.terms.items, other.product.terms.items) |term, other_term| {
-                        retval = retval and term.c_typesMatch(other_term);
-                    }
-                    return retval;
                 }
+                var retval = true;
+                for (self.product.terms.items, other.product.terms.items) |term, other_term| {
+                    retval = retval and term.c_typesMatch(other_term);
+                }
+                return retval;
             },
             .sum => {
-                if (other.* != .sum) {
+                if (other.sum.terms.items.len != self.sum.terms.items.len) {
                     return false;
-                } else {
-                    if (other.sum.terms.items.len != self.sum.terms.items.len) {
-                        return false;
-                    }
-                    var retval = true;
-                    for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
-                        retval = retval and term.c_typesMatch(other_term);
-                    }
-                    return retval;
                 }
-            },
-            .function => {
-                if (other.* != .function) {
-                    return false;
-                } else {
-                    return self.function.lhs.c_typesMatch(other.function.lhs) and self.function.rhs.c_typesMatch(other.function.rhs);
+                var retval = true;
+                for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
+                    retval = retval and term.c_typesMatch(other_term);
                 }
+                return retval;
             },
+            .function => return self.function.lhs.c_typesMatch(other.function.lhs) and self.function.rhs.c_typesMatch(other.function.rhs),
             else => {
                 std.debug.print("typesMatch(): Unimplemented for {s}\n", .{@tagName(self.*)});
                 unreachable;

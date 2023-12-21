@@ -1735,10 +1735,7 @@ fn assertMutable(ast: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) 
         .identifier => {
             const symbol = ast.identifier.symbol.?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
-                errors.addError(Error{ .modifyImmutable = .{
-                    .identifier = ast.getToken(),
-                    .symbol = symbol,
-                } });
+                errors.addError(Error{ .modifyImmutable = .{ .identifier = ast.getToken(), .symbol = symbol } });
                 return error.typeError;
             }
         },
@@ -1747,10 +1744,7 @@ fn assertMutable(ast: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) 
             var child = ast.dereference.expr;
             const child_type = child.typeof(allocator);
             if (!child_type.addrOf.mut) {
-                errors.addError(Error{ .basic = .{
-                    .span = ast.getToken().span,
-                    .msg = "cannot modify non-mutable address",
-                } });
+                errors.addError(Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot modify non-mutable address" } });
                 return error.typeError;
             }
         },
@@ -1771,15 +1765,11 @@ fn assertMutable(ast: *AST, errors: *errs.Errors, allocator: std.mem.Allocator) 
             }
         },
 
-        .product => {
-            for (ast.product.terms.items) |term| {
-                try assertMutable(term, errors, allocator);
-            }
+        .product => for (ast.product.terms.items) |term| {
+            try assertMutable(term, errors, allocator);
         },
 
-        .select => {
-            try assertMutable(ast.select.lhs, errors, allocator);
-        },
+        .select => try assertMutable(ast.select.lhs, errors, allocator),
 
         else => unreachable,
     }
@@ -1807,8 +1797,7 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, 
                 return error.typeError;
             }
             pattern.select.pos = @as(usize, @intCast(new_pattern.inferredMember.pos.?));
-            const pattern_type = new_pattern.typeof(allocator);
-            try type_check(pattern, pattern_type, expr_type, errors);
+            try type_check(pattern, new_pattern.typeof(allocator), expr_type, errors);
         },
         .inferredMember => {
             var new_pattern = validateAST(pattern, expr_type, errors, allocator);
@@ -1816,8 +1805,7 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, 
                 return error.typeError;
             }
             pattern.inferredMember.pos = new_pattern.inferredMember.pos.?;
-            const pattern_type = new_pattern.typeof(allocator);
-            try type_check(pattern, pattern_type, expr_type, errors);
+            try type_check(pattern, new_pattern.typeof(allocator), expr_type, errors);
         },
         .inject => {
             const domain = try domainof(pattern, expr_type, errors, allocator);
@@ -1828,9 +1816,8 @@ fn assert_pattern_matches(pattern: *AST, expr_type: *AST, errors: *errs.Errors, 
         },
         .product => {
             const expanded_expr = expr_type.expand_type(allocator);
-            const pattern_type = pattern.typeof(allocator);
             if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {
-                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern_type } });
+                errors.addError(Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern.typeof(allocator) } });
                 return error.typeError;
             }
             for (pattern.product.terms.items, expanded_expr.product.terms.items) |term, expanded_term| {

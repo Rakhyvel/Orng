@@ -229,225 +229,231 @@ pub const Errors = struct {
             try (term.Attr{ .bold = true }).dump(out);
             try printPrelude(err.getSpan());
             try (term.Attr{ .bold = true }).dump(out);
-            switch (err) {
-                // General errors
-                .basic => try out.print("{s}\n", .{err.basic.msg}),
-
-                // Lexer errors
-                .invalid_digit => try out.print("'{c}' is not a valid {s} digit\n", .{ err.invalid_digit.digit, err.invalid_digit.base }),
-                .invalid_escape => try out.print("invalid escape sequence '\\{c}'\n", .{err.invalid_escape.digit}),
-
-                // Parser errors
-                .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
-                    err.expectedBasicToken.expected,
-                    err.expectedBasicToken.got.kind.repr() orelse err.expectedBasicToken.got.data,
-                }),
-                .expected2Token => try out.print("expected `{s}`, got `{s}`\n", .{
-                    err.expected2Token.expected.repr() orelse "identifier",
-                    err.expected2Token.got.kind.repr() orelse err.expected2Token.got.data,
-                }),
-                .missing_close => {
-                    try out.print("expected closing `{s}` to match opening `{s}` here, got `{s}`\n", .{
-                        err.missing_close.expected.repr() orelse "",
-                        err.missing_close.open.kind.repr() orelse err.missing_close.open.data,
-                        err.missing_close.got.kind.repr() orelse err.missing_close.got.data,
-                    });
-                },
-                .comptime_known => {
-                    try out.print("{s} must be compile-time known\n", .{err.comptime_known.what});
-                },
-                .unrecognized_builtin => {
-                    try out.print("`@{s}` is not a recognized built-in function\n", .{err.unrecognized_builtin.what});
-                },
-
-                // Symbol
-                .redefinition => {
-                    try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name});
-                },
-                .symbol_error => {
-                    try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem });
-                },
-                .discard_marked => {
-                    try out.print("discarded symbol marked as `{s}`\n", .{_symbol.SymbolKind.to_string(err.discard_marked.kind)});
-                },
-
-                // Typecheck
-                .expected2Type => {
-                    std.debug.assert(err.expected2Type.expected.* != .poison);
-                    if (err.expected2Type.got.* != .poison) {
-                        try out.print("expected a value of the type `", .{});
-                        try err.expected2Type.expected.printType(out);
-                        try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
-                        try err.expected2Type.got.printType(out);
-                        try out.print("`\n", .{});
-                    } else {
-                        try out.print("expected a value of the type `", .{});
-                        try err.expected2Type.expected.printType(out);
-                        try out.print("`\n", .{});
-                    }
-                },
-                .expectedType => {
-                    try out.print("expected a value of the type `", .{});
-                    try err.expectedType.expected.printType(out);
-                    try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
-                },
-                .expectedBuiltinTypeclass => {
-                    try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected}); // just so happens to work out that all builtin type classes start with a vowel
-                    try err.expectedBuiltinTypeclass.got.printType(out);
-                    try out.print("`\n", .{});
-                },
-                .expectedGotString => {
-                    std.debug.assert(err.expectedGotString.expected.* != .poison);
-                    try out.print("expected a value of the type `", .{});
-                    try err.expectedGotString.expected.printType(out);
-                    try out.print("`, got {s}\n", .{err.expectedGotString.got});
-                },
-                .sum_duplicate => {
-                    try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier});
-                },
-                .member_not_in => {
-                    try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name });
-                },
-                .undeclaredIdentifier => {
-                    try out.print("use of undeclared identifier `{s}`", .{err.undeclaredIdentifier.identifier.data});
-
-                    var similar = std.ArrayList([]const u8).init(self.allocator);
-                    defer similar.deinit();
-
-                    err.undeclaredIdentifier.scope.collect_similar(err.undeclaredIdentifier.identifier.data, &similar, err.undeclaredIdentifier.expected, self.allocator);
-
-                    if (similar.items.len == 0) {
-                        try out.print("\n", .{});
-                    } else {
-                        try out.print("; did you mean ", .{});
-                        for (similar.items, 0..) |item, i| {
-                            if (i == similar.items.len - 1) {
-                                try out.print("`{s}`", .{item});
-                            } else if (i < similar.items.len - 2) {
-                                try out.print("`{s}`, ", .{item});
-                            } else {
-                                try out.print("`{s}`, or ", .{item});
-                            }
-                        }
-                        try out.print("?\n", .{});
-                    }
-                },
-                .comptime_access_runtime => {
-                    try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data});
-                },
-                .inner_fn_access_runtime => {
-                    try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{err.inner_fn_access_runtime.identifier.data});
-                },
-                .useBeforeDef => {
-                    try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});
-                },
-                .modifyImmutable => {
-                    try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
-                },
-                .notIndexable => {
-                    try out.print("the type `", .{});
-                    try err.notIndexable._type.printType(out);
-                    try out.print("` is not indexable\n", .{});
-                },
-                .nonExhaustiveSum => {
-                    try out.print("match over sum type is not exhaustive\n", .{});
-                },
-                .mismatchCallArity => {
-                    try out.print("function takes {} parameter{s}, {} argument{s} given\n", .{
-                        err.mismatchCallArity.takes,
-                        if (err.mismatchCallArity.takes == 1) "" else "s",
-                        err.mismatchCallArity.given,
-                        if (err.mismatchCallArity.given == 1) "" else "s",
-                    });
-                },
-                .mismatchTupleArity => {
-                    try out.print("expected tuple of {} term{s}, got tuple of {} term{s}\n", .{
-                        err.mismatchTupleArity.takes,
-                        if (err.mismatchTupleArity.takes == 1) "" else "s",
-                        err.mismatchTupleArity.given,
-                        if (err.mismatchTupleArity.given == 1) "" else "s",
-                    });
-                },
-                .no_default => {
-                    try out.print("no default value for the type `", .{});
-                    try err.expectedBuiltinTypeclass.got.printType(out);
-                    try out.print("`\n", .{});
-                },
-
-                // Optimizer
-                .out_of_bounds => {
-                    try out.print("index out of bounds; index {}, length {}\n", .{ err.out_of_bounds.index, err.out_of_bounds.length });
-                },
-                .negative_index => {
-                    try out.print("index is negative; index {}\n", .{err.negative_index.index});
-                },
-                .slice_lower_upper => {
-                    try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{ err.slice_lower_upper.lower, err.slice_lower_upper.upper });
-                },
-                .sum_select_inactive => {
-                    try out.print("access of sum field '{s}' while field '{s}' is active\n", .{ err.sum_select_inactive.inactive, err.sum_select_inactive.active });
-                },
-            }
+            try print_main_error(err, self.allocator);
             try (term.Attr{ .bold = false }).dump(out);
             try printEpilude(err.getSpan());
+            try print_extra_info(err);
+        }
+    }
 
-            // Extra info
-            switch (err) {
-                .missing_close => {
-                    try (term.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.missing_close.open.span);
-                    try (term.Attr{ .bold = true }).dump(out);
-                    try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
-                    try (term.Attr{ .bold = false }).dump(out);
-                    try printEpilude(err.missing_close.open.span);
-                },
-                .comptime_known => {
-                    try (term.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.comptime_known.span);
-                    try (term.Attr{ .bold = true }).dump(out);
-                    try out.print("consider wrapping with `comptime`\n", .{});
-                    try (term.Attr{ .bold = false }).dump(out);
-                },
-                .redefinition => {
-                    if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
-                        try (term.Attr{ .bold = true }).dump(out);
-                        try print_note_prelude(err.redefinition.first_defined_span);
-                        try (term.Attr{ .bold = true }).dump(out);
-                        try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
-                        try (term.Attr{ .bold = false }).dump(out);
-                        try printEpilude(err.redefinition.first_defined_span);
+    fn print_main_error(err: Error, allocator: std.mem.Allocator) !void {
+        switch (err) {
+            // General errors
+            .basic => try out.print("{s}\n", .{err.basic.msg}),
+
+            // Lexer errors
+            .invalid_digit => try out.print("'{c}' is not a valid {s} digit\n", .{ err.invalid_digit.digit, err.invalid_digit.base }),
+            .invalid_escape => try out.print("invalid escape sequence '\\{c}'\n", .{err.invalid_escape.digit}),
+
+            // Parser errors
+            .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
+                err.expectedBasicToken.expected,
+                err.expectedBasicToken.got.kind.repr() orelse err.expectedBasicToken.got.data,
+            }),
+            .expected2Token => try out.print("expected `{s}`, got `{s}`\n", .{
+                err.expected2Token.expected.repr() orelse "identifier",
+                err.expected2Token.got.kind.repr() orelse err.expected2Token.got.data,
+            }),
+            .missing_close => {
+                try out.print("expected closing `{s}` to match opening `{s}` here, got `{s}`\n", .{
+                    err.missing_close.expected.repr() orelse "",
+                    err.missing_close.open.kind.repr() orelse err.missing_close.open.data,
+                    err.missing_close.got.kind.repr() orelse err.missing_close.got.data,
+                });
+            },
+            .comptime_known => {
+                try out.print("{s} must be compile-time known\n", .{err.comptime_known.what});
+            },
+            .unrecognized_builtin => {
+                try out.print("`@{s}` is not a recognized built-in function\n", .{err.unrecognized_builtin.what});
+            },
+
+            // Symbol
+            .redefinition => {
+                try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name});
+            },
+            .symbol_error => {
+                try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem });
+            },
+            .discard_marked => {
+                try out.print("discarded symbol marked as `{s}`\n", .{_symbol.SymbolKind.to_string(err.discard_marked.kind)});
+            },
+
+            // Typecheck
+            .expected2Type => {
+                std.debug.assert(err.expected2Type.expected.* != .poison);
+                if (err.expected2Type.got.* != .poison) {
+                    try out.print("expected a value of the type `", .{});
+                    try err.expected2Type.expected.printType(out);
+                    try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
+                    try err.expected2Type.got.printType(out);
+                    try out.print("`\n", .{});
+                } else {
+                    try out.print("expected a value of the type `", .{});
+                    try err.expected2Type.expected.printType(out);
+                    try out.print("`\n", .{});
+                }
+            },
+            .expectedType => {
+                try out.print("expected a value of the type `", .{});
+                try err.expectedType.expected.printType(out);
+                try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
+            },
+            .expectedBuiltinTypeclass => {
+                try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected}); // just so happens to work out that all builtin type classes start with a vowel
+                try err.expectedBuiltinTypeclass.got.printType(out);
+                try out.print("`\n", .{});
+            },
+            .expectedGotString => {
+                std.debug.assert(err.expectedGotString.expected.* != .poison);
+                try out.print("expected a value of the type `", .{});
+                try err.expectedGotString.expected.printType(out);
+                try out.print("`, got {s}\n", .{err.expectedGotString.got});
+            },
+            .sum_duplicate => {
+                try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier});
+            },
+            .member_not_in => {
+                try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name });
+            },
+            .undeclaredIdentifier => {
+                try out.print("use of undeclared identifier `{s}`", .{err.undeclaredIdentifier.identifier.data});
+
+                var similar = std.ArrayList([]const u8).init(allocator);
+                defer similar.deinit();
+
+                err.undeclaredIdentifier.scope.collect_similar(err.undeclaredIdentifier.identifier.data, &similar, err.undeclaredIdentifier.expected, allocator);
+
+                if (similar.items.len == 0) {
+                    try out.print("\n", .{});
+                } else {
+                    try out.print("; did you mean ", .{});
+                    for (similar.items, 0..) |item, i| {
+                        if (i == similar.items.len - 1) {
+                            try out.print("`{s}`", .{item});
+                        } else if (i < similar.items.len - 2) {
+                            try out.print("`{s}`, ", .{item});
+                        } else {
+                            try out.print("`{s}`, or ", .{item});
+                        }
                     }
-                },
-                .symbol_error => {
-                    if (err.symbol_error.context_span != null) {
-                        try (term.Attr{ .bold = true }).dump(out);
-                        try print_note_prelude(err.symbol_error.context_span.?);
-                        try (term.Attr{ .bold = true }).dump(out);
-                        try out.print("{s}\n", .{err.symbol_error.context_message});
-                        try (term.Attr{ .bold = false }).dump(out);
-                        try printEpilude(err.symbol_error.context_span.?);
-                    }
-                },
-                .sum_duplicate => {
+                    try out.print("?\n", .{});
+                }
+            },
+            .comptime_access_runtime => {
+                try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data});
+            },
+            .inner_fn_access_runtime => {
+                try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{err.inner_fn_access_runtime.identifier.data});
+            },
+            .useBeforeDef => {
+                try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});
+            },
+            .modifyImmutable => {
+                try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
+            },
+            .notIndexable => {
+                try out.print("the type `", .{});
+                try err.notIndexable._type.printType(out);
+                try out.print("` is not indexable\n", .{});
+            },
+            .nonExhaustiveSum => {
+                try out.print("match over sum type is not exhaustive\n", .{});
+            },
+            .mismatchCallArity => {
+                try out.print("function takes {} parameter{s}, {} argument{s} given\n", .{
+                    err.mismatchCallArity.takes,
+                    if (err.mismatchCallArity.takes == 1) "" else "s",
+                    err.mismatchCallArity.given,
+                    if (err.mismatchCallArity.given == 1) "" else "s",
+                });
+            },
+            .mismatchTupleArity => {
+                try out.print("expected tuple of {} term{s}, got tuple of {} term{s}\n", .{
+                    err.mismatchTupleArity.takes,
+                    if (err.mismatchTupleArity.takes == 1) "" else "s",
+                    err.mismatchTupleArity.given,
+                    if (err.mismatchTupleArity.given == 1) "" else "s",
+                });
+            },
+            .no_default => {
+                try out.print("no default value for the type `", .{});
+                try err.expectedBuiltinTypeclass.got.printType(out);
+                try out.print("`\n", .{});
+            },
+
+            // Optimizer
+            .out_of_bounds => {
+                try out.print("index out of bounds; index {}, length {}\n", .{ err.out_of_bounds.index, err.out_of_bounds.length });
+            },
+            .negative_index => {
+                try out.print("index is negative; index {}\n", .{err.negative_index.index});
+            },
+            .slice_lower_upper => {
+                try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{ err.slice_lower_upper.lower, err.slice_lower_upper.upper });
+            },
+            .sum_select_inactive => {
+                try out.print("access of sum field '{s}' while field '{s}' is active\n", .{ err.sum_select_inactive.inactive, err.sum_select_inactive.active });
+            },
+        }
+    }
+
+    fn print_extra_info(err: Error) !void {
+        switch (err) {
+            .missing_close => {
+                try (term.Attr{ .bold = true }).dump(out);
+                try print_note_prelude(err.missing_close.open.span);
+                try (term.Attr{ .bold = true }).dump(out);
+                try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
+                try (term.Attr{ .bold = false }).dump(out);
+                try printEpilude(err.missing_close.open.span);
+            },
+            .comptime_known => {
+                try (term.Attr{ .bold = true }).dump(out);
+                try print_note_prelude(err.comptime_known.span);
+                try (term.Attr{ .bold = true }).dump(out);
+                try out.print("consider wrapping with `comptime`\n", .{});
+                try (term.Attr{ .bold = false }).dump(out);
+            },
+            .redefinition => {
+                if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
                     try (term.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.sum_duplicate.first);
+                    try print_note_prelude(err.redefinition.first_defined_span);
                     try (term.Attr{ .bold = true }).dump(out);
-                    try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
+                    try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
                     try (term.Attr{ .bold = false }).dump(out);
-                    try printEpilude(err.sum_duplicate.first);
-                },
-                .nonExhaustiveSum => {
-                    for (err.nonExhaustiveSum.forgotten.items) |_type| {
-                        try (term.Attr{ .bold = true }).dump(out);
-                        try print_note_prelude(_type.getToken().span);
-                        try (term.Attr{ .bold = true }).dump(out);
-                        try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.getToken().data});
-                        try (term.Attr{ .bold = false }).dump(out);
-                        try printEpilude(_type.getToken().span);
-                    }
-                },
-                else => {},
-            }
+                    try printEpilude(err.redefinition.first_defined_span);
+                }
+            },
+            .symbol_error => {
+                if (err.symbol_error.context_span != null) {
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try print_note_prelude(err.symbol_error.context_span.?);
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try out.print("{s}\n", .{err.symbol_error.context_message});
+                    try (term.Attr{ .bold = false }).dump(out);
+                    try printEpilude(err.symbol_error.context_span.?);
+                }
+            },
+            .sum_duplicate => {
+                try (term.Attr{ .bold = true }).dump(out);
+                try print_note_prelude(err.sum_duplicate.first);
+                try (term.Attr{ .bold = true }).dump(out);
+                try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
+                try (term.Attr{ .bold = false }).dump(out);
+                try printEpilude(err.sum_duplicate.first);
+            },
+            .nonExhaustiveSum => {
+                for (err.nonExhaustiveSum.forgotten.items) |_type| {
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try print_note_prelude(_type.getToken().span);
+                    try (term.Attr{ .bold = true }).dump(out);
+                    try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.getToken().data});
+                    try (term.Attr{ .bold = false }).dump(out);
+                    try printEpilude(_type.getToken().span);
+                }
+            },
+            else => {},
         }
     }
 

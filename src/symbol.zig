@@ -263,7 +263,7 @@ pub const Symbol = struct {
         std.debug.assert(self.validation_state == .valid);
         if (self.cfg == null) {
             self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
-            try optimizations.optimize(self.cfg.?, errors, interned_strings, allocator);
+            try optimizations.optimize(self.cfg.?, errors, allocator);
             self.cfg.?.collect_generated_symbvers();
             self.cfg.?.locals_size = offsets.calculate_offsets(self);
         }

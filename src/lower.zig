@@ -1137,7 +1137,6 @@ fn generate_match_pattern_check(
         // Implies `else` branch, infallible.
         return;
     }
-    const new_expr = expr; // try L_Value.create_unversioned_symbver(expr.symbol, expr.type, allocator);
     switch (pattern.?.*) {
         .int,
         .float,
@@ -1149,7 +1148,7 @@ fn generate_match_pattern_check(
         => {
             const value = try lower_AST(cfg, pattern.?, labels, errors, allocator);
             const condition = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
-            const condition_ir = ir_.IR.init(.equal, condition, new_expr, value.?, pattern.?.getToken().span, allocator);
+            const condition_ir = ir_.IR.init(.equal, condition, expr, value.?, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(condition_ir);
             const branch = ir_.IR.initBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(branch);
@@ -1159,11 +1158,11 @@ fn generate_match_pattern_check(
         },
         .product => {
             for (pattern.?.product.terms.items, 0..) |term, i| {
-                const subscript_type = new_expr.get_type().product.terms.items[i];
+                const subscript_type = expr.get_type().product.terms.items[i];
                 const size = subscript_type.expand_type(allocator).sizeof();
                 const pattern_type = pattern.?.typeof(allocator).expand_type(allocator);
                 const offset = pattern_type.product.get_offset(i, allocator);
-                const lval = lval_.L_Value.create_select(new_expr, i, offset, size, subscript_type, subscript_type.expand_type(allocator), null, allocator);
+                const lval = lval_.L_Value.create_select(expr, i, offset, size, subscript_type, subscript_type.expand_type(allocator), null, allocator);
                 try generate_match_pattern_check(cfg, term, lval, next_pattern, labels, errors, allocator);
             }
         },

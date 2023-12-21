@@ -221,286 +221,286 @@ pub const Context = struct {
     pub fn interpret(self: *Context) error{interpreter_panic}!void {
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
-            var ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
+            const ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
             // self.print_registers();
             // self.print_stack();
             // std.debug.print("\n\n\n\n{}=>\n", .{ir});
-
-            switch (ir.kind) {
-                // Invalid interpreter operations
-                .loadExtern,
-                .sizeOf,
-                => unreachable,
-
-                // Nop
-                .loadUnit => {},
-
-                // Data
-                .loadInt => {
-                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                    if (ir.data.int < bounds.lower or ir.data.int > bounds.upper) {
-                        try self.panic(ir.span, "error: the value {} is out of bounds\n", .{ir.data.int});
-                    }
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
-                },
-                .loadFloat => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
-                .loadString => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
-                .loadSymbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
-                .loadAST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
-
-                // Tuples
-                .loadStruct => self.move_lval_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
-
-                .loadUnion => {
-                    if (ir.src1 != null) {
-                        // Store data into first field
-                        self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    }
-                    // Store tag in last field
-                    self.store(i64, self.get_lval(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
-                },
-
-                // Monadic operations
-                .copy => {
-                    std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
-                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.dest.?.sizeof());
-                },
-                .not => {
-                    var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    data = if (data != 0) 0 else 1;
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
-                },
-                .negate_int => {
-                    var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    data = -data;
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
-                },
-                .negate_float => {
-                    var data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    data = -data;
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
-                },
-                .addrOf => {
-                    const data = self.get_lval(ir.src1.?);
-                    self.store_int(self.get_lval(ir.dest.?), 8, data);
-                },
-
-                // Diadic instructions
-                .equal => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data == src2_data) 1 else 0);
-                },
-                .not_equal => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data != src2_data) 1 else 0);
-                },
-                .greater_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
-                },
-                .greater_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
-                },
-                .lesser_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
-                },
-                .lesser_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
-                },
-                .greater_equal_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
-                },
-                .greater_equal_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
-                },
-                .lesser_equal_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
-                },
-                .lesser_equal_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
-                },
-                .add_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    const val = src1_data + src2_data;
-                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                    if (val < bounds.lower or val > bounds.upper) {
-                        try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
-                    }
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
-                },
-                .add_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data + src2_data);
-                },
-                .sub_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    const val = src1_data - src2_data;
-                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                    if (val < bounds.lower or val > bounds.upper) {
-                        try self.panic(ir.span, "error: subtraction result is out of bounds; value={}\n", .{val});
-                    }
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
-                },
-                .sub_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data - src2_data);
-                },
-                .mult_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    const val = src1_data * src2_data;
-                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                    if (val < bounds.lower or val > bounds.upper) {
-                        try self.panic(ir.span, "error: multiplication result is out of bounds; value={}\n", .{val});
-                    }
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
-                },
-                .mult_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data * src2_data);
-                },
-                .div_int => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    if (src2_data == 0) {
-                        try self.panic(ir.span, "error: division by zero\n", .{});
-                    }
-                    const val = @divTrunc(src1_data, src2_data);
-                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                    if (val < bounds.lower or val > bounds.upper) {
-                        try self.panic(ir.span, "error: division result is out of bounds; value={}\n", .{val});
-                    }
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
-                },
-                .div_float => {
-                    const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(src1_data, src2_data));
-                },
-                .mod => {
-                    const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                    const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                    const val = @rem(src1_data, src2_data);
-                    const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                    if (val < bounds.lower or val > bounds.upper) {
-                        try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
-                    }
-                    self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
-                },
-                .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
-                    const tag_offset = ir.src1.?.sizeof() - 8;
-                    std.debug.assert(ir.dest.?.sizeof() == 8);
-                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + tag_offset, 8);
-                },
-                .cast => {
-                    std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
-                },
-
-                // Control-flow
-                .label => {
-                    // no-op
-                },
-                .jump => {
-                    if (ir.data.jump_bb.next) |next| {
-                        self.instruction_pointer = next.offset.?;
-                    } else {
-                        self.ret();
-                        continue;
-                    }
-                },
-                .branchIfFalse => {
-                    if (self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof()) != 0) {
-                        if (ir.data.branch_bb.next) |next| {
-                            self.instruction_pointer = next.offset.?;
-                        } else {
-                            self.ret();
-                            continue;
-                        }
-                    } else {
-                        if (ir.data.branch_bb.branch) |branch| {
-                            self.instruction_pointer = branch.offset.?;
-                        } else {
-                            self.ret();
-                            continue;
-                        }
-                    }
-                },
-                .call => { // dest = src1(lval_list...)
-                    const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(self.get_lval(ir.src1.?), 8))));
-
-                    // Save old stack pointer
-                    const old_sp = self.stack_pointer;
-                    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
-                    //  push args in reverse order
-                    var i: i64 = @as(i64, @intCast(ir.data.lval_list.items.len)) - 1;
-                    while (i >= 0) : (i -= 1) {
-                        const arg = ir.data.lval_list.items[@as(usize, @intCast(i))];
-                        const size = arg.get_expanded_type().sizeof();
-                        const alignof = arg.get_expanded_type().alignof();
-                        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
-                        self.push_move(self.get_lval(arg), size);
-                    }
-                    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
-
-                    // push return-value address
-                    self.push_int(8, self.get_lval(ir.dest.?));
-                    // push old sp
-                    self.push_int(8, old_sp);
-                    // push bp
-                    self.push_int(8, self.base_pointer);
-                    // push return address
-                    self.push_int(8, self.instruction_pointer);
-                    // bp := sp
-                    self.base_pointer = self.stack_pointer - 8;
-
-                    // allocate space for locals
-                    self.stack_pointer += symbol.cfg.?.locals_size.?;
-
-                    // jump to symbol addr
-                    self.instruction_pointer = symbol.cfg.?.offset.?;
-                },
-
-                .discard => {
-                    // no-op
-                },
-
-                // Errors
-                .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
-                    self.debug_call_stack.append(ir.span) catch unreachable;
-                },
-                .popStackTrace => { // Pops a message off the stack after a function is successfully called
-                    _ = self.debug_call_stack.pop();
-                },
-                .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
-                    try self.panic(ir.span, "error: reached unreachable code\n", .{});
-                },
-            }
+            try self.execute(ir);
         }
     }
 
-    fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) !void {
+    inline fn execute(self: *Context, ir: *ir_.IR) error{interpreter_panic}!void { // This doesn't work if it's not inlined, lol!
+        switch (ir.kind) {
+            // Invalid interpreter operations
+            .loadExtern,
+            .sizeOf,
+            => unreachable,
+
+            // Nop
+            .loadUnit => {},
+
+            // Data
+            .loadInt => {
+                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                if (ir.data.int < bounds.lower or ir.data.int > bounds.upper) {
+                    try self.panic(ir.span, "error: the value {} is out of bounds\n", .{ir.data.int});
+                }
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
+            },
+            .loadFloat => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
+            .loadString => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
+            .loadSymbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
+            .loadAST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
+
+            // Tuples
+            .loadStruct => self.move_lval_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
+
+            .loadUnion => {
+                if (ir.src1 != null) {
+                    // Store data into first field
+                    self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                }
+                // Store tag in last field
+                self.store(i64, self.get_lval(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
+            },
+
+            // Monadic operations
+            .copy => {
+                std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
+                self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.dest.?.sizeof());
+            },
+            .not => {
+                var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                data = if (data != 0) 0 else 1;
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
+            },
+            .negate_int => {
+                var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                data = -data;
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
+            },
+            .negate_float => {
+                var data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                data = -data;
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
+            },
+            .addrOf => {
+                const data = self.get_lval(ir.src1.?);
+                self.store_int(self.get_lval(ir.dest.?), 8, data);
+            },
+
+            // Diadic instructions
+            .equal => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data == src2_data) 1 else 0);
+            },
+            .not_equal => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data != src2_data) 1 else 0);
+            },
+            .greater_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
+            },
+            .greater_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
+            },
+            .lesser_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
+            },
+            .lesser_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
+            },
+            .greater_equal_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
+            },
+            .greater_equal_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
+            },
+            .lesser_equal_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
+            },
+            .lesser_equal_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
+            },
+            .add_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                const val = src1_data + src2_data;
+                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                if (val < bounds.lower or val > bounds.upper) {
+                    try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
+                }
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+            },
+            .add_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data + src2_data);
+            },
+            .sub_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                const val = src1_data - src2_data;
+                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                if (val < bounds.lower or val > bounds.upper) {
+                    try self.panic(ir.span, "error: subtraction result is out of bounds; value={}\n", .{val});
+                }
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+            },
+            .sub_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data - src2_data);
+            },
+            .mult_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                const val = src1_data * src2_data;
+                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                if (val < bounds.lower or val > bounds.upper) {
+                    try self.panic(ir.span, "error: multiplication result is out of bounds; value={}\n", .{val});
+                }
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+            },
+            .mult_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data * src2_data);
+            },
+            .div_int => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                if (src2_data == 0) {
+                    try self.panic(ir.span, "error: division by zero\n", .{});
+                }
+                const val = @divTrunc(src1_data, src2_data);
+                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                if (val < bounds.lower or val > bounds.upper) {
+                    try self.panic(ir.span, "error: division result is out of bounds; value={}\n", .{val});
+                }
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+            },
+            .div_float => {
+                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(src1_data, src2_data));
+            },
+            .mod => {
+                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
+                const val = @rem(src1_data, src2_data);
+                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
+                if (val < bounds.lower or val > bounds.upper) {
+                    try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
+                }
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+            },
+            .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
+                const tag_offset = ir.src1.?.sizeof() - 8;
+                std.debug.assert(ir.dest.?.sizeof() == 8);
+                self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + tag_offset, 8);
+            },
+            .cast => {
+                std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
+            },
+
+            // Control-flow
+            .label => {
+                // no-op
+            },
+            .jump => {
+                if (ir.data.jump_bb.next) |next| {
+                    self.instruction_pointer = next.offset.?;
+                } else {
+                    self.ret();
+                }
+            },
+            .branchIfFalse => {
+                if (self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof()) != 0) {
+                    if (ir.data.branch_bb.next) |next| {
+                        self.instruction_pointer = next.offset.?;
+                    } else {
+                        self.ret();
+                    }
+                } else {
+                    if (ir.data.branch_bb.branch) |branch| {
+                        self.instruction_pointer = branch.offset.?;
+                    } else {
+                        self.ret();
+                    }
+                }
+            },
+            .call => { // dest = src1(lval_list...)
+                const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(self.get_lval(ir.src1.?), 8))));
+
+                // Save old stack pointer
+                const old_sp = self.stack_pointer;
+                self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+                //  push args in reverse order
+                var i: i64 = @as(i64, @intCast(ir.data.lval_list.items.len)) - 1;
+                while (i >= 0) : (i -= 1) {
+                    const arg = ir.data.lval_list.items[@as(usize, @intCast(i))];
+                    const size = arg.get_expanded_type().sizeof();
+                    const alignof = arg.get_expanded_type().alignof();
+                    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
+                    self.push_move(self.get_lval(arg), size);
+                }
+                self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
+
+                // push return-value address
+                self.push_int(8, self.get_lval(ir.dest.?));
+                // push old sp
+                self.push_int(8, old_sp);
+                // push bp
+                self.push_int(8, self.base_pointer);
+                // push return address
+                self.push_int(8, self.instruction_pointer);
+                // bp := sp
+                self.base_pointer = self.stack_pointer - 8;
+
+                // allocate space for locals
+                self.stack_pointer += symbol.cfg.?.locals_size.?;
+
+                // jump to symbol addr
+                self.instruction_pointer = symbol.cfg.?.offset.?;
+            },
+
+            .discard => {
+                // no-op
+            },
+
+            // Errors
+            .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
+                self.debug_call_stack.append(ir.span) catch unreachable;
+            },
+            .popStackTrace => { // Pops a message off the stack after a function is successfully called
+                _ = self.debug_call_stack.pop();
+            },
+            .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
+                try self.panic(ir.span, "error: reached unreachable code\n", .{});
+            },
+        }
+    }
+
+    fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) error{interpreter_panic}!void {
         std.io.getStdErr().writer().print(msg, args) catch return error.interpreter_panic;
         self.debug_call_stack.append(span) catch unreachable;
 
