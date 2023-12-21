@@ -81,15 +81,13 @@
     - Add a separate `field` AST kind, that doesn't refer to an identifier, but to a field
     - Remove anything that now doesn't need to pass scope
     - typeof, expand_type, typesMatch
-- [ ] Simplify validate
-    - OutOfMemory is *NOT* a recoverable error
-        - append for ArrayList
-        - create for Allocators
+- [x] Simplify validate
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Split Parser and parse
 - [ ] Create a `Labels` struct for lower, to simplify things
 - [ ] If a `create()` function is inerrant, call it `init` instead
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
+    - [ ] Perhaps create an `arrayOf` AST kind
 - [ ] Nothing is indented more than 5 times, excluding switches
 - [ ] Try to keep lines less than 100 characters in width (not length!)
 - [ ] In import graph, 1.5 <= (E+1)/N <= 4.0
@@ -104,6 +102,7 @@
     - Data structures should not interact with Errors, unless it's the Errors data structure of course
 - [ ] (if you can figure out how to calculate it) cyclomatic complexity higher than 10 is bad
 - [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
+    - rewrite `ast` to be like IR
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [ ] Figure out how to do lints before GCC does
 - [ ] Go through MISRA when writing reqs

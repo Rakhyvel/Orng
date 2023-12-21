@@ -52,7 +52,11 @@ pub const Primitive_Info = struct {
     }
 
     pub fn is_num(self: Primitive_Info) bool {
-        return self.type_class == .num;
+        return self.type_class == .num or self.is_int();
+    }
+
+    pub fn is_int(self: Primitive_Info) bool {
+        return self.type_class == .int;
     }
 };
 
@@ -66,6 +70,7 @@ pub const Type_Class = enum {
     eq,
     ord,
     num,
+    int,
 };
 
 pub const Type_Kind = enum {
@@ -137,17 +142,17 @@ pub fn get_scope() *Scope {
         create_info("Float", null, "double", float_type, null, .num, .floating_point, default_float64, 8);
         create_info("Float32", null, "float", float32_type, null, .num, .floating_point, default_float32, 4);
         create_info("Float64", null, "double", float64_type, float_type, .num, .floating_point, default_float64, 8);
-        create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .num, .signed_integer, default_int64, 8);
-        create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .num, .signed_integer, default_int8, 1);
-        create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .num, .signed_integer, default_int16, 2);
-        create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .num, .signed_integer, default_int32, 4);
-        create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .num, .signed_integer, default_int64, 8);
+        create_info("Int", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int_type, null, .int, .signed_integer, default_int64, 8);
+        create_info("Int8", Bounds{ .lower = -0x80, .upper = 0x7F }, "int8_t", int8_type, null, .int, .signed_integer, default_int8, 1);
+        create_info("Int16", Bounds{ .lower = -0x8000, .upper = 0x7FFF }, "int16_t", int16_type, null, .int, .signed_integer, default_int16, 2);
+        create_info("Int32", Bounds{ .lower = -0x8000_000, .upper = 0x7FFF_FFFF }, "int32_t", int32_type, null, .int, .signed_integer, default_int32, 4);
+        create_info("Int64", Bounds{ .lower = -0x8000_0000_0000_0000, .upper = 0x7FFF_FFFF_FFFF_FFFF }, "int64_t", int64_type, int_type, .int, .signed_integer, default_int64, 8);
         create_info("String", null, "NO C EQUIVALENT!", string_type, byte_slice_type, .none, .none, default_string, 0);
         create_info("Type", null, "NO C EQUIVALENT!", type_type, null, .eq, .type, null, 8);
         create_info("Void", null, "NO C EQUIVALENT!", void_type, null, .none, .none, null, 0);
-        create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", word16_type, null, .num, .unsigned_integer, default_word16, 2);
-        create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", word32_type, null, .num, .unsigned_integer, default_word32, 4);
-        create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", word64_type, null, .num, .unsigned_integer, default_word64, 8);
+        create_info("Word16", Bounds{ .lower = 0, .upper = 0xFFFF }, "uint16_t", word16_type, null, .int, .unsigned_integer, default_word16, 2);
+        create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", word32_type, null, .int, .unsigned_integer, default_word32, 4);
+        create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", word64_type, null, .int, .unsigned_integer, default_word64, 8);
 
         default_int8.int.represents = int8_type;
         default_int16.int.represents = int16_type;

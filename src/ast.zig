@@ -1674,6 +1674,18 @@ pub const AST = union(enum) {
         return primitives_.from_ast(expanded).is_num();
     }
 
+    /// Int <: Num
+    pub fn is_int_type(self: *AST) bool {
+        var expanded = self.expand_identifier();
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
+        if (expanded.* != .identifier) {
+            return false;
+        }
+        return primitives_.from_ast(expanded).is_int();
+    }
+
     pub fn is_comptime_expr(self: *AST) bool {
         // It's easier to list all the ASTs that AREN'T comptime! :-)
         return !(self.* == ._try or
