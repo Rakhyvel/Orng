@@ -338,63 +338,33 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
 fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _type: *ast_.AST, init: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     switch (pattern.*) {
         .symbol => {
-            // TODO: Clean this up
-            if (pattern.symbol.kind == ._const) {
-                // `const` symbol, surround with comptime
-                const ast = ast_.AST.createComptime(init.getToken(), init, allocator);
-                const comptime_symbol = try create_temp_comptime_symbol(ast, _type, scope, errors, allocator);
-                const res = scope.lookup(comptime_symbol.name, false);
-                switch (res) {
-                    .found => {
-                        const first = res.found;
-                        errors.addError(errs_.Error{ .redefinition = .{
-                            .first_defined_span = first.span,
-                            .redefined_span = comptime_symbol.span,
-                            .name = comptime_symbol.name,
-                        } });
-                        return error.symbolError;
-                    },
-                    else => scope.symbols.put(comptime_symbol.name, comptime_symbol) catch unreachable,
+            if (std.mem.eql(u8, pattern.symbol.name, "_")) {
+                if (pattern.symbol.kind != .let) {
+                    // It is an error for `_` to be marked as `const` or `mut`
+                    errors.addError(errs_.Error{ .discard_marked = .{
+                        .span = pattern.getToken().span,
+                        .kind = pattern.symbol.kind,
+                    } });
+                    return error.symbolError;
+                } else {
+                    // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
+                    pattern.symbol.symbol = primitives_.blackhole;
+                    return;
                 }
-                ast._comptime.symbol = comptime_symbol;
-
-                const symbol = symbol_.Symbol.init(
-                    scope,
-                    pattern.symbol.name,
-                    pattern.getToken().span,
-                    _type,
-                    ast,
-                    null,
-                    pattern.symbol.kind,
-                    allocator,
-                );
-                pattern.symbol.symbol = symbol;
-                symbols.append(symbol) catch unreachable;
-            } else if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
-                // Regular `let` or `mut` symbol, not `_`
-                const symbol = symbol_.Symbol.init(
-                    scope,
-                    pattern.symbol.name,
-                    pattern.getToken().span,
-                    _type,
-                    init,
-                    null,
-                    pattern.symbol.kind,
-                    allocator,
-                );
-                pattern.symbol.symbol = symbol;
-                symbols.append(symbol) catch unreachable;
-            } else if (pattern.symbol.kind != .let) {
-                // It is an error for `_` to be marked as `const` or `mut`
-                errors.addError(errs_.Error{ .discard_marked = .{
-                    .span = pattern.getToken().span,
-                    .kind = pattern.symbol.kind,
-                } });
-                return error.symbolError;
-            } else {
-                // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
-                pattern.symbol.symbol = primitives_.blackhole;
             }
+            const symbol_init = if (pattern.symbol.kind != ._const) init else try create_comptime_init(init, _type, scope, errors, allocator);
+            const symbol = symbol_.Symbol.init(
+                scope,
+                pattern.symbol.name,
+                pattern.getToken().span,
+                _type,
+                symbol_init,
+                null,
+                pattern.symbol.kind,
+                allocator,
+            );
+            pattern.symbol.symbol = symbol;
+            symbols.append(symbol) catch unreachable;
         },
         .product => {
             for (pattern.product.terms.items, 0..) |term, i| {
@@ -525,6 +495,27 @@ fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocato
         const retval = ast_.AST.createProduct(params.items[0].getToken(), param_types, allocator);
         return retval;
     }
+}
+
+// `const` symbol, surround with comptime
+fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+    const retval = ast_.AST.createComptime(old_init.getToken(), old_init, allocator);
+    const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
+    const res = scope.lookup(comptime_symbol.name, false);
+    switch (res) {
+        .found => {
+            const first = res.found;
+            errors.addError(errs_.Error{ .redefinition = .{
+                .first_defined_span = first.span,
+                .redefined_span = comptime_symbol.span,
+                .name = comptime_symbol.name,
+            } });
+            return error.symbolError;
+        },
+        else => scope.symbols.put(comptime_symbol.name, comptime_symbol) catch unreachable,
+    }
+    retval._comptime.symbol = comptime_symbol;
+    return retval;
 }
 
 // ast is a `comptime` ast

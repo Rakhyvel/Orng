@@ -210,7 +210,7 @@ pub fn lower_AST(
             // Else, create a *single* copy IR with an L_Value tree
             return try generate_assign(cfg, ast.assign.lhs, rhs.?, labels, errors, allocator);
         },
-        ._or => {
+        ._or => { // TODO: TOO LONG
             // Create the result symbol and IR
             const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
             const temp = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -243,7 +243,7 @@ pub fn lower_AST(
             cfg.appendInstruction(end_label);
             return temp;
         },
-        ._and => {
+        ._and => { // TODO: TOO LONG
             // Create the result symbol and IR
             const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
             const temp = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -426,7 +426,7 @@ pub fn lower_AST(
             cfg.appendInstruction(ir);
             return temp;
         },
-        ._catch => {
+        ._catch => { // TODO: TOO LONG
             // Create the result symbol.
             // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
             const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
@@ -461,7 +461,7 @@ pub fn lower_AST(
             cfg.appendInstruction(end_label);
             return temp;
         },
-        ._orelse => {
+        ._orelse => { // TODO: TOO LONG
             // Create the result symbol.
             // There is actually a reason to create a symbol first and not a temp symbol directly. Something to do with versioning. Doesn't work otherwise after optimization.
             const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
@@ -520,7 +520,7 @@ pub fn lower_AST(
             cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
             return temp;
         },
-        .index => {
+        .index => { // TODO: TOO LONG
             const _type = ast.typeof(allocator);
             const size = _type.expand_type(allocator).sizeof();
 
@@ -617,7 +617,7 @@ pub fn lower_AST(
                 return temp;
             }
         },
-        .subSlice => {
+        .subSlice => { // TODO: TOO LONG
             const arr = (try lower_AST(cfg, ast.subSlice.super, labels, errors, allocator)) orelse return null;
             const lower = (try lower_AST(cfg, ast.subSlice.lower.?, labels, errors, allocator)) orelse return null;
             const upper = (try lower_AST(cfg, ast.subSlice.upper.?, labels, errors, allocator)) orelse return null;
@@ -683,7 +683,7 @@ pub fn lower_AST(
         },
 
         // Control-flow expressions
-        ._if => {
+        ._if => { // TODO: TOO LONG
             // Create the result symbol and IR
             const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
             const temp = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -735,7 +735,7 @@ pub fn lower_AST(
             cfg.appendInstruction(end_label);
             return temp;
         },
-        .match => {
+        .match => { // TODO: TOO LONG
             // Create the result symbol and IR
             const symbol_type = if (ast.match.has_else)
                 // Match has an else, type of the mappings should be the type of the match
@@ -823,7 +823,7 @@ pub fn lower_AST(
 
             return temp;
         },
-        ._while => {
+        ._while => { // TODO: TOO LONG
             // Create the result symbol and IR
             const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
             const temp = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -883,7 +883,7 @@ pub fn lower_AST(
             cfg.appendInstruction(end_label);
             return temp;
         },
-        .block => {
+        .block => { // TODO: TOO LONG
             if (ast.block.statements.items.len == 0 and ast.block.final == null) {
                 return null;
             } else {

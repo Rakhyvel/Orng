@@ -228,7 +228,7 @@ fn validate_AST_internal(
                 return ast;
             }
         },
-        ._try => {
+        ._try => { // TODO: TOO LONG
             const expr_span = ast._try.expr.getToken().span;
             ast._try.expr = validateAST(ast._try.expr, null, errors, allocator);
             if (ast._try.expr.* == .poison) {
@@ -906,7 +906,7 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        ._union => {
+        ._union => { // TODO: TOO LONG
             // Save spans since lhs and rhs are expanded, need spans for errors
             const lhs_span = ast._union.lhs.getToken().span;
             const rhs_span = ast._union.rhs.getToken().span;
@@ -948,7 +948,7 @@ fn validate_AST_internal(
             }
             return retval;
         },
-        .addrOf => {
+        .addrOf => { // TODO: TOO LONG
             if (expected == null) {
                 // Not expecting anything, just validate expr
                 ast.addrOf.expr = validateAST(ast.addrOf.expr, null, errors, allocator);
@@ -1050,7 +1050,7 @@ fn validate_AST_internal(
                 return AST.create_slice_value(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, expr_type, allocator);
             }
         },
-        .subSlice => {
+        .subSlice => { // TODO: TOO LONG
             ast.subSlice.super = validateAST(ast.subSlice.super, null, errors, allocator);
             if (ast.subSlice.super.* == .poison) {
                 return ast.enpoison();
@@ -1293,7 +1293,7 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        ._while => {
+        ._while => { // TODO: TOO LONG
             if (ast._while.let) |let| {
                 ast._while.let = validateAST(let, null, errors, allocator);
             }
@@ -1327,7 +1327,7 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        .block => {
+        .block => { // TODO: TOO LONG
             var changed = false;
             var poisoned = false;
             var new_statements = std.ArrayList(*AST).init(allocator);

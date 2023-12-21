@@ -139,18 +139,10 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             defer idents_seen.deinit();
             errdefer new_terms.deinit();
 
+            // Make sure identifiers aren't repeated
             for (ast.sum.terms.items) |term| {
-                // Make sure identifiers aren't repeated
-                var annotation: *ast_.AST = undefined;
-                if (term.* == .annotation) {
-                    annotation = term;
-                } else if (term.* == .identifier) {
-                    annotation = ast_.AST.createAnnotation(term.getToken(), term, primitives_.unit_type, null, null, allocator).assert_valid();
-                    changed = true;
-                } else {
-                    errors.addError(errs_.Error{ .basic = .{ .span = term.getToken().span, .msg = "invalid sum expression, must be annotation or identifier" } });
-                    return error.parseError;
-                }
+                changed = changed or term.* == .identifier;
+                var annotation: *ast_.AST = try annot_from_ast(term, errors, allocator);
                 new_terms.append(annotation) catch unreachable;
                 const name = annotation.annotation.pattern.getToken().data;
                 const res = idents_seen.fetchPut(name, annotation) catch unreachable;
@@ -247,5 +239,16 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         },
         ._defer => try expand(ast._defer.statement, errors, allocator),
         ._errdefer => try expand(ast._errdefer.statement, errors, allocator),
+    }
+}
+
+fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+    if (ast.* == .annotation) {
+        return ast;
+    } else if (ast.* == .identifier) {
+        return ast_.AST.createAnnotation(ast.getToken(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
+    } else {
+        errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "invalid sum expression, must be annotation or identifier" } });
+        return error.parseError;
     }
 }

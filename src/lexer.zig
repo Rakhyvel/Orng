@@ -28,37 +28,45 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     }
     lines.append(contents[start..end]) catch unreachable;
 }
+const LexState = enum {
+    none,
+    whitespace,
+    underscore, //           => uncapitalized | capitalized
+    capitalized, //          => "_" | e | uncapitalized | all_caps
+    all_caps, //             => "_" | e
+    uncapitalized, //        => "_" | e
+    string,
+    escapedString,
+    byteString1,
+    byteString2,
+    char,
+    escapedChar,
+    integer,
+    integerDigit,
+    float,
+    floatDigit,
+    hex,
+    hexDigit,
+    octal,
+    octalDigit,
+    binary,
+    binaryDigit,
+    symbol,
+    multiline,
+    comment,
+
+    fn state_from_integer(c: u8) LexState {
+        return switch (c) {
+            'x' => .hexDigit,
+            'o' => .octalDigit,
+            'b' => .binaryDigit,
+            else => unreachable,
+        };
+    }
+};
 
 /// Will always end in an EOF on the first column of the next line
 pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
-    const LexState = enum {
-        none,
-        whitespace,
-        underscore, //           => uncapitalized | capitalized
-        capitalized, //          => "_" | e | uncapitalized | all_caps
-        all_caps, //             => "_" | e
-        uncapitalized, //        => "_" | e
-        string,
-        escapedString,
-        byteString1,
-        byteString2,
-        char,
-        escapedChar,
-        integer,
-        integerDigit,
-        float,
-        floatDigit,
-        hex,
-        hexDigit,
-        octal,
-        octalDigit,
-        binary,
-        binaryDigit,
-        symbol,
-        multiline,
-        comment,
-    };
-
     var tokens = std.ArrayList(Token).init(allocator);
     var line: usize = 0;
     var col: usize = 1;
@@ -205,51 +213,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         // Split on $
                         var token = Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         if (fuzz_tokens) {
-                            if (std.mem.eql(u8, token.data, "indent")) {
-                                token.kind = .INDENT;
-                            } else if (std.mem.eql(u8, token.data, "dedent")) {
-                                token.kind = .DEDENT;
-                            } else if (std.mem.eql(u8, token.data, "newline")) {
-                                token.kind = .NEWLINE;
-                            } else if (std.mem.eql(u8, token.data, "eof")) {
-                                token.kind = .NEWLINE;
-                            } else if (std.mem.eql(u8, token.data, "int") or std.mem.eql(u8, token.data, "hex") or std.mem.eql(u8, token.data, "oct") or std.mem.eql(u8, token.data, "bin")) {
-                                const some_random_num = rnd.random().int(i32);
-                                token.kind = .DECIMAL_INTEGER;
-                                switch (@mod(some_random_num, 3)) {
-                                    0 => token.data = "0",
-                                    1 => token.data = "1",
-                                    2 => token.data = "2",
-                                    else => unreachable,
-                                }
-                            } else if (std.mem.eql(u8, token.data, "char")) {
-                                const some_random_num = rnd.random().int(i32);
-                                token.kind = .CHAR;
-                                switch (@mod(some_random_num, 3)) {
-                                    0 => token.data = "'0'",
-                                    1 => token.data = "'1'",
-                                    2 => token.data = "'2'",
-                                    else => unreachable,
-                                }
-                            } else if (std.mem.eql(u8, token.data, "ident")) {
-                                const some_random_num = rnd.random().int(i69);
-                                switch (@mod(some_random_num, 2)) {
-                                    0 => switch (@mod(@divTrunc(some_random_num, 2), 7)) {
-                                        0 => token.data = "Bool",
-                                        1 => token.data = "Byte",
-                                        2 => token.data = "Char",
-                                        3 => token.data = "Float",
-                                        4 => token.data = "Int",
-                                        5 => token.data = "String",
-                                        else => token.data = "Type",
-                                    },
-                                    else => switch (@mod(@divTrunc(some_random_num, 2), 3)) {
-                                        0 => token.data = "main",
-                                        1 => token.data = "a",
-                                        else => token.data = "b",
-                                    },
-                                }
-                            }
+                            fuzz_token(&token);
                         }
                         tokens.append(token) catch unreachable;
                         slice_start = ix;
@@ -381,21 +345,11 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                             slice_start = ix;
                             state = .none;
                         }
-                    } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'x') {
-                        // hexadecimal
+                    } else if (ix - slice_start > 0 and contents[slice_start] == '0' and is_base_identifier(next_char)) {
+                        // Base identifier
                         ix += 1;
                         col += 1;
-                        state = .hexDigit;
-                    } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'o') {
-                        // octal
-                        ix += 1;
-                        col += 1;
-                        state = .octalDigit;
-                    } else if (ix - slice_start > 0 and contents[slice_start] == '0' and next_char == 'b') {
-                        // binary
-                        ix += 1;
-                        col += 1;
-                        state = .binaryDigit;
+                        state = LexState.state_from_integer(next_char);
                     } else if (next_char == '_') {
                         ix += 1;
                         col += 1;
@@ -582,4 +536,59 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
     tokens.append(Token.init("EOF", .EOF, filename, "", line, col)) catch unreachable;
     return tokens;
+}
+
+fn fuzz_token(token: *Token) void {
+    if (std.mem.eql(u8, token.data, "indent")) {
+        token.kind = .INDENT;
+    } else if (std.mem.eql(u8, token.data, "dedent")) {
+        token.kind = .DEDENT;
+    } else if (std.mem.eql(u8, token.data, "newline")) {
+        token.kind = .NEWLINE;
+    } else if (std.mem.eql(u8, token.data, "eof")) {
+        token.kind = .NEWLINE;
+    } else if (std.mem.eql(u8, token.data, "int") or std.mem.eql(u8, token.data, "hex") or std.mem.eql(u8, token.data, "oct") or std.mem.eql(u8, token.data, "bin")) {
+        const some_random_num = rnd.random().int(i32);
+        token.kind = .DECIMAL_INTEGER;
+        switch (@mod(some_random_num, 3)) {
+            0 => token.data = "0",
+            1 => token.data = "1",
+            2 => token.data = "2",
+            else => unreachable,
+        }
+    } else if (std.mem.eql(u8, token.data, "char")) {
+        const some_random_num = rnd.random().int(i32);
+        token.kind = .CHAR;
+        switch (@mod(some_random_num, 3)) {
+            0 => token.data = "'0'",
+            1 => token.data = "'1'",
+            2 => token.data = "'2'",
+            else => unreachable,
+        }
+    } else if (std.mem.eql(u8, token.data, "ident")) {
+        const some_random_num = rnd.random().int(i69);
+        switch (@mod(some_random_num, 2)) {
+            0 => switch (@mod(@divTrunc(some_random_num, 2), 7)) {
+                0 => token.data = "Bool",
+                1 => token.data = "Byte",
+                2 => token.data = "Char",
+                3 => token.data = "Float",
+                4 => token.data = "Int",
+                5 => token.data = "String",
+                else => token.data = "Type",
+            },
+            else => switch (@mod(@divTrunc(some_random_num, 2), 3)) {
+                0 => token.data = "main",
+                1 => token.data = "a",
+                else => token.data = "b",
+            },
+        }
+    }
+}
+
+fn is_base_identifier(c: u8) bool {
+    return switch (c) {
+        'x', 'o', 'b' => true,
+        else => false,
+    };
 }

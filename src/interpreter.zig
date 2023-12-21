@@ -448,12 +448,13 @@ pub const Context = struct {
                     }
                 }
             },
-            .call => { // dest = src1(lval_list...)
+            .call => {
                 const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(self.get_lval(ir.src1.?), 8))));
 
                 // Save old stack pointer
                 const old_sp = self.stack_pointer;
                 self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+
                 //  push args in reverse order
                 var i: i64 = @as(i64, @intCast(ir.data.lval_list.items.len)) - 1;
                 while (i >= 0) : (i -= 1) {
@@ -465,16 +466,12 @@ pub const Context = struct {
                 }
                 self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
 
-                // push return-value address
-                self.push_int(8, self.get_lval(ir.dest.?));
-                // push old sp
-                self.push_int(8, old_sp);
-                // push bp
-                self.push_int(8, self.base_pointer);
-                // push return address
-                self.push_int(8, self.instruction_pointer);
-                // bp := sp
-                self.base_pointer = self.stack_pointer - 8;
+                // Setup next stackframe
+                self.push_int(8, self.get_lval(ir.dest.?)); //          push return-value address
+                self.push_int(8, old_sp); //                            push old sp
+                self.push_int(8, self.base_pointer); //                 push bp
+                self.push_int(8, self.instruction_pointer); //          push return address
+                self.base_pointer = self.stack_pointer - 8; //          bp := sp -1
 
                 // allocate space for locals
                 self.stack_pointer += symbol.cfg.?.locals_size.?;

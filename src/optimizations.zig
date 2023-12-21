@@ -285,7 +285,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
     var retval = false;
 
     switch (ir.kind) {
-        .copy => {
+        .copy => { // TODO: TOO LONG
             // Unit-copy elimination
             if (ir.src1 == null) {
                 log("unit-copy elimination");
@@ -512,7 +512,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             }
         },
 
-        .equal => {
+        .equal => { // TODO: TOO LONG
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("equal; known int,int value");
@@ -565,7 +565,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             }
         },
 
-        .not_equal => {
+        .not_equal => { // TODO: TOO LONG
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("not_equal; known int,int value");
@@ -765,7 +765,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             // NOTE: Cannot do `x <= x  ==> true` optimization, `NaN <= NaN` is false!
         },
 
-        .add_int => {
+        .add_int => { // TODO: TOO LONG
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("add_int; known int,int value");
@@ -833,7 +833,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             }
         },
 
-        .sub_int => {
+        .sub_int => { // TODO: TOO LONG
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("sub; known int,int value");
@@ -901,7 +901,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             }
         },
 
-        .mult_int => {
+        .mult_int => { // TODO: TOO LONG
             // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 ir.kind = .loadInt;
@@ -956,7 +956,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             }
         },
 
-        .mult_float => {
+        .mult_float => { // TODO: TOO LONG
             // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 ir.kind = .loadFloat;
@@ -1059,7 +1059,7 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
             }
         },
 
-        .mod => {
+        .mod => { // TODO: TOO LONG
             // Static check; divide by zero
             if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 errors.addError(Error{ .basic = .{
