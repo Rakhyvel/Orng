@@ -110,25 +110,26 @@ pub const Module = struct {
             std.debug.print("\n", .{});
         }
 
-        // Parse
+        // Parse, expand AST
         ast_.init_structures();
         var parser = Parser.create(&tokens, errors, allocator);
         const module_ast = try parser.parse();
+        try expand_.expand_from_list(module_ast, errors, allocator);
 
         // Module/Symbol-Tree construction
         var file_root = symbol_.Scope.init(prelude, name, allocator);
         const module = Module.init(file_root, allocator);
         file_root.module = module;
-        try expand_.expand_from_list(module_ast, errors, allocator);
         try symbol_tree_.symbolTableFromASTList(module_ast, file_root, errors, allocator);
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, errors, allocator);
 
-        // Typecheck
+        // Validate the module
         try validate_.validate_module(module, errors, allocator);
         if (errors.errors_list.items.len > 0) {
             return error.typeError;
         }
 
+        // Add each CFG's instructions to the module's instruction's list
         for (module.scope.symbols.keys()) |key| {
             var symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
             if (symbol.kind != ._fn) {

@@ -244,6 +244,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                 error.typeError,
                 error.interpreter_panic,
                 => {
+                    // try errors.printErrors();
                     try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                     return true;
                 },

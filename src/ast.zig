@@ -1583,8 +1583,8 @@ pub const AST = union(enum) {
     }
 
     /// Determines if a given integer type can represent a given integer value.
-    pub fn can_represent_integer(self: *AST, value: i128, allocator: std.mem.Allocator) bool {
-        var expanded = self.expand_type(allocator);
+    pub fn can_represent_integer(self: *AST, value: i128) bool {
+        var expanded = self.expand_identifier();
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
         }
@@ -1608,8 +1608,8 @@ pub const AST = union(enum) {
         return false;
     }
 
-    pub fn can_represent_float(self: *AST, allocator: std.mem.Allocator) bool {
-        return can_expanded_represent_float(self.expand_type(allocator));
+    pub fn can_represent_float(self: *AST) bool {
+        return can_expanded_represent_float(self.expand_identifier());
     }
 
     pub fn can_expanded_represent_float(self: *AST) bool {
@@ -1628,8 +1628,8 @@ pub const AST = union(enum) {
         return info.type_kind == .floating_point;
     }
 
-    pub fn is_eq_type(self: *AST, allocator: std.mem.Allocator) bool {
-        var expanded = self.expand_type(allocator);
+    pub fn is_eq_type(self: *AST) bool {
+        var expanded = self.expand_identifier();
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
         }
@@ -1637,7 +1637,7 @@ pub const AST = union(enum) {
             return true;
         } else if (expanded.* == .product) {
             for (expanded.product.terms.items) |term| {
-                if (!term.is_eq_type(allocator)) {
+                if (!term.is_eq_type()) {
                     return false;
                 }
             }
@@ -1651,8 +1651,8 @@ pub const AST = union(enum) {
     }
 
     /// Ord <: Eq
-    pub fn is_ord_type(self: *AST, allocator: std.mem.Allocator) bool {
-        var expanded = self.expand_type(allocator);
+    pub fn is_ord_type(self: *AST) bool {
+        var expanded = self.expand_identifier();
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
         }
@@ -1663,8 +1663,8 @@ pub const AST = union(enum) {
     }
 
     /// Num <: Ord
-    pub fn is_num_type(self: *AST, allocator: std.mem.Allocator) bool {
-        var expanded = self.expand_type(allocator);
+    pub fn is_num_type(self: *AST) bool {
+        var expanded = self.expand_identifier();
         while (expanded.* == .annotation) {
             expanded = expanded.annotation.type;
         }

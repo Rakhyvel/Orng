@@ -36,7 +36,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
     }
 }
 
-// TODO: typeError? No.
+// TODO: typeError should be called something else
 pub fn optimize(cfg: *CFG, errors: *errs.Errors, interned_strings: *std.ArrayList([]const u8), allocator: std.mem.Allocator) error{typeError}!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});

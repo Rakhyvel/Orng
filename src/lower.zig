@@ -147,7 +147,7 @@ pub fn lower_AST(
             }
             var temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
 
-            const ir = ir_.IR.create(if (temp.get_type().can_represent_float(allocator)) .negate_float else .negate_int, temp, expr, null, ast.getToken().span, allocator);
+            const ir = ir_.IR.create(if (temp.get_type().can_represent_float()) .negate_float else .negate_int, temp, expr, null, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },

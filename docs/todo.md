@@ -85,7 +85,6 @@
     - OutOfMemory is *NOT* a recoverable error
         - append for ArrayList
         - create for Allocators
-- [ ] Post-lower pass that searches for unused symbols/call results
 - [ ] Move `reprFromTokenKind` into TokenKind
 - [ ] Split Parser and parse
 - [ ] Create a `Labels` struct for lower, to simplify things
