@@ -240,17 +240,17 @@ pub const Errors = struct {
                 // Parser errors
                 .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
                     err.expectedBasicToken.expected,
-                    token.reprFromTokenKind(err.expectedBasicToken.got.kind) orelse err.expectedBasicToken.got.data,
+                    err.expectedBasicToken.got.kind.repr() orelse err.expectedBasicToken.got.data,
                 }),
                 .expected2Token => try out.print("expected `{s}`, got `{s}`\n", .{
-                    token.reprFromTokenKind(err.expected2Token.expected) orelse "identifier",
-                    token.reprFromTokenKind(err.expected2Token.got.kind) orelse err.expected2Token.got.data,
+                    err.expected2Token.expected.repr() orelse "identifier",
+                    err.expected2Token.got.kind.repr() orelse err.expected2Token.got.data,
                 }),
                 .missing_close => {
                     try out.print("expected closing `{s}` to match opening `{s}` here, got `{s}`\n", .{
-                        token.reprFromTokenKind(err.missing_close.expected) orelse "",
-                        token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data,
-                        token.reprFromTokenKind(err.missing_close.got.kind) orelse err.missing_close.got.data,
+                        err.missing_close.expected.repr() orelse "",
+                        err.missing_close.open.kind.repr() orelse err.missing_close.open.data,
+                        err.missing_close.got.kind.repr() orelse err.missing_close.got.data,
                     });
                 },
                 .comptime_known => {
@@ -397,7 +397,7 @@ pub const Errors = struct {
                     try (term.Attr{ .bold = true }).dump(out);
                     try print_note_prelude(err.missing_close.open.span);
                     try (term.Attr{ .bold = true }).dump(out);
-                    try out.print("opening `{s}` here\n", .{token.reprFromTokenKind(err.missing_close.open.kind) orelse err.missing_close.open.data});
+                    try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
                     try (term.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.missing_close.open.span);
                 },

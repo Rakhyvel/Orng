@@ -79,7 +79,7 @@ pub const CFG = struct {
             caller_node.children.append(retval) catch unreachable;
         }
 
-        const eval: ?*lval_.L_Value = try lower_.lower_AST(retval, symbol.init, null, null, null, null, errors, allocator);
+        const eval: ?*lval_.L_Value = try lower_.lower_AST(retval, symbol.init, .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null }, errors, allocator);
         if (retval.symbol.decl.?.* == .fnDecl) {
             // `_comptime` symbols don't have parameters anyway
             for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {

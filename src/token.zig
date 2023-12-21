@@ -126,6 +126,113 @@ pub const TokenKind = enum(u32) {
         }
         return false;
     }
+
+    pub fn repr(kind: TokenKind) ?[]const u8 {
+        return switch (kind) {
+            .BIN_INTEGER,
+            .CHAR,
+            .DECIMAL_INTEGER,
+            .HEX_INTEGER,
+            .IDENTIFIER,
+            .OCT_INTEGER,
+            .FLOAT,
+            .STRING,
+            .len,
+            => null,
+
+            .COMMENT => "<a comment>",
+            .NEWLINE => "<a newline>",
+            .INDENT => "<indentation>",
+            .DEDENT => "<dedentation>",
+
+            .AND => "and",
+            .BREAK => "break",
+            .MATCH => "match",
+            .CATCH => "catch",
+            .CASE => "case",
+            .COMPTIME => "comptime",
+            .CONST => "const",
+            .CONTINUE => "continue",
+            .DEFER => "defer",
+            .ELSE => "else",
+            .ERRDEFER => "errdefer",
+            .FALSE => "false",
+            .FN => "fn",
+            .FOR => "for",
+            .IF => "if",
+            .IN => "in",
+            .LET => "let",
+            .MUT => "mut",
+            .NOT => "not",
+            .OR => "or",
+            .ORELSE => "orelse",
+            .RETURN => "return",
+            .TRUE => "true",
+            .TRY => "try",
+            .UNREACHABLE => "unreachable",
+            .WHERE => "where",
+            .WHILE => "while",
+            .TYPEOF => "typeof",
+            .DEFAULT => "default",
+            .SIZEOF => "sizeof",
+
+            // Equals
+            .D_EQUALS => "==",
+            .EQUALS => "=",
+            .MINUS_EQUALS => "-=",
+            .NOT_EQUALS => "!=",
+            .PERCENT_EQUALS => "%=",
+            .PLUS_EQUALS => "+=",
+            .SLASH_EQUALS => "/=",
+            .STAR_EQUALS => "*=",
+            .D_STAR_EQUALS => "**=",
+
+            // Math
+            .LEFT_SKINNY_ARROW => "<-",
+            .BAR => "|",
+            .CARET => "^",
+            .D_BAR => "||",
+            .D_STAR => "**",
+            .RIGHT_FAT_ARROW => "=>",
+            .GTR => ">",
+            .GTE => ">=",
+            .LSR => "<",
+            .LTE => "<=",
+            .MINUS => "-",
+            .PERCENT => "%",
+            .PLUS => "+",
+            .RIGHT_SKINNY_ARROW => "->",
+            .SLASH => "/",
+            .BACKSLASH => "\\",
+            .STAR => "*",
+
+            // Punctuation
+            .AMPERSAND => "&",
+            .COLON => ":",
+            .COMMA => ",",
+            .D_PERIOD => "..",
+            .E_MARK => "!",
+            .PERIOD => ".",
+            .Q_MARK => "?",
+            .SEMICOLON => ";",
+            .MULTI_LINE => "<multi-line>",
+            .AT => "@",
+
+            // Open/Close
+            .L_BRACE => "{",
+            .L_PAREN => "(",
+            .L_SQUARE => "[",
+            .R_BRACE => "}",
+            .R_PAREN => ")",
+            .R_SQUARE => "]",
+
+            // Functional
+            .INVOKE => ".>",
+
+            // EOF
+            .EOF => "(EOF)",
+        };
+    }
 };
 
 pub const unaryOperators = [_]TokenKind{
@@ -214,7 +321,7 @@ pub const Token = struct {
     }
 
     pub fn repr(self: *Token) []const u8 {
-        return reprFromTokenKind(self.kind) orelse self.data;
+        return self.kind.repr() orelse self.data;
     }
 
     pub fn pprint(self: *Token) void {
@@ -228,7 +335,7 @@ pub fn kindFromString(data: []const u8) TokenKind {
 
     while (ix < num_ctors) : (ix += 1) {
         const kind: TokenKind = @enumFromInt(ix);
-        const reprKind: ?[]const u8 = reprFromTokenKind(kind);
+        const reprKind: ?[]const u8 = kind.repr();
         if (reprKind) |repr| {
             if (strEquals(data, repr)) {
                 // Found the kind!
@@ -237,113 +344,6 @@ pub fn kindFromString(data: []const u8) TokenKind {
         }
     }
     return TokenKind.IDENTIFIER;
-}
-
-pub fn reprFromTokenKind(kind: TokenKind) ?[]const u8 {
-    return switch (kind) {
-        .BIN_INTEGER,
-        .CHAR,
-        .DECIMAL_INTEGER,
-        .HEX_INTEGER,
-        .IDENTIFIER,
-        .OCT_INTEGER,
-        .FLOAT,
-        .STRING,
-        .len,
-        => null,
-
-        .COMMENT => "<a comment>",
-        .NEWLINE => "<a newline>",
-        .INDENT => "<indentation>",
-        .DEDENT => "<dedentation>",
-
-        .AND => "and",
-        .BREAK => "break",
-        .MATCH => "match",
-        .CATCH => "catch",
-        .CASE => "case",
-        .COMPTIME => "comptime",
-        .CONST => "const",
-        .CONTINUE => "continue",
-        .DEFER => "defer",
-        .ELSE => "else",
-        .ERRDEFER => "errdefer",
-        .FALSE => "false",
-        .FN => "fn",
-        .FOR => "for",
-        .IF => "if",
-        .IN => "in",
-        .LET => "let",
-        .MUT => "mut",
-        .NOT => "not",
-        .OR => "or",
-        .ORELSE => "orelse",
-        .RETURN => "return",
-        .TRUE => "true",
-        .TRY => "try",
-        .UNREACHABLE => "unreachable",
-        .WHERE => "where",
-        .WHILE => "while",
-        .TYPEOF => "typeof",
-        .DEFAULT => "default",
-        .SIZEOF => "sizeof",
-
-        // Equals
-        .D_EQUALS => "==",
-        .EQUALS => "=",
-        .MINUS_EQUALS => "-=",
-        .NOT_EQUALS => "!=",
-        .PERCENT_EQUALS => "%=",
-        .PLUS_EQUALS => "+=",
-        .SLASH_EQUALS => "/=",
-        .STAR_EQUALS => "*=",
-        .D_STAR_EQUALS => "**=",
-
-        // Math
-        .LEFT_SKINNY_ARROW => "<-",
-        .BAR => "|",
-        .CARET => "^",
-        .D_BAR => "||",
-        .D_STAR => "**",
-        .RIGHT_FAT_ARROW => "=>",
-        .GTR => ">",
-        .GTE => ">=",
-        .LSR => "<",
-        .LTE => "<=",
-        .MINUS => "-",
-        .PERCENT => "%",
-        .PLUS => "+",
-        .RIGHT_SKINNY_ARROW => "->",
-        .SLASH => "/",
-        .BACKSLASH => "\\",
-        .STAR => "*",
-
-        // Punctuation
-        .AMPERSAND => "&",
-        .COLON => ":",
-        .COMMA => ",",
-        .D_PERIOD => "..",
-        .E_MARK => "!",
-        .PERIOD => ".",
-        .Q_MARK => "?",
-        .SEMICOLON => ";",
-        .MULTI_LINE => "<multi-line>",
-        .AT => "@",
-
-        // Open/Close
-        .L_BRACE => "{",
-        .L_PAREN => "(",
-        .L_SQUARE => "[",
-        .R_BRACE => "}",
-        .R_PAREN => ")",
-        .R_SQUARE => "]",
-
-        // Functional
-        .INVOKE => ".>",
-
-        // EOF
-        .EOF => "(EOF)",
-    };
 }
 
 fn strEquals(a: []const u8, b: []const u8) bool {

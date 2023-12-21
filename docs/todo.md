@@ -82,9 +82,8 @@
     - Remove anything that now doesn't need to pass scope
     - typeof, expand_type, typesMatch
 - [x] Simplify validate
-- [ ] Move `reprFromTokenKind` into TokenKind
-- [ ] Split Parser and parse
-- [ ] Create a `Labels` struct for lower, to simplify things
+- [x] Move `reprFromTokenKind` into TokenKind
+- [x] Create a `Labels` struct for lower, to simplify things
 - [ ] If a `create()` function is inerrant, call it `init` instead
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
     - [ ] Perhaps create an `arrayOf` AST kind
@@ -104,6 +103,8 @@
 - [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
     - rewrite `ast` to be like IR
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
+- [ ] Go through nits
+- [ ] Go through TODO's in source
 - [ ] Figure out how to do lints before GCC does
 - [ ] Go through MISRA when writing reqs
 
