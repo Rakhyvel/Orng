@@ -603,4 +603,34 @@ pub const Data = union(enum) {
             return false; // tags are mismatched
         }
     }
+
+    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs.Errors) !Data {
+        return Data{
+            .int = if (std.math.add(i128, self.int, other.int)) |res| res else |_| {
+                // TODO: What were the arguments?
+                errors.addError(errs.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
+                return error.typeError; // TODO: Shouldn't be `typeError`...
+            },
+        };
+    }
+
+    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs.Errors) !Data {
+        return Data{
+            .int = if (std.math.sub(i128, self.int, other.int)) |res| res else |_| {
+                // TODO: What were the arguments?
+                errors.addError(errs.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
+                return error.typeError; // TODO: Shouldn't be `typeError`...
+            },
+        };
+    }
+
+    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs.Errors) !Data {
+        return Data{
+            .int = if (std.math.mul(i128, self.int, other.int)) |res| res else |_| {
+                // TODO: What were the arguments?
+                errors.addError(errs.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
+                return error.typeError; // TODO: Shouldn't be `typeError`...
+            },
+        };
+    }
 };

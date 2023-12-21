@@ -285,829 +285,349 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
     var retval = false;
 
     switch (ir.kind) {
-        .copy => { // TODO: TOO LONG
-            // Unit-copy elimination
+        .copy => {
             if (ir.src1 == null) {
                 log("unit-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
-            }
-            // Self-copy elimination
-            else if (ir.dest.?.* == .symbver and ir.src1.?.* == .symbver and ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and src1_def != null and ir.dest.?.symbver.version == ir.src1.?.symbver.version) {
+            } else if (ir.dest.?.* == .symbver and ir.src1.?.* == .symbver and ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and src1_def != null and ir.dest.?.symbver.version == ir.src1.?.symbver.version) {
                 log("self-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
                 retval = true;
+            } else {
+                log("copy-propagation");
+                retval = copy_prop(ir, src1_def, .loadInt) or // TODO: Check if data fits int type bounds!
+                    copy_prop(ir, src1_def, .loadFloat) or
+                    copy_prop(ir, src1_def, .loadString) or
+                    (ir.src1.?.* == .symbver and ir.src1.?.symbver.uses == 1 and copy_prop(ir, src1_def, .loadStruct)) or
+                    copy_prop(ir, src1_def, .loadUnion) or
+                    copy_prop(ir, src1_def, .loadSymbol) or
+                    copy_prop(ir, src1_def, .loadAST) or
+                    (copy_prop(ir, src1_def, .copy) and ir.src1 != src1_def.?.src1.?) or
+                    copy_prop(ir, src1_def, .addrOf) or
+                    copy_prop(ir, src1_def, .add_int) or copy_prop(ir, src1_def, .add_float) or
+                    copy_prop(ir, src1_def, .sub_int) or copy_prop(ir, src1_def, .sub_float) or
+                    copy_prop(ir, src1_def, .mult_int) or copy_prop(ir, src1_def, .mult_float) or
+                    copy_prop(ir, src1_def, .div_int) or copy_prop(ir, src1_def, .div_float) or
+                    copy_prop(ir, src1_def, .mod);
+                // DO NOT IMPLEMENT .call => propagation
             }
-            // Integer constant propagation
-            else if (src1_def != null and src1_def.?.kind == .loadInt) {
-                log("integer constant propagation");
-                ir.kind = .loadInt;
-                ir.data = src1_def.?.data; // TODO: Check with the type's bounds and see if data fits
-                ir.span = src1_def.?.span;
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Float constant propagation
-            else if (src1_def != null and src1_def.?.kind == .loadFloat) {
-                log("float constant propagation");
-                ir.kind = .loadFloat;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // String constant propagation
-            else if (src1_def != null and src1_def.?.kind == .loadString) {
-                log("string constant propagation");
-                ir.kind = .loadString;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Struct constant propagation
-            else if (src1_def != null and ir.src1.?.* == .symbver and src1_def.?.kind == .loadStruct and ir.src1.?.symbver.uses == 1) {
-                log("struct constant propagation");
-                ir.kind = .loadStruct;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Union constant propagation
-            else if (src1_def != null and src1_def.?.kind == .loadUnion) {
-                log("union constant propagation");
-                ir.kind = .loadUnion;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = src1_def.?.src1;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Load symbol propagation
-            else if (src1_def != null and src1_def.?.kind == .loadSymbol) {
-                log("symbol constant propagation");
-                ir.kind = .loadSymbol;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = src1_def.?.src1;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Load symbol propagation
-            else if (src1_def != null and src1_def.?.kind == .loadAST) {
-                log("symbol constant propagation");
-                ir.kind = .loadAST;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = src1_def.?.src1;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Copy propagation
-            else if (src1_def != null and src1_def.?.kind == .copy and ir.src1 != src1_def.?.src1.?) {
-                log("copy propagation");
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Addrof propagation
-            else if (src1_def != null and src1_def.?.kind == .addrOf) {
-                log("addrof propagation");
-                ir.kind = .addrOf;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src1 = src1_def.?.src1;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Add propagation
-            else if (src1_def != null and src1_def.?.kind == .add_int) {
-                log("add propagation");
-                ir.kind = .add_int;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Add propagation
-            else if (src1_def != null and src1_def.?.kind == .add_float) {
-                log("add propagation");
-                ir.kind = .add_float;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Sub propagation
-            else if (src1_def != null and src1_def.?.kind == .sub_int) {
-                log("sub propagation");
-                ir.kind = .sub_int;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Sub propagation
-            else if (src1_def != null and src1_def.?.kind == .sub_float) {
-                log("sub propagation");
-                ir.kind = .sub_float;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Mult propagation
-            else if (src1_def != null and src1_def.?.kind == .mult_int) {
-                log("mult propagation");
-                ir.kind = .mult_int;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Mult propagation
-            else if (src1_def != null and src1_def.?.kind == .mult_float) {
-                log("mult propagation");
-                ir.kind = .mult_float;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Div propagation
-            else if (src1_def != null and src1_def.?.kind == .div_int) {
-                log("div propagation");
-                ir.kind = .div_int;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Div propagation
-            else if (src1_def != null and src1_def.?.kind == .div_float) {
-                log("div propagation");
-                ir.kind = .div_float;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // Mod propagation
-            else if (src1_def != null and src1_def.?.kind == .mod) {
-                log("mod propagation");
-                ir.kind = .mod;
-                ir.data = src1_def.?.data;
-                ir.span = src1_def.?.span;
-                ir.src2 = src1_def.?.src2;
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-            // DO NOT IMPLEMENT .call => propagation
         },
 
         .not => {
-            // Known int value
             if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("not; known int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int == 0) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int == 0) 1 else 0 });
                 retval = true;
             }
         },
 
         .negate_int => {
-            // Known int value
             if (src1_def != null and src1_def.?.kind == .loadInt) {
                 log("negate_int; known value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = -src1_def.?.data.int };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = -src1_def.?.data.int });
                 retval = true;
             }
         },
 
         .negate_float => {
-            // Known float value
             if (src1_def != null and src1_def.?.kind == .loadFloat) {
                 log("negate_float; known value");
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = -src1_def.?.data.float };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadFloat, .{ .float = -src1_def.?.data.float });
                 retval = true;
             }
         },
 
-        .equal => { // TODO: TOO LONG
-            // Known int, int value
+        .equal => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("equal; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 });
                 retval = true;
-            }
-            // Known float, float value
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
+            } else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("equal; known float,float value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 });
                 retval = true;
-            }
-            // `0 == x` => `!x`
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
-                log("equal; lhs 0");
-                ir.kind = .not;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
-                retval = true;
-            }
-            // `x == 0` => `!x`
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
-                log("equal; rhs 0");
-                ir.kind = .not;
-                ir.data = ir_.Data.none;
-                // ir.src1 is already ir.src1
-                ir.src2 = null;
-                retval = true;
-            }
-            // `x == x => true (where x is NOT floating-point type)`
-            // NOTE: Cannot do `x == x  ==> true` optimization for floats, `NaN == NaN` is false!
-            else if (ir.src1.?.* == .symbver and
+            } else if (ir.src1.?.* == .symbver and
                 ir.src2.?.* == .symbver and
                 ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol and
                 !ir.src1.?.symbver.symbol.expanded_type.?.can_expanded_represent_float())
             {
+                // `x == x => true (where x is NOT floating-point type)`
+                // NOTE: Cannot do `x == x  ==> true` optimization for floats, `NaN == NaN` is false!
                 log("equal; self inequality");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 1 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 1 });
                 retval = true;
             }
         },
 
-        .not_equal => { // TODO: TOO LONG
-            // Known int, int value
+        .not_equal => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("not_equal; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 });
                 retval = true;
-            }
-            // Known float, float value
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
+            } else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("not_equal; known float,float value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 });
                 retval = true;
-            }
-            // `0 != x` => `x`
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
-                log("not_equal; lhs 0");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
-                retval = true;
-            }
-            // `x != 0` => `x`
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
-                log("not_equal; rhs 0");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                // ir.src1 is already ir.src1
-                ir.src2 = null;
-                retval = true;
-            }
-            // `x != x` => `false`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x != x` => `false`
                 log("not_equal; self inequality");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
         .greater_int => {
-            // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("greater_int; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 });
                 retval = true;
-            }
-            // `x > x` => `false`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x > x` => `false`
                 log("greater_int; self compare");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
         .greater_float => {
-            // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("greater_float; known float,float value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 });
                 retval = true;
-            }
-            // `x > x` => `false`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x > x` => `false`
                 log("greater_float; self compare");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
         .lesser_int => {
-            // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("lesser_int; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 });
                 retval = true;
-            }
-            // `x < x` => `false`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x < x` => `false`
                 log("lesser_int; self compare");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
         .lesser_float => {
-            // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("lesser_float; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 });
                 retval = true;
-            }
-            // `x < x` => `false`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x < x` => `false`
                 log("lesser_float; self compare");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
         .greater_equal_int => {
-            // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("greater_equal_int; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 });
                 retval = true;
-            }
-            // `x >= x` => `true`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x >= x` => `true`
                 log("greater_equal_int; self compare");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 1 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 1 });
                 retval = true;
             }
         },
 
         .greater_equal_float => {
-            // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("greater_equal_float; known float,float value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 });
                 retval = true;
             }
             // NOTE: Cannot do `x >= x  ==> true` optimization for floats, `NaN >= NaN` is false!
         },
 
         .lesser_equal_int => {
-            // Known int, int value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("lesser_equal_int; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 });
                 retval = true;
-            }
-            // `x <= x` => `true`
-            else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+            } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
+                // `x <= x` => `true`
                 log("lesser_equal_int; self compare");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 1 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 1 });
                 retval = true;
             }
         },
 
         .lesser_equal_float => {
-            // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("lesser_equal_float; known float,float value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 });
                 retval = true;
             }
             // NOTE: Cannot do `x <= x  ==> true` optimization, `NaN <= NaN` is false!
         },
 
-        .add_int => { // TODO: TOO LONG
-            // Known int, int value
+        .add_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("add_int; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{
-                    .int = if (std.math.add(i128, src1_def.?.data.int, src2_def.?.data.int)) |res| res else |_| {
-                        errors.addError(Error{ .basic = .{
-                            .span = ir.span,
-                            .msg = "addition integer overflow",
-                        } });
-                        return error.typeError;
-                    },
-                };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, try src1_def.?.data.add_int_overflow(src2_def.?.data, ir.span, errors));
                 retval = true;
-            }
-            // Add 0 lhs
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
+            } else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("add_int; add 0 lhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src2.?, .copy);
                 retval = true;
-            }
-            // Add 0 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
+            } else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("add_int; add 0 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
             }
         },
 
         .add_float => {
-            // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("add_float; known float,float value");
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = src1_def.?.data.float + src2_def.?.data.float };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadFloat, .{ .float = src1_def.?.data.float + src2_def.?.data.float });
                 retval = true;
-            }
-            // Add 0 lhs
-            else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
-                log("add_float; add 0 lhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
+            } else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
+                log("add_float; add 0.0 lhs");
+                convert_to_unop(ir, ir.src2.?, .copy);
                 retval = true;
-            }
-            // Add 0 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
-                log("add_float; add 0 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+            } else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
+                log("add_float; add 0.0 rhs");
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
             }
         },
 
-        .sub_int => { // TODO: TOO LONG
-            // Known int, int value
+        .sub_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
                 log("sub; known int,int value");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{
-                    .int = if (std.math.sub(i128, src1_def.?.data.int, src2_def.?.data.int)) |res| res else |_| {
-                        errors.addError(Error{ .basic = .{
-                            .span = ir.span,
-                            .msg = "subtraction integer overflow",
-                        } });
-                        return error.typeError;
-                    },
-                };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, try src1_def.?.data.sub_int_overflow(src2_def.?.data, ir.span, errors));
                 retval = true;
-            }
-            // Sub 0 lhs
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
+            } else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
                 log("sub; sub 0 lhs");
-                ir.kind = .negate_int;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src2.?, .negate_int);
                 retval = true;
-            }
-            // Sub 0 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
+            } else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
                 log("sub; sub 0 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
             }
         },
 
         .sub_float => {
-            // Known float, float value
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
                 log("sub; known float,float value");
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = src1_def.?.data.float - src2_def.?.data.float };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadFloat, .{ .float = src1_def.?.data.float - src2_def.?.data.float });
                 retval = true;
-            }
-            // Sub 0 lhs
-            else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
-                log("sub; sub 0 lhs");
-                ir.kind = .negate_float;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
+            } else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
+                log("sub; sub 0.0 lhs");
+                convert_to_unop(ir, ir.src2.?, .negate_float);
                 retval = true;
-            }
-            // Sub 0 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
-                log("sub; sub 0 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+            } else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
+                log("sub; sub 0.0 rhs");
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
             }
         },
 
-        .mult_int => { // TODO: TOO LONG
-            // Known int, int value
+        .mult_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{
-                    .int = if (std.math.mul(i128, @intCast(src1_def.?.data.int), @intCast(src2_def.?.data.int))) |res| res else |_| {
-                        errors.addError(Error{ .basic = .{
-                            .span = ir.span,
-                            .msg = "multiplication integer overflow",
-                        } });
-                        return error.typeError;
-                    },
-                };
-                ir.src1 = null;
-                ir.src2 = null;
+                log("mult_int; known int,int value");
+                convert_to_load(ir, .loadInt, try src1_def.?.data.mult_int_overflow(src2_def.?.data, ir.span, errors));
                 retval = true;
-            }
-            // Mult 1 lhs int
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 1) {
+            } else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 1) {
                 log("mult; mult 1 lhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src2.?, .copy);
                 retval = true;
-            }
-            // Mult 1 rhs int
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
+            } else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
                 log("mult; mult 1 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
-            }
-            // Mult 0 lhs int
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
+            } else if ((src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) or
+                (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0))
+            {
                 log("mult; mult 0 lhs int");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Mult 0 rhs int
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
-                log("mult; mult 0 rhs int");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = null;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
-        .mult_float => { // TODO: TOO LONG
-            // Known float, float value
+        .mult_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = src1_def.?.data.float * src2_def.?.data.float };
-                ir.src1 = null;
-                ir.src2 = null;
+                log("mult_float; known float,float value");
+                convert_to_load(ir, .loadFloat, .{ .float = src1_def.?.data.float * src2_def.?.data.float });
                 retval = true;
-            }
-            // Mult 1 lhs int
-            else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 1.0) {
-                log("mult; mult 1 lhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src2;
-                ir.src2 = null;
+            } else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 1.0) {
+                log("mult; mult 1.0 lhs");
+                convert_to_unop(ir, ir.src2.?, .copy);
                 retval = true;
-            }
-            // Mult 1 rhs int
-            else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0) {
-                log("mult; mult 1 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+            } else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0) {
+                log("mult; mult 1.0 rhs");
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
-            }
-            // Mult 0 lhs float
-            else if (src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) {
-                log("mult; mult 0 lhs float");
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = 0.0 };
-                ir.src1 = null;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Mult 0 rhs float
-            else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0) {
-                log("mult; mult 0 rhs float");
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = 0.0 };
-                ir.src1 = null;
-                ir.src2 = null;
+            } else if ((src1_def != null and src1_def.?.kind == .loadFloat and src1_def.?.data.float == 0.0) or
+                (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0.0))
+            {
+                log("mult; mult 0.0 lhs float");
+                convert_to_load(ir, .loadFloat, .{ .float = 0.0 });
                 retval = true;
             }
         },
 
         .div_int => {
-            // Static check; divide by 0
-            if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
-                errors.addError(Error{ .basic = .{
-                    .span = src2_def.?.span,
-                    .msg = "divide by 0",
-                } });
-                return error.typeError;
-            }
-            // Known int, int value
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) };
-                ir.src1 = null;
-                ir.src2 = null;
+            try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
+                log("div_int; known int value");
+                convert_to_load(ir, .loadInt, .{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) });
                 retval = true;
-            }
-            // Div 1 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
+            } else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
                 log("div; div 1 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
             }
         },
 
         .div_float => {
-            // Static check; divide by 0.0
-            if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 0) {
-                errors.addError(Error{ .basic = .{
-                    .span = src2_def.?.span,
-                    .msg = "divide by 0",
-                } });
-                return error.typeError;
-            }
-            // Known float, float value
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
-                ir.kind = .loadFloat;
-                ir.data = ir_.Data{ .float = src1_def.?.data.float / src2_def.?.data.float };
-                ir.src1 = null;
-                ir.src2 = null;
+            try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadFloat and src2_def.?.kind == .loadFloat) {
+                log("div_float; known float value");
+                convert_to_load(ir, .loadFloat, .{ .float = src1_def.?.data.float / src2_def.?.data.float });
                 retval = true;
-            }
-            // Div 1 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0) {
-                log("div; div 1 rhs");
-                ir.kind = .copy;
-                ir.data = ir_.Data.none;
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+            } else if (src2_def != null and src2_def.?.kind == .loadFloat and src2_def.?.data.float == 1.0) {
+                log("div; div 1.0 rhs");
+                convert_to_unop(ir, ir.src1.?, .copy);
                 retval = true;
             }
         },
 
-        .mod => { // TODO: TOO LONG
-            // Static check; divide by zero
-            if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 0) {
-                errors.addError(Error{ .basic = .{
-                    .span = src2_def.?.span,
-                    .msg = "divide by 0",
-                } });
-                return error.typeError;
-            }
-            // Known int, int value
-            else if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) };
-                ir.src1 = null;
-                ir.src2 = null;
+        .mod => {
+            try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
+            if (src1_def != null and src2_def != null and src1_def.?.kind == .loadInt and src2_def.?.kind == .loadInt) {
+                log("mod; known int value");
+                convert_to_load(ir, .loadInt, .{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) });
                 retval = true;
-            }
-            // Mod 0 lhs
-            else if (src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) {
+            } else if ((src1_def != null and src1_def.?.kind == .loadInt and src1_def.?.data.int == 0) or
+                (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1))
+            {
                 log("mod; mod 0 lhs");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = ir.src2;
-                ir.src2 = null;
-                retval = true;
-            }
-            // Mod 1 rhs
-            else if (src2_def != null and src2_def.?.kind == .loadInt and src2_def.?.data.int == 1) {
-                log("mod; mod 1 rhs");
-                ir.kind = .loadInt;
-                ir.data = ir_.Data{ .int = 0 };
-                ir.src1 = ir.src1;
-                ir.src2 = null;
+                convert_to_load(ir, .loadInt, .{ .int = 0 });
                 retval = true;
             }
         },
 
         .get_tag => {
-            // Known loadUnion value
             if (src1_def != null and src1_def.?.kind == .loadUnion) {
-                ir.kind = .loadInt;
-                ir.data = src1_def.?.data; // Copy the src's tag (in data.int)
-                ir.src1 = null;
-                ir.src2 = null;
+                log("get_tag; known tag");
+                convert_to_load(ir, .loadInt, .{ .int = src1_def.?.data.int }); // Copy the src's tag (in data.int)
                 retval = true;
             }
         },
-
-        .call => {},
 
         else => {},
     }
@@ -1137,6 +657,51 @@ fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !b
     }
 
     return retval;
+}
+
+fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind) bool {
+    if (src1_def != null and src1_def.?.kind == kind) {
+        ir.kind = kind;
+        ir.data = src1_def.?.data;
+        ir.span = src1_def.?.span;
+        ir.src2 = src1_def.?.src2;
+        ir.src1 = src1_def.?.src1;
+        return true;
+    } else {
+        return false;
+    }
+}
+
+fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data) void {
+    ir.kind = kind;
+    ir.data = data;
+    ir.src1 = null;
+    ir.src2 = null;
+}
+
+fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
+    ir.kind = kind;
+    ir.data = .none;
+    ir.src1 = src1;
+    ir.src2 = null;
+}
+
+fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs.Errors) !void {
+    if (ir != null) {
+        if (ir.?.kind == .loadInt and ir.?.data.int == 0) {
+            errors.addError(Error{ .basic = .{
+                .span = ir.?.span,
+                .msg = "divide by 0",
+            } });
+            return error.typeError; // TODO: Type Error???
+        } else if (ir.?.kind == .loadFloat and ir.?.data.float == 0.0) {
+            errors.addError(Error{ .basic = .{
+                .span = ir.?.span,
+                .msg = "divide by 0.0",
+            } });
+            return error.typeError; // TODO: Type Error???
+        }
+    }
 }
 
 fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
