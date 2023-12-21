@@ -865,11 +865,11 @@ pub const AST = union(enum) {
             mut,
             allocator,
         ).assert_valid();
-        const annot_type = AST.createAnnotation(of.getToken(), AST.createIdentifier(tokens_.Token.create("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator).assert_valid();
+        const annot_type = AST.createAnnotation(of.getToken(), AST.createIdentifier(tokens_.Token.init("data", null, "", "", 0, 0), allocator), data_type, null, null, allocator).assert_valid();
         term_types.append(annot_type) catch unreachable;
         term_types.append(AST.createAnnotation(
             of.getToken(),
-            AST.createIdentifier(tokens_.Token.create("length", null, "", "", 0, 0), allocator),
+            AST.createIdentifier(tokens_.Token.init("length", null, "", "", 0, 0), allocator),
             primitives_.int_type,
             null,
             null,
@@ -911,17 +911,17 @@ pub const AST = union(enum) {
 
         const none_type = AST.createAnnotation(
             of_type.getToken(),
-            AST.createIdentifier(tokens_.Token.create_simple("none"), allocator),
+            AST.createIdentifier(tokens_.Token.init_simple("none"), allocator),
             primitives_.unit_type,
             null,
-            AST.createUnitValue(tokens_.Token.create_simple("none init"), allocator),
+            AST.createUnitValue(tokens_.Token.init_simple("none init"), allocator),
             allocator,
         );
         term_types.append(none_type) catch unreachable;
 
         const some_type = AST.createAnnotation(
             of_type.getToken(),
-            AST.createIdentifier(tokens_.Token.create("some", null, "", "", 0, 0), allocator),
+            AST.createIdentifier(tokens_.Token.init("some", null, "", "", 0, 0), allocator),
             of_type,
             null,
             null,
@@ -935,7 +935,7 @@ pub const AST = union(enum) {
     }
 
     pub fn create_some_value(opt_type: *AST, value: *AST, allocator: std.mem.Allocator) *AST {
-        const member = createInferredMember(value.getToken(), AST.createIdentifier(tokens_.Token.create_simple("some"), allocator), allocator);
+        const member = createInferredMember(value.getToken(), AST.createIdentifier(tokens_.Token.init_simple("some"), allocator), allocator);
         member.inferredMember.base = opt_type;
         member.inferredMember.init = value;
         member.inferredMember.pos = opt_type.sum.get_pos("some");
@@ -943,14 +943,14 @@ pub const AST = union(enum) {
     }
 
     pub fn create_none_value(opt_type: *AST, allocator: std.mem.Allocator) *AST {
-        const member = createInferredMember(tokens_.Token.create_simple("none"), AST.createIdentifier(tokens_.Token.create_simple("none"), allocator), allocator);
+        const member = createInferredMember(tokens_.Token.init_simple("none"), AST.createIdentifier(tokens_.Token.init_simple("none"), allocator), allocator);
         member.inferredMember.base = opt_type;
         member.inferredMember.pos = opt_type.sum.get_pos("none");
         return member.assert_valid();
     }
 
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) *AST {
-        const ok_annot = AST.createAnnotation(ok_type.getToken(), AST.createIdentifier(tokens_.Token.create("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
+        const ok_annot = AST.createAnnotation(ok_type.getToken(), AST.createIdentifier(tokens_.Token.init("ok", null, "", "", 0, 0), allocator), ok_type, null, null, allocator);
         var ok_sum_terms = std.ArrayList(*AST).init(allocator);
         ok_sum_terms.append(ok_annot) catch unreachable;
         var ok_sum = AST.createSum(ok_type.getToken(), ok_sum_terms, allocator);
@@ -1554,7 +1554,7 @@ pub const AST = union(enum) {
                 return AST.createUnitValue(_type.getToken(), allocator);
             },
             .sum => {
-                var retval = AST.createInferredMember(_type.getToken(), AST.createIdentifier(tokens_.Token.create("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+                var retval = AST.createInferredMember(_type.getToken(), AST.createIdentifier(tokens_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
                 retval.inferredMember.pos = 0;
                 retval.inferredMember.base = _type;
                 const proper_term: *AST = _type.sum.terms.items[0];

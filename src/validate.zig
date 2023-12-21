@@ -687,7 +687,7 @@ fn validate_AST_internal(
             } else if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice and !lhs_expanded_type.product.is_homotypical()) {
                 if (ast.index.rhs.* == .int) {
                     // rhs is compile-time known, change to select
-                    var select = (AST.createSelect(ast.getToken(), ast.index.lhs, AST.createIdentifier(Token.create("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator), allocator)).assert_valid();
+                    var select = (AST.createSelect(ast.getToken(), ast.index.lhs, AST.createIdentifier(Token.init("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator), allocator)).assert_valid();
                     select.select.pos = @as(usize, @intCast(ast.index.rhs.int.data));
                     return select;
                 } else {
@@ -1070,7 +1070,7 @@ fn validate_AST_internal(
             if (ast.subSlice.upper) |upper| {
                 ast.subSlice.upper = validateAST(upper, primitives.int_type, errors, allocator);
             } else {
-                const length = (AST.createIdentifier(Token.create("length", null, "", "", 0, 0), allocator)).assert_valid();
+                const length = (AST.createIdentifier(Token.init("length", null, "", "", 0, 0), allocator)).assert_valid();
                 const index = AST.createSelect(
                     ast.getToken(),
                     ast.subSlice.super,
@@ -1207,7 +1207,7 @@ fn validate_AST_internal(
                     statements.append(ast._if.let.?) catch unreachable;
                 }
                 statements.append(AST.create_none_value(opt_type, allocator)) catch unreachable;
-                const ret_block = AST.createBlock(Token.create_simple("{"), statements, null, allocator);
+                const ret_block = AST.createBlock(Token.init_simple("{"), statements, null, allocator);
                 ret_block.block.scope = ast._if.scope.?.parent.?;
                 return ret_block;
             } else {

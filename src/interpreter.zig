@@ -529,27 +529,27 @@ pub const Context = struct {
                     .boolean => {
                         const val = self.load_int(address, info.size);
                         if (val == 0) {
-                            return ast_.AST.createFalse(token_.Token.create_simple("false"), allocator).assert_valid();
+                            return ast_.AST.createFalse(token_.Token.init_simple("false"), allocator).assert_valid();
                         } else {
-                            return ast_.AST.createTrue(token_.Token.create_simple("true"), allocator).assert_valid();
+                            return ast_.AST.createTrue(token_.Token.init_simple("true"), allocator).assert_valid();
                         }
                     },
-                    .signed_integer => return ast_.AST.createInt(token_.Token.create_simple("signed int"), self.load_int(address, info.size), allocator)
+                    .signed_integer => return ast_.AST.createInt(token_.Token.init_simple("signed int"), self.load_int(address, info.size), allocator)
                         .set_representation(_type)
                         .assert_valid(),
-                    .unsigned_integer => return ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, info.size), allocator)
+                    .unsigned_integer => return ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, info.size), allocator)
                         .set_representation(_type)
                         .assert_valid(),
-                    .floating_point => return ast_.AST.createFloat(token_.Token.create_simple("float"), self.load_float(address, info.size), allocator)
+                    .floating_point => return ast_.AST.createFloat(token_.Token.init_simple("float"), self.load_float(address, info.size), allocator)
                         .set_representation(_type)
                         .assert_valid(),
                 }
             },
-            .addrOf => return ast_.AST.createInt(token_.Token.create_simple("unsigned int"), self.load_int(address, 8), allocator).assert_valid(),
+            .addrOf => return ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, 8), allocator).assert_valid(),
             .function => {
                 const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
                 const ast = ast_.AST.createSymbol(
-                    token_.Token.create_simple("function"),
+                    token_.Token.init_simple("function"),
                     ._fn,
                     symbol.name,
                     allocator,
@@ -562,7 +562,7 @@ pub const Context = struct {
                 var retval = ast_.AST.createInferredMember(
                     _type.getToken(),
                     ast_.AST.createIdentifier(
-                        token_.Token.create("extracted from interpreter", .IDENTIFIER, "", "", 0, 0),
+                        token_.Token.init("extracted from interpreter", .IDENTIFIER, "", "", 0, 0),
                         allocator,
                     ).assert_valid(),
                     allocator,

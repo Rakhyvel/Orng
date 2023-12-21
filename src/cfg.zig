@@ -66,7 +66,7 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = symbol_.Symbol.create(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
+        retval.return_symbol = symbol_.Symbol.init(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
         retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
@@ -88,9 +88,9 @@ pub const CFG = struct {
         }
         const return_version = lval_.L_Value.create_unversioned_symbver(retval.return_symbol, allocator);
         if (eval != null) {
-            retval.appendInstruction(ir_.IR.create_simple_copy(return_version, eval.?, symbol.span, allocator));
+            retval.appendInstruction(ir_.IR.init_simple_copy(return_version, eval.?, symbol.span, allocator));
         }
-        retval.appendInstruction(ir_.IR.createJump(null, symbol.span, allocator));
+        retval.appendInstruction(ir_.IR.initJump(null, symbol.span, allocator));
 
         retval.block_graph_head = retval.basicBlockFromIR(retval.ir_head, allocator);
         retval.removeBasicBlockLastInstruction();
@@ -157,7 +157,7 @@ pub const CFG = struct {
         var buf = String.init_with_contents(allocator, "t") catch unreachable;
         buf.writer().print("{}", .{self.number_temps}) catch unreachable;
         self.number_temps += 1;
-        var temp_symbol = symbol_.Symbol.create(
+        var temp_symbol = symbol_.Symbol.init(
             self.symbol.scope,
             (buf.toOwned() catch unreachable).?,
             span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
@@ -206,7 +206,7 @@ pub const CFG = struct {
         } else if (maybe_ir.?.in_block) |in_block| {
             return in_block;
         } else {
-            var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.create(self, allocator);
+            var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(self, allocator);
             retval.ir_head = maybe_ir;
             var _maybe_ir = maybe_ir;
             while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {

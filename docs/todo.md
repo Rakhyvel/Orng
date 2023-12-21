@@ -84,7 +84,7 @@
 - [x] Simplify validate
 - [x] Move `reprFromTokenKind` into TokenKind
 - [x] Create a `Labels` struct for lower, to simplify things
-- [ ] If a `create()` function is inerrant, call it `init` instead
+- [x] If a `create()` function is inerrant, call it `init` instead
 - [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
     - [ ] Perhaps create an `arrayOf` AST kind
 - [ ] Nothing is indented more than 5 times, excluding switches

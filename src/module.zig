@@ -112,7 +112,7 @@ pub const Module = struct {
 
         // Parse, expand AST
         ast_.init_structures();
-        var parser = Parser.create(&tokens, errors, allocator);
+        var parser = Parser.init(&tokens, errors, allocator);
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, errors, allocator);
 
@@ -246,7 +246,7 @@ pub const Module = struct {
             }
 
             bb.offset = @as(i64, @intCast(self.instructions.items.len));
-            var label = ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
+            var label = ir_.IR.initLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
@@ -262,12 +262,12 @@ pub const Module = struct {
                 if (bb.branch) |branch| {
                     work_queue.append(branch) catch unreachable;
                 }
-                self.instructions.append(ir_.IR.create_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+                self.instructions.append(ir_.IR.init_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
             } else {
                 if (bb.next) |next| {
                     work_queue.append(next) catch unreachable;
                 }
-                self.instructions.append(ir_.IR.create_jump_addr(bb.next, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+                self.instructions.append(ir_.IR.init_jump_addr(bb.next, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
             }
         }
         return first_bb.offset.?;
@@ -279,9 +279,9 @@ pub const Module = struct {
     fn append_phony_block(self: *Module, cfg: *cfg_.CFG) i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        self.instructions.append(ir_.IR.createLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+        self.instructions.append(ir_.IR.initLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
         // Append a return instruction (a jump to null)
-        self.instructions.append(ir_.IR.create_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+        self.instructions.append(ir_.IR.init_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
         return offset;
     }
 

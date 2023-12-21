@@ -311,13 +311,13 @@ pub const Token = struct {
     data: []const u8,
     span: Span,
 
-    pub fn create(data: []const u8, kind: ?TokenKind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
+    pub fn init(data: []const u8, kind: ?TokenKind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
         return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .filename = filename, .line_text = line_text, .line = line, .col = col } };
     }
 
     // Used to create a simple, anonymous identifier token
-    pub fn create_simple(data: []const u8) Token {
-        return Token.create(data, .IDENTIFIER, "", "", 0, 0);
+    pub fn init_simple(data: []const u8) Token {
+        return Token.init(data, .IDENTIFIER, "", "", 0, 0);
     }
 
     pub fn repr(self: *Token) []const u8 {

@@ -24,7 +24,7 @@ pub const Parser = struct {
     astAllocator: std.mem.Allocator,
     errors: *errs.Errors,
 
-    pub fn create(tokens: *std.ArrayList(Token), errors: *errs.Errors, astAllocator: std.mem.Allocator) Parser {
+    pub fn init(tokens: *std.ArrayList(Token), errors: *errs.Errors, astAllocator: std.mem.Allocator) Parser {
         return .{ //
             .tokens = tokens,
             .cursor = 0,
@@ -136,16 +136,16 @@ pub const Parser = struct {
 
         const ident = try self.let_pattern_atom();
         var _type: ?*AST = null;
-        var init: ?*AST = null;
+        var _init: ?*AST = null;
 
         if (self.accept(.COLON)) |_| {
             _type = try self.inject_expr();
             if (self.peek_kind(.EQUALS)) {
                 _ = try self.expect(.EQUALS);
-                init = try self.inject_expr();
+                _init = try self.inject_expr();
             }
         } else if (self.accept(.EQUALS)) |_| {
-            init = try self.inject_expr();
+            _init = try self.inject_expr();
         } else {
             self.errors.addError(Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value" } });
             return error.parseError;
@@ -154,8 +154,8 @@ pub const Parser = struct {
         return AST.createDecl(
             token,
             ident,
-            _type orelse AST.createTypeOf(token, init.?, self.astAllocator), // type inference done here!
-            init orelse AST.createDefault(token, _type.?, self.astAllocator), // default value generate done here!
+            _type orelse AST.createTypeOf(token, _init.?, self.astAllocator), // type inference done here!
+            _init orelse AST.createDefault(token, _type.?, self.astAllocator), // default value generate done here!
             self.astAllocator,
         );
     }
@@ -271,19 +271,19 @@ pub const Parser = struct {
         if (self.accept(.COLON)) |token| {
             const _type = try self.inject_expr();
             var predicate: ?*AST = null;
-            var init: ?*AST = null;
+            var _init: ?*AST = null;
             if (self.accept(.WHERE)) |_| {
                 predicate = try self.inject_expr();
             }
             if (self.accept(.EQUALS)) |_| {
-                const pre_init = try self.inject_expr();
-                if (!pre_init.is_comptime_expr()) {
-                    self.errors.addError(Error{ .comptime_known = .{ .span = pre_init.getToken().span, .what = "default values" } });
+                const pre__init = try self.inject_expr();
+                if (!pre__init.is_comptime_expr()) {
+                    self.errors.addError(Error{ .comptime_known = .{ .span = pre__init.getToken().span, .what = "default values" } });
                     return error.parseError;
                 }
-                init = AST.createComptime(token, pre_init, self.astAllocator);
+                _init = AST.createComptime(token, pre__init, self.astAllocator);
             }
-            return AST.createAnnotation(token, exp, _type, predicate, init, self.astAllocator);
+            return AST.createAnnotation(token, exp, _type, predicate, _init, self.astAllocator);
         } else {
             return exp;
         }
@@ -724,7 +724,7 @@ pub const Parser = struct {
             _ = try self.inject_expr();
         }
 
-        const init = try self.block_expr();
+        const _init = try self.block_expr();
 
         return AST.createFnDecl(
             introducer,
@@ -732,7 +732,7 @@ pub const Parser = struct {
             params,
             retType,
             refinement,
-            init,
+            _init,
             false,
             self.astAllocator,
         );
@@ -762,20 +762,20 @@ pub const Parser = struct {
     fn param(self: *Parser) ParserErrorEnum!*AST {
         var ident = try self.let_pattern_atom();
         var _type: *AST = undefined;
-        var init: ?*AST = null;
+        var _init: ?*AST = null;
 
         _ = try self.expect(.COLON);
         _type = try self.inject_expr();
         if (self.peek_kind(.EQUALS)) {
             _ = try self.expect(.EQUALS);
-            init = try self.inject_expr();
+            _init = try self.inject_expr();
         }
 
         return AST.createDecl(
             ident.getToken(),
             ident,
             _type,
-            init orelse AST.createDefault(_type.getToken(), _type, self.astAllocator),
+            _init orelse AST.createDefault(_type.getToken(), _type, self.astAllocator),
             self.astAllocator,
         );
     }

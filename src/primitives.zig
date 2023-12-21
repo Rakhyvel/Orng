@@ -120,19 +120,19 @@ pub fn get_scope() *Scope {
         blackhole = create_prelude_symbol("_", unit_type, unit_type);
 
         // Setup default values
-        const default_bool = AST.createFalse(Token.create_simple("false"), std.heap.page_allocator);
-        const default_char = AST.createChar(Token.create_simple("'\\\\0'"), std.heap.page_allocator);
-        const default_float32 = AST.createFloat(Token.create_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_float64 = AST.createFloat(Token.create_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_int8 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_int16 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_int32 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_int64 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_word8 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_word16 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_word32 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_word64 = AST.createInt(Token.create_simple("0"), 0, std.heap.page_allocator);
-        const default_string = AST.createString(Token.create_simple("\"\""), "", std.heap.page_allocator);
+        const default_bool = AST.createFalse(Token.init_simple("false"), std.heap.page_allocator);
+        const default_char = AST.createChar(Token.init_simple("'\\\\0'"), std.heap.page_allocator);
+        const default_float32 = AST.createFloat(Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_float64 = AST.createFloat(Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_int8 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int16 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int32 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int64 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word8 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word16 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word32 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word64 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_string = AST.createString(Token.init_simple("\"\""), "", std.heap.page_allocator);
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
@@ -171,11 +171,11 @@ pub fn get_scope() *Scope {
 }
 
 fn create_identifier(name: []const u8) *AST {
-    return AST.createIdentifier(Token.create_simple(name), std.heap.page_allocator).assert_valid();
+    return AST.createIdentifier(Token.init_simple(name), std.heap.page_allocator).assert_valid();
 }
 
 fn create_unit_type() *AST {
-    return AST.createUnitType(Token.create_simple("("), std.heap.page_allocator).assert_valid();
+    return AST.createUnitType(Token.init_simple("("), std.heap.page_allocator).assert_valid();
 }
 
 fn create_info(
@@ -205,7 +205,7 @@ fn create_info(
 }
 
 fn create_prelude_symbol(name: []const u8, _type: *AST, init: *AST) *Symbol {
-    var symbol = Symbol.create(
+    var symbol = Symbol.init(
         prelude.?,
         name,
         Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },

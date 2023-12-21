@@ -29,7 +29,7 @@ pub const Basic_Block = struct {
     /// Used for IR interpretation
     offset: ?i64,
 
-    pub fn create(cfg: *cfg_.CFG, allocator: std.mem.Allocator) *Basic_Block {
+    pub fn init(cfg: *cfg_.CFG, allocator: std.mem.Allocator) *Basic_Block {
         var retval = allocator.create(Basic_Block) catch unreachable;
         retval.ir_head = null;
         retval.condition = null;

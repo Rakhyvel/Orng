@@ -358,7 +358,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                 }
                 ast._comptime.symbol = comptime_symbol;
 
-                const symbol = symbol_.Symbol.create(
+                const symbol = symbol_.Symbol.init(
                     scope,
                     pattern.symbol.name,
                     pattern.getToken().span,
@@ -372,7 +372,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                 symbols.append(symbol) catch unreachable;
             } else if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
                 // Regular `let` or `mut` symbol, not `_`
-                const symbol = symbol_.Symbol.create(
+                const symbol = symbol_.Symbol.init(
                     scope,
                     pattern.symbol.name,
                     pattern.getToken().span,
@@ -485,7 +485,7 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     } else {
         buf = nextAnonFunctionName(allocator);
     }
-    const retval = symbol_.Symbol.create(
+    const retval = symbol_.Symbol.init(
         fnScope,
         buf,
         ast.getToken().span,
@@ -544,7 +544,7 @@ fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope:
     buf = next_comptime_name(allocator);
 
     // Create the symbol
-    const retval = symbol_.Symbol.create(
+    const retval = symbol_.Symbol.init(
         comptime_scope,
         buf,
         ast.getToken().span,

@@ -159,7 +159,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         }
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
-                        tokens.append(Token.create(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -181,7 +181,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         return LexerErrors.lexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
-                        tokens.append(Token.create(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -203,7 +203,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         return LexerErrors.lexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
-                        var token = Token.create(contents[slice_start..ix], null, filename, contents, line, col);
+                        var token = Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         if (fuzz_tokens) {
                             if (std.mem.eql(u8, token.data, "indent")) {
                                 token.kind = .INDENT;
@@ -269,7 +269,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         '"' => {
                             ix += 1;
                             col += 1;
-                            tokens.append(Token.create(contents[slice_start..ix], .STRING, filename, contents, line, col)) catch unreachable;
+                            tokens.append(Token.init(contents[slice_start..ix], .STRING, filename, contents, line, col)) catch unreachable;
                             slice_start = ix;
                             state = .none;
                         },
@@ -339,7 +339,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                                 errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal" } });
                                 return LexerErrors.lexerError;
                             }
-                            tokens.append(Token.create(contents[slice_start..ix], .CHAR, filename, contents, line, col)) catch unreachable;
+                            tokens.append(Token.init(contents[slice_start..ix], .CHAR, filename, contents, line, col)) catch unreachable;
                             slice_start = ix;
                             state = .none;
                         },
@@ -377,7 +377,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                             col += 1;
                             state = .float;
                         } else {
-                            tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
+                            tokens.append(Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
                             slice_start = ix;
                             state = .none;
                         }
@@ -401,7 +401,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .integerDigit;
                     } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                        tokens.append(Token.create(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -427,7 +427,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .floatDigit;
                     } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                        tokens.append(Token.create(contents[slice_start..ix], .FLOAT, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], .FLOAT, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -456,7 +456,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                     },
                     else => {
-                        tokens.append(Token.create(contents[slice_start..ix], .HEX_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], .HEX_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
@@ -485,7 +485,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                     },
                     else => {
-                        tokens.append(Token.create(contents[slice_start..ix], .OCT_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], .OCT_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
@@ -514,7 +514,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                     },
                     else => {
-                        tokens.append(Token.create(contents[slice_start..ix], .BIN_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start..ix], .BIN_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
@@ -543,7 +543,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         ix += 1;
                         col += 1;
                     } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                        const token = Token.create(contents[slice_start..ix], null, filename, contents, line, col);
+                        const token = Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         tokens.append(token) catch unreachable;
                         slice_start = ix;
                         state = .none;
@@ -555,7 +555,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .multiline => {
                     if (next_char == '\n') {
-                        tokens.append(Token.create(contents[slice_start + 2 .. ix], .MULTI_LINE, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init(contents[slice_start + 2 .. ix], .MULTI_LINE, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -566,7 +566,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .comment => {
                     if (next_char == '\n') {
-                        tokens.append(Token.create("", .COMMENT, filename, contents, line, col)) catch unreachable;
+                        tokens.append(Token.init("", .COMMENT, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -577,9 +577,9 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
             }
         }
 
-        tokens.append(Token.create("\n", .NEWLINE, filename, contents, line, col)) catch unreachable;
+        tokens.append(Token.init("\n", .NEWLINE, filename, contents, line, col)) catch unreachable;
     }
 
-    tokens.append(Token.create("EOF", .EOF, filename, "", line, col)) catch unreachable;
+    tokens.append(Token.init("EOF", .EOF, filename, "", line, col)) catch unreachable;
     return tokens;
 }
