@@ -458,7 +458,11 @@ pub const Parser = struct {
                 self.errors.addError(Error{ .missing_close = .{ .expected = .R_SQUARE, .got = self.peek(), .open = token } });
                 return error.parseError;
             }
-            return AST.createSliceOf(token, try self.prefix_expr(), len, sliceKind, self.astAllocator);
+            if (sliceKind == .ARRAY) {
+                return AST.createArrayOf(token, try self.prefix_expr(), len.?, self.astAllocator);
+            } else {
+                return AST.createSliceOf(token, try self.prefix_expr(), sliceKind, self.astAllocator);
+            }
         } else if (self.accept(.Q_MARK)) |_| {
             return AST.create_optional_type(try self.invoke_expr(), self.astAllocator);
         } else if (self.accept(.TRY)) |token| {

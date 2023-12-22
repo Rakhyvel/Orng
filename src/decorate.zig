@@ -182,7 +182,10 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         .addrOf => try decorate_identifiers(ast.addrOf.expr, scope, errors, allocator),
         .sliceOf => {
             try decorate_identifiers(ast.sliceOf.expr, scope, errors, allocator);
-            try decorate_identifiers(ast.sliceOf.len, scope, errors, allocator);
+        },
+        .arrayOf => {
+            try decorate_identifiers(ast.arrayOf.expr, scope, errors, allocator);
+            try decorate_identifiers(ast.arrayOf.len, scope, errors, allocator);
         },
         .subSlice => {
             try decorate_identifiers(ast.subSlice.super, scope, errors, allocator);

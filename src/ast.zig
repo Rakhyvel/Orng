@@ -256,7 +256,8 @@ pub const AST = union(enum) {
 
     // Fancy operators
     addrOf: struct { common: ASTCommon, expr: *AST, mut: bool },
-    sliceOf: struct { common: ASTCommon, expr: *AST, len: ?*AST, kind: SliceKind },
+    sliceOf: struct { common: ASTCommon, expr: *AST, kind: SliceKind },
+    arrayOf: struct { common: ASTCommon, expr: *AST, len: *AST },
     subSlice: struct { common: ASTCommon, super: *AST, lower: ?*AST, upper: ?*AST },
     annotation: struct { common: ASTCommon, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
     inferredMember: struct {
@@ -435,6 +436,7 @@ pub const AST = union(enum) {
 
             .addrOf => return &self.addrOf.common,
             .sliceOf => return &self.sliceOf.common,
+            .arrayOf => return &self.arrayOf.common,
             .subSlice => return &self.subSlice.common,
             .annotation => return &self.annotation.common,
             .inferredMember => return &self.inferredMember.common,
@@ -763,8 +765,12 @@ pub const AST = union(enum) {
         return AST.box(AST{ .addrOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .mut = mut } }, allocator);
     }
 
-    pub fn createSliceOf(token: tokens_.Token, expr: *AST, len: ?*AST, kind: SliceKind, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .sliceOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .len = len, .kind = kind } }, allocator);
+    pub fn createSliceOf(token: tokens_.Token, expr: *AST, kind: SliceKind, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .sliceOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .kind = kind } }, allocator);
+    }
+
+    pub fn createArrayOf(token: tokens_.Token, expr: *AST, len: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .arrayOf = .{ .common = ASTCommon{ .token = token, ._type = null }, .expr = expr, .len = len } }, allocator);
     }
 
     pub fn createSubSlice(token: tokens_.Token, super: *AST, lower: ?*AST, upper: ?*AST, allocator: std.mem.Allocator) *AST {
@@ -1088,11 +1094,17 @@ pub const AST = union(enum) {
                 switch (self.sliceOf.kind) {
                     .MUT => try out.print("mut", .{}),
                     .MULTIPTR => try out.print("*", .{}),
-                    .ARRAY => try self.sliceOf.len.?.printType(out),
                     .SLICE => {},
+                    .ARRAY => unreachable,
                 }
                 try out.print("]", .{});
                 try self.sliceOf.expr.printType(out);
+            },
+            .arrayOf => {
+                try out.print("[", .{});
+                try self.arrayOf.len.printType(out);
+                try out.print("]", .{});
+                try self.arrayOf.expr.printType(out);
             },
             .function => {
                 try out.print("(", .{});
@@ -1814,6 +1826,7 @@ pub const AST = union(enum) {
 
             .addrOf => try out.writer().print("addrOf({})", .{self.addrOf.expr}),
             .sliceOf => try out.writer().print("sliceOf()", .{}),
+            .arrayOf => try out.writer().print("arrayOf()", .{}),
             .subSlice => try out.writer().print("subSlice()", .{}),
             .annotation => try out.writer().print("annotation(.field={}, .type={},.init={?})", .{ self.annotation.pattern, self.annotation.type, self.annotation.init }),
             .inferredMember => try out.writer().print("inferredMember(.ident={s})", .{self.inferredMember.ident.getToken().data}),

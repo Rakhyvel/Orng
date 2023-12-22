@@ -93,16 +93,16 @@ int64_t _1300_main(void){
     _1300_t23 = ((struct1*)&_1301_y + _1300_t21);
     _1300_t24 = 3;
     _1301_z = (struct3) {_1300_t23, _1300_t24};
-    _1300_t26 = 2;
-    _1300_t27 = 1;
-    $bounds_check(_1300_t27, _1301_z._1, "tests/integration/slices/multi-dim.orng:6:17:\n    z[1][2] = 82\n               ^");
-    $bounds_check(_1300_t26, (*((struct1*)_1301_z._0 + _1300_t27))._1, "tests/integration/slices/multi-dim.orng:6:17:\n    z[1][2] = 82\n               ^");
-    *((int64_t*)(*((struct1*)_1301_z._0 + _1300_t27))._0 + _1300_t26) = 82;
-    _1300_t28 = 2;
-    _1300_t29 = 1;
-    $bounds_check(_1300_t29, _1301_z._1, "tests/integration/slices/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
-    $bounds_check(_1300_t28, (*((struct1*)_1301_z._0 + _1300_t29))._1, "tests/integration/slices/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
-    _1300_$retval = *((int64_t*)(*((struct1*)_1301_z._0 + _1300_t29))._0 + _1300_t28);
+    _1300_t26 = 1;
+    _1300_t27 = 2;
+    $bounds_check(_1300_t26, _1301_z._1, "tests/integration/slices/multi-dim.orng:6:17:\n    z[1][2] = 82\n               ^");
+    $bounds_check(_1300_t27, (*((struct1*)_1301_z._0 + _1300_t26))._1, "tests/integration/slices/multi-dim.orng:6:17:\n    z[1][2] = 82\n               ^");
+    *((int64_t*)(*((struct1*)_1301_z._0 + _1300_t26))._0 + _1300_t27) = 82;
+    _1300_t28 = 1;
+    _1300_t29 = 2;
+    $bounds_check(_1300_t28, _1301_z._1, "tests/integration/slices/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_1300_t29, (*((struct1*)_1301_z._0 + _1300_t28))._1, "tests/integration/slices/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
+    _1300_$retval = *((int64_t*)(*((struct1*)_1301_z._0 + _1300_t28))._0 + _1300_t29);
     return _1300_$retval;
 }
 

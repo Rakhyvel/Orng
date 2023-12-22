@@ -27,10 +27,10 @@ int64_t _59_main(void){
     int64_t _59_t3;
     int64_t _59_t4;
     struct0 _60_x;
-    int64_t _59_t5;
-    function1 _59_t6;
-    struct0* _59_t8;
+    function1 _59_t5;
     struct0* _59_t7;
+    struct0* _59_t6;
+    int64_t _59_t8;
     int64_t _59_t9;
     int64_t _59_$retval;
     _59_t1 = 1;
@@ -38,15 +38,15 @@ int64_t _59_main(void){
     _59_t3 = 3;
     _59_t4 = 4;
     _60_x = (struct0) {_59_t1, _59_t2, _59_t3, _59_t4};
-    _59_t5 = 3;
-    _59_t6 = _61_f;
-    _59_t8 = &_60_x;
+    _59_t5 = _61_f;
+    _59_t7 = &_60_x;
     $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n     ^";
-    _59_t7 = _59_t6(_59_t8);
+    _59_t6 = _59_t5(_59_t7);
     $line_idx--;
+    _59_t8 = 3;
     _59_t9 = 4;
-    $bounds_check(_59_t5, _59_t9, "tests/integration/arrays/call-index.orng:2:3:\nfn main() -> Int {\n ^");
-    _59_$retval = *((int64_t*)_59_t7 + _59_t5);
+    $bounds_check(_59_t8, _59_t9, "tests/integration/arrays/call-index.orng:2:3:\nfn main() -> Int {\n ^");
+    _59_$retval = *((int64_t*)_59_t6 + _59_t8);
     return _59_$retval;
 }
 

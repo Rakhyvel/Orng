@@ -85,10 +85,11 @@
 - [x] Move `reprFromTokenKind` into TokenKind
 - [x] Create a `Labels` struct for lower, to simplify things
 - [x] If a `create()` function is inerrant, call it `init` instead
-- [ ] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
-    - [ ] Perhaps create an `arrayOf` AST kind
+- [x] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
+    - [x] Perhaps create an `arrayOf` AST kind
 - [ ] Nothing is indented more than 5 times, excluding switches
 - [ ] Try to keep lines less than 100 characters in width (not length!)
+    - If you have to scroll, it's too much
 - [ ] In import graph, 1.5 <= (E+1)/N <= 4.0
     - Remove unused imports
     - Sort imports, remove type-renamings

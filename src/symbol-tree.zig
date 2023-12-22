@@ -197,7 +197,10 @@ pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: 
         .addrOf => try symbolTableFromAST(ast.addrOf.expr, scope, errors, allocator),
         .sliceOf => {
             try symbolTableFromAST(ast.sliceOf.expr, scope, errors, allocator);
-            try symbolTableFromAST(ast.sliceOf.len, scope, errors, allocator);
+        },
+        .arrayOf => {
+            try symbolTableFromAST(ast.arrayOf.expr, scope, errors, allocator);
+            try symbolTableFromAST(ast.arrayOf.len, scope, errors, allocator);
         },
         .subSlice => {
             try symbolTableFromAST(ast.subSlice.super, scope, errors, allocator);

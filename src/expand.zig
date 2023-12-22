@@ -178,7 +178,10 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .addrOf => try expand(ast.addrOf.expr, errors, allocator),
         .sliceOf => {
             try expand(ast.sliceOf.expr, errors, allocator);
-            try expand(ast.sliceOf.len, errors, allocator);
+        },
+        .arrayOf => {
+            try expand(ast.arrayOf.expr, errors, allocator);
+            try expand(ast.arrayOf.len, errors, allocator);
         },
         .subSlice => {
             try expand(ast.subSlice.super, errors, allocator);
