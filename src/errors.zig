@@ -97,7 +97,6 @@ pub const Error = union(enum) {
     },
     undeclaredIdentifier: struct {
         identifier: token_.Token,
-        scope: *symbol_.Scope,
         expected: ?*ast_.AST,
     },
     comptime_access_runtime: struct {

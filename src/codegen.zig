@@ -746,7 +746,7 @@ fn output_type(_type: *ast_.AST, writer: anytype) CodeGen_Error!void {
             }
         },
         .addrOf => {
-            try output_type(_type.addrOf.expr, writer);
+            try output_type(_type.expr(), writer);
             try writer.print("*", .{});
         },
         .function => {

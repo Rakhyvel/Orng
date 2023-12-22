@@ -60,20 +60,20 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             }
         },
 
-        ._typeOf => try symbolTableFromAST(ast._typeOf.expr, scope, errors, allocator),
-        .default => try symbolTableFromAST(ast.default.expr, scope, errors, allocator),
-        .not => try symbolTableFromAST(ast.not.expr, scope, errors, allocator),
-        .negate => try symbolTableFromAST(ast.negate.expr, scope, errors, allocator),
-        .dereference => try symbolTableFromAST(ast.dereference.expr, scope, errors, allocator),
+        ._typeOf => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+        .default => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+        .not => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+        .negate => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+        .dereference => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
         ._try => {
             if (scope.inner_function == null) {
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
                 return error.symbolError;
             }
             ast._try.function = scope.inner_function;
-            try symbolTableFromAST(ast._try.expr, scope, errors, allocator);
+            try symbolTableFromAST(ast.expr(), scope, errors, allocator);
         },
-        .discard => try symbolTableFromAST(ast.discard.expr, scope, errors, allocator),
+        .discard => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
         ._comptime => {
             const symbol = try create_temp_comptime_symbol(ast, null, scope, errors, allocator);
             const res = scope.lookup(symbol.name, false);
@@ -194,12 +194,12 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         .product => {
             try symbolTableFromASTList(ast.product.terms, scope, errors, allocator);
         },
-        .addrOf => try symbolTableFromAST(ast.addrOf.expr, scope, errors, allocator),
+        .addrOf => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
         .sliceOf => {
-            try symbolTableFromAST(ast.sliceOf.expr, scope, errors, allocator);
+            try symbolTableFromAST(ast.expr(), scope, errors, allocator);
         },
         .arrayOf => {
-            try symbolTableFromAST(ast.arrayOf.expr, scope, errors, allocator);
+            try symbolTableFromAST(ast.expr(), scope, errors, allocator);
             try symbolTableFromAST(ast.arrayOf.len, scope, errors, allocator);
         },
         .subSlice => {
@@ -225,7 +225,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.match.scope = new_scope;
             try symbolTableFromAST(ast.match.let, scope, errors, allocator);
-            try symbolTableFromAST(ast.match.expr, new_scope, errors, allocator);
+            try symbolTableFromAST(ast.expr(), new_scope, errors, allocator);
             try create_match_pattern_symbol(ast, new_scope, errors, allocator);
             try symbolTableFromASTList(ast.match.mappings, new_scope, errors, allocator);
         },
@@ -270,7 +270,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
                 return error.symbolError;
             }
             ast._return.function = scope.inner_function;
-            try symbolTableFromAST(ast._return.expr, scope, errors, allocator);
+            try symbolTableFromAST(ast._return._expr, scope, errors, allocator);
         },
         .decl => {
             // Both put a Symbol in the current scope, and recurse
@@ -398,8 +398,8 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
             mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
             defer symbols.deinit();
-            const _type = ast_.AST.createTypeOf(match.match.expr.getToken(), match.match.expr, allocator);
-            try create_symbol(&symbols, mapping.mapping.lhs.?, _type, match.match.expr, new_scope, errors, allocator);
+            const _type = ast_.AST.createTypeOf(match.expr().getToken(), match.expr(), allocator);
+            try create_symbol(&symbols, mapping.mapping.lhs.?, _type, match.expr(), new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;
             }
@@ -524,9 +524,9 @@ fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.S
 // ast is a `comptime` ast
 fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
-    const lhs = ast_.AST.createUnitType(ast._comptime.expr.getToken(), allocator);
-    const rhs = ast_.AST.createTypeOf(ast._comptime.expr.getToken(), ast._comptime.expr, allocator);
-    const _type = ast_.AST.createFunction(ast._comptime.expr.getToken(), lhs, rhs_type_hint orelse rhs, allocator);
+    const lhs = ast_.AST.createUnitType(ast.expr().getToken(), allocator);
+    const rhs = ast_.AST.createTypeOf(ast.expr().getToken(), ast.expr(), allocator);
+    const _type = ast_.AST.createFunction(ast.expr().getToken(), lhs, rhs_type_hint orelse rhs, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
@@ -543,14 +543,14 @@ fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope:
         buf,
         ast.getToken().span,
         _type,
-        ast._comptime.expr,
+        ast.expr(),
         ast,
         ._comptime,
         allocator,
     );
     comptime_scope.inner_function = retval;
 
-    try symbolTableFromAST(ast._comptime.expr, comptime_scope, errors, allocator);
+    try symbolTableFromAST(ast.expr(), comptime_scope, errors, allocator);
     return retval;
 }
 

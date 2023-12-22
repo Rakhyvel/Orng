@@ -9,6 +9,9 @@ const expand_ = @import("expand.zig");
 const ir_ = @import("ir.zig");
 const layout_ = @import("layout.zig");
 const lexer_ = @import("lexer.zig");
+const lower_ = @import("lower.zig");
+const offsets_ = @import("offsets.zig");
+const optimizations_ = @import("optimizations.zig");
 const parser_ = @import("parser.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
@@ -131,12 +134,12 @@ pub const Module = struct {
 
         // Add each CFG's instructions to the module's instruction's list
         for (module.scope.symbols.keys()) |key| {
-            var symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
+            const symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
             if (symbol.kind != ._fn) {
                 continue;
             }
             // IR translation
-            const cfg = try symbol.get_cfg(null, &module.interned_strings, errors, allocator);
+            const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
             module.collect_cfgs(cfg);
 
             if (std.mem.eql(u8, key, "main")) {
@@ -295,6 +298,19 @@ pub const Module = struct {
         }
     }
 };
+
+pub fn get_cfg(symbol: *symbol_.Symbol, caller: ?*cfg_.CFG, interned_strings: *std.StringArrayHashMap(usize), errors: *errs_.Errors, allocator: std.mem.Allocator) !*cfg_.CFG {
+    std.debug.assert(symbol.kind == ._fn or symbol.kind == ._comptime);
+    std.debug.assert(symbol.validation_state == .valid);
+    if (symbol.cfg == null) {
+        symbol.cfg = try cfg_.CFG.init(symbol, caller, interned_strings, allocator);
+        try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
+        try optimizations_.optimize(symbol.cfg.?, errors, allocator);
+        symbol.cfg.?.collect_generated_symbvers();
+        symbol.cfg.?.locals_size = offsets_.calculate_offsets(symbol);
+    }
+    return symbol.cfg.?;
+}
 
 pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8)) void {
     for (set.items) |item| {

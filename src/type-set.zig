@@ -48,7 +48,7 @@ pub const Type_Set = struct {
         } else if (ast.* == .annotation) {
             return self.add(ast.annotation.type, allocator);
         } else if (ast.* == .addrOf) {
-            return self.add(ast.addrOf.expr, allocator);
+            return self.add(ast.expr(), allocator);
         } else {
             return null;
         }

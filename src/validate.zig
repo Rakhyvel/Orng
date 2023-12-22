@@ -186,33 +186,33 @@ fn validate_AST_internal(
         },
 
         .not => {
-            ast.not.expr = validateAST(ast.not.expr, primitives_.bool_type, errors, allocator);
-            if (ast.not.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), primitives_.bool_type, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
             try type_check(ast, primitives_.bool_type, expected, errors);
             return ast;
         },
         .negate => {
-            ast.negate.expr = validateAST(ast.negate.expr, expected, errors, allocator);
-            if (ast.negate.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), expected, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
-            try type_check_arithmetic(ast, ast.negate.expr.typeof(allocator), errors);
-            try type_check(ast, ast.negate.expr.typeof(allocator), expected, errors);
+            try type_check_arithmetic(ast, ast.expr().typeof(allocator), errors);
+            try type_check(ast, ast.expr().typeof(allocator), expected, errors);
             return ast;
         },
         .dereference => {
             if (expected != null) {
                 const addr_of = ast_.AST.createAddrOf(ast.getToken(), expected.?, false, std.heap.page_allocator).assert_valid();
-                ast.dereference.expr = validateAST(ast.dereference.expr, addr_of, errors, allocator);
+                ast.set_expr(validateAST(ast.expr(), addr_of, errors, allocator));
             } else {
-                ast.dereference.expr = validateAST(ast.dereference.expr, null, errors, allocator);
+                ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
             }
-            if (ast.dereference.expr.* == .poison) {
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
-            const expr_type = ast.dereference.expr.typeof(allocator);
+            const expr_type = ast.expr().typeof(allocator);
             const expanded_expr_type = expr_type.expand_type(allocator);
             if (expanded_expr_type.* != .addrOf) {
                 // TODO: Got?
@@ -223,12 +223,12 @@ fn validate_AST_internal(
             }
         },
         ._try => {
-            const expr_span = ast._try.expr.getToken().span;
-            ast._try.expr = validateAST(ast._try.expr, null, errors, allocator);
-            if (ast._try.expr.* == .poison) {
+            const expr_span = ast.expr().getToken().span;
+            ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
-            var expr_expanded_type = ast._try.expr.typeof(allocator).expand_type(allocator);
+            var expr_expanded_type = ast.expr().typeof(allocator).expand_type(allocator);
             if (expr_expanded_type.* != .sum or !expr_expanded_type.sum.was_error) {
                 // expr is not even an error type
                 // TODO: What type is it?
@@ -254,8 +254,8 @@ fn validate_AST_internal(
             return ast;
         },
         .discard => {
-            ast.discard.expr = validateAST(ast.discard.expr, null, errors, allocator);
-            if (ast.discard.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
             try type_check(ast, primitives_.unit_type, expected, errors);
@@ -266,19 +266,19 @@ fn validate_AST_internal(
             if (ast.domainOf.sum_expr.* == .poison) {
                 return ast.enpoison();
             }
-            return try domainof(ast.domainOf.expr, ast.domainOf.sum_expr, errors, allocator);
+            return try domainof(ast.expr(), ast.domainOf.sum_expr, errors, allocator);
         },
         ._typeOf => {
-            ast._typeOf.expr = validateAST(ast._typeOf.expr, null, errors, allocator);
-            if (ast._typeOf.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
             try type_check(ast, primitives_.type_type, expected, errors);
-            return ast._typeOf.expr.typeof(allocator);
+            return ast.expr().typeof(allocator);
         },
         .default => {
-            ast.default.expr = validateAST(ast.default.expr, primitives_.type_type, errors, allocator);
-            if (ast.default.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), primitives_.type_type, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
             const ast_type = ast.typeof(allocator);
@@ -286,12 +286,12 @@ fn validate_AST_internal(
             return generate_default(ast_type, errors, allocator);
         },
         .sizeOf => {
-            ast.sizeOf.expr = validateAST(ast.sizeOf.expr, primitives_.type_type, errors, allocator);
-            if (ast.sizeOf.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), primitives_.type_type, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
             try type_check(ast, primitives_.int_type, expected, errors);
-            return ast_.AST.createInt(ast.getToken(), ast.sizeOf.expr.expand_type(allocator).sizeof(), allocator);
+            return ast_.AST.createInt(ast.getToken(), ast.expr().expand_type(allocator).sizeof(), allocator);
         },
         ._comptime => {
             // Validate symbol
@@ -302,7 +302,7 @@ fn validate_AST_internal(
             try type_check(ast, ast._comptime.symbol.?._type.function.rhs, expected, errors);
 
             // Get the cfg from the symbol, and embed into the module
-            const cfg = try ast._comptime.symbol.?.get_cfg(null, &ast._comptime.symbol.?.scope.module.?.interned_strings, errors, allocator);
+            const cfg = try module_.get_cfg(ast._comptime.symbol.?, null, &ast._comptime.symbol.?.scope.module.?.interned_strings, errors, allocator);
             defer cfg.deinit(); // Remove the cfg so that it isn't output
 
             const idx = ast._comptime.symbol.?.scope.module.?.append_instructions(cfg);
@@ -632,7 +632,7 @@ fn validate_AST_internal(
                 if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice) {
                     try type_check(ast, lhs_expanded_type.product.terms.items[0], expected, errors);
                 } else if (lhs_expanded_type.* == .product and lhs_expanded_type.product.was_slice) {
-                    try type_check(ast, lhs_expanded_type.product.terms.items[0].annotation.type.addrOf.expr, expected, errors);
+                    try type_check(ast, lhs_expanded_type.product.terms.items[0].annotation.type.expr(), expected, errors);
                 }
             }
             return ast;
@@ -881,15 +881,15 @@ fn validate_AST_internal(
         .addrOf => {
             if (expected == null) {
                 // Not expecting anything, just validate expr
-                ast.addrOf.expr = validateAST(ast.addrOf.expr, null, errors, allocator);
-                if (ast.addrOf.expr.* == .poison) {
+                ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
+                if (ast.expr().* == .poison) {
                     return ast.enpoison();
                 }
-                try validateLValue(ast.addrOf.expr, errors);
+                try validateLValue(ast.expr(), errors);
             } else if (primitives_.type_type.typesMatch(expected.?)) {
                 // Address type, type of this ast must be a type, inner must be a type
-                ast.addrOf.expr = validateAST(ast.addrOf.expr, primitives_.type_type, errors, allocator);
-                if (ast.addrOf.expr.* == .poison) {
+                ast.set_expr(validateAST(ast.expr(), primitives_.type_type, errors, allocator));
+                if (ast.expr().* == .poison) {
                     return ast.enpoison();
                 }
             } else {
@@ -902,36 +902,36 @@ fn validate_AST_internal(
                 }
 
                 // Everythings Ok.
-                ast.addrOf.expr = validateAST(ast.addrOf.expr, expanded_expected.addrOf.expr, errors, allocator);
-                if (ast.addrOf.expr.* == .poison) {
+                ast.set_expr(validateAST(ast.expr(), expanded_expected.expr(), errors, allocator));
+                if (ast.expr().* == .poison) {
                     return ast.enpoison();
                 }
                 _ = ast.assert_valid();
-                if (ast.addrOf.expr.* != .product) {
+                if (ast.expr().* != .product) {
                     // Validate that expr is an L-value *only if* expr is not a product
                     // It is possible to take a addr of a product. The address is the address of the temporary
                     // This is mirrored with a slice_of a product.
-                    try validateLValue(ast.addrOf.expr, errors);
+                    try validateLValue(ast.expr(), errors);
                 }
                 if (ast.addrOf.mut) {
-                    try assertMutable(ast.addrOf.expr, errors, allocator);
+                    try assertMutable(ast.expr(), errors, allocator);
                 }
             }
 
             return ast;
         },
         .sliceOf => {
-            ast.sliceOf.expr = validateAST(ast.sliceOf.expr, null, errors, allocator);
-            if (ast.sliceOf.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
-            var expr_type = ast.sliceOf.expr.typeof(allocator);
+            var expr_type = ast.expr().typeof(allocator);
 
             if (expr_type.* != .unit_type and primitives_.type_type.typesMatch(expr_type)) {
                 // Regular slice type, change to product of data address and length
-                return ast_.AST.create_slice_type(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, allocator);
+                return ast_.AST.create_slice_type(ast.expr(), ast.sliceOf.kind == .MUT, allocator);
             } else { // Slice-of value, expected must be an slice, inner must match with expected's inner
-                // ast.sliceOf.expr must be homotypical product type of expected
+                // ast.expr() must be homotypical product type of expected
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
                     errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "attempt to take slice-of something that is not an array" } });
                     return ast.enpoison();
@@ -941,21 +941,21 @@ fn validate_AST_internal(
                 const ast_type = ast.typeof(allocator);
                 try type_check(ast, ast_type, expected, errors);
 
-                if (ast.sliceOf.expr.* != .product) {
+                if (ast.expr().* != .product) {
                     // Validate that expr is an L-value *only if* expr is not a product
                     // It is possible to take a slice of a product. The slice is the sliceof the temporary
                     // This is mirrored with addr_of a product.
-                    try validateLValue(ast.sliceOf.expr, errors);
+                    try validateLValue(ast.expr(), errors);
                 }
                 if (ast.sliceOf.kind == .MUT) {
-                    try assertMutable(ast.sliceOf.expr, errors, allocator);
+                    try assertMutable(ast.expr(), errors, allocator);
                 }
-                return ast_.AST.create_slice_value(ast.sliceOf.expr, ast.sliceOf.kind == .MUT, expr_type, allocator);
+                return ast_.AST.create_slice_value(ast.expr(), ast.sliceOf.kind == .MUT, expr_type, allocator);
             }
         },
         .arrayOf => {
-            ast.arrayOf.expr = validateAST(ast.arrayOf.expr, primitives_.type_type, errors, allocator);
-            if (ast.arrayOf.expr.* == .poison) {
+            ast.set_expr(validateAST(ast.expr(), primitives_.type_type, errors, allocator));
+            if (ast.expr().* == .poison) {
                 return ast.enpoison();
             }
 
@@ -974,7 +974,7 @@ fn validate_AST_internal(
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "array length is negative" } });
                 return ast.enpoison();
             }
-            return ast_.AST.create_array_type(ast.arrayOf.len, ast.arrayOf.expr, allocator);
+            return ast_.AST.create_array_type(ast.arrayOf.len, ast.expr(), allocator);
         },
         .subSlice => { // TODO: TOO LONG
             ast.subSlice.super = validateAST(ast.subSlice.super, null, errors, allocator);
@@ -1147,10 +1147,10 @@ fn validate_AST_internal(
                 ast.match.let = validateAST(let, null, errors, allocator);
                 poisoned = ast.match.let.?.* == .poison or poisoned;
             }
-            ast.match.expr = validateAST(ast.match.expr, null, errors, allocator);
-            poisoned = ast.match.expr.* == .poison or poisoned;
+            ast.set_expr(validateAST(ast.expr(), null, errors, allocator));
+            poisoned = ast.expr().* == .poison or poisoned;
 
-            var expr_type = ast.match.expr.typeof(allocator);
+            var expr_type = ast.expr().typeof(allocator);
             const expr_type_expanded = expr_type.expand_type(allocator);
             if (expr_type_expanded.* == .poison) {
                 return ast.enpoison(); // Can't do anything with this
@@ -1304,9 +1304,9 @@ fn validate_AST_internal(
             return ast;
         },
         ._return => {
-            if (ast._return.expr) |expr| {
-                ast._return.expr = validateAST(expr, ast._return.function.?._type.function.rhs, errors, allocator);
-                if (ast._return.expr.?.* == .poison) {
+            if (ast._return._expr) |expr| {
+                ast._return._expr = validateAST(expr, ast._return.function.?._type.function.rhs, errors, allocator);
+                if (ast._return._expr.?.* == .poison) {
                     return ast.enpoison();
                 }
             } else if (expected != null and (expected.?.expand_type(allocator)).* != .unit_type) {
@@ -1684,7 +1684,7 @@ fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void {
         .identifier => {},
 
         .dereference => {
-            const child = ast.dereference.expr;
+            const child = ast.expr();
             if (child.* != .addrOf) {
                 try validateLValue(child, errors);
             }
@@ -1725,7 +1725,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         },
 
         .dereference => {
-            var child = ast.dereference.expr;
+            var child = ast.expr();
             const child_type = child.typeof(allocator);
             if (!child_type.addrOf.mut) {
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "cannot modify non-mutable address" } });

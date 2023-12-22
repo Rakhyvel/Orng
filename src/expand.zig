@@ -38,15 +38,15 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .domainOf,
         => {},
 
-        ._typeOf => try expand(ast._typeOf.expr, errors, allocator),
-        .default => try expand(ast.default.expr, errors, allocator),
-        .sizeOf => try expand(ast.sizeOf.expr, errors, allocator),
-        .not => try expand(ast.not.expr, errors, allocator),
-        .negate => try expand(ast.negate.expr, errors, allocator),
-        .dereference => try expand(ast.dereference.expr, errors, allocator),
-        ._try => try expand(ast._try.expr, errors, allocator),
-        .discard => try expand(ast.discard.expr, errors, allocator),
-        ._comptime => try expand(ast._comptime.expr, errors, allocator),
+        ._typeOf => try expand(ast.expr(), errors, allocator),
+        .default => try expand(ast.expr(), errors, allocator),
+        .sizeOf => try expand(ast.expr(), errors, allocator),
+        .not => try expand(ast.expr(), errors, allocator),
+        .negate => try expand(ast.expr(), errors, allocator),
+        .dereference => try expand(ast.expr(), errors, allocator),
+        ._try => try expand(ast.expr(), errors, allocator),
+        .discard => try expand(ast.expr(), errors, allocator),
+        ._comptime => try expand(ast.expr(), errors, allocator),
 
         .assign => {
             try expand(ast.assign.lhs, errors, allocator);
@@ -175,12 +175,12 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .product => {
             try expand_from_list(ast.product.terms, errors, allocator);
         },
-        .addrOf => try expand(ast.addrOf.expr, errors, allocator),
+        .addrOf => try expand(ast.expr(), errors, allocator),
         .sliceOf => {
-            try expand(ast.sliceOf.expr, errors, allocator);
+            try expand(ast.expr(), errors, allocator);
         },
         .arrayOf => {
-            try expand(ast.arrayOf.expr, errors, allocator);
+            try expand(ast.expr(), errors, allocator);
             try expand(ast.arrayOf.len, errors, allocator);
         },
         .subSlice => {
@@ -202,7 +202,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         },
         .match => {
             try expand(ast.match.let, errors, allocator);
-            try expand(ast.match.expr, errors, allocator);
+            try expand(ast.expr(), errors, allocator);
             try expand_from_list(ast.match.mappings, errors, allocator);
         },
         .mapping => {
@@ -230,7 +230,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             }
         },
 
-        ._return => try expand(ast._return.expr, errors, allocator),
+        ._return => try expand(ast._return._expr, errors, allocator),
         .decl => {
             try expand(ast.decl.type, errors, allocator);
             try expand(ast.decl.init, errors, allocator);

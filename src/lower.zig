@@ -6,6 +6,7 @@ const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
+const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
@@ -49,7 +50,7 @@ fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Alloc
     return retval;
 }
 
-pub fn inject_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
     const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null }, errors, allocator);
     if (cfg.symbol.decl.?.* == .fnDecl) {
         // `_comptime` symbols don't have parameters anyway
@@ -146,7 +147,7 @@ fn lower_AST(
         .identifier => {
             const symbol = ast.identifier.symbol.?;
             if (symbol.kind == ._fn) {
-                _ = try symbol.get_cfg(cfg, cfg.interned_strings, errors, allocator);
+                _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
                 const lval = create_temp_lvalue(cfg, symbol._type, allocator);
                 var ir = ir_.IR.init(.loadSymbol, lval, null, null, ast.getToken().span, allocator);
                 ir.data = ir_.Data{ .symbol = symbol };
@@ -166,7 +167,7 @@ fn lower_AST(
         .symbol => {
             const symbol = ast.symbol.symbol;
             std.debug.assert(symbol.kind == ._fn); // For returning functions at compile-time!
-            _ = try symbol.get_cfg(cfg, cfg.interned_strings, errors, allocator);
+            _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
             const lval = create_temp_lvalue(cfg, symbol._type, allocator);
             var ir = ir_.IR.init(.loadSymbol, lval, null, null, ast.getToken().span, allocator);
             ir.data = ir_.Data{ .symbol = symbol };
@@ -188,7 +189,7 @@ fn lower_AST(
 
         // Unary operators
         .not => {
-            const expr = try lower_AST(cfg, ast.not.expr, labels, errors, allocator);
+            const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator);
             if (expr == null) {
                 return null;
             }
@@ -199,7 +200,7 @@ fn lower_AST(
             return temp;
         },
         .negate => {
-            const expr = try lower_AST(cfg, ast.negate.expr, labels, errors, allocator);
+            const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator);
             if (expr == null) {
                 return null;
             }
@@ -210,7 +211,7 @@ fn lower_AST(
             return temp;
         },
         .dereference => {
-            const expr = try lower_AST(cfg, ast.dereference.expr, labels, errors, allocator);
+            const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator);
             if (expr == null) {
                 return null;
             }
@@ -220,7 +221,7 @@ fn lower_AST(
             return temp;
         },
         ._try => {
-            var expr = (try lower_AST(cfg, ast._try.expr, labels, errors, allocator)) orelse return null;
+            var expr = (try lower_AST(cfg, ast.expr(), labels, errors, allocator)) orelse return null;
 
             const end = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const err = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
@@ -246,7 +247,7 @@ fn lower_AST(
             return ok_lval;
         },
         .discard => {
-            var expr = try lower_AST(cfg, ast.discard.expr, labels, errors, allocator);
+            var expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator);
             if (expr == null) {
                 return null;
             }
@@ -616,7 +617,7 @@ fn lower_AST(
                 cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
             } else {
-                const expr = try lower_AST(cfg, ast.addrOf.expr, labels, errors, allocator);
+                const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator);
                 const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
                 const ir = ir_.IR.init(.addrOf, temp, expr, null, ast.getToken().span, allocator);
@@ -712,7 +713,7 @@ fn lower_AST(
                 _ = try lower_AST(cfg, let, labels, errors, allocator);
             }
 
-            const expr = (try lower_AST(cfg, ast.match.expr, labels, errors, allocator)) orelse return null;
+            const expr = (try lower_AST(cfg, ast.expr(), labels, errors, allocator)) orelse return null;
 
             try generate_match_pattern_checks(cfg, expr, ast.match.mappings, lhs_label_list, rhs_label_list, none_label, labels, errors, allocator);
             if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
@@ -837,7 +838,7 @@ fn lower_AST(
             return null;
         },
         .fnDecl => {
-            _ = try ast.fnDecl.symbol.?.get_cfg(cfg, cfg.interned_strings, errors, allocator);
+            _ = try module_.get_cfg(ast.fnDecl.symbol.?, cfg, cfg.interned_strings, errors, allocator);
             const temp = create_temp_lvalue(cfg, ast.fnDecl.symbol.?._type, allocator);
             var ir = ir_.IR.init(.loadSymbol, temp, null, null, ast.getToken().span, allocator);
             ir.data = ir_.Data{ .symbol = ast.fnDecl.symbol.? };
@@ -861,7 +862,7 @@ fn lower_AST(
             return null;
         },
         ._return => {
-            if (ast._return.expr) |expr| {
+            if (ast._return._expr) |expr| {
                 // Copy expr to retval
                 const retval = (try lower_AST(cfg, expr, labels, errors, allocator)) orelse return null;
                 const retval_lval = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);

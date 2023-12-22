@@ -1,11 +1,7 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
-const errs_ = @import("errors.zig");
-const lower_ = @import("lower.zig");
 const module_ = @import("module.zig");
-const offsets_ = @import("offsets.zig");
-const optimizations_ = @import("optimizations.zig");
 const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const validation_state_ = @import("validation_state.zig");
@@ -194,19 +190,6 @@ pub const Symbol = struct {
         retval.validation_state = .unvalidated;
         retval.decld = false;
         return retval;
-    }
-
-    pub fn get_cfg(self: *Symbol, caller: ?*cfg_.CFG, interned_strings: *std.StringArrayHashMap(usize), errors: *errs_.Errors, allocator: std.mem.Allocator) !*cfg_.CFG {
-        std.debug.assert(self.kind == ._fn or self.kind == ._comptime);
-        std.debug.assert(self.validation_state == .valid);
-        if (self.cfg == null) {
-            self.cfg = try cfg_.CFG.init(self, caller, interned_strings, allocator);
-            try lower_.inject_cfg(self.cfg.?, errors, allocator);
-            try optimizations_.optimize(self.cfg.?, errors, allocator);
-            self.cfg.?.collect_generated_symbvers();
-            self.cfg.?.locals_size = offsets_.calculate_offsets(self);
-        }
-        return self.cfg.?;
     }
 
     pub fn assert_valid(self: *Symbol) *Symbol {
