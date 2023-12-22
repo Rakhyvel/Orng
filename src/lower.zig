@@ -3,7 +3,7 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
-const errs = @import("errors.zig");
+const errs_ = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
 const module_ = @import("module.zig");
@@ -29,7 +29,7 @@ pub fn lower_AST(
     cfg: *cfg_.CFG,
     ast: *ast_.AST,
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) FlattenASTError!?*lval_.L_Value {
     switch (ast.*) {
@@ -873,7 +873,7 @@ fn generate_assign(
     lhs: *ast_.AST, // AST node for the LHS of the `=`
     rhs: *lval_.L_Value, // L_Value which holds the value to assign
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) FlattenASTError!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
 {
@@ -910,7 +910,7 @@ fn generate_pattern(
     pattern: *ast_.AST,
     _type: *ast_.AST,
     def: *lval_.L_Value,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) FlattenASTError!void {
     if (pattern.* == .symbol) {
@@ -968,7 +968,7 @@ fn generate_control_flow_block(
     end_label: ?*ir_.IR,
     has_else: bool,
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !void {
     if (try lower_AST(cfg, ast, labels, errors, allocator)) |rhs_lval| {
@@ -992,7 +992,7 @@ fn generate_control_flow_else(
     end_label: *ir_.IR,
     span: span_.Span,
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !void {
     cfg.appendInstruction(else_label);
@@ -1017,7 +1017,7 @@ fn generate_match_pattern_checks(
     rhs_label_list: std.ArrayList(*ir_.IR),
     none_label: *ir_.IR,
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !void {
     for (mappings.items, 0..) |mapping, i| {
@@ -1040,7 +1040,7 @@ fn generate_match_pattern_check(
     expr: *lval_.L_Value,
     next_pattern: *ir_.IR,
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) FlattenASTError!void {
     if (pattern == null) {
@@ -1131,7 +1131,7 @@ fn generate_match_body(
     has_else: bool,
     end_label: *ir_.IR,
     labels: Labels,
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !void {
     for (mappings.items, 0..) |mapping, i| {
@@ -1146,7 +1146,7 @@ fn generate_match_body(
     }
 }
 
-fn generateDefers(cfg: *cfg_.CFG, defers: *std.ArrayList(*ast_.AST), deferLabels: *std.ArrayList(*ir_.IR), errors: *errs.Errors, allocator: std.mem.Allocator) FlattenASTError!void {
+fn generateDefers(cfg: *cfg_.CFG, defers: *std.ArrayList(*ast_.AST), deferLabels: *std.ArrayList(*ir_.IR), errors: *errs_.Errors, allocator: std.mem.Allocator) FlattenASTError!void {
     var i: usize = defers.items.len;
     while (i > 0) : (i -= 1) {
         cfg.appendInstruction(deferLabels.items[i - 1]);

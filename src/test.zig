@@ -1,20 +1,18 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
-const errs = @import("errors.zig");
+const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
-const primitives = @import("primitives.zig");
+const primitives_ = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const symbol = @import("symbol.zig");
-const term = @import("term.zig");
-
-const Module = module_.Module;
+const symbol_ = @import("symbol.zig");
+const term_ = @import("term.zig");
 
 const allocator = std.heap.page_allocator;
-const revert = term.Attr{};
+const revert = term_.Attr{};
 const out = std.io.getStdOut().writer();
-const succeed_color = term.Attr{ .fg = .green, .bold = true };
-const fail_color = term.Attr{ .fg = .red, .bold = true };
-const not_orng_color = term.Attr{ .fg = .blue, .bold = true };
+const succeed_color = term_.Attr{ .fg = .green, .bold = true };
+const fail_color = term_.Attr{ .fg = .red, .bold = true };
+const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
 const Test_File_Fn = @TypeOf(integrateTestFile);
 
@@ -51,12 +49,12 @@ const Results = struct { passed: usize, failed: usize };
 fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void {
     var args = old_args;
     if (!coverage) {
-        try term.outputColor(succeed_color, "[============]\n", out);
+        try term_.outputColor(succeed_color, "[============]\n", out);
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
     ast_.init_structures();
-    const prelude = primitives.get_scope();
+    const prelude = primitives_.get_scope();
     while (args.next()) |next| {
         const res = try test_file(next, prelude, coverage);
         if (res) {
@@ -67,7 +65,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     if (!coverage) {
-        try term.outputColor(succeed_color, "[============]\n", out);
+        try term_.outputColor(succeed_color, "[============]\n", out);
         try out.print("Passed tests: {}\n", .{results.passed});
         try out.print("Failed tests: {}\n", .{results.failed});
         if (results.failed > 0) {
@@ -76,7 +74,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 }
 
-fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
+fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -97,7 +95,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     try out_name.concat(".c");
 
     if (!coverage) {
-        try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
+        try term_.outputColor(succeed_color, "[ RUN    ... ] ", out);
         try out.print("{s}.orng\n", .{test_name[1..]});
     }
 
@@ -119,12 +117,12 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     const expectedOut = contents[3..untilNewline(contents)];
 
     // Try to compile Orng (make sure no errors)
-    var errors = errs.Errors.init(allocator);
+    var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
-    const module = Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             try errors.printErrors();
-            try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+            try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
             switch (err) {
                 error.lexerError,
                 error.parseError,
@@ -178,7 +176,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
         return false;
     };
     if (gcc_res.retcode != 0) {
-        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
         try out.print("C -> Executable.\n", .{});
         return false;
     }
@@ -186,22 +184,22 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: boo
     // execute (make sure no signals)
     const res = exec(&[_][]const u8{"./a.out"}) catch |e| {
         try out.print("{?}\n", .{e});
-        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
         try out.print("Execution interrupted!\n", .{});
         return false;
     };
     if (!std.mem.eql(u8, res.stdout, expectedOut)) {
-        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
         try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
         return false;
     }
 
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
-    try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+    try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
     return true;
 }
 
-fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool) !bool {
+fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -213,7 +211,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
     _ = test_name;
 
     if (!coverage) {
-        try term.outputColor(succeed_color, "[ RUN    ... ] ", out);
+        try term_.outputColor(succeed_color, "[ RUN    ... ] ", out);
         try out.print("{s}\n", .{filename});
     }
 
@@ -234,9 +232,9 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
     const contents = try contents_arraylist.toOwnedSlice();
 
     // Try to compile Orng (make sure no errors)
-    var errors = errs.Errors.init(allocator);
+    var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
-    _ = Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
+    _ = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.lexerError,
@@ -245,7 +243,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                 error.interpreter_panic,
                 => {
                     try errors.printErrors();
-                    try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+                    try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                     return true;
                 },
                 error.parseError => {
@@ -253,18 +251,18 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
                     defer str.deinit();
                     if (str.find("regression") != null) {
                         std.debug.print("{}\n", .{err});
-                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Regression tests should parse!\n", .{});
                         try errors.printErrors();
                         return false;
                     } else {
-                        try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+                        try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                         return true;
                     }
                 },
                 else => {
                     std.debug.print("{}\n", .{err});
-                    try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                    try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                     try out.print("Orng Compiler crashed unexpectedly!\n", .{});
                     std.debug.dumpCurrentStackTrace(128);
                     return false;
@@ -274,7 +272,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol.Scope, coverage: bool
             return false;
         }
     };
-    try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+    try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
     try out.print("Negative test compiled without error.\n", .{});
     return false;
 }
@@ -297,7 +295,7 @@ fn fuzzTests() !void {
     var failed: usize = 0;
     var i: usize = 0;
 
-    const prelude = primitives.get_scope();
+    const prelude = primitives_.get_scope();
 
     // Add lines to arraylist
     var start: usize = indexOf(contents, '"').? + 1;
@@ -319,12 +317,12 @@ fn fuzzTests() !void {
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
-            var errors = errs.Errors.init(allocator);
+            var errors = errs_.Errors.init(allocator);
             defer errors.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            const module = Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
+            const module = module_.Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
                 try errors.printErrors();
                 switch (err) {
                     error.lexerError,
@@ -332,19 +330,19 @@ fn fuzzTests() !void {
                     error.typeError,
                     => {
                         // passed += 1;
-                        // try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        // try term_.outputColor(succeed_color, "[ ... PASSED ] ", out);
                         // try out.print("Orng -> IR. {}\n", .{i});
                         continue;
                     },
                     error.parseError => {
                         failed += 1;
-                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
                         return;
                     },
                     else => {
                         failed += 1;
-                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Orng Compiler crashed!\n", .{});
                         return;
                     },
@@ -356,13 +354,13 @@ fn fuzzTests() !void {
                     error.NotAnLValue,
                     => {
                         // passed += 1;
-                        try term.outputColor(succeed_color, "[ ... PASSED ] ", out);
+                        try term_.outputColor(succeed_color, "[ ... PASSED ] ", out);
                         try out.print("Orng -> C. {}\n", .{i});
                         continue;
                     },
                     else => {
                         failed += 1;
-                        try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Orng Compiler crashed with input above!\n", .{});
                         return;
                     },
@@ -372,7 +370,7 @@ fn fuzzTests() !void {
             var should_continue: bool = false;
             for (errors.errors_list.items) |err| {
                 if (err == .expected2Token or err == .expectedBasicToken or err == .missing_close) {
-                    try term.outputColor(fail_color, "[ ... FAILED ] ", out);
+                    try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                     try out.print("Orng failed to parse the above correctly!\n", .{});
                     failed += 1;
                     should_continue = true;
@@ -382,7 +380,7 @@ fn fuzzTests() !void {
             if (should_continue) {
                 continue;
             }
-            try term.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+            try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
             // return;
         }

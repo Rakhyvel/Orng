@@ -1,168 +1,164 @@
-const ast = @import("ast.zig");
 const std = @import("std");
-const _symbol = @import("symbol.zig");
-const term = @import("term.zig");
-const token = @import("token.zig");
-
-const AST = ast.AST;
-const TokenKind = token.TokenKind;
-const Token = token.Token;
-const Span = @import("span.zig").Span;
+const ast_ = @import("ast.zig");
+const span_ = @import("span.zig");
+const symbol_ = @import("symbol.zig");
+const term_ = @import("term.zig");
+const token_ = @import("token.zig");
 
 pub const Error = union(enum) {
     // General errors
     basic: struct {
-        span: Span,
+        span: span_.Span,
         msg: []const u8,
     },
 
     // Lexer errors
     invalid_digit: struct {
-        span: Span,
+        span: span_.Span,
         digit: u8,
         base: []const u8,
     },
     invalid_escape: struct {
-        span: Span,
+        span: span_.Span,
         digit: u8,
     },
 
     // Parse errors
     expectedBasicToken: struct {
         expected: []const u8,
-        got: Token,
+        got: token_.Token,
     },
     expected2Token: struct {
-        expected: TokenKind,
-        got: Token,
+        expected: token_.TokenKind,
+        got: token_.Token,
     },
     missing_close: struct {
-        expected: TokenKind,
-        got: Token,
-        open: Token,
+        expected: token_.TokenKind,
+        got: token_.Token,
+        open: token_.Token,
     },
     comptime_known: struct {
-        span: Span,
+        span: span_.Span,
         what: []const u8, // what must be compile-time known?
     },
     unrecognized_builtin: struct {
-        span: Span,
+        span: span_.Span,
         what: []const u8, // what's unrecognized?
     },
 
     // Symbol
     redefinition: struct {
-        first_defined_span: Span,
-        redefined_span: Span,
+        first_defined_span: span_.Span,
+        redefined_span: span_.Span,
         name: []const u8,
     },
     symbol_error: struct {
-        span: Span,
-        context_span: ?Span,
+        span: span_.Span,
+        context_span: ?span_.Span,
         name: []const u8,
         problem: []const u8,
         context_message: []const u8,
     },
     discard_marked: struct {
-        span: Span,
-        kind: _symbol.SymbolKind,
+        span: span_.Span,
+        kind: symbol_.SymbolKind,
     },
 
     // Typecheck
     expected2Type: struct {
-        span: Span,
-        expected: *AST,
-        got: *AST,
+        span: span_.Span,
+        expected: *ast_.AST,
+        got: *ast_.AST,
     },
     expectedType: struct {
-        span: Span,
-        expected: *AST,
-        got: *AST,
+        span: span_.Span,
+        expected: *ast_.AST,
+        got: *ast_.AST,
     },
     expectedGotString: struct {
-        span: Span,
-        expected: *AST,
+        span: span_.Span,
+        expected: *ast_.AST,
         got: []const u8,
     },
     expectedBuiltinTypeclass: struct {
-        span: Span,
+        span: span_.Span,
         expected: []const u8, // name of the type class
-        got: *AST,
+        got: *ast_.AST,
     },
     sum_duplicate: struct {
-        span: Span,
+        span: span_.Span,
         identifier: []const u8,
-        first: Span,
+        first: span_.Span,
     },
     member_not_in: struct {
-        span: Span,
+        span: span_.Span,
         identifier: []const u8,
         group_name: []const u8,
     },
     undeclaredIdentifier: struct {
-        identifier: Token,
-        scope: *_symbol.Scope,
-        expected: ?*AST,
+        identifier: token_.Token,
+        scope: *symbol_.Scope,
+        expected: ?*ast_.AST,
     },
     comptime_access_runtime: struct {
-        identifier: Token,
+        identifier: token_.Token,
     },
     inner_fn_access_runtime: struct {
-        identifier: Token,
+        identifier: token_.Token,
     },
     useBeforeDef: struct {
-        identifier: Token,
-        symbol: *_symbol.Symbol,
+        identifier: token_.Token,
+        symbol: *symbol_.Symbol,
     },
     modifyImmutable: struct {
-        identifier: Token,
-        symbol: *_symbol.Symbol,
+        identifier: token_.Token,
+        symbol: *symbol_.Symbol,
     },
     notIndexable: struct {
-        span: Span,
-        _type: *AST,
+        span: span_.Span,
+        _type: *ast_.AST,
     },
     nonExhaustiveSum: struct {
-        span: Span,
-        forgotten: std.ArrayList(*AST),
+        span: span_.Span,
+        forgotten: std.ArrayList(*ast_.AST),
     },
     mismatchCallArity: struct {
-        span: Span,
+        span: span_.Span,
         takes: usize,
         given: usize,
     },
     mismatchTupleArity: struct {
-        span: Span,
+        span: span_.Span,
         takes: usize,
         given: usize,
     },
     no_default: struct {
-        span: Span,
-        _type: *AST,
+        span: span_.Span,
+        _type: *ast_.AST,
     },
 
     // Optimizer
     out_of_bounds: struct {
-        span: Span,
+        span: span_.Span,
         index: i128,
         length: usize,
     },
     negative_index: struct {
-        span: Span,
+        span: span_.Span,
         index: i128,
     },
     slice_lower_upper: struct {
-        span: Span,
+        span: span_.Span,
         lower: i128,
         upper: i128,
     },
     sum_select_inactive: struct {
-        span: Span,
+        span: span_.Span,
         active: []const u8,
         inactive: []const u8,
     },
 
-    pub fn getSpan(self: *const Error) ?Span {
+    pub fn getSpan(self: *const Error) ?span_.Span {
         switch (self.*) {
             .basic => return self.basic.span,
 
@@ -226,11 +222,11 @@ pub const Errors = struct {
 
     pub fn printErrors(self: *Errors) !void {
         for (self.errors_list.items) |err| {
-            try (term.Attr{ .bold = true }).dump(out);
+            try (term_.Attr{ .bold = true }).dump(out);
             try printPrelude(err.getSpan());
-            try (term.Attr{ .bold = true }).dump(out);
+            try (term_.Attr{ .bold = true }).dump(out);
             try print_main_error(err, self.allocator);
-            try (term.Attr{ .bold = false }).dump(out);
+            try (term_.Attr{ .bold = false }).dump(out);
             try printEpilude(err.getSpan());
             try print_extra_info(err);
         }
@@ -276,7 +272,7 @@ pub const Errors = struct {
                 try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem });
             },
             .discard_marked => {
-                try out.print("discarded symbol marked as `{s}`\n", .{_symbol.SymbolKind.to_string(err.discard_marked.kind)});
+                try out.print("discarded symbol marked as `{s}`\n", .{symbol_.SymbolKind.to_string(err.discard_marked.kind)});
             },
 
             // Typecheck
@@ -401,55 +397,55 @@ pub const Errors = struct {
     fn print_extra_info(err: Error) !void {
         switch (err) {
             .missing_close => {
-                try (term.Attr{ .bold = true }).dump(out);
+                try (term_.Attr{ .bold = true }).dump(out);
                 try print_note_prelude(err.missing_close.open.span);
-                try (term.Attr{ .bold = true }).dump(out);
+                try (term_.Attr{ .bold = true }).dump(out);
                 try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
-                try (term.Attr{ .bold = false }).dump(out);
+                try (term_.Attr{ .bold = false }).dump(out);
                 try printEpilude(err.missing_close.open.span);
             },
             .comptime_known => {
-                try (term.Attr{ .bold = true }).dump(out);
+                try (term_.Attr{ .bold = true }).dump(out);
                 try print_note_prelude(err.comptime_known.span);
-                try (term.Attr{ .bold = true }).dump(out);
+                try (term_.Attr{ .bold = true }).dump(out);
                 try out.print("consider wrapping with `comptime`\n", .{});
-                try (term.Attr{ .bold = false }).dump(out);
+                try (term_.Attr{ .bold = false }).dump(out);
             },
             .redefinition => {
                 if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
-                    try (term.Attr{ .bold = true }).dump(out);
+                    try (term_.Attr{ .bold = true }).dump(out);
                     try print_note_prelude(err.redefinition.first_defined_span);
-                    try (term.Attr{ .bold = true }).dump(out);
+                    try (term_.Attr{ .bold = true }).dump(out);
                     try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
-                    try (term.Attr{ .bold = false }).dump(out);
+                    try (term_.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.redefinition.first_defined_span);
                 }
             },
             .symbol_error => {
                 if (err.symbol_error.context_span != null) {
-                    try (term.Attr{ .bold = true }).dump(out);
+                    try (term_.Attr{ .bold = true }).dump(out);
                     try print_note_prelude(err.symbol_error.context_span.?);
-                    try (term.Attr{ .bold = true }).dump(out);
+                    try (term_.Attr{ .bold = true }).dump(out);
                     try out.print("{s}\n", .{err.symbol_error.context_message});
-                    try (term.Attr{ .bold = false }).dump(out);
+                    try (term_.Attr{ .bold = false }).dump(out);
                     try printEpilude(err.symbol_error.context_span.?);
                 }
             },
             .sum_duplicate => {
-                try (term.Attr{ .bold = true }).dump(out);
+                try (term_.Attr{ .bold = true }).dump(out);
                 try print_note_prelude(err.sum_duplicate.first);
-                try (term.Attr{ .bold = true }).dump(out);
+                try (term_.Attr{ .bold = true }).dump(out);
                 try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
-                try (term.Attr{ .bold = false }).dump(out);
+                try (term_.Attr{ .bold = false }).dump(out);
                 try printEpilude(err.sum_duplicate.first);
             },
             .nonExhaustiveSum => {
                 for (err.nonExhaustiveSum.forgotten.items) |_type| {
-                    try (term.Attr{ .bold = true }).dump(out);
+                    try (term_.Attr{ .bold = true }).dump(out);
                     try print_note_prelude(_type.getToken().span);
-                    try (term.Attr{ .bold = true }).dump(out);
+                    try (term_.Attr{ .bold = true }).dump(out);
                     try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.getToken().data});
-                    try (term.Attr{ .bold = false }).dump(out);
+                    try (term_.Attr{ .bold = false }).dump(out);
                     try printEpilude(_type.getToken().span);
                 }
             },
@@ -457,7 +453,7 @@ pub const Errors = struct {
         }
     }
 
-    fn printPrelude(maybe_span: ?Span) !void {
+    fn printPrelude(maybe_span: ?span_.Span) !void {
         if (maybe_span) |span| {
             if (span.line > 0 and span.col > 0) {
                 try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
@@ -465,17 +461,17 @@ pub const Errors = struct {
                 try out.print("{s}: ", .{span.filename});
             }
         }
-        try term.outputColor(term.Attr{ .fg = .red, .bold = true }, "error: ", out);
+        try term_.outputColor(term_.Attr{ .fg = .red, .bold = true }, "error: ", out);
     }
 
-    fn print_note_prelude(maybe_span: ?Span) !void {
+    fn print_note_prelude(maybe_span: ?span_.Span) !void {
         if (maybe_span) |span| {
             try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
         }
-        try term.outputColor(term.Attr{ .fg = .cyan, .bold = true }, "note: ", out);
+        try term_.outputColor(term_.Attr{ .fg = .cyan, .bold = true }, "note: ", out);
     }
 
-    fn printEpilude(maybe_span: ?Span) !void {
+    fn printEpilude(maybe_span: ?span_.Span) !void {
         if (maybe_span) |old_span| {
             const span = old_span;
             if (span.line == 0) {
@@ -487,7 +483,7 @@ pub const Errors = struct {
             while (i < span.col) : (i += 1) {
                 try out.print(" ", .{});
             }
-            try term.outputColor(term.Attr{ .fg = .green, .bold = true }, "^\n", out);
+            try term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", out);
         }
     }
 };

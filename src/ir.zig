@@ -2,7 +2,7 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
-const errs = @import("errors.zig");
+const errs_ = @import("errors.zig");
 const lval_ = @import("lval.zig");
 const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
@@ -604,31 +604,31 @@ pub const Data = union(enum) {
         }
     }
 
-    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs.Errors) !Data {
+    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data {
         return Data{
             .int = if (std.math.add(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
-                errors.addError(errs.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
+                errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
                 return error.typeError; // TODO: Shouldn't be `typeError`...
             },
         };
     }
 
-    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs.Errors) !Data {
+    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data {
         return Data{
             .int = if (std.math.sub(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
-                errors.addError(errs.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
+                errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
                 return error.typeError; // TODO: Shouldn't be `typeError`...
             },
         };
     }
 
-    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs.Errors) !Data {
+    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data {
         return Data{
             .int = if (std.math.mul(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
-                errors.addError(errs.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
+                errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
                 return error.typeError; // TODO: Shouldn't be `typeError`...
             },
         };

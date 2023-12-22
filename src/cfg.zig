@@ -205,74 +205,73 @@ pub const CFG = struct {
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
             return in_block;
-        } else {
-            var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(self, allocator);
-            retval.ir_head = maybe_ir;
-            var _maybe_ir = maybe_ir;
-            while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
-                ir.in_block = retval;
-
-                if (ir.dest != null and ir.dest.?.* == .symbver) {
-                    ir.dest.?.symbver.makeUnique();
-                }
-
-                if (ir.kind == .label) {
-                    // If you find a label declaration, end this block and jump to new block
-                    retval.has_branch = false;
-                    retval.next = self.basicBlockFromIR(ir.next, allocator);
-                    if (ir.next) |_| {
-                        ir.next.?.prev = null;
-                        ir.next = null;
-                    }
-                    break;
-                } else if (ir.kind == .jump) {
-                    // If you find a jump, end this block and start new block
-                    retval.has_branch = false;
-                    if (ir.data == .branch) {
-                        if (ir.data.branch) |branch| {
-                            retval.next = self.basicBlockFromIR(branch.next, allocator);
-                        } else {
-                            retval.next = self.basicBlockFromIR(null, allocator);
-                        }
-                    } else {
-                        retval.next = null;
-                    }
-                    if (ir.next) |_| {
-                        ir.next.?.prev = null;
-                        ir.next = null;
-                    }
-                    break;
-                } else if (ir.kind == .panic) {
-                    // If you find a panic, end this block with null jump and start new block
-                    retval.has_branch = false;
-                    retval.next = null;
-                    retval.has_panic = true;
-                    if (ir.next != null and ir.next.?.next != null) {
-                        ir.next.?.next.?.prev = null;
-                        ir.next.?.next = null;
-                    }
-                    break;
-                } else if (ir.kind == .branchIfFalse) {
-                    // If you find a branch, end this block, start both blocks
-                    retval.has_branch = true;
-                    var branchNext: ?*ir_.IR = null; // = ir.data.branch.next; // Since ir->branch->next may get nullifued by calling this function on ir->next
-                    if (ir.data.branch) |branch| {
-                        branchNext = branch.next;
-                    } else {
-                        branchNext = null;
-                    }
-                    retval.next = self.basicBlockFromIR(ir.next, allocator);
-                    retval.branch = self.basicBlockFromIR(branchNext, allocator);
-                    retval.condition = ir.src1;
-                    if (ir.next) |_| {
-                        ir.next.?.prev = null;
-                        ir.next = null;
-                    }
-                    break;
-                }
-            }
-            return retval;
         }
+        var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(self, allocator);
+        retval.ir_head = maybe_ir;
+        var _maybe_ir = maybe_ir;
+        while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
+            ir.in_block = retval;
+
+            if (ir.dest != null and ir.dest.?.* == .symbver) {
+                ir.dest.?.symbver.makeUnique();
+            }
+
+            if (ir.kind == .label) {
+                // If you find a label declaration, end this block and jump to new block
+                retval.has_branch = false;
+                retval.next = self.basicBlockFromIR(ir.next, allocator);
+                if (ir.next) |_| {
+                    ir.next.?.prev = null;
+                    ir.next = null;
+                }
+                break;
+            } else if (ir.kind == .jump) {
+                // If you find a jump, end this block and start new block
+                retval.has_branch = false;
+                if (ir.data == .branch) {
+                    if (ir.data.branch) |branch| {
+                        retval.next = self.basicBlockFromIR(branch.next, allocator);
+                    } else {
+                        retval.next = self.basicBlockFromIR(null, allocator);
+                    }
+                } else {
+                    retval.next = null;
+                }
+                if (ir.next) |_| {
+                    ir.next.?.prev = null;
+                    ir.next = null;
+                }
+                break;
+            } else if (ir.kind == .panic) {
+                // If you find a panic, end this block with null jump and start new block
+                retval.has_branch = false;
+                retval.next = null;
+                retval.has_panic = true;
+                if (ir.next != null and ir.next.?.next != null) {
+                    ir.next.?.next.?.prev = null;
+                    ir.next.?.next = null;
+                }
+                break;
+            } else if (ir.kind == .branchIfFalse) {
+                // If you find a branch, end this block, start both blocks
+                retval.has_branch = true;
+                var branchNext: ?*ir_.IR = null; // = ir.data.branch.next; // Since ir->branch->next may get nullifued by calling this function on ir->next
+                if (ir.data.branch) |branch| {
+                    branchNext = branch.next;
+                } else {
+                    branchNext = null;
+                }
+                retval.next = self.basicBlockFromIR(ir.next, allocator);
+                retval.branch = self.basicBlockFromIR(branchNext, allocator);
+                retval.condition = ir.src1;
+                if (ir.next) |_| {
+                    ir.next.?.prev = null;
+                    ir.next = null;
+                }
+                break;
+            }
+        }
+        return retval;
     }
 
     fn removeBasicBlockLastInstruction(cfg: *CFG) void {

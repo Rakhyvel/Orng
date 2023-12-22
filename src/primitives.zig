@@ -1,46 +1,40 @@
-// packages
 const std = @import("std");
-// modules
-const ast = @import("ast.zig");
-const _symbol = @import("symbol.zig");
-// types
-const AST = ast.AST;
-const Scope = _symbol.Scope;
-const Span = @import("span.zig").Span;
-const Symbol = _symbol.Symbol;
-const Token = @import("token.zig").Token;
+const ast_ = @import("ast.zig");
+const span_ = @import("span.zig");
+const symbol_ = @import("symbol.zig");
+const token_ = @import("token.zig");
 
-pub var bool_type: *AST = undefined;
-pub var byte_type: *AST = undefined;
-pub var byte_slice_type: *AST = undefined;
-pub var char_type: *AST = undefined;
-pub var float_type: *AST = undefined;
-pub var float32_type: *AST = undefined;
-pub var float64_type: *AST = undefined;
-pub var int_type: *AST = undefined;
-pub var int8_type: *AST = undefined;
-pub var int16_type: *AST = undefined;
-pub var int32_type: *AST = undefined;
-pub var int64_type: *AST = undefined;
-pub var string_type: *AST = undefined;
-pub var type_type: *AST = undefined;
-pub var unit_type: *AST = undefined;
-pub var void_type: *AST = undefined;
-pub var word16_type: *AST = undefined;
-pub var word32_type: *AST = undefined;
-pub var word64_type: *AST = undefined;
+pub var bool_type: *ast_.AST = undefined;
+pub var byte_type: *ast_.AST = undefined;
+pub var byte_slice_type: *ast_.AST = undefined;
+pub var char_type: *ast_.AST = undefined;
+pub var float_type: *ast_.AST = undefined;
+pub var float32_type: *ast_.AST = undefined;
+pub var float64_type: *ast_.AST = undefined;
+pub var int_type: *ast_.AST = undefined;
+pub var int8_type: *ast_.AST = undefined;
+pub var int16_type: *ast_.AST = undefined;
+pub var int32_type: *ast_.AST = undefined;
+pub var int64_type: *ast_.AST = undefined;
+pub var string_type: *ast_.AST = undefined;
+pub var type_type: *ast_.AST = undefined;
+pub var unit_type: *ast_.AST = undefined;
+pub var void_type: *ast_.AST = undefined;
+pub var word16_type: *ast_.AST = undefined;
+pub var word32_type: *ast_.AST = undefined;
+pub var word64_type: *ast_.AST = undefined;
 
-pub var blackhole: *Symbol = undefined;
+pub var blackhole: *symbol_.Symbol = undefined;
 
 pub const Primitive_Info = struct {
     name: []const u8,
     c_name: []const u8,
     bounds: ?Bounds,
-    ast: *AST,
-    symbol: *Symbol,
+    ast: *ast_.AST,
+    symbol: *symbol_.Symbol,
     type_class: Type_Class,
     type_kind: Type_Kind,
-    default_value: ?*AST,
+    default_value: ?*ast_.AST,
     size: i64,
 
     pub fn is_eq(self: Primitive_Info) bool {
@@ -85,8 +79,8 @@ pub const Type_Kind = enum {
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
 
 // The prelude should only be created once per compilation. _ALL_ packages and modules are within this one prelude scope.
-var prelude: ?*Scope = null;
-pub fn get_scope() *Scope {
+var prelude: ?*symbol_.Scope = null;
+pub fn get_scope() *symbol_.Scope {
     if (prelude == null) {
         // Create ASTs for primitives
         bool_type = create_identifier("Bool");
@@ -108,10 +102,10 @@ pub fn get_scope() *Scope {
         word32_type = create_identifier("Word32");
         word64_type = create_identifier("Word64");
         // Slice types must be AFTER int_type
-        byte_slice_type = AST.create_slice_type(byte_type, false, std.heap.page_allocator).assert_valid();
+        byte_slice_type = ast_.AST.create_slice_type(byte_type, false, std.heap.page_allocator).assert_valid();
 
         // Create prelude scope
-        prelude = Scope.init(null, "", std.heap.page_allocator);
+        prelude = symbol_.Scope.init(null, "", std.heap.page_allocator);
 
         // Create Symbols for primitives
         _ = create_prelude_symbol("String", type_type, byte_slice_type);
@@ -120,19 +114,19 @@ pub fn get_scope() *Scope {
         blackhole = create_prelude_symbol("_", unit_type, unit_type);
 
         // Setup default values
-        const default_bool = AST.createFalse(Token.init_simple("false"), std.heap.page_allocator);
-        const default_char = AST.createChar(Token.init_simple("'\\\\0'"), std.heap.page_allocator);
-        const default_float32 = AST.createFloat(Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_float64 = AST.createFloat(Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_int8 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_int16 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_int32 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_int64 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word8 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word16 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word32 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word64 = AST.createInt(Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_string = AST.createString(Token.init_simple("\"\""), "", std.heap.page_allocator);
+        const default_bool = ast_.AST.createFalse(token_.Token.init_simple("false"), std.heap.page_allocator);
+        const default_char = ast_.AST.createChar(token_.Token.init_simple("'\\\\0'"), std.heap.page_allocator);
+        const default_float32 = ast_.AST.createFloat(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_float64 = ast_.AST.createFloat(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_int8 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int16 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int32 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int64 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word8 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word16 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word32 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word64 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_string = ast_.AST.createString(token_.Token.init_simple("\"\""), "", std.heap.page_allocator);
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
@@ -170,23 +164,23 @@ pub fn get_scope() *Scope {
     return prelude.?;
 }
 
-fn create_identifier(name: []const u8) *AST {
-    return AST.createIdentifier(Token.init_simple(name), std.heap.page_allocator).assert_valid();
+fn create_identifier(name: []const u8) *ast_.AST {
+    return ast_.AST.createIdentifier(token_.Token.init_simple(name), std.heap.page_allocator).assert_valid();
 }
 
-fn create_unit_type() *AST {
-    return AST.createUnitType(Token.init_simple("("), std.heap.page_allocator).assert_valid();
+fn create_unit_type() *ast_.AST {
+    return ast_.AST.createUnitType(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
 }
 
 fn create_info(
     name: []const u8, // Name of the primitive type identifier
     bounds: ?Bounds, // Optional bounds info for integral types
     c_name: []const u8, // Name to use when generating the primitive to C
-    _ast: *AST, // The AST representation of the type
-    alias: ?*AST, // Optional alias for primitive (TODO: Aliases aren't actually supported... this is a new type!)
+    _ast: *ast_.AST, // The AST representation of the type
+    alias: ?*ast_.AST, // Optional alias for primitive (TODO: Aliases aren't actually supported... this is a new type!)
     type_class: Type_Class, // Typeclass this primitive belongs to
     type_kind: Type_Kind, // What kind of type this type is
-    default_value: ?*AST, // Optional AST of default value for the primitive
+    default_value: ?*ast_.AST, // Optional AST of default value for the primitive
     size: i64, // Size of values of the type in bytes
 ) void {
     const symbol = create_prelude_symbol(name, type_type, alias orelse _ast);
@@ -204,11 +198,11 @@ fn create_info(
     }) catch unreachable;
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *AST, init: *AST) *Symbol {
-    var symbol = Symbol.init(
+fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *symbol_.Symbol {
+    var symbol = symbol_.Symbol.init(
         prelude.?,
         name,
-        Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
+        span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
         _type,
         init,
         null,
@@ -229,7 +223,7 @@ pub fn get(name: []const u8) Primitive_Info {
     return primitives.get(name).?;
 }
 
-pub fn get_bounds(_type: *AST) Bounds {
+pub fn get_bounds(_type: *ast_.AST) Bounds {
     // _type is expanded
     switch (_type.*) {
         .identifier => {
@@ -246,7 +240,7 @@ pub fn get_bounds(_type: *AST) Bounds {
     }
 }
 
-pub fn from_ast(_type: *AST) Primitive_Info {
+pub fn from_ast(_type: *ast_.AST) Primitive_Info {
     std.debug.assert(_type.* == .identifier);
     return primitives.get(_type.getToken().data) orelse {
         std.debug.print("compiler error: `{s}` is not a primitive\n", .{_type.getToken().data});
@@ -254,7 +248,7 @@ pub fn from_ast(_type: *AST) Primitive_Info {
     };
 }
 
-pub fn represents_signed_primitive(_type: *AST) bool {
+pub fn represents_signed_primitive(_type: *ast_.AST) bool {
     if (_type.* != .identifier) {
         return false;
     }

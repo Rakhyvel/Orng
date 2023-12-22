@@ -2,17 +2,17 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
-const codegen = @import("codegen.zig");
+const codegen_ = @import("codegen.zig");
 const decorate_ = @import("decorate.zig");
-const errs = @import("errors.zig");
-const ir_ = @import("ir.zig");
-const layout = @import("layout.zig");
-const lexer = @import("lexer.zig");
-const Parser = @import("parser.zig").Parser;
+const errs_ = @import("errors.zig");
 const expand_ = @import("expand.zig");
+const ir_ = @import("ir.zig");
+const layout_ = @import("layout.zig");
+const lexer_ = @import("lexer.zig");
+const parser_ = @import("parser.zig");
+const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 const symbol_tree_ = @import("symbol-tree.zig");
-const Span = @import("span.zig").Span;
 const type_set_ = @import("type-set.zig");
 const validate_ = @import("validate.zig");
 
@@ -61,7 +61,7 @@ pub const Module = struct {
         in_name: []const u8,
         prelude: *symbol_.Scope,
         fuzz_tokens: bool,
-        errors: *errs.Errors,
+        errors: *errs_.Errors,
         allocator: std.mem.Allocator,
     ) !*Module {
         // Construct the name
@@ -72,11 +72,11 @@ pub const Module = struct {
         // Tokenize, and also append lines to the list of lines
         var lines = std.ArrayList([]const u8).init(allocator);
         defer lines.deinit();
-        try lexer.getLines(contents, &lines, errors);
-        var tokens = try lexer.getTokens(&lines, in_name, errors, fuzz_tokens, allocator);
+        try lexer_.getLines(contents, &lines, errors);
+        var tokens = try lexer_.getTokens(&lines, in_name, errors, fuzz_tokens, allocator);
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
-        if (false and fuzz_tokens) { // print tokens before layout
+        if (false and fuzz_tokens) { // print tokens before layout_
             for (tokens.items) |token| {
                 std.debug.print("{s} ", .{token.data});
             }
@@ -85,10 +85,10 @@ pub const Module = struct {
 
         // Layout
         if (!fuzz_tokens) {
-            layout.doLayout(&tokens);
+            layout_.doLayout(&tokens);
         }
 
-        if (false) { // Print out tokens after layout
+        if (false) { // Print out tokens after layout_
             var indent: usize = 0;
             for (0..tokens.items.len - 1) |j| {
                 var token = tokens.items[j];
@@ -112,7 +112,7 @@ pub const Module = struct {
 
         // Parse, expand AST
         ast_.init_structures();
-        var parser = Parser.init(&tokens, errors, allocator);
+        var parser = parser_.Parser.init(&tokens, errors, allocator);
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, errors, allocator);
 
@@ -199,7 +199,7 @@ pub const Module = struct {
         };
         defer output_file.close();
 
-        try codegen.generate(self, output_file.writer());
+        try codegen_.generate(self, output_file.writer());
     }
 
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.
@@ -246,7 +246,7 @@ pub const Module = struct {
             }
 
             bb.offset = @as(i64, @intCast(self.instructions.items.len));
-            var label = ir_.IR.initLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
+            var label = ir_.IR.initLabel(cfg, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
@@ -262,26 +262,26 @@ pub const Module = struct {
                 if (bb.branch) |branch| {
                     work_queue.append(branch) catch unreachable;
                 }
-                self.instructions.append(ir_.IR.init_branch_addr(bb.condition.?, bb.next, bb.branch, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+                self.instructions.append(ir_.IR.init_branch_addr(bb.condition.?, bb.next, bb.branch, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
             } else {
                 if (bb.next) |next| {
                     work_queue.append(next) catch unreachable;
                 }
-                self.instructions.append(ir_.IR.init_jump_addr(bb.next, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+                self.instructions.append(ir_.IR.init_jump_addr(bb.next, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
             }
         }
         return first_bb.offset.?;
     }
 
     /// This function inserts a label and a return instruction. It is needed for functions which do not have
-    /// instructions. The label is needed so that codegen can know there is a new function, and the return
+    /// instructions. The label is needed so that codegen_ can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
     fn append_phony_block(self: *Module, cfg: *cfg_.CFG) i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        self.instructions.append(ir_.IR.initLabel(cfg, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+        self.instructions.append(ir_.IR.initLabel(cfg, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
         // Append a return instruction (a jump to null)
-        self.instructions.append(ir_.IR.init_jump_addr(null, Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+        self.instructions.append(ir_.IR.init_jump_addr(null, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
         return offset;
     }
 

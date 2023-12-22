@@ -1,11 +1,9 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
-const errs = @import("errors.zig");
-const primitives = @import("primitives.zig");
+const errs_ = @import("errors.zig");
+const primitives_ = @import("primitives.zig");
 const module_ = @import("module.zig");
-const Module = module_.Module;
-const Span = @import("span.zig");
-const symbol = @import("symbol.zig");
+const symbol_ = @import("symbol.zig");
 
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
@@ -36,12 +34,12 @@ pub fn main() !void {
         }
     }
 
-    var errors = errs.Errors.init(allocator);
+    var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
 
-    // MUST init ast before primitives
+    // MUST init ast before primitives_
     ast_.init_structures();
-    const prelude = primitives.get_scope();
+    const prelude = primitives_.get_scope();
 
     if (fuzz_tokens) {
         compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator) catch {};
@@ -52,10 +50,10 @@ pub fn main() !void {
 
 /// Compiles and outputs a file
 pub fn compile(
-    errors: *errs.Errors,
+    errors: *errs_.Errors,
     in_name: []const u8,
     out_name: []const u8,
-    prelude: *symbol.Scope,
+    prelude: *symbol_.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
 ) !void {
@@ -75,7 +73,7 @@ pub fn compile(
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     const contents = try contents_arraylist.toOwnedSlice();
 
-    const module = Module.compile(contents, in_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, in_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
         switch (err) {
             error.lexerError,
             error.parseError,

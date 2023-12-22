@@ -1,13 +1,11 @@
-const Span = @import("span.zig").Span;
-const String = @import("zig-string/zig-string.zig").String;
-const _token = @import("token.zig");
-const Token = _token.Token;
-const TokenKind = _token.TokenKind;
 const std = @import("std");
+const span_ = @import("span.zig");
+const String = @import("zig-string/zig-string.zig").String;
+const token_ = @import("token.zig");
 
 const PRINT_TOKENS = false;
 
-pub fn doLayout(tokens: *std.ArrayList(Token)) void {
+pub fn doLayout(tokens: *std.ArrayList(token_.Token)) void {
     strip_comments(tokens);
     combine_multilines(tokens);
     trailing_comma_rules(tokens);
@@ -15,7 +13,7 @@ pub fn doLayout(tokens: *std.ArrayList(Token)) void {
 }
 
 /// Removes comment tokens from token stream. This should be disabled for documentation generation.
-fn strip_comments(tokens: *std.ArrayList(Token)) void {
+fn strip_comments(tokens: *std.ArrayList(token_.Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
         const token = tokens.items[i];
@@ -36,11 +34,11 @@ fn strip_comments(tokens: *std.ArrayList(Token)) void {
     }
 }
 
-fn combine_multilines(tokens: *std.ArrayList(Token)) void {
+fn combine_multilines(tokens: *std.ArrayList(token_.Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len) : (i += 1) {
         var out: ?String = null;
-        var span: ?Span = null;
+        var span: ?span_.Span = null;
         while (i < tokens.items.len and tokens.items[i].kind == .MULTI_LINE) : (i += 1) {
             if (out == null) {
                 out = String.init(std.heap.page_allocator);
@@ -49,13 +47,13 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) void {
                 // out was not null => there must have been a multiline before this one => insert newline
                 out.?.insert("\n", out.?.len()) catch unreachable;
             }
-            const multiline: Token = tokens.orderedRemove(i); // Remove multiline
+            const multiline: token_.Token = tokens.orderedRemove(i); // Remove multiline
             _ = tokens.orderedRemove(i); // Remove newline (do not compensate)
             i -= 1; // Compensate for removed multiline
             out.?.insert(multiline.data, out.?.len()) catch unreachable; // Append data to out
         }
         if (out != null) {
-            const token = Token.init((out.?.toOwned() catch unreachable).?, .MULTI_LINE, span.?.filename, span.?.line_text, span.?.line, span.?.col);
+            const token = token_.Token.init((out.?.toOwned() catch unreachable).?, .MULTI_LINE, span.?.filename, span.?.line_text, span.?.line, span.?.col);
             tokens.insert(i, token) catch unreachable;
         }
     }
@@ -81,7 +79,7 @@ fn combine_multilines(tokens: *std.ArrayList(Token)) void {
 ///     6. jump keyword ('unreachable', 'break', 'continue', or 'return')
 ///     7. closing delimeters (`)`, `]`, or `}`)
 ///     8. postfix operators (`^`)
-fn trailing_comma_rules(tokens: *std.ArrayList(Token)) void {
+fn trailing_comma_rules(tokens: *std.ArrayList(token_.Token)) void {
     if (tokens.items.len < 4) {
         return;
     }
@@ -111,8 +109,8 @@ fn trailing_comma_rules(tokens: *std.ArrayList(Token)) void {
 ///     7. closing delimiters (`)`, `]`, or `}`)
 ///     8. postfix operators (`^`)
 /// Otherwise, the newline token is removed.
-fn newline_rules(tokens: *std.ArrayList(Token)) void {
-    var stack = std.ArrayList(TokenKind).init(tokens.allocator);
+fn newline_rules(tokens: *std.ArrayList(token_.Token)) void {
+    var stack = std.ArrayList(token_.TokenKind).init(tokens.allocator);
     defer stack.deinit();
 
     var i: usize = 0;

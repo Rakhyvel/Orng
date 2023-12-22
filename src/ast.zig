@@ -191,23 +191,6 @@ pub const AST = union(enum) {
         common: ASTCommon,
         terms: std.ArrayList(*AST),
 
-        pub fn add_term(self: *@This(), addend: *AST, errors: *errs_.Errors) !void {
-            std.debug.assert(addend.* == .annotation);
-            for (self.terms.items) |term| {
-                if (std.mem.eql(u8, term.annotation.pattern.getToken().data, addend.annotation.pattern.getToken().data)) {
-                    if (!term.annotation.type.typesMatch(term)) {
-                        errors.addError(errs_.Error{ .sum_duplicate = .{ .span = self.common.token.span, .identifier = term.annotation.pattern.getToken().data, .first = term.getToken().span } });
-                        return error.typeError;
-                    } else {
-                        // Duplicate found, types match. OK!
-                        return;
-                    }
-                }
-            }
-            // No duplicate found, add to inferred error set
-            self.terms.append(addend) catch unreachable;
-        }
-
         pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
             for (self.terms.items, 0..) |term, i| {
                 if (std.mem.eql(u8, term.annotation.pattern.getToken().data, field_name)) {
@@ -491,10 +474,7 @@ pub const AST = union(enum) {
             .sum => {
                 var max_size: i64 = 0;
                 for (self.sum.terms.items) |child| {
-                    const child_size = child.sizeof();
-                    if (max_size < child_size) {
-                        max_size = child_size;
-                    }
+                    max_size = @max(max_size, child.sizeof());
                 }
                 return offset_.next_alignment(max_size, 8) + 8;
             },
@@ -530,10 +510,7 @@ pub const AST = union(enum) {
             .product => {
                 var max_align: i64 = 0;
                 for (self.product.terms.items) |child| {
-                    const child_align = child.alignof();
-                    if (max_align < child_align) {
-                        max_align = child_align;
-                    }
+                    max_align = @max(max_align, child.alignof());
                 }
                 return max_align;
             },
@@ -567,9 +544,6 @@ pub const AST = union(enum) {
     }
 
     pub fn createInt(token: tokens_.Token, data: i128, allocator: std.mem.Allocator) *AST {
-        if (data == 1482163968) {
-            unreachable;
-        }
         return AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives_.int_type } }, allocator);
     }
 
@@ -1118,14 +1092,15 @@ pub const AST = union(enum) {
             } else if (self.product.was_slice) {
                 try out.print("[]", .{});
                 try self.product.terms.items[0].printType(out);
+            } else if (self.product.terms.items.len == 0) {
+                try out.print("()", .{});
             } else {
                 try out.print("(", .{});
-                for (self.product.terms.items, 0..) |term, i| {
+                for (self.product.terms.items, 0..self.product.terms.items.len) |term, _| {
                     try term.printType(out);
-                    if (i + 1 != self.product.terms.items.len) {
-                        try out.print(", ", .{});
-                    }
+                    try out.print(", ", .{});
                 }
+                try self.product.terms.items[self.product.terms.items.len - 1].printType(out);
                 try out.print(")", .{});
             },
             .sum => if (self.sum.was_optional) {

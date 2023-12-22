@@ -1,10 +1,7 @@
-const token_ = @import("token.zig");
-const Token = token_.Token;
-const span = @import("span.zig");
-const Span = span.Span;
 const std = @import("std");
-const errs = @import("errors.zig");
-const Error = errs.Error;
+const errs_ = @import("errors.zig");
+const span_ = @import("span.zig");
+const token_ = @import("token.zig");
 
 const LexerErrors = error{lexerError};
 const RndGen = std.rand.DefaultPrng;
@@ -13,11 +10,11 @@ var rnd = RndGen.init(0);
 // Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
 // However, we couldn't print out the line for the error if we did tokens and lines at the same time
 // It's desirable to print the line, therefore lines must be done before tokens
-pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs.Errors) !void {
+pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void {
     var start: usize = 0;
     var end: usize = 1;
     if (contents.len == 0) {
-        errors.addError(errs.Error{ .basic = .{ .span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "file is empty" } });
+        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, .msg = "file is empty" } });
         return error.lexerError;
     }
     while (end < contents.len) : (end += 1) {
@@ -66,8 +63,8 @@ const LexState = enum {
 };
 
 /// Will always end in an EOF on the first column of the next line
-pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors: *errs.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(Token) {
-    var tokens = std.ArrayList(Token).init(allocator);
+pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors: *errs_.Errors, fuzz_tokens: bool, allocator: std.mem.Allocator) !std.ArrayList(token_.Token) {
+    var tokens = std.ArrayList(token_.Token).init(allocator);
     var line: usize = 0;
     var col: usize = 1;
 
@@ -129,7 +126,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                 .underscore => { // _ A-Z a-z 0-9 $
                     if (next_char == '_') {
                         // => error on _
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .msg = "may not have more than one underscore in a row in an identifier" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .msg = "may not have more than one underscore in a row in an identifier" } });
                         return LexerErrors.lexerError;
                     } else if (std.ascii.isUpper(next_char) or std.ascii.isDigit(next_char)) {
                         // => all caps on [A-Z0-9]
@@ -143,7 +140,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         state = .uncapitalized;
                     } else {
                         // => error on $
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "identifiers may not end in an underscore" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "identifiers may not end in an underscore" } });
                         return LexerErrors.lexerError;
                     }
                 },
@@ -157,7 +154,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                     } else if (std.ascii.isLower(next_char)) {
                         if (ix - slice_start > 1 and contents[ix - 2] != '_') {
                             // => error on $ if length is too long
-                            errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "camelCase is not supported; consider spliting with an underscore" } });
+                            errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "camelCase is not supported; consider spliting with an underscore" } });
                             return LexerErrors.lexerError;
                         } else {
                             // => capitalized on a-z
@@ -167,7 +164,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         }
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
-                        tokens.append(Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -185,11 +182,11 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         state = .underscore;
                     } else if (std.ascii.isUpper(next_char)) {
                         // => error on [A-Z]
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "camelCase is not supported; consider spliting with an underscore" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "camelCase is not supported; consider spliting with an underscore" } });
                         return LexerErrors.lexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
-                        tokens.append(Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -207,11 +204,11 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         state = .underscore;
                     } else if (std.ascii.isUpper(next_char)) {
                         // => error on [A-Z]
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "camelCase is not supported" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "camelCase is not supported" } });
                         return LexerErrors.lexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
-                        var token = Token.init(contents[slice_start..ix], null, filename, contents, line, col);
+                        var token = token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         if (fuzz_tokens) {
                             fuzz_token(&token);
                         }
@@ -227,13 +224,13 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .string => {
                     if (ix == contents.len) {
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected `\"`, got end-of-file" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected `\"`, got end-of-file" } });
                         return LexerErrors.lexerError;
                     } else switch (next_char) {
                         '"' => {
                             ix += 1;
                             col += 1;
-                            tokens.append(Token.init(contents[slice_start..ix], .STRING, filename, contents, line, col)) catch unreachable;
+                            tokens.append(token_.Token.init(contents[slice_start..ix], .STRING, filename, contents, line, col)) catch unreachable;
                             slice_start = ix;
                             state = .none;
                         },
@@ -251,7 +248,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .escapedString => {
                     if (ix == contents.len) {
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
                         return LexerErrors.lexerError;
                     } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                         ix += 1;
@@ -262,7 +259,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .byteString1;
                     } else {
-                        errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char } });
+                        errors.addError(errs_.Error{ .invalid_escape = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char } });
                         return LexerErrors.lexerError;
                     }
                 },
@@ -273,7 +270,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .byteString2;
                     } else {
-                        errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
+                        errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                         return LexerErrors.lexerError;
                     }
                 },
@@ -284,14 +281,14 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .string;
                     } else {
-                        errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
+                        errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                         return LexerErrors.lexerError;
                     }
                 },
 
                 .char => {
                     if (ix == contents.len) {
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected a `'`, got end-of-file" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected a `'`, got end-of-file" } });
                         return LexerErrors.lexerError;
                     } else switch (next_char) {
                         '\'' => {
@@ -300,10 +297,10 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                             const num_codepoints = try std.unicode.utf8CountCodepoints(contents[slice_start + 1 .. ix - 1]);
                             const escaped = contents[slice_start + 1] == '\\';
                             if ((!escaped and num_codepoints > 1) or (escaped and num_codepoints > 2)) {
-                                errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal" } });
+                                errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "more than one codepoint specified in character literal" } });
                                 return LexerErrors.lexerError;
                             }
-                            tokens.append(Token.init(contents[slice_start..ix], .CHAR, filename, contents, line, col)) catch unreachable;
+                            tokens.append(token_.Token.init(contents[slice_start..ix], .CHAR, filename, contents, line, col)) catch unreachable;
                             slice_start = ix;
                             state = .none;
                         },
@@ -321,14 +318,14 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .escapedChar => {
                     if (ix == contents.len) {
-                        errors.addError(Error{ .basic = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
+                        errors.addError(errs_.Error{ .basic = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line }, .msg = "expected a character, got end-of-file" } });
                         return LexerErrors.lexerError;
                     } else if (next_char == 'n' or next_char == 'r' or next_char == 't' or next_char == '\\' or next_char == '\'' or next_char == '"') {
                         ix += 1;
                         col += 1;
                         state = .char;
                     } else {
-                        errors.addError(Error{ .invalid_escape = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char } });
+                        errors.addError(errs_.Error{ .invalid_escape = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char } });
                         return LexerErrors.lexerError;
                     }
                 },
@@ -341,7 +338,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                             col += 1;
                             state = .float;
                         } else {
-                            tokens.append(Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
+                            tokens.append(token_.Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
                             slice_start = ix;
                             state = .none;
                         }
@@ -355,7 +352,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .integerDigit;
                     } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                        tokens.append(Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -366,7 +363,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .integerDigit => {
                     if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                        errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal" } });
+                        errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal" } });
                         return error.lexerError;
                     } else {
                         ix += 1;
@@ -381,7 +378,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                         state = .floatDigit;
                     } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                        tokens.append(Token.init(contents[slice_start..ix], .FLOAT, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], .FLOAT, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -391,7 +388,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                 },
 
                 .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal" } });
+                    errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "decimal" } });
                     return error.lexerError;
                 } else {
                     ix += 1;
@@ -410,7 +407,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                     },
                     else => {
-                        tokens.append(Token.init(contents[slice_start..ix], .HEX_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], .HEX_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
@@ -423,7 +420,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         state = .hex;
                     },
                     else => {
-                        errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
+                        errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "hexadecimal" } });
                         return error.lexerError;
                     },
                 },
@@ -439,7 +436,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                     },
                     else => {
-                        tokens.append(Token.init(contents[slice_start..ix], .OCT_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], .OCT_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
@@ -452,7 +449,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         state = .octal;
                     },
                     else => {
-                        errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "octal" } });
+                        errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "octal" } });
                         return error.lexerError;
                     },
                 },
@@ -468,7 +465,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         col += 1;
                     },
                     else => {
-                        tokens.append(Token.init(contents[slice_start..ix], .BIN_INTEGER, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start..ix], .BIN_INTEGER, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
@@ -481,7 +478,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         state = .binary;
                     },
                     else => {
-                        errors.addError(Error{ .invalid_digit = .{ .span = span.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "binary" } });
+                        errors.addError(errs_.Error{ .invalid_digit = .{ .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line }, .digit = next_char, .base = "binary" } });
                         return error.lexerError;
                     },
                 },
@@ -497,7 +494,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
                         ix += 1;
                         col += 1;
                     } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) { // Couldn't maximally munch, this must be the end of the token
-                        const token = Token.init(contents[slice_start..ix], null, filename, contents, line, col);
+                        const token = token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         tokens.append(token) catch unreachable;
                         slice_start = ix;
                         state = .none;
@@ -509,7 +506,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .multiline => {
                     if (next_char == '\n') {
-                        tokens.append(Token.init(contents[slice_start + 2 .. ix], .MULTI_LINE, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init(contents[slice_start + 2 .. ix], .MULTI_LINE, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -520,7 +517,7 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
 
                 .comment => {
                     if (next_char == '\n') {
-                        tokens.append(Token.init("", .COMMENT, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init("", .COMMENT, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -531,14 +528,14 @@ pub fn getTokens(lines: *std.ArrayList([]const u8), filename: []const u8, errors
             }
         }
 
-        tokens.append(Token.init("\n", .NEWLINE, filename, contents, line, col)) catch unreachable;
+        tokens.append(token_.Token.init("\n", .NEWLINE, filename, contents, line, col)) catch unreachable;
     }
 
-    tokens.append(Token.init("EOF", .EOF, filename, "", line, col)) catch unreachable;
+    tokens.append(token_.Token.init("EOF", .EOF, filename, "", line, col)) catch unreachable;
     return tokens;
 }
 
-fn fuzz_token(token: *Token) void {
+fn fuzz_token(token: *token_.Token) void {
     if (std.mem.eql(u8, token.data, "indent")) {
         token.kind = .INDENT;
     } else if (std.mem.eql(u8, token.data, "dedent")) {

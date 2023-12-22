@@ -1,20 +1,13 @@
 const std = @import("std");
-const ast = @import("ast.zig");
+const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
-const errs = @import("errors.zig");
+const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
-const offsets = @import("offsets.zig");
-const optimizations = @import("optimizations.zig");
-const _span = @import("span.zig");
-const validation_state_ = @import("validation_state.zig");
-
-const AST = ast.AST;
-const CFG = cfg_.CFG;
-const Error = errs.Error;
-const Module = module_.Module;
-const Span = _span.Span;
+const offsets_ = @import("offsets.zig");
+const optimizations_ = @import("optimizations.zig");
+const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const Token = @import("token.zig").Token;
+const validation_state_ = @import("validation_state.zig");
 
 const LookupResult = union(enum) { found_but_rt, found_but_fn, not_found, found: *Symbol };
 
@@ -23,14 +16,14 @@ pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
-    module: ?*Module, // Enclosing module
+    module: ?*module_.Module, // Enclosing module
     name: []const u8,
     uid: usize,
 
     in_function: usize = 0,
     in_loop: bool = false,
-    defers: std.ArrayList(*AST),
-    errdefers: std.ArrayList(*AST),
+    defers: std.ArrayList(*ast_.AST),
+    errdefers: std.ArrayList(*ast_.AST),
     inner_function: ?*Symbol = null,
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) *Scope {
@@ -40,8 +33,8 @@ pub const Scope = struct {
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
         retval.name = name;
         retval.uid = scopeUID;
-        retval.defers = std.ArrayList(*AST).init(allocator);
-        retval.errdefers = std.ArrayList(*AST).init(allocator);
+        retval.defers = std.ArrayList(*ast_.AST).init(allocator);
+        retval.errdefers = std.ArrayList(*ast_.AST).init(allocator);
         scopeUID += 1;
         if (parent) |_parent| {
             _parent.children.append(retval) catch unreachable;
@@ -133,7 +126,7 @@ pub const Scope = struct {
     /// This function collects all visible symbols from a scope that:
     ///   1. have an identical expected type
     ///   2. spelled similarly (levenshtein distance is less than half)
-    pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast.AST, allocator: std.mem.Allocator) void {
+    pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast_.AST, allocator: std.mem.Allocator) void {
         for (self.symbols.keys()) |key| {
             var symbol: *Symbol = self.symbols.get(key).?;
             if (std.mem.eql(u8, symbol.name, "_")) {
@@ -210,19 +203,19 @@ var number_of_comptime: usize = 0;
 pub const Symbol = struct {
     scope: *Scope, // Enclosing parent scope
     name: []const u8,
-    span: Span,
-    _type: *ast.AST,
-    expanded_type: ?*ast.AST,
-    init: *ast.AST,
+    span: span_.Span,
+    _type: *ast_.AST,
+    expanded_type: ?*ast_.AST,
+    init: *ast_.AST,
     kind: SymbolKind,
-    cfg: ?*CFG,
-    decl: ?*AST,
+    cfg: ?*cfg_.CFG,
+    decl: ?*ast_.AST,
 
     // Use-def
     versions: u64 = 0,
     uses: u64 = 0,
     discards: u64 = 0, // May be 0 if symbol is uses > 0; may be 1 if uses = 0; may not be greater than 1
-    discard_span: ?Span,
+    discard_span: ?span_.Span,
 
     defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,
@@ -233,7 +226,7 @@ pub const Symbol = struct {
     // Offset
     offset: ?i64, // The offset from the BP that this symbol
 
-    pub fn init(scope: *Scope, name: []const u8, span: Span, _type: *ast.AST, _init: *ast.AST, decl: ?*AST, kind: SymbolKind, allocator: std.mem.Allocator) *Symbol {
+    pub fn init(scope: *Scope, name: []const u8, span: span_.Span, _type: *ast_.AST, _init: *ast_.AST, decl: ?*ast_.AST, kind: SymbolKind, allocator: std.mem.Allocator) *Symbol {
         var retval = allocator.create(Symbol) catch unreachable;
         retval.scope = scope;
         retval.name = name;
@@ -258,14 +251,14 @@ pub const Symbol = struct {
         return retval;
     }
 
-    pub fn get_cfg(self: *Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
+    pub fn get_cfg(self: *Symbol, caller: ?*cfg_.CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs_.Errors, allocator: std.mem.Allocator) !*cfg_.CFG {
         std.debug.assert(self.kind == ._fn or self.kind == ._comptime);
         std.debug.assert(self.validation_state == .valid);
         if (self.cfg == null) {
-            self.cfg = try CFG.create(self, caller, interned_strings, errors, allocator);
-            try optimizations.optimize(self.cfg.?, errors, allocator);
+            self.cfg = try cfg_.CFG.create(self, caller, interned_strings, errors, allocator);
+            try optimizations_.optimize(self.cfg.?, errors, allocator);
             self.cfg.?.collect_generated_symbvers();
-            self.cfg.?.locals_size = offsets.calculate_offsets(self);
+            self.cfg.?.locals_size = offsets_.calculate_offsets(self);
         }
         return self.cfg.?;
     }

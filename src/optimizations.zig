@@ -1,19 +1,12 @@
 const std = @import("std");
 const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
-const errs = @import("errors.zig");
+const errs_ = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
 const primitives_ = @import("primitives.zig");
-
-const Basic_Block = basic_block_.Basic_Block;
-const CFG = cfg_.CFG;
-const Error = errs.Error;
-const IR = ir_.IR;
-const L_Value = lval_.L_Value;
 const String = @import("zig-string/zig-string.zig").String;
-const Symbol = @import("symbol.zig").Symbol;
-const Symbol_Version = lval_.Symbol_Version;
+const symbol_ = @import("symbol.zig");
 
 const debug = false;
 
@@ -23,7 +16,7 @@ fn log(msg: []const u8) void {
     }
 }
 
-fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
+fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
     if (debug) {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
         if (cfg.block_graph_head) |block_head| {
@@ -37,7 +30,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *CFG) void {
 }
 
 // TODO: typeError should be called something else
-pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) error{typeError}!void {
+pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{typeError}!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -56,7 +49,7 @@ pub fn optimize(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) e
     log_optimization_pass("final", cfg);
 }
 
-fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
+fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 
     countPredecessors(cfg);
@@ -78,7 +71,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
             defer log_msg.deinit();
             log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
             defer log_optimization_pass(log_msg.str(), cfg);
-            var end: *IR = bb.ir_head.?.getTail();
+            var end: *ir_.IR = bb.ir_head.?.getTail();
 
             // Join next block at the end of this block
             end.next = bb.next.?.ir_head;
@@ -93,7 +86,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
             bb.next_arguments = bb.next.?.next_arguments;
             bb.branch_arguments = bb.next.?.branch_arguments;
 
-            var maybe_child: ?*IR = bb.next.?.ir_head;
+            var maybe_child: ?*ir_.IR = bb.next.?.ir_head;
             while (maybe_child) |child| : (maybe_child = child.next) {
                 child.in_block = bb;
             }
@@ -200,7 +193,7 @@ fn bbOptimizations(cfg: *CFG, allocator: std.mem.Allocator) bool {
     return retval;
 }
 
-fn countPredecessors(cfg: *CFG) void {
+fn countPredecessors(cfg: *cfg_.CFG) void {
     for (cfg.basic_blocks.items) |bb| {
         bb.number_predecessors = 0;
     }
@@ -208,7 +201,7 @@ fn countPredecessors(cfg: *CFG) void {
     _countPredecessors(cfg.block_graph_head orelse return);
 }
 
-fn _countPredecessors(bb: *Basic_Block) void {
+fn _countPredecessors(bb: *basic_block_.Basic_Block) void {
     bb.number_predecessors += 1;
     if (bb.visited) {
         return;
@@ -224,7 +217,7 @@ fn _countPredecessors(bb: *Basic_Block) void {
     }
 }
 
-fn removeBasic_Block(cfg: *CFG, bb: *Basic_Block, wipeIR: bool) void {
+fn removeBasic_Block(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipeIR: bool) void {
     var i: usize = 0;
     while (i < cfg.basic_blocks.items.len) : (i += 1) {
         if (bb == cfg.basic_blocks.items[i]) {
@@ -233,7 +226,7 @@ fn removeBasic_Block(cfg: *CFG, bb: *Basic_Block, wipeIR: bool) void {
     }
     _ = cfg.basic_blocks.swapRemove(i);
     if (wipeIR) {
-        var maybe_ir: ?*IR = bb.ir_head;
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.removed = true;
         }
@@ -241,7 +234,7 @@ fn removeBasic_Block(cfg: *CFG, bb: *Basic_Block, wipeIR: bool) void {
     bb.removed = true;
 }
 
-fn propagate(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !bool {
+fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !bool {
     var retval = false;
 
     calculateVersions(cfg);
@@ -249,14 +242,14 @@ fn propagate(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !boo
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
-        var def_map = std.AutoArrayHashMap(*Symbol_Version, ?*IR).init(allocator);
+        var def_map = std.AutoArrayHashMap(*lval_.Symbol_Version, ?*ir_.IR).init(allocator);
         defer def_map.deinit();
 
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             // Walk through IR in BB, update map of src1 and src2 defs
-            const src1_def: ?*IR = if (ir.src1 != null and ir.src1.?.* == .symbver) def_map.get(ir.src1.?.symbver) orelse null else null;
-            const src2_def: ?*IR = if (ir.src2 != null and ir.src2.?.* == .symbver) def_map.get(ir.src2.?.symbver) orelse null else null;
+            const src1_def: ?*ir_.IR = if (ir.src1 != null and ir.src1.?.* == .symbver) def_map.get(ir.src1.?.symbver) orelse null else null;
+            const src2_def: ?*ir_.IR = if (ir.src2 != null and ir.src2.?.* == .symbver) def_map.get(ir.src2.?.symbver) orelse null else null;
             retval = try propagateIR(ir, src1_def, src2_def, errors) or retval;
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
@@ -269,7 +262,7 @@ fn propagate(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !boo
             }
         }
         if (bb.has_branch and bb.condition.?.* == .symbver) {
-            const cond_def: ?*IR = def_map.get(bb.condition.?.symbver) orelse null;
+            const cond_def: ?*ir_.IR = def_map.get(bb.condition.?.symbver) orelse null;
             bb.condition.?.symbver.def = cond_def;
             if (cond_def != null and cond_def.?.kind == .copy) {
                 bb.condition = cond_def.?.src1;
@@ -281,7 +274,7 @@ fn propagate(cfg: *CFG, errors: *errs.Errors, allocator: std.mem.Allocator) !boo
     return retval;
 }
 
-fn propagateIR(ir: *IR, src1_def: ?*IR, src2_def: ?*IR, errors: *errs.Errors) !bool {
+fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) !bool {
     var retval = false;
 
     switch (ir.kind) {
@@ -686,16 +679,16 @@ fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
     ir.src2 = null;
 }
 
-fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs.Errors) !void {
+fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void {
     if (ir != null) {
         if (ir.?.kind == .loadInt and ir.?.data.int == 0) {
-            errors.addError(Error{ .basic = .{
+            errors.addError(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0",
             } });
             return error.typeError; // TODO: Type Error???
         } else if (ir.?.kind == .loadFloat and ir.?.data.float == 0.0) {
-            errors.addError(Error{ .basic = .{
+            errors.addError(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0.0",
             } });
@@ -704,7 +697,7 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs.Errors) !void {
     }
 }
 
-fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
+fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void {
     calculateUsage(cfg);
     if (cfg.symbol.decl.?.* == .fnDecl) {
         for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
@@ -713,7 +706,7 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_ir: ?*IR = bb.ir_head;
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and !ir.removed and ir.dest.?.* == .symbver and !ir.dest.?.symbver.symbol.is_temp and ir.dest.?.symbver.symbol != cfg.return_symbol) {
                 try err_if_unused(ir.dest.?.symbver.symbol, errors);
@@ -722,9 +715,9 @@ fn findUnused(cfg: *CFG, errors: *errs.Errors) !void {
     }
 }
 
-fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
+fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void {
     if (symbol.discards > 1) {
-        errors.addError(Error{ .symbol_error = .{
+        errors.addError(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
             .context_span = symbol.span,
             .name = symbol.name,
@@ -733,7 +726,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
         } });
         return error.typeError;
     } else if (symbol.discards == 1 and symbol.uses > 1) {
-        errors.addError(Error{ .symbol_error = .{
+        errors.addError(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
             .context_span = symbol.span,
             .name = symbol.name,
@@ -743,7 +736,7 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
         return error.typeError;
     } else if (symbol.kind != ._const and symbol.discards == 0 and symbol.uses == 0) {
         // TODO: Shouldn't do this if the type is unit!
-        errors.addError(Error{ .symbol_error = .{
+        errors.addError(errs_.Error{ .symbol_error = .{
             .span = symbol.span,
             .context_span = null,
             .name = symbol.name,
@@ -754,14 +747,14 @@ fn err_if_unused(symbol: *Symbol, errors: *errs.Errors) !void {
     }
 }
 
-fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
+fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool {
     var retval = false;
 
     calculateUsage(cfg);
     calculateVersions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_ir: ?*IR = bb.ir_head;
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.kind == .discard) {
                 continue;
@@ -781,7 +774,7 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
                     if (ir.src1.?.extract_symbver().symbol.expanded_type.?.function.rhs.* != .unit_type) {
                         // It is an error for the return val of a non-unit-returning function to not be used
                         // DO NOT remove an unused call for a unit function
-                        errors.addError(Error{ .basic = .{
+                        errors.addError(errs_.Error{ .basic = .{
                             .span = ir.span,
                             .msg = "value of call is never used",
                         } });
@@ -798,10 +791,10 @@ fn removeUnusedDefs(cfg: *CFG, errors: *errs.Errors) !bool {
     return retval;
 }
 
-fn calculateVersions(cfg: *CFG) void {
+fn calculateVersions(cfg: *cfg_.CFG) void {
     for (cfg.basic_blocks.items) |bb| {
         // Reset all reachable symbol verison counts to 0
-        var maybe_ir: ?*IR = bb.ir_head;
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and ir.dest.?.* == .symbver) {
                 ir.dest.?.symbver.symbol.versions = 0;
@@ -823,7 +816,7 @@ fn calculateVersions(cfg: *CFG) void {
         }
 
         // Go through sum up each definition
-        var maybe_ir: ?*IR = bb.ir_head;
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null and ir.dest.?.* == .symbver) {
                 ir.dest.?.symbver.def = ir;
@@ -833,7 +826,7 @@ fn calculateVersions(cfg: *CFG) void {
     }
 }
 
-fn calculateUsage(cfg: *CFG) void {
+fn calculateUsage(cfg: *cfg_.CFG) void {
     if (cfg.symbol.decl.?.* == .fnDecl) {
         for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
             param_symbol.uses = 0;
@@ -842,7 +835,7 @@ fn calculateUsage(cfg: *CFG) void {
 
     for (cfg.basic_blocks.items) |bb| {
         // Clear all used flags
-        var maybe_ir: ?*IR = bb.ir_head;
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             if (ir.dest != null) {
                 reset_usage_lval(ir.dest.?);
@@ -890,7 +883,7 @@ fn calculateUsage(cfg: *CFG) void {
     }
 }
 
-fn reset_usage_lval(lval: *L_Value) void {
+fn reset_usage_lval(lval: *lval_.L_Value) void {
     switch (lval.*) {
         .symbver => {
             lval.symbver.uses = 0;
@@ -915,7 +908,7 @@ fn reset_usage_lval(lval: *L_Value) void {
     }
 }
 
-fn calculate_usage_lval(lval: *L_Value) void {
+fn calculate_usage_lval(lval: *lval_.L_Value) void {
     switch (lval.*) {
         .symbver => {
             lval.symbver.uses += 1;

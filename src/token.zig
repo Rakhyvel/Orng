@@ -1,5 +1,5 @@
 const std = @import("std");
-const Span = @import("span.zig").Span;
+const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 
 pub const TokenKind = enum(u32) {
@@ -309,10 +309,10 @@ pub const Token = struct {
     kind: TokenKind,
     // Non-owning slice into the contents of the source file the text data for this token comes from
     data: []const u8,
-    span: Span,
+    span: span_.Span,
 
     pub fn init(data: []const u8, kind: ?TokenKind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
-        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = Span{ .filename = filename, .line_text = line_text, .line = line, .col = col } };
+        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = span_.Span{ .filename = filename, .line_text = line_text, .line = line, .col = col } };
     }
 
     // Used to create a simple, anonymous identifier token

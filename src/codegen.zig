@@ -1,32 +1,21 @@
-const _ast = @import("ast.zig");
+const std = @import("std");
+const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
-const primitives = @import("primitives.zig");
+const primitives_ = @import("primitives.zig");
 const module_ = @import("module.zig");
 const span_ = @import("span.zig");
-const std = @import("std");
-const strings = @import("zig-string/zig-string.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const type_set_ = @import("type-set.zig");
-const _symbol = @import("symbol.zig");
+const symbol_ = @import("symbol.zig");
 
-const AST = _ast.AST;
-const Basic_Block = basic_block_.Basic_Block;
-const CFG = cfg_.CFG;
-const IR = ir_.IR;
-const Kind = ir_.Kind;
-const Module = module_.Module;
-const Scope = _symbol.Scope;
-const Span = span_.Span;
-const String = strings.String;
-const Symbol = _symbol.Symbol;
-
-var cheat_module: *Module = undefined; // TODO: I hate this
+var cheat_module: *module_.Module = undefined; // TODO: I hate this
 const HIGHEST_PRECEDENCE = 100;
 
 /// Takes in a file handler and a module structure
-pub fn generate(module: *Module, writer: anytype) !void {
+pub fn generate(module: *module_.Module, writer: anytype) !void {
     cheat_module = module;
     try writer.print(
         \\/* Code generated using the Orng compiler https://ornglang.org */
@@ -57,7 +46,7 @@ pub fn generate(module: *Module, writer: anytype) !void {
     try output_main_function(module.entry, writer);
 }
 
-fn output_main_function(cfg: *CFG, writer: anytype) !void {
+fn output_main_function(cfg: *cfg_.CFG, writer: anytype) !void {
     if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Int") or
         std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Int64"))
     {
@@ -134,7 +123,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
             // Function pointer takes more than one argument
             const product = dag.base.function.lhs;
             for (product.product.terms.items, 0..) |term, i| {
-                if (!term.c_typesMatch(primitives.unit_type)) {
+                if (!term.c_typesMatch(primitives_.unit_type)) {
                     // Do not output `void` parameters
                     try output_type(term, writer);
                     if (i + 1 < product.product.terms.items.len) {
@@ -150,7 +139,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
     } else if (dag.base.* == .product) {
         try writer.print("typedef struct {{\n", .{});
         for (dag.base.product.terms.items, 0..) |term, i| {
-            if (!term.c_typesMatch(primitives.unit_type)) {
+            if (!term.c_typesMatch(primitives_.unit_type)) {
                 // Don't gen `void` structure fields
                 try writer.print("    ", .{});
                 try output_type(term, writer);
@@ -163,7 +152,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
         if (!dag.base.sum.is_all_unit()) {
             try writer.print("    union {{\n", .{});
             for (dag.base.sum.terms.items, 0..) |term, i| {
-                if (!term.annotation.type.c_typesMatch(primitives.unit_type)) {
+                if (!term.annotation.type.c_typesMatch(primitives_.unit_type)) {
                     // Don't gen `void` structure fields
                     try writer.print("        ", .{});
                     try output_type(term, writer);
@@ -192,7 +181,7 @@ fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer:
     }
 }
 
-fn output_function_prototype(cfg: *CFG, writer: anytype) !void {
+fn output_function_prototype(cfg: *cfg_.CFG, writer: anytype) !void {
     // Print function return type, name, parameter list
     try output_type(cfg.symbol.expanded_type.?.function.rhs, writer);
     try writer.print(" ", .{});
@@ -200,7 +189,7 @@ fn output_function_prototype(cfg: *CFG, writer: anytype) !void {
     try writer.print("(", .{});
     var num_non_unit_params: i64 = 0;
     for (cfg.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
-        if (!param.expanded_type.?.c_typesMatch(primitives.unit_type)) {
+        if (!param.expanded_type.?.c_typesMatch(primitives_.unit_type)) {
             // Print out parameter declarations
             try output_var_decl(param, writer, true);
             if (i + 1 < cfg.symbol.decl.?.fnDecl.param_symbols.items.len) {
@@ -216,12 +205,12 @@ fn output_function_prototype(cfg: *CFG, writer: anytype) !void {
     try writer.print(")", .{});
 }
 
-fn output_forward_function(cfg: *CFG, writer: anytype) !void {
+fn output_forward_function(cfg: *cfg_.CFG, writer: anytype) !void {
     try output_function_prototype(cfg, writer);
     try writer.print(";\n", .{});
 }
 
-fn output_function_definition(cfg: *CFG, writer: anytype) !void {
+fn output_function_definition(cfg: *cfg_.CFG, writer: anytype) !void {
     try output_function_prototype(cfg, writer);
     try writer.print("{{\n", .{});
 
@@ -254,15 +243,15 @@ fn output_function_definition(cfg: *CFG, writer: anytype) !void {
     try writer.print("}}\n\n", .{});
 }
 
-fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer: anytype) !void {
-    var bb_queue = std.ArrayList(*Basic_Block).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
+fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, symbol: *symbol_.Symbol, writer: anytype) !void {
+    var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator); // Seriously? No circular buffer? Or any kind of queue? DoublyLinkedList is awful btw
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
 
     var head: usize = 0;
     while (head < bb_queue.items.len) {
-        const bb: *Basic_Block = bb_queue.items[head];
+        const bb: *basic_block_.Basic_Block = bb_queue.items[head];
         head += 1;
 
         const is_head_bb = cfg.block_graph_head != null and cfg.block_graph_head.? == bb;
@@ -322,7 +311,7 @@ fn output_basic_block(cfg: *CFG, start_bb: *Basic_Block, symbol: *Symbol, writer
     }
 }
 
-fn output_IR(ir: *IR, writer: anytype) !void {
+fn output_IR(ir: *ir_.IR, writer: anytype) !void {
     if (ir.dest != null) {
         try output_lvalue_check(ir.span, ir.dest.?, writer);
     }
@@ -345,7 +334,7 @@ fn output_IR(ir: *IR, writer: anytype) !void {
     try output_IR_post_check(ir, writer);
 }
 
-fn output_IR_post_check(ir: *IR, writer: anytype) !void {
+fn output_IR_post_check(ir: *ir_.IR, writer: anytype) !void {
     switch (ir.kind) {
         .loadUnit => {}, // Nop!
         .loadSymbol => {
@@ -377,10 +366,10 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
             try writer.print(") {{", .{});
             var product_list = ir.dest.?.get_expanded_type().product.terms;
             for (ir.data.lval_list.items, product_list.items, 1..) |lval, expected, i| {
-                if (!expected.c_typesMatch(primitives.unit_type)) {
+                if (!expected.c_typesMatch(primitives_.unit_type)) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
                     try output_rvalue(lval, ir.kind.precedence(), writer);
-                    if (i < product_list.items.len and !product_list.items[i - 1].c_typesMatch(primitives.unit_type)) {
+                    if (i < product_list.items.len and !product_list.items[i - 1].c_typesMatch(primitives_.unit_type)) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -420,8 +409,8 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .negate_int, .negate_float => {
             try output_var_assign(ir.dest.?, writer);
-            if (primitives.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
-                try writer.print("$negate_{s}(", .{primitives.from_ast(ir.dest.?.get_expanded_type()).c_name});
+            if (primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
+                try writer.print("$negate_{s}(", .{primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
                 try writer.print(", ", .{});
                 try ir.span.print_debug_line(writer, span_.c_format);
@@ -478,8 +467,8 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .add_int, .add_float => {
             try output_var_assign(ir.dest.?, writer);
-            if (primitives.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
-                try writer.print("$add_{s}(", .{primitives.from_ast(ir.dest.?.get_expanded_type()).c_name});
+            if (primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
+                try writer.print("$add_{s}(", .{primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
                 try writer.print(", ", .{});
                 try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
@@ -495,8 +484,8 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .sub_int, .sub_float => {
             try output_var_assign(ir.dest.?, writer);
-            if (primitives.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
-                try writer.print("$sub_{s}(", .{primitives.from_ast(ir.dest.?.get_expanded_type()).c_name});
+            if (primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
+                try writer.print("$sub_{s}(", .{primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
                 try writer.print(", ", .{});
                 try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
@@ -512,8 +501,8 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .mult_int, .mult_float => {
             try output_var_assign(ir.dest.?, writer);
-            if (primitives.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
-                try writer.print("$mult_{s}(", .{primitives.from_ast(ir.dest.?.get_expanded_type()).c_name});
+            if (primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
+                try writer.print("$mult_{s}(", .{primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
                 try writer.print(", ", .{});
                 try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
@@ -529,8 +518,8 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .div_int, .div_float => {
             try output_var_assign(ir.dest.?, writer);
-            if (primitives.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
-                try writer.print("$div_{s}(", .{primitives.from_ast(ir.dest.?.get_expanded_type()).c_name});
+            if (primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
+                try writer.print("$div_{s}(", .{primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
                 try writer.print(", ", .{});
                 try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
@@ -546,8 +535,8 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .mod => {
             try output_var_assign(ir.dest.?, writer);
-            if (primitives.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
-                try writer.print("$mod_{s}(", .{primitives.from_ast(ir.dest.?.get_expanded_type()).c_name});
+            if (primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) {
+                try writer.print("$mod_{s}(", .{primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
                 try writer.print(", ", .{});
                 try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
@@ -578,7 +567,7 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print("(", .{});
             for (ir.data.lval_list.items, 0..) |lval, i| {
-                if (!lval.get_expanded_type().c_typesMatch(primitives.unit_type)) {
+                if (!lval.get_expanded_type().c_typesMatch(primitives_.unit_type)) {
                     // Do not output `void` arguments
                     try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
                     if (i + 1 < ir.data.lval_list.items.len) {
@@ -627,7 +616,7 @@ fn output_IR_post_check(ir: *IR, writer: anytype) !void {
         },
         .discard => if (ir.src1.?.get_expanded_type().* != .unit_type) {
             try writer.print("    (void)", .{});
-            try output_rvalue(ir.src1.?, Kind.cast.precedence(), writer);
+            try output_rvalue(ir.src1.?, ir_.Kind.cast.precedence(), writer);
             try writer.print(";\n", .{});
         },
     }
@@ -744,13 +733,13 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: anytype
     }
 }
 
-fn output_type(_type: *AST, writer: anytype) CodeGen_Error!void {
+fn output_type(_type: *ast_.AST, writer: anytype) CodeGen_Error!void {
     switch (_type.*) {
         .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
             if (_type.getCommon().expanded_type.? != _type) {
                 try output_type(_type.getCommon().expanded_type.?, writer);
             } else {
-                try writer.print("{s}", .{primitives.get(_type.getToken().data).c_name});
+                try writer.print("{s}", .{primitives_.get(_type.getToken().data).c_name});
             }
         },
         .addrOf => {
@@ -789,7 +778,7 @@ fn output_var_assign(lval: *lval_.L_Value, writer: anytype) !void {
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
 /// semicolon nor newline.
 /// TODO: No bool parameters!
-fn output_var_decl(symbol: *Symbol, writer: anytype, is_parameter: bool) !void {
+fn output_var_decl(symbol: *symbol_.Symbol, writer: anytype, is_parameter: bool) !void {
     if (!is_parameter) {
         try writer.print("    ", .{});
     }
@@ -802,7 +791,7 @@ fn output_var_decl(symbol: *Symbol, writer: anytype, is_parameter: bool) !void {
 }
 
 /// Outputs a symbol with it's unique identifier to a file
-fn output_symbol(symbol: *Symbol, writer: anytype) !void {
+fn output_symbol(symbol: *symbol_.Symbol, writer: anytype) !void {
     try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
 
@@ -827,7 +816,7 @@ const CodeGen_Error = error{
 };
 
 /// Emits the return statement from a function
-fn output_return(return_symbol: *Symbol, writer: anytype) !void {
+fn output_return(return_symbol: *symbol_.Symbol, writer: anytype) !void {
     try writer.print("    return", .{});
     if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
         try writer.print(" ", .{});

@@ -3,7 +3,6 @@ const ast_ = @import("ast.zig");
 const ir_ = @import("ir.zig");
 const symbol_ = @import("symbol.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const Symbol = symbol_.Symbol;
 
 /// Represents different forms of l-values in an l-value tree.
 pub const L_Value = union(enum) {
