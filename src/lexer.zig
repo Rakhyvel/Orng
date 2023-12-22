@@ -10,6 +10,7 @@ var rnd = RndGen.init(0);
 // Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
 // However, we couldn't print out the line for the error if we did tokens and lines at the same time
 // It's desirable to print the line, therefore lines must be done before tokens
+// TODO: Move to own file
 pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void {
     var start: usize = 0;
     var end: usize = 1;
@@ -25,6 +26,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     }
     lines.append(contents[start..end]) catch unreachable;
 }
+
 const LexState = enum {
     none,
     whitespace,

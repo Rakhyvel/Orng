@@ -88,7 +88,6 @@
 - [x] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
     - [x] Perhaps create an `arrayOf` AST kind
 - [x] In import graph, 1.5 <= (E+1)/N <= 4.0
-    - Should lower import validate?
 - [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
     - rewrite `ast` to be like IR
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)

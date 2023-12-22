@@ -16,7 +16,7 @@ pub fn symbolTableFromASTList(asts: std.ArrayList(*ast_.AST), scope: *symbol_.Sc
 
 // Takes in an ast, returns the scope constructed from that AST node
 // Most AST nodes don't do anything, except blocks and decls, which can be buried deep in an AST
-pub fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     if (maybe_ast == null) {
         return;
     }

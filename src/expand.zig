@@ -5,7 +5,7 @@ const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
 const primitives_ = @import("primitives.zig");
 
-pub const Expand_Error = error{parseError};
+const Expand_Error = error{parseError};
 
 pub fn expand_from_list(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!void {
     for (asts.items) |ast| {

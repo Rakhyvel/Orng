@@ -5,7 +5,7 @@ const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
 const symbol_ = @import("symbol.zig");
 
-pub const Decorate_Error = error{symbolError};
+const Decorate_Error = error{symbolError};
 
 pub fn decorate_identifiers_from_list(asts: std.ArrayList(*ast_.AST), scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Decorate_Error!void {
     for (asts.items) |ast| {
