@@ -26,66 +26,66 @@ int64_t _266_f(int8_t _266_x,int16_t _266_y,int8_t _266_z){
     _266_t3 = 20;
     _266_t5 = _266_x == _266_t3;
     if (_266_t5) {
-        goto BB3;
+        goto BB299;
     } else {
-        goto BB19;
+        goto BB315;
     }
-BB3:
+BB299:
     _266_t6 = 40;
     _266_t8 = _266_y == _266_t6;
     if (_266_t8) {
-        goto BB4;
+        goto BB300;
     } else {
-        goto BB18;
+        goto BB314;
     }
-BB19:
+BB315:
     _266_t2 = 0;
-    goto BB17;
-BB4:
+    goto BB313;
+BB300:
     _266_t7 = 1;
-    goto BB5;
-BB18:
+    goto BB301;
+BB314:
     _266_t7 = 0;
-    goto BB5;
-BB17:
+    goto BB301;
+BB313:
     _266_t1 = 0;
-    goto BB15;
-BB5:
+    goto BB311;
+BB301:
     _266_t2 = _266_t7;
-    goto BB6;
-BB15:
+    goto BB302;
+BB311:
     $lines[$line_idx++] = "tests/integration/comptime/padding-param.orng:10:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB6:
+BB302:
     if (_266_t2) {
-        goto BB7;
+        goto BB303;
     } else {
-        goto BB17;
+        goto BB313;
     }
-BB7:
+BB303:
     _266_t9 = 60;
     _266_t11 = _266_z == _266_t9;
     if (_266_t11) {
-        goto BB8;
+        goto BB304;
     } else {
-        goto BB16;
+        goto BB312;
     }
-BB8:
+BB304:
     _266_t10 = 1;
-    goto BB9;
-BB16:
+    goto BB305;
+BB312:
     _266_t10 = 0;
-    goto BB9;
-BB9:
+    goto BB305;
+BB305:
     _266_t1 = _266_t10;
-    goto BB10;
-BB10:
+    goto BB306;
+BB306:
     if (_266_t1) {
-        goto BB11;
+        goto BB307;
     } else {
-        goto BB15;
+        goto BB311;
     }
-BB11:
+BB307:
     _266_$retval = 255;
     return _266_$retval;
 }

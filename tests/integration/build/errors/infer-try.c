@@ -40,26 +40,26 @@ int64_t _585_main(void){
     _585_t4 = _585_t2.tag;
     _585_t5 = _585_t4 == _585_t3;
     if (_585_t5) {
-        goto BB3;
+        goto BB742;
     } else {
-        goto BB4;
+        goto BB743;
     }
-BB3:
+BB742:
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB4:
+BB743:
     _585_t6 = 1;
     _585_t7 = _585_t2.tag;
     _585_t8 = _585_t7 == _585_t6;
     if (_585_t8) {
-        goto BB6;
+        goto BB745;
     } else {
-        goto BB10;
+        goto BB749;
     }
-BB6:
+BB745:
     _585_$retval = 239;
     return _585_$retval;
-BB10:
+BB749:
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:6:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }
@@ -75,14 +75,14 @@ struct1 _590_f(void){
     $line_idx--;
     _590_t2 = _590_t1.tag;
     if (_590_t2) {
-        goto BB1;
+        goto BB735;
     } else {
-        goto BB3;
+        goto BB737;
     }
-BB1:
+BB735:
     _590_$retval = _590_t1;
     return _590_$retval;
-BB3:
+BB737:
     _590_$retval = (struct1) {.tag=0, ._0=(_590_t1._0)};
     return _590_$retval;
 }

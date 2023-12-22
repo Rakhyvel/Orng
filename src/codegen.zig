@@ -165,18 +165,21 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
     }
 }
 
-fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer: anytype) !void {
-    if (interned_strings.items.len > 0) {
+fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: anytype) !void {
+    const keySet = interned_strings.keys();
+    if (keySet.len > 0) {
         try writer.print("/* Interned Strings */\n", .{});
     }
-    for (interned_strings.items, 0..) |str, i| {
-        try writer.print("char* string_{} = \"", .{i});
+    for (0..keySet.len) |i| {
+        const str = keySet[i];
+        const id = interned_strings.get(str).?;
+        try writer.print("char* string_{} = \"", .{id});
         for (str) |byte| {
             try writer.print("\\x{X:0>2}", .{byte});
         }
         try writer.print("\";\n", .{});
     }
-    if (interned_strings.items.len > 0) {
+    if (keySet.len > 0) {
         try writer.print("\n", .{});
     }
 }
@@ -356,7 +359,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: anytype) !void {
             try output_var_assign(ir.dest.?, writer);
             try writer.print("(", .{});
             try output_type(ir.dest.?.get_expanded_type(), writer);
-            try writer.print(") {{(uint8_t*)string_{}, {}}}", .{ ir.data.string_id, cheat_module.interned_strings.items[ir.data.string_id].len });
+            try writer.print(") {{(uint8_t*)string_{}, {}}}", .{ ir.data.string_id, cheat_module.interned_strings.keys()[ir.data.string_id].len });
             try writer.print(";\n", .{});
         },
         .loadStruct => {

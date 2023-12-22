@@ -283,7 +283,7 @@ fn validate_AST_internal(
             }
             const ast_type = ast.typeof(allocator);
             try type_check(ast, ast_type, expected, errors);
-            return ast_type.generate_default(errors, allocator);
+            return generate_default(ast_type, errors, allocator);
         },
         .sizeOf => {
             ast.sizeOf.expr = validateAST(ast.sizeOf.expr, primitives_.type_type, errors, allocator);
@@ -1057,7 +1057,7 @@ fn validate_AST_internal(
                 if (proper_term.annotation.init) |_init| {
                     ast.inferredMember.init = _init; // This will be overriden by an inject expression's rhs
                 } else {
-                    ast.inferredMember.init = try ast_.AST.generate_default(proper_term, errors, allocator);
+                    ast.inferredMember.init = try generate_default(proper_term, errors, allocator);
                 }
                 return ast;
             }
@@ -1719,7 +1719,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .identifier => {
             const symbol = ast.identifier.symbol.?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
-                errors.addError(errs_.Error{ .modifyImmutable = .{ .identifier = ast.getToken(), .symbol = symbol } });
+                errors.addError(errs_.Error{ .modifyImmutable = .{ .identifier = ast.getToken() } });
                 return error.typeError;
             }
         },
@@ -1796,6 +1796,7 @@ fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *err
             if (domain.* == .poison) {
                 return error.typeError;
             }
+            pattern.inject.domain = domain;
             try assert_pattern_matches(pattern.inject.rhs, domain, errors, allocator);
         },
         .product => {
@@ -1876,7 +1877,7 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
 }
 
 /// Adds a term to an inferred error
-pub fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
+fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
     std.debug.assert(addend.* == .annotation);
     for (ast.inferred_error.terms.items) |term| {
         if (std.mem.eql(u8, term.annotation.pattern.getToken().data, addend.annotation.pattern.getToken().data)) {
@@ -1891,6 +1892,57 @@ pub fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void 
     }
     // No duplicate found, add to inferred error set
     ast.inferred_error.terms.append(addend) catch unreachable;
+}
+
+fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+    return (try generate_default_unvalidated(_type, errors, allocator)).assert_valid();
+}
+
+fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) error{typeError}!*ast_.AST {
+    switch (_type.*) {
+        .identifier => {
+            const expanded_type = _type.expand_type(allocator);
+            if (expanded_type == _type) {
+                const primitive_info = primitives_.get(_type.getToken().data);
+                if (primitive_info.default_value != null) {
+                    return primitive_info.default_value.?;
+                } else {
+                    errors.addError(errs_.Error{ .no_default = .{ .span = _type.getToken().span, ._type = _type } });
+                    return error.typeError;
+                }
+            } else {
+                return try generate_default(expanded_type, errors, allocator);
+            }
+        },
+        .addrOf, .function => return ast_.AST.createInt(_type.getToken(), 0, allocator),
+        .unit_type => return ast_.AST.createUnitValue(_type.getToken(), allocator),
+        .sum => {
+            var retval = ast_.AST.createInferredMember(_type.getToken(), ast_.AST.createIdentifier(token_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
+            retval.inferredMember.pos = 0;
+            retval.inferredMember.base = _type;
+            const proper_term: *ast_.AST = _type.sum.terms.items[0];
+            retval.inferredMember.init = try generate_default(proper_term, errors, allocator);
+            return retval;
+        },
+        .product => {
+            var value_terms = std.ArrayList(*ast_.AST).init(allocator);
+            errdefer value_terms.deinit();
+            for (_type.product.terms.items) |term| {
+                const default_term = try generate_default(term, errors, allocator);
+                value_terms.append(default_term) catch unreachable;
+            }
+            return ast_.AST.createProduct(_type.getToken(), value_terms, allocator);
+        },
+        .annotation => if (_type.annotation.init != null) {
+            return _type.annotation.init.?;
+        } else {
+            return generate_default(_type.annotation.type, errors, allocator);
+        },
+        else => {
+            std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
+            unreachable;
+        },
+    }
 }
 
 // Takes in an inject AST (pattern or expr) of the form `lhs <- rhs` and returns the type that `rhs` should be.

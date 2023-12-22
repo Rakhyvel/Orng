@@ -29,11 +29,11 @@ int64_t _1599_main(void){
     _1599_t3 = 0;
     _1599_t5 = *_1600_y == _1599_t3;
     if (_1599_t5) {
-        goto BB3;
+        goto BB1953;
     } else {
-        goto BB7;
+        goto BB1957;
     }
-BB3:
+BB1953:
     _1602_z = *_1600_y;
     _1599_t7 = &_1602_z;
     *_1599_t7 = $add_int64_t(_1602_z, _1602_z, "tests/integration/whitebox/pemdas.orng:7:24:\n        (&mut z)^ = z + z \n                      ^");
@@ -48,11 +48,11 @@ BB3:
     _1599_t17 = -1;
     _1602_z = $mult_int64_t(_1602_z, _1599_t17, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
     _1599_t2 = $mult_int64_t(_1602_z, _1599_t17, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
-    goto BB6;
-BB7:
+    goto BB1956;
+BB1957:
     _1599_t2 = 1000;
-    goto BB6;
-BB6:
+    goto BB1956;
+BB1956:
     _1599_$retval = _1599_t2;
     return _1599_$retval;
 }

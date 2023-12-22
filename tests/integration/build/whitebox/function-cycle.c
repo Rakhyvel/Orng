@@ -64,21 +64,21 @@ int64_t _1570_c(int64_t _1570_n){
     _1570_t1 = 47;
     _1570_t3 = _1570_n == _1570_t1;
     if (_1570_t3) {
-        goto BB3;
+        goto BB1900;
     } else {
-        goto BB7;
+        goto BB1904;
     }
-BB3:
+BB1900:
     _1570_t0 = 47;
-    goto BB6;
-BB7:
+    goto BB1903;
+BB1904:
     _1570_t5 = _1566_a;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
     _1570_t6 = _1570_t5(_1570_n);
     $line_idx--;
     _1570_t0 = _1570_t6;
-    goto BB6;
-BB6:
+    goto BB1903;
+BB1903:
     _1570_$retval = _1570_t0;
     return _1570_$retval;
 }

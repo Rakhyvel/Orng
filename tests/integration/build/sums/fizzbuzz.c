@@ -70,46 +70,46 @@ struct1 _1398_fizzbuzz(int64_t _1398_n){
     _1398_t3 = $mod_int64_t(_1398_n, _1398_t2, "tests/integration/sums/fizzbuzz.orng:12:13:\n        {n % 15} => .string <- \"fizzbuzz\"\n           ^");
     _1398_t4 = _1398_t1 == _1398_t3;
     if (_1398_t4) {
-        goto BB4;
+        goto BB1709;
     } else {
-        goto BB7;
+        goto BB1712;
     }
-BB4:
+BB1709:
     _1398_t11 = (struct2) {(uint8_t*)string_0, 8};
     _1398_t0 = (struct1) {.tag=0, ._0=_1398_t11};
-    goto BB6;
-BB7:
+    goto BB1711;
+BB1712:
     _1398_t5 = 5;
     _1398_t6 = $mod_int64_t(_1398_n, _1398_t5, "tests/integration/sums/fizzbuzz.orng:13:13:\n        {n % 5}  => .string <- \"buzz\"\n           ^");
     _1398_t7 = _1398_t1 == _1398_t6;
     if (_1398_t7) {
-        goto BB10;
+        goto BB1715;
     } else {
-        goto BB11;
+        goto BB1716;
     }
-BB6:
+BB1711:
     _1398_$retval = _1398_t0;
     return _1398_$retval;
-BB10:
+BB1715:
     _1398_t13 = (struct2) {(uint8_t*)string_1, 4};
     _1398_t0 = (struct1) {.tag=0, ._0=_1398_t13};
-    goto BB6;
-BB11:
+    goto BB1711;
+BB1716:
     _1398_t8 = 3;
     _1398_t9 = $mod_int64_t(_1398_n, _1398_t8, "tests/integration/sums/fizzbuzz.orng:14:13:\n        {n % 3}  => .string <- \"fizz\"\n           ^");
     _1398_t10 = _1398_t1 == _1398_t9;
     if (_1398_t10) {
-        goto BB14;
+        goto BB1719;
     } else {
-        goto BB16;
+        goto BB1721;
     }
-BB14:
+BB1719:
     _1398_t15 = (struct2) {(uint8_t*)string_2, 4};
     _1398_t0 = (struct1) {.tag=0, ._0=_1398_t15};
-    goto BB6;
-BB16:
+    goto BB1711;
+BB1721:
     _1398_t0 = (struct1) {.tag=1, ._1=_1398_n};
-    goto BB6;
+    goto BB1711;
 }
 
 int main(void) {

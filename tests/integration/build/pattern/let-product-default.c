@@ -36,17 +36,17 @@ int64_t _1142_main(void){
     _1142_t5 = 0;
     _1142_t7 = _1142_t4 == _1142_t5;
     if (_1142_t7) {
-        goto BB3;
+        goto BB1380;
     } else {
-        goto BB7;
+        goto BB1384;
     }
-BB3:
+BB1380:
     _1142_t3 = 160;
-    goto BB6;
-BB7:
+    goto BB1383;
+BB1384:
     _1142_t3 = 61;
-    goto BB6;
-BB6:
+    goto BB1383;
+BB1383:
     _1142_$retval = _1142_t3;
     return _1142_$retval;
 }

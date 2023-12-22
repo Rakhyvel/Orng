@@ -43,17 +43,17 @@ int64_t _603_main(void){
     $line_idx--;
     _603_t4 = _603_t2.tag;
     if (_603_t4) {
-        goto BB1;
+        goto BB777;
     } else {
-        goto BB7;
+        goto BB783;
     }
-BB1:
+BB777:
     _603_t0 = 122;
-    goto BB2;
-BB7:
+    goto BB778;
+BB783:
     _603_t0 = _603_t2._0;
-    goto BB2;
-BB2:
+    goto BB778;
+BB778:
     _603_t7 = _605_f;
     _603_t9 = 0;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
@@ -61,17 +61,17 @@ BB2:
     $line_idx--;
     _603_t10 = _603_t8.tag;
     if (_603_t10) {
-        goto BB3;
+        goto BB779;
     } else {
-        goto BB6;
+        goto BB782;
     }
-BB3:
+BB779:
     _603_t6 = 122;
-    goto BB4;
-BB6:
+    goto BB780;
+BB782:
     _603_t6 = _603_t8._0;
-    goto BB4;
-BB4:
+    goto BB780;
+BB780:
     _603_$retval = $add_int64_t(_603_t0, _603_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
     return _603_$retval;
 }
@@ -85,33 +85,33 @@ struct1 _605_f(uint8_t _605_fail){
     struct1 _605_t0;
     int64_t _608_x;
     if (_605_fail) {
-        goto BB1;
+        goto BB767;
     } else {
-        goto BB8;
+        goto BB774;
     }
-BB1:
+BB767:
     _605_t1 = _610_g;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
     _605_t2 = _605_t1();
     $line_idx--;
     _605_t3 = _605_t2.tag;
     if (_605_t3) {
-        goto BB2;
+        goto BB768;
     } else {
-        goto BB4;
+        goto BB770;
     }
-BB8:
+BB774:
     _605_t5 = 0;
     _605_t0 = (struct1) {.tag=0, ._0=_605_t5};
-    goto BB7;
-BB2:
+    goto BB773;
+BB768:
     _605_$retval = _605_t2;
     return _605_$retval;
-BB4:
+BB770:
     _608_x = _605_t2._0;
     _605_t0 = (struct1) {.tag=0, ._0=_608_x};
-    goto BB7;
-BB7:
+    goto BB773;
+BB773:
     _605_$retval = _605_t0;
     return _605_$retval;
 }

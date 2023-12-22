@@ -32,25 +32,25 @@ int64_t _531_main(void){
     _531_t5 = 0;
     _531_t7 = _532_x._0 == _531_t5;
     if (_531_t7) {
-        goto BB3;
+        goto BB655;
     } else {
-        goto BB11;
+        goto BB663;
     }
-BB3:
+BB655:
     _531_t8 = 0.0e+00;
     _531_t10 = _532_x._1 == _531_t8;
     if (_531_t10) {
-        goto BB7;
+        goto BB659;
     } else {
-        goto BB11;
+        goto BB663;
     }
-BB11:
+BB663:
     _531_t3 = 0;
-    goto BB10;
-BB7:
+    goto BB662;
+BB659:
     _531_t3 = 135;
-    goto BB10;
-BB10:
+    goto BB662;
+BB662:
     _531_$retval = _531_t3;
     return _531_$retval;
 }

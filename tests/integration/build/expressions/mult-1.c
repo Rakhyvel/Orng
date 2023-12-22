@@ -26,17 +26,17 @@ int64_t _751_main(void){
     _751_t2 = _751_t1(_751_t3);
     $line_idx--;
     if (_751_t2) {
-        goto BB1;
+        goto BB960;
     } else {
-        goto BB5;
+        goto BB964;
     }
-BB1:
+BB960:
     _751_t0 = 186;
-    goto BB4;
-BB5:
+    goto BB963;
+BB964:
     _751_t0 = 4;
-    goto BB4;
-BB4:
+    goto BB963;
+BB963:
     _751_$retval = _751_t0;
     return _751_$retval;
 }

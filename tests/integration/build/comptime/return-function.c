@@ -37,50 +37,50 @@ function0 _302_g(int64_t _302_x){
     _302_t1 = 0;
     _302_t2 = _302_x == _302_t1;
     if (_302_t2) {
-        goto BB3;
+        goto BB373;
     } else {
-        goto BB6;
+        goto BB376;
     }
-BB3:
+BB373:
     _302_t0 = _309_add;
-    goto BB5;
-BB6:
+    goto BB375;
+BB376:
     _302_t3 = 1;
     _302_t4 = _302_x == _302_t3;
     if (_302_t4) {
-        goto BB8;
+        goto BB378;
     } else {
-        goto BB9;
+        goto BB379;
     }
-BB5:
+BB375:
     _302_$retval = _302_t0;
     return _302_$retval;
-BB8:
+BB378:
     _302_t0 = _311_sub;
-    goto BB5;
-BB9:
+    goto BB375;
+BB379:
     _302_t5 = 2;
     _302_t6 = _302_x == _302_t5;
     if (_302_t6) {
-        goto BB11;
+        goto BB381;
     } else {
-        goto BB12;
+        goto BB382;
     }
-BB11:
+BB381:
     _302_t0 = _313_mul;
-    goto BB5;
-BB12:
+    goto BB375;
+BB382:
     _302_t7 = 3;
     _302_t8 = _302_x == _302_t7;
     if (_302_t8) {
-        goto BB14;
+        goto BB384;
     } else {
-        goto BB16;
+        goto BB386;
     }
-BB14:
+BB384:
     _302_t0 = _315_div;
-    goto BB5;
-BB16:
+    goto BB375;
+BB386:
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:13:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }

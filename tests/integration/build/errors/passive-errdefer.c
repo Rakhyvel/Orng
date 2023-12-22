@@ -61,17 +61,17 @@ struct2 _597_f(int64_t* _597_x,uint8_t _597_fail){
     int64_t _597_t12;
     *_597_x = 6;
     if (_597_fail) {
-        goto BB8;
+        goto BB758;
     } else {
-        goto BB9;
+        goto BB759;
     }
-BB8:
+BB758:
     _597_t5 = 100;
     *_597_x = $add_int64_t(*_597_x, _597_t5, "tests/integration/errors/passive-errdefer.orng:14:23:\n        errdefer x^ += 100\n                     ^");
     _597_t12 = 9;
     *_597_x = $add_int64_t(*_597_x, _597_t12, "tests/integration/errors/passive-errdefer.orng:11:19:\n    errdefer x^ += 9\n                 ^");
     return _597_$retval;
-BB9:
+BB759:
     _597_$retval = (struct2) {.tag=0};
     return _597_$retval;
 }

@@ -1,9 +1,8 @@
 const std = @import("std");
-const cfg_ = @import("cfg.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
-const symbol_ = @import("symbol.zig");
 
+var uid: u64 = 0;
 pub const Basic_Block = struct {
     uid: u64,
     ir_head: ?*ir_.IR,
@@ -29,7 +28,7 @@ pub const Basic_Block = struct {
     /// Used for IR interpretation
     offset: ?i64,
 
-    pub fn init(cfg: *cfg_.CFG, allocator: std.mem.Allocator) *Basic_Block {
+    pub fn init(allocator: std.mem.Allocator) *Basic_Block {
         var retval = allocator.create(Basic_Block) catch unreachable;
         retval.ir_head = null;
         retval.condition = null;
@@ -41,9 +40,9 @@ pub const Basic_Block = struct {
         retval.next_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.branch = null;
         retval.branch_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
-        retval.uid = cfg.basic_blocks.items.len;
+        retval.uid = uid;
+        uid += 1;
         retval.allocator = allocator;
-        cfg.basic_blocks.append(retval) catch unreachable;
         return retval;
     }
 
@@ -160,11 +159,14 @@ pub const Basic_Block = struct {
     }
 
     /// This functions is O(n)
-    pub fn get_latest_def(bb: *Basic_Block, symbol: *symbol_.Symbol, stop_at_ir: ?*ir_.IR) ?*ir_.IR {
+    pub fn get_latest_def(bb: *Basic_Block, lval: *lval_.L_Value, stop_at_ir: ?*ir_.IR) ?*ir_.IR {
+        if (lval.* != .symbver) {
+            return null;
+        }
         if (bb.ir_head == null) {
             return null;
         } else {
-            return bb.ir_head.?.get_latest_def_after(symbol, stop_at_ir);
+            return bb.ir_head.?.get_latest_def_after(lval.symbver.symbol, stop_at_ir);
         }
     }
 };

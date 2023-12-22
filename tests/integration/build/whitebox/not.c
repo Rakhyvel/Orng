@@ -30,17 +30,17 @@ int64_t _1591_main(void){
     _1591_t4 = 1;
     _1591_t6 = *_1592_y == _1591_t4;
     if (_1591_t6) {
-        goto BB1;
+        goto BB1946;
     } else {
-        goto BB4;
+        goto BB1949;
     }
-BB1:
+BB1946:
     _1591_t5 = 1;
-    goto BB2;
-BB4:
+    goto BB1947;
+BB1949:
     _1591_t5 = 0;
-    goto BB2;
-BB2:
+    goto BB1947;
+BB1947:
     _1591_t7 = !_1591_t5;
     $lines[$line_idx++] = "tests/integration/whitebox/not.orng:5:7:\n    f(not (y^ == 1))\n     ^";
     _1591_t3 = _1591_t2(_1591_t7);
@@ -59,17 +59,17 @@ int64_t _1593_f(uint8_t _1593_b){
     _1593_t1 = !_1593_t0;
     _1593_b = _1593_t1;
     if (_1593_t0) {
-        goto BB5;
+        goto BB1943;
     } else {
-        goto BB1;
+        goto BB1939;
     }
-BB5:
+BB1943:
     _1593_t2 = 10;
-    goto BB4;
-BB1:
+    goto BB1942;
+BB1939:
     _1593_t2 = 31;
-    goto BB4;
-BB4:
+    goto BB1942;
+BB1942:
     _1593_$retval = _1593_t2;
     return _1593_$retval;
 }

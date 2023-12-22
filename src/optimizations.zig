@@ -152,7 +152,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
         if (bb.next) |next| {
             if (next.has_branch and next.ir_head == null and next.condition.?.* == .symbver) {
                 defer log_optimization_pass("next depends on known argument", cfg);
-                const def = bb.get_latest_def(next.condition.?.symbver.symbol, null);
+                const def = bb.get_latest_def(next.condition.?, null);
                 if (def != null and def.?.kind == .loadInt) {
                     if (def.?.data.int == 0) {
                         bb.next = next.branch;
@@ -166,7 +166,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
         // If branch is a branch that depends on a known arugment
         if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null and bb.branch.?.condition.?.* == .symbver) {
             defer log_optimization_pass("branch depends on known argument", cfg);
-            const def = bb.get_latest_def(bb.branch.?.condition.?.symbver.symbol, null);
+            const def = bb.get_latest_def(bb.branch.?.condition.?, null);
             if (def != null and def.?.kind == .loadInt) {
                 if (def.?.data.int == 0) {
                     bb.branch = bb.branch.?.branch;

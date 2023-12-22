@@ -174,18 +174,18 @@ struct4 _38_safe_div(int64_t _38_x,int64_t _38_y){
     _38_t1 = 0;
     _38_t3 = _38_y == _38_t1;
     if (_38_t3) {
-        goto BB3;
+        goto BB29;
     } else {
-        goto BB7;
+        goto BB33;
     }
-BB3:
+BB29:
     _38_t0 = (struct4) {.tag=0};
-    goto BB6;
-BB7:
+    goto BB32;
+BB33:
     _38_t5 = $div_int64_t(_38_x, _38_y, "tests/integration/arrays/array-optional.orng:19:21:\n        .some <- x / y\n                   ^");
     _38_t0 = (struct4) {.tag=1, ._1=_38_t5};
-    goto BB6;
-BB6:
+    goto BB32;
+BB32:
     _38_$retval = _38_t0;
     return _38_$retval;
 }

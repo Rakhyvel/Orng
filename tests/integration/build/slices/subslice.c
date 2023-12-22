@@ -85,21 +85,21 @@ int64_t _1319_sum_up(struct1 _1319_xs){
     int64_t _1319_$retval;
     _1320_sum = 0;
     _1321_i = 0;
-    goto BB1;
-BB1:
+    goto BB1647;
+BB1647:
     _1319_t3 = _1321_i < _1319_xs._1;
     if (_1319_t3) {
-        goto BB2;
+        goto BB1648;
     } else {
-        goto BB7;
+        goto BB1653;
     }
-BB2:
+BB1648:
     $bounds_check(_1321_i, _1319_xs._1, "tests/integration/slices/subslice.orng:13:15:\n        sum += xs[i]\n             ^");
     _1320_sum = $add_int64_t(_1320_sum, *((int64_t*)_1319_xs._0 + _1321_i), "tests/integration/slices/subslice.orng:13:15:\n        sum += xs[i]\n             ^");
     _1319_t5 = 1;
     _1321_i = $add_int64_t(_1321_i, _1319_t5, "tests/integration/slices/subslice.orng:12:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
-    goto BB1;
-BB7:
+    goto BB1647;
+BB1653:
     _1319_$retval = _1320_sum;
     return _1319_$retval;
 }

@@ -87,20 +87,8 @@
 - [x] If a `create()` function is inerrant, call it `init` instead
 - [x] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
     - [x] Perhaps create an `arrayOf` AST kind
-- [ ] Nothing is indented more than 5 times, excluding switches
-- [ ] Try to keep lines less than 100 characters in width (not length!)
-    - If you have to scroll, it's too much
-- [ ] In import graph, 1.5 <= (E+1)/N <= 4.0
-    - Remove unused imports
-    - Sort imports, remove type-renamings
-    - Split files into "data structres" which define data strcutres, and "processes" which act on data structures
-    - Files can only import data structure files
-    - Process files can only be imported by main.zig, test.zig, and module.zig
-    - Data structure files have only type definitions, all public
-    - Process files have **one** public function which does the process. If there's two, think if there *really* needs to be, and if not, then split it up
-    - Data structure member functions should be queries. If they're commands, and only used by one process, separate out to that process.
-    - Data structures should not interact with Errors, unless it's the Errors data structure of course
-- [ ] (if you can figure out how to calculate it) cyclomatic complexity higher than 10 is bad
+- [x] In import graph, 1.5 <= (E+1)/N <= 4.0
+    - Should lower import validate?
 - [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
     - rewrite `ast` to be like IR
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)

@@ -59,15 +59,15 @@ struct2 _556_f(int64_t* _556_x,uint8_t _556_fail){
     struct2 _556_$retval;
     *_556_x = 4;
     if (_556_fail) {
-        goto BB1;
+        goto BB689;
     } else {
-        goto BB4;
+        goto BB692;
     }
-BB1:
+BB689:
     _556_$retval = (struct2) {.tag=1};
     *_556_x = 115;
     return _556_$retval;
-BB4:
+BB692:
     _556_$retval = (struct2) {.tag=0};
     return _556_$retval;
 }

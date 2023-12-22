@@ -26,17 +26,17 @@ int64_t _867_main(void){
     _867_t2 = _867_t1(_867_t3);
     $line_idx--;
     if (_867_t2) {
-        goto BB1;
+        goto BB1116;
     } else {
-        goto BB5;
+        goto BB1120;
     }
-BB1:
+BB1116:
     _867_t0 = 184;
-    goto BB4;
-BB5:
+    goto BB1119;
+BB1120:
     _867_t0 = 4;
-    goto BB4;
-BB4:
+    goto BB1119;
+BB1119:
     _867_$retval = _867_t0;
     return _867_$retval;
 }
@@ -51,17 +51,17 @@ uint8_t _872_f(int64_t _872_x){
     _872_t7 = $negate_int64_t(_872_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
     _872_t9 = _872_t6 == _872_t7;
     if (_872_t9) {
-        goto BB4;
+        goto BB1108;
     } else {
-        goto BB8;
+        goto BB1112;
     }
-BB4:
+BB1108:
     _872_t8 = 1;
-    goto BB5;
-BB8:
+    goto BB1109;
+BB1112:
     _872_t8 = 0;
-    goto BB5;
-BB5:
+    goto BB1109;
+BB1109:
     _872_$retval = _872_t8;
     return _872_$retval;
 }

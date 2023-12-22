@@ -41,40 +41,40 @@ int64_t _1124_main(void){
     _1124_t6 = 1;
     _1124_t8 = _1125_y == _1124_t6;
     if (_1124_t8) {
-        goto BB3;
+        goto BB1357;
     } else {
-        goto BB13;
+        goto BB1367;
     }
-BB3:
+BB1357:
     _1124_t9 = 2;
     _1124_t11 = _1125_x == _1124_t9;
     if (_1124_t11) {
-        goto BB4;
+        goto BB1358;
     } else {
-        goto BB12;
+        goto BB1366;
     }
-BB13:
+BB1367:
     _1124_t5 = 0;
-    goto BB11;
-BB4:
+    goto BB1365;
+BB1358:
     _1124_t10 = 1;
-    goto BB5;
-BB12:
+    goto BB1359;
+BB1366:
     _1124_t10 = 0;
-    goto BB5;
-BB11:
+    goto BB1359;
+BB1365:
     $lines[$line_idx++] = "tests/integration/pattern/assign-swap.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB5:
+BB1359:
     _1124_t5 = _1124_t10;
-    goto BB6;
-BB6:
+    goto BB1360;
+BB1360:
     if (_1124_t5) {
-        goto BB7;
+        goto BB1361;
     } else {
-        goto BB11;
+        goto BB1365;
     }
-BB7:
+BB1361:
     _1124_$retval = 159;
     return _1124_$retval;
 }

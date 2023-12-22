@@ -2,6 +2,7 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
+const lower_ = @import("lower.zig");
 const module_ = @import("module.zig");
 const offsets_ = @import("offsets.zig");
 const optimizations_ = @import("optimizations.zig");
@@ -122,62 +123,6 @@ pub const Scope = struct {
             return self;
         }
     }
-
-    /// This function collects all visible symbols from a scope that:
-    ///   1. have an identical expected type
-    ///   2. spelled similarly (levenshtein distance is less than half)
-    pub fn collect_similar(self: *Scope, name: []const u8, out: *std.ArrayList([]const u8), expected: ?*ast_.AST, allocator: std.mem.Allocator) void {
-        for (self.symbols.keys()) |key| {
-            var symbol: *Symbol = self.symbols.get(key).?;
-            if (std.mem.eql(u8, symbol.name, "_")) {
-                continue; // never suggest `_`
-            }
-
-            const matches = expected == null or symbol._type.typesMatch(expected.?);
-            const dist = levenshteinDistance2(allocator, symbol.name, name);
-            if (matches and dist <= name.len / 2) {
-                out.append(key) catch unreachable;
-            }
-        }
-        if (self.parent) |_parent| {
-            _parent.collect_similar(name, out, expected, allocator);
-        }
-    }
-
-    inline fn idx(i: usize, j: usize, cols: usize) usize {
-        return i * cols + j;
-    }
-
-    pub fn levenshteinDistance2(allocator: std.mem.Allocator, a: []const u8, b: []const u8) u16 {
-        const n = a.len;
-        const m = b.len;
-        const table = allocator.alloc(u8, n * m) catch unreachable;
-        defer allocator.free(table);
-        table[0] = 0;
-
-        for (0..n) |i| {
-            for (0..m) |j| {
-                table[idx(i, j, m)] = @min(
-                    (if (i == 0)
-                        @as(u8, @truncate(j))
-                    else
-                        table[idx(i - 1, j, m)]) + 1,
-                    (if (j == 0)
-                        @as(u8, @truncate(i))
-                    else
-                        table[idx(i, j - 1, m)]) + 1,
-                    (if (i == 0)
-                        @as(u8, @truncate(j))
-                    else if (j == 0)
-                        @as(u8, @truncate(i))
-                    else
-                        table[idx(i - 1, j - 1, m)]) +
-                        @intFromBool(a[i] != b[j]),
-                );
-            }
-        }
-        return table[table.len - 1];
-    }
 };
 
 pub const SymbolKind = enum {
@@ -251,11 +196,12 @@ pub const Symbol = struct {
         return retval;
     }
 
-    pub fn get_cfg(self: *Symbol, caller: ?*cfg_.CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs_.Errors, allocator: std.mem.Allocator) !*cfg_.CFG {
+    pub fn get_cfg(self: *Symbol, caller: ?*cfg_.CFG, interned_strings: *std.StringArrayHashMap(usize), errors: *errs_.Errors, allocator: std.mem.Allocator) !*cfg_.CFG {
         std.debug.assert(self.kind == ._fn or self.kind == ._comptime);
         std.debug.assert(self.validation_state == .valid);
         if (self.cfg == null) {
-            self.cfg = try cfg_.CFG.create(self, caller, interned_strings, errors, allocator);
+            self.cfg = try cfg_.CFG.init(self, caller, interned_strings, allocator);
+            try lower_.inject_cfg(self.cfg.?, errors, allocator);
             try optimizations_.optimize(self.cfg.?, errors, allocator);
             self.cfg.?.collect_generated_symbvers();
             self.cfg.?.locals_size = offsets_.calculate_offsets(self);

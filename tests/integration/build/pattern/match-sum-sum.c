@@ -48,29 +48,29 @@ int64_t _1240_main(void){
     _1240_t20 = _1248_y.tag;
     _1240_t21 = _1240_t20 == _1240_t19;
     if (_1240_t21) {
-        goto BB20;
+        goto BB1550;
     } else {
-        goto BB22;
+        goto BB1552;
     }
-BB20:
+BB1550:
     _1240_t18 = _1248_y._0;
-    goto BB21;
-BB22:
+    goto BB1551;
+BB1552:
     _1240_t22 = 1;
     _1240_t23 = _1248_y.tag;
     _1240_t24 = _1240_t23 == _1240_t22;
     if (_1240_t24) {
-        goto BB24;
+        goto BB1554;
     } else {
-        goto BB26;
+        goto BB1556;
     }
-BB21:
+BB1551:
     _1240_$retval = _1240_t18;
     return _1240_$retval;
-BB24:
+BB1554:
     _1240_t18 = _1248_y._1;
-    goto BB21;
-BB26:
+    goto BB1551;
+BB1556:
     $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:15:32:\n            else => unreachable\n                              ^";
     $panic("reached unreachable code\n");
 }

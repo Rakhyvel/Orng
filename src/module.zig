@@ -35,7 +35,7 @@ pub const Module = struct {
     entry: *cfg_.CFG,
 
     // Interned strings
-    interned_strings: std.ArrayList([]const u8),
+    interned_strings: std.StringArrayHashMap(usize),
 
     // The root scope node for the module
     scope: *symbol_.Scope,
@@ -47,7 +47,7 @@ pub const Module = struct {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
-        retval.interned_strings = std.ArrayList([]const u8).init(allocator);
+        retval.interned_strings = std.StringArrayHashMap(usize).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);

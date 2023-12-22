@@ -62,7 +62,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
                 },
             }
             if (!ast.identifier.symbol.?.defined) {
-                errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.getToken(), .symbol = ast.identifier.symbol.? } });
+                errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.getToken() } });
                 return error.symbolError;
             }
         },

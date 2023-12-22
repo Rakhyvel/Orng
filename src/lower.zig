@@ -6,11 +6,10 @@ const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
-const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
-const validate_ = @import("validate.zig");
 
 const FlattenASTError = error{
     typeError,
@@ -25,7 +24,57 @@ const Labels = struct {
     error_label: ?*ir_.IR,
 };
 
-pub fn lower_AST(
+fn create_temp_symbol(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
+    var buf = String.init_with_contents(allocator, "t") catch unreachable;
+    buf.writer().print("{}", .{cfg.number_temps}) catch unreachable;
+    cfg.number_temps += 1;
+    var temp_symbol = symbol_.Symbol.init(
+        cfg.symbol.scope,
+        (buf.toOwned() catch unreachable).?,
+        span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+        _type,
+        undefined,
+        null,
+        .mut,
+        allocator,
+    );
+    temp_symbol.expanded_type = _type.expand_type(allocator);
+    temp_symbol.is_temp = true;
+    return temp_symbol;
+}
+
+fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
+    const temp_symbol = create_temp_symbol(cfg, _type, allocator);
+    const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
+    return retval;
+}
+
+pub fn inject_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+    const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null }, errors, allocator);
+    if (cfg.symbol.decl.?.* == .fnDecl) {
+        // `_comptime` symbols don't have parameters anyway
+        for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+            cfg.parameters.append(lval_.Symbol_Version.createUnversioned(param, allocator)) catch unreachable;
+        }
+    }
+    const return_version = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);
+    if (eval != null) {
+        cfg.appendInstruction(ir_.IR.init_simple_copy(return_version, eval.?, cfg.symbol.span, allocator));
+    }
+    cfg.appendInstruction(ir_.IR.initJump(null, cfg.symbol.span, allocator));
+
+    cfg.block_graph_head = cfg.basicBlockFromIR(cfg.ir_head, allocator);
+    cfg.removeBasicBlockLastInstruction();
+
+    // for (retval.basic_blocks.items) |bb| {
+    //     bb.pprint();
+    // }
+    // retval.clearVisitedBBs();
+
+    cfg.calculatePhiParamsAndArgs(allocator);
+}
+
+fn lower_AST(
     cfg: *cfg_.CFG,
     ast: *ast_.AST,
     labels: Labels,
@@ -35,24 +84,24 @@ pub fn lower_AST(
     switch (ast.*) {
         // Literals
         .unit_type => {
-            const lval = cfg.create_temp_lvalue(ast, allocator);
+            const lval = create_temp_lvalue(cfg, ast, allocator);
             cfg.appendInstruction(ir_.IR.init_ast(lval, ast, ast.getToken().span, allocator));
             return lval;
         },
         .unit_value => {
-            const lval = cfg.create_temp_lvalue(primitives_.unit_type, allocator);
+            const lval = create_temp_lvalue(cfg, primitives_.unit_type, allocator);
             cfg.appendInstruction(ir_.IR.init(.loadUnit, lval, null, null, ast.getToken().span, allocator));
             return lval;
         },
         .int => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             const ir = ir_.IR.initInt(temp, ast.int.data, ast.getToken().span, allocator);
             // temp.def = ir;
             cfg.appendInstruction(ir);
             return temp;
         },
         .char => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             // Convert the character inside to a codepoint
             var codepoint: u21 = undefined;
             switch (ast.getToken().data[1]) {
@@ -75,15 +124,22 @@ pub fn lower_AST(
             return temp;
         },
         .float => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             const ir = ir_.IR.initFloat(temp, ast.float.data, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
         .string => {
-            module_.interned_string_set_add(ast.string.data, cfg.interned_strings);
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
-            const ir = ir_.IR.initString(temp, cfg.interned_strings.items.len - 1, ast.getToken().span, allocator);
+            const res = cfg.interned_strings.get(ast.string.data);
+            var id: usize = undefined;
+            if (res) |res_| {
+                id = res_;
+            } else {
+                id = cfg.interned_strings.count();
+                cfg.interned_strings.put(ast.string.data, id) catch unreachable;
+            }
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
+            const ir = ir_.IR.initString(temp, id, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -91,13 +147,13 @@ pub fn lower_AST(
             const symbol = ast.identifier.symbol.?;
             if (symbol.kind == ._fn) {
                 _ = try symbol.get_cfg(cfg, cfg.interned_strings, errors, allocator);
-                const lval = cfg.create_temp_lvalue(symbol._type, allocator);
+                const lval = create_temp_lvalue(cfg, symbol._type, allocator);
                 var ir = ir_.IR.init(.loadSymbol, lval, null, null, ast.getToken().span, allocator);
                 ir.data = ir_.Data{ .symbol = symbol };
                 cfg.appendInstruction(ir);
                 return lval;
             } else if (symbol.expanded_type.?.typesMatch(primitives_.type_type)) {
-                const lval = cfg.create_temp_lvalue(symbol._type, allocator);
+                const lval = create_temp_lvalue(cfg, symbol._type, allocator);
                 cfg.appendInstruction(ir_.IR.init_ast(lval, ast, ast.getToken().span, allocator));
                 return lval;
             } else if (symbol.kind == ._const) {
@@ -111,20 +167,20 @@ pub fn lower_AST(
             const symbol = ast.symbol.symbol;
             std.debug.assert(symbol.kind == ._fn); // For returning functions at compile-time!
             _ = try symbol.get_cfg(cfg, cfg.interned_strings, errors, allocator);
-            const lval = cfg.create_temp_lvalue(symbol._type, allocator);
+            const lval = create_temp_lvalue(cfg, symbol._type, allocator);
             var ir = ir_.IR.init(.loadSymbol, lval, null, null, ast.getToken().span, allocator);
             ir.data = ir_.Data{ .symbol = symbol };
             cfg.appendInstruction(ir);
             return lval;
         },
         ._true => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             const ir = ir_.IR.initInt(temp, 1, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
             return temp;
         },
         ._false => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             const ir = ir_.IR.initInt(temp, 0, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
             return temp;
@@ -136,7 +192,7 @@ pub fn lower_AST(
             if (expr == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init(.not, temp, expr, null, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -147,7 +203,7 @@ pub fn lower_AST(
             if (expr == null) {
                 return null;
             }
-            var temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init(if (temp.get_type().can_represent_float()) .negate_float else .negate_int, temp, expr, null, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -171,7 +227,7 @@ pub fn lower_AST(
 
             var expanded_expr_type = expr.get_type().expand_type(allocator);
             // Trying error sum, runtime check if error, branch to error path
-            const condition = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             cfg.appendInstruction(ir_.IR.initGetTag(condition, expr, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
             cfg.appendInstruction(ir_.IR.initBranch(condition, err, ast.getToken().span, allocator));
 
@@ -195,7 +251,7 @@ pub fn lower_AST(
                 return null;
             }
             expr.?.extract_symbver().symbol.discard_span = ast.getToken().span;
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.initDiscard(expr.?, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -214,7 +270,7 @@ pub fn lower_AST(
         },
         ._or => {
             // Create the result symbol and labels used
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
@@ -238,7 +294,7 @@ pub fn lower_AST(
         },
         ._and => {
             // Create the result symbol and labels used
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
@@ -266,7 +322,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.add_int, .add_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -278,7 +334,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.sub_int, .sub_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -290,7 +346,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.mult_int, .mult_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -302,7 +358,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.div_int, .div_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -314,7 +370,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init(.mod, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -326,7 +382,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             // Labels used
             const fail_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
@@ -348,12 +404,12 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const lhs_type = ast.not_equal.lhs.typeof(allocator).expand_type(allocator);
             if (lhs_type.* == .sum) {
-                const lhs_tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
-                const rhs_tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+                const lhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
+                const rhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
                 cfg.appendInstruction(ir_.IR.initGetTag(lhs_tag, lhs.?, ast.getToken().span, allocator));
                 cfg.appendInstruction(ir_.IR.initGetTag(rhs_tag, rhs.?, ast.getToken().span, allocator));
                 cfg.appendInstruction(ir_.IR.init(.not_equal, temp, lhs_tag, rhs_tag, ast.getToken().span, allocator));
@@ -368,7 +424,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.greater_int, .greater_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -380,7 +436,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.lesser_int, .lesser_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -392,7 +448,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.greater_equal_int, .greater_equal_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -404,7 +460,7 @@ pub fn lower_AST(
             if (lhs == null or rhs == null) {
                 return null;
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.init_int_float_kind(.lesser_equal_int, .lesser_equal_float, temp, lhs, rhs, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -412,13 +468,13 @@ pub fn lower_AST(
         },
         ._catch => {
             // Create the result symbol and labels
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
             // Test if lhs tag is 0 (ok)
             const lhs = (try lower_AST(cfg, ast._catch.lhs, labels, errors, allocator)) orelse return null;
-            const condition = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             cfg.appendInstruction(ir_.IR.initGetTag(condition, lhs, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
             cfg.appendInstruction(ir_.IR.initBranch(condition, else_label, ast.getToken().span, allocator));
 
@@ -441,12 +497,12 @@ pub fn lower_AST(
         },
         ._orelse => {
             // Create the result symbol and labels/lvalues used
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
             // Test if lhs tag is 1 (some)
-            const condition = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             var lhs = (try lower_AST(cfg, ast._orelse.lhs, labels, errors, allocator)) orelse return null;
             cfg.appendInstruction(ir_.IR.initGetTag(condition, lhs, ast.getToken().span, allocator)); // Assumes `some` tag is nonzero, `none` tag is zero
             cfg.appendInstruction(ir_.IR.initBranch(condition, else_label, ast.getToken().span, allocator));
@@ -471,7 +527,7 @@ pub fn lower_AST(
         },
         .call => {
             const lhs = (try lower_AST(cfg, ast.call.lhs, labels, errors, allocator)) orelse return null;
-            var temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             temp.extract_symbver().symbol.span = ast.getToken().span;
 
             var ir = ir_.IR.initCall(temp, lhs, ast.getToken().span, allocator);
@@ -484,7 +540,7 @@ pub fn lower_AST(
             return temp;
         },
         .function => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
             return temp;
         },
@@ -523,7 +579,7 @@ pub fn lower_AST(
             var tag: ?*lval_.L_Value = null;
             if (lhs_expanded_type.* == .sum) {
                 // Check that the sum value has the proper tag before a selection
-                tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+                tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
                 cfg.appendInstruction(ir_.IR.initGetTag(tag.?, ast_lval.?, ast.getToken().span, allocator));
             }
 
@@ -534,11 +590,11 @@ pub fn lower_AST(
         },
         .product => {
             if (ast.product.terms.items[0].typeof(allocator).typesMatch(primitives_.type_type)) {
-                const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+                const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
                 cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
             } else {
-                const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+                const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
                 var ir = ir_.IR.initLoadStruct(temp, ast.getToken().span, allocator);
                 for (ast.product.terms.items) |term| {
                     ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse return null) catch unreachable;
@@ -548,7 +604,7 @@ pub fn lower_AST(
             }
         },
         .sum => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
             return temp;
         },
@@ -556,12 +612,12 @@ pub fn lower_AST(
         // Fancy Operators
         .addrOf => {
             if ((ast.typeof(allocator)).typesMatch(primitives_.type_type)) {
-                const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+                const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
                 cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
             } else {
                 const expr = try lower_AST(cfg, ast.addrOf.expr, labels, errors, allocator);
-                const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+                const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
                 const ir = ir_.IR.init(.addrOf, temp, expr, null, ast.getToken().span, allocator);
                 cfg.appendInstruction(ir);
@@ -575,7 +631,7 @@ pub fn lower_AST(
 
             generate_subslice_check(cfg, lower, upper, ast.getToken().span, allocator);
 
-            const new_size = cfg.create_temp_lvalue(primitives_.int_type, allocator);
+            const new_size = create_temp_lvalue(cfg, primitives_.int_type, allocator);
             cfg.appendInstruction(ir_.IR.init(.sub_int, new_size, upper, lower, ast.getToken().span, allocator));
 
             const slice_type = ast.typeof(allocator);
@@ -583,10 +639,10 @@ pub fn lower_AST(
             const size = data_type.expand_type(allocator).sizeof();
             const data_ptr = lval_.L_Value.create_select(arr, 0, 0, size, data_type, data_type.expand_type(allocator), null, allocator);
 
-            const new_data_ptr = cfg.create_temp_lvalue(data_type, allocator);
+            const new_data_ptr = create_temp_lvalue(cfg, data_type, allocator);
             cfg.appendInstruction(ir_.IR.init(.add_int, new_data_ptr, data_ptr, lower, ast.getToken().span, allocator));
 
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             var load_struct = ir_.IR.initLoadStruct(temp, ast.getToken().span, allocator);
             load_struct.data.lval_list.append(new_data_ptr) catch unreachable;
             load_struct.data.lval_list.append(new_size) catch unreachable;
@@ -594,7 +650,7 @@ pub fn lower_AST(
             return temp;
         },
         .annotation => {
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
             return temp;
         },
@@ -605,7 +661,7 @@ pub fn lower_AST(
             if (proper_term.annotation.type.* != .unit_type) {
                 init = try lower_AST(cfg, ast.inferredMember.init.?, labels, errors, allocator);
             }
-            const temp = cfg.create_temp_lvalue(ast.typeof(allocator), allocator);
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
             const ir = ir_.IR.initUnion(temp, init, ast.inferredMember.pos.?, ast.getToken().span, allocator);
             cfg.appendInstruction(ir);
@@ -615,7 +671,7 @@ pub fn lower_AST(
         // Control-flow expressions
         ._if => {
             // Create the result symbol and labels used
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
@@ -639,7 +695,7 @@ pub fn lower_AST(
         },
         .match => {
             // Create the result symbol and labels used
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator); // Exit label of match
             const none_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator); // Label jumped to if all tests fail and no `else` mapping
 
@@ -670,7 +726,7 @@ pub fn lower_AST(
         },
         ._while => {
             // Create the result symbol and labels used
-            const symbol = cfg.createTempSymbol(ast.typeof(allocator), allocator);
+            const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const cond_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const current_continue_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
@@ -746,9 +802,9 @@ pub fn lower_AST(
                 const expanded_temp_type = _temp.get_type().expand_type(allocator);
                 if (current_labels.error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
                     // Returning error sum, runtime check if error, branch to error path
-                    const condition = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+                    const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
                     cfg.appendInstruction(ir_.IR.initGetTag(condition, _temp, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
-                    const not_condition = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+                    const not_condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
                     cfg.appendInstruction(ir_.IR.init(.not, not_condition, condition, null, ast.getToken().span, allocator));
                     cfg.appendInstruction(ir_.IR.initBranch(not_condition, current_labels.error_label, ast.getToken().span, allocator));
                 }
@@ -782,7 +838,7 @@ pub fn lower_AST(
         },
         .fnDecl => {
             _ = try ast.fnDecl.symbol.?.get_cfg(cfg, cfg.interned_strings, errors, allocator);
-            const temp = cfg.create_temp_lvalue(ast.fnDecl.symbol.?._type, allocator);
+            const temp = create_temp_lvalue(cfg, ast.fnDecl.symbol.?._type, allocator);
             var ir = ir_.IR.init(.loadSymbol, temp, null, null, ast.getToken().span, allocator);
             ir.data = ir_.Data{ .symbol = ast.fnDecl.symbol.? };
             cfg.appendInstruction(ir);
@@ -815,9 +871,9 @@ pub fn lower_AST(
                 const expanded_expr_type = expr.typeof(allocator).expand_type(allocator);
                 if (expanded_expr_type.* == .sum and expanded_expr_type.sum.was_error) {
                     // Returning error sum, runtime check if error, branch to error path
-                    const condition = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+                    const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
                     cfg.appendInstruction(ir_.IR.initGetTag(condition, retval, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
-                    const not_condition = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+                    const not_condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
                     cfg.appendInstruction(ir_.IR.init(.not, not_condition, condition, null, ast.getToken().span, allocator));
                     cfg.appendInstruction(ir_.IR.initBranch(not_condition, labels.error_label, ast.getToken().span, allocator));
                 }
@@ -845,7 +901,7 @@ fn generate_tuple_equality(
 ) void {
     const new_lhs = lhs; // try L_Value.create_unversioned_symbver(lhs.symbol, lhs.symbol._type.?, allocator);
     const new_rhs = rhs; // try L_Value.create_unversioned_symbver(rhs.symbol, rhs.symbol._type.?, allocator);
-    const temp = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+    const temp = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
     var lhs_type = lhs.get_type().expand_type(allocator);
     if (lhs_type.* == .product) {
         for (0..lhs_type.product.terms.items.len) |i| {
@@ -856,8 +912,8 @@ fn generate_tuple_equality(
             generate_tuple_equality(cfg, lhs_select, rhs_select, fail_label, allocator);
         }
     } else if (lhs_type.* == .sum) {
-        const lhs_tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
-        const rhs_tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+        const lhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
+        const rhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
         cfg.appendInstruction(ir_.IR.initGetTag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, allocator));
         cfg.appendInstruction(ir_.IR.initGetTag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span, allocator));
         cfg.appendInstruction(ir_.IR.init(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span, allocator));
@@ -928,8 +984,7 @@ fn generate_pattern(
             try generate_pattern(cfg, term, subscript_type, lval, errors, allocator);
         }
     } else if (pattern.* == .inject) {
-        const lhs_type = pattern.inject.lhs.typeof(allocator);
-        const domain = try validate_.domainof(pattern, lhs_type, errors, allocator);
+        const domain = pattern.inject.domain.?;
         const size = domain.expand_type(allocator).sizeof();
         const lval = lval_.L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, domain.expand_type(allocator), null, allocator);
         try generate_pattern(cfg, pattern.inject.rhs, domain, lval, errors, allocator);
@@ -942,7 +997,7 @@ fn generate_indexable_length(cfg: *cfg_.CFG, lhs: *lval_.L_Value, _type: *ast_.A
         const offset = _type.product.get_offset(1, allocator);
         return lval_.L_Value.create_select(lhs, 1, offset, 8, primitives_.int64_type, primitives_.int64_type, null, allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
-        const retval = cfg.create_temp_lvalue(primitives_.int_type, allocator);
+        const retval = create_temp_lvalue(cfg, primitives_.int_type, allocator);
         cfg.appendInstruction(ir_.IR.initInt(retval, _type.product.terms.items.len, span, allocator));
         return retval;
     } else {
@@ -953,7 +1008,7 @@ fn generate_indexable_length(cfg: *cfg_.CFG, lhs: *lval_.L_Value, _type: *ast_.A
 /// Generates code to verify at runtime that a subslice's lower bound is less-than-or-equal-to the subslice's upper bound.
 fn generate_subslice_check(cfg: *cfg_.CFG, lower: *lval_.L_Value, upper: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) void {
     const end_label = ir_.IR.initLabel(cfg, span, allocator);
-    const compare = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+    const compare = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
     cfg.appendInstruction(ir_.IR.init(.greater_int, compare, lower, upper, span, allocator));
     cfg.appendInstruction(ir_.IR.initBranch(compare, end_label, span, allocator));
     cfg.appendInstruction(ir_.IR.initStackPush(span, allocator));
@@ -1057,7 +1112,7 @@ fn generate_match_pattern_check(
         .block,
         => {
             const value = try lower_AST(cfg, pattern.?, labels, errors, allocator);
-            const condition = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+            const condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
             const condition_ir = ir_.IR.init(.equal, condition, expr, value.?, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(condition_ir);
             const branch = ir_.IR.initBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
@@ -1078,17 +1133,17 @@ fn generate_match_pattern_check(
         },
         .select => {
             // Get tag of pattern
-            const sel = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const sel = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             const sel_ir = ir_.IR.initInt(sel, pattern.?.select.pos.?, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(sel_ir);
 
             // Get tag of expr
-            const tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             const tag_ir = ir_.IR.initGetTag(tag, expr, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(tag_ir);
 
             // Compare them, jump to next pattern if they are not equal
-            const neql = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+            const neql = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
             const neql_ir = ir_.IR.init(.equal, neql, tag, sel, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(neql_ir);
             const branch = ir_.IR.initBranch(neql, next_pattern, pattern.?.getToken().span, allocator);
@@ -1096,17 +1151,17 @@ fn generate_match_pattern_check(
         },
         .inferredMember => {
             // Get tag of pattern
-            const sel = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const sel = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             const sel_ir = ir_.IR.initInt(sel, pattern.?.inferredMember.pos.?, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(sel_ir);
 
             // Get tag of expr
-            const tag = cfg.create_temp_lvalue(primitives_.word64_type, allocator);
+            const tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             const tag_ir = ir_.IR.initGetTag(tag, expr, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(tag_ir);
 
             // Compare them, jump to next pattern if they are not equal
-            const neql = cfg.create_temp_lvalue(primitives_.bool_type, allocator);
+            const neql = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
             const neql_ir = ir_.IR.init(.equal, neql, tag, sel, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(neql_ir);
             const branch = ir_.IR.initBranch(neql, next_pattern, pattern.?.getToken().span, allocator);

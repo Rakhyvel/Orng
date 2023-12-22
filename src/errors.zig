@@ -108,11 +108,9 @@ pub const Error = union(enum) {
     },
     useBeforeDef: struct {
         identifier: token_.Token,
-        symbol: *symbol_.Symbol,
     },
     modifyImmutable: struct {
         identifier: token_.Token,
-        symbol: *symbol_.Symbol,
     },
     notIndexable: struct {
         span: span_.Span,
@@ -233,6 +231,7 @@ pub const Errors = struct {
     }
 
     fn print_main_error(err: Error, allocator: std.mem.Allocator) !void {
+        _ = allocator;
         switch (err) {
             // General errors
             .basic => try out.print("{s}\n", .{err.basic.msg}),
@@ -313,28 +312,7 @@ pub const Errors = struct {
                 try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name });
             },
             .undeclaredIdentifier => {
-                try out.print("use of undeclared identifier `{s}`", .{err.undeclaredIdentifier.identifier.data});
-
-                var similar = std.ArrayList([]const u8).init(allocator);
-                defer similar.deinit();
-
-                err.undeclaredIdentifier.scope.collect_similar(err.undeclaredIdentifier.identifier.data, &similar, err.undeclaredIdentifier.expected, allocator);
-
-                if (similar.items.len == 0) {
-                    try out.print("\n", .{});
-                } else {
-                    try out.print("; did you mean ", .{});
-                    for (similar.items, 0..) |item, i| {
-                        if (i == similar.items.len - 1) {
-                            try out.print("`{s}`", .{item});
-                        } else if (i < similar.items.len - 2) {
-                            try out.print("`{s}`, ", .{item});
-                        } else {
-                            try out.print("`{s}`, or ", .{item});
-                        }
-                    }
-                    try out.print("?\n", .{});
-                }
+                try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data});
             },
             .comptime_access_runtime => {
                 try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data});

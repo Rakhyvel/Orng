@@ -53,66 +53,66 @@ int64_t _257_f(int8_t _257_x,int16_t _257_y,int8_t _257_z){
     _257_t3 = 50;
     _257_t5 = _257_x == _257_t3;
     if (_257_t5) {
-        goto BB3;
+        goto BB276;
     } else {
-        goto BB19;
+        goto BB292;
     }
-BB3:
+BB276:
     _257_t6 = 200;
     _257_t8 = _257_y == _257_t6;
     if (_257_t8) {
-        goto BB4;
+        goto BB277;
     } else {
-        goto BB18;
+        goto BB291;
     }
-BB19:
+BB292:
     _257_t2 = 0;
-    goto BB17;
-BB4:
+    goto BB290;
+BB277:
     _257_t7 = 1;
-    goto BB5;
-BB18:
+    goto BB278;
+BB291:
     _257_t7 = 0;
-    goto BB5;
-BB17:
+    goto BB278;
+BB290:
     _257_t1 = 0;
-    goto BB15;
-BB5:
+    goto BB288;
+BB278:
     _257_t2 = _257_t7;
-    goto BB6;
-BB15:
+    goto BB279;
+BB288:
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:13:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB6:
+BB279:
     if (_257_t2) {
-        goto BB7;
+        goto BB280;
     } else {
-        goto BB17;
+        goto BB290;
     }
-BB7:
+BB280:
     _257_t9 = 6;
     _257_t11 = _257_z == _257_t9;
     if (_257_t11) {
-        goto BB8;
+        goto BB281;
     } else {
-        goto BB16;
+        goto BB289;
     }
-BB8:
+BB281:
     _257_t10 = 1;
-    goto BB9;
-BB16:
+    goto BB282;
+BB289:
     _257_t10 = 0;
-    goto BB9;
-BB9:
+    goto BB282;
+BB282:
     _257_t1 = _257_t10;
-    goto BB10;
-BB10:
+    goto BB283;
+BB283:
     if (_257_t1) {
-        goto BB11;
+        goto BB284;
     } else {
-        goto BB15;
+        goto BB288;
     }
-BB11:
+BB284:
     _257_$retval = 256;
     return _257_$retval;
 }

@@ -32,29 +32,29 @@ int64_t _249_f(struct0 _249_x){
     _249_t2 = _249_x.tag;
     _249_t3 = _249_t2 == _249_t1;
     if (_249_t3) {
-        goto BB3;
+        goto BB262;
     } else {
-        goto BB6;
+        goto BB265;
     }
-BB3:
+BB262:
     _249_t0 = 250;
-    goto BB5;
-BB6:
+    goto BB264;
+BB265:
     _249_t4 = 0;
     _249_t5 = _249_x.tag;
     _249_t6 = _249_t5 == _249_t4;
     if (_249_t6) {
-        goto BB8;
+        goto BB267;
     } else {
-        goto BB10;
+        goto BB269;
     }
-BB5:
+BB264:
     _249_$retval = _249_t0;
     return _249_$retval;
-BB8:
+BB267:
     _249_t0 = 11;
-    goto BB5;
-BB10:
+    goto BB264;
+BB269:
     $lines[$line_idx++] = "tests/integration/comptime/optional.orng:10:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }

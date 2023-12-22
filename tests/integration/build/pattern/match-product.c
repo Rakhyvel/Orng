@@ -36,18 +36,18 @@ int64_t _1226_main(void){
     _1226_t5 = 100;
     _1226_t6 = _1226_t1._0 == _1226_t5;
     if (_1226_t6) {
-        goto BB3;
+        goto BB1511;
     } else {
-        goto BB7;
+        goto BB1515;
     }
-BB3:
+BB1511:
     _1229_x = _1226_t1._1;
     _1229_y = _1226_t1._2;
     _1226_t7 = 100;
     _1226_t8 = $add_int64_t(_1226_t7, _1229_x, "tests/integration/pattern/match-product.orng:4:29:\n        (100, x, y) => 100 + x + y\n                           ^");
     _1226_$retval = $add_int64_t(_1226_t8, _1229_y, "tests/integration/pattern/match-product.orng:4:33:\n        (100, x, y) => 100 + x + y\n                               ^");
     return _1226_$retval;
-BB7:
+BB1515:
     $lines[$line_idx++] = "tests/integration/pattern/match-product.orng:5:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }

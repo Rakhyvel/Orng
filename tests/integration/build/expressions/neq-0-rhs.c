@@ -36,17 +36,17 @@ int64_t _794_f(int64_t _794_x){
     _794_t1 = 0;
     _794_t2 = _794_x != _794_t1;
     if (_794_t2) {
-        goto BB1;
+        goto BB1024;
     } else {
-        goto BB5;
+        goto BB1028;
     }
-BB1:
+BB1024:
     _794_t0 = 173;
-    goto BB4;
-BB5:
+    goto BB1027;
+BB1028:
     _794_t0 = 3;
-    goto BB4;
-BB4:
+    goto BB1027;
+BB1027:
     _794_$retval = _794_t0;
     return _794_$retval;
 }

@@ -1,16 +1,13 @@
 const std = @import("std");
-const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
-const errs = @import("errors.zig");
 const ir_ = @import("ir.zig");
-const lower_ = @import("lower.zig");
 const lval_ = @import("lval.zig");
 const span_ = @import("span.zig");
-const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 pub const CFG = struct {
     /// Temporary, flat instruction list before the BBs are created
+    /// TODO: Maybe create a different structure for this, and CFG when creating the BBs
     ir_head: ?*ir_.IR,
     ir_tail: ?*ir_.IR,
 
@@ -38,7 +35,7 @@ pub const CFG = struct {
 
     /// Non-owning pointer to set of interned string literals
     /// Provided by main, global to all CFGs.
-    interned_strings: *std.ArrayList([]const u8),
+    interned_strings: *std.StringArrayHashMap(usize),
 
     /// Whether or not this CFG is visited
     visited: bool,
@@ -52,7 +49,7 @@ pub const CFG = struct {
     allocator: std.mem.Allocator,
 
     // BIG TODO: Dependency-inject errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
-    pub fn create(symbol: *symbol_.Symbol, caller: ?*CFG, interned_strings: *std.ArrayList([]const u8), errors: *errs.Errors, allocator: std.mem.Allocator) !*CFG {
+    pub fn init(symbol: *symbol_.Symbol, caller: ?*CFG, interned_strings: *std.StringArrayHashMap(usize), allocator: std.mem.Allocator) !*CFG {
         if (symbol.cfg) |cfg| {
             return cfg;
         }
@@ -66,7 +63,7 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = symbol_.Symbol.init(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, ast_.poisoned, null, .mut, allocator);
+        retval.return_symbol = symbol_.Symbol.init(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, undefined, null, .mut, allocator);
         retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
@@ -78,29 +75,6 @@ pub const CFG = struct {
         if (caller) |caller_node| {
             caller_node.children.append(retval) catch unreachable;
         }
-
-        const eval: ?*lval_.L_Value = try lower_.lower_AST(retval, symbol.init, .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null }, errors, allocator);
-        if (retval.symbol.decl.?.* == .fnDecl) {
-            // `_comptime` symbols don't have parameters anyway
-            for (retval.symbol.decl.?.fnDecl.param_symbols.items) |param| {
-                retval.parameters.append(lval_.Symbol_Version.createUnversioned(param, allocator)) catch unreachable;
-            }
-        }
-        const return_version = lval_.L_Value.create_unversioned_symbver(retval.return_symbol, allocator);
-        if (eval != null) {
-            retval.appendInstruction(ir_.IR.init_simple_copy(return_version, eval.?, symbol.span, allocator));
-        }
-        retval.appendInstruction(ir_.IR.initJump(null, symbol.span, allocator));
-
-        retval.block_graph_head = retval.basicBlockFromIR(retval.ir_head, allocator);
-        retval.removeBasicBlockLastInstruction();
-
-        // for (retval.basic_blocks.items) |bb| {
-        //     bb.pprint();
-        // }
-        // retval.clearVisitedBBs();
-
-        retval.calculatePhiParamsAndArgs(allocator);
 
         return retval;
     }
@@ -153,37 +127,6 @@ pub const CFG = struct {
         }
     }
 
-    pub fn createTempSymbol(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
-        var buf = String.init_with_contents(allocator, "t") catch unreachable;
-        buf.writer().print("{}", .{self.number_temps}) catch unreachable;
-        self.number_temps += 1;
-        var temp_symbol = symbol_.Symbol.init(
-            self.symbol.scope,
-            (buf.toOwned() catch unreachable).?,
-            span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
-            _type,
-            ast_.poisoned,
-            null,
-            .mut,
-            allocator,
-        );
-        temp_symbol.expanded_type = _type.expand_type(allocator);
-        temp_symbol.is_temp = true;
-        return temp_symbol;
-    }
-
-    pub fn createTempSymbolVersion(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.Symbol_Version {
-        const temp_symbol = self.createTempSymbol(_type, allocator);
-        const retval = lval_.Symbol_Version.createUnversioned(temp_symbol, _type, allocator);
-        return retval;
-    }
-
-    pub fn create_temp_lvalue(self: *CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
-        const temp_symbol = self.createTempSymbol(_type, allocator);
-        const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
-        return retval;
-    }
-
     pub fn appendInstruction(self: *CFG, ir: *ir_.IR) void {
         if (self.ir_head == null) {
             self.ir_head = ir;
@@ -200,13 +143,14 @@ pub const CFG = struct {
 
     /// Converts the list of IR to a web of BB's
     /// Also versions IR dest's if they are symbvers. This versioning should persist and should not be wiped.
-    fn basicBlockFromIR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
+    pub fn basicBlockFromIR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
         if (maybe_ir == null) {
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
             return in_block;
         }
-        var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(self, allocator);
+        var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(allocator);
+        self.basic_blocks.append(retval) catch unreachable;
         retval.ir_head = maybe_ir;
         var _maybe_ir = maybe_ir;
         while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
@@ -274,7 +218,7 @@ pub const CFG = struct {
         return retval;
     }
 
-    fn removeBasicBlockLastInstruction(cfg: *CFG) void {
+    pub fn removeBasicBlockLastInstruction(cfg: *CFG) void {
         for (cfg.basic_blocks.items) |bb| {
             if (bb.ir_head == null) {
                 continue;

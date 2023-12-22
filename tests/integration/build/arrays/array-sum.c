@@ -59,17 +59,17 @@ int64_t _53_f(struct1 _53_x){
     _53_t7 = 1;
     _53_t5 = _53_t6 == _53_t7;
     if (_53_t5) {
-        goto BB3;
+        goto BB48;
     } else {
-        goto BB7;
+        goto BB52;
     }
-BB3:
+BB48:
     _53_t0 = 215;
-    goto BB6;
-BB7:
+    goto BB51;
+BB52:
     _53_t0 = 3;
-    goto BB6;
-BB6:
+    goto BB51;
+BB51:
     _53_$retval = _53_t0;
     return _53_$retval;
 }

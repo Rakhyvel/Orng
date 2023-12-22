@@ -26,33 +26,33 @@ int64_t _1585_main(void){
     _1585_t5 = 5;
     _1585_t6 = *_1586_y != _1585_t5;
     if (_1585_t6) {
-        goto BB3;
+        goto BB1928;
     } else {
-        goto BB12;
+        goto BB1937;
     }
-BB3:
+BB1928:
     _1585_t9 = 3;
     _1585_t10 = *_1586_y >= _1585_t9;
     if (_1585_t10) {
-        goto BB5;
+        goto BB1930;
     } else {
-        goto BB9;
+        goto BB1934;
     }
-BB12:
+BB1937:
     _1585_t7 = 4;
     _1585_t8 = _1585_t7 > *_1586_y;
     if (_1585_t8) {
-        goto BB3;
+        goto BB1928;
     } else {
-        goto BB9;
+        goto BB1934;
     }
-BB5:
+BB1930:
     _1585_t2 = 33;
-    goto BB8;
-BB9:
+    goto BB1933;
+BB1934:
     _1585_t2 = 10;
-    goto BB8;
-BB8:
+    goto BB1933;
+BB1933:
     _1585_$retval = _1585_t2;
     return _1585_$retval;
 }

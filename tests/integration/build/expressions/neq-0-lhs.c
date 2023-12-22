@@ -36,17 +36,17 @@ int64_t _786_f(int64_t _786_x){
     _786_t1 = 0;
     _786_t2 = _786_t1 != _786_x;
     if (_786_t2) {
-        goto BB1;
+        goto BB1015;
     } else {
-        goto BB5;
+        goto BB1019;
     }
-BB1:
+BB1015:
     _786_t0 = 174;
-    goto BB4;
-BB5:
+    goto BB1018;
+BB1019:
     _786_t0 = 3;
-    goto BB4;
-BB4:
+    goto BB1018;
+BB1018:
     _786_$retval = _786_t0;
     return _786_$retval;
 }

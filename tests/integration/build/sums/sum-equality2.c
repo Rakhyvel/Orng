@@ -43,17 +43,17 @@ int64_t _1437_main(void){
     _1437_t8 = _1437_t4.tag;
     _1437_t6 = _1437_t7 == _1437_t8;
     if (_1437_t6) {
-        goto BB3;
+        goto BB1758;
     } else {
-        goto BB7;
+        goto BB1762;
     }
-BB3:
+BB1758:
     _1437_t0 = 212;
-    goto BB6;
-BB7:
+    goto BB1761;
+BB1762:
     _1437_t0 = -1;
-    goto BB6;
-BB6:
+    goto BB1761;
+BB1761:
     _1437_$retval = _1437_t0;
     return _1437_$retval;
 }
