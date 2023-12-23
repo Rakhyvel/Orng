@@ -4,6 +4,7 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
 const primitives_ = @import("primitives.zig");
+const token_ = @import("token.zig");
 
 const Expand_Error = error{parseError};
 
@@ -115,6 +116,19 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.arrayOf.len, errors, allocator);
         },
         .subSlice => {
+            if (ast.subSlice.lower == null) {
+                ast.subSlice.lower = ast_.AST.createInt(ast.token(), 0, allocator);
+            }
+            if (ast.subSlice.upper == null) {
+                const length = ast_.AST.createField(token_.Token.init("length", null, "", "", 0, 0), allocator);
+                ast.subSlice.upper = ast_.AST.createSelect(
+                    ast.token(),
+                    ast.subSlice.super,
+                    length,
+                    allocator,
+                );
+            }
+
             try expand(ast.subSlice.super, errors, allocator);
             try expand(ast.subSlice.lower, errors, allocator);
             try expand(ast.subSlice.upper, errors, allocator);

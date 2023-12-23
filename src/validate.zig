@@ -499,18 +499,9 @@ fn validate_AST_internal(
             }
 
             var lhs_type = ast.lhs().typeof(allocator);
-            if (lhs_type.* == .addrOf) {
-                // Implicit dereference
-                ast.set_lhs(validateAST(ast_.AST.createDereference(ast.token(), ast.lhs(), allocator), null, errors, allocator));
-                lhs_type = ast.lhs().typeof(allocator);
-                if (ast.lhs().* == .poison) {
-                    return ast.enpoison();
-                }
-            } else if (lhs_type.* == .poison) {
-                return ast.enpoison();
-            }
+            var lhs_expanded_type = lhs_type.expand_type(allocator);
+            lhs_expanded_type = try implicit_dereference(ast, lhs_expanded_type, errors, allocator);
 
-            const lhs_expanded_type = lhs_type.expand_type(allocator);
             if (lhs_type.typesMatch(primitives_.type_type) and ast.lhs().* == .product and ast.rhs().* == .int and ast.lhs().children().items.len > ast.rhs().int.data) {
                 // Index a product type, resolve immediately
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
@@ -538,7 +529,7 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        .select => { // TODO: Too long!
+        .select => {
             ast.set_lhs(validateAST(ast.lhs(), null, errors, allocator));
             if (ast.lhs().* == .poison) {
                 return ast.enpoison();
@@ -547,58 +538,14 @@ fn validate_AST_internal(
             var lhs_type = ast.lhs().typeof(allocator);
             var select_lhs_type = lhs_type.expand_type(allocator);
 
-            // Implicit dereference
-            if (select_lhs_type.* == .addrOf) {
-                ast.set_lhs(validateAST(ast_.AST.createDereference(ast.token(), ast.lhs(), allocator), null, errors, allocator));
-                select_lhs_type = ast.lhs().typeof(allocator).expand_type(allocator);
-                if (ast.lhs().* == .poison) {
-                    return ast.enpoison();
-                }
-            }
+            select_lhs_type = try implicit_dereference(ast, select_lhs_type, errors, allocator);
 
             if (select_lhs_type.typesMatch(primitives_.type_type) and ast.lhs().expand_type(allocator).* == .sum) {
                 // Select on a Type (only valid for a sum type), change to inferred-member
                 const inferred_member = ast_.AST.createInferredMember(ast.token(), ast.rhs(), allocator);
                 return validateAST(inferred_member, ast.lhs(), errors, allocator);
-            } else {
-                // Select on something annot-list-like, get the pos
-                // TODO: Move this to a function for if something is selectable
-                // var annot_list: *std.ArrayList(*ast_.AST) = undefined;
-                // if (select_lhs_type.* == .product) {
-                //     annot_list = &select_lhs_type.product.terms;
-                // } else if (select_lhs_type.* == .sum) {
-                //     annot_list = &select_lhs_type.sum.terms;
-                // } else if (select_lhs_type.* == .inferred_error) {
-                //     annot_list = &select_lhs_type.inferred_error.terms;
-                // } else {
-                //     errors.addError(errs_.Error{ .basic = .{
-                //         .span = ast.token().span,
-                //         .msg = "left-hand-side of select is not selectable",
-                //     } });
-                //     return ast.enpoison();
-                // }
-                if (ast.select.pos == null) {
-                    for (select_lhs_type.children().items, 0..) |term, i| {
-                        if (term.* != .annotation) {
-                            errors.addError(errs_.Error{ .basic = .{
-                                .span = ast.token().span,
-                                .msg = "left-hand-side of select is not selectable",
-                            } });
-                            return ast.enpoison();
-                        }
-                        if (std.mem.eql(u8, term.annotation.pattern.token().data, ast.rhs().token().data)) {
-                            ast.select.pos = i;
-                            break;
-                        }
-                    } else {
-                        errors.addError(errs_.Error{ .member_not_in = .{
-                            .span = ast.token().span,
-                            .identifier = ast.rhs().token().data,
-                            .group_name = "tuple",
-                        } });
-                        return ast.enpoison();
-                    }
-                }
+            } else if (ast.select.pos == null) {
+                ast.select.pos = try find_select_pos(select_lhs_type, ast.rhs().token().data, ast.token().span, errors);
             }
 
             _ = ast.assert_valid();
@@ -878,37 +825,17 @@ fn validate_AST_internal(
             }
             return ast_.AST.create_array_type(ast.arrayOf.len, ast.expr(), allocator);
         },
-        .subSlice => { // TODO: TOO LONG
+        .subSlice => {
             ast.subSlice.super = validateAST(ast.subSlice.super, null, errors, allocator);
-            if (ast.subSlice.super.* == .poison) {
-                return ast.enpoison();
+            ast.subSlice.lower = validateAST(ast.subSlice.lower.?, null, errors, allocator); // lower and upper should exist
+            ast.subSlice.upper = validateAST(ast.subSlice.upper.?, null, errors, allocator); // they are set in expand phase
+            if (ast.subSlice.super.* == .poison or ast.subSlice.lower.?.* == .poison or ast.subSlice.upper.?.* == .poison) {
+                return error.typeError;
             }
             const super_type = ast.subSlice.super.typeof(allocator);
             if (super_type.* != .product or !super_type.product.was_slice) {
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot take a sub-slice of something that is not a slice" } });
-                return ast.enpoison();
-            }
-
-            if (ast.subSlice.lower) |lower| {
-                ast.subSlice.lower = validateAST(lower, primitives_.int_type, errors, allocator);
-            } else {
-                ast.subSlice.lower = ast_.AST.createInt(ast.token(), 0, allocator);
-                _ = ast.subSlice.lower.?.assert_valid();
-            }
-            if (ast.subSlice.upper) |upper| {
-                ast.subSlice.upper = validateAST(upper, primitives_.int_type, errors, allocator);
-            } else {
-                const length = (ast_.AST.createIdentifier(token_.Token.init("length", null, "", "", 0, 0), allocator)).assert_valid();
-                const index = ast_.AST.createSelect(
-                    ast.token(),
-                    ast.subSlice.super,
-                    length,
-                    allocator,
-                );
-                ast.subSlice.upper = validateAST(index, primitives_.int_type, errors, allocator);
-            }
-            if (ast.subSlice.lower.?.* == .poison or ast.subSlice.upper.?.* == .poison) {
-                return ast.enpoison();
+                return error.typeError;
             }
             return ast;
         },
@@ -1151,7 +1078,7 @@ fn validate_AST_internal(
                 ast._while.bodyBlock.* == .poison or
                 (ast._while.elseBlock != null and ast._while.elseBlock.?.* == .poison))
             {
-                return ast.enpoison();
+                return error.typeError;
             }
             return ast;
         },
@@ -1644,6 +1571,50 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .select => try assertMutable(ast.lhs(), errors, allocator),
 
         else => unreachable,
+    }
+}
+
+fn implicit_dereference(ast: *ast_.AST, old_lhs_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+    var lhs_type = old_lhs_type;
+    if (lhs_type.* == .addrOf) {
+        ast.set_lhs(validateAST(ast_.AST.createDereference(ast.token(), ast.lhs(), allocator), null, errors, allocator));
+        lhs_type = ast.lhs().typeof(allocator).expand_type(allocator);
+    }
+    if (ast.lhs().* == .poison) {
+        return error.typeError;
+    }
+    if (lhs_type.* == .poison) {
+        return error.typeError;
+    }
+    return lhs_type;
+}
+
+fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) !usize {
+    if (_type.* != .product and _type.* != .sum and _type.* != .inferred_error) {
+        errors.addError(errs_.Error{ .basic = .{
+            .span = span,
+            .msg = "left-hand-side of select is not selectable",
+        } });
+        return error.typeError;
+    }
+    for (_type.children().items, 0..) |term, i| {
+        if (term.* != .annotation) {
+            errors.addError(errs_.Error{ .basic = .{
+                .span = span,
+                .msg = "left-hand-side of select is not selectable",
+            } });
+            return error.typeError;
+        }
+        if (std.mem.eql(u8, term.annotation.pattern.token().data, field)) {
+            return i;
+        }
+    } else {
+        errors.addError(errs_.Error{ .member_not_in = .{
+            .span = span,
+            .identifier = field,
+            .group_name = "tuple",
+        } });
+        return error.typeError;
     }
 }
 
