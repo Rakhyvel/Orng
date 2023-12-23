@@ -47,27 +47,27 @@ pub fn generate(module: *module_.Module, writer: anytype) !void {
 }
 
 fn output_main_function(cfg: *cfg_.CFG, writer: anytype) !void {
-    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Int") or
-        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Int64"))
+    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "Int") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "Int64"))
     {
         try writer.print(
             \\int main(void) {{
             \\  printf("%ld",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Word64")) {
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "Word64")) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%lu",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Float64") or
-        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Float32") or
-        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Float"))
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "Float64") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "Float32") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "Float"))
     {
         try writer.print(
             \\int main(void) {{
             \\  printf("%f",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "String") or cfg.symbol.expanded_type.?.rhs().* == .product) {
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "String") or cfg.symbol.expanded_type.?.rhs().* == .product) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%s",
@@ -79,7 +79,7 @@ fn output_main_function(cfg: *cfg_.CFG, writer: anytype) !void {
         , .{});
     }
     try output_symbol(cfg.symbol, writer);
-    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "String") or cfg.symbol.expanded_type.?.rhs().* == .product) {
+    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().token().data, "String") or cfg.symbol.expanded_type.?.rhs().* == .product) {
         try writer.print(
             \\()._0);
             \\  return 0;
@@ -737,10 +737,10 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: anytype
 fn output_type(_type: *ast_.AST, writer: anytype) CodeGen_Error!void {
     switch (_type.*) {
         .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
-            if (_type.getCommon().expanded_type.? != _type) {
-                try output_type(_type.getCommon().expanded_type.?, writer);
+            if (_type.common().expanded_type.? != _type) {
+                try output_type(_type.common().expanded_type.?, writer);
             } else {
-                try writer.print("{s}", .{primitives_.get(_type.getToken().data).c_name});
+                try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
             }
         },
         .addrOf => {

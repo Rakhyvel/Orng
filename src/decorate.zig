@@ -38,31 +38,31 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         => {},
 
         .identifier => {
-            const res = scope.lookup(ast.getToken().data, false);
+            const res = scope.lookup(ast.token().data, false);
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
                 .found => ast.set_symbol(res.found),
 
                 // Couldn't find the symbol
                 .not_found => {
-                    errors.addError(errs_.Error{ .undeclaredIdentifier = .{ .identifier = ast.getToken(), .expected = null } });
+                    errors.addError(errs_.Error{ .undeclaredIdentifier = .{ .identifier = ast.token(), .expected = null } });
                     return error.symbolError;
                 },
 
                 // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
                 .found_but_rt => {
-                    errors.addError(errs_.Error{ .comptime_access_runtime = .{ .identifier = ast.getToken() } });
+                    errors.addError(errs_.Error{ .comptime_access_runtime = .{ .identifier = ast.token() } });
                     return error.symbolError;
                 },
 
                 // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
                 .found_but_fn => {
-                    errors.addError(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = ast.getToken() } });
+                    errors.addError(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = ast.token() } });
                     return error.symbolError;
                 },
             }
             if (!ast.symbol().?.defined) {
-                errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.getToken() } });
+                errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.token() } });
                 return error.symbolError;
             }
         },

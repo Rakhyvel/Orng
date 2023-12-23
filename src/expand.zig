@@ -93,10 +93,10 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                 changed = changed or term.* == .identifier;
                 var annotation: *ast_.AST = try annot_from_ast(term, errors, allocator);
                 new_terms.append(annotation) catch unreachable;
-                const name = annotation.annotation.pattern.getToken().data;
+                const name = annotation.annotation.pattern.token().data;
                 const res = idents_seen.fetchPut(name, annotation) catch unreachable;
                 if (res) |_res| {
-                    errors.addError(errs_.Error{ .sum_duplicate = .{ .span = term.getToken().span, .identifier = name, .first = _res.value.getToken().span } });
+                    errors.addError(errs_.Error{ .sum_duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span } });
                     return error.parseError;
                 }
             }
@@ -179,9 +179,9 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {
-        return ast_.AST.createAnnotation(ast.getToken(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
+        return ast_.AST.createAnnotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
     } else {
-        errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "invalid sum expression, must be annotation or identifier" } });
+        errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "invalid sum expression, must be annotation or identifier" } });
         return error.parseError;
     }
 }

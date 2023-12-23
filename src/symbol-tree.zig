@@ -43,7 +43,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         ._break => {
             if (!scope.in_loop) {
                 errors.addError(errs_.Error{ .basic = .{
-                    .span = ast.getToken().span,
+                    .span = ast.token().span,
                     .msg = "`break` must be inside a loop",
                 } });
                 return error.symbolError;
@@ -53,7 +53,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         ._continue => {
             if (!scope.in_loop) {
                 errors.addError(errs_.Error{ .basic = .{
-                    .span = ast.getToken().span,
+                    .span = ast.token().span,
                     .msg = "`continue` must be inside a loop",
                 } });
                 return error.symbolError;
@@ -72,7 +72,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
 
         ._try => {
             if (scope.inner_function == null) {
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
+                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "try operator is not within a function" } });
                 return error.symbolError;
             }
             ast.set_symbol(scope.inner_function);
@@ -193,7 +193,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         ._return => {
             if (scope.in_function == 0 or scope.inner_function == null) {
                 errors.addError(errs_.Error{ .basic = .{
-                    .span = ast.getToken().span,
+                    .span = ast.token().span,
                     .msg = "`return` must be inside in a function",
                 } });
                 return error.symbolError;
@@ -274,7 +274,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                 if (pattern.pattern_symbol.kind != .let) {
                     // It is an error for `_` to be marked as `const` or `mut`
                     errors.addError(errs_.Error{ .discard_marked = .{
-                        .span = pattern.getToken().span,
+                        .span = pattern.token().span,
                         .kind = pattern.pattern_symbol.kind,
                     } });
                     return error.symbolError;
@@ -288,7 +288,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
             const symbol = symbol_.Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
-                pattern.getToken().span,
+                pattern.token().span,
                 _type,
                 symbol_init,
                 null,
@@ -300,18 +300,18 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
         },
         .product => {
             for (pattern.children().items, 0..) |term, i| {
-                const index = ast_.AST.createInt(pattern.getToken(), i, allocator);
-                const new_type: *ast_.AST = ast_.AST.createIndex(_type.getToken(), _type, index, allocator);
-                const new_init: *ast_.AST = ast_.AST.createIndex(init.getToken(), init, index, allocator);
+                const index = ast_.AST.createInt(pattern.token(), i, allocator);
+                const new_type: *ast_.AST = ast_.AST.createIndex(_type.token(), _type, index, allocator);
+                const new_init: *ast_.AST = ast_.AST.createIndex(init.token(), init, index, allocator);
                 try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
             }
         },
         .inject => {
-            const lhs_type = ast_.AST.createTypeOf(pattern.getToken(), init, allocator);
-            const rhs_type = ast_.AST.createDomainOf(pattern.getToken(), lhs_type, pattern, allocator);
+            const lhs_type = ast_.AST.createTypeOf(pattern.token(), init, allocator);
+            const rhs_type = ast_.AST.createDomainOf(pattern.token(), lhs_type, pattern, allocator);
             // All symbols need inits, this is just a phony init since these symbols are more like parameters.
             // We do the same for parameters, btw!
-            const phony_init = ast_.AST.createDefault(pattern.getToken(), rhs_type, allocator);
+            const phony_init = ast_.AST.createDefault(pattern.token(), rhs_type, allocator);
 
             try create_symbol(symbols, pattern.lhs(), lhs_type, phony_init, scope, errors, allocator);
             try create_symbol(symbols, pattern.rhs(), rhs_type, phony_init, scope, errors, allocator);
@@ -327,7 +327,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
             mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
             defer symbols.deinit();
-            const _type = ast_.AST.createTypeOf(match.expr().getToken(), match.expr(), allocator);
+            const _type = ast_.AST.createTypeOf(match.expr().token(), match.expr(), allocator);
             try create_symbol(&symbols, mapping.mapping_lhs().?, _type, match.expr(), new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;
@@ -344,13 +344,13 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     // Calculate the domain type from the function paramter types
     const domain = extractDomain(
         ast.children().*,
-        ast.fnDecl.retType.getToken(),
+        ast.fnDecl.retType.token(),
         allocator,
     );
 
     // Create the function type
     const _type = ast_.AST.createFunction(
-        ast.fnDecl.retType.getToken(),
+        ast.fnDecl.retType.token(),
         domain,
         ast.fnDecl.retType,
         allocator,
@@ -383,14 +383,14 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     // Choose name (maybe anon)
     var buf: []const u8 = undefined;
     if (ast.fnDecl.name) |name| {
-        buf = name.getToken().data;
+        buf = name.token().data;
     } else {
         buf = nextAnonFunctionName(allocator);
     }
     const retval = symbol_.Symbol.init(
         fnScope,
         buf,
-        ast.getToken().span,
+        ast.token().span,
         _type,
         ast.fnDecl.init,
         ast,
@@ -416,22 +416,22 @@ fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocato
     if (params.items.len == 0) {
         return ast_.AST.createUnitType(token, allocator);
     } else if (params.items.len <= 1) {
-        return ast_.AST.createAnnotation(params.items[0].getToken(), params.items[0].decl.pattern, params.items[0].decl.type, null, params.items[0].decl.init, allocator);
+        return ast_.AST.createAnnotation(params.items[0].token(), params.items[0].decl.pattern, params.items[0].decl.type, null, params.items[0].decl.init, allocator);
     } else {
         std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*ast_.AST).init(allocator);
         var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
-            param_types.append(ast_.AST.createAnnotation(params.items[i].getToken(), params.items[i].decl.pattern, params.items[i].decl.type, null, params.items[i].decl.init, allocator)) catch unreachable;
+            param_types.append(ast_.AST.createAnnotation(params.items[i].token(), params.items[i].decl.pattern, params.items[i].decl.type, null, params.items[i].decl.init, allocator)) catch unreachable;
         }
-        const retval = ast_.AST.createProduct(params.items[0].getToken(), param_types, allocator);
+        const retval = ast_.AST.createProduct(params.items[0].token(), param_types, allocator);
         return retval;
     }
 }
 
 // `const` symbol, surround with comptime
 fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
-    const retval = ast_.AST.createComptime(old_init.getToken(), old_init, allocator);
+    const retval = ast_.AST.createComptime(old_init.token(), old_init, allocator);
     const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
     const res = scope.lookup(comptime_symbol.name, false);
     switch (res) {
@@ -453,9 +453,9 @@ fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.S
 // ast is a `comptime` ast
 fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
-    const lhs = ast_.AST.createUnitType(ast.expr().getToken(), allocator);
-    const rhs = ast_.AST.createTypeOf(ast.expr().getToken(), ast.expr(), allocator);
-    const _type = ast_.AST.createFunction(ast.expr().getToken(), lhs, rhs_type_hint orelse rhs, allocator);
+    const lhs = ast_.AST.createUnitType(ast.expr().token(), allocator);
+    const rhs = ast_.AST.createTypeOf(ast.expr().token(), ast.expr(), allocator);
+    const _type = ast_.AST.createFunction(ast.expr().token(), lhs, rhs_type_hint orelse rhs, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
@@ -470,7 +470,7 @@ fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope:
     const retval = symbol_.Symbol.init(
         comptime_scope,
         buf,
-        ast.getToken().span,
+        ast.token().span,
         _type,
         ast.expr(),
         ast,

@@ -390,11 +390,11 @@ pub const Errors = struct {
             .nonExhaustiveSum => {
                 for (err.nonExhaustiveSum.forgotten.items) |_type| {
                     try (term_.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(_type.getToken().span);
+                    try print_note_prelude(_type.token().span);
                     try (term_.Attr{ .bold = true }).dump(out);
-                    try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.getToken().data});
+                    try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.token().data});
                     try (term_.Attr{ .bold = false }).dump(out);
-                    try printEpilude(_type.getToken().span);
+                    try printEpilude(_type.token().span);
                 }
             },
             else => {},

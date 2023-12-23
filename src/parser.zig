@@ -272,7 +272,7 @@ pub const Parser = struct {
             if (self.accept(.EQUALS)) |_| {
                 const pre__init = try self.inject_expr();
                 if (!pre__init.is_comptime_expr()) {
-                    self.errors.addError(errs_.Error{ .comptime_known = .{ .span = pre__init.getToken().span, .what = "default values" } });
+                    self.errors.addError(errs_.Error{ .comptime_known = .{ .span = pre__init.token().span, .what = "default values" } });
                     return error.parseError;
                 }
                 _init = ast_.AST.createComptime(token, pre__init, self.allocator);
@@ -286,7 +286,7 @@ pub const Parser = struct {
     fn assignment_expr(self: *Parser) ParserErrorEnum!*ast_.AST {
         var exp = try self.inject_expr();
         if (self.accept(.EQUALS)) |token| {
-            if (exp.* == .identifier and std.mem.eql(u8, exp.getToken().data, "_")) {
+            if (exp.* == .identifier and std.mem.eql(u8, exp.token().data, "_")) {
                 // TODO: With new pattern matching is this needed?
                 return ast_.AST.createDiscard(token, try self.inject_expr(), self.allocator);
             } else {
@@ -440,7 +440,7 @@ pub const Parser = struct {
                 sliceKind = .ARRAY;
                 len = try self.inject_expr();
                 if (!len.?.is_comptime_expr()) {
-                    self.errors.addError(errs_.Error{ .comptime_known = .{ .span = len.?.getToken().span, .what = "array lengths" } });
+                    self.errors.addError(errs_.Error{ .comptime_known = .{ .span = len.?.token().span, .what = "array lengths" } });
                     return error.not_comptime_known;
                 }
             } else {
@@ -770,10 +770,10 @@ pub const Parser = struct {
         }
 
         return ast_.AST.createDecl(
-            ident.getToken(),
+            ident.token(),
             ident,
             _type,
-            _init orelse ast_.AST.createDefault(_type.getToken(), _type, self.allocator),
+            _init orelse ast_.AST.createDefault(_type.token(), _type, self.allocator),
             self.allocator,
         );
     }
@@ -823,7 +823,7 @@ pub const Parser = struct {
             _ = try self.expect(.NEWLINE);
         }
 
-        return ast_.AST.createMapping(lhs.getToken(), lhs, rhs, self.allocator);
+        return ast_.AST.createMapping(lhs.token(), lhs, rhs, self.allocator);
     }
 
     fn match_else(self: *Parser) ParserErrorEnum!*ast_.AST {

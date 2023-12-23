@@ -227,7 +227,7 @@ pub fn get_bounds(_type: *ast_.AST) Bounds {
     // _type is expanded
     switch (_type.*) {
         .identifier => {
-            const info = get(_type.getToken().data);
+            const info = get(_type.token().data);
             return switch (info.type_kind) {
                 .signed_integer => info.bounds.?,
                 .unsigned_integer => info.bounds.?,
@@ -242,8 +242,8 @@ pub fn get_bounds(_type: *ast_.AST) Bounds {
 
 pub fn from_ast(_type: *ast_.AST) Primitive_Info {
     std.debug.assert(_type.* == .identifier);
-    return primitives.get(_type.getToken().data) orelse {
-        std.debug.print("compiler error: `{s}` is not a primitive\n", .{_type.getToken().data});
+    return primitives.get(_type.token().data) orelse {
+        std.debug.print("compiler error: `{s}` is not a primitive\n", .{_type.token().data});
         unreachable;
     };
 }
@@ -252,6 +252,6 @@ pub fn represents_signed_primitive(_type: *ast_.AST) bool {
     if (_type.* != .identifier) {
         return false;
     }
-    const info = primitives.get(_type.getToken().data) orelse return false;
+    const info = primitives.get(_type.token().data) orelse return false;
     return info.type_kind == .signed_integer;
 }

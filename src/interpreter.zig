@@ -515,7 +515,7 @@ pub const Context = struct {
         std.debug.assert(address >= 0);
         switch (_type.*) {
             .identifier => {
-                const info = primitives_.get(_type.getToken().data);
+                const info = primitives_.get(_type.token().data);
                 switch (info.type_kind) {
                     .type => return @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8)))),
                     .none => unreachable,
@@ -556,10 +556,10 @@ pub const Context = struct {
                 ast.set_symbol(symbol);
                 return ast.assert_valid();
             },
-            .unit_type => return ast_.AST.createUnitValue(_type.getToken(), allocator).assert_valid(),
+            .unit_type => return ast_.AST.createUnitValue(_type.token(), allocator).assert_valid(),
             .sum => {
                 var retval = ast_.AST.createInferredMember(
-                    _type.getToken(),
+                    _type.token(),
                     ast_.AST.createIdentifier(
                         token_.Token.init("extracted from interpreter", .IDENTIFIER, "", "", 0, 0),
                         allocator,
@@ -583,7 +583,7 @@ pub const Context = struct {
                     value_terms.append(extracted_term) catch unreachable;
                     offset += term.sizeof();
                 }
-                return ast_.AST.createProduct(_type.getToken(), value_terms, allocator).assert_valid();
+                return ast_.AST.createProduct(_type.token(), value_terms, allocator).assert_valid();
             },
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
             else => {
