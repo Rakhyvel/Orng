@@ -845,9 +845,7 @@ fn lower_AST(
             cfg.appendInstruction(ir);
             return temp;
         },
-        ._errdefer, ._defer => {
-            return null;
-        },
+        ._errdefer, ._defer => return null,
         ._continue => {
             cfg.appendInstruction(ir_.IR.initJump(labels.continue_label, ast.getToken().span, allocator));
             return null;

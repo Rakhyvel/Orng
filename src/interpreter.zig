@@ -74,9 +74,7 @@ pub const Context = struct {
                     return self.base_pointer + lval.symbver.symbol.offset.?;
                 }
             },
-            .dereference => {
-                return self.load(i64, self.get_lval(lval.dereference.expr));
-            },
+            .dereference => return self.load(i64, self.get_lval(lval.dereference.expr)),
             .index => {
                 const base = self.get_lval(lval.index.lhs);
                 const index = self.load(i64, self.get_lval(lval.index.rhs));
@@ -418,9 +416,7 @@ pub const Context = struct {
                 std.debug.assert(ir.dest.?.sizeof() == 8);
                 self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + tag_offset, 8);
             },
-            .cast => {
-                std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)});
-            },
+            .cast => std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
 
             // Control-flow
             .label => {

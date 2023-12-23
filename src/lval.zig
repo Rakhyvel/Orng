@@ -69,18 +69,10 @@ pub const L_Value = union(enum) {
 
     pub fn deinit(self: *L_Value) void {
         switch (self.*) {
-            .symbver => {
-                self.symbver.deinit();
-            },
-            .dereference => {
-                self.dereference.allocator.destroy(self);
-            },
-            .index => {
-                self.index.allocator.destroy(self);
-            },
-            .select => {
-                self.select.allocator.destroy(self);
-            },
+            .symbver => self.symbver.deinit(),
+            .dereference => self.dereference.allocator.destroy(self),
+            .index => self.index.allocator.destroy(self),
+            .select => self.select.allocator.destroy(self),
         }
     }
 
@@ -118,20 +110,12 @@ pub const L_Value = union(enum) {
     }
 
     pub fn extract_symbver(self: *L_Value) *Symbol_Version {
-        switch (self.*) {
-            .symbver => {
-                return self.symbver;
-            },
-            .dereference => {
-                return self.dereference.expr.extract_symbver();
-            },
-            .index => {
-                return self.index.lhs.extract_symbver();
-            },
-            .select => {
-                return self.select.lhs.extract_symbver();
-            },
-        }
+        return switch (self.*) {
+            .symbver => self.symbver,
+            .dereference => self.dereference.expr.extract_symbver(),
+            .index => self.index.lhs.extract_symbver(),
+            .select => self.select.lhs.extract_symbver(),
+        };
     }
 
     pub fn sizeof(self: *L_Value) i64 {

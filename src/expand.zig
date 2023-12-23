@@ -47,6 +47,8 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         ._try,
         .discard,
         ._comptime,
+        .addrOf,
+        .sliceOf,
         => try expand(ast.expr(), errors, allocator),
 
         .assign,
@@ -107,16 +109,8 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
 
             try expand_from_list(ast.sum.terms, errors, allocator);
         },
-        .inferred_error => {
-            try expand_from_list(ast.inferred_error.terms, errors, allocator);
-        },
-        .product => {
-            try expand_from_list(ast.product.terms, errors, allocator);
-        },
-        .addrOf => try expand(ast.expr(), errors, allocator),
-        .sliceOf => {
-            try expand(ast.expr(), errors, allocator);
-        },
+        .inferred_error => try expand_from_list(ast.inferred_error.terms, errors, allocator),
+        .product => try expand_from_list(ast.product.terms, errors, allocator),
         .arrayOf => {
             try expand(ast.expr(), errors, allocator);
             try expand(ast.arrayOf.len, errors, allocator);

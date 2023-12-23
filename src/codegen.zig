@@ -730,9 +730,7 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: anytype
                 try writer.print(")", .{});
             }
         },
-        .symbver => {
-            try output_symbol(lvalue.symbver.symbol, writer);
-        },
+        .symbver => try output_symbol(lvalue.symbver.symbol, writer),
     }
 }
 
@@ -757,12 +755,8 @@ fn output_type(_type: *ast_.AST, writer: anytype) CodeGen_Error!void {
             const i = (cheat_module.type_set.get(_type)).?.uid;
             try writer.print("struct{}", .{i});
         },
-        .unit_type => {
-            try writer.print("void", .{});
-        },
-        .annotation => {
-            try output_type(_type.annotation.type, writer);
-        },
+        .unit_type => try writer.print("void", .{}),
+        .annotation => try output_type(_type.annotation.type, writer),
         else => {
             std.debug.print("Unimplemented output_type() for {?}", .{_type.*});
             unreachable;

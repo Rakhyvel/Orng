@@ -127,16 +127,10 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             try symbolTableFromAST(ast.lhs(), scope, errors, allocator);
             try symbolTableFromASTList(ast.call.args, scope, errors, allocator);
         },
-        .sum => {
-            try symbolTableFromASTList(ast.sum.terms, scope, errors, allocator);
-        },
-        .inferred_error => {
-            try symbolTableFromASTList(ast.inferred_error.terms, scope, errors, allocator);
-        },
+        .sum => try symbolTableFromASTList(ast.sum.terms, scope, errors, allocator),
+        .inferred_error => try symbolTableFromASTList(ast.inferred_error.terms, scope, errors, allocator),
 
-        .product => {
-            try symbolTableFromASTList(ast.product.terms, scope, errors, allocator);
-        },
+        .product => try symbolTableFromASTList(ast.product.terms, scope, errors, allocator),
         .arrayOf => {
             try symbolTableFromAST(ast.expr(), scope, errors, allocator);
             try symbolTableFromAST(ast.arrayOf.len, scope, errors, allocator);
@@ -168,9 +162,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             try create_match_pattern_symbol(ast, new_scope, errors, allocator);
             try symbolTableFromASTList(ast.match.mappings, new_scope, errors, allocator);
         },
-        .mapping => {
-            try symbolTableFromAST(ast.mapping_lhs(), scope, errors, allocator);
-        },
+        .mapping => try symbolTableFromAST(ast.mapping_lhs(), scope, errors, allocator),
         ._while => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             var loop_scope = symbol_.Scope.init(new_scope, "", allocator); // let, cond, and post are NOT in loop scope, `break` and `continue` are not appropriate

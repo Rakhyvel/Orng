@@ -411,9 +411,7 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {
             11 => return error.SegmentationFault,
             else => return error.UnknownSignal,
         },
-        else => {
-            return error.CommandFailed;
-        },
+        else => return error.CommandFailed,
     }
     return .{ .stdout = stdout, .retcode = retcode };
 }

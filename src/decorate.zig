@@ -110,16 +110,10 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             try decorate_identifiers_from_list(ast.call.args, scope, errors, allocator);
         },
-        .sum => {
-            try decorate_identifiers_from_list(ast.sum.terms, scope, errors, allocator);
-        },
-        .inferred_error => {
-            try decorate_identifiers_from_list(ast.inferred_error.terms, scope, errors, allocator);
-        },
+        .sum => try decorate_identifiers_from_list(ast.sum.terms, scope, errors, allocator),
+        .inferred_error => try decorate_identifiers_from_list(ast.inferred_error.terms, scope, errors, allocator),
 
-        .product => {
-            try decorate_identifiers_from_list(ast.product.terms, scope, errors, allocator);
-        },
+        .product => try decorate_identifiers_from_list(ast.product.terms, scope, errors, allocator),
         .arrayOf => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);
             try decorate_identifiers(ast.arrayOf.len, scope, errors, allocator);

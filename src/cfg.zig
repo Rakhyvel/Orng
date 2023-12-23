@@ -289,9 +289,7 @@ pub const CFG = struct {
                 }
                 lval.symbver = retval;
             },
-            .dereference => {
-                version_lvalue(lval.dereference.expr, bb, ir, parameters);
-            },
+            .dereference => version_lvalue(lval.dereference.expr, bb, ir, parameters),
             .index => {
                 version_lvalue(lval.index.rhs, bb, ir, parameters);
                 version_lvalue(lval.index.lhs, bb, ir, parameters);

@@ -889,9 +889,7 @@ fn reset_usage_lval(lval: *lval_.L_Value) void {
             lval.symbver.uses = 0;
             lval.symbver.symbol.uses = 0;
         },
-        .dereference => {
-            reset_usage_lval(lval.dereference.expr);
-        },
+        .dereference => reset_usage_lval(lval.dereference.expr),
         .index => {
             reset_usage_lval(lval.index.lhs);
             reset_usage_lval(lval.index.rhs);
@@ -914,9 +912,7 @@ fn calculate_usage_lval(lval: *lval_.L_Value) void {
             lval.symbver.uses += 1;
             lval.symbver.symbol.uses += 1;
         },
-        .dereference => {
-            calculate_usage_lval(lval.dereference.expr);
-        },
+        .dereference => calculate_usage_lval(lval.dereference.expr),
         .index => {
             calculate_usage_lval(lval.index.lhs);
             calculate_usage_lval(lval.index.rhs);

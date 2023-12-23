@@ -255,23 +255,13 @@ pub const Errors = struct {
                     err.missing_close.got.kind.repr() orelse err.missing_close.got.data,
                 });
             },
-            .comptime_known => {
-                try out.print("{s} must be compile-time known\n", .{err.comptime_known.what});
-            },
-            .unrecognized_builtin => {
-                try out.print("`@{s}` is not a recognized built-in function\n", .{err.unrecognized_builtin.what});
-            },
+            .comptime_known => try out.print("{s} must be compile-time known\n", .{err.comptime_known.what}),
+            .unrecognized_builtin => try out.print("`@{s}` is not a recognized built-in function\n", .{err.unrecognized_builtin.what}),
 
             // Symbol
-            .redefinition => {
-                try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name});
-            },
-            .symbol_error => {
-                try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem });
-            },
-            .discard_marked => {
-                try out.print("discarded symbol marked as `{s}`\n", .{symbol_.SymbolKind.to_string(err.discard_marked.kind)});
-            },
+            .redefinition => try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name}),
+            .symbol_error => try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem }),
+            .discard_marked => try out.print("discarded symbol marked as `{s}`\n", .{symbol_.SymbolKind.to_string(err.discard_marked.kind)}),
 
             // Typecheck
             .expected2Type => {
@@ -294,7 +284,8 @@ pub const Errors = struct {
                 try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
             },
             .expectedBuiltinTypeclass => {
-                try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected}); // just so happens to work out that all builtin type classes start with a vowel
+                // just so happens to work out that all builtin type classes start with a vowel :-)
+                try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected});
                 try err.expectedBuiltinTypeclass.got.printType(out);
                 try out.print("`\n", .{});
             },
@@ -304,35 +295,19 @@ pub const Errors = struct {
                 try err.expectedGotString.expected.printType(out);
                 try out.print("`, got {s}\n", .{err.expectedGotString.got});
             },
-            .sum_duplicate => {
-                try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier});
-            },
-            .member_not_in => {
-                try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name });
-            },
-            .undeclaredIdentifier => {
-                try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data});
-            },
-            .comptime_access_runtime => {
-                try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data});
-            },
-            .inner_fn_access_runtime => {
-                try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{err.inner_fn_access_runtime.identifier.data});
-            },
-            .useBeforeDef => {
-                try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data});
-            },
-            .modifyImmutable => {
-                try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data});
-            },
+            .sum_duplicate => try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier}),
+            .member_not_in => try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name }),
+            .undeclaredIdentifier => try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data}),
+            .comptime_access_runtime => try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data}),
+            .inner_fn_access_runtime => try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{err.inner_fn_access_runtime.identifier.data}),
+            .useBeforeDef => try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data}),
+            .modifyImmutable => try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data}),
             .notIndexable => {
                 try out.print("the type `", .{});
                 try err.notIndexable._type.printType(out);
                 try out.print("` is not indexable\n", .{});
             },
-            .nonExhaustiveSum => {
-                try out.print("match over sum type is not exhaustive\n", .{});
-            },
+            .nonExhaustiveSum => try out.print("match over sum type is not exhaustive\n", .{}),
             .mismatchCallArity => {
                 try out.print("function takes {} parameter{s}, {} argument{s} given\n", .{
                     err.mismatchCallArity.takes,
@@ -356,12 +331,8 @@ pub const Errors = struct {
             },
 
             // Optimizer
-            .out_of_bounds => {
-                try out.print("index out of bounds; index {}, length {}\n", .{ err.out_of_bounds.index, err.out_of_bounds.length });
-            },
-            .negative_index => {
-                try out.print("index is negative; index {}\n", .{err.negative_index.index});
-            },
+            .out_of_bounds => try out.print("index out of bounds; index {}, length {}\n", .{ err.out_of_bounds.index, err.out_of_bounds.length }),
+            .negative_index => try out.print("index is negative; index {}\n", .{err.negative_index.index}),
             .slice_lower_upper => {
                 try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{ err.slice_lower_upper.lower, err.slice_lower_upper.upper });
             },

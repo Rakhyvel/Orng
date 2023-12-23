@@ -1137,12 +1137,8 @@ pub const AST = union(enum) {
 
     pub fn printType(self: *AST, out: anytype) !void {
         switch (self.*) {
-            .unit_type => {
-                try out.print("()", .{});
-            },
-            .identifier => {
-                try out.print("{s}", .{self.getToken().data});
-            },
+            .unit_type => try out.print("()", .{}),
+            .identifier => try out.print("{s}", .{self.getToken().data}),
             .addrOf => {
                 try out.print("&", .{});
                 if (self.addrOf.mut) {
@@ -1238,9 +1234,7 @@ pub const AST = union(enum) {
                 try self.rhs().printType(out);
                 try out.print("]", .{});
             },
-            ._unreachable => {
-                try out.print("unreachable", .{});
-            },
+            ._unreachable => try out.print("unreachable", .{}),
             .poison => try out.print("<error>", .{}),
             else => {
                 try out.print("\nprintTypes(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});
@@ -1453,9 +1447,7 @@ pub const AST = union(enum) {
                 const fn_type: *AST = self.lhs().typeof(allocator).expand_identifier();
                 return fn_type.rhs();
             },
-            .fnDecl => {
-                return self.symbol().?._type;
-            },
+            .fnDecl => return self.symbol().?._type,
             .pattern_symbol => return self.symbol().?._type,
             .inject => return self.lhs().typeof(allocator),
 
@@ -1768,9 +1760,7 @@ pub const AST = union(enum) {
             .default => try out.writer().print("default({})", .{self.expr()}),
             .sizeOf => try out.writer().print("sizeOf({})", .{self.expr()}),
             .domainOf => try out.writer().print("domainof()", .{}),
-            ._comptime => {
-                try out.writer().print("comptime({})", .{self.expr()});
-            },
+            ._comptime => try out.writer().print("comptime({})", .{self.expr()}),
 
             .assign => try out.writer().print("assign()", .{}),
             ._or => try out.writer().print("or()", .{}),
