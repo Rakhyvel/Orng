@@ -357,8 +357,8 @@ pub const AST = union(enum) {
         symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
     },
-    _defer: struct { common: ASTCommon, statement: *AST },
-    _errdefer: struct { common: ASTCommon, statement: *AST },
+    _defer: struct { common: ASTCommon, _statement: *AST },
+    _errdefer: struct { common: ASTCommon, _statement: *AST },
 
     /// Boxes an AST value into an allocator.
     fn box(ast: AST, alloc: std.mem.Allocator) *AST {
@@ -822,12 +822,12 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
-    pub fn createDefer(token: token_.Token, statement: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
+    pub fn createDefer(token: token_.Token, _statement: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ ._defer = .{ .common = ASTCommon{ .token = token, ._type = null }, ._statement = _statement } }, allocator);
     }
 
-    pub fn createErrDefer(token: token_.Token, statement: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ ._errdefer = .{ .common = ASTCommon{ .token = token, ._type = null }, .statement = statement } }, allocator);
+    pub fn createErrDefer(token: token_.Token, _statement: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ ._errdefer = .{ .common = ASTCommon{ .token = token, ._type = null }, ._statement = _statement } }, allocator);
     }
 
     fn Unwrapped(comptime Union: type, comptime field: []const u8) type {
@@ -874,12 +874,12 @@ pub const AST = union(enum) {
         set_field(self, "_expr", _expr);
     }
 
-    pub fn get_lhs(self: *AST) *AST {
-        return lhs_internal(self.*);
+    pub fn statement(self: AST) *AST {
+        return get_field(self, "_statement");
     }
 
-    pub fn lhs_internal(ast: anytype) *AST {
-        return ast.lhs;
+    pub fn set_statement(self: *AST, _expr: *AST) void {
+        set_field(self, "_statement", _expr);
     }
 
     pub fn create_array_type(len: *AST, of: *AST, allocator: std.mem.Allocator) *AST {
@@ -1189,8 +1189,8 @@ pub const AST = union(enum) {
             .int => try out.print("{}", .{self.int.data}),
             .block => {
                 try out.print("{{", .{});
-                for (self.block.statements.items, 0..) |statement, i| {
-                    try statement.printType(out);
+                for (self.block.statements.items, 0..) |_statement, i| {
+                    try _statement.printType(out);
                     if (self.block.final != null or i > self.block.statements.items.len - 1) {
                         try out.print("; ", .{});
                     }

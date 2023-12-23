@@ -241,8 +241,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand_from_list(ast.fnDecl.params, errors, allocator);
             try expand(ast.fnDecl.retType, errors, allocator);
         },
-        ._defer => try expand(ast._defer.statement, errors, allocator),
-        ._errdefer => try expand(ast._errdefer.statement, errors, allocator),
+        ._defer, ._errdefer => try expand(ast.statement(), errors, allocator),
     }
 }
 

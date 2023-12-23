@@ -1315,17 +1315,9 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        ._defer => {
-            ast._defer.statement = validateAST(ast._defer.statement, null, errors, allocator);
-            if (ast._defer.statement.* == .poison) {
-                return ast.enpoison();
-            }
-            try void_check(ast, expected, errors);
-            return ast;
-        },
-        ._errdefer => {
-            ast._errdefer.statement = validateAST(ast._errdefer.statement, null, errors, allocator);
-            if (ast._errdefer.statement.* == .poison) {
+        ._defer, ._errdefer => {
+            ast.set_statement(validateAST(ast.statement(), null, errors, allocator));
+            if (ast.statement().* == .poison) {
                 return ast.enpoison();
             }
             try void_check(ast, expected, errors);

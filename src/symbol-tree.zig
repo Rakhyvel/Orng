@@ -311,12 +311,12 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             ast.fnDecl.symbol = symbol;
         },
         ._defer => {
-            scope.defers.append(ast._defer.statement) catch unreachable;
-            try symbolTableFromAST(ast._defer.statement, scope, errors, allocator);
+            scope.defers.append(ast.statement()) catch unreachable;
+            try symbolTableFromAST(ast.statement(), scope, errors, allocator);
         },
         ._errdefer => {
-            scope.errdefers.append(ast._errdefer.statement) catch unreachable;
-            try symbolTableFromAST(ast._errdefer.statement, scope, errors, allocator);
+            scope.errdefers.append(ast.statement()) catch unreachable;
+            try symbolTableFromAST(ast.statement(), scope, errors, allocator);
         },
     }
 }

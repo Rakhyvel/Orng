@@ -252,7 +252,6 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             try decorate_identifiers_from_list(ast.fnDecl.params, ast.fnDecl.symbol.?.scope, errors, allocator);
             try decorate_identifiers(ast.fnDecl.retType, ast.fnDecl.symbol.?.scope, errors, allocator);
         },
-        ._defer => try decorate_identifiers(ast._defer.statement, scope, errors, allocator),
-        ._errdefer => try decorate_identifiers(ast._errdefer.statement, scope, errors, allocator),
+        ._defer, ._errdefer => try decorate_identifiers(ast.statement(), scope, errors, allocator),
     }
 }
