@@ -80,103 +80,41 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         .sliceOf,
         => try decorate_identifiers(ast.expr(), scope, errors, allocator),
 
-        .assign => {
-            try decorate_identifiers(ast.assign.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.assign.rhs, scope, errors, allocator);
-        },
-        ._or => {
-            try decorate_identifiers(ast._or.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast._or.rhs, scope, errors, allocator);
-        },
-        ._and => {
-            try decorate_identifiers(ast._and.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast._and.rhs, scope, errors, allocator);
-        },
-        .add => {
-            try decorate_identifiers(ast.add.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.add.rhs, scope, errors, allocator);
-        },
-        .sub => {
-            try decorate_identifiers(ast.sub.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.sub.rhs, scope, errors, allocator);
-        },
-        .mult => {
-            try decorate_identifiers(ast.mult.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.mult.rhs, scope, errors, allocator);
-        },
-        .div => {
-            try decorate_identifiers(ast.div.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.div.rhs, scope, errors, allocator);
-        },
-        .mod => {
-            try decorate_identifiers(ast.mod.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.mod.rhs, scope, errors, allocator);
-        },
-        .equal => {
-            try decorate_identifiers(ast.equal.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.equal.rhs, scope, errors, allocator);
-        },
-        .not_equal => {
-            try decorate_identifiers(ast.not_equal.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.not_equal.rhs, scope, errors, allocator);
-        },
-        .greater => {
-            try decorate_identifiers(ast.greater.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.greater.rhs, scope, errors, allocator);
-        },
-        .lesser => {
-            try decorate_identifiers(ast.lesser.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.lesser.rhs, scope, errors, allocator);
-        },
-        .greater_equal => {
-            try decorate_identifiers(ast.greater_equal.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.greater_equal.rhs, scope, errors, allocator);
-        },
-        .lesser_equal => {
-            try decorate_identifiers(ast.lesser_equal.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.lesser_equal.rhs, scope, errors, allocator);
-        },
-        ._catch => {
-            try decorate_identifiers(ast._catch.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast._catch.rhs, scope, errors, allocator);
-        },
-        ._orelse => {
-            try decorate_identifiers(ast._orelse.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast._orelse.rhs, scope, errors, allocator);
+        .assign,
+        ._or,
+        ._and,
+        .add,
+        .sub,
+        .mult,
+        .div,
+        .mod,
+        .equal,
+        .not_equal,
+        .greater,
+        .lesser,
+        .greater_equal,
+        .lesser_equal,
+        ._catch,
+        ._orelse,
+        .index,
+        .select,
+        .function,
+        .invoke,
+        .inject,
+        ._union,
+        => {
+            try decorate_identifiers(ast.lhs(), scope, errors, allocator);
+            try decorate_identifiers(ast.rhs(), scope, errors, allocator);
         },
         .call => {
-            try decorate_identifiers(ast.call.lhs, scope, errors, allocator);
+            try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             try decorate_identifiers_from_list(ast.call.args, scope, errors, allocator);
-        },
-        .index => {
-            try decorate_identifiers(ast.index.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.index.rhs, scope, errors, allocator);
-        },
-        .select => {
-            try decorate_identifiers(ast.select.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.select.rhs, scope, errors, allocator);
-        },
-        .function => {
-            try decorate_identifiers(ast.function.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.function.rhs, scope, errors, allocator);
-        },
-        .invoke => {
-            try decorate_identifiers(ast.invoke.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.invoke.rhs, scope, errors, allocator);
         },
         .sum => {
             try decorate_identifiers_from_list(ast.sum.terms, scope, errors, allocator);
         },
         .inferred_error => {
             try decorate_identifiers_from_list(ast.inferred_error.terms, scope, errors, allocator);
-        },
-        .inject => {
-            try decorate_identifiers(ast.inject.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast.inject.rhs, scope, errors, allocator);
-        },
-        ._union => {
-            try decorate_identifiers(ast._union.lhs, scope, errors, allocator);
-            try decorate_identifiers(ast._union.rhs, scope, errors, allocator);
         },
 
         .product => {
@@ -209,14 +147,10 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             try decorate_identifiers_from_list(ast.match.mappings, ast.match.scope.?, errors, allocator);
         },
         .mapping => {
-            try decorate_identifiers(ast.mapping.lhs, scope, errors, allocator);
-            if (ast.mapping.scope) |lhs_scope| {
-                // non-else mappings have their own scope
-                try decorate_identifiers(ast.mapping.rhs, lhs_scope, errors, allocator);
-            } else {
-                // else mappings use the surrounding match scope
-                try decorate_identifiers(ast.mapping.rhs, scope, errors, allocator);
-            }
+            try decorate_identifiers(ast.mapping_lhs(), scope, errors, allocator);
+            // non-else mappings have their own scope
+            // else mappings use the surrounding match scope
+            try decorate_identifiers(ast.rhs(), ast.mapping.scope orelse scope, errors, allocator);
         },
         ._while => {
             try decorate_identifiers(ast._while.let, scope, errors, allocator);

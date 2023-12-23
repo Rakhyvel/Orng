@@ -49,89 +49,35 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         ._comptime,
         => try expand(ast.expr(), errors, allocator),
 
-        .assign => {
-            try expand(ast.assign.lhs, errors, allocator);
-            try expand(ast.assign.rhs, errors, allocator);
-        },
-        ._or => {
-            try expand(ast._or.lhs, errors, allocator);
-            try expand(ast._or.rhs, errors, allocator);
-        },
-        ._and => {
-            try expand(ast._and.lhs, errors, allocator);
-            try expand(ast._and.rhs, errors, allocator);
-        },
-        .add => {
-            try expand(ast.add.lhs, errors, allocator);
-            try expand(ast.add.rhs, errors, allocator);
-        },
-        .sub => {
-            try expand(ast.sub.lhs, errors, allocator);
-            try expand(ast.sub.rhs, errors, allocator);
-        },
-        .mult => {
-            try expand(ast.mult.lhs, errors, allocator);
-            try expand(ast.mult.rhs, errors, allocator);
-        },
-        .div => {
-            try expand(ast.div.lhs, errors, allocator);
-            try expand(ast.div.rhs, errors, allocator);
-        },
-        .mod => {
-            try expand(ast.mod.lhs, errors, allocator);
-            try expand(ast.mod.rhs, errors, allocator);
-        },
-        .equal => {
-            try expand(ast.equal.lhs, errors, allocator);
-            try expand(ast.equal.rhs, errors, allocator);
-        },
-        .not_equal => {
-            try expand(ast.not_equal.lhs, errors, allocator);
-            try expand(ast.not_equal.rhs, errors, allocator);
-        },
-        .greater => {
-            try expand(ast.greater.lhs, errors, allocator);
-            try expand(ast.greater.rhs, errors, allocator);
-        },
-        .lesser => {
-            try expand(ast.lesser.lhs, errors, allocator);
-            try expand(ast.lesser.rhs, errors, allocator);
-        },
-        .greater_equal => {
-            try expand(ast.greater_equal.lhs, errors, allocator);
-            try expand(ast.greater_equal.rhs, errors, allocator);
-        },
-        .lesser_equal => {
-            try expand(ast.lesser_equal.lhs, errors, allocator);
-            try expand(ast.lesser_equal.rhs, errors, allocator);
-        },
-        ._catch => {
-            try expand(ast._catch.lhs, errors, allocator);
-            try expand(ast._catch.rhs, errors, allocator);
-        },
-        ._orelse => {
-            try expand(ast._orelse.lhs, errors, allocator);
-            try expand(ast._orelse.rhs, errors, allocator);
+        .assign,
+        ._or,
+        ._and,
+        .add,
+        .sub,
+        .mult,
+        .div,
+        .mod,
+        .equal,
+        .not_equal,
+        .greater,
+        .lesser,
+        .greater_equal,
+        .lesser_equal,
+        ._catch,
+        ._orelse,
+        .index,
+        .select,
+        .function,
+        .invoke,
+        .inject,
+        ._union,
+        => {
+            try expand(ast.lhs(), errors, allocator);
+            try expand(ast.rhs(), errors, allocator);
         },
         .call => {
-            try expand(ast.call.lhs, errors, allocator);
+            try expand(ast.lhs(), errors, allocator);
             try expand_from_list(ast.call.args, errors, allocator);
-        },
-        .index => {
-            try expand(ast.index.lhs, errors, allocator);
-            try expand(ast.index.rhs, errors, allocator);
-        },
-        .select => {
-            try expand(ast.select.lhs, errors, allocator);
-            try expand(ast.select.rhs, errors, allocator);
-        },
-        .function => {
-            try expand(ast.function.lhs, errors, allocator);
-            try expand(ast.function.rhs, errors, allocator);
-        },
-        .invoke => {
-            try expand(ast.invoke.lhs, errors, allocator);
-            try expand(ast.invoke.rhs, errors, allocator);
         },
         .sum => {
             var changed = false;
@@ -164,15 +110,6 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .inferred_error => {
             try expand_from_list(ast.inferred_error.terms, errors, allocator);
         },
-        .inject => {
-            try expand(ast.inject.lhs, errors, allocator);
-            try expand(ast.inject.rhs, errors, allocator);
-        },
-        ._union => {
-            try expand(ast._union.lhs, errors, allocator);
-            try expand(ast._union.rhs, errors, allocator);
-        },
-
         .product => {
             try expand_from_list(ast.product.terms, errors, allocator);
         },
@@ -207,8 +144,8 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand_from_list(ast.match.mappings, errors, allocator);
         },
         .mapping => {
-            try expand(ast.mapping.lhs, errors, allocator);
-            try expand(ast.mapping.rhs, errors, allocator);
+            try expand(ast.mapping_lhs(), errors, allocator);
+            try expand(ast.rhs(), errors, allocator);
         },
         ._while => {
             try expand(ast._while.let, errors, allocator);

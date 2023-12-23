@@ -261,13 +261,13 @@ fn lower_AST(
 
         // Binary operators
         .assign => {
-            const rhs = try lower_AST(cfg, ast.assign.rhs, labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (rhs == null) {
                 return null;
             }
             // If product, recursively generate a series of assignments
             // Else, create a *single* copy IR with an L_Value tree
-            return try generate_assign(cfg, ast.assign.lhs, rhs.?, labels, errors, allocator);
+            return try generate_assign(cfg, ast.lhs(), rhs.?, labels, errors, allocator);
         },
         ._or => {
             // Create the result symbol and labels used
@@ -276,7 +276,7 @@ fn lower_AST(
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
             // Test lhs, branch
-            const lhs = (try lower_AST(cfg, ast._or.lhs, labels, errors, allocator)) orelse return null;
+            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             cfg.appendInstruction(ir_.IR.initBranch(lhs, else_label, ast.getToken().span, allocator));
 
             // lhs was true, store `true` in temp
@@ -286,7 +286,7 @@ fn lower_AST(
 
             // lhs was false, recurse to rhs, store in temp
             cfg.appendInstruction(else_label);
-            const rhs = (try lower_AST(cfg, ast._or.rhs, labels, errors, allocator)) orelse return null;
+            const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
             const copy_right_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
             cfg.appendInstruction(ir_.IR.init_simple_copy(copy_right_lval, rhs, ast.getToken().span, allocator));
             cfg.appendInstruction(ir_.IR.initJump(end_label, ast.getToken().span, allocator));
@@ -300,11 +300,11 @@ fn lower_AST(
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
             // Test lhs, branch
-            const lhs = (try lower_AST(cfg, ast._and.lhs, labels, errors, allocator)) orelse return null;
+            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             cfg.appendInstruction(ir_.IR.initBranch(lhs, else_label, ast.getToken().span, allocator));
 
             // lhs was true, recurse to rhs, store in temp
-            const rhs = (try lower_AST(cfg, ast._and.rhs, labels, errors, allocator)) orelse return null;
+            const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
             const copy_right_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
             cfg.appendInstruction(ir_.IR.init_simple_copy(copy_right_lval, rhs, ast.getToken().span, allocator));
             cfg.appendInstruction(ir_.IR.initJump(end_label, ast.getToken().span, allocator));
@@ -318,8 +318,8 @@ fn lower_AST(
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         },
         .add => {
-            const lhs = try lower_AST(cfg, ast.add.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.add.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -330,8 +330,8 @@ fn lower_AST(
             return temp;
         },
         .sub => {
-            const lhs = try lower_AST(cfg, ast.sub.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.sub.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -342,8 +342,8 @@ fn lower_AST(
             return temp;
         },
         .mult => {
-            const lhs = try lower_AST(cfg, ast.mult.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.mult.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -354,8 +354,8 @@ fn lower_AST(
             return temp;
         },
         .div => {
-            const lhs = try lower_AST(cfg, ast.div.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.div.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -366,8 +366,8 @@ fn lower_AST(
             return temp;
         },
         .mod => {
-            const lhs = try lower_AST(cfg, ast.mod.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.mod.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -378,8 +378,8 @@ fn lower_AST(
             return temp;
         },
         .equal => {
-            const lhs = try lower_AST(cfg, ast.equal.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.equal.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -400,14 +400,14 @@ fn lower_AST(
             return temp;
         },
         .not_equal => {
-            const lhs = try lower_AST(cfg, ast.not_equal.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.not_equal.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
 
-            const lhs_type = ast.not_equal.lhs.typeof(allocator).expand_type(allocator);
+            const lhs_type = ast.lhs().typeof(allocator).expand_type(allocator);
             if (lhs_type.* == .sum) {
                 const lhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
                 const rhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
@@ -420,8 +420,8 @@ fn lower_AST(
             return temp;
         },
         .greater => {
-            const lhs = try lower_AST(cfg, ast.greater.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.greater.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -432,8 +432,8 @@ fn lower_AST(
             return temp;
         },
         .lesser => {
-            const lhs = try lower_AST(cfg, ast.lesser.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.lesser.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -444,8 +444,8 @@ fn lower_AST(
             return temp;
         },
         .greater_equal => {
-            const lhs = try lower_AST(cfg, ast.greater_equal.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.greater_equal.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -456,8 +456,8 @@ fn lower_AST(
             return temp;
         },
         .lesser_equal => {
-            const lhs = try lower_AST(cfg, ast.lesser_equal.lhs, labels, errors, allocator);
-            const rhs = try lower_AST(cfg, ast.lesser_equal.rhs, labels, errors, allocator);
+            const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
             if (lhs == null or rhs == null) {
                 return null;
             }
@@ -474,13 +474,13 @@ fn lower_AST(
             const end_label = ir_.IR.initLabel(cfg, ast.getToken().span, allocator);
 
             // Test if lhs tag is 0 (ok)
-            const lhs = (try lower_AST(cfg, ast._catch.lhs, labels, errors, allocator)) orelse return null;
+            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             cfg.appendInstruction(ir_.IR.initGetTag(condition, lhs, ast.getToken().span, allocator)); // Assumes `ok` tag is zero, `err` tag is nonzero
             cfg.appendInstruction(ir_.IR.initBranch(condition, else_label, ast.getToken().span, allocator));
 
             // tag was an error, store rhs in temp
-            const rhs = (try lower_AST(cfg, ast._catch.rhs, labels, errors, allocator)) orelse return null;
+            const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
             const rhs_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
             cfg.appendInstruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.getToken().span, allocator));
             cfg.appendInstruction(ir_.IR.initJump(end_label, ast.getToken().span, allocator));
@@ -504,7 +504,7 @@ fn lower_AST(
 
             // Test if lhs tag is 1 (some)
             const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-            var lhs = (try lower_AST(cfg, ast._orelse.lhs, labels, errors, allocator)) orelse return null;
+            var lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             cfg.appendInstruction(ir_.IR.initGetTag(condition, lhs, ast.getToken().span, allocator)); // Assumes `some` tag is nonzero, `none` tag is zero
             cfg.appendInstruction(ir_.IR.initBranch(condition, else_label, ast.getToken().span, allocator));
 
@@ -519,7 +519,7 @@ fn lower_AST(
 
             // tag was `.none`, store rhs in temp
             cfg.appendInstruction(else_label);
-            const rhs = (try lower_AST(cfg, ast._orelse.rhs, labels, errors, allocator)) orelse return null;
+            const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
             const rhs_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
             cfg.appendInstruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.getToken().span, allocator));
 
@@ -527,7 +527,7 @@ fn lower_AST(
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator); // Not actually assigned directly, just so that optimizations can capture the version
         },
         .call => {
-            const lhs = (try lower_AST(cfg, ast.call.lhs, labels, errors, allocator)) orelse return null;
+            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             temp.extract_symbver().symbol.span = ast.getToken().span;
 
@@ -546,12 +546,12 @@ fn lower_AST(
             return temp;
         },
         .index => { // TODO: TOO LONG
-            const lhs = (try lower_AST(cfg, ast.index.lhs, labels, errors, allocator)) orelse return null;
-            const rhs = (try lower_AST(cfg, ast.index.rhs, labels, errors, allocator)) orelse return null;
+            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
+            const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
             var new_lhs = lhs;
 
             // Get the type of the index ast. This will determine if this is an array index or a slice index
-            const ast_expanded_type = ast.index.lhs.typeof(allocator).expand_type(allocator);
+            const ast_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);
             const _type = ast.typeof(allocator);
             if (ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
@@ -568,10 +568,10 @@ fn lower_AST(
         },
         .select => {
             // Recursively get select's ast L_Value node
-            const ast_lval = try lower_AST(cfg, ast.select.lhs, labels, errors, allocator);
+            const ast_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
 
             // Get the offset into the struct that this select does
-            var lhs_expanded_type = ast.select.lhs.typeof(allocator).expand_type(allocator);
+            var lhs_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);
             const offset = if (lhs_expanded_type.* == .product)
                 lhs_expanded_type.product.get_offset(ast.select.pos.?, allocator)
             else
@@ -987,8 +987,8 @@ fn generate_pattern(
     } else if (pattern.* == .inject) {
         const domain = pattern.inject.domain.?;
         const size = domain.expand_type(allocator).sizeof();
-        const lval = lval_.L_Value.create_select(def, pattern.inject.lhs.inferredMember.pos.?, 0, size, domain, domain.expand_type(allocator), null, allocator);
-        try generate_pattern(cfg, pattern.inject.rhs, domain, lval, errors, allocator);
+        const lval = lval_.L_Value.create_select(def, pattern.lhs().inferredMember.pos.?, 0, size, domain, domain.expand_type(allocator), null, allocator);
+        try generate_pattern(cfg, pattern.rhs(), domain, lval, errors, allocator);
     }
 }
 
@@ -1078,7 +1078,7 @@ fn generate_match_pattern_checks(
 ) !void {
     for (mappings.items, 0..) |mapping, i| {
         cfg.appendInstruction(lhs_label_list.items[i]);
-        if (mapping.mapping.lhs) |lhs| {
+        if (mapping.mapping_lhs()) |lhs| {
             const next_label = if (i < lhs_label_list.items.len - 1)
                 lhs_label_list.items[i + 1]
             else
@@ -1169,7 +1169,7 @@ fn generate_match_pattern_check(
             cfg.appendInstruction(branch);
         },
         .inject => {
-            try generate_match_pattern_check(cfg, pattern.?.inject.lhs, expr, next_pattern, labels, errors, allocator);
+            try generate_match_pattern_check(cfg, pattern.?.lhs(), expr, next_pattern, labels, errors, allocator);
         },
         else => {
             std.debug.print("Unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)});
@@ -1192,13 +1192,13 @@ fn generate_match_body(
 ) !void {
     for (mappings.items, 0..) |mapping, i| {
         cfg.appendInstruction(rhs_label_list.items[i]);
-        if (mapping.mapping.lhs) |lhs| {
+        if (mapping.mapping_lhs()) |lhs| {
             // Generate initialization for patterns before the rhs
             try generate_pattern(cfg, lhs, expr.get_type(), expr, errors, allocator);
         }
 
         // Generate the rhs, copy result to symbol
-        try generate_control_flow_block(cfg, mapping.mapping.rhs.?, symbol, end_label, has_else, labels, errors, allocator);
+        try generate_control_flow_block(cfg, mapping.rhs(), symbol, end_label, has_else, labels, errors, allocator);
     }
 }
 

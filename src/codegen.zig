@@ -47,27 +47,27 @@ pub fn generate(module: *module_.Module, writer: anytype) !void {
 }
 
 fn output_main_function(cfg: *cfg_.CFG, writer: anytype) !void {
-    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Int") or
-        std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Int64"))
+    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Int") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Int64"))
     {
         try writer.print(
             \\int main(void) {{
             \\  printf("%ld",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Word64")) {
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Word64")) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%lu",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Float64") or
-        std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Float32") or
-        std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "Float"))
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Float64") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Float32") or
+        std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "Float"))
     {
         try writer.print(
             \\int main(void) {{
             \\  printf("%f",
         , .{});
-    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "String") or cfg.symbol.expanded_type.?.function.rhs.* == .product) {
+    } else if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "String") or cfg.symbol.expanded_type.?.rhs().* == .product) {
         try writer.print(
             \\int main(void) {{
             \\  printf("%s",
@@ -79,7 +79,7 @@ fn output_main_function(cfg: *cfg_.CFG, writer: anytype) !void {
         , .{});
     }
     try output_symbol(cfg.symbol, writer);
-    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.function.rhs.getToken().data, "String") or cfg.symbol.expanded_type.?.function.rhs.* == .product) {
+    if (std.mem.eql(u8, cfg.symbol.expanded_type.?.rhs().getToken().data, "String") or cfg.symbol.expanded_type.?.rhs().* == .product) {
         try writer.print(
             \\()._0);
             \\  return 0;
@@ -117,11 +117,11 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
 
     if (dag.base.* == .function) {
         try writer.print("typedef ", .{});
-        try output_type(dag.base.function.rhs, writer);
+        try output_type(dag.base.rhs(), writer);
         try writer.print("(*function{})(", .{dag.uid});
-        if (dag.base.function.lhs.* == .product) {
+        if (dag.base.lhs().* == .product) {
             // Function pointer takes more than one argument
-            const product = dag.base.function.lhs;
+            const product = dag.base.lhs();
             for (product.product.terms.items, 0..) |term, i| {
                 if (!term.c_typesMatch(primitives_.unit_type)) {
                     // Do not output `void` parameters
@@ -133,7 +133,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
             }
         } else {
             // Function pointer takes one argument
-            try output_type(dag.base.function.lhs, writer);
+            try output_type(dag.base.lhs(), writer);
         }
         try writer.print(");\n\n", .{});
     } else if (dag.base.* == .product) {
@@ -186,7 +186,7 @@ fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), wri
 
 fn output_function_prototype(cfg: *cfg_.CFG, writer: anytype) !void {
     // Print function return type, name, parameter list
-    try output_type(cfg.symbol.expanded_type.?.function.rhs, writer);
+    try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
     try writer.print(" ", .{});
     try output_symbol(cfg.symbol, writer);
     try writer.print("(", .{});

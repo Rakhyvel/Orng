@@ -20,10 +20,10 @@ pub const Type_Set = struct {
         } else if (ast.* == .function) {
             var dag = DAG.init(ast, self.types.items.len, allocator);
             self.types.append(dag) catch unreachable;
-            if (self.add(ast.function.lhs, allocator)) |domain| {
+            if (self.add(ast.lhs(), allocator)) |domain| {
                 dag.dependencies.append(domain) catch unreachable;
             }
-            if (self.add(ast.function.rhs, allocator)) |codomain| {
+            if (self.add(ast.rhs(), allocator)) |codomain| {
                 dag.dependencies.append(codomain) catch unreachable;
             }
             return dag;

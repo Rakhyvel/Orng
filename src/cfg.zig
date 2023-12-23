@@ -63,7 +63,7 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = symbol_.Symbol.init(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.function.rhs, undefined, null, .mut, allocator);
+        retval.return_symbol = symbol_.Symbol.init(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.rhs(), undefined, null, .mut, allocator);
         retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;

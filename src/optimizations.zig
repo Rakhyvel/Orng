@@ -771,7 +771,7 @@ fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool {
                 }
                 if (ir.kind == .call) {
                     // TODO: Fix, need some way to get the expanded type of an lvalue!
-                    if (ir.src1.?.extract_symbver().symbol.expanded_type.?.function.rhs.* != .unit_type) {
+                    if (ir.src1.?.extract_symbver().symbol.expanded_type.?.rhs().* != .unit_type) {
                         // It is an error for the return val of a non-unit-returning function to not be used
                         // DO NOT remove an unused call for a unit function
                         errors.addError(errs_.Error{ .basic = .{

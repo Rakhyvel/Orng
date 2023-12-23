@@ -97,103 +97,41 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             ast.set_symbol(symbol);
         },
 
-        .assign => {
-            try symbolTableFromAST(ast.assign.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.assign.rhs, scope, errors, allocator);
-        },
-        ._or => {
-            try symbolTableFromAST(ast._or.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast._or.rhs, scope, errors, allocator);
-        },
-        ._and => {
-            try symbolTableFromAST(ast._and.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast._and.rhs, scope, errors, allocator);
-        },
-        .add => {
-            try symbolTableFromAST(ast.add.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.add.rhs, scope, errors, allocator);
-        },
-        .sub => {
-            try symbolTableFromAST(ast.sub.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.sub.rhs, scope, errors, allocator);
-        },
-        .mult => {
-            try symbolTableFromAST(ast.mult.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.mult.rhs, scope, errors, allocator);
-        },
-        .div => {
-            try symbolTableFromAST(ast.div.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.div.rhs, scope, errors, allocator);
-        },
-        .mod => {
-            try symbolTableFromAST(ast.mod.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.mod.rhs, scope, errors, allocator);
-        },
-        .equal => {
-            try symbolTableFromAST(ast.equal.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.equal.rhs, scope, errors, allocator);
-        },
-        .not_equal => {
-            try symbolTableFromAST(ast.not_equal.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.not_equal.rhs, scope, errors, allocator);
-        },
-        .greater => {
-            try symbolTableFromAST(ast.greater.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.greater.rhs, scope, errors, allocator);
-        },
-        .lesser => {
-            try symbolTableFromAST(ast.lesser.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.lesser.rhs, scope, errors, allocator);
-        },
-        .greater_equal => {
-            try symbolTableFromAST(ast.greater_equal.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.greater_equal.rhs, scope, errors, allocator);
-        },
-        .lesser_equal => {
-            try symbolTableFromAST(ast.lesser_equal.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.lesser_equal.rhs, scope, errors, allocator);
-        },
-        ._catch => {
-            try symbolTableFromAST(ast._catch.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast._catch.rhs, scope, errors, allocator);
-        },
-        ._orelse => {
-            try symbolTableFromAST(ast._orelse.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast._orelse.rhs, scope, errors, allocator);
+        .assign,
+        ._or,
+        ._and,
+        .add,
+        .sub,
+        .mult,
+        .div,
+        .mod,
+        .equal,
+        .not_equal,
+        .greater,
+        .lesser,
+        .greater_equal,
+        .lesser_equal,
+        ._catch,
+        .index,
+        .select,
+        .function,
+        .invoke,
+        .inject,
+        ._union,
+        ._orelse,
+        => {
+            try symbolTableFromAST(ast.lhs(), scope, errors, allocator);
+            try symbolTableFromAST(ast.rhs(), scope, errors, allocator);
         },
         .call => {
-            try symbolTableFromAST(ast.call.lhs, scope, errors, allocator);
+            try symbolTableFromAST(ast.lhs(), scope, errors, allocator);
             try symbolTableFromASTList(ast.call.args, scope, errors, allocator);
-        },
-        .index => {
-            try symbolTableFromAST(ast.index.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.index.rhs, scope, errors, allocator);
-        },
-        .select => {
-            try symbolTableFromAST(ast.select.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.select.rhs, scope, errors, allocator);
-        },
-        .function => {
-            try symbolTableFromAST(ast.function.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.function.rhs, scope, errors, allocator);
-        },
-        .invoke => {
-            try symbolTableFromAST(ast.invoke.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.invoke.rhs, scope, errors, allocator);
         },
         .sum => {
             try symbolTableFromASTList(ast.sum.terms, scope, errors, allocator);
         },
         .inferred_error => {
             try symbolTableFromASTList(ast.inferred_error.terms, scope, errors, allocator);
-        },
-        .inject => {
-            try symbolTableFromAST(ast.inject.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast.inject.rhs, scope, errors, allocator);
-        },
-        ._union => {
-            try symbolTableFromAST(ast._union.lhs, scope, errors, allocator);
-            try symbolTableFromAST(ast._union.rhs, scope, errors, allocator);
         },
 
         .product => {
@@ -231,7 +169,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             try symbolTableFromASTList(ast.match.mappings, new_scope, errors, allocator);
         },
         .mapping => {
-            try symbolTableFromAST(ast.mapping.lhs, scope, errors, allocator);
+            try symbolTableFromAST(ast.mapping_lhs(), scope, errors, allocator);
         },
         ._while => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
@@ -385,8 +323,8 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
             // We do the same for parameters, btw!
             const phony_init = ast_.AST.createDefault(pattern.getToken(), rhs_type, allocator);
 
-            try create_symbol(symbols, pattern.inject.lhs, lhs_type, phony_init, scope, errors, allocator);
-            try create_symbol(symbols, pattern.inject.rhs, rhs_type, phony_init, scope, errors, allocator);
+            try create_symbol(symbols, pattern.lhs(), lhs_type, phony_init, scope, errors, allocator);
+            try create_symbol(symbols, pattern.rhs(), rhs_type, phony_init, scope, errors, allocator);
         },
         else => {},
     }
@@ -394,20 +332,20 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
 
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
     for (match.match.mappings.items) |mapping| {
-        if (mapping.mapping.lhs != null) {
+        if (mapping.mapping_lhs() != null) {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             mapping.mapping.scope = new_scope;
             var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
             defer symbols.deinit();
             const _type = ast_.AST.createTypeOf(match.expr().getToken(), match.expr(), allocator);
-            try create_symbol(&symbols, mapping.mapping.lhs.?, _type, match.expr(), new_scope, errors, allocator);
+            try create_symbol(&symbols, mapping.mapping_lhs().?, _type, match.expr(), new_scope, errors, allocator);
             for (symbols.items) |symbol| {
                 symbol.defined = true;
             }
             try put_all_symbols(&symbols, new_scope, errors);
-            try symbolTableFromAST(mapping.mapping.rhs, new_scope, errors, allocator);
+            try symbolTableFromAST(mapping.rhs(), new_scope, errors, allocator);
         } else {
-            try symbolTableFromAST(mapping.mapping.rhs, scope, errors, allocator);
+            try symbolTableFromAST(mapping.rhs(), scope, errors, allocator);
         }
     }
 }
