@@ -145,7 +145,7 @@ fn lower_AST(
             return temp;
         },
         .identifier => {
-            const symbol = ast.identifier.symbol.?;
+            const symbol = ast.symbol().?;
             if (symbol.kind == ._fn) {
                 _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
                 const lval = create_temp_lvalue(cfg, symbol._type, allocator);
@@ -164,8 +164,8 @@ fn lower_AST(
                 return src;
             }
         },
-        .symbol => {
-            const symbol = ast.symbol.symbol;
+        .pattern_symbol => {
+            const symbol = ast.symbol().?;
             std.debug.assert(symbol.kind == ._fn); // For returning functions at compile-time!
             _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
             const lval = create_temp_lvalue(cfg, symbol._type, allocator);
@@ -838,10 +838,10 @@ fn lower_AST(
             return null;
         },
         .fnDecl => {
-            _ = try module_.get_cfg(ast.fnDecl.symbol.?, cfg, cfg.interned_strings, errors, allocator);
-            const temp = create_temp_lvalue(cfg, ast.fnDecl.symbol.?._type, allocator);
+            _ = try module_.get_cfg(ast.symbol().?, cfg, cfg.interned_strings, errors, allocator);
+            const temp = create_temp_lvalue(cfg, ast.symbol().?._type, allocator);
             var ir = ir_.IR.init(.loadSymbol, temp, null, null, ast.getToken().span, allocator);
-            ir.data = ir_.Data{ .symbol = ast.fnDecl.symbol.? };
+            ir.data = ir_.Data{ .symbol = ast.symbol().? };
             cfg.appendInstruction(ir);
             return temp;
         },
@@ -970,9 +970,9 @@ fn generate_pattern(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) FlattenASTError!void {
-    if (pattern.* == .symbol) {
-        if (!std.mem.eql(u8, pattern.symbol.name, "_")) {
-            const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol.symbol, allocator);
+    if (pattern.* == .pattern_symbol) {
+        if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
+            const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, allocator);
             const ir = ir_.IR.init_simple_copy(symbver, def, pattern.getToken().span, allocator);
             cfg.appendInstruction(ir);
         }
@@ -1119,7 +1119,7 @@ fn generate_match_pattern_check(
             const branch = ir_.IR.initBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(branch);
         },
-        .symbol => {
+        .pattern_symbol => {
             // Infallible check, do not branch to next pattern
         },
         .product => {

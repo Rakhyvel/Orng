@@ -33,7 +33,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         ._continue,
         .inferredMember,
         .poison,
-        .symbol,
+        .pattern_symbol,
         .domainOf,
         => {},
 
@@ -41,7 +41,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             const res = scope.lookup(ast.getToken().data, false);
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
-                .found => ast.identifier.symbol = res.found,
+                .found => ast.set_symbol(res.found),
 
                 // Couldn't find the symbol
                 .not_found => {
@@ -61,7 +61,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
                     return error.symbolError;
                 },
             }
-            if (!ast.identifier.symbol.?.defined) {
+            if (!ast.symbol().?.defined) {
                 errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.getToken() } });
                 return error.symbolError;
             }
@@ -248,9 +248,9 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             }
         },
         .fnDecl => {
-            try decorate_identifiers(ast.fnDecl.init, ast.fnDecl.symbol.?.scope, errors, allocator);
-            try decorate_identifiers_from_list(ast.fnDecl.params, ast.fnDecl.symbol.?.scope, errors, allocator);
-            try decorate_identifiers(ast.fnDecl.retType, ast.fnDecl.symbol.?.scope, errors, allocator);
+            try decorate_identifiers(ast.fnDecl.init, ast.symbol().?.scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.fnDecl.params, ast.symbol().?.scope, errors, allocator);
+            try decorate_identifiers(ast.fnDecl.retType, ast.symbol().?.scope, errors, allocator);
         },
         ._defer, ._errdefer => try decorate_identifiers(ast.statement(), scope, errors, allocator),
     }

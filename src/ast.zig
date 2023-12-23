@@ -92,7 +92,7 @@ pub const AST = union(enum) {
     /// This tag is used for the right-hand-side of selects. They do not refer to symbols.
     field: struct { common: ASTCommon },
     /// Identifier
-    identifier: struct { common: ASTCommon, symbol: ?*symbol_.Symbol = null },
+    identifier: struct { common: ASTCommon, _symbol: ?*symbol_.Symbol = null },
 
     not: struct { common: ASTCommon, _expr: *AST },
     negate: struct { common: ASTCommon, _expr: *AST },
@@ -100,14 +100,14 @@ pub const AST = union(enum) {
     _try: struct {
         common: ASTCommon,
         _expr: *AST,
-        function: ?*symbol_.Symbol, // `try`'s must be in functions. This is the function's symbol.
+        _symbol: ?*symbol_.Symbol, // `try`'s must be in functions. This is the function's symbol.
     },
     discard: struct { common: ASTCommon, _expr: *AST },
     _comptime: struct {
         common: ASTCommon,
         _expr: *AST,
         name: ?*AST = null,
-        symbol: ?*symbol_.Symbol = null,
+        _symbol: ?*symbol_.Symbol = null,
     },
 
     // Binary operators
@@ -327,16 +327,16 @@ pub const AST = union(enum) {
     _return: struct {
         common: ASTCommon,
         _ret_expr: ?*AST,
-        function: ?*symbol_.Symbol, // `retrun`'s must be in functions. This is the function's symbol.
+        _symbol: ?*symbol_.Symbol, // `retrun`'s must be in functions. This is the function's symbol.
     },
     /// This type is a special version of an identifier. It is needed to encapsulate information about a
     /// symbol declaration that is needed before the symbol is even constructed. An identifier AST cannot be
     /// used for this purpose, because it refers to a symbol _after_ symbol decoration.
-    symbol: struct {
+    pattern_symbol: struct {
         common: ASTCommon,
         name: []const u8,
         kind: symbol_.SymbolKind,
-        symbol: *symbol_.Symbol = undefined,
+        _symbol: ?*symbol_.Symbol = undefined,
     },
     decl: struct {
         common: ASTCommon,
@@ -354,7 +354,7 @@ pub const AST = union(enum) {
         retType: *AST,
         refinement: ?*AST,
         init: *AST,
-        symbol: ?*symbol_.Symbol = null,
+        _symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
     },
     _defer: struct { common: ASTCommon, _statement: *AST },
@@ -437,7 +437,7 @@ pub const AST = union(enum) {
             ._break => return &self._break.common,
             ._continue => return &self._continue.common,
             ._return => return &self._return.common,
-            .symbol => return &self.symbol.common,
+            .pattern_symbol => return &self.pattern_symbol.common,
             .decl => return &self.decl.common,
             .fnDecl => return &self.fnDecl.common,
             ._defer => return &self._defer.common,
@@ -603,7 +603,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createTry(token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ ._try = .{ .common = ASTCommon{ .token = token, ._type = null }, ._expr = _expr, .function = null } }, allocator);
+        return AST.box(AST{ ._try = .{ .common = ASTCommon{ .token = token, ._type = null }, ._expr = _expr, ._symbol = null } }, allocator);
     }
 
     pub fn createDiscard(token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
@@ -611,7 +611,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createComptime(token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ ._comptime = .{ .common = ASTCommon{ .token = token, ._type = null }, ._expr = _expr, .name = null, .symbol = null } }, allocator);
+        return AST.box(AST{ ._comptime = .{ .common = ASTCommon{ .token = token, ._type = null }, ._expr = _expr, .name = null, ._symbol = null } }, allocator);
     }
 
     pub fn createTypeOf(token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
@@ -798,11 +798,11 @@ pub const AST = union(enum) {
     }
 
     pub fn createReturn(token: token_.Token, _ret_expr: ?*AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, ._ret_expr = _ret_expr, .function = null } }, allocator);
+        return AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, ._ret_expr = _ret_expr, ._symbol = null } }, allocator);
     }
 
     pub fn createSymbol(token: token_.Token, kind: symbol_.SymbolKind, name: []const u8, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .symbol = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .name = name } }, allocator);
+        return AST.box(AST{ .pattern_symbol = .{ .common = ASTCommon{ .token = token, ._type = null }, .kind = kind, .name = name } }, allocator);
     }
 
     pub fn createDecl(token: token_.Token, pattern: *AST, _type: *AST, init: *AST, allocator: std.mem.Allocator) *AST {
@@ -840,9 +840,9 @@ pub const AST = union(enum) {
 
     fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
         return switch (u) {
-            inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else null,
-        } orelse {
-            std.debug.print("`{s}` does not have field `{s}`\n", .{ @tagName(u), field });
+            inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.FieldNotFound,
+        } catch {
+            std.debug.print("`{s}` does not have field `{s}` {}\n", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
             unreachable;
         };
     }
@@ -862,24 +862,32 @@ pub const AST = union(enum) {
         return get_field(self, "_represents");
     }
 
-    pub fn set_represents(self: *AST, _expr: *AST) void {
-        set_field(self, "_represents", _expr);
+    pub fn set_represents(self: *AST, val: *AST) void {
+        set_field(self, "_represents", val);
     }
 
     pub fn expr(self: AST) *AST {
         return get_field(self, "_expr");
     }
 
-    pub fn set_expr(self: *AST, _expr: *AST) void {
-        set_field(self, "_expr", _expr);
+    pub fn set_expr(self: *AST, val: *AST) void {
+        set_field(self, "_expr", val);
+    }
+
+    pub fn symbol(self: AST) ?*symbol_.Symbol {
+        return get_field(self, "_symbol");
+    }
+
+    pub fn set_symbol(self: *AST, val: ?*symbol_.Symbol) void {
+        set_field(self, "_symbol", val);
     }
 
     pub fn statement(self: AST) *AST {
         return get_field(self, "_statement");
     }
 
-    pub fn set_statement(self: *AST, _expr: *AST) void {
-        set_field(self, "_statement", _expr);
+    pub fn set_statement(self: *AST, val: *AST) void {
+        set_field(self, "_statement", val);
     }
 
     pub fn create_array_type(len: *AST, of: *AST, allocator: std.mem.Allocator) *AST {
@@ -1024,11 +1032,11 @@ pub const AST = union(enum) {
     fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             .identifier => {
-                const symbol = self.identifier.symbol.?;
-                if (symbol.init == self) {
+                const _symbol = self.symbol().?;
+                if (_symbol.init == self) {
                     return self;
                 } else {
-                    return symbol.init.expand_type(allocator);
+                    return _symbol.init.expand_type(allocator);
                 }
             },
             .product => {
@@ -1354,7 +1362,7 @@ pub const AST = union(enum) {
             .identifier => if (std.mem.eql(u8, self.getToken().data, "_")) {
                 return primitives_.unit_type;
             } else {
-                return self.identifier.symbol.?._type;
+                return self.symbol().?._type;
             },
 
             // Unary Operators
@@ -1425,9 +1433,9 @@ pub const AST = union(enum) {
                 return fn_type.function.rhs;
             },
             .fnDecl => {
-                return self.fnDecl.symbol.?._type;
+                return self.symbol().?._type;
             },
-            .symbol => return self.symbol.symbol._type,
+            .pattern_symbol => return self.symbol().?._type,
             .inject => return self.inject.lhs.typeof(allocator),
 
             else => {
@@ -1440,7 +1448,7 @@ pub const AST = union(enum) {
     // Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
         if (self.* == .identifier) {
-            return self.identifier.symbol.?.init;
+            return self.symbol().?.init;
         } else {
             return self;
         }
@@ -1804,7 +1812,7 @@ pub const AST = union(enum) {
             ._break => try out.writer().print("break", .{}),
             ._continue => try out.writer().print("continue", .{}),
             ._return => try out.writer().print("return()", .{}),
-            .symbol => try out.writer().print("symbol({s})", .{self.symbol.name}),
+            .pattern_symbol => try out.writer().print("pattern_symbol({s})", .{self.pattern_symbol.name}),
             .decl => {
                 try out.writer().print("decl(\n", .{});
                 try out.writer().print("    .pattern = {},\n", .{self.decl.pattern});

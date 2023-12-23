@@ -557,7 +557,7 @@ pub const Context = struct {
                     symbol.name,
                     allocator,
                 );
-                ast.symbol.symbol = symbol;
+                ast.set_symbol(symbol);
                 return ast.assert_valid();
             },
             .unit_type => return ast_.AST.createUnitValue(_type.getToken(), allocator).assert_valid(),

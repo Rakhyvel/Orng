@@ -34,7 +34,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         ._continue,
         .inferredMember,
         .poison,
-        .symbol,
+        .pattern_symbol,
         .domainOf,
         => {},
 

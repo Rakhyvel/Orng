@@ -167,7 +167,7 @@ fn validate_AST_internal(
 
         .identifier => {
             // look up symbol, that's the type
-            var symbol = ast.identifier.symbol.?;
+            var symbol = ast.symbol().?;
             if (symbol.validation_state == .invalid) {
                 return ast.enpoison();
             }
@@ -236,7 +236,7 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
             try type_check(ast, expr_expanded_type.get_ok_type().annotation.type, expected, errors);
-            const expanded_function_return = ast._try.function.?._type.function.rhs.expand_type(allocator);
+            const expanded_function_return = ast.symbol().?._type.function.rhs.expand_type(allocator);
             if (expanded_function_return.* == .inferred_error) {
                 // This checks that the `ok` fields match, for free!
                 for (expr_expanded_type.sum.terms.items) |term| {
@@ -295,22 +295,22 @@ fn validate_AST_internal(
         },
         ._comptime => {
             // Validate symbol
-            try validateSymbol(ast._comptime.symbol.?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
-            if (ast._comptime.symbol.?._type.* == .poison) {
+            try validateSymbol(ast.symbol().?, errors, allocator); // ast._comptime.symbol.? is created during symbol tree expansion
+            if (ast.symbol().?._type.* == .poison) {
                 return ast.enpoison();
             }
-            try type_check(ast, ast._comptime.symbol.?._type.function.rhs, expected, errors);
+            try type_check(ast, ast.symbol().?._type.function.rhs, expected, errors);
 
             // Get the cfg from the symbol, and embed into the module
-            const cfg = try module_.get_cfg(ast._comptime.symbol.?, null, &ast._comptime.symbol.?.scope.module.?.interned_strings, errors, allocator);
+            const cfg = try module_.get_cfg(ast.symbol().?, null, &ast.symbol().?.scope.module.?.interned_strings, errors, allocator);
             defer cfg.deinit(); // Remove the cfg so that it isn't output
 
-            const idx = ast._comptime.symbol.?.scope.module.?.append_instructions(cfg);
-            defer ast._comptime.symbol.?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
+            const idx = ast.symbol().?.scope.module.?.append_instructions(cfg);
+            defer ast.symbol().?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            const ret_type = ast._comptime.symbol.?._type.function.rhs.expand_type(allocator);
-            var context = interpreter_.Context.init(cfg, &ast._comptime.symbol.?.scope.module.?.instructions, ret_type, cfg.offset.?);
+            const ret_type = ast.symbol().?._type.function.rhs.expand_type(allocator);
+            var context = interpreter_.Context.init(cfg, &ast.symbol().?.scope.module.?.instructions, ret_type, cfg.offset.?);
             try context.interpret();
 
             // Extract the retval
@@ -1305,7 +1305,7 @@ fn validate_AST_internal(
         },
         ._return => {
             if (ast._return._ret_expr) |expr| {
-                ast._return._ret_expr = validateAST(expr, ast._return.function.?._type.function.rhs, errors, allocator);
+                ast._return._ret_expr = validateAST(expr, ast.symbol().?._type.function.rhs, errors, allocator);
                 if (ast._return._ret_expr.?.* == .poison) {
                     return ast.enpoison();
                 }
@@ -1324,8 +1324,8 @@ fn validate_AST_internal(
             return ast;
         },
         .fnDecl => {
-            try validateSymbol(ast.fnDecl.symbol.?, errors, allocator);
-            if (ast.fnDecl.symbol.?._type.* == .poison) {
+            try validateSymbol(ast.symbol().?, errors, allocator);
+            if (ast.symbol().?._type.* == .poison) {
                 return ast.enpoison();
             }
             if (expected) |_expected| {
@@ -1709,7 +1709,7 @@ fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void {
 fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
     switch (ast.*) {
         .identifier => {
-            const symbol = ast.identifier.symbol.?;
+            const symbol = ast.symbol().?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
                 errors.addError(errs_.Error{ .modifyImmutable = .{ .identifier = ast.getToken() } });
                 return error.typeError;
@@ -1801,7 +1801,7 @@ fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *err
                 try assert_pattern_matches(term, expanded_term, errors, allocator);
             }
         },
-        .symbol => {},
+        .pattern_symbol => {},
         else => {
             std.debug.print("unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
             unreachable;
@@ -1861,7 +1861,7 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
         .inject => {
             exhaustive_check_sub(ast.inject.lhs, ids);
         },
-        .symbol => {
+        .pattern_symbol => {
             ids.clearRetainingCapacity();
         },
         else => {},

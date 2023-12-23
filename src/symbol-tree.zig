@@ -35,7 +35,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         ._false,
         .inferredMember,
         .poison,
-        .symbol,
+        .pattern_symbol,
         .domainOf,
         .sizeOf,
         => {},
@@ -75,7 +75,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
                 return error.symbolError;
             }
-            ast._try.function = scope.inner_function;
+            ast.set_symbol(scope.inner_function);
             try symbolTableFromAST(ast.expr(), scope, errors, allocator);
         },
 
@@ -94,7 +94,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
                 },
                 else => scope.symbols.put(symbol.name, symbol) catch unreachable,
             }
-            ast._comptime.symbol = symbol;
+            ast.set_symbol(symbol);
         },
 
         .assign => {
@@ -270,7 +270,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
                 } });
                 return error.symbolError;
             }
-            ast._return.function = scope.inner_function;
+            ast.set_symbol(scope.inner_function);
             try symbolTableFromAST(ast._return._ret_expr, scope, errors, allocator);
         },
         .decl => {
@@ -290,7 +290,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             }
         },
         .fnDecl => {
-            if (ast.fnDecl.symbol != null) {
+            if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return;
             }
@@ -308,7 +308,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
                 },
                 else => scope.symbols.put(symbol.name, symbol) catch unreachable,
             }
-            ast.fnDecl.symbol = symbol;
+            ast.set_symbol(symbol);
         },
         ._defer => {
             scope.defers.append(ast.statement()) catch unreachable;
@@ -341,33 +341,33 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
 
 fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _type: *ast_.AST, init: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
     switch (pattern.*) {
-        .symbol => {
-            if (std.mem.eql(u8, pattern.symbol.name, "_")) {
-                if (pattern.symbol.kind != .let) {
+        .pattern_symbol => {
+            if (std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
+                if (pattern.pattern_symbol.kind != .let) {
                     // It is an error for `_` to be marked as `const` or `mut`
                     errors.addError(errs_.Error{ .discard_marked = .{
                         .span = pattern.getToken().span,
-                        .kind = pattern.symbol.kind,
+                        .kind = pattern.pattern_symbol.kind,
                     } });
                     return error.symbolError;
                 } else {
                     // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
-                    pattern.symbol.symbol = primitives_.blackhole;
+                    pattern.set_symbol(primitives_.blackhole);
                     return;
                 }
             }
-            const symbol_init = if (pattern.symbol.kind != ._const) init else try create_comptime_init(init, _type, scope, errors, allocator);
+            const symbol_init = if (pattern.pattern_symbol.kind != ._const) init else try create_comptime_init(init, _type, scope, errors, allocator);
             const symbol = symbol_.Symbol.init(
                 scope,
-                pattern.symbol.name,
+                pattern.pattern_symbol.name,
                 pattern.getToken().span,
                 _type,
                 symbol_init,
                 null,
-                pattern.symbol.kind,
+                pattern.pattern_symbol.kind,
                 allocator,
             );
-            pattern.symbol.symbol = symbol;
+            pattern.set_symbol(symbol);
             symbols.append(symbol) catch unreachable;
         },
         .product => {
@@ -518,7 +518,7 @@ fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.S
         },
         else => scope.symbols.put(comptime_symbol.name, comptime_symbol) catch unreachable,
     }
-    retval._comptime.symbol = comptime_symbol;
+    retval.set_symbol(comptime_symbol);
     return retval;
 }
 
