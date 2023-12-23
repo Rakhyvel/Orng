@@ -812,6 +812,11 @@ pub const Parser = struct {
         }
         _ = try self.expect(.R_BRACE);
 
+        if (mappings.items.len == 0) {
+            self.errors.addError(errs_.Error{ .basic = .{ .span = token.span, .msg = "match has no patterns" } });
+            return error.parseError;
+        }
+
         return ast_.AST.createMatch(token, let, exp, mappings, has_else, self.allocator);
     }
 
