@@ -148,18 +148,18 @@ pub fn get_scope() *symbol_.Scope {
         create_info("Word32", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF }, "uint32_t", word32_type, null, .int, .unsigned_integer, default_word32, 4);
         create_info("Word64", Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF }, "uint64_t", word64_type, null, .int, .unsigned_integer, default_word64, 8);
 
-        default_int8.int.represents = int8_type;
-        default_int16.int.represents = int16_type;
-        default_int32.int.represents = int32_type;
-        default_int64.int.represents = int_type;
+        default_int8.set_represents(int8_type);
+        default_int16.set_represents(int16_type);
+        default_int32.set_represents(int32_type);
+        default_int64.set_represents(int_type);
 
-        default_word8.int.represents = byte_type;
-        default_word16.int.represents = word16_type;
-        default_word32.int.represents = word32_type;
-        default_word64.int.represents = word64_type;
+        default_word8.set_represents(byte_type);
+        default_word16.set_represents(word16_type);
+        default_word32.set_represents(word32_type);
+        default_word64.set_represents(word64_type);
 
-        default_float32.float.represents = float32_type;
-        default_float64.float.represents = float64_type;
+        default_float32.set_represents(float32_type);
+        default_float64.set_represents(float64_type);
     }
     return prelude.?;
 }

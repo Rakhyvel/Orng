@@ -1304,9 +1304,9 @@ fn validate_AST_internal(
             return ast;
         },
         ._return => {
-            if (ast._return._expr) |expr| {
-                ast._return._expr = validateAST(expr, ast._return.function.?._type.function.rhs, errors, allocator);
-                if (ast._return._expr.?.* == .poison) {
+            if (ast._return._ret_expr) |expr| {
+                ast._return._ret_expr = validateAST(expr, ast._return.function.?._type.function.rhs, errors, allocator);
+                if (ast._return._ret_expr.?.* == .poison) {
                     return ast.enpoison();
                 }
             } else if (expected != null and (expected.?.expand_type(allocator)).* != .unit_type) {
@@ -1394,7 +1394,7 @@ fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !
         errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives_.int_type } });
         return error.typeError;
     }
-    ast.int.represents = expected orelse primitives_.int_type;
+    ast.set_represents(expected orelse primitives_.int_type);
 }
 
 fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
@@ -1402,7 +1402,7 @@ fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors)
         errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.getToken().span, .expected = expected.?, .got = primitives_.float_type } });
         return error.typeError;
     }
-    ast.float.represents = expected orelse primitives_.float_type;
+    ast.set_represents(expected orelse primitives_.float_type);
 }
 
 fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {

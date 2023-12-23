@@ -862,7 +862,7 @@ fn lower_AST(
             return null;
         },
         ._return => {
-            if (ast._return._expr) |expr| {
+            if (ast._return._ret_expr) |expr| {
                 // Copy expr to retval
                 const retval = (try lower_AST(cfg, expr, labels, errors, allocator)) orelse return null;
                 const retval_lval = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);

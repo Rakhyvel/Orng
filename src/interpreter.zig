@@ -531,15 +531,21 @@ pub const Context = struct {
                             return ast_.AST.createTrue(token_.Token.init_simple("true"), allocator).assert_valid();
                         }
                     },
-                    .signed_integer => return ast_.AST.createInt(token_.Token.init_simple("signed int"), self.load_int(address, info.size), allocator)
-                        .set_representation(_type)
-                        .assert_valid(),
-                    .unsigned_integer => return ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, info.size), allocator)
-                        .set_representation(_type)
-                        .assert_valid(),
-                    .floating_point => return ast_.AST.createFloat(token_.Token.init_simple("float"), self.load_float(address, info.size), allocator)
-                        .set_representation(_type)
-                        .assert_valid(),
+                    .signed_integer => {
+                        const retval = ast_.AST.createInt(token_.Token.init_simple("signed int"), self.load_int(address, info.size), allocator).assert_valid();
+                        retval.set_represents(_type);
+                        return retval;
+                    },
+                    .unsigned_integer => {
+                        const retval = ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, info.size), allocator).assert_valid();
+                        retval.set_represents(_type);
+                        return retval;
+                    },
+                    .floating_point => {
+                        const retval = ast_.AST.createFloat(token_.Token.init_simple("float"), self.load_float(address, info.size), allocator).assert_valid();
+                        retval.set_represents(_type);
+                        return retval;
+                    },
                 }
             },
             .addrOf => return ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, 8), allocator).assert_valid(),

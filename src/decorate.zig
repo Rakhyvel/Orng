@@ -67,15 +67,18 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             }
         },
 
-        ._typeOf => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .default => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .sizeOf => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .not => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .negate => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .dereference => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        ._try => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .discard => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        ._comptime => try decorate_identifiers(ast.expr(), scope, errors, allocator),
+        ._typeOf,
+        .default,
+        .sizeOf,
+        .not,
+        .negate,
+        .dereference,
+        ._try,
+        .discard,
+        ._comptime,
+        .addrOf,
+        .sliceOf,
+        => try decorate_identifiers(ast.expr(), scope, errors, allocator),
 
         .assign => {
             try decorate_identifiers(ast.assign.lhs, scope, errors, allocator);
@@ -179,10 +182,6 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         .product => {
             try decorate_identifiers_from_list(ast.product.terms, scope, errors, allocator);
         },
-        .addrOf => try decorate_identifiers(ast.expr(), scope, errors, allocator),
-        .sliceOf => {
-            try decorate_identifiers(ast.expr(), scope, errors, allocator);
-        },
         .arrayOf => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);
             try decorate_identifiers(ast.arrayOf.len, scope, errors, allocator);
@@ -240,7 +239,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             }
         },
 
-        ._return => try decorate_identifiers(ast._return._expr, scope, errors, allocator),
+        ._return => try decorate_identifiers(ast._return._ret_expr, scope, errors, allocator),
         .decl => {
             try decorate_identifiers(ast.decl.type, scope, errors, allocator);
             try decorate_identifiers(ast.decl.init, scope, errors, allocator);

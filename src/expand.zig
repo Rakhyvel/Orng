@@ -38,15 +38,16 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .domainOf,
         => {},
 
-        ._typeOf => try expand(ast.expr(), errors, allocator),
-        .default => try expand(ast.expr(), errors, allocator),
-        .sizeOf => try expand(ast.expr(), errors, allocator),
-        .not => try expand(ast.expr(), errors, allocator),
-        .negate => try expand(ast.expr(), errors, allocator),
-        .dereference => try expand(ast.expr(), errors, allocator),
-        ._try => try expand(ast.expr(), errors, allocator),
-        .discard => try expand(ast.expr(), errors, allocator),
-        ._comptime => try expand(ast.expr(), errors, allocator),
+        ._typeOf,
+        .default,
+        .sizeOf,
+        .not,
+        .negate,
+        .dereference,
+        ._try,
+        .discard,
+        ._comptime,
+        => try expand(ast.expr(), errors, allocator),
 
         .assign => {
             try expand(ast.assign.lhs, errors, allocator);
@@ -230,7 +231,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             }
         },
 
-        ._return => try expand(ast._return._expr, errors, allocator),
+        ._return => try expand(ast._return._ret_expr, errors, allocator),
         .decl => {
             try expand(ast.decl.type, errors, allocator);
             try expand(ast.decl.init, errors, allocator);

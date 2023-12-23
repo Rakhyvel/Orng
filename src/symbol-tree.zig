@@ -60,11 +60,16 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             }
         },
 
-        ._typeOf => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
-        .default => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
-        .not => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
-        .negate => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
-        .dereference => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+        ._typeOf,
+        .default,
+        .not,
+        .negate,
+        .dereference,
+        .addrOf,
+        .sliceOf,
+        .discard,
+        => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+
         ._try => {
             if (scope.inner_function == null) {
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "try operator is not within a function" } });
@@ -73,7 +78,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             ast._try.function = scope.inner_function;
             try symbolTableFromAST(ast.expr(), scope, errors, allocator);
         },
-        .discard => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
+
         ._comptime => {
             const symbol = try create_temp_comptime_symbol(ast, null, scope, errors, allocator);
             const res = scope.lookup(symbol.name, false);
@@ -194,10 +199,6 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         .product => {
             try symbolTableFromASTList(ast.product.terms, scope, errors, allocator);
         },
-        .addrOf => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
-        .sliceOf => {
-            try symbolTableFromAST(ast.expr(), scope, errors, allocator);
-        },
         .arrayOf => {
             try symbolTableFromAST(ast.expr(), scope, errors, allocator);
             try symbolTableFromAST(ast.arrayOf.len, scope, errors, allocator);
@@ -270,7 +271,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
                 return error.symbolError;
             }
             ast._return.function = scope.inner_function;
-            try symbolTableFromAST(ast._return._expr, scope, errors, allocator);
+            try symbolTableFromAST(ast._return._ret_expr, scope, errors, allocator);
         },
         .decl => {
             // Both put a Symbol in the current scope, and recurse

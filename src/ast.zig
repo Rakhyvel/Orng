@@ -69,13 +69,13 @@ pub const AST = union(enum) {
     int: struct {
         common: ASTCommon,
         data: i128,
-        represents: *AST, //< Type that this constant represents. Set on validation.
+        _represents: *AST, //< Type that this constant represents. Set on validation.
     },
     /// Floating-point constant
     float: struct {
         common: ASTCommon,
         data: f64,
-        represents: *AST, //< Type that this constant represents. Set on validation.
+        _represents: *AST, //< Type that this constant represents. Set on validation.
     },
     /// Character constant
     char: struct { common: ASTCommon },
@@ -326,7 +326,7 @@ pub const AST = union(enum) {
     _unreachable: struct { common: ASTCommon },
     _return: struct {
         common: ASTCommon,
-        _expr: ?*AST,
+        _ret_expr: ?*AST,
         function: ?*symbol_.Symbol, // `retrun`'s must be in functions. This is the function's symbol.
     },
     /// This type is a special version of an identifier. It is needed to encapsulate information about a
@@ -548,7 +548,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createInt(token: token_.Token, data: i128, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives_.int_type } }, allocator);
+        return AST.box(AST{ .int = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, ._represents = primitives_.int_type } }, allocator);
     }
 
     pub fn createChar(
@@ -559,7 +559,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createFloat(token: token_.Token, data: f64, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, .represents = primitives_.float_type } }, allocator);
+        return AST.box(AST{ .float = .{ .common = ASTCommon{ .token = token, ._type = null }, .data = data, ._represents = primitives_.float_type } }, allocator);
     }
 
     pub fn createString(
@@ -731,7 +731,6 @@ pub const AST = union(enum) {
     }
 
     pub fn createProduct(token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
-        // std.debug.assert(terms.items.len >= 2);
         return AST.box(AST{ .product = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
     }
 
@@ -798,8 +797,8 @@ pub const AST = union(enum) {
         return AST.box(AST{ ._continue = .{ .common = ASTCommon{ .token = token, ._type = null } } }, allocator);
     }
 
-    pub fn createReturn(token: token_.Token, _expr: ?*AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, ._expr = _expr, .function = null } }, allocator);
+    pub fn createReturn(token: token_.Token, _ret_expr: ?*AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ ._return = .{ .common = ASTCommon{ .token = token, ._type = null }, ._ret_expr = _ret_expr, .function = null } }, allocator);
     }
 
     pub fn createSymbol(token: token_.Token, kind: symbol_.SymbolKind, name: []const u8, allocator: std.mem.Allocator) *AST {
@@ -839,24 +838,40 @@ pub const AST = union(enum) {
         } else @compileError("No such field in any of the variants!");
     }
 
-    fn unwrap(u: anytype, comptime field: []const u8) ?Unwrapped(@TypeOf(u), field) {
+    fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
         return switch (u) {
             inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else null,
+        } orelse {
+            std.debug.print("`{s}` does not have field `{s}`\n", .{ @tagName(u), field });
+            unreachable;
         };
     }
 
-    pub fn expr(self: AST) *AST {
-        return unwrap(self, "_expr").?;
-    }
-
-    pub fn set_expr(self: *AST, _expr: *AST) void {
-        switch (self.*) {
-            inline else => |*v| if (@hasField(@TypeOf(v.*), "_expr")) {
-                v._expr = _expr;
+    fn set_field(u: anytype, comptime field: []const u8, val: Unwrapped(@TypeOf(u.*), field)) void {
+        switch (u.*) {
+            inline else => |*v| if (@hasField(@TypeOf(v.*), field)) {
+                @field(v, field) = val;
             } else {
+                std.debug.print("`{s}` does not have field `{s}`\n", .{ @tagName(u.*), field });
                 unreachable;
             },
         }
+    }
+
+    pub fn represents(self: AST) *AST {
+        return get_field(self, "_represents");
+    }
+
+    pub fn set_represents(self: *AST, _expr: *AST) void {
+        set_field(self, "_represents", _expr);
+    }
+
+    pub fn expr(self: AST) *AST {
+        return get_field(self, "_expr");
+    }
+
+    pub fn set_expr(self: *AST, _expr: *AST) void {
+        set_field(self, "_expr", _expr);
     }
 
     pub fn get_lhs(self: *AST) *AST {
@@ -1235,11 +1250,8 @@ pub const AST = union(enum) {
             // Char type
             .char => return primitives_.char_type,
 
-            // Float constant type
-            .float => return self.float.represents,
-
-            // Int constant type
-            .int => return self.int.represents,
+            // Int/Float constant type
+            .int, .float => return self.represents(),
 
             // String type
             .string => return primitives_.string_type,
@@ -1651,18 +1663,6 @@ pub const AST = union(enum) {
 
     pub fn assert_valid(self: *AST) *AST {
         self.getCommon().validation_state = AST_Validation_State{ .valid = .{ .valid_form = self } };
-        return self;
-    }
-
-    pub fn set_representation(self: *AST, _type: *AST) *AST {
-        switch (self.*) {
-            .int => self.int.represents = _type,
-            .float => self.float.represents = _type,
-            else => {
-                std.debug.print("cannot set representation for {}\n", .{self});
-                unreachable;
-            },
-        }
         return self;
     }
 
