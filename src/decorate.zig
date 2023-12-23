@@ -108,12 +108,10 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         },
         .call => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
-            try decorate_identifiers_from_list(ast.call.args, scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
         },
-        .sum => try decorate_identifiers_from_list(ast.sum.terms, scope, errors, allocator),
-        .inferred_error => try decorate_identifiers_from_list(ast.inferred_error.terms, scope, errors, allocator),
+        .sum, .inferred_error, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
 
-        .product => try decorate_identifiers_from_list(ast.product.terms, scope, errors, allocator),
         .arrayOf => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);
             try decorate_identifiers(ast.arrayOf.len, scope, errors, allocator);
@@ -138,7 +136,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         .match => {
             try decorate_identifiers(ast.match.let, scope, errors, allocator);
             try decorate_identifiers(ast.expr(), ast.match.scope.?, errors, allocator);
-            try decorate_identifiers_from_list(ast.match.mappings, ast.match.scope.?, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, ast.match.scope.?, errors, allocator);
         },
         .mapping => {
             try decorate_identifiers(ast.mapping_lhs(), scope, errors, allocator);
@@ -161,7 +159,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
             try decorate_identifiers(ast._for.elseBlock, ast._for.scope.?, errors, allocator);
         },
         .block => {
-            try decorate_identifiers_from_list(ast.block.statements, ast.block.scope.?, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, ast.block.scope.?, errors, allocator);
             if (ast.block.final) |final| {
                 try decorate_identifiers(final, ast.block.scope.?, errors, allocator);
             }
@@ -177,7 +175,7 @@ fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *e
         },
         .fnDecl => {
             try decorate_identifiers(ast.fnDecl.init, ast.symbol().?.scope, errors, allocator);
-            try decorate_identifiers_from_list(ast.fnDecl.params, ast.symbol().?.scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers(ast.fnDecl.retType, ast.symbol().?.scope, errors, allocator);
         },
         ._defer, ._errdefer => try decorate_identifiers(ast.statement(), scope, errors, allocator),

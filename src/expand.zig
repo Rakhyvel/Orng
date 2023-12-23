@@ -79,7 +79,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         },
         .call => {
             try expand(ast.lhs(), errors, allocator);
-            try expand_from_list(ast.call.args, errors, allocator);
+            try expand_from_list(ast.children().*, errors, allocator);
         },
         .sum => {
             var changed = false;
@@ -89,7 +89,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             errdefer new_terms.deinit();
 
             // Make sure identifiers aren't repeated
-            for (ast.sum.terms.items) |term| {
+            for (ast.children().items) |term| {
                 changed = changed or term.* == .identifier;
                 var annotation: *ast_.AST = try annot_from_ast(term, errors, allocator);
                 new_terms.append(annotation) catch unreachable;
@@ -102,15 +102,14 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             }
 
             if (changed) {
-                ast.sum.terms = new_terms;
+                ast.set_children(new_terms);
             } else {
                 new_terms.deinit();
             }
 
-            try expand_from_list(ast.sum.terms, errors, allocator);
+            try expand_from_list(ast.children().*, errors, allocator);
         },
-        .inferred_error => try expand_from_list(ast.inferred_error.terms, errors, allocator),
-        .product => try expand_from_list(ast.product.terms, errors, allocator),
+        .inferred_error, .product => try expand_from_list(ast.children().*, errors, allocator),
         .arrayOf => {
             try expand(ast.expr(), errors, allocator);
             try expand(ast.arrayOf.len, errors, allocator);
@@ -135,7 +134,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .match => {
             try expand(ast.match.let, errors, allocator);
             try expand(ast.expr(), errors, allocator);
-            try expand_from_list(ast.match.mappings, errors, allocator);
+            try expand_from_list(ast.children().*, errors, allocator);
         },
         .mapping => {
             try expand(ast.mapping_lhs(), errors, allocator);
@@ -156,7 +155,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast._for.elseBlock, errors, allocator);
         },
         .block => {
-            try expand_from_list(ast.block.statements, errors, allocator);
+            try expand_from_list(ast.children().*, errors, allocator);
             if (ast.block.final) |final| {
                 try expand(final, errors, allocator);
             }
@@ -169,7 +168,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         },
         .fnDecl => {
             try expand(ast.fnDecl.init, errors, allocator);
-            try expand_from_list(ast.fnDecl.params, errors, allocator);
+            try expand_from_list(ast.children().*, errors, allocator);
             try expand(ast.fnDecl.retType, errors, allocator);
         },
         ._defer, ._errdefer => try expand(ast.statement(), errors, allocator),

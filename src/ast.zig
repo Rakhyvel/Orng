@@ -127,7 +127,7 @@ pub const AST = union(enum) {
     lesser_equal: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     _catch: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     _orelse: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
-    call: struct { common: ASTCommon, _lhs: *AST, args: std.ArrayList(*AST) },
+    call: struct { common: ASTCommon, _lhs: *AST, _args: std.ArrayList(*AST) },
     index: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     select: struct {
         common: ASTCommon,
@@ -151,7 +151,7 @@ pub const AST = union(enum) {
     invoke: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     sum: struct {
         common: ASTCommon,
-        terms: std.ArrayList(*AST),
+        _terms: std.ArrayList(*AST),
         was_optional: bool = false,
         was_error: bool = false,
         all_unit: ?bool = null,
@@ -160,7 +160,7 @@ pub const AST = union(enum) {
                 return all_unit;
             }
             var res = true;
-            for (self.terms.items) |term| {
+            for (self._terms.items) |term| {
                 res = res and term.c_typesMatch(primitives_.unit_type);
             }
             self.all_unit = res;
@@ -168,7 +168,7 @@ pub const AST = union(enum) {
         }
 
         pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
-            for (self.terms.items, 0..) |term, i| {
+            for (self._terms.items, 0..) |term, i| {
                 if (std.mem.eql(u8, term.annotation.pattern.getToken().data, field_name)) {
                     return i;
                 }
@@ -180,7 +180,7 @@ pub const AST = union(enum) {
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
             var offset: i64 = 0;
             for (0..field + 1) |i| {
-                var item = self.terms.items[i];
+                var item = self._terms.items[i];
                 offset += item.expand_type(allocator).sizeof();
             }
             return offset;
@@ -188,10 +188,10 @@ pub const AST = union(enum) {
     },
     inferred_error: struct {
         common: ASTCommon,
-        terms: std.ArrayList(*AST),
+        _terms: std.ArrayList(*AST),
 
         pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
-            for (self.terms.items, 0..) |term, i| {
+            for (self._terms.items, 0..) |term, i| {
                 if (std.mem.eql(u8, term.annotation.pattern.getToken().data, field_name)) {
                     return i;
                 }
@@ -207,7 +207,7 @@ pub const AST = union(enum) {
     },
     product: struct {
         common: ASTCommon,
-        terms: std.ArrayList(*AST),
+        _terms: std.ArrayList(*AST),
         homotypical: ?bool = null,
         was_slice: bool = false,
 
@@ -215,8 +215,8 @@ pub const AST = union(enum) {
             if (self.homotypical) |homotypical| {
                 return homotypical;
             }
-            var first_type = self.terms.items[0];
-            for (self.terms.items, 0..) |term, i| {
+            var first_type = self._terms.items[0];
+            for (self._terms.items, 0..) |term, i| {
                 if (i == 0) {
                     continue;
                 }
@@ -232,9 +232,9 @@ pub const AST = union(enum) {
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
-                var item = self.terms.items[i].expand_type(allocator);
+                var item = self._terms.items[i].expand_type(allocator);
                 offset += item.sizeof();
-                offset = offsets_.next_alignment(offset, self.terms.items[i + 1].alignof());
+                offset = offsets_.next_alignment(offset, self._terms.items[i + 1].alignof());
             }
             return offset;
         }
@@ -286,7 +286,7 @@ pub const AST = union(enum) {
         scope: ?*symbol_.Scope,
         let: ?*AST,
         _expr: *AST,
-        mappings: std.ArrayList(*AST),
+        _mappings: std.ArrayList(*AST),
         has_else: bool,
     },
     mapping: struct {
@@ -316,7 +316,7 @@ pub const AST = union(enum) {
     block: struct {
         common: ASTCommon,
         scope: ?*symbol_.Scope,
-        statements: std.ArrayList(*AST),
+        _statements: std.ArrayList(*AST),
         final: ?*AST, // either `return`, `continue`, or `break`
     },
 
@@ -349,7 +349,7 @@ pub const AST = union(enum) {
     fnDecl: struct {
         common: ASTCommon,
         name: ?*AST,
-        params: std.ArrayList(*AST), // Parameters' decl ASTs
+        _params: std.ArrayList(*AST), // Parameters' decl ASTs
         param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
         retType: *AST,
         refinement: ?*AST,
@@ -468,7 +468,7 @@ pub const AST = union(enum) {
 
             .product => {
                 var total_size: i64 = 0;
-                for (self.product.terms.items) |child| {
+                for (self.children().items) |child| {
                     total_size = offsets_.next_alignment(total_size, child.alignof());
                     total_size += child.sizeof();
                 }
@@ -477,7 +477,7 @@ pub const AST = union(enum) {
 
             .sum => {
                 var max_size: i64 = 0;
-                for (self.sum.terms.items) |child| {
+                for (self.children().items) |child| {
                     max_size = @max(max_size, child.sizeof());
                 }
                 return offsets_.next_alignment(max_size, 8) + 8;
@@ -513,7 +513,7 @@ pub const AST = union(enum) {
 
             .product => {
                 var max_align: i64 = 0;
-                for (self.product.terms.items) |child| {
+                for (self.children().items) |child| {
                     max_align = @max(max_align, child.alignof());
                 }
                 return max_align;
@@ -695,7 +695,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createCall(token: token_.Token, _lhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .call = .{ .common = ASTCommon{ .token = token, ._type = null }, ._lhs = _lhs, .args = args } }, allocator);
+        return AST.box(AST{ .call = .{ .common = ASTCommon{ .token = token, ._type = null }, ._lhs = _lhs, ._args = args } }, allocator);
     }
 
     pub fn createIndex(token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -707,13 +707,13 @@ pub const AST = union(enum) {
     }
 
     pub fn createSum(token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
+        return AST.box(AST{ .sum = .{ .common = ASTCommon{ .token = token, ._type = null }, ._terms = terms } }, allocator);
     }
 
     pub fn createInferredError(token: token_.Token, ok: *AST, allocator: std.mem.Allocator) *AST {
-        var retval: AST = AST{ .inferred_error = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = std.ArrayList(*AST).init(allocator) } };
+        var retval: AST = AST{ .inferred_error = .{ .common = ASTCommon{ .token = token, ._type = null }, ._terms = std.ArrayList(*AST).init(allocator) } };
         const ok_annot = createAnnotation(token, AST.createIdentifier(token_.Token{ .kind = .IDENTIFIER, .data = "ok", .span = span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 } }, allocator), ok, null, null, allocator);
-        retval.inferred_error.terms.append(ok_annot) catch unreachable;
+        retval.children().append(ok_annot) catch unreachable;
 
         return AST.box(retval, allocator);
     }
@@ -731,7 +731,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createProduct(token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .product = .{ .common = ASTCommon{ .token = token, ._type = null }, .terms = terms } }, allocator);
+        return AST.box(AST{ .product = .{ .common = ASTCommon{ .token = token, ._type = null }, ._terms = terms } }, allocator);
     }
 
     pub fn createUnion(token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -767,7 +767,7 @@ pub const AST = union(enum) {
     }
 
     pub fn createMatch(token: token_.Token, let: ?*AST, _expr: *AST, mappings: std.ArrayList(*AST), has_else: bool, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, ._expr = _expr, .mappings = mappings, .has_else = has_else } }, allocator);
+        return AST.box(AST{ .match = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .let = let, ._expr = _expr, ._mappings = mappings, .has_else = has_else } }, allocator);
     }
 
     pub fn createMapping(token: token_.Token, _lhs: ?*AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -786,7 +786,7 @@ pub const AST = union(enum) {
         if (final) |_final| {
             std.debug.assert(_final.* == ._return or _final.* == ._continue or _final.* == ._break);
         }
-        return AST.box(AST{ .block = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, .statements = statements, .final = final } }, allocator);
+        return AST.box(AST{ .block = .{ .common = ASTCommon{ .token = token, ._type = null }, .scope = null, ._statements = statements, .final = final } }, allocator);
     }
 
     pub fn createBreak(token: token_.Token, allocator: std.mem.Allocator) *AST {
@@ -813,7 +813,7 @@ pub const AST = union(enum) {
         return AST.box(AST{ .fnDecl = .{
             .common = ASTCommon{ .token = token, ._type = null },
             .name = name,
-            .params = params,
+            ._params = params,
             .param_symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
             .retType = retType,
             .refinement = refinement,
@@ -906,6 +906,32 @@ pub const AST = union(enum) {
         set_field(self, "_rhs", val);
     }
 
+    pub fn children(self: *AST) *std.ArrayList(*AST) {
+        return switch (self.*) {
+            .call => &self.call._args,
+            .sum => &self.sum._terms,
+            .inferred_error => &self.inferred_error._terms,
+            .product => &self.product._terms,
+            .match => &self.match._mappings,
+            .block => &self.block._statements,
+            .fnDecl => &self.fnDecl._params,
+            else => unreachable,
+        };
+    }
+
+    pub fn set_children(self: *AST, val: std.ArrayList(*AST)) void {
+        switch (self.*) {
+            .call => self.call._args = val,
+            .sum => self.sum._terms = val,
+            .inferred_error => self.inferred_error._terms = val,
+            .product => self.product._terms = val,
+            .match => self.match._mappings = val,
+            .block => self.block._statements = val,
+            .fnDecl => self.fnDecl._params = val,
+            else => unreachable,
+        }
+    }
+
     pub fn statement(self: AST) *AST {
         return get_field(self, "_statement");
     }
@@ -965,7 +991,7 @@ pub const AST = union(enum) {
         )).assert_valid();
         new_terms.append(addr) catch unreachable;
 
-        const length = (AST.createInt(_expr.getToken(), expr_type.product.terms.items.len, allocator)).assert_valid();
+        const length = (AST.createInt(_expr.getToken(), expr_type.children().items.len, allocator)).assert_valid();
         new_terms.append(length) catch unreachable;
 
         var retval = AST.createProduct(_expr.getToken(), new_terms, allocator);
@@ -1031,17 +1057,17 @@ pub const AST = union(enum) {
 
     pub fn get_none_type(opt_sum: *AST) *AST {
         std.debug.assert(opt_sum.sum.was_optional);
-        return opt_sum.sum.terms.items[0];
+        return opt_sum.children().items[0];
     }
 
     pub fn get_some_type(opt_sum: *AST) *AST {
         std.debug.assert(opt_sum.sum.was_optional);
-        return opt_sum.sum.terms.items[1];
+        return opt_sum.children().items[1];
     }
 
     pub fn get_ok_type(err_union: *AST) *AST {
         std.debug.assert(err_union.sum.was_error);
-        return err_union.sum.terms.items[0];
+        return err_union.children().items[0];
     }
 
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
@@ -1066,7 +1092,7 @@ pub const AST = union(enum) {
             .product => {
                 var terms = std.ArrayList(*AST).init(allocator);
                 var change = false;
-                for (self.product.terms.items) |term| {
+                for (self.children().items) |term| {
                     const new_term = term.expand_type(allocator);
                     terms.append(new_term) catch unreachable;
                     change = new_term != term or change;
@@ -1083,7 +1109,7 @@ pub const AST = union(enum) {
             .sum => {
                 var terms = std.ArrayList(*AST).init(allocator);
                 var change = false;
-                for (self.sum.terms.items) |term| {
+                for (self.children().items) |term| {
                     const new_term = term.expand_type(allocator);
                     terms.append(new_term) catch unreachable;
                     change = new_term != term or change;
@@ -1113,7 +1139,7 @@ pub const AST = union(enum) {
             },
             .index => {
                 const _expr = self.lhs().expand_type(allocator);
-                return _expr.product.terms.items[@as(usize, @intCast(self.rhs().int.data))];
+                return _expr.children().items[@as(usize, @intCast(self.rhs().int.data))];
             },
             .poison, .unit_type => return self,
 
@@ -1170,20 +1196,20 @@ pub const AST = union(enum) {
                 try self.rhs().printType(out);
             },
             .product => if (self.product.homotypical != null and self.product.homotypical.?) {
-                try out.print("[{}]", .{self.product.terms.items.len});
-                try self.product.terms.items[0].printType(out);
+                try out.print("[{}]", .{self.children().items.len});
+                try self.children().items[0].printType(out);
             } else if (self.product.was_slice) {
                 try out.print("[]", .{});
-                try self.product.terms.items[0].printType(out);
-            } else if (self.product.terms.items.len == 0) {
+                try self.children().items[0].printType(out);
+            } else if (self.children().items.len == 0) {
                 try out.print("()", .{});
             } else {
                 try out.print("(", .{});
-                for (self.product.terms.items, 0..self.product.terms.items.len) |term, _| {
+                for (self.children().items, 0..self.children().items.len) |term, _| {
                     try term.printType(out);
                     try out.print(", ", .{});
                 }
-                try self.product.terms.items[self.product.terms.items.len - 1].printType(out);
+                try self.children().items[self.children().items.len - 1].printType(out);
                 try out.print(")", .{});
             },
             .sum => if (self.sum.was_optional) {
@@ -1191,9 +1217,9 @@ pub const AST = union(enum) {
                 try self.get_some_type().annotation.type.printType(out);
             } else {
                 try out.print("(", .{});
-                for (self.sum.terms.items, 0..) |term, i| {
+                for (self.sum._terms.items, 0..) |term, i| {
                     try term.printType(out);
-                    if (self.sum.terms.items.len == 1 or i + 1 != self.sum.terms.items.len) {
+                    if (self.sum._terms.items.len == 1 or i + 1 != self.sum._terms.items.len) {
                         try out.print(" | ", .{});
                     }
                 }
@@ -1201,7 +1227,7 @@ pub const AST = union(enum) {
             },
             .inferred_error => {
                 try out.print("!", .{});
-                try self.inferred_error.terms.items[0].annotation.type.printType(out);
+                try self.inferred_error._terms.items[0].annotation.type.printType(out);
             },
             ._union => {
                 try self.lhs().printType(out);
@@ -1217,9 +1243,9 @@ pub const AST = union(enum) {
             .int => try out.print("{}", .{self.int.data}),
             .block => {
                 try out.print("{{", .{});
-                for (self.block.statements.items, 0..) |_statement, i| {
+                for (self.block._statements.items, 0..) |_statement, i| {
                     try _statement.printType(out);
-                    if (self.block.final != null or i > self.block.statements.items.len - 1) {
+                    if (self.block.final != null or i > self.block._statements.items.len - 1) {
                         try out.print("; ", .{});
                     }
                 }
@@ -1321,18 +1347,18 @@ pub const AST = union(enum) {
             => return self.rhs().typeof(allocator),
 
             .product => {
-                var first_type = self.product.terms.items[0].typeof(allocator);
+                var first_type = self.children().items[0].typeof(allocator);
                 if (first_type.typesMatch(primitives_.type_type)) {
                     // typeof product type is Type
                     return primitives_.type_type;
                 } else if (self.product.was_slice) {
-                    var addr: *AST = self.product.terms.items[0];
+                    var addr: *AST = self.children().items[0];
                     var retval = create_slice_type(addr.expr().typeof(allocator), addr.addrOf.mut, allocator);
                     retval.product.was_slice = true;
                     return retval;
                 } else {
                     var terms = std.ArrayList(*AST).init(allocator);
-                    for (self.product.terms.items) |term| {
+                    for (self.children().items) |term| {
                         const term_type = term.typeof(allocator);
                         terms.append(term_type) catch unreachable;
                     }
@@ -1345,12 +1371,12 @@ pub const AST = union(enum) {
             .index => {
                 var lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
                 if (lhs_type.typesMatch(primitives_.type_type) and self.lhs().* == .product) {
-                    return self.lhs().product.terms.items[0];
+                    return self.lhs().children().items[0];
                 } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
                     if (lhs_type.product.was_slice) {
-                        return lhs_type.product.terms.items[0].annotation.type.expr();
+                        return lhs_type.children().items[0].annotation.type.expr();
                     } else {
-                        return lhs_type.product.terms.items[0];
+                        return lhs_type.children().items[0];
                     }
                 } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.getToken().data, "String")) {
                     return primitives_.byte_type;
@@ -1364,15 +1390,7 @@ pub const AST = union(enum) {
 
             .select => {
                 var select_lhs_type = self.lhs().typeof(allocator).expand_identifier();
-                var annot_list: *std.ArrayList(*AST) = undefined;
-                if (select_lhs_type.* == .product) {
-                    annot_list = &select_lhs_type.product.terms;
-                } else if (select_lhs_type.* == .sum) {
-                    annot_list = &select_lhs_type.sum.terms;
-                } else {
-                    unreachable;
-                }
-                var retval = annot_list.items[self.select.pos.?];
+                var retval = select_lhs_type.children().items[self.select.pos.?];
                 while (retval.* == .annotation) {
                     retval = retval.annotation.type;
                 }
@@ -1405,11 +1423,11 @@ pub const AST = union(enum) {
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
                     return poisoned;
                 } else {
-                    var child_type = expr_type.product.terms.items[0];
+                    var child_type = expr_type.children().items[0];
                     if (child_type.typesMatch(primitives_.type_type)) {
                         return primitives_.type_type;
                     } else {
-                        return create_slice_type(expr_type.product.terms.items[0], self.sliceOf.kind == .MUT, allocator);
+                        return create_slice_type(expr_type.children().items[0], self.sliceOf.kind == .MUT, allocator);
                     }
                 }
             },
@@ -1427,7 +1445,7 @@ pub const AST = union(enum) {
                     return create_optional_type(body_type, allocator);
                 }
             },
-            .match => return self.match.mappings.items[0].typeof(allocator),
+            .match => return self.children().items[0].typeof(allocator),
             ._while => {
                 const body_type = self._while.bodyBlock.typeof(allocator);
                 if (self._while.elseBlock) |_| {
@@ -1438,10 +1456,10 @@ pub const AST = union(enum) {
             },
             .block => if (self.block.final) |_| {
                 return primitives_.void_type;
-            } else if (self.block.statements.items.len == 0) {
+            } else if (self.children().items.len == 0) {
                 return primitives_.unit_type;
             } else {
-                return self.block.statements.items[self.block.statements.items.len - 1].typeof(allocator);
+                return self.children().items[self.children().items.len - 1].typeof(allocator);
             },
             .call => {
                 const fn_type: *AST = self.lhs().typeof(allocator).expand_identifier();
@@ -1528,21 +1546,21 @@ pub const AST = union(enum) {
             .sliceOf => return (B.sliceOf.kind != .MUT or @intFromEnum(B.sliceOf.kind) == @intFromEnum(A.sliceOf.kind)) and typesMatch(A.expr(), B.expr()),
             .unit_type => return true,
             .product => {
-                if (B.product.terms.items.len != A.product.terms.items.len) {
+                if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
                 var retval = true;
-                for (A.product.terms.items, B.product.terms.items) |term, B_term| {
+                for (A.children().items, B.children().items) |term, B_term| {
                     retval = retval and term.typesMatch(B_term);
                 }
                 return retval;
             },
             .sum => {
-                if (B.sum.terms.items.len != A.sum.terms.items.len) {
+                if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
                 var retval = true;
-                for (A.sum.terms.items, B.sum.terms.items) |term, B_term| {
+                for (A.children().items, B.children().items) |term, B_term| {
                     const this_name = term.annotation.pattern.getToken().data;
                     const B_name = B_term.annotation.pattern.getToken().data;
                     retval = retval and std.mem.eql(u8, this_name, B_name) and term.typesMatch(B_term);
@@ -1613,7 +1631,7 @@ pub const AST = union(enum) {
         if (expanded.* == .addrOf) {
             return true;
         } else if (expanded.* == .product) {
-            for (expanded.product.terms.items) |term| {
+            for (expanded.children().items) |term| {
                 if (!term.is_eq_type()) {
                     return false;
                 }
@@ -1703,24 +1721,13 @@ pub const AST = union(enum) {
         switch (self.*) {
             .identifier => return std.mem.eql(u8, self.getToken().data, other.getToken().data),
             .addrOf => return c_typesMatch(self.expr(), other.expr()),
-
             .unit_type => return other.* == .unit_type,
-            .product => {
-                if (other.product.terms.items.len != self.product.terms.items.len) {
+            .product, .sum => {
+                if (other.children().items.len != self.children().items.len) {
                     return false;
                 }
                 var retval = true;
-                for (self.product.terms.items, other.product.terms.items) |term, other_term| {
-                    retval = retval and term.c_typesMatch(other_term);
-                }
-                return retval;
-            },
-            .sum => {
-                if (other.sum.terms.items.len != self.sum.terms.items.len) {
-                    return false;
-                }
-                var retval = true;
-                for (self.sum.terms.items, other.sum.terms.items) |term, other_term| {
+                for (self.children().items, other.children().items) |term, other_term| {
                     retval = retval and term.c_typesMatch(other_term);
                 }
                 return retval;
@@ -1785,9 +1792,9 @@ pub const AST = union(enum) {
             .invoke => try out.writer().print("invoke()", .{}),
             .sum => {
                 try out.writer().print("sum(", .{});
-                for (self.sum.terms.items, 0..) |item, i| {
+                for (self.sum._terms.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
-                    if (i < self.sum.terms.items.len - 1) {
+                    if (i < self.sum._terms.items.len - 1) {
                         try out.writer().print(",", .{});
                     }
                 }
@@ -1797,9 +1804,9 @@ pub const AST = union(enum) {
             .inject => try out.writer().print("inject()", .{}),
             .product => {
                 try out.writer().print("product(", .{});
-                for (self.product.terms.items, 0..) |item, i| {
+                for (self.product._terms.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
-                    if (i < self.product.terms.items.len - 1) {
+                    if (i < self.product._terms.items.len - 1) {
                         try out.writer().print(",", .{});
                     }
                 }

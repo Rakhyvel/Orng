@@ -125,12 +125,10 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         },
         .call => {
             try symbolTableFromAST(ast.lhs(), scope, errors, allocator);
-            try symbolTableFromASTList(ast.call.args, scope, errors, allocator);
+            try symbolTableFromASTList(ast.children().*, scope, errors, allocator);
         },
-        .sum => try symbolTableFromASTList(ast.sum.terms, scope, errors, allocator),
-        .inferred_error => try symbolTableFromASTList(ast.inferred_error.terms, scope, errors, allocator),
+        .sum, .inferred_error, .product => try symbolTableFromASTList(ast.children().*, scope, errors, allocator),
 
-        .product => try symbolTableFromASTList(ast.product.terms, scope, errors, allocator),
         .arrayOf => {
             try symbolTableFromAST(ast.expr(), scope, errors, allocator);
             try symbolTableFromAST(ast.arrayOf.len, scope, errors, allocator);
@@ -160,7 +158,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             try symbolTableFromAST(ast.match.let, scope, errors, allocator);
             try symbolTableFromAST(ast.expr(), new_scope, errors, allocator);
             try create_match_pattern_symbol(ast, new_scope, errors, allocator);
-            try symbolTableFromASTList(ast.match.mappings, new_scope, errors, allocator);
+            try symbolTableFromASTList(ast.children().*, new_scope, errors, allocator);
         },
         .mapping => try symbolTableFromAST(ast.mapping_lhs(), scope, errors, allocator),
         ._while => {
@@ -186,7 +184,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         .block => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.block.scope = new_scope;
-            try symbolTableFromASTList(ast.block.statements, new_scope, errors, allocator);
+            try symbolTableFromASTList(ast.children().*, new_scope, errors, allocator);
             if (ast.block.final) |final| {
                 try symbolTableFromAST(final, new_scope, errors, allocator);
             }
@@ -301,7 +299,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
             symbols.append(symbol) catch unreachable;
         },
         .product => {
-            for (pattern.product.terms.items, 0..) |term, i| {
+            for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.createInt(pattern.getToken(), i, allocator);
                 const new_type: *ast_.AST = ast_.AST.createIndex(_type.getToken(), _type, index, allocator);
                 const new_init: *ast_.AST = ast_.AST.createIndex(init.getToken(), init, index, allocator);
@@ -323,7 +321,7 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
 }
 
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
-    for (match.match.mappings.items) |mapping| {
+    for (match.children().items) |mapping| {
         if (mapping.mapping_lhs() != null) {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             mapping.mapping.scope = new_scope;
@@ -345,7 +343,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
 fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
     // Calculate the domain type from the function paramter types
     const domain = extractDomain(
-        ast.fnDecl.params,
+        ast.children().*,
         ast.fnDecl.retType.getToken(),
         allocator,
     );
@@ -363,11 +361,11 @@ fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Er
     fnScope.in_function = scope.in_function + 1;
 
     // Recurse parameters and init
-    try symbolTableFromASTList(ast.fnDecl.params, fnScope, errors, allocator);
+    try symbolTableFromASTList(ast.children().*, fnScope, errors, allocator);
     try symbolTableFromAST(ast.fnDecl.retType, fnScope, errors, allocator);
 
     // Put the param symbols in the param symbols list
-    for (ast.fnDecl.params.items) |param| {
+    for (ast.children().items) |param| {
         const symbol = param.decl.symbols.items[0];
         ast.fnDecl.param_symbols.append(symbol) catch unreachable;
     }

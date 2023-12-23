@@ -27,19 +27,10 @@ pub const Type_Set = struct {
                 dag.dependencies.append(codomain) catch unreachable;
             }
             return dag;
-        } else if (ast.* == .product) {
+        } else if (ast.* == .product or ast.* == .sum) {
             var dag = DAG.init(ast, self.types.items.len, allocator);
             self.types.append(dag) catch unreachable;
-            for (ast.product.terms.items) |term| {
-                if (self.add(term, allocator)) |dependency| {
-                    dag.dependencies.append(dependency) catch unreachable;
-                }
-            }
-            return dag;
-        } else if (ast.* == .sum) {
-            var dag = DAG.init(ast, self.types.items.len, allocator);
-            self.types.append(dag) catch unreachable;
-            for (ast.sum.terms.items) |term| {
+            for (ast.children().items) |term| {
                 if (self.add(term, allocator)) |dependency| {
                     dag.dependencies.append(dependency) catch unreachable;
                 }

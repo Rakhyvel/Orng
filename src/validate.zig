@@ -42,8 +42,8 @@ fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std
             return error.typeError;
             // unreachable;
         } else if ((symbol.kind == ._fn or symbol.kind == ._comptime) and symbol._type.rhs().* == .inferred_error) {
-            const terms = symbol._type.rhs().inferred_error.terms;
-            symbol._type.rhs().* = ast_.AST{ .sum = .{ .common = symbol._type.rhs().getCommon().*, .terms = terms, .was_error = true } };
+            const terms = symbol._type.rhs().children().*;
+            symbol._type.rhs().* = ast_.AST{ .sum = .{ .common = symbol._type.rhs().getCommon().*, ._terms = terms, .was_error = true } };
         }
     } else {
         symbol.validation_state = .invalid;
@@ -239,13 +239,13 @@ fn validate_AST_internal(
             const expanded_function_return = ast.symbol().?._type.rhs().expand_type(allocator);
             if (expanded_function_return.* == .inferred_error) {
                 // This checks that the `ok` fields match, for free!
-                for (expr_expanded_type.sum.terms.items) |term| {
+                for (expr_expanded_type.children().items) |term| {
                     try add_term(expanded_function_return, term, errors);
                 }
             } else if (expanded_function_return.* != .sum or !expanded_function_return.sum.was_error) {
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "enclosing function around try expression does not return an error" } });
                 return ast.enpoison();
-            } else if (!expr_expanded_type.sum.terms.items[1].annotation.type.typesMatch(expanded_function_return.sum.terms.items[1].annotation.type)) {
+            } else if (!expr_expanded_type.children().items[1].annotation.type.typesMatch(expanded_function_return.children().items[1].annotation.type)) {
                 // MASSIVE TODO: Check ALL sum terms, not just the first one
                 // expr error union's `.err` member is not a compatible type with the function's error type
                 errors.addError(errs_.Error{ .expected2Type = .{ .span = expr_span, .expected = expr_expanded_type, .got = expanded_function_return } });
@@ -481,8 +481,8 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
 
-            ast.call.args = try default_args(ast.call.args, expanded_lhs_type.lhs(), errors, allocator);
-            ast.call.args = try validate_args(ast.call.args, expanded_lhs_type.lhs(), ast.getToken().span, errors, allocator);
+            ast.set_children(try default_args(ast.children().*, expanded_lhs_type.lhs(), errors, allocator));
+            ast.set_children(try validate_args(ast.children().*, expanded_lhs_type.lhs(), ast.getToken().span, errors, allocator));
             try type_check(ast, expanded_lhs_type.rhs(), expected, errors);
             return ast;
         },
@@ -511,10 +511,10 @@ fn validate_AST_internal(
             }
 
             const lhs_expanded_type = lhs_type.expand_type(allocator);
-            if (lhs_type.typesMatch(primitives_.type_type) and ast.lhs().* == .product and ast.rhs().* == .int and ast.lhs().product.terms.items.len > ast.rhs().int.data) {
+            if (lhs_type.typesMatch(primitives_.type_type) and ast.lhs().* == .product and ast.rhs().* == .int and ast.lhs().children().items.len > ast.rhs().int.data) {
                 // Index a product type, resolve immediately
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
-                return ast.lhs().product.terms.items[@as(usize, @intCast(ast.rhs().int.data))];
+                return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (lhs_expanded_type.* != .product) {
                 errors.addError(errs_.Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
                 return ast.enpoison();
@@ -531,9 +531,9 @@ fn validate_AST_internal(
                 }
             } else if (expected != null) {
                 if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice) {
-                    try type_check(ast, lhs_expanded_type.product.terms.items[0], expected, errors);
+                    try type_check(ast, lhs_expanded_type.children().items[0], expected, errors);
                 } else if (lhs_expanded_type.* == .product and lhs_expanded_type.product.was_slice) {
-                    try type_check(ast, lhs_expanded_type.product.terms.items[0].annotation.type.expr(), expected, errors);
+                    try type_check(ast, lhs_expanded_type.children().items[0].annotation.type.expr(), expected, errors);
                 }
             }
             return ast;
@@ -562,22 +562,23 @@ fn validate_AST_internal(
                 return validateAST(inferred_member, ast.lhs(), errors, allocator);
             } else {
                 // Select on something annot-list-like, get the pos
-                var annot_list: *std.ArrayList(*ast_.AST) = undefined;
-                if (select_lhs_type.* == .product) {
-                    annot_list = &select_lhs_type.product.terms;
-                } else if (select_lhs_type.* == .sum) {
-                    annot_list = &select_lhs_type.sum.terms;
-                } else if (select_lhs_type.* == .inferred_error) {
-                    annot_list = &select_lhs_type.inferred_error.terms;
-                } else {
-                    errors.addError(errs_.Error{ .basic = .{
-                        .span = ast.getToken().span,
-                        .msg = "left-hand-side of select is not selectable",
-                    } });
-                    return ast.enpoison();
-                }
+                // TODO: Move this to a function for if something is selectable
+                // var annot_list: *std.ArrayList(*ast_.AST) = undefined;
+                // if (select_lhs_type.* == .product) {
+                //     annot_list = &select_lhs_type.product.terms;
+                // } else if (select_lhs_type.* == .sum) {
+                //     annot_list = &select_lhs_type.sum.terms;
+                // } else if (select_lhs_type.* == .inferred_error) {
+                //     annot_list = &select_lhs_type.inferred_error.terms;
+                // } else {
+                //     errors.addError(errs_.Error{ .basic = .{
+                //         .span = ast.getToken().span,
+                //         .msg = "left-hand-side of select is not selectable",
+                //     } });
+                //     return ast.enpoison();
+                // }
                 if (ast.select.pos == null) {
-                    for (annot_list.items, 0..) |term, i| {
+                    for (select_lhs_type.children().items, 0..) |term, i| {
                         if (term.* != .annotation) {
                             errors.addError(errs_.Error{ .basic = .{
                                 .span = ast.getToken().span,
@@ -620,7 +621,7 @@ fn validate_AST_internal(
             var new_terms = std.ArrayList(*ast_.AST).init(allocator);
             var idents_seen = std.StringArrayHashMap(*ast_.AST).init(allocator);
             defer idents_seen.deinit();
-            for (ast.sum.terms.items) |term| {
+            for (ast.children().items) |term| {
                 std.debug.assert(term.* == .annotation); // sums are expanded in sum-expand.zig
                 const new_term = validateAST(term, primitives_.type_type, errors, allocator);
                 changed = changed or new_term != term;
@@ -632,7 +633,7 @@ fn validate_AST_internal(
             if (poisoned) {
                 return ast.enpoison();
             } else if (changed) {
-                ast.sum.terms = new_terms;
+                ast.set_children(new_terms);
             } else {
                 new_terms.deinit();
             }
@@ -641,9 +642,9 @@ fn validate_AST_internal(
         },
         .inferred_error => {
             // Inferred errors are expanded after the node is validated. They should only have one term, the `ok` term
-            std.debug.assert(ast.inferred_error.terms.items.len == 1);
-            ast.inferred_error.terms.items[0] = validateAST(ast.inferred_error.terms.items[0], primitives_.type_type, errors, allocator);
-            if (ast.inferred_error.terms.items[0].* == .poison) {
+            std.debug.assert(ast.children().items.len == 1);
+            ast.children().items[0] = validateAST(ast.children().items[0], primitives_.type_type, errors, allocator);
+            if (ast.children().items[0].* == .poison) {
                 return ast.enpoison();
             }
             try type_check(ast, primitives_.type_type, expected, errors);
@@ -681,12 +682,12 @@ fn validate_AST_internal(
 
             if (expanded_expected != null and expanded_expected.?.* == .product) {
                 _ = ast.assert_valid();
-                ast.product.terms = try default_args(ast.product.terms, expanded_expected.?, errors, allocator);
+                ast.set_children(try default_args(ast.children().*, expanded_expected.?, errors, allocator));
             }
 
             if (expanded_expected != null and expanded_expected.?.typesMatch(primitives_.type_type)) {
                 // Expecting ast to be a product type
-                for (ast.product.terms.items) |term| {
+                for (ast.children().items) |term| {
                     const new_term = validateAST(term, primitives_.type_type, errors, allocator);
                     changed = changed or new_term != term;
                     new_terms.append(new_term) catch unreachable;
@@ -696,15 +697,15 @@ fn validate_AST_internal(
                 }
             } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value
-                if (expanded_expected.?.product.terms.items.len != ast.product.terms.items.len) {
+                if (expanded_expected.?.children().items.len != ast.children().items.len) {
                     errors.addError(errs_.Error{ .mismatchTupleArity = .{
                         .span = ast.getToken().span,
-                        .takes = expanded_expected.?.product.terms.items.len,
-                        .given = ast.product.terms.items.len,
+                        .takes = expanded_expected.?.children().items.len,
+                        .given = ast.children().items.len,
                     } });
                     return ast.enpoison();
                 }
-                for (ast.product.terms.items, expanded_expected.?.product.terms.items) |term, expected_term| { // Ok, this is cool!
+                for (ast.children().items, expanded_expected.?.children().items) |term, expected_term| { // Ok, this is cool!
                     const new_term = validateAST(term, expected_term, errors, allocator);
                     changed = changed or new_term != term;
                     new_terms.append(new_term) catch unreachable;
@@ -714,7 +715,7 @@ fn validate_AST_internal(
                 }
             } else if (expanded_expected == null) {
                 // Not expecting anything
-                for (ast.product.terms.items) |term| {
+                for (ast.children().items) |term| {
                     const new_term = validateAST(term, null, errors, allocator);
                     new_terms.append(new_term) catch unreachable;
                     if (new_term.* == .poison) {
@@ -731,7 +732,7 @@ fn validate_AST_internal(
             if (poisoned) {
                 return ast.enpoison();
             } else if (changed) {
-                ast.product.terms = new_terms;
+                ast.set_children(new_terms);
             } else {
                 new_terms.deinit();
             }
@@ -764,11 +765,11 @@ fn validate_AST_internal(
             var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
             defer names.deinit();
 
-            for (expand_lhs.sum.terms.items) |term| {
+            for (expand_lhs.children().items) |term| {
                 try putAnnotation(term, &names, errors);
                 new_terms.append(term) catch unreachable;
             }
-            for (expand_rhs.sum.terms.items) |term| {
+            for (expand_rhs.children().items) |term| {
                 try putAnnotation(term, &names, errors);
                 new_terms.append(term) catch unreachable;
             }
@@ -941,8 +942,8 @@ fn validate_AST_internal(
                     // Wasn't in inferred error set, put in inferred error set
                     const annot_type = if (ast.inferredMember.init == null) primitives_.unit_type else ast.inferredMember.init.?.typeof(allocator);
                     const annot = ast_.AST.createAnnotation(ast.getToken(), ast_.AST.createIdentifier(ast.inferredMember.ident.getToken(), allocator), annot_type, null, null, allocator);
-                    expected_expanded.inferred_error.terms.append(annot) catch unreachable;
-                    ast.inferredMember.pos = expected_expanded.inferred_error.terms.items.len - 1;
+                    expected_expanded.children().append(annot) catch unreachable;
+                    ast.inferredMember.pos = expected_expanded.children().items.len - 1;
                 }
                 return ast;
             } else if (expected_expanded.* != .sum) {
@@ -954,7 +955,7 @@ fn validate_AST_internal(
                     errors.addError(errs_.Error{ .member_not_in = .{ .span = ast.getToken().span, .identifier = ast.inferredMember.ident.getToken().data, .group_name = "sum" } });
                     return ast.enpoison();
                 };
-                const proper_term: *ast_.AST = expected_expanded.sum.terms.items[@as(usize, @intCast(ast.inferredMember.pos.?))];
+                const proper_term: *ast_.AST = expected_expanded.children().items[@as(usize, @intCast(ast.inferredMember.pos.?))];
                 if (proper_term.annotation.init) |_init| {
                     ast.inferredMember.init = _init; // This will be overriden by an inject expression's rhs
                 } else {
@@ -1010,20 +1011,20 @@ fn validate_AST_internal(
             if (ast._if.condition.* == ._true and ast._if.elseBlock != null) {
                 // condition is true and theres an else => return {let; body}
                 if (ast._if.let != null) {
-                    ast._if.bodyBlock.block.statements.insert(0, ast._if.let.?) catch unreachable;
+                    ast._if.bodyBlock.children().insert(0, ast._if.let.?) catch unreachable;
                 }
                 return ast._if.bodyBlock;
             } else if (ast._if.condition.* == ._true and ast._if.elseBlock == null) {
                 // condition is true and theres no else => return {let; some(body)}
                 if (ast._if.let != null) {
-                    ast._if.bodyBlock.block.statements.insert(0, ast._if.let.?) catch unreachable;
+                    ast._if.bodyBlock.children().insert(0, ast._if.let.?) catch unreachable;
                 }
                 const opt_type = ast_.AST.create_optional_type(ast._if.bodyBlock.typeof(allocator), allocator);
                 return ast_.AST.create_some_value(opt_type, ast._if.bodyBlock, allocator);
             } else if (ast._if.condition.* == ._false and ast._if.elseBlock != null) {
                 // condition is false and theres an else => return {let; else}
                 if (ast._if.let != null) {
-                    ast._if.elseBlock.?.block.statements.insert(0, ast._if.let.?) catch unreachable;
+                    ast._if.elseBlock.?.children().insert(0, ast._if.let.?) catch unreachable;
                 }
                 return ast._if.elseBlock.?;
             } else if (ast._if.condition.* == ._false and ast._if.elseBlock == null) {
@@ -1057,7 +1058,7 @@ fn validate_AST_internal(
                 return ast.enpoison(); // Can't do anything with this
             }
 
-            if (ast.match.mappings.items.len == 0) {
+            if (ast.children().items.len == 0) {
                 errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "match has no patterns" } });
                 return ast.enpoison();
             }
@@ -1065,7 +1066,7 @@ fn validate_AST_internal(
             // Go through mappings, get their validated form
             var changed = false;
             var new_mappings = std.ArrayList(*ast_.AST).init(allocator);
-            for (ast.match.mappings.items) |mapping| {
+            for (ast.children().items) |mapping| {
                 if (expected != null) {
                     // Expecting a type from the match
                     var expected_expanded = expected.?.expand_type(allocator);
@@ -1102,11 +1103,11 @@ fn validate_AST_internal(
                     try assert_pattern_matches(lhs, expr_type_expanded, errors, allocator);
                 }
             }
-            try exhaustive_check(expr_type_expanded, &ast.match.mappings, ast.getToken().span, errors, allocator);
+            try exhaustive_check(expr_type_expanded, ast.children(), ast.getToken().span, errors, allocator);
             if (poisoned) {
                 return ast.enpoison();
             } else if (changed) {
-                ast.match.mappings = new_mappings;
+                ast.set_children(new_mappings);
             } else {
                 new_mappings.deinit();
             }
@@ -1160,7 +1161,7 @@ fn validate_AST_internal(
             var new_statements = std.ArrayList(*ast_.AST).init(allocator);
             if (ast.block.final) |final| {
                 // Has final (return, continue, break)
-                for (ast.block.statements.items) |statement| {
+                for (ast.children().items) |statement| {
                     const new_statement = validateAST(statement, null, errors, allocator);
                     new_statements.append(new_statement) catch unreachable;
                     poisoned = poisoned or new_statement.* == .poison;
@@ -1169,14 +1170,14 @@ fn validate_AST_internal(
                 ast.block.final = validateAST(final, expected, errors, allocator);
                 poisoned = poisoned or ast.block.final.?.* == .poison;
                 if (changed) {
-                    ast.block.statements = new_statements;
+                    ast.set_children(new_statements);
                 } else {
                     new_statements.deinit();
                 }
             } else {
                 // Hasn't final
-                for (ast.block.statements.items, 0..) |statement, i| {
-                    const expect_type: ?*ast_.AST = if (i == ast.block.statements.items.len - 1) expected else null;
+                for (ast.children().items, 0..) |statement, i| {
+                    const expect_type: ?*ast_.AST = if (i == ast.children().items.len - 1) expected else null;
                     const new_statement = validateAST(statement, expect_type, errors, allocator);
                     new_statements.append(new_statement) catch unreachable;
                     poisoned = poisoned or new_statement.* == .poison;
@@ -1184,7 +1185,7 @@ fn validate_AST_internal(
                 }
 
                 if (changed) {
-                    ast.block.statements = new_statements;
+                    ast.set_children(new_statements);
                 } else {
                     new_statements.deinit();
                 }
@@ -1383,7 +1384,7 @@ fn positional_args(asts: std.ArrayList(*ast_.AST), expected: *ast_.AST, allocato
         },
 
         .product => {
-            for (expected.product.terms.items, 0..) |term, i| {
+            for (expected.children().items, 0..) |term, i| {
                 // ast is product, append ast's corresponding term
                 if (asts.items.len > 1 and i < asts.items.len) {
                     retval.append(asts.items[i]) catch unreachable;
@@ -1456,7 +1457,7 @@ fn named_args(asts: std.ArrayList(*ast_.AST), expected: *ast_.AST, errors: *errs
         },
 
         .product => {
-            for (new_expected.product.terms.items) |term| {
+            for (new_expected.children().items) |term| {
                 if (term.* != .annotation) {
                     errors.addError(errs_.Error{ .basic = .{
                         .span = asts.items[0].getToken().span,
@@ -1501,15 +1502,15 @@ fn validate_args(args: std.ArrayList(*ast_.AST), expected: *ast_.AST, span: span
             return error.typeError;
         }
     } else if (expected.* == .product) {
-        if (args.items.len != expected.product.terms.items.len) {
+        if (args.items.len != expected.children().items.len) {
             errors.addError(errs_.Error{ .mismatchCallArity = .{
                 .span = span,
-                .takes = expected.product.terms.items.len,
+                .takes = expected.children().items.len,
                 .given = args.items.len,
             } });
             return error.typeError;
         }
-        for (expected.product.terms.items, args.items) |param_type, arg| {
+        for (expected.children().items, args.items) |param_type, arg| {
             const new_arg = validateAST(arg, param_type, errors, allocator);
             changed = changed or new_arg != arg;
             new_args.append(new_arg) catch unreachable;
@@ -1586,7 +1587,7 @@ fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void {
         .index, .select => try validateLValue(ast.lhs(), errors),
 
         .product => {
-            for (ast.product.terms.items) |term| {
+            for (ast.children().items) |term| {
                 try validateLValue(term, errors);
             }
         },
@@ -1623,7 +1624,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .index => {
             const lhs_type = ast.lhs().typeof(allocator);
             if (lhs_type.* == .product and lhs_type.product.was_slice) {
-                const child_type = lhs_type.product.terms.items[0];
+                const child_type = lhs_type.children().items[0];
                 if (!child_type.annotation.type.addrOf.mut) {
                     errors.addError(errs_.Error{ .basic = .{
                         .span = ast.getToken().span,
@@ -1636,7 +1637,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             }
         },
 
-        .product => for (ast.product.terms.items) |term| {
+        .product => for (ast.children().items) |term| {
             try assertMutable(term, errors, allocator);
         },
 
@@ -1688,11 +1689,11 @@ fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *err
         },
         .product => {
             const expanded_expr = expr_type.expand_type(allocator);
-            if (expanded_expr.* != .product or expanded_expr.product.terms.items.len != pattern.product.terms.items.len) {
+            if (expanded_expr.* != .product or expanded_expr.children().items.len != pattern.children().items.len) {
                 errors.addError(errs_.Error{ .expected2Type = .{ .span = pattern.getToken().span, .expected = expr_type, .got = pattern.typeof(allocator) } });
                 return error.typeError;
             }
-            for (pattern.product.terms.items, expanded_expr.product.terms.items) |term, expanded_term| {
+            for (pattern.children().items, expanded_expr.children().items) |term, expanded_term| {
                 try assert_pattern_matches(term, expanded_term, errors, allocator);
             }
         },
@@ -1719,7 +1720,7 @@ fn exhaustive_check(_type: *ast_.AST, mappings: *std.ArrayList(*ast_.AST), match
         var ids = std.ArrayList(usize).init(allocator);
         defer ids.deinit();
 
-        for (_type.sum.terms.items, 0..) |_, i| {
+        for (_type.children().items, 0..) |_, i| {
             ids.append(i) catch unreachable;
         }
         for (mappings.items) |m| {
@@ -1731,7 +1732,7 @@ fn exhaustive_check(_type: *ast_.AST, mappings: *std.ArrayList(*ast_.AST), match
         if (ids.items.len > 0) {
             var forgotten = std.ArrayList(*ast_.AST).init(std.heap.page_allocator); // Not deallocated, lifetime should be until error emission
             for (ids.items) |id| {
-                forgotten.append(_type.sum.terms.items[id]) catch unreachable;
+                forgotten.append(_type.children().items[id]) catch unreachable;
             }
             errors.addError(errs_.Error{ .nonExhaustiveSum = .{ .span = match_span, .forgotten = forgotten } });
             return error.typeError;
@@ -1762,7 +1763,7 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
 /// Adds a term to an inferred error
 fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
     std.debug.assert(addend.* == .annotation);
-    for (ast.inferred_error.terms.items) |term| {
+    for (ast.children().items) |term| {
         if (std.mem.eql(u8, term.annotation.pattern.getToken().data, addend.annotation.pattern.getToken().data)) {
             if (!term.annotation.type.typesMatch(term)) {
                 errors.addError(errs_.Error{ .sum_duplicate = .{ .span = ast.inferred_error.common.token.span, .identifier = term.annotation.pattern.getToken().data, .first = term.getToken().span } });
@@ -1774,7 +1775,7 @@ fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
         }
     }
     // No duplicate found, add to inferred error set
-    ast.inferred_error.terms.append(addend) catch unreachable;
+    ast.children().append(addend) catch unreachable;
 }
 
 fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
@@ -1803,14 +1804,14 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
             var retval = ast_.AST.createInferredMember(_type.getToken(), ast_.AST.createIdentifier(token_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator), allocator);
             retval.inferredMember.pos = 0;
             retval.inferredMember.base = _type;
-            const proper_term: *ast_.AST = _type.sum.terms.items[0];
+            const proper_term: *ast_.AST = _type.children().items[0];
             retval.inferredMember.init = try generate_default(proper_term, errors, allocator);
             return retval;
         },
         .product => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);
             errdefer value_terms.deinit();
-            for (_type.product.terms.items) |term| {
+            for (_type.children().items) |term| {
                 const default_term = try generate_default(term, errors, allocator);
                 value_terms.append(default_term) catch unreachable;
             }
@@ -1848,7 +1849,7 @@ fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocat
             return ast_.poisoned;
         }
         const pos: i128 = ast.lhs().inferredMember.pos.?;
-        const proper_term: *ast_.AST = (ast.lhs().typeof(allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+        const proper_term: *ast_.AST = (ast.lhs().typeof(allocator)).children().items[@as(usize, @intCast(pos))];
         return proper_term.annotation.type;
     } else {
         errors.addError(errs_.Error{ .basic = .{ .span = ast.getToken().span, .msg = "inject is not to a sum" } });

@@ -532,7 +532,7 @@ fn lower_AST(
             temp.extract_symbver().symbol.span = ast.getToken().span;
 
             var ir = ir_.IR.initCall(temp, lhs, ast.getToken().span, allocator);
-            for (ast.call.args.items) |term| {
+            for (ast.children().items) |term| {
                 ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
             }
             cfg.appendInstruction(ir_.IR.initStackPush(ast.getToken().span, allocator));
@@ -555,7 +555,7 @@ fn lower_AST(
             const _type = ast.typeof(allocator);
             if (ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
-                const addr_type = ast_expanded_type.product.terms.items[0];
+                const addr_type = ast_expanded_type.children().items[0];
                 const addr_size = _type.expand_type(allocator).sizeof();
                 new_lhs = lval_.L_Value.create_select(new_lhs, 0, 0, addr_size, addr_type, _type.expand_type(allocator), null, allocator);
                 new_lhs = lval_.L_Value.create_dereference(new_lhs, addr_size, addr_type, _type.expand_type(allocator), allocator);
@@ -590,14 +590,14 @@ fn lower_AST(
             return lval_.L_Value.create_select(ast_lval.?, ast.select.pos.?, offset, expanded_type.sizeof(), _type, expanded_type, tag, allocator);
         },
         .product => {
-            if (ast.product.terms.items[0].typeof(allocator).typesMatch(primitives_.type_type)) {
+            if (ast.children().items[0].typeof(allocator).typesMatch(primitives_.type_type)) {
                 const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
                 cfg.appendInstruction(ir_.IR.init_ast(temp, ast, ast.getToken().span, allocator));
                 return temp;
             } else {
                 const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
                 var ir = ir_.IR.initLoadStruct(temp, ast.getToken().span, allocator);
-                for (ast.product.terms.items) |term| {
+                for (ast.children().items) |term| {
                     ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse return null) catch unreachable;
                 }
                 cfg.appendInstruction(ir);
@@ -636,7 +636,7 @@ fn lower_AST(
             cfg.appendInstruction(ir_.IR.init(.sub_int, new_size, upper, lower, ast.getToken().span, allocator));
 
             const slice_type = ast.typeof(allocator);
-            const data_type = slice_type.product.terms.items[0];
+            const data_type = slice_type.children().items[0];
             const size = data_type.expand_type(allocator).sizeof();
             const data_ptr = lval_.L_Value.create_select(arr, 0, 0, size, data_type, data_type.expand_type(allocator), null, allocator);
 
@@ -658,7 +658,7 @@ fn lower_AST(
         .inferredMember => {
             var init: ?*lval_.L_Value = null;
             const pos: i128 = ast.inferredMember.pos.?;
-            const proper_term: *ast_.AST = (ast.typeof(allocator)).sum.terms.items[@as(usize, @intCast(pos))];
+            const proper_term: *ast_.AST = (ast.typeof(allocator)).children().items[@as(usize, @intCast(pos))];
             if (proper_term.annotation.type.* != .unit_type) {
                 init = try lower_AST(cfg, ast.inferredMember.init.?, labels, errors, allocator);
             }
@@ -704,7 +704,7 @@ fn lower_AST(
             defer lhs_label_list.deinit();
             var rhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // List of labels to branch to on a successful test (ie "code for the mapping")
             defer rhs_label_list.deinit();
-            for (ast.match.mappings.items) |_| {
+            for (ast.children().items) |_| {
                 lhs_label_list.append(ir_.IR.initLabel(cfg, ast.getToken().span, allocator)) catch unreachable;
                 rhs_label_list.append(ir_.IR.initLabel(cfg, ast.getToken().span, allocator)) catch unreachable;
             }
@@ -715,12 +715,12 @@ fn lower_AST(
 
             const expr = (try lower_AST(cfg, ast.expr(), labels, errors, allocator)) orelse return null;
 
-            try generate_match_pattern_checks(cfg, expr, ast.match.mappings, lhs_label_list, rhs_label_list, none_label, labels, errors, allocator);
+            try generate_match_pattern_checks(cfg, expr, ast.children().*, lhs_label_list, rhs_label_list, none_label, labels, errors, allocator);
             if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
                 try generate_control_flow_else(cfg, null, symbol, none_label, end_label, ast.getToken().span, labels, errors, allocator);
             }
 
-            try generate_match_body(cfg, expr, ast.match.mappings, rhs_label_list, symbol, ast.match.has_else, end_label, labels, errors, allocator);
+            try generate_match_body(cfg, expr, ast.children().*, rhs_label_list, symbol, ast.match.has_else, end_label, labels, errors, allocator);
 
             cfg.appendInstruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -757,7 +757,7 @@ fn lower_AST(
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         },
         .block => { // TODO: TOO LONG
-            if (ast.block.statements.items.len == 0 and ast.block.final == null) {
+            if (ast.children().items.len == 0 and ast.block.final == null) {
                 return null;
             }
             var continue_labels = std.ArrayList(*ir_.IR).init(allocator);
@@ -785,7 +785,7 @@ fn lower_AST(
             var errdefer_label_index: usize = 0;
 
             var temp: ?*lval_.L_Value = null;
-            for (ast.block.statements.items) |child| {
+            for (ast.children().items) |child| {
                 temp = try lower_AST(cfg, child, current_labels, errors, allocator);
                 if (child.* == ._defer) {
                     current_labels.continue_label = continue_labels.items[defer_label_index];
@@ -903,8 +903,8 @@ fn generate_tuple_equality(
     const temp = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
     var lhs_type = lhs.get_type().expand_type(allocator);
     if (lhs_type.* == .product) {
-        for (0..lhs_type.product.terms.items.len) |i| {
-            const _type = lhs_type.product.terms.items[i];
+        for (0..lhs_type.children().items.len) |i| {
+            const _type = lhs_type.children().items[i];
             const size = (_type.expand_type(allocator)).sizeof();
             const lhs_select = lval_.L_Value.create_select(new_lhs, i, lhs_type.product.get_offset(i, allocator), size, _type, _type.expand_type(allocator), null, allocator);
             const rhs_select = lval_.L_Value.create_select(new_rhs, i, lhs_type.product.get_offset(i, allocator), size, _type, _type.expand_type(allocator), null, allocator);
@@ -938,12 +938,12 @@ fn generate_assign(
         //     ((x, y), (a, b)) = get_tuple()
         // So it's important that this is recursive
         var lhs_expanded_type = lhs.typeof(allocator).expand_type(allocator);
-        for (lhs.product.terms.items, 0..) |term, i| {
+        for (lhs.children().items, 0..) |term, i| {
             const product_lhs = try lower_AST(cfg, term, labels, errors, allocator);
             if (product_lhs == null) {
                 continue;
             }
-            const _type = rhs.get_type().product.terms.items[i];
+            const _type = rhs.get_type().children().items[i];
             const size = _type.expand_type(allocator).sizeof();
             const select = lval_.L_Value.create_select(rhs, i, lhs_expanded_type.product.get_offset(i, allocator), size, _type, _type.expand_type(allocator), null, allocator);
             _ = try generate_assign(cfg, term, select, labels, errors, allocator);
@@ -975,8 +975,8 @@ fn generate_pattern(
             cfg.appendInstruction(ir);
         }
     } else if (pattern.* == .product) {
-        for (pattern.product.terms.items, 0..) |term, i| {
-            const subscript_type = _type.product.terms.items[i];
+        for (pattern.children().items, 0..) |term, i| {
+            const subscript_type = _type.children().items[i];
             const size = subscript_type.expand_type(allocator).sizeof();
             const offset = _type.product.get_offset(i, allocator);
             const lval = lval_.L_Value.create_select(def, i, offset, size, subscript_type, subscript_type.expand_type(allocator), null, allocator);
@@ -997,7 +997,7 @@ fn generate_indexable_length(cfg: *cfg_.CFG, lhs: *lval_.L_Value, _type: *ast_.A
         return lval_.L_Value.create_select(lhs, 1, offset, 8, primitives_.int64_type, primitives_.int64_type, null, allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
         const retval = create_temp_lvalue(cfg, primitives_.int_type, allocator);
-        cfg.appendInstruction(ir_.IR.initInt(retval, _type.product.terms.items.len, span, allocator));
+        cfg.appendInstruction(ir_.IR.initInt(retval, _type.children().items.len, span, allocator));
         return retval;
     } else {
         unreachable;
@@ -1102,6 +1102,7 @@ fn generate_match_pattern_check(
         return;
     }
     switch (pattern.?.*) {
+        .pattern_symbol => {}, // Infallible check, do not branch to next pattern
         .int,
         .float,
         ._true,
@@ -1117,12 +1118,9 @@ fn generate_match_pattern_check(
             const branch = ir_.IR.initBranch(condition, next_pattern, pattern.?.getToken().span, allocator);
             cfg.appendInstruction(branch);
         },
-        .pattern_symbol => {
-            // Infallible check, do not branch to next pattern
-        },
         .product => {
-            for (pattern.?.product.terms.items, 0..) |term, i| {
-                const subscript_type = expr.get_type().product.terms.items[i];
+            for (pattern.?.children().items, 0..) |term, i| {
+                const subscript_type = expr.get_type().children().items[i];
                 const size = subscript_type.expand_type(allocator).sizeof();
                 const pattern_type = pattern.?.typeof(allocator).expand_type(allocator);
                 const offset = pattern_type.product.get_offset(i, allocator);

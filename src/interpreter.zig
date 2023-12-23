@@ -569,7 +569,7 @@ pub const Context = struct {
                 const tag = self.load_int(address + _type.sizeof() - 8, 8);
                 retval.inferredMember.pos = tag;
                 retval.inferredMember.base = _type;
-                const proper_term: *ast_.AST = _type.sum.terms.items[@as(usize, @intCast(tag))];
+                const proper_term: *ast_.AST = _type.children().items[@as(usize, @intCast(tag))];
                 retval.inferredMember.init = self.extract_ast(address, proper_term, allocator);
                 return retval;
             },
@@ -577,7 +577,7 @@ pub const Context = struct {
                 var value_terms = std.ArrayList(*ast_.AST).init(allocator);
                 errdefer value_terms.deinit();
                 var offset: i64 = 0;
-                for (_type.product.terms.items) |term| {
+                for (_type.children().items) |term| {
                     offset = offsets_.next_alignment(offset, term.alignof());
                     const extracted_term = self.extract_ast(address + offset, term, allocator);
                     value_terms.append(extracted_term) catch unreachable;

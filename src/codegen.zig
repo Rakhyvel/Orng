@@ -122,11 +122,11 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
         if (dag.base.lhs().* == .product) {
             // Function pointer takes more than one argument
             const product = dag.base.lhs();
-            for (product.product.terms.items, 0..) |term, i| {
+            for (product.children().items, 0..) |term, i| {
                 if (!term.c_typesMatch(primitives_.unit_type)) {
                     // Do not output `void` parameters
                     try output_type(term, writer);
-                    if (i + 1 < product.product.terms.items.len) {
+                    if (i + 1 < product.children().items.len) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -138,7 +138,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
         try writer.print(");\n\n", .{});
     } else if (dag.base.* == .product) {
         try writer.print("typedef struct {{\n", .{});
-        for (dag.base.product.terms.items, 0..) |term, i| {
+        for (dag.base.children().items, 0..) |term, i| {
             if (!term.c_typesMatch(primitives_.unit_type)) {
                 // Don't gen `void` structure fields
                 try writer.print("    ", .{});
@@ -151,7 +151,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: anytype) !void {
         try writer.print("typedef struct {{\n    uint64_t tag;\n", .{});
         if (!dag.base.sum.is_all_unit()) {
             try writer.print("    union {{\n", .{});
-            for (dag.base.sum.terms.items, 0..) |term, i| {
+            for (dag.base.children().items, 0..) |term, i| {
                 if (!term.annotation.type.c_typesMatch(primitives_.unit_type)) {
                     // Don't gen `void` structure fields
                     try writer.print("        ", .{});
@@ -367,7 +367,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: anytype) !void {
             try writer.print("(", .{});
             try output_type(ir.dest.?.get_expanded_type(), writer);
             try writer.print(") {{", .{});
-            var product_list = ir.dest.?.get_expanded_type().product.terms;
+            var product_list = ir.dest.?.get_expanded_type().children().*;
             for (ir.data.lval_list.items, product_list.items, 1..) |lval, expected, i| {
                 if (!expected.c_typesMatch(primitives_.unit_type)) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
