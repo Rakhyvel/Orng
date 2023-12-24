@@ -240,7 +240,7 @@ fn validate_AST_internal(
             } else if (!expr_expanded_type.children().items[1].annotation.type.typesMatch(expanded_function_return.children().items[1].annotation.type)) {
                 // MASSIVE TODO: Check ALL sum terms, not just the first one
                 // expr error union's `.err` member is not a compatible type with the function's error type
-                errors.addError(errs_.Error{ .expected2Type = .{ .span = expr_span, .expected = expr_expanded_type, .got = expanded_function_return } });
+                errors.addError(errs_.Error{ .unexpected_type = .{ .span = expr_span, .expected = expr_expanded_type, .got = expanded_function_return } });
                 return ast.enpoison();
             }
             return ast;
@@ -556,7 +556,7 @@ fn validate_AST_internal(
             } else {
                 // expecting something that is not a type nor a product!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
-                errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
+                errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
                 return error.typeError;
             }
             try assert_none_poisoned(ast.children());
@@ -599,7 +599,7 @@ fn validate_AST_internal(
                 const expanded_expected = expected.?.expand_type(allocator); // Call is memoized
                 if (expanded_expected.* != .addrOf) {
                     // Didn't expect an address type. Validate expr and report error
-                    errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
+                    errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
                     return error.typeError;
                 }
 
@@ -713,7 +713,7 @@ fn validate_AST_internal(
                 }
                 return ast;
             } else if (expected_expanded.* != .sum) {
-                errors.addError(errs_.Error{ .expectedGotString = .{ .span = ast.token().span, .expected = expected.?, .got = "an inferred member" } });
+                errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
                 return ast.enpoison();
             } else {
                 ast.inferredMember.base = expected;
@@ -751,7 +751,7 @@ fn validate_AST_internal(
                 } else if (is_expected_optional) {
                     expected_type = expected_expanded.get_some_type();
                 } else {
-                    errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
+                    errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
                     return error.typeError;
                 }
             }
@@ -823,7 +823,7 @@ fn validate_AST_internal(
                     // match has no else, not expecting an optional type => type error
                     // TODO: Include all that ^ in the error message (without having to asser_valid()!), because this is kinda confusing
                     // TODO: Matches should have to be exhaustive, so they would never return none :-)
-                    errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
+                    errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = ast_.poisoned } });
                     return error.typeError;
                 }
                 if (ast.children().items[i].mapping_lhs()) |lhs| {
@@ -891,7 +891,7 @@ fn validate_AST_internal(
                 ast._return._ret_expr = validateAST(expr, ast.symbol().?._type.rhs(), errors, allocator);
                 try assert_none_poisoned(ast._return._ret_expr);
             } else if (expected != null and (expected.?.expand_type(allocator)).* != .unit_type) {
-                errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.void_type } });
+                errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.void_type } });
                 return error.typeError;
             }
             return ast;
@@ -932,7 +932,7 @@ fn validate_AST_internal(
 
 fn type_check(ast: *ast_.AST, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
     if (expected != null and !got.typesMatch(expected.?)) {
-        errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = got } });
+        errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = got } });
         return error.typeError;
     }
 }
@@ -940,7 +940,7 @@ fn type_check(ast: *ast_.AST, got: *ast_.AST, expected: ?*ast_.AST, errors: *err
 fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
     if (expected != null and primitives_.type_type.typesMatch(expected.?)) {
         // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
-        errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.void_type } });
+        errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.void_type } });
         return error.typeError;
     }
 }
@@ -948,7 +948,7 @@ fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void
 fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
     if (expected != null and !expected.?.can_represent_integer(ast.int.data)) {
         // TODO: Add emit a separate error if not representable because the value doesn't fit, vs because it's not an integer primitive type at all
-        errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.int_type } });
+        errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.int_type } });
         return error.typeError;
     }
     ast.set_represents(expected orelse primitives_.int_type);
@@ -956,7 +956,7 @@ fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !
 
 fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
     if (expected != null and !expected.?.can_represent_float()) {
-        errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.float_type } });
+        errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = expected.?, .got = primitives_.float_type } });
         return error.typeError;
     }
     ast.set_represents(expected orelse primitives_.float_type);
@@ -1425,7 +1425,7 @@ fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *err
         .product => {
             const expanded_expr = expr_type.expand_type(allocator);
             if (expanded_expr.* != .product or expanded_expr.children().items.len != pattern.children().items.len) {
-                errors.addError(errs_.Error{ .expected2Type = .{ .span = pattern.token().span, .expected = expr_type, .got = pattern.typeof(allocator) } });
+                errors.addError(errs_.Error{ .unexpected_type = .{ .span = pattern.token().span, .expected = expr_type, .got = pattern.typeof(allocator) } });
                 return error.typeError;
             }
             for (pattern.children().items, expanded_expr.children().items) |term, expanded_term| {
@@ -1578,7 +1578,7 @@ fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocat
     const expanded_lhs_type = lhs_type.expand_type(allocator);
     if (expanded_lhs_type.* == .sum and ast.lhs().* == .inferredMember) {
         if (sum_type != null and !sum_type.?.typesMatch(lhs_type)) {
-            errors.addError(errs_.Error{ .expected2Type = .{ .span = ast.token().span, .expected = sum_type.?, .got = ast.lhs().inferredMember.base.? } });
+            errors.addError(errs_.Error{ .unexpected_type = .{ .span = ast.token().span, .expected = sum_type.?, .got = ast.lhs().inferredMember.base.? } });
             return ast_.poisoned;
         }
         const pos: i128 = ast.lhs().inferredMember.pos.?;

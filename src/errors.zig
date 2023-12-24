@@ -65,20 +65,10 @@ pub const Error = union(enum) {
     },
 
     // Typecheck
-    expected2Type: struct {
+    unexpected_type: struct {
         span: span_.Span,
         expected: *ast_.AST,
         got: *ast_.AST,
-    },
-    expectedType: struct {
-        span: span_.Span,
-        expected: *ast_.AST,
-        got: *ast_.AST,
-    },
-    expectedGotString: struct {
-        span: span_.Span,
-        expected: *ast_.AST,
-        got: []const u8,
     },
     expectedBuiltinTypeclass: struct {
         span: span_.Span,
@@ -172,10 +162,8 @@ pub const Error = union(enum) {
             .symbol_error => return self.symbol_error.span,
             .discard_marked => return self.discard_marked.span,
 
-            .expected2Type => return self.expected2Type.span,
-            .expectedType => return self.expectedType.span,
+            .unexpected_type => return self.unexpected_type.span,
             .expectedBuiltinTypeclass => return self.expectedBuiltinTypeclass.span,
-            .expectedGotString => return self.expectedGotString.span,
             .sum_duplicate => return self.sum_duplicate.span,
             .member_not_in => return self.member_not_in.span,
             .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
@@ -198,6 +186,8 @@ pub const Error = union(enum) {
 };
 
 const out = std.io.getStdOut().writer();
+const bold = term_.Attr{ .bold = true };
+const not_bold = term_.Attr{ .bold = false };
 pub const Errors = struct {
     errors_list: std.ArrayList(Error),
     allocator: std.mem.Allocator,
@@ -219,11 +209,11 @@ pub const Errors = struct {
 
     pub fn printErrors(self: *Errors) !void {
         for (self.errors_list.items) |err| {
-            try (term_.Attr{ .bold = true }).dump(out);
-            try printPrelude(err.getSpan());
-            try (term_.Attr{ .bold = true }).dump(out);
+            try bold.dump(out);
+            try print_label(err.getSpan(), "error: ", .red);
+            try bold.dump(out);
             try print_main_error(err, self.allocator);
-            try (term_.Attr{ .bold = false }).dump(out);
+            try not_bold.dump(out);
             try printEpilude(err.getSpan());
             try print_extra_info(err);
         }
@@ -264,36 +254,21 @@ pub const Errors = struct {
             .discard_marked => try out.print("discarded symbol marked as `{s}`\n", .{symbol_.SymbolKind.to_string(err.discard_marked.kind)}),
 
             // Typecheck
-            .expected2Type => {
-                std.debug.assert(err.expected2Type.expected.* != .poison);
-                if (err.expected2Type.got.* != .poison) {
-                    try out.print("expected a value of the type `", .{});
-                    try err.expected2Type.expected.printType(out);
-                    try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
-                    try err.expected2Type.got.printType(out);
-                    try out.print("`\n", .{});
-                } else {
-                    try out.print("expected a value of the type `", .{});
-                    try err.expected2Type.expected.printType(out);
-                    try out.print("`\n", .{});
-                }
-            },
-            .expectedType => {
+            .unexpected_type => {
+                std.debug.assert(err.unexpected_type.expected.* != .poison);
                 try out.print("expected a value of the type `", .{});
-                try err.expectedType.expected.printType(out);
-                try out.print("`, got {s}\n", .{@tagName(err.expectedType.got.*)});
+                try err.unexpected_type.expected.printType(out);
+                if (err.unexpected_type.got.* != .poison) {
+                    try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
+                    try err.unexpected_type.got.printType(out);
+                }
+                try out.print("`\n", .{});
             },
             .expectedBuiltinTypeclass => {
                 // just so happens to work out that all builtin type classes start with a vowel :-)
                 try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected});
                 try err.expectedBuiltinTypeclass.got.printType(out);
                 try out.print("`\n", .{});
-            },
-            .expectedGotString => {
-                std.debug.assert(err.expectedGotString.expected.* != .poison);
-                try out.print("expected a value of the type `", .{});
-                try err.expectedGotString.expected.printType(out);
-                try out.print("`, got {s}\n", .{err.expectedGotString.got});
             },
             .sum_duplicate => try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier}),
             .member_not_in => try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name }),
@@ -326,7 +301,7 @@ pub const Errors = struct {
             },
             .no_default => {
                 try out.print("no default value for the type `", .{});
-                try err.expectedBuiltinTypeclass.got.printType(out);
+                try err.no_default._type.printType(out);
                 try out.print("`\n", .{});
             },
 
@@ -345,55 +320,55 @@ pub const Errors = struct {
     fn print_extra_info(err: Error) !void {
         switch (err) {
             .missing_close => {
-                try (term_.Attr{ .bold = true }).dump(out);
-                try print_note_prelude(err.missing_close.open.span);
-                try (term_.Attr{ .bold = true }).dump(out);
+                try bold.dump(out);
+                try print_note_label(err.missing_close.open.span);
+                try bold.dump(out);
                 try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
-                try (term_.Attr{ .bold = false }).dump(out);
+                try not_bold.dump(out);
                 try printEpilude(err.missing_close.open.span);
             },
             .comptime_known => {
-                try (term_.Attr{ .bold = true }).dump(out);
-                try print_note_prelude(err.comptime_known.span);
-                try (term_.Attr{ .bold = true }).dump(out);
+                try bold.dump(out);
+                try print_note_label(err.comptime_known.span);
+                try bold.dump(out);
                 try out.print("consider wrapping with `comptime`\n", .{});
-                try (term_.Attr{ .bold = false }).dump(out);
+                try not_bold.dump(out);
             },
             .redefinition => {
-                if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for placs that don't exist
-                    try (term_.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.redefinition.first_defined_span);
-                    try (term_.Attr{ .bold = true }).dump(out);
+                if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for places that don't exist
+                    try bold.dump(out);
+                    try print_note_label(err.redefinition.first_defined_span);
+                    try bold.dump(out);
                     try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
-                    try (term_.Attr{ .bold = false }).dump(out);
+                    try not_bold.dump(out);
                     try printEpilude(err.redefinition.first_defined_span);
                 }
             },
             .symbol_error => {
                 if (err.symbol_error.context_span != null) {
-                    try (term_.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(err.symbol_error.context_span.?);
-                    try (term_.Attr{ .bold = true }).dump(out);
+                    try bold.dump(out);
+                    try print_note_label(err.symbol_error.context_span.?);
+                    try bold.dump(out);
                     try out.print("{s}\n", .{err.symbol_error.context_message});
-                    try (term_.Attr{ .bold = false }).dump(out);
+                    try not_bold.dump(out);
                     try printEpilude(err.symbol_error.context_span.?);
                 }
             },
             .sum_duplicate => {
-                try (term_.Attr{ .bold = true }).dump(out);
-                try print_note_prelude(err.sum_duplicate.first);
-                try (term_.Attr{ .bold = true }).dump(out);
-                try out.print("other definition of `{s}` here\n", .{err.sum_duplicate.identifier});
-                try (term_.Attr{ .bold = false }).dump(out);
+                try bold.dump(out);
+                try print_note_label(err.sum_duplicate.first);
+                try bold.dump(out);
+                try out.print("other definition of sum member `{s}` here\n", .{err.sum_duplicate.identifier});
+                try not_bold.dump(out);
                 try printEpilude(err.sum_duplicate.first);
             },
             .nonExhaustiveSum => {
                 for (err.nonExhaustiveSum.forgotten.items) |_type| {
-                    try (term_.Attr{ .bold = true }).dump(out);
-                    try print_note_prelude(_type.token().span);
-                    try (term_.Attr{ .bold = true }).dump(out);
+                    try bold.dump(out);
+                    try print_note_label(_type.token().span);
+                    try bold.dump(out);
                     try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.token().data});
-                    try (term_.Attr{ .bold = false }).dump(out);
+                    try not_bold.dump(out);
                     try printEpilude(_type.token().span);
                 }
             },
@@ -401,7 +376,7 @@ pub const Errors = struct {
         }
     }
 
-    fn printPrelude(maybe_span: ?span_.Span) !void {
+    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) !void {
         if (maybe_span) |span| {
             if (span.line > 0 and span.col > 0) {
                 try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
@@ -409,14 +384,11 @@ pub const Errors = struct {
                 try out.print("{s}: ", .{span.filename});
             }
         }
-        try term_.outputColor(term_.Attr{ .fg = .red, .bold = true }, "error: ", out);
+        try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
     }
 
-    fn print_note_prelude(maybe_span: ?span_.Span) !void {
-        if (maybe_span) |span| {
-            try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
-        }
-        try term_.outputColor(term_.Attr{ .fg = .cyan, .bold = true }, "note: ", out);
+    fn print_note_label(maybe_span: ?span_.Span) !void {
+        try print_label(maybe_span, "note: ", .cyan);
     }
 
     fn printEpilude(maybe_span: ?span_.Span) !void {

@@ -1,4 +1,4 @@
-const Color = enum {
+pub const Color = enum {
     none,
     black,
     red,

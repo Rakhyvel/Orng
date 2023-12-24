@@ -79,39 +79,6 @@ pub const Scope = struct {
         std.debug.print("{s}\n", .{out.str()});
     }
 
-    fn serialize(self: *Scope, out: *String, spaces: usize) !void {
-        var j: usize = 0;
-        while (j < spaces) : (j += 1) {
-            try out.insert(" ", out.len());
-        }
-        try out.insert(self.name, out.len());
-        try out.insert(": {\n", out.len());
-        const keySet = self.symbols.keys();
-        var i: usize = 0;
-        while (i < keySet.len) : (i += 1) {
-            const key = keySet[i];
-            j = 0;
-            while (j < spaces + 4) : (j += 1) {
-                try out.insert(" ", out.len());
-            }
-            try out.insert(self.symbols.get(key).?.name, out.len());
-            if (i < keySet.len - 1) {
-                try out.insert(",", out.len());
-            } else {
-                try out.insert(",\n", out.len());
-            }
-            try out.insert("\n", out.len());
-        }
-        for (self.children.items) |child| {
-            try child.serialize(out, spaces + 4);
-        }
-        j = 0;
-        while (j < spaces) : (j += 1) {
-            try out.insert(" ", out.len());
-        }
-        try out.insert("}\n", out.len());
-    }
-
     pub fn root(self: *Scope) ?*Scope {
         if (self.parent) |_parent| {
             return root(_parent);
