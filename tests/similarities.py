@@ -1,5 +1,5 @@
 def main():
-    with open("src/codegen.zig") as f:
+    with open("src/interpreter.zig") as f:
         text = f.read()
         scanner = Scanner(text)
         tokens = scanner.tokenize()
@@ -57,7 +57,7 @@ def longest_substr(tokens):
     for i in range(0, n-1):
         for j in range(i + 1, n):
             x = lcp(tokens[i:n], tokens[j:n])
-            if len(x) > 25 and len(x) >= len(lrs) and x != lrs:
+            if len(x) > 25 and len(x) > len(lrs) and x != lrs:
                 lrs = x
                 print(x)
         p = (100 * i) // n

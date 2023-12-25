@@ -1001,8 +1001,7 @@ fn assert_none_poisoned(value: anytype) !void {
         }
     } else switch (@typeInfo(T)) {
         .Struct => |info| {
-            inline for (info.fields, 0..) |f, i| {
-                _ = i;
+            inline for (info.fields) |f| {
                 try assert_none_poisoned(@field(value, f.name));
             }
         },

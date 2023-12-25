@@ -363,8 +363,6 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             }
             try writer.print("}};\n", .{});
         },
-
-        // Monadic instructions
         .copy => {
             try output_var_assign(ir.dest.?, writer);
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
@@ -375,8 +373,6 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(";\n", .{});
         },
-
-        // Operations
         .not,
         .negate_int,
         .negate_float,
@@ -400,13 +396,11 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .div_float,
         .mod,
         => try output_operator(ir, writer),
-
         .get_tag => {
             try output_var_assign(ir.dest.?, writer);
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(".tag;\n", .{});
         },
-
         .call => {
             const void_fn = ir.dest.?.get_type().* == .unit_type;
             if (!void_fn) {
@@ -427,18 +421,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             }
             try writer.print(");\n", .{});
         },
-
-        // Control-flow
         .label,
         .jump,
         .branchIfFalse,
         => {},
-        else => {
-            std.debug.print("Unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)});
-            unreachable;
-        },
-
-        // Errors
         .pushStackTrace => {
             var spaces = String.init(std.heap.page_allocator);
             defer spaces.deinit();
@@ -467,6 +453,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print("    (void)", .{});
             try output_rvalue(ir.src1.?, ir_.Kind.cast.precedence(), writer);
             try writer.print(";\n", .{});
+        },
+        else => {
+            std.debug.print("Unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)});
+            unreachable;
         },
     }
 }

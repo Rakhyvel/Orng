@@ -216,6 +216,14 @@ pub const Context = struct {
         }
     }
 
+    fn binop_load_int(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) struct { src1: i128, src2: i128 } {
+        return .{ .src1 = self.load_int(self.get_lval(src1), src1.sizeof()), .src2 = self.load_int(self.get_lval(src2), src2.sizeof()) };
+    }
+
+    fn binop_load_float(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) struct { src1: f64, src2: f64 } {
+        return .{ .src1 = self.load_float(self.get_lval(src1), src1.sizeof()), .src2 = self.load_float(self.get_lval(src2), src2.sizeof()) };
+    }
+
     pub fn interpret(self: *Context) error{interpreter_panic}!void {
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
@@ -229,30 +237,24 @@ pub const Context = struct {
 
     inline fn execute(self: *Context, ir: *ir_.IR) error{interpreter_panic}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
-            // Invalid interpreter operations
+            // Invalid instructions
             .loadExtern,
             .sizeOf,
             => unreachable,
 
-            // Nop
-            .loadUnit => {},
+            // Nops
+            .label, .discard, .loadUnit => {},
 
-            // Data
+            // Load literals
             .loadInt => {
-                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                if (ir.data.int < bounds.lower or ir.data.int > bounds.upper) {
-                    try self.panic(ir.span, "error: the value {} is out of bounds\n", .{ir.data.int});
-                }
+                try self.assert_fits(ir.data.int, ir.dest.?.get_expanded_type(), "integer value", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
             },
             .loadFloat => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
             .loadString => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
             .loadSymbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
             .loadAST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
-
-            // Tuples
             .loadStruct => self.move_lval_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
-
             .loadUnion => {
                 if (ir.src1 != null) {
                     // Store data into first field
@@ -262,153 +264,113 @@ pub const Context = struct {
                 self.store(i64, self.get_lval(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
             },
 
-            // Monadic operations
             .copy => {
                 std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
                 self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.dest.?.sizeof());
             },
             .not => {
-                var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                data = if (data != 0) 0 else 1;
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
+                const data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data != 0) 0 else 1);
             },
             .negate_int => {
-                var data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                data = -data;
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
+                const data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), -data);
             },
             .negate_float => {
-                var data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                data = -data;
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data);
+                const data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), -data);
             },
             .addrOf => {
                 const data = self.get_lval(ir.src1.?);
                 self.store_int(self.get_lval(ir.dest.?), 8, data);
             },
-
-            // Diadic instructions
             .equal => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data == src2_data) 1 else 0);
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 == data.src2) 1 else 0);
             },
             .not_equal => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data != src2_data) 1 else 0);
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 != data.src2) 1 else 0);
             },
             .greater_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 > data.src2) 1 else 0);
             },
             .greater_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data > src2_data) 1 else 0);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 > data.src2) 1 else 0);
             },
             .lesser_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 < data.src2) 1 else 0);
             },
             .lesser_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data < src2_data) 1 else 0);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 < data.src2) 1 else 0);
             },
             .greater_equal_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 >= data.src2) 1 else 0);
             },
             .greater_equal_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data >= src2_data) 1 else 0);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 >= data.src2) 1 else 0);
             },
             .lesser_equal_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 <= data.src2) 1 else 0);
             },
             .lesser_equal_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (src1_data <= src2_data) 1 else 0);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 <= data.src2) 1 else 0);
             },
             .add_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                const val = src1_data + src2_data;
-                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                if (val < bounds.lower or val > bounds.upper) {
-                    try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
-                }
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                const val = data.src1 + data.src2;
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "addition results", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .add_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data + src2_data);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data.src1 + data.src2);
             },
             .sub_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                const val = src1_data - src2_data;
-                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                if (val < bounds.lower or val > bounds.upper) {
-                    try self.panic(ir.span, "error: subtraction result is out of bounds; value={}\n", .{val});
-                }
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                const val = data.src1 - data.src2;
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "subtraction results", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .sub_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data - src2_data);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data.src1 - data.src2);
             },
             .mult_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                const val = src1_data * src2_data;
-                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                if (val < bounds.lower or val > bounds.upper) {
-                    try self.panic(ir.span, "error: multiplication result is out of bounds; value={}\n", .{val});
-                }
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                const val = data.src1 * data.src2;
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "multiplication results", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .mult_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), src1_data * src2_data);
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data.src1 * data.src2);
             },
             .div_int => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                if (src2_data == 0) {
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                if (data.src2 == 0) {
                     try self.panic(ir.span, "error: division by zero\n", .{});
                 }
-                const val = @divTrunc(src1_data, src2_data);
-                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                if (val < bounds.lower or val > bounds.upper) {
-                    try self.panic(ir.span, "error: division result is out of bounds; value={}\n", .{val});
-                }
+                const val = @divTrunc(data.src1, data.src2);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division results", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .div_float => {
-                const src1_data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_float(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(src1_data, src2_data));
+                const data = self.binop_load_float(ir.src1.?, ir.src2.?);
+                self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(data.src1, data.src2));
             },
             .mod => {
-                const src1_data = self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                const src2_data = self.load_int(self.get_lval(ir.src2.?), ir.src2.?.sizeof());
-                const val = @rem(src1_data, src2_data);
-                const bounds = primitives_.get_bounds(ir.dest.?.get_expanded_type());
-                if (val < bounds.lower or val > bounds.upper) {
-                    try self.panic(ir.span, "error: addition result is out of bounds; value={}\n", .{val});
-                }
+                const data = self.binop_load_int(ir.src1.?, ir.src2.?);
+                const val = @rem(data.src1, data.src2);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "modulus results", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
@@ -417,11 +379,6 @@ pub const Context = struct {
                 self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?) + tag_offset, 8);
             },
             .cast => std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
-
-            // Control-flow
-            .label => {
-                // no-op
-            },
             .jump => {
                 if (ir.data.jump_bb.next) |next| {
                     self.instruction_pointer = next.offset.?;
@@ -475,12 +432,6 @@ pub const Context = struct {
                 // jump to symbol addr
                 self.instruction_pointer = symbol.cfg.?.offset.?;
             },
-
-            .discard => {
-                // no-op
-            },
-
-            // Errors
             .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
                 self.debug_call_stack.append(ir.span) catch unreachable;
             },
@@ -509,6 +460,13 @@ pub const Context = struct {
             }
         }
         return error.interpreter_panic;
+    }
+
+    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, name: []const u8, span: span_.Span) !void {
+        const bounds = primitives_.get_bounds(_type);
+        if (val < bounds.lower or val > bounds.upper) {
+            try self.panic(span, "error: {s} is out of bounds; value={}\n", .{ name, val });
+        }
     }
 
     pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
