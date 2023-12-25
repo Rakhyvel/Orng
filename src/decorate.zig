@@ -7,13 +7,23 @@ const symbol_ = @import("symbol.zig");
 
 const Decorate_Error = error{symbolError};
 
-pub fn decorate_identifiers_from_list(asts: std.ArrayList(*ast_.AST), scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Decorate_Error!void {
+pub fn decorate_identifiers_from_list(
+    asts: std.ArrayList(*ast_.AST),
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Decorate_Error!void {
     for (asts.items) |ast| {
         try decorate_identifiers(ast, scope, errors, allocator);
     }
 }
 
-fn decorate_identifiers(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Decorate_Error!void {
+fn decorate_identifiers(
+    maybe_ast: ?*ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Decorate_Error!void {
     if (maybe_ast == null) {
         return;
     }

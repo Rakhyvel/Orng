@@ -49,7 +49,12 @@ pub const CFG = struct {
     allocator: std.mem.Allocator,
 
     // BIG TODO: Dependency-inject errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
-    pub fn init(symbol: *symbol_.Symbol, caller: ?*CFG, interned_strings: *std.StringArrayHashMap(usize), allocator: std.mem.Allocator) !*CFG {
+    pub fn init(
+        symbol: *symbol_.Symbol,
+        caller: ?*CFG,
+        interned_strings: *std.StringArrayHashMap(usize),
+        allocator: std.mem.Allocator,
+    ) !*CFG {
         if (symbol.cfg) |cfg| {
             return cfg;
         }
@@ -63,7 +68,16 @@ pub const CFG = struct {
         retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.symbol = symbol;
         retval.number_temps = 0;
-        retval.return_symbol = symbol_.Symbol.init(symbol.scope, "$retval", span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 }, symbol._type.rhs(), undefined, null, .mut, allocator);
+        retval.return_symbol = symbol_.Symbol.init(
+            symbol.scope,
+            "$retval",
+            span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
+            symbol._type.rhs(),
+            undefined,
+            null,
+            .mut,
+            allocator,
+        );
         retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.interned_strings = interned_strings;
@@ -193,7 +207,8 @@ pub const CFG = struct {
             } else if (ir.kind == .branchIfFalse) {
                 // If you find a branch, end this block, start both blocks
                 retval.has_branch = true;
-                var branchNext: ?*ir_.IR = null; // = ir.data.branch.next; // Since ir->branch->next may get nullifued by calling this function on ir->next
+                var branchNext: ?*ir_.IR = null; // = ir.data.branch.next;
+                // Since ir->branch->next may get nullifued by calling this function on ir->next
                 if (ir.data.branch) |branch| {
                     branchNext = branch.next;
                 } else {
@@ -223,7 +238,8 @@ pub const CFG = struct {
         }
     }
 
-    // Determines which symbol versions need to be requested as phi parameters, and which need to be passed to children basic-blocks as phi arguments
+    // Determines which symbol versions need to be requested as phi parameters, and which need to be passed to children basic-blocks as phi
+    // arguments
     pub fn calculatePhiParamsAndArgs(self: *CFG, allocator: std.mem.Allocator) void {
         // clear arguments
         for (self.basic_blocks.items) |bb| {
@@ -270,7 +286,12 @@ pub const CFG = struct {
         self.clearVisitedBBs();
     }
 
-    fn version_lvalue(lval: *lval_.L_Value, bb: *basic_block_.Basic_Block, ir: ?*ir_.IR, parameters: *std.ArrayList(*lval_.Symbol_Version)) void {
+    fn version_lvalue(
+        lval: *lval_.L_Value,
+        bb: *basic_block_.Basic_Block,
+        ir: ?*ir_.IR,
+        parameters: *std.ArrayList(*lval_.Symbol_Version),
+    ) void {
         switch (lval.*) {
             .symbver => {
                 var retval = lval.symbver.findVersion(bb.ir_head, ir);
@@ -296,9 +317,11 @@ pub const CFG = struct {
         }
     }
 
-    /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters* it needs to include.
+    /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters* it
+    /// needs to include.
     ///
-    /// This is called `argument propagation` because a basic blocks arguments are propagated to parameters if they are not defined inside it
+    /// This is called `argument propagation` because a basic blocks arguments are propagated to parameters if they are not defined inside
+    /// it
     fn childrenArgPropagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
         var retval: bool = false;
         if (bb.visited) {
@@ -316,7 +339,12 @@ pub const CFG = struct {
         return retval;
     }
 
-    fn request_undefined_symbvers(self: *CFG, bb: *basic_block_.Basic_Block, args: *std.ArrayList(*lval_.Symbol_Version), allocator: std.mem.Allocator) bool {
+    fn request_undefined_symbvers(
+        self: *CFG,
+        bb: *basic_block_.Basic_Block,
+        args: *std.ArrayList(*lval_.Symbol_Version),
+        allocator: std.mem.Allocator,
+    ) bool {
         var retval = self.childrenArgPropagation(bb, allocator);
 
         // Go through the parameters the block requested, see if they exist in this block.

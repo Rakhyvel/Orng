@@ -113,7 +113,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             }
             // Flip labels if branch condition is negation, plunge negation
             else if (latest_condition != null and latest_condition.?.kind == .not and latest_condition.?.src1.?.* == .symbver and
-                latest_condition.?.src1.?.symbver.def != null // this condition prevents a loop if a function parameter (which are without a def) is negated
+                latest_condition.?.src1.?.symbver.def != null // prevents a loop if a function parameter (which are without a def) is neg'd
             ) {
                 defer log_optimization_pass("flip not condition", cfg);
                 const old_branch = bb.branch.?;
@@ -164,7 +164,12 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
         }
 
         // If branch is a branch that depends on a known arugment
-        if (bb.has_branch and bb.branch != null and bb.branch.?.has_branch and bb.branch.?.ir_head == null and bb.branch.?.condition.?.* == .symbver) {
+        if (bb.has_branch and
+            bb.branch != null and
+            bb.branch.?.has_branch and
+            bb.branch.?.ir_head == null and
+            bb.branch.?.condition.?.* == .symbver)
+        {
             defer log_optimization_pass("branch depends on known argument", cfg);
             const def = bb.get_latest_def(bb.branch.?.condition.?, null);
             if (def != null and def.?.kind == .loadInt) {
@@ -282,7 +287,12 @@ fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *err
             if (ir.src1 == null) {
                 log("unit-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
-            } else if (ir.dest.?.* == .symbver and ir.src1.?.* == .symbver and ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and src1_def != null and ir.dest.?.symbver.version == ir.src1.?.symbver.version) {
+            } else if (ir.dest.?.* == .symbver and
+                ir.src1.?.* == .symbver and
+                ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and
+                src1_def != null and
+                ir.dest.?.symbver.version == ir.src1.?.symbver.version)
+            {
                 log("self-copy elimination");
                 ir.in_block.?.removeInstruction(ir);
                 retval = true;
@@ -708,7 +718,12 @@ fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void {
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and !ir.removed and ir.dest.?.* == .symbver and !ir.dest.?.symbver.symbol.is_temp and ir.dest.?.symbver.symbol != cfg.return_symbol) {
+            if (ir.dest != null and
+                !ir.removed and
+                ir.dest.?.* == .symbver and
+                !ir.dest.?.symbver.symbol.is_temp and
+                ir.dest.?.symbver.symbol != cfg.return_symbol)
+            {
                 try err_if_unused(ir.dest.?.symbver.symbol, errors);
             }
         }

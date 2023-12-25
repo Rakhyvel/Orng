@@ -157,7 +157,12 @@ fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), wri
     }
 }
 
-fn forall_functions(cfgs: *std.ArrayList(*cfg_.CFG), header_comment: []const u8, writer: Writer, comptime f: fn (*cfg_.CFG, Writer) CodeGen_Error!void) CodeGen_Error!void {
+fn forall_functions(
+    cfgs: *std.ArrayList(*cfg_.CFG),
+    header_comment: []const u8,
+    writer: Writer,
+    comptime f: fn (*cfg_.CFG, Writer) CodeGen_Error!void,
+) CodeGen_Error!void {
     try writer.print("{s}\n", .{header_comment});
     for (cfgs.items) |cfg| {
         if (cfg.symbol.decl.?.* == .fnDecl) { // Don't output for `_comptime` decls
@@ -337,7 +342,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .loadString => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
-            try writer.print("{{(uint8_t*)string_{}, {}}};\n", .{ ir.data.string_id, cheat_module.interned_strings.keys()[ir.data.string_id].len });
+            try writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
+                ir.data.string_id,
+                cheat_module.interned_strings.keys()[ir.data.string_id].len,
+            });
         },
         .loadStruct => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);

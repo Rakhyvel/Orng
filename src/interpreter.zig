@@ -156,7 +156,10 @@ pub const Context = struct {
         } else {
             std.debug.assert(src >= dest + len); // src is not within dest
         }
-        @memcpy(self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))], self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))]);
+        @memcpy(
+            self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
+            self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
+        );
     }
 
     fn move_lval_list(self: *Context, dest: i64, list: *std.ArrayList(*lval_.L_Value)) void {
@@ -486,23 +489,39 @@ pub const Context = struct {
                         }
                     },
                     .signed_integer => {
-                        const retval = ast_.AST.createInt(token_.Token.init_simple("signed int"), self.load_int(address, info.size), allocator).assert_valid();
+                        const retval = ast_.AST.createInt(
+                            token_.Token.init_simple("signed int"),
+                            self.load_int(address, info.size),
+                            allocator,
+                        ).assert_valid();
                         retval.set_represents(_type);
                         return retval;
                     },
                     .unsigned_integer => {
-                        const retval = ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, info.size), allocator).assert_valid();
+                        const retval = ast_.AST.createInt(
+                            token_.Token.init_simple("unsigned int"),
+                            self.load_int(address, info.size),
+                            allocator,
+                        ).assert_valid();
                         retval.set_represents(_type);
                         return retval;
                     },
                     .floating_point => {
-                        const retval = ast_.AST.createFloat(token_.Token.init_simple("float"), self.load_float(address, info.size), allocator).assert_valid();
+                        const retval = ast_.AST.createFloat(
+                            token_.Token.init_simple("float"),
+                            self.load_float(address, info.size),
+                            allocator,
+                        ).assert_valid();
                         retval.set_represents(_type);
                         return retval;
                     },
                 }
             },
-            .addrOf => return ast_.AST.createInt(token_.Token.init_simple("unsigned int"), self.load_int(address, 8), allocator).assert_valid(),
+            .addrOf => return ast_.AST.createInt(
+                token_.Token.init_simple("unsigned int"),
+                self.load_int(address, 8),
+                allocator,
+            ).assert_valid(),
             .function => {
                 const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
                 const ast = ast_.AST.createSymbol(

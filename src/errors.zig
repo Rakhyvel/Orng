@@ -273,8 +273,12 @@ pub const Errors = struct {
             .sum_duplicate => try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier}),
             .member_not_in => try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name }),
             .undeclaredIdentifier => try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data}),
-            .comptime_access_runtime => try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{err.comptime_access_runtime.identifier.data}),
-            .inner_fn_access_runtime => try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{err.inner_fn_access_runtime.identifier.data}),
+            .comptime_access_runtime => try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{
+                err.comptime_access_runtime.identifier.data,
+            }),
+            .inner_fn_access_runtime => try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{
+                err.inner_fn_access_runtime.identifier.data,
+            }),
             .useBeforeDef => try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data}),
             .modifyImmutable => try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data}),
             .notIndexable => {
@@ -306,13 +310,22 @@ pub const Errors = struct {
             },
 
             // Optimizer
-            .out_of_bounds => try out.print("index out of bounds; index {}, length {}\n", .{ err.out_of_bounds.index, err.out_of_bounds.length }),
+            .out_of_bounds => try out.print("index out of bounds; index {}, length {}\n", .{
+                err.out_of_bounds.index,
+                err.out_of_bounds.length,
+            }),
             .negative_index => try out.print("index is negative; index {}\n", .{err.negative_index.index}),
             .slice_lower_upper => {
-                try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{ err.slice_lower_upper.lower, err.slice_lower_upper.upper });
+                try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{
+                    err.slice_lower_upper.lower,
+                    err.slice_lower_upper.upper,
+                });
             },
             .sum_select_inactive => {
-                try out.print("access of sum field '{s}' while field '{s}' is active\n", .{ err.sum_select_inactive.inactive, err.sum_select_inactive.active });
+                try out.print("access of sum field '{s}' while field '{s}' is active\n", .{
+                    err.sum_select_inactive.inactive,
+                    err.sum_select_inactive.active,
+                });
             },
         }
     }

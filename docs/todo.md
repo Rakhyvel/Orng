@@ -22,6 +22,7 @@
 - [ ] Order switches on enums to the order they were declared in
     - [ ] Order enums better too
 - [ ] Comments on each function and struct field
+- [ ] Make sure nothing is more than 140 columns
 - [ ] *probably* should only be one struct per file
 - [ ] Change some while loops with counter to enhanced for loops
 - [ ] See if things *really* need to be marked `pub`

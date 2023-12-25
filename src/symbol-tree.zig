@@ -8,7 +8,12 @@ const token_ = @import("token.zig");
 
 const SymbolErrorEnum = error{symbolError};
 
-pub fn symbolTableFromASTList(asts: std.ArrayList(*ast_.AST), scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+pub fn symbolTableFromASTList(
+    asts: std.ArrayList(*ast_.AST),
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) SymbolErrorEnum!void {
     for (asts.items) |ast| {
         try symbolTableFromAST(ast, scope, errors, allocator);
     }
@@ -16,7 +21,12 @@ pub fn symbolTableFromASTList(asts: std.ArrayList(*ast_.AST), scope: *symbol_.Sc
 
 // Takes in an ast, returns the scope constructed from that AST node
 // Most AST nodes don't do anything, except blocks and decls, which can be buried deep in an AST
-fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+fn symbolTableFromAST(
+    maybe_ast: ?*ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) SymbolErrorEnum!void {
     if (maybe_ast == null) {
         return;
     }
@@ -163,7 +173,7 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
         .mapping => try symbolTableFromAST(ast.mapping_lhs(), scope, errors, allocator),
         ._while => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            var loop_scope = symbol_.Scope.init(new_scope, "", allocator); // let, cond, and post are NOT in loop scope, `break` and `continue` are not appropriate
+            var loop_scope = symbol_.Scope.init(new_scope, "", allocator); // let, cond, post are NOT in loop scope
             loop_scope.in_loop = true;
             ast._while.scope = new_scope;
             try symbolTableFromAST(ast._while.let, new_scope, errors, allocator);
@@ -211,7 +221,10 @@ fn symbolTableFromAST(maybe_ast: ?*ast_.AST, scope: *symbol_.Scope, errors: *err
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
                     if (symbol.kind != ._const) {
-                        errors.addError(errs_.Error{ .basic = .{ .span = symbol.span, .msg = "top level symbols must be marked `const`" } });
+                        errors.addError(errs_.Error{ .basic = .{
+                            .span = symbol.span,
+                            .msg = "top level symbols must be marked `const`",
+                        } });
                         return error.symbolError;
                     }
                 }
@@ -267,7 +280,15 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
     }
 }
 
-fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _type: *ast_.AST, init: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!void {
+fn create_symbol(
+    symbols: *std.ArrayList(*symbol_.Symbol),
+    pattern: *ast_.AST,
+    _type: *ast_.AST,
+    init: *ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) SymbolErrorEnum!void {
     switch (pattern.*) {
         .pattern_symbol => {
             if (std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
@@ -284,7 +305,10 @@ fn create_symbol(symbols: *std.ArrayList(*symbol_.Symbol), pattern: *ast_.AST, _
                     return;
                 }
             }
-            const symbol_init = if (pattern.pattern_symbol.kind != ._const) init else try create_comptime_init(init, _type, scope, errors, allocator);
+            const symbol_init = if (pattern.pattern_symbol.kind != ._const)
+                init
+            else
+                try create_comptime_init(init, _type, scope, errors, allocator);
             const symbol = symbol_.Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
@@ -340,7 +364,12 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
     }
 }
 
-fn createFunctionSymbol(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
+fn createFunctionSymbol(
+    ast: *ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) SymbolErrorEnum!*symbol_.Symbol {
     // Calculate the domain type from the function paramter types
     const domain = extractDomain(
         ast.children().*,
@@ -416,13 +445,27 @@ fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocato
     if (params.items.len == 0) {
         return ast_.AST.createUnitType(token, allocator);
     } else if (params.items.len <= 1) {
-        return ast_.AST.createAnnotation(params.items[0].token(), params.items[0].decl.pattern, params.items[0].decl.type, null, params.items[0].decl.init, allocator);
+        return ast_.AST.createAnnotation(
+            params.items[0].token(),
+            params.items[0].decl.pattern,
+            params.items[0].decl.type,
+            null,
+            params.items[0].decl.init,
+            allocator,
+        );
     } else {
         std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*ast_.AST).init(allocator);
         var i: usize = 0;
         while (i < params.items.len) : (i += 1) {
-            param_types.append(ast_.AST.createAnnotation(params.items[i].token(), params.items[i].decl.pattern, params.items[i].decl.type, null, params.items[i].decl.init, allocator)) catch unreachable;
+            param_types.append(ast_.AST.createAnnotation(
+                params.items[i].token(),
+                params.items[i].decl.pattern,
+                params.items[i].decl.type,
+                null,
+                params.items[i].decl.init,
+                allocator,
+            )) catch unreachable;
         }
         const retval = ast_.AST.createProduct(params.items[0].token(), param_types, allocator);
         return retval;
@@ -430,7 +473,13 @@ fn extractDomain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocato
 }
 
 // `const` symbol, surround with comptime
-fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn create_comptime_init(
+    old_init: *ast_.AST,
+    _type: *ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) !*ast_.AST {
     const retval = ast_.AST.createComptime(old_init.token(), old_init, allocator);
     const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
     const res = scope.lookup(comptime_symbol.name, false);
@@ -451,7 +500,13 @@ fn create_comptime_init(old_init: *ast_.AST, _type: *ast_.AST, scope: *symbol_.S
 }
 
 // ast is a `comptime` ast
-fn create_temp_comptime_symbol(ast: *ast_.AST, rhs_type_hint: ?*ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) SymbolErrorEnum!*symbol_.Symbol {
+fn create_temp_comptime_symbol(
+    ast: *ast_.AST,
+    rhs_type_hint: ?*ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) SymbolErrorEnum!*symbol_.Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = ast_.AST.createUnitType(ast.expr().token(), allocator);
     const rhs = ast_.AST.createTypeOf(ast.expr().token(), ast.expr(), allocator);

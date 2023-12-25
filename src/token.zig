@@ -313,7 +313,12 @@ pub const Token = struct {
     span: span_.Span,
 
     pub fn init(data: []const u8, kind: ?TokenKind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
-        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = span_.Span{ .filename = filename, .line_text = line_text, .line = line, .col = col } };
+        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = span_.Span{
+            .filename = filename,
+            .line_text = line_text,
+            .line = line,
+            .col = col,
+        } };
     }
 
     // Used to create a simple, anonymous identifier token

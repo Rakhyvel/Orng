@@ -120,7 +120,10 @@ pub const Parser = struct {
             decl.decl.top_level = true;
             return decl;
         } else {
-            self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "`fn` or `let` declaration in the top level", .got = self.peek() } });
+            self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                .expected = "`fn` or `let` declaration in the top level",
+                .got = self.peek(),
+            } });
             return ParserErrorEnum.parseError;
         }
     }
@@ -141,7 +144,10 @@ pub const Parser = struct {
         } else if (self.accept(.EQUALS)) |_| {
             _init = try self.inject_expr();
         } else {
-            self.errors.addError(errs_.Error{ .basic = .{ .span = self.peek().span, .msg = "variable declarations require at least a type or an intial value" } });
+            self.errors.addError(errs_.Error{ .basic = .{
+                .span = self.peek().span,
+                .msg = "variable declarations require at least a type or an intial value",
+            } });
             return error.parseError;
         }
 
@@ -493,7 +499,10 @@ pub const Parser = struct {
                 } else {
                     // Simple index
                     exp = ast_.AST.createIndex(token, exp, first orelse {
-                        self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "an expression within index", .got = self.peek() } });
+                        self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                            .expected = "an expression within index",
+                            .got = self.peek(),
+                        } });
                         return ParserErrorEnum.parseError;
                     }, self.allocator);
                 }
@@ -600,7 +609,10 @@ pub const Parser = struct {
         while (self.next_is_statement()) {
             statements.append(try self.statement()) catch unreachable;
             if (!self.peek_kind(.SEMICOLON) and !self.peek_kind(.NEWLINE) and !self.peek_kind(.R_BRACE)) {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "a semicolon or a newline after statement", .got = self.peek() } });
+                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                    .expected = "a semicolon or a newline after statement",
+                    .got = self.peek(),
+                } });
                 return error.parseError;
             }
             while (self.accept(.SEMICOLON) orelse self.accept(.NEWLINE)) |_| {}
@@ -642,7 +654,10 @@ pub const Parser = struct {
             if (self.peek_kind(.SEMICOLON)) {
                 _ = self.expect(.SEMICOLON) catch {};
             } else {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek() } });
+                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                    .expected = "a semicolon separating declaration and condition",
+                    .got = self.peek(),
+                } });
                 return error.parseError;
             }
         }
@@ -664,7 +679,10 @@ pub const Parser = struct {
             if (self.peek_kind(.SEMICOLON)) {
                 _ = self.expect(.SEMICOLON) catch {};
             } else {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek() } });
+                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                    .expected = "a semicolon separating declaration and condition",
+                    .got = self.peek(),
+                } });
                 return error.parseError;
             }
         }
@@ -788,7 +806,10 @@ pub const Parser = struct {
             if (self.peek_kind(.SEMICOLON)) {
                 _ = self.expect(.SEMICOLON) catch {};
             } else {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "a semicolon separating declaration and condition", .got = self.peek() } });
+                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                    .expected = "a semicolon separating declaration and condition",
+                    .got = self.peek(),
+                } });
                 return error.parseError;
             }
         }

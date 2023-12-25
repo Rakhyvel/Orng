@@ -51,19 +51,59 @@ pub const L_Value = union(enum) {
 
     pub fn create_dereference(lhs: *L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
-        retval.* = L_Value{ .dereference = .{ .expr = lhs, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .dereference = .{
+            .expr = lhs,
+            .size = size,
+            .type = _type,
+            .expanded_type = expanded_type,
+            .allocator = allocator,
+        } };
         return retval;
     }
 
-    pub fn create_index(lhs: *L_Value, rhs: *L_Value, upper_bound: ?*L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_index(
+        lhs: *L_Value,
+        rhs: *L_Value,
+        upper_bound: ?*L_Value,
+        size: i64,
+        _type: *ast_.AST,
+        expanded_type: *ast_.AST,
+        allocator: std.mem.Allocator,
+    ) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
-        retval.* = L_Value{ .index = .{ .lhs = lhs, .rhs = rhs, .upper_bound = upper_bound, .size = size, .type = _type, .expanded_type = expanded_type, .allocator = allocator } };
+        retval.* = L_Value{ .index = .{
+            .lhs = lhs,
+            .rhs = rhs,
+            .upper_bound = upper_bound,
+            .size = size,
+            .type = _type,
+            .expanded_type = expanded_type,
+            .allocator = allocator,
+        } };
         return retval;
     }
 
-    pub fn create_select(lhs: *L_Value, field: i128, offset: i64, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, tag: ?*L_Value, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_select(
+        lhs: *L_Value,
+        field: i128,
+        offset: i64,
+        size: i64,
+        _type: *ast_.AST,
+        expanded_type: *ast_.AST,
+        tag: ?*L_Value,
+        allocator: std.mem.Allocator,
+    ) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
-        retval.* = L_Value{ .select = .{ .lhs = lhs, .field = field, .offset = offset, .size = size, .type = _type, .expanded_type = expanded_type, .tag = tag, .allocator = allocator } };
+        retval.* = L_Value{ .select = .{
+            .lhs = lhs,
+            .field = field,
+            .offset = offset,
+            .size = size,
+            .type = _type,
+            .expanded_type = expanded_type,
+            .tag = tag,
+            .allocator = allocator,
+        } };
         return retval;
     }
 

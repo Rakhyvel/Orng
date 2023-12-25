@@ -53,7 +53,14 @@ fn combine_multilines(tokens: *std.ArrayList(token_.Token)) void {
             out.?.insert(multiline.data, out.?.len()) catch unreachable; // Append data to out
         }
         if (out != null) {
-            const token = token_.Token.init((out.?.toOwned() catch unreachable).?, .MULTI_LINE, span.?.filename, span.?.line_text, span.?.line, span.?.col);
+            const token = token_.Token.init(
+                (out.?.toOwned() catch unreachable).?,
+                .MULTI_LINE,
+                span.?.filename,
+                span.?.line_text,
+                span.?.line,
+                span.?.col,
+            );
             tokens.insert(i, token) catch unreachable;
         }
     }

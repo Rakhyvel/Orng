@@ -265,12 +265,22 @@ pub const Module = struct {
                 if (bb.branch) |branch| {
                     work_queue.append(branch) catch unreachable;
                 }
-                self.instructions.append(ir_.IR.init_branch_addr(bb.condition.?, bb.next, bb.branch, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+                self.instructions.append(ir_.IR.init_branch_addr(
+                    bb.condition.?,
+                    bb.next,
+                    bb.branch,
+                    span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+                    self.allocator,
+                )) catch unreachable;
             } else {
                 if (bb.next) |next| {
                     work_queue.append(next) catch unreachable;
                 }
-                self.instructions.append(ir_.IR.init_jump_addr(bb.next, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+                self.instructions.append(ir_.IR.init_jump_addr(
+                    bb.next,
+                    span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+                    self.allocator,
+                )) catch unreachable;
             }
         }
         return first_bb.offset.?;
@@ -282,9 +292,17 @@ pub const Module = struct {
     fn append_phony_block(self: *Module, cfg: *cfg_.CFG) i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        self.instructions.append(ir_.IR.initLabel(cfg, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+        self.instructions.append(ir_.IR.initLabel(
+            cfg,
+            span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+            self.allocator,
+        )) catch unreachable;
         // Append a return instruction (a jump to null)
-        self.instructions.append(ir_.IR.init_jump_addr(null, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator)) catch unreachable;
+        self.instructions.append(ir_.IR.init_jump_addr(
+            null,
+            span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+            self.allocator,
+        )) catch unreachable;
         return offset;
     }
 
@@ -299,7 +317,13 @@ pub const Module = struct {
     }
 };
 
-pub fn get_cfg(symbol: *symbol_.Symbol, caller: ?*cfg_.CFG, interned_strings: *std.StringArrayHashMap(usize), errors: *errs_.Errors, allocator: std.mem.Allocator) !*cfg_.CFG {
+pub fn get_cfg(
+    symbol: *symbol_.Symbol,
+    caller: ?*cfg_.CFG,
+    interned_strings: *std.StringArrayHashMap(usize),
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) !*cfg_.CFG {
     std.debug.assert(symbol.kind == ._fn or symbol.kind == ._comptime);
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.cfg == null) {

@@ -134,7 +134,16 @@ pub const Symbol = struct {
     // Offset
     offset: ?i64, // The offset from the BP that this symbol
 
-    pub fn init(scope: *Scope, name: []const u8, span: span_.Span, _type: *ast_.AST, _init: *ast_.AST, decl: ?*ast_.AST, kind: SymbolKind, allocator: std.mem.Allocator) *Symbol {
+    pub fn init(
+        scope: *Scope,
+        name: []const u8,
+        span: span_.Span,
+        _type: *ast_.AST,
+        _init: *ast_.AST,
+        decl: ?*ast_.AST,
+        kind: SymbolKind,
+        allocator: std.mem.Allocator,
+    ) *Symbol {
         var retval = allocator.create(Symbol) catch unreachable;
         retval.scope = scope;
         retval.name = name;

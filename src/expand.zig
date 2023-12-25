@@ -97,7 +97,9 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                 const name = annotation.annotation.pattern.token().data;
                 const res = idents_seen.fetchPut(name, annotation) catch unreachable;
                 if (res) |_res| {
-                    errors.addError(errs_.Error{ .sum_duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span } });
+                    errors.addError(errs_.Error{
+                        .sum_duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
+                    });
                     return error.parseError;
                 }
             }
@@ -195,7 +197,10 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     } else if (ast.* == .identifier) {
         return ast_.AST.createAnnotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
     } else {
-        errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "invalid sum expression, must be annotation or identifier" } });
+        errors.addError(errs_.Error{ .basic = .{
+            .span = ast.token().span,
+            .msg = "invalid sum expression, must be annotation or identifier",
+        } });
         return error.parseError;
     }
 }

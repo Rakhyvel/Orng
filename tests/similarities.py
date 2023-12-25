@@ -1,5 +1,5 @@
 def main():
-    with open("src/interpreter.zig") as f:
+    with open("src/lower.zig") as f:
         text = f.read()
         scanner = Scanner(text)
         tokens = scanner.tokenize()
