@@ -133,7 +133,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         _lhs: *AST,
         _rhs: *AST,
-        pos: ?usize,
+        _pos: ?usize,
 
         pub fn offsets_at(self: *@This(), allocator: std.mem.Allocator) i64 {
             var lhs_expanded_type = self.lhs.typeof(allocator).expand_type(allocator);
@@ -167,7 +167,7 @@ pub const AST = union(enum) {
             return res;
         }
 
-        pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
+        pub fn get_pos(self: *@This(), field_name: []const u8) ?usize {
             for (self._terms.items, 0..) |term, i| {
                 if (std.mem.eql(u8, term.annotation.pattern.token().data, field_name)) {
                     return i;
@@ -190,7 +190,7 @@ pub const AST = union(enum) {
         common: ASTCommon,
         _terms: std.ArrayList(*AST),
 
-        pub fn get_pos(self: *@This(), field_name: []const u8) ?i128 {
+        pub fn get_pos(self: *@This(), field_name: []const u8) ?usize {
             for (self._terms.items, 0..) |term, i| {
                 if (std.mem.eql(u8, term.annotation.pattern.token().data, field_name)) {
                     return i;
@@ -252,7 +252,7 @@ pub const AST = union(enum) {
         ident: *AST,
         init: ?*AST = null,
         base: ?*AST = null, // This should ideally be kept in unexpanded form. use `typeof(inferredMember)` for expanded form
-        pos: ?i128 = null,
+        _pos: ?usize = null,
     },
     _typeOf: struct {
         common: ASTCommon,
@@ -633,7 +633,7 @@ pub const AST = union(enum) {
 
     pub fn createSelect(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         const _common: ASTCommon = .{ ._token = _token };
-        return AST.box(AST{ .select = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, .pos = null } }, allocator);
+        return AST.box(AST{ .select = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._pos = null } }, allocator);
     }
 
     pub fn createSum(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
@@ -1014,6 +1014,14 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn pos(self: AST) ?usize {
+        return get_field(self, "_pos");
+    }
+
+    pub fn set_pos(self: *AST, val: ?usize) void {
+        set_field(self, "_pos", val);
+    }
+
     pub fn statement(self: AST) *AST {
         return get_field(self, "_statement");
     }
@@ -1120,7 +1128,7 @@ pub const AST = union(enum) {
         const member = createInferredMember(value.token(), AST.createIdentifier(token_.Token.init_simple("some"), allocator), allocator);
         member.inferredMember.base = opt_type;
         member.inferredMember.init = value;
-        member.inferredMember.pos = opt_type.sum.get_pos("some");
+        member.set_pos(opt_type.sum.get_pos("some"));
         return member.assert_valid();
     }
 
@@ -1131,7 +1139,7 @@ pub const AST = union(enum) {
             allocator,
         );
         member.inferredMember.base = opt_type;
-        member.inferredMember.pos = opt_type.sum.get_pos("none");
+        member.set_pos(opt_type.sum.get_pos("none"));
         return member.assert_valid();
     }
 
@@ -1497,7 +1505,7 @@ pub const AST = union(enum) {
 
             .select => {
                 var select_lhs_type = self.lhs().typeof(allocator).expand_identifier();
-                var retval = select_lhs_type.children().items[self.select.pos.?];
+                var retval = select_lhs_type.children().items[self.pos().?];
                 while (retval.* == .annotation) {
                     retval = retval.annotation.type;
                 }

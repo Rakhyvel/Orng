@@ -479,7 +479,7 @@ fn validate_AST_internal(
                         ast_.AST.createIdentifier(token_.Token.init("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator),
                         allocator,
                     ).assert_valid();
-                    select.select.pos = @as(usize, @intCast(ast.rhs().int.data));
+                    select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
                     return select;
                 } else {
                     // rhs is not int, error
@@ -511,8 +511,8 @@ fn validate_AST_internal(
                 // Select on a Type (only valid for a sum type), change to inferred-member
                 const inferred_member = ast_.AST.createInferredMember(ast.token(), ast.rhs(), allocator);
                 return validateAST(inferred_member, ast.lhs(), errors, allocator);
-            } else if (ast.select.pos == null) {
-                ast.select.pos = try find_select_pos(select_lhs_type, ast.rhs().token().data, ast.token().span, errors);
+            } else if (ast.pos() == null) {
+                ast.set_pos(try find_select_pos(select_lhs_type, ast.rhs().token().data, ast.token().span, errors));
             }
 
             _ = ast.assert_valid();
@@ -748,8 +748,8 @@ fn validate_AST_internal(
                 return ast.enpoison();
             } else if (expected_expanded.* == .inferred_error) {
                 ast.inferredMember.base = expected;
-                ast.inferredMember.pos = expected_expanded.inferred_error.get_pos(ast.inferredMember.ident.token().data);
-                if (ast.inferredMember.pos == null) {
+                ast.set_pos(expected_expanded.inferred_error.get_pos(ast.inferredMember.ident.token().data));
+                if (ast.pos() == null) {
                     // Wasn't in inferred error set, put in inferred error set
                     const annot_type = if (ast.inferredMember.init == null)
                         primitives_.unit_type
@@ -764,7 +764,7 @@ fn validate_AST_internal(
                         allocator,
                     );
                     expected_expanded.children().append(annot) catch unreachable;
-                    ast.inferredMember.pos = expected_expanded.children().items.len - 1;
+                    ast.set_pos(expected_expanded.children().items.len - 1);
                 }
                 return ast;
             } else if (expected_expanded.* != .sum) {
@@ -776,15 +776,15 @@ fn validate_AST_internal(
                 return ast.enpoison();
             } else {
                 ast.inferredMember.base = expected;
-                ast.inferredMember.pos = expected_expanded.sum.get_pos(ast.inferredMember.ident.token().data) orelse {
+                ast.set_pos(expected_expanded.sum.get_pos(ast.inferredMember.ident.token().data) orelse {
                     errors.addError(errs_.Error{ .member_not_in = .{
                         .span = ast.token().span,
                         .identifier = ast.inferredMember.ident.token().data,
                         .group_name = "sum",
                     } });
                     return ast.enpoison();
-                };
-                const proper_term: *ast_.AST = expected_expanded.children().items[@as(usize, @intCast(ast.inferredMember.pos.?))];
+                });
+                const proper_term: *ast_.AST = expected_expanded.children().items[ast.pos().?];
                 if (proper_term.annotation.init) |_init| {
                     ast.inferredMember.init = _init; // This will be overriden by an inject expression's rhs
                 } else {
@@ -1521,13 +1521,13 @@ fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *err
         .select => {
             var new_pattern = validateAST(pattern, expr_type, errors, allocator);
             try assert_none_poisoned(new_pattern);
-            pattern.select.pos = @as(usize, @intCast(new_pattern.inferredMember.pos.?));
+            pattern.set_pos(new_pattern.pos().?);
             try type_check(pattern, new_pattern.typeof(allocator), expr_type, errors);
         },
         .inferredMember => {
             var new_pattern = validateAST(pattern, expr_type, errors, allocator);
             try assert_none_poisoned(new_pattern);
-            pattern.inferredMember.pos = new_pattern.inferredMember.pos.?;
+            pattern.set_pos(new_pattern.pos().?);
             try type_check(pattern, new_pattern.typeof(allocator), expr_type, errors);
         },
         .inject => {
@@ -1602,13 +1602,13 @@ fn exhaustive_check(
 fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
     switch (ast.*) {
         .select => {
-            const id: ?usize = indexof(ids, @intCast(ast.select.pos.?));
+            const id: ?usize = indexof(ids, @intCast(ast.pos().?));
             if (id) |_id| {
                 _ = ids.swapRemove(_id);
             }
         },
         .inferredMember => {
-            const id: ?usize = indexof(ids, @intCast(ast.inferredMember.pos.?));
+            const id: ?usize = indexof(ids, ast.pos().?);
             if (id) |_id| {
                 _ = ids.swapRemove(_id);
             }
@@ -1669,7 +1669,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
                 ast_.AST.createIdentifier(token_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator),
                 allocator,
             );
-            retval.inferredMember.pos = 0;
+            retval.set_pos(0);
             retval.inferredMember.base = _type;
             const proper_term: *ast_.AST = _type.children().items[0];
             retval.inferredMember.init = try generate_default(proper_term, errors, allocator);
@@ -1717,8 +1717,8 @@ fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocat
             } });
             return ast_.poisoned;
         }
-        const pos: i128 = ast.lhs().inferredMember.pos.?;
-        const proper_term: *ast_.AST = (ast.lhs().typeof(allocator)).children().items[@as(usize, @intCast(pos))];
+        const pos: usize = ast.lhs().pos().?;
+        const proper_term: *ast_.AST = (ast.lhs().typeof(allocator)).children().items[pos];
         return proper_term.annotation.type;
     } else {
         errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "inject is not to a sum" } });

@@ -544,7 +544,7 @@ pub const Context = struct {
                     allocator,
                 ).assert_valid();
                 const tag = self.load_int(address + _type.sizeof() - 8, 8);
-                retval.inferredMember.pos = tag;
+                retval.set_pos(@as(usize, @intCast(tag)));
                 retval.inferredMember.base = _type;
                 const proper_term: *ast_.AST = _type.children().items[@as(usize, @intCast(tag))];
                 retval.inferredMember.init = self.extract_ast(address, proper_term, allocator);
