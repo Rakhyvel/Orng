@@ -8,19 +8,19 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    double _1;
+        int64_t _0;
+        double _1;
 } struct0;
 
 typedef struct {
-    int64_t _0;
-    struct0 _1;
-    uint32_t _2;
+        int64_t _0;
+        struct0 _1;
+        uint32_t _2;
 } struct1;
 
 typedef struct {
-    struct1 _0;
-    struct1 _1;
+        struct1 _0;
+        struct1 _1;
 } struct3;
 
 typedef uint8_t(*function2)(struct1, struct1);
@@ -86,14 +86,14 @@ uint8_t _1524_f(struct1 _1524_x,struct1 _1524_y){
     uint8_t _1524_t6;
     uint8_t _1524_t0;
     uint8_t _1524_$retval;
-    _1524_t2 = _1524_x._0 == _1524_y._0;
+    _1524_t2 = _1524_x._0==_1524_y._0;
     if (_1524_t2) {
         goto BB1822;
     } else {
         goto BB1828;
     }
 BB1822:
-    _1524_t4 = _1524_x._1._0 == _1524_y._1._0;
+    _1524_t4 = _1524_x._1._0==_1524_y._1._0;
     if (_1524_t4) {
         goto BB1823;
     } else {
@@ -103,7 +103,7 @@ BB1828:
     _1524_t0 = 0;
     goto BB1827;
 BB1823:
-    _1524_t5 = _1524_x._1._1 == _1524_y._1._1;
+    _1524_t5 = _1524_x._1._1==_1524_y._1._1;
     if (_1524_t5) {
         goto BB1824;
     } else {
@@ -113,7 +113,7 @@ BB1827:
     _1524_$retval = _1524_t0;
     return _1524_$retval;
 BB1824:
-    _1524_t6 = _1524_x._2 == _1524_y._2;
+    _1524_t6 = _1524_x._2==_1524_y._2;
     if (_1524_t6) {
         goto BB1825;
     } else {

@@ -8,14 +8,14 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct2;
 
 typedef struct {
-    struct2 _0;
-    struct2 _1;
+        struct2 _0;
+        struct2 _1;
 } struct1;
 
 typedef struct {
@@ -26,16 +26,16 @@ typedef struct {
 } struct4;
 
 typedef struct {
-    struct4 _0;
-    struct4 _1;
-    struct4 _2;
+        struct4 _0;
+        struct4 _1;
+        struct4 _2;
 } struct3;
 
 typedef struct3(*function0)(struct2, struct2);
 
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct6;
 
 typedef struct4(*function5)(int64_t, int64_t);
@@ -172,7 +172,7 @@ struct4 _38_safe_div(int64_t _38_x,int64_t _38_y){
     struct4 _38_t0;
     struct4 _38_$retval;
     _38_t1 = 0;
-    _38_t3 = _38_y == _38_t1;
+    _38_t3 = _38_y==_38_t1;
     if (_38_t3) {
         goto BB29;
     } else {

@@ -8,9 +8,9 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct1;
 
 typedef int64_t(*function0)(struct1);

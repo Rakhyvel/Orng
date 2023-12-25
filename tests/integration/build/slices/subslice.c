@@ -8,17 +8,17 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
-    int64_t _3;
-    int64_t _4;
-    int64_t _5;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
+        int64_t _3;
+        int64_t _4;
+        int64_t _5;
 } struct0;
 
 typedef struct {
-    int64_t* _0;
-    int64_t _1;
+        int64_t* _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function2)(struct1);
@@ -64,7 +64,7 @@ int64_t _1317_main(void){
     _1318_y = (struct1) {_1317_t10, _1317_t11};
     _1317_t12 = 1;
     _1317_t15 = 4;
-    _1317_t16 = _1318_y._0 + _1317_t12;
+    _1317_t16 = _1318_y._0+_1317_t12;
     _1318_z = (struct1) {_1317_t16, _1317_t15};
     _1317_t19 = 2;
     $bounds_check(_1317_t19, _1318_z._1, "tests/integration/slices/subslice.orng:6:14:\n    z[2] = 10\n            ^");
@@ -87,7 +87,7 @@ int64_t _1319_sum_up(struct1 _1319_xs){
     _1321_i = 0;
     goto BB1647;
 BB1647:
-    _1319_t3 = _1321_i < _1319_xs._1;
+    _1319_t3 = _1321_i<_1319_xs._1;
     if (_1319_t3) {
         goto BB1648;
     } else {

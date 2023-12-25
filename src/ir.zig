@@ -182,6 +182,13 @@ pub const IR = struct {
         return mut_self;
     }
 
+    pub fn snip(self: *IR) void {
+        if (self.next) |_| {
+            self.next.?.prev = null;
+            self.next = null;
+        }
+    }
+
     pub fn pprint(self: IR, allocator: std.mem.Allocator) ![]const u8 {
         var out = String.init(allocator);
         defer out.deinit();
@@ -464,6 +471,77 @@ pub const Kind = enum {
     pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
     popStackTrace, // Pops a message off the stack after a function is successfully called
     panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
+
+    pub fn is_checked(self: Kind) bool {
+        return switch (self) {
+            .negate_int,
+            .add_int,
+            .sub_int,
+            .mult_int,
+            .div_int,
+            .mod,
+            => true,
+            else => false,
+        };
+    }
+
+    pub fn checked_name(self: Kind) []const u8 {
+        return switch (self) {
+            .negate_int => "negate",
+            .add_int => "add",
+            .sub_int => "sub",
+            .mult_int => "mult",
+            .div_int => "div",
+            .mod => "mod",
+            else => unreachable,
+        };
+    }
+
+    pub fn symbol(self: Kind) []const u8 {
+        return switch (self) {
+            .not => "!",
+            .negate_int, .negate_float => "-",
+            .equal => "==",
+            .not_equal => "!=",
+            .greater_int, .greater_float => ">",
+            .lesser_int, .lesser_float => "<",
+            .greater_equal_int, .greater_equal_float => ">=",
+            .lesser_equal_int, .lesser_equal_float => "<=",
+            .add_int, .add_float => "+",
+            .sub_int, .sub_float => "-",
+            .mult_int, .mult_float => "*",
+            .div_int, .div_float => "/",
+            .mod => "%",
+            else => unreachable,
+        };
+    }
+
+    pub fn arity(self: Kind) enum { unop, binop } {
+        return switch (self) {
+            .not, .negate_int, .negate_float => .unop,
+            .equal,
+            .not_equal,
+            .greater_int,
+            .greater_float,
+            .lesser_int,
+            .lesser_float,
+            .greater_equal_int,
+            .greater_equal_float,
+            .lesser_equal_int,
+            .lesser_equal_float,
+            .add_int,
+            .add_float,
+            .sub_int,
+            .sub_float,
+            .mult_int,
+            .mult_float,
+            .div_int,
+            .div_float,
+            .mod,
+            => .binop,
+            else => unreachable,
+        };
+    }
 
     pub fn precedence(self: Kind) i64 {
         return switch (self) {

@@ -8,9 +8,9 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct0;
 
 /* Function forward definitions */
@@ -34,7 +34,7 @@ int64_t _1226_main(void){
     _1226_t4 = 8;
     _1226_t1 = (struct0) {_1226_t2, _1226_t3, _1226_t4};
     _1226_t5 = 100;
-    _1226_t6 = _1226_t1._0 == _1226_t5;
+    _1226_t6 = _1226_t1._0==_1226_t5;
     if (_1226_t6) {
         goto BB1511;
     } else {

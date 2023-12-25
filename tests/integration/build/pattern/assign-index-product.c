@@ -8,14 +8,14 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct0;
 
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct1;
 
 /* Function forward definitions */
@@ -67,7 +67,7 @@ int64_t _1109_main(void){
     _1109_t21 = 3;
     $bounds_check(_1109_t18, _1109_t19, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
     $bounds_check(_1109_t20, _1109_t21, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
-    _1109_t22 = *((int64_t*)&_1110_x + _1109_t18) > *((int64_t*)&_1110_x + _1109_t20);
+    _1109_t22 = *((int64_t*)&_1110_x + _1109_t18)>*((int64_t*)&_1110_x + _1109_t20);
     if (_1109_t22) {
         goto BB1343;
     } else {

@@ -8,17 +8,17 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
-    int64_t _3;
-    int64_t _4;
-    int64_t _5;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
+        int64_t _3;
+        int64_t _4;
+        int64_t _5;
 } struct0;
 
 typedef struct {
-    int64_t* _0;
-    int64_t _1;
+        int64_t* _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function2)(struct1);
@@ -81,7 +81,7 @@ int64_t _1286_sum_up(struct1 _1286_xs){
     _1288_i = 0;
     goto BB1603;
 BB1603:
-    _1286_t3 = _1288_i < _1286_xs._1;
+    _1286_t3 = _1288_i<_1286_xs._1;
     if (_1286_t3) {
         goto BB1604;
     } else {

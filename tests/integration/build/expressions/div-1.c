@@ -45,7 +45,7 @@ uint8_t _666_f(double _666_x){
     uint8_t _666_t3;
     uint8_t _666_t2;
     uint8_t _666_$retval;
-    _666_t3 = _666_x == _666_x;
+    _666_t3 = _666_x==_666_x;
     if (_666_t3) {
         goto BB839;
     } else {

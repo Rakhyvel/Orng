@@ -17,6 +17,6 @@ uint16_t _906_main(void){
 }
 
 int main(void) {
-  printf("%d",_906_main());
+  printf("%u",_906_main());
   return 0;
 }

@@ -8,24 +8,24 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function0)(int64_t, int64_t);
 
 typedef struct {
-    function0 _0;
-    function0 _1;
-    function0 _2;
+        function0 _0;
+        function0 _1;
+        function0 _2;
 } struct2;
 
 typedef int64_t(*function3)(int64_t);
 
 typedef struct {
-    function3 _0;
-    function3 _1;
-    function3 _2;
+        function3 _0;
+        function3 _1;
+        function3 _2;
 } struct4;
 
 /* Function forward definitions */

@@ -27,7 +27,7 @@ int64_t _393_main(void){
     goto BB482;
 BB482:
     _393_t3 = 70;
-    _393_t4 = _395_i < _393_t3;
+    _393_t4 = _395_i<_393_t3;
     if (_393_t4) {
         goto BB483;
     } else {
@@ -37,7 +37,7 @@ BB483:
     _393_t6 = 2;
     _393_t7 = $mod_int64_t(_395_i, _393_t6, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^");
     _393_t8 = 0;
-    _393_t10 = _393_t7 == _393_t8;
+    _393_t10 = _393_t7==_393_t8;
     if (_393_t10) {
         goto BB487;
     } else {

@@ -27,7 +27,7 @@ int64_t _384_main(void){
     goto BB467;
 BB467:
     _384_t3 = 70;
-    _384_t4 = _386_i < _384_t3;
+    _384_t4 = _386_i<_384_t3;
     if (_384_t4) {
         goto BB468;
     } else {
@@ -37,7 +37,7 @@ BB468:
     _384_t6 = 2;
     _384_t7 = $mod_int64_t(_386_i, _384_t6, "tests/integration/control-flow/break.orng:5:15:\n        if i % 2 == 0 {\n             ^");
     _384_t8 = 0;
-    _384_t10 = _384_t7 == _384_t8;
+    _384_t10 = _384_t7==_384_t8;
     if (_384_t10) {
         goto BB473;
     } else {

@@ -348,23 +348,11 @@ fn fuzzTests() !void {
                     },
                 }
             };
-            module.output("tests/fuzz/fuzz-out.c") catch |err| {
-                switch (err) {
-                    error.typeError,
-                    error.NotAnLValue,
-                    => {
-                        // passed += 1;
-                        try term_.outputColor(succeed_color, "[ ... PASSED ] ", out);
-                        try out.print("Orng -> C. {}\n", .{i});
-                        continue;
-                    },
-                    else => {
-                        failed += 1;
-                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                        try out.print("Orng Compiler crashed with input above!\n", .{});
-                        return;
-                    },
-                }
+            module.output("tests/fuzz/fuzz-out.c") catch {
+                failed += 1;
+                try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
+                try out.print("Orng Compiler crashed with input above!\n", .{});
+                return;
             };
 
             var should_continue: bool = false;

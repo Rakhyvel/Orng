@@ -10,8 +10,8 @@
 typedef int64_t(*function0)(int64_t);
 
 typedef struct {
-    function0 _0;
-    int64_t _1;
+        function0 _0;
+        int64_t _1;
 } struct2;
 
 typedef int64_t(*function1)(function0, int64_t);

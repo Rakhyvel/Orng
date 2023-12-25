@@ -8,14 +8,14 @@
 
 /* Typedefs */
 typedef struct {
-    uint8_t* _0;
-    int64_t _1;
+        uint8_t* _0;
+        int64_t _1;
 } struct0;
 
 typedef struct {
-    struct0 _0;
-    struct0 _1;
-    struct0 _2;
+        struct0 _0;
+        struct0 _1;
+        struct0 _2;
 } struct1;
 
 /* Interned Strings */

@@ -8,9 +8,9 @@
 
 /* Typedefs */
 typedef struct {
-    int8_t _0;
-    int16_t _1;
-    int8_t _2;
+        int8_t _0;
+        int16_t _1;
+        int8_t _2;
 } struct1;
 
 typedef int64_t(*function0)(int8_t, int16_t, int8_t);
@@ -51,7 +51,7 @@ int64_t _257_f(int8_t _257_x,int16_t _257_y,int8_t _257_z){
     uint8_t _257_t1;
     int64_t _257_$retval;
     _257_t3 = 50;
-    _257_t5 = _257_x == _257_t3;
+    _257_t5 = _257_x==_257_t3;
     if (_257_t5) {
         goto BB276;
     } else {
@@ -59,7 +59,7 @@ int64_t _257_f(int8_t _257_x,int16_t _257_y,int8_t _257_z){
     }
 BB276:
     _257_t6 = 200;
-    _257_t8 = _257_y == _257_t6;
+    _257_t8 = _257_y==_257_t6;
     if (_257_t8) {
         goto BB277;
     } else {
@@ -91,7 +91,7 @@ BB279:
     }
 BB280:
     _257_t9 = 6;
-    _257_t11 = _257_z == _257_t9;
+    _257_t11 = _257_z==_257_t9;
     if (_257_t11) {
         goto BB281;
     } else {

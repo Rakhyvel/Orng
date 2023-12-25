@@ -8,9 +8,9 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct0;
 
 /* Function forward definitions */
@@ -40,7 +40,7 @@ int64_t _1200_main(void){
     _1200_t6 = 3;
     _1200_t7 = 1;
     $bounds_check(_1200_t5, _1200_t6, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
-    _1200_t8 = *((int64_t*)&_1201_x + _1200_t5) == _1200_t7;
+    _1200_t8 = *((int64_t*)&_1201_x + _1200_t5)==_1200_t7;
     if (_1200_t8) {
         goto BB1464;
     } else {
@@ -52,7 +52,7 @@ BB1464:
 BB1467:
     _1200_t9 = 2;
     $bounds_check(_1200_t5, _1200_t6, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
-    _1200_t10 = *((int64_t*)&_1201_x + _1200_t5) == _1200_t9;
+    _1200_t10 = *((int64_t*)&_1201_x + _1200_t5)==_1200_t9;
     if (_1200_t10) {
         goto BB1469;
     } else {
@@ -67,7 +67,7 @@ BB1469:
 BB1470:
     _1200_t11 = 3;
     $bounds_check(_1200_t5, _1200_t6, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
-    _1200_t12 = *((int64_t*)&_1201_x + _1200_t5) == _1200_t11;
+    _1200_t12 = *((int64_t*)&_1201_x + _1200_t5)==_1200_t11;
     if (_1200_t12) {
         goto BB1472;
     } else {

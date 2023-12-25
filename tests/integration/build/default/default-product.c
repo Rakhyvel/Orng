@@ -8,8 +8,8 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    double _1;
+        int64_t _0;
+        double _1;
 } struct0;
 
 /* Function forward definitions */
@@ -30,7 +30,7 @@ int64_t _531_main(void){
     _531_t2 = 0.0e+00;
     _532_x = (struct0) {_531_t1, _531_t2};
     _531_t5 = 0;
-    _531_t7 = _532_x._0 == _531_t5;
+    _531_t7 = _532_x._0==_531_t5;
     if (_531_t7) {
         goto BB655;
     } else {
@@ -38,7 +38,7 @@ int64_t _531_main(void){
     }
 BB655:
     _531_t8 = 0.0e+00;
-    _531_t10 = _532_x._1 == _531_t8;
+    _531_t10 = _532_x._1==_531_t8;
     if (_531_t10) {
         goto BB659;
     } else {

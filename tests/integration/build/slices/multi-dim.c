@@ -8,25 +8,25 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct0;
 
 typedef struct {
-    int64_t* _0;
-    int64_t _1;
+        int64_t* _0;
+        int64_t _1;
 } struct1;
 
 typedef struct {
-    struct1 _0;
-    struct1 _1;
-    struct1 _2;
+        struct1 _0;
+        struct1 _1;
+        struct1 _2;
 } struct2;
 
 typedef struct {
-    struct1* _0;
-    int64_t _1;
+        struct1* _0;
+        int64_t _1;
 } struct3;
 
 /* Function forward definitions */

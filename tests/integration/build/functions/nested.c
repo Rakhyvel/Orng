@@ -10,8 +10,8 @@
 typedef int64_t(*function0)(int64_t);
 
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct2;
 
 typedef int64_t(*function1)(int64_t, int64_t);
@@ -56,7 +56,7 @@ int64_t _969_fib(int64_t _969_n){
     uint8_t _969_t4;
     int64_t _969_$retval;
     _969_t1 = 0;
-    _969_t2 = _969_n == _969_t1;
+    _969_t2 = _969_n==_969_t1;
     if (_969_t2) {
         goto BB1196;
     } else {
@@ -67,7 +67,7 @@ BB1196:
     goto BB1198;
 BB1199:
     _969_t3 = 1;
-    _969_t4 = _969_n == _969_t3;
+    _969_t4 = _969_n==_969_t3;
     if (_969_t4) {
         goto BB1201;
     } else {

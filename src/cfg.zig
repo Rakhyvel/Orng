@@ -164,10 +164,7 @@ pub const CFG = struct {
                 // If you find a label declaration, end this block and jump to new block
                 retval.has_branch = false;
                 retval.next = self.basicBlockFromIR(ir.next, allocator);
-                if (ir.next) |_| { // TODO: This is duplicated for label, jump, and branch. Extract this! (Maybe a method called `IR`?)
-                    ir.next.?.prev = null;
-                    ir.next = null;
-                }
+                ir.snip();
                 break;
             } else if (ir.kind == .jump) {
                 // If you find a jump, end this block and start new block
@@ -181,10 +178,7 @@ pub const CFG = struct {
                 } else {
                     retval.next = null;
                 }
-                if (ir.next) |_| {
-                    ir.next.?.prev = null;
-                    ir.next = null;
-                }
+                ir.snip();
                 break;
             } else if (ir.kind == .panic) {
                 // If you find a panic, end this block with null jump and start new block
@@ -208,10 +202,7 @@ pub const CFG = struct {
                 retval.next = self.basicBlockFromIR(ir.next, allocator);
                 retval.branch = self.basicBlockFromIR(branchNext, allocator);
                 retval.condition = ir.src1;
-                if (ir.next) |_| {
-                    ir.next.?.prev = null;
-                    ir.next = null;
-                }
+                ir.snip();
                 break;
             }
         }
@@ -255,7 +246,6 @@ pub const CFG = struct {
                     // If src2 version is not null, and is not defined in this BB, request it as a parameter
                     version_lvalue(ir.src2.?, bb, ir, &bb.parameters);
                 }
-
                 if (ir.data == .lval_list) {
                     // Do the same as above for each symbver in a symbver list, if there is one
                     for (ir.data.lval_list.items) |lval| {
@@ -307,6 +297,8 @@ pub const CFG = struct {
     }
 
     /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters* it needs to include.
+    ///
+    /// This is called `argument propagation` because a basic blocks arguments are propagated to parameters if they are not defined inside it
     fn childrenArgPropagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
         var retval: bool = false;
         if (bb.visited) {
@@ -314,49 +306,36 @@ pub const CFG = struct {
         }
         bb.visited = true;
 
-        // TODO: This an the branch's logic are identical. Extract them!
-        if (bb.next) |next| {
-            // Have the next block request parameters
-            retval = self.childrenArgPropagation(next, allocator) or retval;
-
-            // Go through the parameters the next block requested, see if they exist in this block.
-            // Request them if they do not.
-            for (next.parameters.items) |param| {
-                var symbver = param.findVersion(bb.ir_head, null);
-                if (symbver == param) { // Could not find param def in this block, require it as a parameter for this own block
-                    const myParam = param.findSymbolVersionSet(&bb.parameters);
-                    if (myParam) |_myParam| {
-                        symbver = _myParam;
-                    } else {
-                        symbver = lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
-                        _ = symbver.putSymbolVersionSet(&bb.parameters);
-                    }
-                } // else found in this block already, add it to the arguments
-                retval = symbver.putSymbolVersionSet(&bb.next_arguments) or retval;
-            }
+        if (bb.next) |next| { // Have the next block request parameters
+            retval = self.request_undefined_symbvers(next, &bb.next_arguments, allocator);
+        }
+        if (bb.has_branch and bb.branch != null) { // Have the branch block request parameters
+            retval = self.request_undefined_symbvers(bb.branch.?, &bb.branch_arguments, allocator);
         }
 
-        if (bb.has_branch) {
-            if (bb.branch) |branch| {
-                retval = self.childrenArgPropagation(branch, allocator) or retval;
-                for (branch.parameters.items) |param| { // go through branch BB's params
-                    var symbver = param.findVersion(bb.ir_head, null); // look for definition of param in this block
-                    if (symbver == param) {
-                        // Could not find param def in this block, require it as a parameter for this own block
-                        const myParam = param.findSymbolVersionSet(&bb.parameters); // see if param is already in block paramlist
-                        if (myParam) |_myParam| {
-                            symbver = _myParam; // if so, we will add param to arglist
-                        } else {
-                            // else, create a new param and add to paramlist. (will later be added to arglist too)
-                            symbver = lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
-                            _ = symbver.putSymbolVersionSet(&bb.parameters);
-                        }
-                    } // else found in this block already, add it to the arguments
-                    retval = symbver.putSymbolVersionSet(&bb.branch_arguments) or retval;
+        return retval;
+    }
+
+    fn request_undefined_symbvers(self: *CFG, bb: *basic_block_.Basic_Block, args: *std.ArrayList(*lval_.Symbol_Version), allocator: std.mem.Allocator) bool {
+        var retval = self.childrenArgPropagation(bb, allocator);
+
+        // Go through the parameters the block requested, see if they exist in this block.
+        // Request them if they do not.
+        for (bb.parameters.items) |param| {
+            var symbver = param.findVersion(bb.ir_head, null);
+            if (symbver == param) {
+                // Could not find param def in this block, require it as a parameter for this own block
+                const myParam = param.findSymbolVersionSet(&bb.parameters);
+                if (myParam) |_myParam| {
+                    symbver = _myParam; // if so, we will add param to arglist
+                } else {
+                    // else, create a new param and add to paramlist. (will later be added to arglist too)
+                    symbver = lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
+                    _ = symbver.putSymbolVersionSet(&bb.parameters);
                 }
-            }
+            } // else found in this block already, add it to the arguments
+            retval = symbver.putSymbolVersionSet(args) or retval;
         }
-
         return retval;
     }
 };

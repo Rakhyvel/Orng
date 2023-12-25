@@ -17,6 +17,6 @@ uint32_t _909_main(void){
 }
 
 int main(void) {
-  printf("%d",_909_main());
+  printf("%u",_909_main());
   return 0;
 }

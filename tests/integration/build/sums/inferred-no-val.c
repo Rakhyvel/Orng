@@ -31,7 +31,7 @@ int64_t _1408_main(void){
     _1408_t3 = 0;
     _1408_t4 = 0;
     $tag_check(_1408_t3, 0, "tests/integration/sums/inferred-no-val.orng:3:10:\n    let x: (a: Int | b: Int) = .a\n        ^");
-    _1408_t6 = _1409_x._0 == _1408_t4;
+    _1408_t6 = _1409_x._0==_1408_t4;
     if (_1408_t6) {
         goto BB1727;
     } else {

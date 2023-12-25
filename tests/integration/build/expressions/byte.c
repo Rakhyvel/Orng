@@ -17,6 +17,6 @@ uint8_t _641_main(void){
 }
 
 int main(void) {
-  printf("%d",_641_main());
+  printf("%u",_641_main());
   return 0;
 }

@@ -8,8 +8,8 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t* _0;
-    uint8_t _1;
+        int64_t* _0;
+        uint8_t _1;
 } struct1;
 
 typedef struct {

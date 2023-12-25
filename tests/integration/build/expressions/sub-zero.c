@@ -49,7 +49,7 @@ uint8_t _872_f(int64_t _872_x){
     uint8_t _872_t9;
     _872_t6 = $negate_int64_t(_872_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^");
     _872_t7 = $negate_int64_t(_872_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
-    _872_t9 = _872_t6 == _872_t7;
+    _872_t9 = _872_t6==_872_t7;
     if (_872_t9) {
         goto BB1108;
     } else {

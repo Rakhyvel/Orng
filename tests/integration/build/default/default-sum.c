@@ -31,7 +31,7 @@ int64_t _542_main(void){
     _542_t3 = 0;
     _542_t4 = 0;
     $tag_check(_542_t3, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
-    _542_t6 = _543_x._0 == _542_t4;
+    _542_t6 = _543_x._0==_542_t4;
     if (_542_t6) {
         goto BB674;
     } else {

@@ -12,9 +12,9 @@ typedef struct {
 } struct0;
 
 typedef struct {
-    struct0 _0;
-    struct0 _1;
-    struct0 _2;
+        struct0 _0;
+        struct0 _1;
+        struct0 _2;
 } struct1;
 
 typedef int64_t(*function2)(struct1);
@@ -57,7 +57,7 @@ int64_t _53_f(struct1 _53_x){
     $bounds_check(_53_t1, _53_t2, "tests/integration/arrays/array-sum.orng:9:7:\nfn f(x: [3]My_Type) -> Int {\n     ^");
     _53_t6 = (*((struct0*)&_53_x + _53_t1)).tag;
     _53_t7 = 1;
-    _53_t5 = _53_t6 == _53_t7;
+    _53_t5 = _53_t6==_53_t7;
     if (_53_t5) {
         goto BB48;
     } else {

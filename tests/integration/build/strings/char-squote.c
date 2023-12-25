@@ -17,6 +17,6 @@ uint32_t _1340_main(void){
 }
 
 int main(void) {
-  printf("%d",_1340_main());
+  printf("%u",_1340_main());
   return 0;
 }

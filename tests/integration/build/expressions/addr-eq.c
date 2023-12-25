@@ -8,8 +8,8 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t* _0;
-    int64_t* _1;
+        int64_t* _0;
+        int64_t* _1;
 } struct1;
 
 typedef uint8_t(*function0)(int64_t*, int64_t*);
@@ -72,7 +72,7 @@ uint8_t _632_addr_equal(int64_t* _632_x,int64_t* _632_y){
     uint8_t _632_t1;
     uint8_t _632_t0;
     uint8_t _632_$retval;
-    _632_t1 = _632_x == _632_y;
+    _632_t1 = _632_x==_632_y;
     if (_632_t1) {
         goto BB807;
     } else {

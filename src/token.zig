@@ -109,6 +109,7 @@ pub const TokenKind = enum(u32) {
     // (yes, this is needed in Zig)
     len,
 
+    // TODO: Create a generic `contains` function, extract!
     pub fn is_binop(self: TokenKind) bool {
         for (binaryOperators) |binop_kind| {
             if (self == binop_kind) {

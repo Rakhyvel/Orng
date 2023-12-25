@@ -8,8 +8,8 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function0)(int64_t, int64_t);
@@ -35,7 +35,7 @@ function0 _302_g(int64_t _302_x){
     int64_t _302_t5;
     uint8_t _302_t6;
     _302_t1 = 0;
-    _302_t2 = _302_x == _302_t1;
+    _302_t2 = _302_x==_302_t1;
     if (_302_t2) {
         goto BB373;
     } else {
@@ -46,7 +46,7 @@ BB373:
     goto BB375;
 BB376:
     _302_t3 = 1;
-    _302_t4 = _302_x == _302_t3;
+    _302_t4 = _302_x==_302_t3;
     if (_302_t4) {
         goto BB378;
     } else {
@@ -60,7 +60,7 @@ BB378:
     goto BB375;
 BB379:
     _302_t5 = 2;
-    _302_t6 = _302_x == _302_t5;
+    _302_t6 = _302_x==_302_t5;
     if (_302_t6) {
         goto BB381;
     } else {
@@ -71,7 +71,7 @@ BB381:
     goto BB375;
 BB382:
     _302_t7 = 3;
-    _302_t8 = _302_x == _302_t7;
+    _302_t8 = _302_x==_302_t7;
     if (_302_t8) {
         goto BB384;
     } else {

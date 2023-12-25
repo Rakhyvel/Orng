@@ -8,9 +8,9 @@
 
 /* Typedefs */
 typedef struct {
-    uint32_t _0;
-    int64_t _1;
-    double _2;
+        uint32_t _0;
+        int64_t _1;
+        double _2;
 } struct0;
 
 /* Function forward definitions */

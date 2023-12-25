@@ -8,15 +8,15 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
-    int64_t _3;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
+        int64_t _3;
 } struct0;
 
 typedef struct {
-    int64_t* _0;
-    int64_t _1;
+        int64_t* _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function2)(void);
@@ -62,7 +62,7 @@ int64_t _1045_main(void){
     _1045_t11 = _1045_t10();
     $line_idx--;
     _1045_t12 = 1;
-    _1045_t13 = _1045_t11 > _1045_t12;
+    _1045_t13 = _1045_t11>_1045_t12;
     if (_1045_t13) {
         goto BB1262;
     } else {
@@ -73,7 +73,7 @@ BB1262:
     $panic("subslice lower bound is greater than upper bound\n");
 BB1263:
     _1045_t14 = $sub_int64_t(_1045_t12, _1045_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^");
-    _1045_t15 = _1046_y._0 + _1045_t11;
+    _1045_t15 = _1046_y._0+_1045_t11;
     _1046_z = (struct1) {_1045_t15, _1045_t14};
     _1045_t17 = 0;
     $bounds_check(_1045_t17, _1046_z._1, "tests/integration/lint/subslice-bounds.orng:2:3:\nfn main() -> Int {\n ^");

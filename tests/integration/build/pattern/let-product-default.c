@@ -8,8 +8,8 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct0;
 
 /* Function forward definitions */
@@ -34,7 +34,7 @@ int64_t _1142_main(void){
     _1143_b = _1142_t0._1;
     _1142_t4 = $add_int64_t(_1143_a, _1143_b, "tests/integration/pattern/let-product-default.orng:4:11:\n    if a + b == 0 {\n         ^");
     _1142_t5 = 0;
-    _1142_t7 = _1142_t4 == _1142_t5;
+    _1142_t7 = _1142_t4==_1142_t5;
     if (_1142_t7) {
         goto BB1380;
     } else {

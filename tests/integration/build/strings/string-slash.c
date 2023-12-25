@@ -8,8 +8,8 @@
 
 /* Typedefs */
 typedef struct {
-    uint8_t* _0;
-    int64_t _1;
+        uint8_t* _0;
+        int64_t _1;
 } struct0;
 
 /* Interned Strings */
@@ -31,6 +31,6 @@ uint8_t _1364_main(void){
 }
 
 int main(void) {
-  printf("%d",_1364_main());
+  printf("%u",_1364_main());
   return 0;
 }

@@ -8,14 +8,14 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct0;
 
 typedef struct {
-    int64_t* _0;
-    int64_t _1;
+        int64_t* _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function2)(struct1);
@@ -54,7 +54,7 @@ int64_t _1276_main(void){
     _1276_t8 = 3;
     _1277_y = (struct1) {_1276_t7, _1276_t8};
     _1276_t9 = 0;
-    _1276_t10 = _1276_t9 > _1277_y._1;
+    _1276_t10 = _1276_t9>_1277_y._1;
     if (_1276_t10) {
         goto BB1599;
     } else {
@@ -65,7 +65,7 @@ BB1599:
     $panic("subslice lower bound is greater than upper bound\n");
 BB1600:
     _1276_t11 = $sub_int64_t(_1277_y._1, _1276_t9, "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                       ^");
-    _1276_t12 = _1277_y._0 + _1276_t9;
+    _1276_t12 = _1277_y._0+_1276_t9;
     _1277_z = (struct1) {_1276_t12, _1276_t11};
     _1276_t14 = _1278_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
@@ -85,7 +85,7 @@ int64_t _1278_sum_up(struct1 _1278_xs){
     _1280_i = 0;
     goto BB1591;
 BB1591:
-    _1278_t3 = _1280_i < _1278_xs._1;
+    _1278_t3 = _1280_i<_1278_xs._1;
     if (_1278_t3) {
         goto BB1592;
     } else {

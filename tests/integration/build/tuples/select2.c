@@ -8,13 +8,13 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
-    int64_t _1;
+        int64_t _0;
+        int64_t _1;
 } struct0;
 
 typedef struct {
-    struct0 _0;
-    int64_t _1;
+        struct0 _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function2)(struct1);

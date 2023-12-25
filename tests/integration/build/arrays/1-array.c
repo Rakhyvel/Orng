@@ -8,7 +8,7 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t _0;
+        int64_t _0;
 } struct0;
 
 /* Function forward definitions */

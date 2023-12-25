@@ -8,16 +8,16 @@
 
 /* Typedefs */
 typedef struct {
-    int64_t* _0;
-    int64_t _1;
+        int64_t* _0;
+        int64_t _1;
 } struct1;
 
 typedef int64_t(*function0)(struct1);
 
 typedef struct {
-    int64_t _0;
-    int64_t _1;
-    int64_t _2;
+        int64_t _0;
+        int64_t _1;
+        int64_t _2;
 } struct2;
 
 /* Function forward definitions */
@@ -70,7 +70,7 @@ int64_t _1308_sum(struct1 _1308_xs){
     int64_t _1308_t8;
     uint8_t _1308_t9;
     _1308_t1 = 0;
-    _1308_t3 = _1308_xs._1 == _1308_t1;
+    _1308_t3 = _1308_xs._1==_1308_t1;
     if (_1308_t3) {
         goto BB1633;
     } else {
@@ -83,7 +83,7 @@ BB1637:
     _1308_t5 = 0;
     _1308_t6 = _1308_sum;
     _1308_t8 = 1;
-    _1308_t9 = _1308_t8 > _1308_xs._1;
+    _1308_t9 = _1308_t8>_1308_xs._1;
     if (_1308_t9) {
         goto BB1638;
     } else {
@@ -97,7 +97,7 @@ BB1638:
     $panic("subslice lower bound is greater than upper bound\n");
 BB1639:
     _1308_t10 = $sub_int64_t(_1308_xs._1, _1308_t8, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^");
-    _1308_t11 = _1308_xs._0 + _1308_t8;
+    _1308_t11 = _1308_xs._0+_1308_t8;
     _1308_t12 = (struct1) {_1308_t11, _1308_t10};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:21:\n        xs[0] + sum(xs[1..])\n                   ^";
     _1308_t7 = _1308_t6(_1308_t12);
