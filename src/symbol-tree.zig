@@ -50,25 +50,8 @@ fn symbolTableFromAST(
         .sizeOf,
         => {},
 
-        ._break => {
-            if (!scope.in_loop) {
-                errors.addError(errs_.Error{ .basic = .{
-                    .span = ast.token().span,
-                    .msg = "`break` must be inside a loop",
-                } });
-                return error.symbolError;
-            }
-        },
-
-        ._continue => {
-            if (!scope.in_loop) {
-                errors.addError(errs_.Error{ .basic = .{
-                    .span = ast.token().span,
-                    .msg = "`continue` must be inside a loop",
-                } });
-                return error.symbolError;
-            }
-        },
+        ._break => try in_loop_check(ast, "break", scope, errors),
+        ._continue => try in_loop_check(ast, "continue", scope, errors),
 
         ._typeOf,
         .default,
@@ -81,29 +64,13 @@ fn symbolTableFromAST(
         => try symbolTableFromAST(ast.expr(), scope, errors, allocator),
 
         ._try => {
-            if (scope.inner_function == null) {
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "try operator is not within a function" } });
-                return error.symbolError;
-            }
-            ast.set_symbol(scope.inner_function);
+            ast.set_symbol(try in_function_check(ast, "try", scope, errors));
             try symbolTableFromAST(ast.expr(), scope, errors, allocator);
         },
 
         ._comptime => {
             const symbol = try create_temp_comptime_symbol(ast, null, scope, errors, allocator);
-            const res = scope.lookup(symbol.name, false);
-            switch (res) {
-                .found => {
-                    const first = res.found;
-                    errors.addError(errs_.Error{ .redefinition = .{
-                        .first_defined_span = first.span,
-                        .redefined_span = symbol.span,
-                        .name = symbol.name,
-                    } });
-                    return error.symbolError;
-                },
-                else => scope.symbols.put(symbol.name, symbol) catch unreachable,
-            }
+            try put_symbol(symbol, scope, errors);
             ast.set_symbol(symbol);
         },
 
@@ -201,14 +168,7 @@ fn symbolTableFromAST(
         },
 
         ._return => {
-            if (scope.in_function == 0 or scope.inner_function == null) {
-                errors.addError(errs_.Error{ .basic = .{
-                    .span = ast.token().span,
-                    .msg = "`return` must be inside in a function",
-                } });
-                return error.symbolError;
-            }
-            ast.set_symbol(scope.inner_function);
+            ast.set_symbol(try in_function_check(ast, "return", scope, errors));
             try symbolTableFromAST(ast._return._ret_expr, scope, errors, allocator);
         },
         .decl => {
@@ -236,19 +196,7 @@ fn symbolTableFromAST(
                 return;
             }
             const symbol = try createFunctionSymbol(ast, scope, errors, allocator);
-            const res = scope.lookup(symbol.name, false);
-            switch (res) {
-                .found => {
-                    const first = res.found;
-                    errors.addError(errs_.Error{ .redefinition = .{
-                        .first_defined_span = first.span,
-                        .redefined_span = symbol.span,
-                        .name = symbol.name,
-                    } });
-                    return error.symbolError;
-                },
-                else => scope.symbols.put(symbol.name, symbol) catch unreachable,
-            }
+            try put_symbol(symbol, scope, errors);
             ast.set_symbol(symbol);
         },
         ._defer => {
@@ -262,21 +210,48 @@ fn symbolTableFromAST(
     }
 }
 
+fn in_loop_check(ast: *ast_.AST, name: []const u8, scope: *symbol_.Scope, errors: *errs_.Errors) !void {
+    if (!scope.in_loop) {
+        errors.addError(errs_.Error{ .not_inside_loop = .{
+            .span = ast.token().span,
+            .name = name,
+        } });
+        return error.symbolError;
+    }
+}
+
+/// Returns the inner symbol of a scope, or an error if one doesnt exist
+fn in_function_check(ast: *ast_.AST, name: []const u8, scope: *symbol_.Scope, errors: *errs_.Errors) !*symbol_.Symbol {
+    if (scope.inner_function == null) {
+        errors.addError(errs_.Error{ .not_inside_function = .{
+            .span = ast.token().span,
+            .name = name,
+        } });
+        return error.symbolError;
+    } else {
+        return scope.inner_function.?;
+    }
+}
+
+fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) !void {
+    const res = scope.lookup(symbol.name, false);
+    switch (res) {
+        .found => {
+            const first = res.found;
+            errors.addError(errs_.Error{ .redefinition = .{
+                .first_defined_span = first.span,
+                .redefined_span = symbol.span,
+                .name = symbol.name,
+            } });
+            return error.symbolError;
+        },
+        else => scope.symbols.put(symbol.name, symbol) catch unreachable,
+    }
+}
+
 fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Scope, errors: *errs_.Errors) !void {
     for (symbols.items) |symbol| {
-        const res = scope.lookup(symbol.name, false);
-        switch (res) {
-            .found => {
-                const first = res.found;
-                errors.addError(errs_.Error{ .redefinition = .{
-                    .first_defined_span = first.span,
-                    .redefined_span = symbol.span,
-                    .name = symbol.name,
-                } });
-                return error.symbolError;
-            },
-            else => scope.symbols.put(symbol.name, symbol) catch unreachable,
-        }
+        try put_symbol(symbol, scope, errors);
     }
 }
 
@@ -414,7 +389,7 @@ fn createFunctionSymbol(
     if (ast.fnDecl.name) |name| {
         buf = name.token().data;
     } else {
-        buf = nextAnonFunctionName(allocator);
+        buf = next_anon_name("anon", allocator);
     }
     const retval = symbol_.Symbol.init(
         fnScope,
@@ -432,12 +407,12 @@ fn createFunctionSymbol(
     return retval;
 }
 
-var numAnonFunctions: usize = 0;
-fn nextAnonFunctionName(allocator: std.mem.Allocator) []const u8 {
-    defer numAnonFunctions += 1;
+var num_anons: usize = 0;
+fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
+    defer num_anons += 1;
     var out = String.init(allocator);
     defer out.deinit();
-    out.writer().print("$anon{}", .{numAnonFunctions}) catch unreachable;
+    out.writer().print("${s}{}", .{ class, num_anons }) catch unreachable;
     return (out.toOwned() catch unreachable).?;
 }
 
@@ -482,19 +457,7 @@ fn create_comptime_init(
 ) !*ast_.AST {
     const retval = ast_.AST.createComptime(old_init.token(), old_init, allocator);
     const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
-    const res = scope.lookup(comptime_symbol.name, false);
-    switch (res) {
-        .found => {
-            const first = res.found;
-            errors.addError(errs_.Error{ .redefinition = .{
-                .first_defined_span = first.span,
-                .redefined_span = comptime_symbol.span,
-                .name = comptime_symbol.name,
-            } });
-            return error.symbolError;
-        },
-        else => scope.symbols.put(comptime_symbol.name, comptime_symbol) catch unreachable,
-    }
+    try put_symbol(comptime_symbol, scope, errors);
     retval.set_symbol(comptime_symbol);
     return retval;
 }
@@ -519,7 +482,7 @@ fn create_temp_comptime_symbol(
 
     // Choose name
     var buf: []const u8 = undefined;
-    buf = next_comptime_name(allocator);
+    buf = next_anon_name("comptime", allocator);
 
     // Create the symbol
     const retval = symbol_.Symbol.init(
@@ -536,14 +499,4 @@ fn create_temp_comptime_symbol(
 
     try symbolTableFromAST(ast.expr(), comptime_scope, errors, allocator);
     return retval;
-}
-
-var num_comptime: usize = 0;
-fn next_comptime_name(allocator: std.mem.Allocator) []const u8 {
-    // TODO: Idk maybe generalize this with the anon function name
-    defer numAnonFunctions += 1;
-    var out = String.init(allocator);
-    defer out.deinit();
-    out.writer().print("$comptime{}", .{numAnonFunctions}) catch unreachable;
-    return (out.toOwned() catch unreachable).?;
 }

@@ -114,6 +114,8 @@ pub fn get_scope() *symbol_.Scope {
         blackhole = create_prelude_symbol("_", unit_type, unit_type);
 
         // Setup default values
+        // These have to be all different AST nodes because they then represent different types
+        // The types are created later, and then the represents field is set after that
         const default_bool = ast_.AST.createFalse(token_.Token.init_simple("false"), std.heap.page_allocator);
         const default_char = ast_.AST.createChar(token_.Token.init_simple("'\\\\0'"), std.heap.page_allocator);
         const default_float32 = ast_.AST.createFloat(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);

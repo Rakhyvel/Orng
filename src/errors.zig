@@ -63,6 +63,14 @@ pub const Error = union(enum) {
         span: span_.Span,
         kind: symbol_.SymbolKind,
     },
+    not_inside_loop: struct {
+        span: span_.Span,
+        name: []const u8,
+    },
+    not_inside_function: struct {
+        span: span_.Span,
+        name: []const u8,
+    },
 
     // Typecheck
     unexpected_type: struct {
@@ -161,6 +169,8 @@ pub const Error = union(enum) {
             .redefinition => return self.redefinition.redefined_span,
             .symbol_error => return self.symbol_error.span,
             .discard_marked => return self.discard_marked.span,
+            .not_inside_loop => return self.not_inside_loop.span,
+            .not_inside_function => return self.not_inside_function.span,
 
             .unexpected_type => return self.unexpected_type.span,
             .expectedBuiltinTypeclass => return self.expectedBuiltinTypeclass.span,
@@ -252,6 +262,8 @@ pub const Errors = struct {
             .redefinition => try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name}),
             .symbol_error => try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem }),
             .discard_marked => try out.print("discarded symbol marked as `{s}`\n", .{symbol_.SymbolKind.to_string(err.discard_marked.kind)}),
+            .not_inside_loop => try out.print("`{s}` is not inside a loop\n", .{err.not_inside_loop.name}),
+            .not_inside_function => try out.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}),
 
             // Typecheck
             .unexpected_type => {

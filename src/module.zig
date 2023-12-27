@@ -249,7 +249,7 @@ pub const Module = struct {
             }
 
             bb.offset = @as(i64, @intCast(self.instructions.items.len));
-            var label = ir_.IR.initLabel(cfg, span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 }, self.allocator);
+            var label = ir_.IR.initLabel(cfg, span_.phony_span, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
@@ -269,7 +269,7 @@ pub const Module = struct {
                     bb.condition.?,
                     bb.next,
                     bb.branch,
-                    span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+                    span_.phony_span,
                     self.allocator,
                 )) catch unreachable;
             } else {
@@ -278,7 +278,7 @@ pub const Module = struct {
                 }
                 self.instructions.append(ir_.IR.init_jump_addr(
                     bb.next,
-                    span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+                    span_.phony_span,
                     self.allocator,
                 )) catch unreachable;
             }
@@ -294,13 +294,13 @@ pub const Module = struct {
         // Append a label which has a back-reference to the CFG
         self.instructions.append(ir_.IR.initLabel(
             cfg,
-            span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+            span_.phony_span,
             self.allocator,
         )) catch unreachable;
         // Append a return instruction (a jump to null)
         self.instructions.append(ir_.IR.init_jump_addr(
             null,
-            span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+            span_.phony_span,
             self.allocator,
         )) catch unreachable;
         return offset;

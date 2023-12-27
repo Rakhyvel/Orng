@@ -34,7 +34,7 @@ fn create_temp_symbol(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Alloc
     var temp_symbol = symbol_.Symbol.init(
         cfg.symbol.scope,
         (buf.toOwned() catch unreachable).?,
-        span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+        span_.phony_span,
         _type,
         undefined,
         null,
@@ -219,7 +219,9 @@ fn lower_AST(
             // Else, create a *single* copy IR with an L_Value tree
             return try generate_assign(cfg, ast.lhs(), rhs.?, labels, errors, allocator);
         },
+
         ._or, ._and => return try or_and_op(ast, cfg, labels, errors, allocator),
+
         .add,
         .sub,
         .mult,
@@ -230,8 +232,11 @@ fn lower_AST(
         .greater_equal,
         .lesser_equal,
         => return try binop(ast, cfg, labels, errors, allocator),
+
         .equal, .not_equal => return try tuple_equality_check(ast, cfg, labels, errors, allocator),
+
         ._catch, ._orelse => return try coalesce_op(ast, cfg, labels, errors, allocator),
+
         .call => {
             const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
@@ -381,31 +386,12 @@ fn lower_AST(
             const end_label = ir_.IR.initLabel(cfg, ast.token().span, allocator); // Exit label of match
             const none_label = ir_.IR.initLabel(cfg, ast.token().span, allocator); // jumped to if all tests fail and no `else` mapping
 
-            var lhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on an unsuccessful test ("next pattern")
-            defer lhs_label_list.deinit();
-            var rhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on a successful test ("code for the mapping")
-            defer rhs_label_list.deinit();
-            for (ast.children().items) |_| {
-                lhs_label_list.append(ir_.IR.initLabel(cfg, ast.token().span, allocator)) catch unreachable;
-                rhs_label_list.append(ir_.IR.initLabel(cfg, ast.token().span, allocator)) catch unreachable;
-            }
-
             if (ast.match.let) |let| { // If there's a let, then do it, dumby!
                 _ = try lower_AST(cfg, let, labels, errors, allocator);
             }
 
             const expr = (try lower_AST(cfg, ast.expr(), labels, errors, allocator)) orelse return null;
-            try generate_match_pattern_checks(
-                cfg,
-                expr,
-                ast.children().*,
-                lhs_label_list,
-                rhs_label_list,
-                none_label,
-                labels,
-                errors,
-                allocator,
-            );
+            const rhs_label_list = try generate_match_pattern_checks(cfg, expr, ast.children().*, none_label, labels, errors, allocator);
 
             if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
                 cfg.appendInstruction(none_label);
@@ -413,7 +399,7 @@ fn lower_AST(
                 cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
             }
 
-            try generate_match_body(
+            try generate_match_bodies(
                 cfg,
                 expr,
                 ast.children().*,
@@ -570,11 +556,8 @@ fn lower_AST(
                 const retval_lval = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);
                 cfg.appendInstruction(ir_.IR.init_simple_copy(retval_lval, retval, ast.token().span, allocator));
                 wrap_error_return(retval, cfg, ast.token().span, labels, allocator);
-                cfg.appendInstruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
-            } else {
-                // Jump to return_label
-                cfg.appendInstruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
             }
+            cfg.appendInstruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
             return null;
         },
 
@@ -1064,13 +1047,19 @@ fn generate_match_pattern_checks(
     cfg: *cfg_.CFG,
     expr: *lval_.L_Value,
     mappings: std.ArrayList(*ast_.AST),
-    lhs_label_list: std.ArrayList(*ir_.IR),
-    rhs_label_list: std.ArrayList(*ir_.IR),
     none_label: *ir_.IR,
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void {
+) !std.ArrayList(*ir_.IR) {
+    var lhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on an unsuccessful test ("next pattern")
+    defer lhs_label_list.deinit();
+    var rhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on a successful test ("code for the mapping")
+    errdefer rhs_label_list.deinit();
+    for (mappings.items) |mapping| {
+        lhs_label_list.append(ir_.IR.initLabel(cfg, mapping.token().span, allocator)) catch unreachable;
+        rhs_label_list.append(ir_.IR.initLabel(cfg, mapping.token().span, allocator)) catch unreachable;
+    }
     for (mappings.items, 0..) |mapping, i| {
         cfg.appendInstruction(lhs_label_list.items[i]);
         if (mapping.mapping_lhs()) |lhs| {
@@ -1082,6 +1071,7 @@ fn generate_match_pattern_checks(
         }
         cfg.appendInstruction(ir_.IR.initJump(rhs_label_list.items[i], mapping.token().span, allocator));
     }
+    return rhs_label_list;
 }
 
 /// Generates the code which checks if the pattern matches the match expression
@@ -1156,7 +1146,7 @@ fn generate_match_pattern_check(
     }
 }
 
-fn generate_match_body(
+fn generate_match_bodies(
     cfg: *cfg_.CFG,
     expr: *lval_.L_Value,
     mappings: std.ArrayList(*ast_.AST),

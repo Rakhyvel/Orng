@@ -4,6 +4,8 @@ const String = @import("zig-string/zig-string.zig").String;
 pub const c_format = "\"{s}:{}:{}:\\n{s}\\n{s}^\"";
 pub const interpreter_format = "{s}:{}:{}:\n{s}\n{s}^\n";
 
+pub const phony_span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 };
+
 pub const Span = struct {
     filename: []const u8,
     line_text: []const u8, // TODO: Rename this to `line`, and `line` to `line_number`

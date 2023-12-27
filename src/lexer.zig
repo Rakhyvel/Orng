@@ -16,7 +16,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     var end: usize = 1;
     if (contents.len == 0) {
         errors.addError(errs_.Error{ .basic = .{
-            .span = span_.Span{ .filename = "", .line_text = "", .line = 0, .col = 0 },
+            .span = span_.phony_span,
             .msg = "file is empty",
         } });
         return error.lexerError;

@@ -201,6 +201,23 @@ pub const Parser = struct {
         }
     }
 
+    fn let_pre(self: *Parser) ParserErrorEnum!?*ast_.AST {
+        var retval: ?*ast_.AST = null;
+        if (self.peek_kind(.LET)) {
+            retval = try self.let_declaration();
+            if (self.peek_kind(.SEMICOLON)) {
+                _ = self.expect(.SEMICOLON) catch {};
+            } else {
+                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
+                    .expected = "a semicolon separating declaration and condition",
+                    .got = self.peek(),
+                } });
+                return error.parseError;
+            }
+        }
+        return retval;
+    }
+
     fn statement(self: *Parser) ParserErrorEnum!*ast_.AST {
         if (self.peek_kind(.LET)) {
             return self.let_declaration();
@@ -557,7 +574,15 @@ pub const Parser = struct {
     fn factor(self: *Parser) ParserErrorEnum!*ast_.AST {
         if (self.accept(.IDENTIFIER)) |token| {
             return ast_.AST.createIdentifier(token, self.allocator);
-        } else if (self.accept(.TRUE)) |token| {
+        } else if (self.peek_kind(.FN)) {
+            return self.fn_declaration();
+        } else {
+            return self.literal();
+        }
+    }
+
+    fn literal(self: *Parser) ParserErrorEnum!*ast_.AST {
+        if (self.accept(.TRUE)) |token| {
             return ast_.AST.createTrue(token, self.allocator);
         } else if (self.accept(.FALSE)) |token| {
             return ast_.AST.createFalse(token, self.allocator);
@@ -579,8 +604,6 @@ pub const Parser = struct {
             return ast_.AST.createString(token, token.data, self.allocator);
         } else if (self.peek_kind(.L_BRACE)) {
             return try self.block_expr();
-        } else if (self.peek_kind(.FN)) {
-            return self.fn_declaration();
         } else if (self.accept(.PERIOD)) |token| {
             const field = ast_.AST.createField(try self.expect(.IDENTIFIER), self.allocator);
             return ast_.AST.createInferredMember(token, field, self.allocator);
@@ -648,19 +671,7 @@ pub const Parser = struct {
 
     fn if_expr(self: *Parser) ParserErrorEnum!*ast_.AST {
         const token = try self.expect(.IF);
-        var let: ?*ast_.AST = null;
-        if (self.peek_kind(.LET)) {
-            let = try self.let_declaration();
-            if (self.peek_kind(.SEMICOLON)) {
-                _ = self.expect(.SEMICOLON) catch {};
-            } else {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
-                    .expected = "a semicolon separating declaration and condition",
-                    .got = self.peek(),
-                } });
-                return error.parseError;
-            }
-        }
+        const let: ?*ast_.AST = try self.let_pre();
         const cond = try self.expr();
         const bodyBlock = try self.factor();
         var elseBlock: ?*ast_.AST = null;
@@ -673,19 +684,7 @@ pub const Parser = struct {
 
     fn while_expr(self: *Parser) ParserErrorEnum!*ast_.AST {
         const token = try self.expect(.WHILE);
-        var let: ?*ast_.AST = null;
-        if (self.peek_kind(.LET)) {
-            let = try self.let_declaration();
-            if (self.peek_kind(.SEMICOLON)) {
-                _ = self.expect(.SEMICOLON) catch {};
-            } else {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
-                    .expected = "a semicolon separating declaration and condition",
-                    .got = self.peek(),
-                } });
-                return error.parseError;
-            }
-        }
+        const let: ?*ast_.AST = try self.let_pre();
         const cond = try self.expr();
         var post: ?*ast_.AST = null;
         if (self.accept(.SEMICOLON)) |_| {
@@ -702,11 +701,7 @@ pub const Parser = struct {
 
     fn for_expr(self: *Parser) ParserErrorEnum!*ast_.AST {
         const token = try self.expect(.FOR);
-        var let: ?*ast_.AST = null;
-        if (self.peek_kind(.LET)) {
-            let = try self.let_declaration();
-            _ = try self.expect(.SEMICOLON);
-        }
+        const let: ?*ast_.AST = try self.let_pre();
         _ = self.accept(.MUT);
         const elem = ast_.AST.createIdentifier(try self.expect(.IDENTIFIER), self.allocator);
         _ = try self.expect(.IN);
@@ -799,20 +794,7 @@ pub const Parser = struct {
     fn match_expr(self: *Parser) ParserErrorEnum!*ast_.AST {
         const token = try self.expect(.MATCH);
         var mappings = std.ArrayList(*ast_.AST).init(self.allocator);
-        var let: ?*ast_.AST = null;
-
-        if (self.peek_kind(.LET)) {
-            let = try self.let_declaration();
-            if (self.peek_kind(.SEMICOLON)) {
-                _ = self.expect(.SEMICOLON) catch {};
-            } else {
-                self.errors.addError(errs_.Error{ .expectedBasicToken = .{
-                    .expected = "a semicolon separating declaration and condition",
-                    .got = self.peek(),
-                } });
-                return error.parseError;
-            }
-        }
+        const let: ?*ast_.AST = try self.let_pre();
         const exp = try self.expr();
 
         _ = try self.expect(.L_BRACE);
@@ -916,38 +898,12 @@ pub const Parser = struct {
             } else {
                 return ast_.AST.createSymbol(token, .let, token.data, self.allocator);
             }
-        } else if (self.accept(.TRUE)) |token| {
-            return ast_.AST.createTrue(token, self.allocator);
-        } else if (self.accept(.FALSE)) |token| {
-            return ast_.AST.createFalse(token, self.allocator);
-        } else if (self.accept(.DECIMAL_INTEGER)) |token| {
-            return ast_.AST.createInt(token, try std.fmt.parseInt(i128, token.data, 10), self.allocator);
-        } else if (self.accept(.HEX_INTEGER)) |token| {
-            return ast_.AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 16), self.allocator);
-        } else if (self.accept(.OCT_INTEGER)) |token| {
-            return ast_.AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.allocator);
-        } else if (self.accept(.BIN_INTEGER)) |token| {
-            return ast_.AST.createInt(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.allocator);
-        } else if (self.accept(.FLOAT)) |token| {
-            return ast_.AST.createFloat(token, try std.fmt.parseFloat(f64, token.data), self.allocator);
-        } else if (self.accept(.CHAR)) |token| {
-            return ast_.AST.createChar(token, self.allocator);
-        } else if (self.accept(.STRING)) |token| {
-            return ast_.AST.createString(token, resolve_escapes(token.data[1 .. token.data.len - 1], self.allocator), self.allocator);
-        } else if (self.accept(.MULTI_LINE)) |token| {
-            return ast_.AST.createString(token, token.data, self.allocator);
-        } else if (self.peek_kind(.L_BRACE)) {
-            return try self.block_expr();
-        } else if (self.accept(.PERIOD)) |token| {
-            const ident = ast_.AST.createField(try self.expect(.IDENTIFIER), self.allocator);
-            return ast_.AST.createInferredMember(token, ident, self.allocator);
         } else if (self.accept(.L_PAREN)) |_| {
             const pattern = try self.match_pattern_product();
             _ = try self.expect(.R_PAREN);
             return pattern;
         } else {
-            self.errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "a pattern", .got = self.peek() } });
-            return ParserErrorEnum.parseError;
+            return self.literal();
         }
     }
 
