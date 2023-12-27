@@ -64,17 +64,17 @@ int64_t _1519_main(void){
     _1519_t14 = _1519_t13(_1520_x, _1520_y);
     $line_idx--;
     if (_1519_t14) {
-        goto BB1830;
+        goto BB1816;
     } else {
-        goto BB1834;
+        goto BB1820;
     }
-BB1830:
+BB1816:
     _1519_t12 = 238;
-    goto BB1833;
-BB1834:
+    goto BB1819;
+BB1820:
     _1519_t12 = 832;
-    goto BB1833;
-BB1833:
+    goto BB1819;
+BB1819:
     _1519_$retval = _1519_t12;
     return _1519_$retval;
 }
@@ -88,40 +88,40 @@ uint8_t _1524_f(struct1 _1524_x,struct1 _1524_y){
     uint8_t _1524_$retval;
     _1524_t2 = _1524_x._0==_1524_y._0;
     if (_1524_t2) {
-        goto BB1822;
+        goto BB1808;
     } else {
-        goto BB1828;
+        goto BB1814;
     }
-BB1822:
+BB1808:
     _1524_t4 = _1524_x._1._0==_1524_y._1._0;
     if (_1524_t4) {
-        goto BB1823;
+        goto BB1809;
     } else {
-        goto BB1828;
+        goto BB1814;
     }
-BB1828:
+BB1814:
     _1524_t0 = 0;
-    goto BB1827;
-BB1823:
+    goto BB1813;
+BB1809:
     _1524_t5 = _1524_x._1._1==_1524_y._1._1;
     if (_1524_t5) {
-        goto BB1824;
+        goto BB1810;
     } else {
-        goto BB1828;
+        goto BB1814;
     }
-BB1827:
+BB1813:
     _1524_$retval = _1524_t0;
     return _1524_$retval;
-BB1824:
+BB1810:
     _1524_t6 = _1524_x._2==_1524_y._2;
     if (_1524_t6) {
-        goto BB1825;
+        goto BB1811;
     } else {
-        goto BB1828;
+        goto BB1814;
     }
-BB1825:
+BB1811:
     _1524_t0 = 1;
-    goto BB1827;
+    goto BB1813;
 }
 
 int main(void) {

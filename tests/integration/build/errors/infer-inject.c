@@ -45,38 +45,38 @@ int64_t _565_main(void){
     _565_t5 = _565_t2.tag;
     _565_t6 = _565_t5==_565_t4;
     if (_565_t6) {
-        goto BB708;
+        goto BB684;
     } else {
-        goto BB709;
+        goto BB685;
     }
-BB708:
+BB684:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB709:
+BB685:
     _565_t7 = 2;
     _565_t8 = _565_t2.tag;
     _565_t9 = _565_t8==_565_t7;
     if (_565_t9) {
-        goto BB711;
+        goto BB687;
     } else {
-        goto BB712;
+        goto BB688;
     }
-BB711:
+BB687:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:5:32:\n        .error_1 => unreachable\n                              ^";
     $panic("reached unreachable code\n");
-BB712:
+BB688:
     _565_t10 = 1;
     _565_t11 = _565_t2.tag;
     _565_t12 = _565_t11==_565_t10;
     if (_565_t12) {
-        goto BB714;
+        goto BB690;
     } else {
-        goto BB718;
+        goto BB694;
     }
-BB714:
+BB690:
     _565_$retval = _565_t2._1;
     return _565_$retval;
-BB718:
+BB694:
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:7:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }
@@ -86,18 +86,18 @@ struct1 _571_f(uint8_t _571_give_int){
     struct1 _571_t0;
     struct1 _571_$retval;
     if (_571_give_int) {
-        goto BB699;
+        goto BB675;
     } else {
-        goto BB703;
+        goto BB679;
     }
-BB699:
+BB675:
     _571_t1 = 240;
     _571_t0 = (struct1) {.tag=1, ._1=_571_t1};
-    goto BB702;
-BB703:
+    goto BB678;
+BB679:
     _571_t0 = (struct1) {.tag=2};
-    goto BB702;
-BB702:
+    goto BB678;
+BB678:
     _571_$retval = _571_t0;
     return _571_$retval;
 }

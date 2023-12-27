@@ -30,23 +30,23 @@ int64_t _784_main(void){
 
 int64_t _786_f(int64_t _786_x){
     int64_t _786_t1;
-    uint8_t _786_t2;
+    uint8_t _786_t3;
     int64_t _786_t0;
     int64_t _786_$retval;
     _786_t1 = 0;
-    _786_t2 = _786_t1!=_786_x;
-    if (_786_t2) {
-        goto BB1015;
+    _786_t3 = _786_t1==_786_x;
+    if (_786_t3) {
+        goto BB996;
     } else {
-        goto BB1019;
+        goto BB992;
     }
-BB1015:
-    _786_t0 = 174;
-    goto BB1018;
-BB1019:
+BB996:
     _786_t0 = 3;
-    goto BB1018;
-BB1018:
+    goto BB995;
+BB992:
+    _786_t0 = 174;
+    goto BB995;
+BB995:
     _786_$retval = _786_t0;
     return _786_$retval;
 }

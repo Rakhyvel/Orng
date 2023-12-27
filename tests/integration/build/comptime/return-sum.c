@@ -32,35 +32,35 @@ struct0 _325_f(int64_t _325_x){
     _325_t1 = 53;
     _325_t3 = _325_x==_325_t1;
     if (_325_t3) {
-        goto BB394;
+        goto BB380;
     } else {
-        goto BB398;
+        goto BB384;
     }
-BB394:
+BB380:
     _325_t4 = 5;
     _325_t5 = $mult_int64_t(_325_x, _325_t4, "tests/integration/comptime/return-sum.orng:13:19:\n        .ok <- x * 5\n                 ^");
     _325_t0 = (struct0) {.tag=0, ._0=_325_t5};
-    goto BB397;
-BB398:
+    goto BB383;
+BB384:
     _325_t8 = 4;
     _325_t10 = _325_x==_325_t8;
     if (_325_t10) {
-        goto BB401;
+        goto BB387;
     } else {
-        goto BB404;
+        goto BB390;
     }
-BB397:
+BB383:
     _325_$retval = _325_t0;
     return _325_$retval;
-BB401:
+BB387:
     _325_t7 = (struct0) {.tag=1};
-    goto BB403;
-BB404:
+    goto BB389;
+BB390:
     _325_t7 = (struct0) {.tag=2};
-    goto BB403;
-BB403:
+    goto BB389;
+BB389:
     _325_t0 = _325_t7;
-    goto BB397;
+    goto BB383;
 }
 
 int64_t _318_main(void){

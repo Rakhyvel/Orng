@@ -87,7 +87,6 @@ pub const IR = struct {
         return retval;
     }
 
-    // TODO: Rename create_branch_ir, rename IR kind as well
     pub fn initBranch(condition: *lval_.L_Value, label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.branchIfFalse, null, condition, null, span, allocator);
         retval.data = Data{ .branch = label };

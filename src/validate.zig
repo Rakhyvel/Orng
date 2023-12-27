@@ -1669,7 +1669,11 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
                 ast_.AST.createIdentifier(token_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator),
                 allocator,
             );
-            retval.set_pos(0);
+            if (_type.sum.was_optional) {
+                retval.set_pos(1);
+            } else {
+                retval.set_pos(0);
+            }
             retval.inferredMember.base = _type;
             const proper_term: *ast_.AST = _type.children().items[0];
             retval.inferredMember.init = try generate_default(proper_term, errors, allocator);

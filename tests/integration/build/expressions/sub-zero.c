@@ -26,24 +26,24 @@ int64_t _867_main(void){
     _867_t2 = _867_t1(_867_t3);
     $line_idx--;
     if (_867_t2) {
-        goto BB1116;
+        goto BB1107;
     } else {
-        goto BB1120;
+        goto BB1111;
     }
-BB1116:
+BB1107:
     _867_t0 = 184;
-    goto BB1119;
-BB1120:
+    goto BB1110;
+BB1111:
     _867_t0 = 4;
-    goto BB1119;
-BB1119:
+    goto BB1110;
+BB1110:
     _867_$retval = _867_t0;
     return _867_$retval;
 }
 
 uint8_t _872_f(int64_t _872_x){
     uint8_t _872_$retval;
-    uint8_t _872_t8;
+    uint8_t _872_t0;
     int64_t _872_t6;
     int64_t _872_t7;
     uint8_t _872_t9;
@@ -51,18 +51,18 @@ uint8_t _872_f(int64_t _872_x){
     _872_t7 = $negate_int64_t(_872_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
     _872_t9 = _872_t6==_872_t7;
     if (_872_t9) {
-        goto BB1108;
+        goto BB1100;
     } else {
-        goto BB1112;
+        goto BB1103;
     }
-BB1108:
-    _872_t8 = 1;
-    goto BB1109;
-BB1112:
-    _872_t8 = 0;
-    goto BB1109;
-BB1109:
-    _872_$retval = _872_t8;
+BB1100:
+    _872_t0 = 1;
+    goto BB1102;
+BB1103:
+    _872_t0 = 0;
+    goto BB1102;
+BB1102:
+    _872_$retval = _872_t0;
     return _872_$retval;
 }
 

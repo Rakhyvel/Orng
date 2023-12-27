@@ -33,17 +33,17 @@ int64_t _542_main(void){
     $tag_check(_542_t3, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
     _542_t6 = _543_x._0==_542_t4;
     if (_542_t6) {
-        goto BB674;
+        goto BB650;
     } else {
-        goto BB678;
+        goto BB654;
     }
-BB674:
+BB650:
     _542_t2 = 133;
-    goto BB677;
-BB678:
+    goto BB653;
+BB654:
     _542_t2 = 0;
-    goto BB677;
-BB677:
+    goto BB653;
+BB653:
     _542_$retval = _542_t2;
     return _542_$retval;
 }

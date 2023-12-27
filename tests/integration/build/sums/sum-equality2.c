@@ -10,7 +10,7 @@
 typedef struct {
     uint64_t tag;
     union {
-        int64_t _1;
+        int64_t _0;
     };
 } struct1;
 
@@ -43,24 +43,24 @@ int64_t _1437_main(void){
     _1437_t8 = _1437_t4.tag;
     _1437_t6 = _1437_t7==_1437_t8;
     if (_1437_t6) {
-        goto BB1758;
+        goto BB1741;
     } else {
-        goto BB1762;
+        goto BB1745;
     }
-BB1758:
+BB1741:
     _1437_t0 = 212;
-    goto BB1761;
-BB1762:
+    goto BB1744;
+BB1745:
     _1437_t0 = -1;
-    goto BB1761;
-BB1761:
+    goto BB1744;
+BB1744:
     _1437_$retval = _1437_t0;
     return _1437_$retval;
 }
 
 struct1 _1442_f(void){
     struct1 _1442_$retval;
-    _1442_$retval = (struct1) {.tag=0};
+    _1442_$retval = (struct1) {.tag=1};
     return _1442_$retval;
 }
 

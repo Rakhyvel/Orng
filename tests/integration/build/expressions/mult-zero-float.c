@@ -26,17 +26,17 @@ int64_t _765_main(void){
     _765_t2 = _765_t1(_765_t3);
     $line_idx--;
     if (_765_t2) {
-        goto BB988;
+        goto BB962;
     } else {
-        goto BB992;
+        goto BB966;
     }
-BB988:
+BB962:
     _765_t0 = 188;
-    goto BB991;
-BB992:
+    goto BB965;
+BB966:
     _765_t0 = 4;
-    goto BB991;
-BB991:
+    goto BB965;
+BB965:
     _765_$retval = _765_t0;
     return _765_$retval;
 }

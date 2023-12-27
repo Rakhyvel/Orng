@@ -12,54 +12,54 @@ int64_t _144_main(void);
 
 /* Function definitions */
 int64_t _147_f(float _147_x,double _147_y,float _147_z,double _147_a){
-    float _147_t3;
-    float _147_t4;
-    uint8_t _147_t6;
+    float _147_t1;
+    float _147_t2;
+    uint8_t _147_t4;
+    float _147_t10;
+    uint8_t _147_t12;
+    double _147_t5;
+    double _147_t6;
+    uint8_t _147_t8;
+    double _147_t13;
+    uint8_t _147_t15;
     int64_t _147_$retval;
-    double _147_t7;
-    double _147_t8;
-    uint8_t _147_t10;
-    float _147_t12;
-    uint8_t _147_t14;
-    double _147_t15;
-    uint8_t _147_t17;
-    _147_t3 = _147_x+_147_z;
-    _147_t4 = 3.5e+00;
-    _147_t6 = _147_t3==_147_t4;
-    if (_147_t6) {
+    _147_t1 = _147_x+_147_z;
+    _147_t2 = 3.5e+00;
+    _147_t4 = _147_t1==_147_t2;
+    if (_147_t4) {
         goto BB125;
     } else {
-        goto BB136;
+        goto BB129;
     }
 BB125:
-    _147_t7 = _147_y+_147_a;
-    _147_t8 = 4.14e+00;
-    _147_t10 = _147_t7==_147_t8;
-    if (_147_t10) {
-        goto BB131;
-    } else {
+    _147_t5 = _147_y+_147_a;
+    _147_t6 = 4.14e+00;
+    _147_t8 = _147_t5==_147_t6;
+    if (_147_t8) {
         goto BB136;
+    } else {
+        goto BB129;
+    }
+BB129:
+    _147_t10 = 2.5e+00;
+    _147_t12 = _147_x==_147_t10;
+    if (_147_t12) {
+        goto BB132;
+    } else {
+        goto BB140;
     }
 BB136:
-    _147_t12 = 2.5e+00;
-    _147_t14 = _147_x==_147_t12;
-    if (_147_t14) {
-        goto BB139;
-    } else {
-        goto BB135;
-    }
-BB131:
     _147_$retval = 259;
     return _147_$retval;
-BB139:
-    _147_t15 = 3.14e+00;
-    _147_t17 = _147_y==_147_t15;
-    if (_147_t17) {
-        goto BB131;
+BB132:
+    _147_t13 = 3.14e+00;
+    _147_t15 = _147_y==_147_t13;
+    if (_147_t15) {
+        goto BB136;
     } else {
-        goto BB135;
+        goto BB140;
     }
-BB135:
+BB140:
     $lines[$line_idx++] = "tests/integration/comptime/float.orng:10:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }

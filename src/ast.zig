@@ -1099,16 +1099,6 @@ pub const AST = union(enum) {
     pub fn create_optional_type(of_type: *AST, allocator: std.mem.Allocator) *AST {
         var term_types = std.ArrayList(*AST).init(allocator);
 
-        const none_type = AST.createAnnotation(
-            of_type.token(),
-            AST.createIdentifier(token_.Token.init_simple("none"), allocator),
-            primitives_.unit_type,
-            null,
-            AST.createUnitValue(token_.Token.init_simple("none init"), allocator),
-            allocator,
-        );
-        term_types.append(none_type) catch unreachable;
-
         const some_type = AST.createAnnotation(
             of_type.token(),
             AST.createIdentifier(token_.Token.init("some", null, "", "", 0, 0), allocator),
@@ -1118,6 +1108,16 @@ pub const AST = union(enum) {
             allocator,
         );
         term_types.append(some_type) catch unreachable;
+
+        const none_type = AST.createAnnotation(
+            of_type.token(),
+            AST.createIdentifier(token_.Token.init_simple("none"), allocator),
+            primitives_.unit_type,
+            null,
+            AST.createUnitValue(token_.Token.init_simple("none init"), allocator),
+            allocator,
+        );
+        term_types.append(none_type) catch unreachable;
 
         var retval = AST.createSum(of_type.token(), term_types, allocator);
         retval.sum.was_optional = true;
@@ -1163,12 +1163,12 @@ pub const AST = union(enum) {
         return retval;
     }
 
-    pub fn get_none_type(opt_sum: *AST) *AST {
+    pub fn get_some_type(opt_sum: *AST) *AST {
         std.debug.assert(opt_sum.sum.was_optional);
         return opt_sum.children().items[0];
     }
 
-    pub fn get_some_type(opt_sum: *AST) *AST {
+    pub fn get_none_type(opt_sum: *AST) *AST {
         std.debug.assert(opt_sum.sum.was_optional);
         return opt_sum.children().items[1];
     }

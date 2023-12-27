@@ -79,21 +79,21 @@ int64_t _1286_sum_up(struct1 _1286_xs){
     int64_t _1286_$retval;
     _1287_sum = 0;
     _1288_i = 0;
-    goto BB1603;
-BB1603:
+    goto BB1586;
+BB1586:
     _1286_t3 = _1288_i<_1286_xs._1;
     if (_1286_t3) {
-        goto BB1604;
+        goto BB1587;
     } else {
-        goto BB1609;
+        goto BB1592;
     }
-BB1604:
+BB1587:
     $bounds_check(_1288_i, _1286_xs._1, "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
     _1287_sum = $add_int64_t(_1287_sum, *((int64_t*)_1286_xs._0 + _1288_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
     _1286_t5 = 1;
     _1288_i = $add_int64_t(_1288_i, _1286_t5, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
-    goto BB1603;
-BB1609:
+    goto BB1586;
+BB1592:
     _1286_$retval = _1287_sum;
     return _1286_$retval;
 }

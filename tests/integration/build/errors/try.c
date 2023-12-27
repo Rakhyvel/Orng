@@ -43,17 +43,17 @@ int64_t _603_main(void){
     $line_idx--;
     _603_t4 = _603_t2.tag;
     if (_603_t4) {
-        goto BB777;
+        goto BB751;
     } else {
-        goto BB783;
+        goto BB757;
     }
-BB777:
+BB751:
     _603_t0 = 122;
-    goto BB778;
-BB783:
+    goto BB752;
+BB757:
     _603_t0 = _603_t2._0;
-    goto BB778;
-BB778:
+    goto BB752;
+BB752:
     _603_t7 = _605_f;
     _603_t9 = 0;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
@@ -61,17 +61,17 @@ BB778:
     $line_idx--;
     _603_t10 = _603_t8.tag;
     if (_603_t10) {
-        goto BB779;
+        goto BB753;
     } else {
-        goto BB782;
+        goto BB756;
     }
-BB779:
+BB753:
     _603_t6 = 122;
-    goto BB780;
-BB782:
+    goto BB754;
+BB756:
     _603_t6 = _603_t8._0;
-    goto BB780;
-BB780:
+    goto BB754;
+BB754:
     _603_$retval = $add_int64_t(_603_t0, _603_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
     return _603_$retval;
 }
@@ -85,33 +85,33 @@ struct1 _605_f(uint8_t _605_fail){
     struct1 _605_t0;
     int64_t _608_x;
     if (_605_fail) {
-        goto BB767;
+        goto BB741;
     } else {
-        goto BB774;
+        goto BB748;
     }
-BB767:
+BB741:
     _605_t1 = _610_g;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
     _605_t2 = _605_t1();
     $line_idx--;
     _605_t3 = _605_t2.tag;
     if (_605_t3) {
-        goto BB768;
+        goto BB742;
     } else {
-        goto BB770;
+        goto BB744;
     }
-BB774:
+BB748:
     _605_t5 = 0;
     _605_t0 = (struct1) {.tag=0, ._0=_605_t5};
-    goto BB773;
-BB768:
+    goto BB747;
+BB742:
     _605_$retval = _605_t2;
     return _605_$retval;
-BB770:
+BB744:
     _608_x = _605_t2._0;
     _605_t0 = (struct1) {.tag=0, ._0=_608_x};
-    goto BB773;
-BB773:
+    goto BB747;
+BB747:
     _605_$retval = _605_t0;
     return _605_$retval;
 }

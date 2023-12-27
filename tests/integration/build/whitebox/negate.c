@@ -24,17 +24,17 @@ int64_t _1579_main(void){
     _1579_t5 = -1;
     _1579_t7 = _1579_t3==_1579_t5;
     if (_1579_t7) {
-        goto BB1918;
+        goto BB1904;
     } else {
-        goto BB1922;
+        goto BB1908;
     }
-BB1918:
+BB1904:
     _1579_t2 = 32;
-    goto BB1921;
-BB1922:
+    goto BB1907;
+BB1908:
     _1579_t2 = 10;
-    goto BB1921;
-BB1921:
+    goto BB1907;
+BB1907:
     _1579_$retval = _1579_t2;
     return _1579_$retval;
 }

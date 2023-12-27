@@ -21,7 +21,7 @@ typedef struct {
 typedef struct {
     uint64_t tag;
     union {
-        int64_t _1;
+        int64_t _0;
     };
 } struct4;
 
@@ -80,8 +80,8 @@ int64_t _34_main(void){
     $bounds_check(_34_t10, _34_t11, "tests/integration/arrays/array-optional.orng:4:12:\n    res[1].some\n          ^");
     _34_t12 = (*((struct4*)&_35_res + _34_t10)).tag;
     $bounds_check(_34_t10, _34_t11, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
-    $tag_check(_34_t12, 1, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
-    _34_$retval = (*((struct4*)&_35_res + _34_t10))._1;
+    $tag_check(_34_t12, 0, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
+    _34_$retval = (*((struct4*)&_35_res + _34_t10))._0;
     return _34_$retval;
 }
 
@@ -115,9 +115,9 @@ struct3 _36_safe_div_vec(struct2 _36_x,struct2 _36_y){
     int64_t _36_t26;
     int64_t _36_t27;
     struct3 _36_$retval;
-    _36_t1 = (struct4) {.tag=0};
-    _36_t2 = (struct4) {.tag=0};
-    _36_t3 = (struct4) {.tag=0};
+    _36_t1 = (struct4) {.tag=1};
+    _36_t2 = (struct4) {.tag=1};
+    _36_t3 = (struct4) {.tag=1};
     _37_retval = (struct3) {_36_t1, _36_t2, _36_t3};
     _36_t4 = _38_safe_div;
     _36_t6 = 0;
@@ -179,11 +179,11 @@ struct4 _38_safe_div(int64_t _38_x,int64_t _38_y){
         goto BB33;
     }
 BB29:
-    _38_t0 = (struct4) {.tag=0};
+    _38_t0 = (struct4) {.tag=1};
     goto BB32;
 BB33:
     _38_t5 = $div_int64_t(_38_x, _38_y, "tests/integration/arrays/array-optional.orng:19:21:\n        .some <- x / y\n                   ^");
-    _38_t0 = (struct4) {.tag=1, ._1=_38_t5};
+    _38_t0 = (struct4) {.tag=0, ._0=_38_t5};
     goto BB32;
 BB32:
     _38_$retval = _38_t0;

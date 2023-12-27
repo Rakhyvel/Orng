@@ -42,43 +42,43 @@ int64_t _1200_main(void){
     $bounds_check(_1200_t5, _1200_t6, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
     _1200_t8 = *((int64_t*)&_1201_x + _1200_t5)==_1200_t7;
     if (_1200_t8) {
-        goto BB1464;
+        goto BB1447;
     } else {
-        goto BB1467;
+        goto BB1450;
     }
-BB1464:
+BB1447:
     _1200_t0 = 2;
-    goto BB1466;
-BB1467:
+    goto BB1449;
+BB1450:
     _1200_t9 = 2;
     $bounds_check(_1200_t5, _1200_t6, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
     _1200_t10 = *((int64_t*)&_1201_x + _1200_t5)==_1200_t9;
     if (_1200_t10) {
-        goto BB1469;
+        goto BB1452;
     } else {
-        goto BB1470;
+        goto BB1453;
     }
-BB1466:
+BB1449:
     _1200_$retval = _1200_t0;
     return _1200_$retval;
-BB1469:
+BB1452:
     _1200_t0 = 22;
-    goto BB1466;
-BB1470:
+    goto BB1449;
+BB1453:
     _1200_t11 = 3;
     $bounds_check(_1200_t5, _1200_t6, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
     _1200_t12 = *((int64_t*)&_1201_x + _1200_t5)==_1200_t11;
     if (_1200_t12) {
-        goto BB1472;
+        goto BB1455;
     } else {
-        goto BB1474;
+        goto BB1457;
     }
-BB1472:
+BB1455:
     _1200_t0 = 222;
-    goto BB1466;
-BB1474:
+    goto BB1449;
+BB1457:
     _1200_t0 = 0;
-    goto BB1466;
+    goto BB1449;
 }
 
 int main(void) {

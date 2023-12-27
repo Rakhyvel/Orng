@@ -10,7 +10,7 @@
 typedef struct {
     uint64_t tag;
     union {
-        int32_t _1;
+        int32_t _0;
     };
 } struct0;
 
@@ -28,33 +28,33 @@ int64_t _249_f(struct0 _249_x){
     uint64_t _249_t5;
     uint8_t _249_t6;
     int64_t _249_$retval;
-    _249_t1 = 1;
+    _249_t1 = 0;
     _249_t2 = _249_x.tag;
     _249_t3 = _249_t2==_249_t1;
     if (_249_t3) {
-        goto BB262;
+        goto BB260;
     } else {
-        goto BB265;
+        goto BB263;
     }
-BB262:
+BB260:
     _249_t0 = 250;
-    goto BB264;
-BB265:
-    _249_t4 = 0;
+    goto BB262;
+BB263:
+    _249_t4 = 1;
     _249_t5 = _249_x.tag;
     _249_t6 = _249_t5==_249_t4;
     if (_249_t6) {
-        goto BB267;
+        goto BB265;
     } else {
-        goto BB269;
+        goto BB267;
     }
-BB264:
+BB262:
     _249_$retval = _249_t0;
     return _249_$retval;
-BB267:
+BB265:
     _249_t0 = 11;
-    goto BB264;
-BB269:
+    goto BB262;
+BB267:
     $lines[$line_idx++] = "tests/integration/comptime/optional.orng:10:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
 }

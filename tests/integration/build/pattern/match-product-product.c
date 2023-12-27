@@ -49,46 +49,46 @@ int64_t _1220_main(void){
     _1220_t8 = 100;
     _1220_t9 = _1220_t1._0._0==_1220_t8;
     if (_1220_t9) {
-        goto BB1497;
+        goto BB1480;
     } else {
-        goto BB1502;
+        goto BB1485;
     }
-BB1497:
+BB1480:
     _1220_t10 = 130;
     _1220_t11 = _1220_t1._0._1==_1220_t10;
     if (_1220_t11) {
-        goto BB1499;
+        goto BB1482;
     } else {
-        goto BB1502;
+        goto BB1485;
     }
-BB1502:
+BB1485:
     _1220_t12 = 100;
     _1220_t13 = _1220_t1._0._0==_1220_t12;
     if (_1220_t13) {
-        goto BB1503;
+        goto BB1486;
     } else {
-        goto BB1507;
+        goto BB1490;
     }
-BB1499:
+BB1482:
     _1220_t0 = 4;
-    goto BB1501;
-BB1503:
+    goto BB1484;
+BB1486:
     _1220_t14 = 100;
     _1220_t15 = _1220_t1._0._1==_1220_t14;
     if (_1220_t15) {
-        goto BB1505;
+        goto BB1488;
     } else {
-        goto BB1507;
+        goto BB1490;
     }
-BB1507:
+BB1490:
     $lines[$line_idx++] = "tests/integration/pattern/match-product-product.orng:6:28:\n        else => unreachable\n                          ^";
     $panic("reached unreachable code\n");
-BB1501:
+BB1484:
     _1220_$retval = _1220_t0;
     return _1220_$retval;
-BB1505:
+BB1488:
     _1220_t0 = 170;
-    goto BB1501;
+    goto BB1484;
 }
 
 int main(void) {

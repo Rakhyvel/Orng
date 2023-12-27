@@ -389,7 +389,7 @@ pub const Context = struct {
                     self.ret();
                 }
             },
-            .branchIfFalse => {
+            .branchIfFalse => { // TODO: This is confusing...
                 if (self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof()) != 0) {
                     if (ir.data.branch_bb.next) |next| {
                         self.instruction_pointer = next.offset.?;

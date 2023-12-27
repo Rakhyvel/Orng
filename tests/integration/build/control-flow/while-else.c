@@ -18,22 +18,22 @@ int64_t _469_main(void){
     int64_t _469_t7;
     int64_t _469_$retval;
     _471_x = 0;
-    goto BB582;
-BB582:
+    goto BB562;
+BB562:
     _469_t2 = 10;
     _469_t3 = _471_x<_469_t2;
     if (_469_t3) {
-        goto BB583;
+        goto BB563;
     } else {
-        goto BB587;
+        goto BB567;
     }
-BB583:
+BB563:
     _469_t4 = 1;
     _471_x = $add_int64_t(_471_x, _469_t4, "tests/integration/control-flow/while-else.orng:4:13:\n        x += 1\n           ^");
     _469_t7 = 1;
     _471_x = $add_int64_t(_471_x, _469_t7, "tests/integration/control-flow/while-else.orng:3:43:\n    while let mut x: Int = 0; x < 10; x += 1 {\n                                         ^");
-    goto BB582;
-BB587:
+    goto BB562;
+BB567:
     _469_$retval = _471_x;
     return _469_$retval;
 }

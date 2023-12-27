@@ -10,7 +10,7 @@
 typedef struct {
     uint64_t tag;
     union {
-        int64_t _1;
+        int64_t _0;
     };
 } struct0;
 
@@ -24,10 +24,10 @@ int64_t _1061_main(void){
     uint64_t _1061_t12;
     int64_t _1061_$retval;
     _1061_t10 = 128;
-    _1062_x = (struct0) {.tag=1, ._1=_1061_t10};
-    _1061_t12 = 1;
-    $tag_check(_1061_t12, 1, "tests/integration/optional/expected-option-match-else.orng:2:3:\nfn main() -> Int {\n ^");
-    _1061_$retval = _1062_x._1;
+    _1062_x = (struct0) {.tag=0, ._0=_1061_t10};
+    _1061_t12 = 0;
+    $tag_check(_1061_t12, 0, "tests/integration/optional/expected-option-match-else.orng:2:3:\nfn main() -> Int {\n ^");
+    _1061_$retval = _1062_x._0;
     return _1061_$retval;
 }
 

@@ -26,17 +26,17 @@ int64_t _853_main(void){
     _853_t2 = _853_t1(_853_t3);
     $line_idx--;
     if (_853_t2) {
-        goto BB1088;
+        goto BB1078;
     } else {
-        goto BB1092;
+        goto BB1082;
     }
-BB1088:
+BB1078:
     _853_t0 = 0;
-    goto BB1091;
-BB1092:
+    goto BB1081;
+BB1082:
     _853_t0 = 223;
-    goto BB1091;
-BB1091:
+    goto BB1081;
+BB1081:
     _853_$retval = _853_t0;
     return _853_$retval;
 }

@@ -26,17 +26,17 @@ int64_t _619_main(void){
     _619_t2 = _619_t1(_619_t3);
     $line_idx--;
     if (_619_t2) {
-        goto BB800;
+        goto BB774;
     } else {
-        goto BB804;
+        goto BB778;
     }
-BB800:
+BB774:
     _619_t0 = 182;
-    goto BB803;
-BB804:
+    goto BB777;
+BB778:
     _619_t0 = 4;
-    goto BB803;
-BB803:
+    goto BB777;
+BB777:
     _619_$retval = _619_t0;
     return _619_$retval;
 }

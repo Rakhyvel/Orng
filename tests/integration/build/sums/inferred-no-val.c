@@ -33,14 +33,14 @@ int64_t _1408_main(void){
     $tag_check(_1408_t3, 0, "tests/integration/sums/inferred-no-val.orng:3:10:\n    let x: (a: Int | b: Int) = .a\n        ^");
     _1408_t6 = _1409_x._0==_1408_t4;
     if (_1408_t6) {
-        goto BB1727;
+        goto BB1710;
     } else {
-        goto BB1731;
+        goto BB1714;
     }
-BB1727:
+BB1710:
     _1408_$retval = 280;
     return _1408_$retval;
-BB1731:
+BB1714:
     $lines[$line_idx++] = "tests/integration/sums/inferred-no-val.orng:7:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }

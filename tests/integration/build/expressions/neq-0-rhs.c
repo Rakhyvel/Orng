@@ -30,23 +30,23 @@ int64_t _792_main(void){
 
 int64_t _794_f(int64_t _794_x){
     int64_t _794_t1;
-    uint8_t _794_t2;
+    uint8_t _794_t3;
     int64_t _794_t0;
     int64_t _794_$retval;
     _794_t1 = 0;
-    _794_t2 = _794_x!=_794_t1;
-    if (_794_t2) {
-        goto BB1024;
+    _794_t3 = _794_x==_794_t1;
+    if (_794_t3) {
+        goto BB1008;
     } else {
-        goto BB1028;
+        goto BB1004;
     }
-BB1024:
-    _794_t0 = 173;
-    goto BB1027;
-BB1028:
+BB1008:
     _794_t0 = 3;
-    goto BB1027;
-BB1027:
+    goto BB1007;
+BB1004:
+    _794_t0 = 173;
+    goto BB1007;
+BB1007:
     _794_$retval = _794_t0;
     return _794_$retval;
 }

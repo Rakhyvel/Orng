@@ -19,46 +19,46 @@ int64_t _277_main(void);
 
 /* Function definitions */
 int64_t _281_f(struct0 _281_m){
-    int8_t _281_t3;
-    uint8_t _281_t5;
+    int8_t _281_t1;
+    uint8_t _281_t3;
     int64_t _281_t0;
-    int32_t _281_t6;
-    uint8_t _281_t8;
-    int8_t _281_t9;
-    uint8_t _281_t11;
+    int32_t _281_t4;
+    uint8_t _281_t6;
     int64_t _281_$retval;
-    _281_t3 = 100;
-    _281_t5 = _281_m._0==_281_t3;
-    if (_281_t5) {
-        goto BB328;
+    int8_t _281_t7;
+    uint8_t _281_t9;
+    _281_t1 = 100;
+    _281_t3 = _281_m._0==_281_t1;
+    if (_281_t3) {
+        goto BB318;
     } else {
-        goto BB340;
+        goto BB328;
+    }
+BB318:
+    _281_t4 = 50;
+    _281_t6 = _281_m._1==_281_t4;
+    if (_281_t6) {
+        goto BB321;
+    } else {
+        goto BB328;
     }
 BB328:
-    _281_t6 = 50;
-    _281_t8 = _281_m._1==_281_t6;
-    if (_281_t8) {
-        goto BB332;
-    } else {
-        goto BB340;
-    }
-BB340:
     _281_t0 = 0;
-    goto BB339;
-BB332:
-    _281_t9 = 7;
-    _281_t11 = _281_m._2==_281_t9;
-    if (_281_t11) {
-        goto BB336;
+    goto BB327;
+BB321:
+    _281_t7 = 7;
+    _281_t9 = _281_m._2==_281_t7;
+    if (_281_t9) {
+        goto BB324;
     } else {
-        goto BB340;
+        goto BB328;
     }
-BB339:
+BB327:
     _281_$retval = _281_t0;
     return _281_$retval;
-BB336:
+BB324:
     _281_t0 = 248;
-    goto BB339;
+    goto BB327;
 }
 
 int64_t _277_main(void){
