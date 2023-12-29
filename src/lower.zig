@@ -27,31 +27,6 @@ const Labels = struct {
     const null_labels: Labels = .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null };
 };
 
-fn create_temp_symbol(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
-    var buf = String.init_with_contents(allocator, "t") catch unreachable;
-    buf.writer().print("{}", .{cfg.number_temps}) catch unreachable;
-    cfg.number_temps += 1;
-    var temp_symbol = symbol_.Symbol.init(
-        cfg.symbol.scope,
-        (buf.toOwned() catch unreachable).?,
-        span_.phony_span,
-        _type,
-        undefined,
-        null,
-        .mut,
-        allocator,
-    );
-    temp_symbol.expanded_type = _type.expand_type(allocator);
-    temp_symbol.is_temp = true;
-    return temp_symbol;
-}
-
-fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
-    const temp_symbol = create_temp_symbol(cfg, _type, allocator);
-    const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
-    return retval;
-}
-
 pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, Labels.null_labels, errors, allocator);
     if (cfg.symbol.decl.?.* == .fn_decl) {
@@ -568,21 +543,6 @@ fn lower_AST(
     }
 }
 
-fn lval_from_symbol_cfg(
-    symbol: *symbol_.Symbol,
-    cfg: *cfg_.CFG,
-    span: span_.Span,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) !*lval_.L_Value { // TODO: Uninfer error
-    _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
-    const lval = create_temp_lvalue(cfg, symbol._type, allocator);
-    var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
-    ir.data = ir_.Data{ .symbol = symbol };
-    cfg.append_instruction(ir);
-    return lval;
-}
-
 fn lval_from_ast(
     ast: *ast_.AST,
     cfg: *cfg_.CFG,
@@ -605,6 +565,21 @@ fn lval_from_int(
     return temp;
 }
 
+fn lval_from_symbol_cfg(
+    symbol: *symbol_.Symbol,
+    cfg: *cfg_.CFG,
+    span: span_.Span,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) !*lval_.L_Value { // TODO: Uninfer error
+    _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
+    const lval = create_temp_lvalue(cfg, symbol._type, allocator);
+    var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
+    ir.data = ir_.Data{ .symbol = symbol };
+    cfg.append_instruction(ir);
+    return lval;
+}
+
 fn unop(
     ast: *ast_.AST,
     cfg: *cfg_.CFG,
@@ -619,38 +594,6 @@ fn unop(
     const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
     cfg.append_instruction(ir_.IR.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.token().span, allocator));
     return temp;
-}
-
-fn or_and_op(
-    ast: *ast_.AST,
-    cfg: *cfg_.CFG,
-    labels: Labels,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) !?*lval_.L_Value { // TODO: Uninfer error
-    // Create the result symbol and labels used
-    const or_and_symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
-    const jump_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
-    const end_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
-
-    const should_jump = ast.* == .@"or";
-
-    // Test condition
-    try flow(ast.lhs(), jump_label, should_jump, cfg, ast.token().span, labels, errors, allocator);
-    try flow(ast.rhs(), jump_label, should_jump, cfg, ast.token().span, labels, errors, allocator);
-
-    // never jumped, store whether that's good or not in temp
-    const load_false_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
-    cfg.append_instruction(ir_.IR.init_int(load_false_lval, if (should_jump) 0 else 1, ast.token().span, allocator));
-    cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
-
-    // jumped, store whether that's good or not in temp
-    cfg.append_instruction(jump_label);
-    const load_true_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
-    cfg.append_instruction(ir_.IR.init_int(load_true_lval, if (should_jump) 1 else 0, ast.token().span, allocator));
-
-    cfg.append_instruction(end_label);
-    return lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
 }
 
 fn binop(
@@ -704,6 +647,38 @@ fn float_kind(ast: *ast_.AST) ir_.Kind {
         .lesser_equal => .lesser_equal_float,
         else => unreachable,
     };
+}
+
+fn or_and_op(
+    ast: *ast_.AST,
+    cfg: *cfg_.CFG,
+    labels: Labels,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) !?*lval_.L_Value { // TODO: Uninfer error
+    // Create the result symbol and labels used
+    const or_and_symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
+    const jump_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
+    const end_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
+
+    const should_jump = ast.* == .@"or";
+
+    // Test condition
+    try flow(ast.lhs(), jump_label, should_jump, cfg, ast.token().span, labels, errors, allocator);
+    try flow(ast.rhs(), jump_label, should_jump, cfg, ast.token().span, labels, errors, allocator);
+
+    // never jumped, store whether that's good or not in temp
+    const load_false_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
+    cfg.append_instruction(ir_.IR.init_int(load_false_lval, if (should_jump) 0 else 1, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
+
+    // jumped, store whether that's good or not in temp
+    cfg.append_instruction(jump_label);
+    const load_true_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
+    cfg.append_instruction(ir_.IR.init_int(load_true_lval, if (should_jump) 1 else 0, ast.token().span, allocator));
+
+    cfg.append_instruction(end_label);
+    return lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
 }
 
 fn tuple_equality_check(
@@ -822,6 +797,88 @@ fn coalesce_op(
     cfg.append_instruction(end_label);
     return lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
 }
+fn generate_assign(
+    cfg: *cfg_.CFG, // Current control-flow-graph
+    lhs: *ast_.AST, // AST node for the LHS of the `=`
+    rhs: *lval_.L_Value, // L_Value which holds the value to assign
+    labels: Labels,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Flatten_AST_Error!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
+{
+    if (lhs.* == .product) {
+        // Recursively call `generate_assign` for each term in the product.
+        // product-assigns may be nested, for example:
+        //     ((x, y), (a, b)) = get_tuple()
+        // So it's important that this is recursive
+        var lhs_expanded_type = lhs.typeof(allocator).expand_type(allocator);
+        for (lhs.children().items, 0..) |term, i| {
+            const product_lhs = try lower_AST(cfg, term, labels, errors, allocator);
+            if (product_lhs == null) {
+                continue;
+            }
+            const _type = rhs.get_type().children().items[i];
+            const size = _type.expand_type(allocator).sizeof();
+            const select = lval_.L_Value.create_select(
+                rhs,
+                i,
+                lhs_expanded_type.product.get_offset(i, allocator),
+                size,
+                _type,
+                _type.expand_type(allocator),
+                null,
+                allocator,
+            );
+            _ = try generate_assign(cfg, term, select, labels, errors, allocator);
+        }
+        return null;
+    } else {
+        // Get L_Value tree, create a `copy` IR of L_Value tree and rhs
+        const lval = try lower_AST(cfg, lhs, labels, errors, allocator);
+        var ir = ir_.IR.init(.copy, null, rhs, null, lhs.token().span, allocator);
+        ir.dest = lval;
+        ir.safe = true;
+        cfg.append_instruction(ir);
+        return null;
+    }
+}
+
+/// Generates the IR to get the length of either an array or a slice. Used by indices to get the length for bounds checks
+fn generate_indexable_length(
+    cfg: *cfg_.CFG,
+    lhs: *lval_.L_Value,
+    _type: *ast_.AST,
+    span: span_.Span,
+    allocator: std.mem.Allocator,
+) *lval_.L_Value {
+    if (_type.* == .product and _type.product.was_slice) {
+        const offset = _type.product.get_offset(1, allocator);
+        return lval_.L_Value.create_select(lhs, 1, offset, 8, primitives_.int64_type, primitives_.int64_type, null, allocator);
+    } else if (_type.* == .product and !_type.product.was_slice) {
+        const retval = create_temp_lvalue(cfg, primitives_.int_type, allocator);
+        cfg.append_instruction(ir_.IR.init_int(retval, _type.children().items.len, span, allocator));
+        return retval;
+    } else {
+        unreachable;
+    }
+}
+
+/// Generates code to verify at runtime that a subslice's lower bound is less-than-or-equal-to the subslice's upper bound.
+fn generate_subslice_check(
+    cfg: *cfg_.CFG,
+    lower: *lval_.L_Value,
+    upper: *lval_.L_Value,
+    span: span_.Span,
+    allocator: std.mem.Allocator,
+) void {
+    const end_label = ir_.IR.init_label(cfg, span, allocator);
+    const compare = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
+    cfg.append_instruction(ir_.IR.init(.greater_int, compare, lower, upper, span, allocator));
+    cfg.append_instruction(ir_.IR.init_branch(compare, end_label, span, allocator));
+    cfg.append_instruction(ir_.IR.init_stack_push(span, allocator));
+    cfg.append_instruction(ir_.IR.init_panic("subslice lower bound is greater than upper bound", span, allocator));
+    cfg.append_instruction(end_label);
+}
 
 /// Generates IR code to jump to `label` iff `condition` evaluates to `sense`.
 fn flow(
@@ -870,136 +927,6 @@ fn flow(
             cfg.append_instruction(ir_.IR.init_branch(condition_lval, label, span, allocator));
         },
     }
-}
-
-fn generate_assign(
-    cfg: *cfg_.CFG, // Current control-flow-graph
-    lhs: *ast_.AST, // AST node for the LHS of the `=`
-    rhs: *lval_.L_Value, // L_Value which holds the value to assign
-    labels: Labels,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
-{
-    if (lhs.* == .product) {
-        // Recursively call `generate_assign` for each term in the product.
-        // product-assigns may be nested, for example:
-        //     ((x, y), (a, b)) = get_tuple()
-        // So it's important that this is recursive
-        var lhs_expanded_type = lhs.typeof(allocator).expand_type(allocator);
-        for (lhs.children().items, 0..) |term, i| {
-            const product_lhs = try lower_AST(cfg, term, labels, errors, allocator);
-            if (product_lhs == null) {
-                continue;
-            }
-            const _type = rhs.get_type().children().items[i];
-            const size = _type.expand_type(allocator).sizeof();
-            const select = lval_.L_Value.create_select(
-                rhs,
-                i,
-                lhs_expanded_type.product.get_offset(i, allocator),
-                size,
-                _type,
-                _type.expand_type(allocator),
-                null,
-                allocator,
-            );
-            _ = try generate_assign(cfg, term, select, labels, errors, allocator);
-        }
-        return null;
-    } else {
-        // Get L_Value tree, create a `copy` IR of L_Value tree and rhs
-        const lval = try lower_AST(cfg, lhs, labels, errors, allocator);
-        var ir = ir_.IR.init(.copy, null, rhs, null, lhs.token().span, allocator);
-        ir.dest = lval;
-        ir.safe = true;
-        cfg.append_instruction(ir);
-        return null;
-    }
-}
-
-fn generate_pattern(
-    cfg: *cfg_.CFG,
-    pattern: *ast_.AST,
-    _type: *ast_.AST,
-    def: *lval_.L_Value,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
-    if (pattern.* == .pattern_symbol) {
-        if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
-            const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, allocator);
-            cfg.append_instruction(ir_.IR.init_simple_copy(symbver, def, pattern.token().span, allocator));
-        }
-    } else if (pattern.* == .product) {
-        for (pattern.children().items, 0..) |term, i| {
-            const subscript_type = _type.children().items[i];
-            const size = subscript_type.expand_type(allocator).sizeof();
-            const offset = _type.product.get_offset(i, allocator);
-            const lval = lval_.L_Value.create_select(
-                def,
-                i,
-                offset,
-                size,
-                subscript_type,
-                subscript_type.expand_type(allocator),
-                null,
-                allocator,
-            );
-            try generate_pattern(cfg, term, subscript_type, lval, errors, allocator);
-        }
-    } else if (pattern.* == .inject) {
-        const domain = pattern.inject.domain.?;
-        const size = domain.expand_type(allocator).sizeof();
-        const lval = lval_.L_Value.create_select(
-            def,
-            pattern.lhs().pos().?,
-            0,
-            size,
-            domain,
-            domain.expand_type(allocator),
-            null,
-            allocator,
-        );
-        try generate_pattern(cfg, pattern.rhs(), domain, lval, errors, allocator);
-    }
-}
-
-/// Generates the IR to get the length of either an array or a slice. Used by indices to get the length for bounds checks
-fn generate_indexable_length(
-    cfg: *cfg_.CFG,
-    lhs: *lval_.L_Value,
-    _type: *ast_.AST,
-    span: span_.Span,
-    allocator: std.mem.Allocator,
-) *lval_.L_Value {
-    if (_type.* == .product and _type.product.was_slice) {
-        const offset = _type.product.get_offset(1, allocator);
-        return lval_.L_Value.create_select(lhs, 1, offset, 8, primitives_.int64_type, primitives_.int64_type, null, allocator);
-    } else if (_type.* == .product and !_type.product.was_slice) {
-        const retval = create_temp_lvalue(cfg, primitives_.int_type, allocator);
-        cfg.append_instruction(ir_.IR.init_int(retval, _type.children().items.len, span, allocator));
-        return retval;
-    } else {
-        unreachable;
-    }
-}
-
-/// Generates code to verify at runtime that a subslice's lower bound is less-than-or-equal-to the subslice's upper bound.
-fn generate_subslice_check(
-    cfg: *cfg_.CFG,
-    lower: *lval_.L_Value,
-    upper: *lval_.L_Value,
-    span: span_.Span,
-    allocator: std.mem.Allocator,
-) void {
-    const end_label = ir_.IR.init_label(cfg, span, allocator);
-    const compare = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-    cfg.append_instruction(ir_.IR.init(.greater_int, compare, lower, upper, span, allocator));
-    cfg.append_instruction(ir_.IR.init_branch(compare, end_label, span, allocator));
-    cfg.append_instruction(ir_.IR.init_stack_push(span, allocator));
-    cfg.append_instruction(ir_.IR.init_panic("subslice lower bound is greater than upper bound", span, allocator));
-    cfg.append_instruction(end_label);
 }
 
 /// Wraps stores to an lval in either a union or as a simple-copy
@@ -1190,6 +1117,31 @@ fn wrap_error_return(
     }
 }
 
+fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
+    const temp_symbol = create_temp_symbol(cfg, _type, allocator);
+    const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
+    return retval;
+}
+
+fn create_temp_symbol(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
+    var buf = String.init_with_contents(allocator, "t") catch unreachable;
+    buf.writer().print("{}", .{cfg.number_temps}) catch unreachable;
+    cfg.number_temps += 1;
+    var temp_symbol = symbol_.Symbol.init(
+        cfg.symbol.scope,
+        (buf.toOwned() catch unreachable).?,
+        span_.phony_span,
+        _type,
+        undefined,
+        null,
+        .mut,
+        allocator,
+    );
+    temp_symbol.expanded_type = _type.expand_type(allocator);
+    temp_symbol.is_temp = true;
+    return temp_symbol;
+}
+
 fn generate_defers(
     cfg: *cfg_.CFG,
     defers: *std.ArrayList(*ast_.AST),
@@ -1201,5 +1153,52 @@ fn generate_defers(
     while (i > 0) : (i -= 1) {
         cfg.append_instruction(defer_labels.items[i - 1]);
         _ = try lower_AST(cfg, defers.items[i - 1], Labels.null_labels, errors, allocator);
+    }
+}
+
+fn generate_pattern(
+    cfg: *cfg_.CFG,
+    pattern: *ast_.AST,
+    _type: *ast_.AST,
+    def: *lval_.L_Value,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Flatten_AST_Error!void {
+    if (pattern.* == .pattern_symbol) {
+        if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
+            const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, allocator);
+            cfg.append_instruction(ir_.IR.init_simple_copy(symbver, def, pattern.token().span, allocator));
+        }
+    } else if (pattern.* == .product) {
+        for (pattern.children().items, 0..) |term, i| {
+            const subscript_type = _type.children().items[i];
+            const size = subscript_type.expand_type(allocator).sizeof();
+            const offset = _type.product.get_offset(i, allocator);
+            const lval = lval_.L_Value.create_select(
+                def,
+                i,
+                offset,
+                size,
+                subscript_type,
+                subscript_type.expand_type(allocator),
+                null,
+                allocator,
+            );
+            try generate_pattern(cfg, term, subscript_type, lval, errors, allocator);
+        }
+    } else if (pattern.* == .inject) {
+        const domain = pattern.inject.domain.?;
+        const size = domain.expand_type(allocator).sizeof();
+        const lval = lval_.L_Value.create_select(
+            def,
+            pattern.lhs().pos().?,
+            0,
+            size,
+            domain,
+            domain.expand_type(allocator),
+            null,
+            allocator,
+        );
+        try generate_pattern(cfg, pattern.rhs(), domain, lval, errors, allocator);
     }
 }
