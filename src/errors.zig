@@ -373,8 +373,7 @@ pub const Errors = struct {
             } else if (span.line_text.len > 0) {
                 try out.print("{s}\n", .{span.line_text});
             }
-            var i: usize = 2;
-            while (i < span.col) : (i += 1) {
+            for (2..span.col) |_| {
                 try out.print(" ", .{});
             }
             try term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", out);

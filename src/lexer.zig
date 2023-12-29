@@ -13,7 +13,6 @@ var rnd = Rnd_Gen.init(0);
 // TODO: Move to own file
 pub fn get_lines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void { // TODO: Uninfer error
     var start: usize = 0;
-    var end: usize = 1;
     if (contents.len == 0) {
         errors.add_error(errs_.Error{ .basic = .{
             .span = span_.phony_span,
@@ -21,13 +20,13 @@ pub fn get_lines(contents: []const u8, lines: *std.ArrayList([]const u8), errors
         } });
         return error.LexerError;
     }
-    while (end < contents.len) : (end += 1) {
+    for (1..contents.len) |end| {
         if (contents[end] == '\n') {
             lines.append(contents[start..end]) catch unreachable;
             start = end + 1;
         }
     }
-    lines.append(contents[start..end]) catch unreachable;
+    lines.append(contents[start..contents.len]) catch unreachable;
 }
 
 // TODO: Make lexer into a class

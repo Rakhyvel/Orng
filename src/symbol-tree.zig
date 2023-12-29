@@ -374,8 +374,7 @@ fn create_function_symbol(
     }
 
     const key_set = fn_scope.symbols.keys();
-    var i: usize = 0;
-    while (i < key_set.len) : (i += 1) {
+    for (0..key_set.len) |i| {
         const key = key_set[i];
         var symbol = fn_scope.symbols.get(key).?;
         symbol.defined = true;
@@ -430,8 +429,7 @@ fn extract_domain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocat
     } else {
         std.debug.assert(params.items.len >= 2);
         var param_types = std.ArrayList(*ast_.AST).init(allocator);
-        var i: usize = 0;
-        while (i < params.items.len) : (i += 1) {
+        for (0..params.items.len) |i| {
             param_types.append(ast_.AST.create_annotation(
                 params.items[i].token(),
                 params.items[i].decl.pattern,

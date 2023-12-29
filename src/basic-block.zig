@@ -121,8 +121,7 @@ pub const Basic_Block = struct {
 
     pub fn print_symbver_list(list: *std.ArrayList(*lval_.Symbol_Version)) void {
         std.debug.print("(", .{});
-        var i: usize = 0;
-        while (i < list.items.len) : (i += 1) {
+        for (0..list.items.len) |i| {
             const symbver = list.items[i];
             std.debug.print("{s}_{?}", .{ symbver.symbol.name, symbver.version });
             if (i < list.items.len - 1) {

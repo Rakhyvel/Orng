@@ -344,6 +344,23 @@ fn create_unit_type() *ast_.AST {
     return ast_.AST.create_unit_type(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
 }
 
+fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *symbol_.Symbol {
+    var symbol = symbol_.Symbol.init(
+        prelude.?,
+        name,
+        span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
+        _type,
+        init,
+        null,
+        .@"const",
+        std.heap.page_allocator,
+    ).assert_valid();
+    symbol.is_temp = true;
+    symbol.expanded_type = _type;
+    prelude.?.symbols.put(name, symbol) catch unreachable;
+    return symbol;
+}
+
 fn create_info(
     name: []const u8, // Name of the primitive type identifier
     bounds: ?Bounds, // Optional bounds info for integral types
@@ -368,23 +385,6 @@ fn create_info(
         .default_value = default_value,
         .size = size,
     }) catch unreachable;
-}
-
-fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *symbol_.Symbol {
-    var symbol = symbol_.Symbol.init(
-        prelude.?,
-        name,
-        span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
-        _type,
-        init,
-        null,
-        .@"const",
-        std.heap.page_allocator,
-    ).assert_valid();
-    symbol.is_temp = true;
-    symbol.expanded_type = _type;
-    prelude.?.symbols.put(name, symbol) catch unreachable;
-    return symbol;
 }
 
 pub fn keys() [][]const u8 {
