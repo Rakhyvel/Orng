@@ -31,7 +31,7 @@ pub const Parser = struct {
         return self.tokens.items[self.cursor];
     }
 
-    fn peek_kind(self: *Parser, kind: token_.TokenKind) bool {
+    fn peek_kind(self: *Parser, kind: token_.Token_Kind) bool {
         return self.peek().kind == kind;
     }
 
@@ -76,7 +76,7 @@ pub const Parser = struct {
 
     /// Returns the next token if its kind matches the given kind, otherwise
     /// null
-    fn accept(self: *Parser, kind: token_.TokenKind) ?token_.Token {
+    fn accept(self: *Parser, kind: token_.Token_Kind) ?token_.Token {
         const token = self.peek();
         if (token.kind == kind) {
             self.cursor += 1;
@@ -87,7 +87,7 @@ pub const Parser = struct {
     }
 
     /// Returns the token with an expected kind, or throws an error.
-    fn expect(self: *Parser, kind: token_.TokenKind) Parser_Error_Enum!token_.Token {
+    fn expect(self: *Parser, kind: token_.Token_Kind) Parser_Error_Enum!token_.Token {
         if (self.accept(kind)) |token| {
             return token;
         } else {

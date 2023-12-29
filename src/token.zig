@@ -2,7 +2,7 @@ const std = @import("std");
 const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 
-pub const TokenKind = enum(u32) {
+pub const Token_Kind = enum(u32) {
     // Literals
     identifier,
     dec_int,
@@ -103,8 +103,8 @@ pub const TokenKind = enum(u32) {
     // (yes, this is needed in Zig)
     len,
 
-    pub fn is_binop(self: TokenKind) bool {
-        for (binaryOperators) |binop_kind| {
+    pub fn is_binop(self: Token_Kind) bool {
+        for (binary_operators) |binop_kind| {
             if (self == binop_kind) {
                 return true;
             }
@@ -112,7 +112,7 @@ pub const TokenKind = enum(u32) {
         return false;
     }
 
-    pub fn is_end_token(self: TokenKind) bool {
+    pub fn is_end_token(self: Token_Kind) bool {
         for (end_tokens) |kind| {
             if (self == kind) {
                 return true;
@@ -121,7 +121,7 @@ pub const TokenKind = enum(u32) {
         return false;
     }
 
-    pub fn repr(kind: TokenKind) ?[]const u8 {
+    pub fn repr(kind: Token_Kind) ?[]const u8 {
         return switch (kind) {
             .bin_int,
             .char,
@@ -223,7 +223,7 @@ pub const TokenKind = enum(u32) {
     }
 };
 
-pub const unaryOperators = [_]TokenKind{
+pub const unary_operators = [_]Token_Kind{
     .not,
     .exclamation_mark,
     .minus,
@@ -234,7 +234,7 @@ pub const unaryOperators = [_]TokenKind{
     .caret,
 };
 
-pub const binaryOperators = [_]TokenKind{
+pub const binary_operators = [_]Token_Kind{
     .single_equals,
     .plus_equals,
     .minus_equals,
@@ -267,7 +267,7 @@ pub const binaryOperators = [_]TokenKind{
     .where,
 };
 
-pub const end_tokens = [_]TokenKind{
+pub const end_tokens = [_]Token_Kind{
     .identifier,
     .dec_int,
     .hex_int,
@@ -290,13 +290,13 @@ pub const end_tokens = [_]TokenKind{
 
 pub const Token = struct {
     // What kind of token this is
-    kind: TokenKind,
+    kind: Token_Kind,
     // Non-owning slice into the contents of the source file the text data for this token comes from
     data: []const u8,
     span: span_.Span,
 
-    pub fn init(data: []const u8, kind: ?TokenKind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
-        return .{ .data = data, .kind = kind orelse kindFromString(data), .span = span_.Span{
+    pub fn init(data: []const u8, kind: ?Token_Kind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
+        return .{ .data = data, .kind = kind orelse kind_from_string(data), .span = span_.Span{
             .filename = filename,
             .line_text = line_text,
             .line = line,
@@ -318,33 +318,19 @@ pub const Token = struct {
     }
 };
 
-pub fn kindFromString(data: []const u8) TokenKind {
+pub fn kind_from_string(data: []const u8) Token_Kind {
     var ix: usize = 0;
-    const num_ctors = @intFromEnum(TokenKind.len);
+    const num_ctors = @intFromEnum(Token_Kind.len);
 
     while (ix < num_ctors) : (ix += 1) {
-        const kind: TokenKind = @enumFromInt(ix);
-        const reprKind: ?[]const u8 = kind.repr();
-        if (reprKind) |repr| {
-            if (strEquals(data, repr)) {
+        const kind: Token_Kind = @enumFromInt(ix);
+        const repr_kind: ?[]const u8 = kind.repr();
+        if (repr_kind) |repr| {
+            if (std.mem.eql(u8, data, repr)) {
                 // Found the kind!
                 return kind;
             }
         }
     }
-    return TokenKind.identifier;
-}
-
-fn strEquals(a: []const u8, b: []const u8) bool {
-    if (a.len != b.len) {
-        return false;
-    } else {
-        var i: usize = 0;
-        while (i < a.len) : (i += 1) {
-            if (a[i] != b[i]) {
-                return false;
-            }
-        }
-        return true;
-    }
+    return Token_Kind.identifier;
 }

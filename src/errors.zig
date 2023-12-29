@@ -29,11 +29,11 @@ pub const Error = union(enum) {
         got: token_.Token,
     },
     expected2token: struct {
-        expected: token_.TokenKind,
+        expected: token_.Token_Kind,
         got: token_.Token,
     },
     missing_close: struct {
-        expected: token_.TokenKind,
+        expected: token_.Token_Kind,
         got: token_.Token,
         open: token_.Token,
     },

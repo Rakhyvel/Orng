@@ -117,7 +117,7 @@ fn trailing_comma_rules(tokens: *std.ArrayList(token_.Token)) void {
 ///     8. postfix operators (`^`)
 /// Otherwise, the newline token is removed.
 fn newline_rules(tokens: *std.ArrayList(token_.Token)) void {
-    var stack = std.ArrayList(token_.TokenKind).init(tokens.allocator);
+    var stack = std.ArrayList(token_.Token_Kind).init(tokens.allocator);
     defer stack.deinit();
 
     var i: usize = 0;
