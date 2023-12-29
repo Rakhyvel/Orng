@@ -10,25 +10,6 @@ const symbol_ = @import("symbol.zig");
 
 const debug = false;
 
-fn log(msg: []const u8) void {
-    if (debug) {
-        std.debug.print("{s}\n", .{msg});
-    }
-}
-
-fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
-    if (debug) {
-        std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
-        if (cfg.block_graph_head) |block_head| {
-            block_head.pprint();
-            cfg.clear_visited_BBs();
-            log("\n\n");
-        } else {
-            std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
-        }
-    }
-}
-
 // TODO: typeError should be called something else
 pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!void {
     if (debug) {
@@ -49,194 +30,59 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
     log_optimization_pass("final", cfg);
 }
 
-fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
-    var retval: bool = false;
-
-    count_predecessors(cfg);
-    cfg.calculate_phi_params_and_args(allocator);
-    calculate_versions(cfg);
-
-    for (cfg.basic_blocks.items) |bb| {
-        if (bb.number_predecessors == 0) {
-            defer log_optimization_pass("remove unused block", cfg);
-            remove_BB(cfg, bb, true);
-            return true; // Perhaps mark these and remove them in a sweep pass?
+fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
+    calculate_usage(cfg);
+    if (cfg.symbol.decl.?.* == .fn_decl) {
+        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
+            try err_if_unused(param_symbol, errors);
         }
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        // Adopt basic blocks with only one incoming block
-        if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
-            var log_msg = String.init(allocator);
-            defer log_msg.deinit();
-            log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
-            defer log_optimization_pass(log_msg.str(), cfg);
-            var end: *ir_.IR = bb.ir_head.?.get_tail();
-
-            // Join next block at the end of this block
-            end.next = bb.next.?.ir_head;
-            if (bb.next.?.ir_head != null) {
-                bb.next.?.ir_head.?.prev = end;
-            }
-
-            // Copy basic block end conditions
-            bb.has_branch = bb.next.?.has_branch;
-            bb.branch = bb.next.?.branch;
-            bb.condition = bb.next.?.condition;
-            bb.next_arguments = bb.next.?.next_arguments;
-            bb.branch_arguments = bb.next.?.branch_arguments;
-
-            var maybe_child: ?*ir_.IR = bb.next.?.ir_head;
-            while (maybe_child) |child| : (maybe_child = child.next) {
-                child.in_block = bb;
-            }
-
-            // Remove the next block
-            remove_BB(cfg, bb.next.?, false);
-            bb.next = bb.next.?.next;
-            retval = true;
-            break;
-        }
-
-        if (bb.has_branch and bb.condition.?.* == .symbver) {
-            const latest_condition = bb.condition.?.symbver.def; // This is set by `propagate()`
-            // Convert constant true/false branches to jumps
-            if (latest_condition != null and latest_condition.?.kind == .load_int) {
-                defer log_optimization_pass("convert constant true/false to jumps", cfg);
-                bb.has_branch = false;
-                if (bb.condition.?.symbver.def.?.data.int == 0) {
-                    bb.next = bb.branch;
-                    bb.next_arguments = bb.branch_arguments;
-                }
-                bb.branch = null;
-                retval = true;
-            }
-            // Flip labels if branch condition is negation, plunge negation
-            else if (latest_condition != null and latest_condition.?.kind == .not and latest_condition.?.src1.?.* == .symbver and
-                latest_condition.?.src1.?.symbver.def != null // prevents a loop if a function parameter (which are without a def) is neg'd
-            ) {
-                defer log_optimization_pass("flip not condition", cfg);
-                const old_branch = bb.branch.?;
-                bb.branch = bb.next;
-                bb.next = old_branch;
-                bb.condition = latest_condition.?.src1;
-                retval = true;
-            }
-        }
-
-        // Remove jump chains
-        if (bb.next) |next| {
-            if (next.ir_head == null and !next.has_branch) {
-                var s = String.init(allocator);
-                s.writer().print("remove jump chain BB{}", .{next.uid}) catch unreachable;
-                defer s.deinit();
-                defer log_optimization_pass(s.str(), cfg);
-                bb.next = next.next;
-                retval = true;
-            }
-        }
-
-        if (bb.branch) |branch| {
-            if (branch.ir_head == null and !branch.has_branch) {
-                bb.branch = branch.next;
-                retval = true;
-            }
-        }
-
-        if (bb.has_branch and bb.branch == bb.next) {
-            bb.has_branch = false;
-            retval = true;
-        }
-
-        // If next is a branch that depends on a known arugment
-        if (bb.next) |next| {
-            if (next.has_branch and next.ir_head == null and next.condition.?.* == .symbver) {
-                defer log_optimization_pass("next depends on known argument", cfg);
-                const def = bb.get_latest_def(next.condition.?, null);
-                if (def != null and def.?.kind == .load_int) {
-                    if (def.?.data.int == 0) {
-                        bb.next = next.branch;
-                    } else {
-                        bb.next = next.next;
-                    }
-                }
-            }
-        }
-
-        // If branch is a branch that depends on a known arugment
-        if (bb.has_branch and
-            bb.branch != null and
-            bb.branch.?.has_branch and
-            bb.branch.?.ir_head == null and
-            bb.branch.?.condition.?.* == .symbver)
-        {
-            defer log_optimization_pass("branch depends on known argument", cfg);
-            const def = bb.get_latest_def(bb.branch.?.condition.?, null);
-            if (def != null and def.?.kind == .load_int) {
-                if (def.?.data.int == 0) {
-                    bb.branch = bb.branch.?.branch;
-                } else {
-                    bb.branch = bb.branch.?.next;
-                }
-            }
-        }
-    }
-
-    // Rebase block graph if jump chain
-    if (cfg.block_graph_head) |head| {
-        if (head.ir_head == null and !head.has_branch) {
-            defer log_optimization_pass("rebase block", cfg);
-            cfg.block_graph_head = head.next;
-            retval = true;
-        }
-    }
-
-    if (retval) {
-        cfg.calculate_phi_params_and_args(allocator);
-    }
-
-    return retval;
-}
-
-fn count_predecessors(cfg: *cfg_.CFG) void {
-    for (cfg.basic_blocks.items) |bb| {
-        bb.number_predecessors = 0;
-    }
-    cfg.clear_visited_BBs();
-    _count_predecessors(cfg.block_graph_head orelse return);
-}
-
-fn _count_predecessors(bb: *basic_block_.Basic_Block) void {
-    bb.number_predecessors += 1;
-    if (bb.visited) {
-        return;
-    }
-    bb.visited = true;
-    if (bb.next) |next| {
-        _count_predecessors(next);
-    }
-    if (bb.has_branch) {
-        if (bb.branch) |branch| {
-            _count_predecessors(branch);
-        }
-    }
-}
-
-fn remove_BB(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipe_IR: bool) void {
-    var i: usize = 0;
-    while (i < cfg.basic_blocks.items.len) : (i += 1) {
-        if (bb == cfg.basic_blocks.items[i]) {
-            break;
-        }
-    }
-    _ = cfg.basic_blocks.swapRemove(i);
-    if (wipe_IR) {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            ir.removed = true;
+            if (ir.dest != null and
+                !ir.removed and
+                ir.dest.?.* == .symbver and
+                !ir.dest.?.symbver.symbol.is_temp and
+                ir.dest.?.symbver.symbol != cfg.return_symbol)
+            {
+                try err_if_unused(ir.dest.?.symbver.symbol, errors);
+            }
         }
     }
-    bb.removed = true;
+}
+
+fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO: Uninfer error
+    if (symbol.discards > 1) {
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = symbol.discard_span.?,
+            .context_span = symbol.span,
+            .name = symbol.name,
+            .problem = "is discarded more than once",
+            .context_message = "defined here",
+        } });
+        return error.TypeError;
+    } else if (symbol.discards == 1 and symbol.uses > 1) {
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = symbol.discard_span.?,
+            .context_span = symbol.span,
+            .name = symbol.name,
+            .problem = "is discarded when it is used",
+            .context_message = "defined here",
+        } });
+        return error.TypeError;
+    } else if (symbol.kind != .@"const" and symbol.discards == 0 and symbol.uses == 0) {
+        // TODO: Shouldn't do this if the type is unit!
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = symbol.span,
+            .context_span = null,
+            .name = symbol.name,
+            .problem = "is never used",
+            .context_message = "",
+        } });
+        return error.TypeError;
+    }
 }
 
 fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !bool { // TODO: Uninfer error
@@ -707,61 +553,6 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Un
     }
 }
 
-fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
-    calculate_usage(cfg);
-    if (cfg.symbol.decl.?.* == .fn_decl) {
-        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
-            try err_if_unused(param_symbol, errors);
-        }
-    }
-
-    for (cfg.basic_blocks.items) |bb| {
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and
-                !ir.removed and
-                ir.dest.?.* == .symbver and
-                !ir.dest.?.symbver.symbol.is_temp and
-                ir.dest.?.symbver.symbol != cfg.return_symbol)
-            {
-                try err_if_unused(ir.dest.?.symbver.symbol, errors);
-            }
-        }
-    }
-}
-
-fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO: Uninfer error
-    if (symbol.discards > 1) {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.discard_span.?,
-            .context_span = symbol.span,
-            .name = symbol.name,
-            .problem = "is discarded more than once",
-            .context_message = "defined here",
-        } });
-        return error.TypeError;
-    } else if (symbol.discards == 1 and symbol.uses > 1) {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.discard_span.?,
-            .context_span = symbol.span,
-            .name = symbol.name,
-            .problem = "is discarded when it is used",
-            .context_message = "defined here",
-        } });
-        return error.TypeError;
-    } else if (symbol.kind != .@"const" and symbol.discards == 0 and symbol.uses == 0) {
-        // TODO: Shouldn't do this if the type is unit!
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.span,
-            .context_span = null,
-            .name = symbol.name,
-            .problem = "is never used",
-            .context_message = "",
-        } });
-        return error.TypeError;
-    }
-}
-
 fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Uninfer error
     var retval = false;
 
@@ -806,39 +597,153 @@ fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Un
     return retval;
 }
 
-fn calculate_versions(cfg: *cfg_.CFG) void {
+fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
+    var retval: bool = false;
+
+    count_predecessors(cfg);
+    cfg.calculate_phi_params_and_args(allocator);
+    calculate_versions(cfg);
+
     for (cfg.basic_blocks.items) |bb| {
-        // Reset all reachable symbol verison counts to 0
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.* == .symbver) {
-                ir.dest.?.symbver.symbol.versions = 0;
-            }
-            if (ir.src1 != null and ir.src1.?.* == .symbver) {
-                ir.src1.?.symbver.symbol.versions = 0;
-            }
-            if (ir.src2 != null and ir.src2.?.* == .symbver) {
-                ir.src2.?.symbver.symbol.versions = 0;
-            }
+        if (bb.number_predecessors == 0) {
+            defer log_optimization_pass("remove unused block", cfg);
+            remove_BB(cfg, bb, true);
+            return true; // Perhaps mark these and remove them in a sweep pass?
         }
-        cfg.return_symbol.versions = 0;
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        // Parameters define symbol versions
-        for (bb.next_arguments.items) |symbver| {
-            symbver.symbol.versions += 1;
+        // Adopt basic blocks with only one incoming block
+        if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
+            var log_msg = String.init(allocator);
+            defer log_msg.deinit();
+            log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
+            defer log_optimization_pass(log_msg.str(), cfg);
+            var end: *ir_.IR = bb.ir_head.?.get_tail();
+
+            // Join next block at the end of this block
+            end.next = bb.next.?.ir_head;
+            if (bb.next.?.ir_head != null) {
+                bb.next.?.ir_head.?.prev = end;
+            }
+
+            // Copy basic block end conditions
+            bb.has_branch = bb.next.?.has_branch;
+            bb.branch = bb.next.?.branch;
+            bb.condition = bb.next.?.condition;
+            bb.next_arguments = bb.next.?.next_arguments;
+            bb.branch_arguments = bb.next.?.branch_arguments;
+
+            var maybe_child: ?*ir_.IR = bb.next.?.ir_head;
+            while (maybe_child) |child| : (maybe_child = child.next) {
+                child.in_block = bb;
+            }
+
+            // Remove the next block
+            remove_BB(cfg, bb.next.?, false);
+            bb.next = bb.next.?.next;
+            retval = true;
+            break;
         }
 
-        // Go through sum up each definition
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.* == .symbver) {
-                ir.dest.?.symbver.def = ir;
-                ir.dest.?.symbver.symbol.versions += 1;
+        if (bb.has_branch and bb.condition.?.* == .symbver) {
+            const latest_condition = bb.condition.?.symbver.def; // This is set by `propagate()`
+            // Convert constant true/false branches to jumps
+            if (latest_condition != null and latest_condition.?.kind == .load_int) {
+                defer log_optimization_pass("convert constant true/false to jumps", cfg);
+                bb.has_branch = false;
+                if (bb.condition.?.symbver.def.?.data.int == 0) {
+                    bb.next = bb.branch;
+                    bb.next_arguments = bb.branch_arguments;
+                }
+                bb.branch = null;
+                retval = true;
+            }
+            // Flip labels if branch condition is negation, plunge negation
+            else if (latest_condition != null and latest_condition.?.kind == .not and latest_condition.?.src1.?.* == .symbver and
+                latest_condition.?.src1.?.symbver.def != null // prevents a loop if a function parameter (which are without a def) is neg'd
+            ) {
+                defer log_optimization_pass("flip not condition", cfg);
+                const old_branch = bb.branch.?;
+                bb.branch = bb.next;
+                bb.next = old_branch;
+                bb.condition = latest_condition.?.src1;
+                retval = true;
+            }
+        }
+
+        // Remove jump chains
+        if (bb.next) |next| {
+            if (next.ir_head == null and !next.has_branch) {
+                var s = String.init(allocator);
+                s.writer().print("remove jump chain BB{}", .{next.uid}) catch unreachable;
+                defer s.deinit();
+                defer log_optimization_pass(s.str(), cfg);
+                bb.next = next.next;
+                retval = true;
+            }
+        }
+
+        if (bb.branch) |branch| {
+            if (branch.ir_head == null and !branch.has_branch) {
+                bb.branch = branch.next;
+                retval = true;
+            }
+        }
+
+        if (bb.has_branch and bb.branch == bb.next) {
+            bb.has_branch = false;
+            retval = true;
+        }
+
+        // If next is a branch that depends on a known arugment
+        if (bb.next) |next| {
+            if (next.has_branch and next.ir_head == null and next.condition.?.* == .symbver) {
+                defer log_optimization_pass("next depends on known argument", cfg);
+                const def = bb.get_latest_def(next.condition.?, null);
+                if (def != null and def.?.kind == .load_int) {
+                    if (def.?.data.int == 0) {
+                        bb.next = next.branch;
+                    } else {
+                        bb.next = next.next;
+                    }
+                }
+            }
+        }
+
+        // If branch is a branch that depends on a known arugment
+        if (bb.has_branch and
+            bb.branch != null and
+            bb.branch.?.has_branch and
+            bb.branch.?.ir_head == null and
+            bb.branch.?.condition.?.* == .symbver)
+        {
+            defer log_optimization_pass("branch depends on known argument", cfg);
+            const def = bb.get_latest_def(bb.branch.?.condition.?, null);
+            if (def != null and def.?.kind == .load_int) {
+                if (def.?.data.int == 0) {
+                    bb.branch = bb.branch.?.branch;
+                } else {
+                    bb.branch = bb.branch.?.next;
+                }
             }
         }
     }
+
+    // Rebase block graph if jump chain
+    if (cfg.block_graph_head) |head| {
+        if (head.ir_head == null and !head.has_branch) {
+            defer log_optimization_pass("rebase block", cfg);
+            cfg.block_graph_head = head.next;
+            retval = true;
+        }
+    }
+
+    if (retval) {
+        cfg.calculate_phi_params_and_args(allocator);
+    }
+
+    return retval;
 }
 
 fn calculate_usage(cfg: *cfg_.CFG) void {
@@ -941,5 +846,100 @@ fn calculate_usage_lval(lval: *lval_.L_Value) void {
                 calculate_usage_lval(lval.select.tag.?);
             }
         },
+    }
+}
+
+fn calculate_versions(cfg: *cfg_.CFG) void {
+    for (cfg.basic_blocks.items) |bb| {
+        // Reset all reachable symbol verison counts to 0
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest != null and ir.dest.?.* == .symbver) {
+                ir.dest.?.symbver.symbol.versions = 0;
+            }
+            if (ir.src1 != null and ir.src1.?.* == .symbver) {
+                ir.src1.?.symbver.symbol.versions = 0;
+            }
+            if (ir.src2 != null and ir.src2.?.* == .symbver) {
+                ir.src2.?.symbver.symbol.versions = 0;
+            }
+        }
+        cfg.return_symbol.versions = 0;
+    }
+
+    for (cfg.basic_blocks.items) |bb| {
+        // Parameters define symbol versions
+        for (bb.next_arguments.items) |symbver| {
+            symbver.symbol.versions += 1;
+        }
+
+        // Go through sum up each definition
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            if (ir.dest != null and ir.dest.?.* == .symbver) {
+                ir.dest.?.symbver.def = ir;
+                ir.dest.?.symbver.symbol.versions += 1;
+            }
+        }
+    }
+}
+
+fn count_predecessors(cfg: *cfg_.CFG) void {
+    for (cfg.basic_blocks.items) |bb| {
+        bb.number_predecessors = 0;
+    }
+    cfg.clear_visited_BBs();
+    _count_predecessors(cfg.block_graph_head orelse return);
+}
+
+fn _count_predecessors(bb: *basic_block_.Basic_Block) void {
+    bb.number_predecessors += 1;
+    if (bb.visited) {
+        return;
+    }
+    bb.visited = true;
+    if (bb.next) |next| {
+        _count_predecessors(next);
+    }
+    if (bb.has_branch) {
+        if (bb.branch) |branch| {
+            _count_predecessors(branch);
+        }
+    }
+}
+
+fn remove_BB(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipe_IR: bool) void {
+    var i: usize = 0;
+    while (i < cfg.basic_blocks.items.len) : (i += 1) {
+        if (bb == cfg.basic_blocks.items[i]) {
+            break;
+        }
+    }
+    _ = cfg.basic_blocks.swapRemove(i);
+    if (wipe_IR) {
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            ir.removed = true;
+        }
+    }
+    bb.removed = true;
+}
+
+fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
+    if (debug) {
+        std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
+        if (cfg.block_graph_head) |block_head| {
+            block_head.pprint();
+            cfg.clear_visited_BBs();
+            log("\n\n");
+        } else {
+            std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
+        }
+    }
+}
+
+fn log(msg: []const u8) void {
+    if (debug) {
+        std.debug.print("{s}\n", .{msg});
     }
 }
