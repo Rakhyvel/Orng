@@ -37,29 +37,29 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
         log("\n\n");
     }
 
-    try findUnused(cfg, errors);
+    try find_unused(cfg, errors);
 
     while (try propagate(cfg, errors, allocator) or
-        try removeUnusedDefs(cfg, errors) or
-        bbOptimizations(cfg, allocator) or
-        try removeUnusedDefs(cfg, errors))
+        try remove_unused_defs(cfg, errors) or
+        bb_optimizations(cfg, allocator) or
+        try remove_unused_defs(cfg, errors))
     {}
     cfg.clear_visited_BBs();
 
     log_optimization_pass("final", cfg);
 }
 
-fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
+fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 
-    countPredecessors(cfg);
+    count_predecessors(cfg);
     cfg.calculate_phi_params_and_args(allocator);
-    calculateVersions(cfg);
+    calculate_versions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
             defer log_optimization_pass("remove unused block", cfg);
-            removeBasic_Block(cfg, bb, true);
+            remove_BB(cfg, bb, true);
             return true; // Perhaps mark these and remove them in a sweep pass?
         }
     }
@@ -92,7 +92,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             }
 
             // Remove the next block
-            removeBasic_Block(cfg, bb.next.?, false);
+            remove_BB(cfg, bb.next.?, false);
             bb.next = bb.next.?.next;
             retval = true;
             break;
@@ -198,31 +198,31 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     return retval;
 }
 
-fn countPredecessors(cfg: *cfg_.CFG) void {
+fn count_predecessors(cfg: *cfg_.CFG) void {
     for (cfg.basic_blocks.items) |bb| {
         bb.number_predecessors = 0;
     }
     cfg.clear_visited_BBs();
-    _countPredecessors(cfg.block_graph_head orelse return);
+    _count_predecessors(cfg.block_graph_head orelse return);
 }
 
-fn _countPredecessors(bb: *basic_block_.Basic_Block) void {
+fn _count_predecessors(bb: *basic_block_.Basic_Block) void {
     bb.number_predecessors += 1;
     if (bb.visited) {
         return;
     }
     bb.visited = true;
     if (bb.next) |next| {
-        _countPredecessors(next);
+        _count_predecessors(next);
     }
     if (bb.has_branch) {
         if (bb.branch) |branch| {
-            _countPredecessors(branch);
+            _count_predecessors(branch);
         }
     }
 }
 
-fn removeBasic_Block(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipeIR: bool) void {
+fn remove_BB(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipe_IR: bool) void {
     var i: usize = 0;
     while (i < cfg.basic_blocks.items.len) : (i += 1) {
         if (bb == cfg.basic_blocks.items[i]) {
@@ -230,7 +230,7 @@ fn removeBasic_Block(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipeIR: bool
         }
     }
     _ = cfg.basic_blocks.swapRemove(i);
-    if (wipeIR) {
+    if (wipe_IR) {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.removed = true;
@@ -242,8 +242,8 @@ fn removeBasic_Block(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipeIR: bool
 fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !bool { // TODO: Uninfer error
     var retval = false;
 
-    calculateVersions(cfg);
-    calculateUsage(cfg);
+    calculate_versions(cfg);
+    calculate_usage(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
@@ -255,7 +255,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
             // Walk through IR in BB, update map of src1 and src2 defs
             const src1_def: ?*ir_.IR = if (ir.src1 != null and ir.src1.?.* == .symbver) def_map.get(ir.src1.?.symbver) orelse null else null;
             const src2_def: ?*ir_.IR = if (ir.src2 != null and ir.src2.?.* == .symbver) def_map.get(ir.src2.?.symbver) orelse null else null;
-            retval = try propagateIR(ir, src1_def, src2_def, errors) or retval;
+            retval = try propagate_IR(ir, src1_def, src2_def, errors) or retval;
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
                 def_map.put(ir.dest.?.extract_symbver(), null) catch unreachable;
@@ -279,7 +279,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
     return retval;
 }
 
-fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) !bool { // TODO: Uninfer error
+fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) !bool { // TODO: Uninfer error
     var retval = false;
 
     switch (ir.kind) {
@@ -707,8 +707,8 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Un
     }
 }
 
-fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
-    calculateUsage(cfg);
+fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
+    calculate_usage(cfg);
     if (cfg.symbol.decl.?.* == .fn_decl) {
         for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
             try err_if_unused(param_symbol, errors);
@@ -762,11 +762,11 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
     }
 }
 
-fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Uninfer error
+fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Uninfer error
     var retval = false;
 
-    calculateUsage(cfg);
-    calculateVersions(cfg);
+    calculate_usage(cfg);
+    calculate_versions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
@@ -806,7 +806,7 @@ fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Unin
     return retval;
 }
 
-fn calculateVersions(cfg: *cfg_.CFG) void {
+fn calculate_versions(cfg: *cfg_.CFG) void {
     for (cfg.basic_blocks.items) |bb| {
         // Reset all reachable symbol verison counts to 0
         var maybe_ir: ?*ir_.IR = bb.ir_head;
@@ -841,7 +841,7 @@ fn calculateVersions(cfg: *cfg_.CFG) void {
     }
 }
 
-fn calculateUsage(cfg: *cfg_.CFG) void {
+fn calculate_usage(cfg: *cfg_.CFG) void {
     if (cfg.symbol.decl.?.* == .fn_decl) {
         for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
             param_symbol.uses = 0;
