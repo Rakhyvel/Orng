@@ -12,7 +12,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const FlattenASTError = error{
+const Flatten_AST_Error = error{
     TypeError,
     NotAnLValue,
     InterpreterPanic,
@@ -83,7 +83,7 @@ fn lower_AST(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) FlattenASTError!?*lval_.L_Value {
+) Flatten_AST_Error!?*lval_.L_Value {
     switch (ast.*) {
         // Straight up types, yo
         .function,
@@ -508,16 +508,16 @@ fn lower_AST(
                 wrap_error_return(_temp, cfg, ast.token().span, current_labels, allocator);
             }
 
-            try generateDefers(cfg, &ast.block.scope.?.defers, &continue_labels, errors, allocator);
+            try generate_defers(cfg, &ast.block.scope.?.defers, &continue_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
 
-            try generateDefers(cfg, &ast.block.scope.?.defers, &break_labels, errors, allocator);
+            try generate_defers(cfg, &ast.block.scope.?.defers, &break_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(labels.break_label, ast.token().span, allocator));
 
-            try generateDefers(cfg, &ast.block.scope.?.defers, &return_labels, errors, allocator);
+            try generate_defers(cfg, &ast.block.scope.?.defers, &return_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(labels.return_label, ast.token().span, allocator));
 
-            try generateDefers(cfg, &ast.block.scope.?.errdefers, &error_labels, errors, allocator);
+            try generate_defers(cfg, &ast.block.scope.?.errdefers, &error_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(labels.error_label, ast.token().span, allocator));
 
             cfg.append_instruction(end_label);
@@ -879,7 +879,7 @@ fn generate_assign(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) FlattenASTError!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
+) Flatten_AST_Error!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
 {
     if (lhs.* == .product) {
         // Recursively call `generate_assign` for each term in the product.
@@ -925,7 +925,7 @@ fn generate_pattern(
     def: *lval_.L_Value,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) FlattenASTError!void {
+) Flatten_AST_Error!void {
     if (pattern.* == .pattern_symbol) {
         if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
             const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, allocator);
@@ -1083,7 +1083,7 @@ fn generate_match_pattern_check(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) FlattenASTError!void {
+) Flatten_AST_Error!void {
     if (pattern == null) {
         // Implies `else` branch, infallible.
         return;
@@ -1190,16 +1190,16 @@ fn wrap_error_return(
     }
 }
 
-fn generateDefers(
+fn generate_defers(
     cfg: *cfg_.CFG,
     defers: *std.ArrayList(*ast_.AST),
-    deferLabels: *std.ArrayList(*ir_.IR),
+    defer_labels: *std.ArrayList(*ir_.IR),
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) FlattenASTError!void {
+) Flatten_AST_Error!void {
     var i: usize = defers.items.len;
     while (i > 0) : (i -= 1) {
-        cfg.append_instruction(deferLabels.items[i - 1]);
+        cfg.append_instruction(defer_labels.items[i - 1]);
         _ = try lower_AST(cfg, defers.items[i - 1], Labels.null_labels, errors, allocator);
     }
 }
