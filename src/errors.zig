@@ -235,6 +235,17 @@ pub const Errors = struct {
         }
     }
 
+    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) !void { // TODO: Uninfer error
+        if (maybe_span) |span| {
+            if (span.line > 0 and span.col > 0) {
+                try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
+            } else {
+                try out.print("{s}: ", .{span.filename});
+            }
+        }
+        try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
+    }
+
     fn print_main_error(err: Error, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
         _ = allocator;
         switch (err) {
@@ -354,6 +365,22 @@ pub const Errors = struct {
         }
     }
 
+    fn print_epilude(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
+        if (maybe_span) |old_span| {
+            const span = old_span;
+            if (span.line == 0) {
+                return;
+            } else if (span.line_text.len > 0) {
+                try out.print("{s}\n", .{span.line_text});
+            }
+            var i: usize = 2;
+            while (i < span.col) : (i += 1) {
+                try out.print(" ", .{});
+            }
+            try term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", out);
+        }
+    }
+
     fn print_extra_info(err: Error) !void { // TODO: Uninfer error
         switch (err) {
             .missing_close => {
@@ -413,34 +440,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) !void { // TODO: Uninfer error
-        if (maybe_span) |span| {
-            if (span.line > 0 and span.col > 0) {
-                try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
-            } else {
-                try out.print("{s}: ", .{span.filename});
-            }
-        }
-        try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
-    }
-
     fn print_note_label(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
         try print_label(maybe_span, "note: ", .cyan);
-    }
-
-    fn print_epilude(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
-        if (maybe_span) |old_span| {
-            const span = old_span;
-            if (span.line == 0) {
-                return;
-            } else if (span.line_text.len > 0) {
-                try out.print("{s}\n", .{span.line_text});
-            }
-            var i: usize = 2;
-            while (i < span.col) : (i += 1) {
-                try out.print(" ", .{});
-            }
-            try term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", out);
-        }
     }
 };
