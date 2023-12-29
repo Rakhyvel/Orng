@@ -123,7 +123,7 @@ pub const Module = struct {
         var file_root = symbol_.Scope.init(prelude, name, allocator);
         const module = Module.init(file_root, allocator);
         file_root.module = module;
-        try symbol_tree_.symbolTableFromASTList(module_ast, file_root, errors, allocator);
+        try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, errors, allocator);
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, errors, allocator);
 
         // Validate the module
