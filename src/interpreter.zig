@@ -483,13 +483,13 @@ pub const Context = struct {
                     .boolean => {
                         const val = self.load_int(address, info.size);
                         if (val == 0) {
-                            return ast_.AST.createFalse(token_.Token.init_simple("false"), allocator).assert_valid();
+                            return ast_.AST.create_false(token_.Token.init_simple("false"), allocator).assert_valid();
                         } else {
-                            return ast_.AST.createTrue(token_.Token.init_simple("true"), allocator).assert_valid();
+                            return ast_.AST.create_true(token_.Token.init_simple("true"), allocator).assert_valid();
                         }
                     },
                     .signed_integer => {
-                        const retval = ast_.AST.createInt(
+                        const retval = ast_.AST.create_int(
                             token_.Token.init_simple("signed int"),
                             self.load_int(address, info.size),
                             allocator,
@@ -498,7 +498,7 @@ pub const Context = struct {
                         return retval;
                     },
                     .unsigned_integer => {
-                        const retval = ast_.AST.createInt(
+                        const retval = ast_.AST.create_int(
                             token_.Token.init_simple("unsigned int"),
                             self.load_int(address, info.size),
                             allocator,
@@ -507,7 +507,7 @@ pub const Context = struct {
                         return retval;
                     },
                     .floating_point => {
-                        const retval = ast_.AST.createFloat(
+                        const retval = ast_.AST.create_float(
                             token_.Token.init_simple("float"),
                             self.load_float(address, info.size),
                             allocator,
@@ -517,14 +517,14 @@ pub const Context = struct {
                     },
                 }
             },
-            .addrOf => return ast_.AST.createInt(
+            .addr_of => return ast_.AST.create_int(
                 token_.Token.init_simple("unsigned int"),
                 self.load_int(address, 8),
                 allocator,
             ).assert_valid(),
             .function => {
                 const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
-                const ast = ast_.AST.createSymbol(
+                const ast = ast_.AST.create_symbol(
                     token_.Token.init_simple("function"),
                     .@"fn",
                     symbol.name,
@@ -533,11 +533,11 @@ pub const Context = struct {
                 ast.set_symbol(symbol);
                 return ast.assert_valid();
             },
-            .unit_type => return ast_.AST.createUnitValue(_type.token(), allocator).assert_valid(),
+            .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator).assert_valid(),
             .sum => {
-                var retval = ast_.AST.createInferredMember(
+                var retval = ast_.AST.create_inferred_member(
                     _type.token(),
-                    ast_.AST.createIdentifier(
+                    ast_.AST.create_identifier(
                         token_.Token.init("extracted from interpreter", .identifier, "", "", 0, 0),
                         allocator,
                     ).assert_valid(),
@@ -545,9 +545,9 @@ pub const Context = struct {
                 ).assert_valid();
                 const tag = self.load_int(address + _type.sizeof() - 8, 8);
                 retval.set_pos(@as(usize, @intCast(tag)));
-                retval.inferredMember.base = _type;
+                retval.inferred_member.base = _type;
                 const proper_term: *ast_.AST = _type.children().items[@as(usize, @intCast(tag))];
-                retval.inferredMember.init = self.extract_ast(address, proper_term, allocator);
+                retval.inferred_member.init = self.extract_ast(address, proper_term, allocator);
                 return retval;
             },
             .product => {
@@ -560,7 +560,7 @@ pub const Context = struct {
                     value_terms.append(extracted_term) catch unreachable;
                     offset += term.sizeof();
                 }
-                return ast_.AST.createProduct(_type.token(), value_terms, allocator).assert_valid();
+                return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_valid();
             },
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
             else => {

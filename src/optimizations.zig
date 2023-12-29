@@ -21,7 +21,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
         if (cfg.block_graph_head) |block_head| {
             block_head.pprint();
-            cfg.clearVisitedBBs();
+            cfg.clear_visited_BBs();
             log("\n\n");
         } else {
             std.debug.print("[WARNING] block head for CFG: {s} is null\n", .{cfg.symbol.name});
@@ -44,7 +44,7 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
         bbOptimizations(cfg, allocator) or
         try removeUnusedDefs(cfg, errors))
     {}
-    cfg.clearVisitedBBs();
+    cfg.clear_visited_BBs();
 
     log_optimization_pass("final", cfg);
 }
@@ -53,7 +53,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 
     countPredecessors(cfg);
-    cfg.calculatePhiParamsAndArgs(allocator);
+    cfg.calculate_phi_params_and_args(allocator);
     calculateVersions(cfg);
 
     for (cfg.basic_blocks.items) |bb| {
@@ -192,7 +192,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     }
 
     if (retval) {
-        cfg.calculatePhiParamsAndArgs(allocator);
+        cfg.calculate_phi_params_and_args(allocator);
     }
 
     return retval;
@@ -202,7 +202,7 @@ fn countPredecessors(cfg: *cfg_.CFG) void {
     for (cfg.basic_blocks.items) |bb| {
         bb.number_predecessors = 0;
     }
-    cfg.clearVisitedBBs();
+    cfg.clear_visited_BBs();
     _countPredecessors(cfg.block_graph_head orelse return);
 }
 
@@ -286,7 +286,7 @@ fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *err
         .copy => {
             if (ir.src1 == null) {
                 log("unit-copy elimination");
-                ir.in_block.?.removeInstruction(ir);
+                ir.in_block.?.remove_instruction(ir);
             } else if (ir.dest.?.* == .symbver and
                 ir.src1.?.* == .symbver and
                 ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and
@@ -294,7 +294,7 @@ fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *err
                 ir.dest.?.symbver.version == ir.src1.?.symbver.version)
             {
                 log("self-copy elimination");
-                ir.in_block.?.removeInstruction(ir);
+                ir.in_block.?.remove_instruction(ir);
                 retval = true;
             } else {
                 log("copy-propagation");
@@ -709,8 +709,8 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Un
 
 fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
     calculateUsage(cfg);
-    if (cfg.symbol.decl.?.* == .fnDecl) {
-        for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
+    if (cfg.symbol.decl.?.* == .fn_decl) {
+        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
             try err_if_unused(param_symbol, errors);
         }
     }
@@ -796,7 +796,7 @@ fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Unin
                         return error.TypeError;
                     }
                 } else {
-                    bb.removeInstruction(ir);
+                    bb.remove_instruction(ir);
                     retval = true;
                 }
             }
@@ -842,8 +842,8 @@ fn calculateVersions(cfg: *cfg_.CFG) void {
 }
 
 fn calculateUsage(cfg: *cfg_.CFG) void {
-    if (cfg.symbol.decl.?.* == .fnDecl) {
-        for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
+    if (cfg.symbol.decl.?.* == .fn_decl) {
+        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
             param_symbol.uses = 0;
         }
     }

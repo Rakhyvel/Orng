@@ -119,7 +119,7 @@ pub const Basic_Block = struct {
         }
     }
 
-    pub fn printSymbverList(list: *std.ArrayList(*lval_.Symbol_Version)) void {
+    pub fn print_symbver_list(list: *std.ArrayList(*lval_.Symbol_Version)) void {
         std.debug.print("(", .{});
         var i: usize = 0;
         while (i < list.items.len) : (i += 1) {
@@ -132,7 +132,7 @@ pub const Basic_Block = struct {
         std.debug.print(")", .{});
     }
 
-    pub fn appendInstruction(self: *Basic_Block, ir: *ir_.IR) *ir_.IR {
+    pub fn append_instruction(self: *Basic_Block, ir: *ir_.IR) *ir_.IR {
         if (self.ir_head == null) {
             self.ir_head = ir;
         } else {
@@ -144,7 +144,7 @@ pub const Basic_Block = struct {
         return ir;
     }
 
-    pub fn removeInstruction(bb: *Basic_Block, ir: *ir_.IR) void {
+    pub fn remove_instruction(bb: *Basic_Block, ir: *ir_.IR) void {
         ir.removed = true;
         if (bb.ir_head != null and bb.ir_head == ir) {
             bb.ir_head = bb.ir_head.?.next;

@@ -36,15 +36,15 @@ fn decorate_identifiers(
         .float,
         .string,
         .field,
-        ._unreachable,
-        ._true,
-        ._false,
-        ._break,
-        ._continue,
-        .inferredMember,
+        .@"unreachable",
+        .true,
+        .false,
+        .@"break",
+        .@"continue",
+        .inferred_member,
         .poison,
         .pattern_symbol,
-        .domainOf,
+        .domain_of,
         => {},
 
         .identifier => {
@@ -77,22 +77,22 @@ fn decorate_identifiers(
             }
         },
 
-        ._typeOf,
+        .type_of,
         .default,
-        .sizeOf,
+        .size_of,
         .not,
         .negate,
         .dereference,
-        ._try,
+        .@"try",
         .discard,
-        ._comptime,
-        .addrOf,
-        .sliceOf,
+        .@"comptime",
+        .addr_of,
+        .slice_of,
         => try decorate_identifiers(ast.expr(), scope, errors, allocator),
 
         .assign,
-        ._or,
-        ._and,
+        .@"or",
+        .@"and",
         .add,
         .sub,
         .mult,
@@ -111,7 +111,7 @@ fn decorate_identifiers(
         .function,
         .invoke,
         .inject,
-        ._union,
+        .@"union",
         => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             try decorate_identifiers(ast.rhs(), scope, errors, allocator);
@@ -122,14 +122,14 @@ fn decorate_identifiers(
         },
         .sum, .inferred_error, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
 
-        .arrayOf => {
+        .array_of => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);
-            try decorate_identifiers(ast.arrayOf.len, scope, errors, allocator);
+            try decorate_identifiers(ast.array_of.len, scope, errors, allocator);
         },
-        .subSlice => {
-            try decorate_identifiers(ast.subSlice.super, scope, errors, allocator);
-            try decorate_identifiers(ast.subSlice.lower, scope, errors, allocator);
-            try decorate_identifiers(ast.subSlice.upper, scope, errors, allocator);
+        .sub_slice => {
+            try decorate_identifiers(ast.sub_slice.super, scope, errors, allocator);
+            try decorate_identifiers(ast.sub_slice.lower, scope, errors, allocator);
+            try decorate_identifiers(ast.sub_slice.upper, scope, errors, allocator);
         },
         .annotation => {
             try decorate_identifiers(ast.annotation.type, scope, errors, allocator);
@@ -137,11 +137,11 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.annotation.init, scope, errors, allocator);
         },
 
-        ._if => {
-            try decorate_identifiers(ast._if.let, scope, errors, allocator);
-            try decorate_identifiers(ast._if.condition, ast._if.scope.?, errors, allocator);
-            try decorate_identifiers(ast._if.bodyBlock, ast._if.scope.?, errors, allocator);
-            try decorate_identifiers(ast._if.elseBlock, ast._if.scope.?, errors, allocator);
+        .@"if" => {
+            try decorate_identifiers(ast.@"if".let, scope, errors, allocator);
+            try decorate_identifiers(ast.@"if".condition, ast.@"if".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"if".body_block, ast.@"if".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"if".else_block, ast.@"if".scope.?, errors, allocator);
         },
         .match => {
             try decorate_identifiers(ast.match.let, scope, errors, allocator);
@@ -154,19 +154,19 @@ fn decorate_identifiers(
             // else mappings use the surrounding match scope
             try decorate_identifiers(ast.rhs(), ast.mapping.scope orelse scope, errors, allocator);
         },
-        ._while => {
-            try decorate_identifiers(ast._while.let, scope, errors, allocator);
-            try decorate_identifiers(ast._while.condition, ast._while.scope.?, errors, allocator);
-            try decorate_identifiers(ast._while.post, ast._while.scope.?, errors, allocator);
-            try decorate_identifiers(ast._while.bodyBlock, ast._while.scope.?, errors, allocator);
-            try decorate_identifiers(ast._while.elseBlock, ast._while.scope.?, errors, allocator);
+        .@"while" => {
+            try decorate_identifiers(ast.@"while".let, scope, errors, allocator);
+            try decorate_identifiers(ast.@"while".condition, ast.@"while".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"while".post, ast.@"while".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"while".body_block, ast.@"while".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"while".else_block, ast.@"while".scope.?, errors, allocator);
         },
-        ._for => {
-            try decorate_identifiers(ast._for.let, scope, errors, allocator);
-            try decorate_identifiers(ast._for.elem, ast._for.scope.?, errors, allocator);
-            try decorate_identifiers(ast._for.iterable, ast._for.scope.?, errors, allocator);
-            try decorate_identifiers(ast._for.bodyBlock, ast._for.scope.?, errors, allocator);
-            try decorate_identifiers(ast._for.elseBlock, ast._for.scope.?, errors, allocator);
+        .@"for" => {
+            try decorate_identifiers(ast.@"for".let, scope, errors, allocator);
+            try decorate_identifiers(ast.@"for".elem, ast.@"for".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"for".iterable, ast.@"for".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"for".body_block, ast.@"for".scope.?, errors, allocator);
+            try decorate_identifiers(ast.@"for".else_block, ast.@"for".scope.?, errors, allocator);
         },
         .block => {
             try decorate_identifiers_from_list(ast.children().*, ast.block.scope.?, errors, allocator);
@@ -175,7 +175,7 @@ fn decorate_identifiers(
             }
         },
 
-        ._return => try decorate_identifiers(ast._return._ret_expr, scope, errors, allocator),
+        .@"return" => try decorate_identifiers(ast.@"return"._ret_expr, scope, errors, allocator),
         .decl => {
             try decorate_identifiers(ast.decl.type, scope, errors, allocator);
             try decorate_identifiers(ast.decl.init, scope, errors, allocator);
@@ -183,11 +183,11 @@ fn decorate_identifiers(
                 symbol.defined = true;
             }
         },
-        .fnDecl => {
-            try decorate_identifiers(ast.fnDecl.init, ast.symbol().?.scope, errors, allocator);
+        .fn_decl => {
+            try decorate_identifiers(ast.fn_decl.init, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.symbol().?.scope, errors, allocator);
-            try decorate_identifiers(ast.fnDecl.retType, ast.symbol().?.scope, errors, allocator);
+            try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
         },
-        ._defer, ._errdefer => try decorate_identifiers(ast.statement(), scope, errors, allocator),
+        .@"defer", .@"errdefer" => try decorate_identifiers(ast.statement(), scope, errors, allocator),
     }
 }

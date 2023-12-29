@@ -153,7 +153,7 @@ pub const Module = struct {
         // The above should work
         for (module.cfgs.items) |cfg| {
             // Add parameter types to type set
-            for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+            for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
                 _ = module.type_set.add(param.expanded_type.?, allocator);
             }
 

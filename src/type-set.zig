@@ -38,7 +38,7 @@ pub const Type_Set = struct {
             return dag;
         } else if (ast.* == .annotation) {
             return self.add(ast.annotation.type, allocator);
-        } else if (ast.* == .addrOf) {
+        } else if (ast.* == .addr_of) {
             return self.add(ast.expr(), allocator);
         } else {
             return null;
@@ -48,7 +48,7 @@ pub const Type_Set = struct {
     pub fn get(self: *Type_Set, oldast_: *ast_.AST) ?*DAG {
         const ast = oldast_;
         for (self.types.items) |dag| {
-            if (dag.base.c_typesMatch(ast)) {
+            if (dag.base.c_types_match(ast)) {
                 return dag;
             }
         }

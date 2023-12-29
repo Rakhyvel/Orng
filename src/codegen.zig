@@ -99,7 +99,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) !void { // TODO: Uninfer 
             // Function pointer takes more than one argument
             const product = dag.base.lhs();
             for (product.children().items, 0..) |term, i| {
-                if (!term.c_typesMatch(primitives_.unit_type)) {
+                if (!term.c_types_match(primitives_.unit_type)) {
                     // Do not output `void` parameters
                     try output_type(term, writer);
                     if (i + 1 < product.children().items.len) {
@@ -129,7 +129,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) !void { // TODO: Uninfer 
 
 fn output_field_list(fields: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
     for (fields.items, 0..) |term, i| {
-        if (!term.c_typesMatch(primitives_.unit_type)) {
+        if (!term.c_types_match(primitives_.unit_type)) {
             // Don't gen `void` structure fields
             try writer.print("        ", .{});
             try output_type(term, writer);
@@ -165,7 +165,7 @@ fn forall_functions(
 ) CodeGen_Error!void {
     try writer.print("{s}\n", .{header_comment});
     for (cfgs.items) |cfg| {
-        if (cfg.symbol.decl.?.* == .fnDecl) { // Don't output for `_comptime` decls
+        if (cfg.symbol.decl.?.* == .fn_decl) { // Don't output for `_comptime` decls
             try f(cfg, writer);
         }
     }
@@ -178,11 +178,11 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Un
     try output_symbol(cfg.symbol, writer);
     try writer.print("(", .{});
     var num_non_unit_params: i64 = 0;
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items, 0..) |term, i| {
-        if (!term.expanded_type.?.c_typesMatch(primitives_.unit_type)) {
+    for (cfg.symbol.decl.?.fn_decl.param_symbols.items, 0..) |term, i| {
+        if (!term.expanded_type.?.c_types_match(primitives_.unit_type)) {
             // Print out parameter declarations
             try output_var_decl(term, writer, true);
-            if (i + 1 < cfg.symbol.decl.?.fnDecl.param_symbols.items.len) {
+            if (i + 1 < cfg.symbol.decl.?.fn_decl.param_symbols.items.len) {
                 try writer.print(", ", .{});
             }
             num_non_unit_params += 1;
@@ -213,7 +213,7 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
         symbver.symbol.decld = true;
     }
 
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+    for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
         // Mark unused parameters as discarded
         // Do this only if they aren't discarded in source
         // Users can discard parameters, however used parameters may also become unused through optimizations
@@ -227,7 +227,7 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
     // Generate the basic-block graph, starting at the init basic block
     if (cfg.block_graph_head) |block_graph_head| {
         try output_basic_block(cfg, block_graph_head, cfg.return_symbol, writer);
-        cfg.clearVisitedBBs();
+        cfg.clear_visited_BBs();
     }
 
     try writer.print("}}\n\n", .{});
@@ -352,10 +352,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print("{{", .{});
             var product_list = ir.dest.?.get_expanded_type().children().*;
             for (ir.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
-                if (!expected.c_typesMatch(primitives_.unit_type)) {
+                if (!expected.c_types_match(primitives_.unit_type)) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
                     try output_rvalue(term, ir.kind.precedence(), writer);
-                    if (i < product_list.items.len and !product_list.items[i - 1].c_typesMatch(primitives_.unit_type)) {
+                    if (i < product_list.items.len and !product_list.items[i - 1].c_types_match(primitives_.unit_type)) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -419,7 +419,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print("(", .{});
             for (ir.data.lval_list.items, 0..) |term, i| {
-                if (!term.get_expanded_type().c_typesMatch(primitives_.unit_type)) {
+                if (!term.get_expanded_type().c_types_match(primitives_.unit_type)) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
                     if (i + 1 < ir.data.lval_list.items.len) {
@@ -597,7 +597,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
                 try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
             }
         },
-        .addrOf => {
+        .addr_of => {
             try output_type(_type.expr(), writer);
             try writer.print("*", .{});
         },

@@ -54,27 +54,27 @@ fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Alloc
 
 pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, Labels.null_labels, errors, allocator);
-    if (cfg.symbol.decl.?.* == .fnDecl) {
+    if (cfg.symbol.decl.?.* == .fn_decl) {
         // `_comptime` symbols don't have parameters anyway
-        for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param| {
+        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
             cfg.parameters.append(lval_.Symbol_Version.createUnversioned(param, allocator)) catch unreachable;
         }
     }
     const return_version = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);
     if (eval != null) {
-        cfg.appendInstruction(ir_.IR.init_simple_copy(return_version, eval.?, cfg.symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.init_simple_copy(return_version, eval.?, cfg.symbol.span, allocator));
     }
-    cfg.appendInstruction(ir_.IR.initJump(null, cfg.symbol.span, allocator));
+    cfg.append_instruction(ir_.IR.initJump(null, cfg.symbol.span, allocator));
 
-    cfg.block_graph_head = cfg.basicBlockFromIR(cfg.ir_head, allocator);
-    cfg.removeBasicBlockLastInstruction();
+    cfg.block_graph_head = cfg.basic_block_from_IR(cfg.ir_head, allocator);
+    cfg.remove_last_instruction();
 
     // for (retval.basic_blocks.items) |bb| {
     //     bb.pprint();
     // }
     // retval.clearVisitedBBs();
 
-    cfg.calculatePhiParamsAndArgs(allocator);
+    cfg.calculate_phi_params_and_args(allocator);
 }
 
 fn lower_AST(
@@ -94,7 +94,7 @@ fn lower_AST(
         // Literals
         .unit_value => {
             const lval = create_temp_lvalue(cfg, primitives_.unit_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.load_unit, lval, null, null, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init(.load_unit, lval, null, null, ast.token().span, allocator));
             return lval;
         },
         .int => return lval_from_int(ast.int.data, ast.typeof(allocator), ast.token().span, cfg, allocator),
@@ -117,12 +117,12 @@ fn lower_AST(
                     codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch return error.TypeError; // TODO: Add actual error diagnostics here
                 },
             }
-            cfg.appendInstruction(ir_.IR.initInt(temp, codepoint, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initInt(temp, codepoint, ast.token().span, allocator));
             return temp;
         },
         .float => {
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-            cfg.appendInstruction(ir_.IR.initFloat(temp, ast.float.data, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initFloat(temp, ast.float.data, ast.token().span, allocator));
             return temp;
         },
         .string => {
@@ -135,14 +135,14 @@ fn lower_AST(
                 cfg.interned_strings.put(ast.string.data, id) catch unreachable;
             }
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-            cfg.appendInstruction(ir_.IR.initString(temp, id, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initString(temp, id, ast.token().span, allocator));
             return temp;
         },
         .identifier => {
             const symbol = ast.symbol().?;
             if (symbol.kind == .@"fn") {
                 return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator);
-            } else if (symbol.expanded_type.?.typesMatch(primitives_.type_type)) {
+            } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
                 return lval_from_ast(ast, cfg, allocator);
             } else if (symbol.kind == .@"const") {
                 return try lower_AST(cfg, symbol.init, labels, errors, allocator);
@@ -152,10 +152,10 @@ fn lower_AST(
             }
         },
         .pattern_symbol => return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator),
-        ._true => return lval_from_int(1, ast.typeof(allocator), ast.token().span, cfg, allocator),
-        ._false => return lval_from_int(0, ast.typeof(allocator), ast.token().span, cfg, allocator),
+        .true => return lval_from_int(1, ast.typeof(allocator), ast.token().span, cfg, allocator),
+        .false => return lval_from_int(0, ast.typeof(allocator), ast.token().span, cfg, allocator),
         // Unary operators
-        .not, .negate, .addrOf => return try unop(ast, cfg, labels, errors, allocator),
+        .not, .negate, .addr_of => return try unop(ast, cfg, labels, errors, allocator),
         .dereference => {
             const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator) orelse return null;
             const _type = ast.typeof(allocator);
@@ -163,7 +163,7 @@ fn lower_AST(
             const temp = lval_.L_Value.create_dereference(expr, size, _type, _type.expand_type(allocator), allocator);
             return temp;
         },
-        ._try => {
+        .@"try" => {
             var expr = (try lower_AST(cfg, ast.expr(), labels, errors, allocator)) orelse return null;
 
             const end_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
@@ -172,16 +172,16 @@ fn lower_AST(
             var expanded_expr_type = expr.get_type().expand_type(allocator);
             // Trying error sum, runtime check if error, branch to error path
             const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-            cfg.appendInstruction(ir_.IR.initGetTag(condition, expr, ast.token().span, allocator)); // `ok` is zero, `err`s are nonzero
-            cfg.appendInstruction(ir_.IR.initBranch(condition, err_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initGetTag(condition, expr, ast.token().span, allocator)); // `ok` is zero, `err`s are nonzero
+            cfg.append_instruction(ir_.IR.initBranch(condition, err_label, ast.token().span, allocator));
 
             // Unwrap the `.ok` value
             const retval_lval = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);
-            cfg.appendInstruction(ir_.IR.init_simple_copy(retval_lval, expr, ast.token().span, allocator));
-            cfg.appendInstruction(ir_.IR.initJump(labels.error_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init_simple_copy(retval_lval, expr, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(labels.error_label, ast.token().span, allocator));
 
             // Else, store the error in retval, return through error
-            cfg.appendInstruction(err_label);
+            cfg.append_instruction(err_label);
 
             const ok_lval = lval_.L_Value.create_select(
                 expr,
@@ -193,8 +193,8 @@ fn lower_AST(
                 null,
                 allocator,
             );
-            cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
-            cfg.appendInstruction(end_label);
+            cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+            cfg.append_instruction(end_label);
 
             return ok_lval;
         },
@@ -205,7 +205,7 @@ fn lower_AST(
             }
             expr.?.extract_symbver().symbol.discard_span = ast.token().span;
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-            cfg.appendInstruction(ir_.IR.initDiscard(expr.?, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initDiscard(expr.?, ast.token().span, allocator));
             return temp;
         },
 
@@ -220,7 +220,7 @@ fn lower_AST(
             return try generate_assign(cfg, ast.lhs(), rhs.?, labels, errors, allocator);
         },
 
-        ._or, ._and => return try or_and_op(ast, cfg, labels, errors, allocator),
+        .@"or", .@"and" => return try or_and_op(ast, cfg, labels, errors, allocator),
 
         .add,
         .sub,
@@ -246,9 +246,9 @@ fn lower_AST(
             for (ast.children().items) |term| {
                 ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
             }
-            cfg.appendInstruction(ir_.IR.initStackPush(ast.token().span, allocator));
-            cfg.appendInstruction(ir);
-            cfg.appendInstruction(ir_.IR.initStackPop(ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initStackPush(ast.token().span, allocator));
+            cfg.append_instruction(ir);
+            cfg.append_instruction(ir_.IR.initStackPop(ast.token().span, allocator));
             return temp;
         },
         .index => {
@@ -287,7 +287,7 @@ fn lower_AST(
             if (lhs_expanded_type.* == .sum) {
                 // Check that the sum value has the proper tag before a selection
                 tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-                cfg.appendInstruction(ir_.IR.initGetTag(tag.?, ast_lval.?, ast.token().span, allocator));
+                cfg.append_instruction(ir_.IR.initGetTag(tag.?, ast_lval.?, ast.token().span, allocator));
             }
 
             // Surround with L_Value node
@@ -305,7 +305,7 @@ fn lower_AST(
             );
         },
         .product => {
-            if (ast.children().items[0].typeof(allocator).typesMatch(primitives_.type_type)) {
+            if (ast.children().items[0].typeof(allocator).types_match(primitives_.type_type)) {
                 return lval_from_ast(ast, cfg, allocator);
             } else {
                 const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
@@ -313,20 +313,20 @@ fn lower_AST(
                 for (ast.children().items) |term| {
                     ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse return null) catch unreachable;
                 }
-                cfg.appendInstruction(ir);
+                cfg.append_instruction(ir);
                 return temp;
             }
         },
         // Fancy Operators
-        .subSlice => {
-            const arr = (try lower_AST(cfg, ast.subSlice.super, labels, errors, allocator)) orelse return null;
-            const lower = (try lower_AST(cfg, ast.subSlice.lower.?, labels, errors, allocator)) orelse return null;
-            const upper = (try lower_AST(cfg, ast.subSlice.upper.?, labels, errors, allocator)) orelse return null;
+        .sub_slice => {
+            const arr = (try lower_AST(cfg, ast.sub_slice.super, labels, errors, allocator)) orelse return null;
+            const lower = (try lower_AST(cfg, ast.sub_slice.lower.?, labels, errors, allocator)) orelse return null;
+            const upper = (try lower_AST(cfg, ast.sub_slice.upper.?, labels, errors, allocator)) orelse return null;
 
             generate_subslice_check(cfg, lower, upper, ast.token().span, allocator);
 
             const new_size = create_temp_lvalue(cfg, primitives_.int_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.sub_int, new_size, upper, lower, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init(.sub_int, new_size, upper, lower, ast.token().span, allocator));
 
             const slice_type = ast.typeof(allocator);
             const data_type = slice_type.children().items[0];
@@ -334,50 +334,50 @@ fn lower_AST(
             const data_ptr = lval_.L_Value.create_select(arr, 0, 0, size, data_type, data_type.expand_type(allocator), null, allocator);
 
             const new_data_ptr = create_temp_lvalue(cfg, data_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, allocator));
 
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             var load_struct = ir_.IR.init_load_struct(temp, ast.token().span, allocator);
             load_struct.data.lval_list.append(new_data_ptr) catch unreachable;
             load_struct.data.lval_list.append(new_size) catch unreachable;
-            cfg.appendInstruction(load_struct);
+            cfg.append_instruction(load_struct);
             return temp;
         },
-        .inferredMember => {
+        .inferred_member => {
             var init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
             const proper_term: *ast_.AST = (ast.typeof(allocator)).children().items[pos];
             if (proper_term.annotation.type.* != .unit_type) {
-                init = try lower_AST(cfg, ast.inferredMember.init.?, labels, errors, allocator);
+                init = try lower_AST(cfg, ast.inferred_member.init.?, labels, errors, allocator);
             }
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-            cfg.appendInstruction(ir_.IR.initUnion(temp, init, ast.pos().?, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initUnion(temp, init, ast.pos().?, ast.token().span, allocator));
             return temp;
         },
         // Control-flow expressions
-        ._if => {
+        .@"if" => {
             // Create the result symbol and labels used
             const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const else_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
 
             // If there's a let, then do it, dumby!
-            if (ast._if.let) |let| {
+            if (ast.@"if".let) |let| {
                 _ = try lower_AST(cfg, let, labels, errors, allocator);
             }
 
             // Test condition
-            try flow(ast._if.condition, else_label, false, cfg, ast.token().span, labels, errors, allocator);
+            try flow(ast.@"if".condition, else_label, false, cfg, ast.token().span, labels, errors, allocator);
 
             // lhs was true
-            try generate_control_flow_block(cfg, ast._if.bodyBlock, symbol, ast._if.elseBlock != null, labels, errors, allocator);
-            cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+            try generate_control_flow_block(cfg, ast.@"if".body_block, symbol, ast.@"if".else_block != null, labels, errors, allocator);
+            cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
 
             // lhs was false
-            cfg.appendInstruction(else_label);
-            try generate_control_flow_else(cfg, ast._if.elseBlock, symbol, ast.token().span, labels, errors, allocator);
+            cfg.append_instruction(else_label);
+            try generate_control_flow_else(cfg, ast.@"if".else_block, symbol, ast.token().span, labels, errors, allocator);
 
-            cfg.appendInstruction(end_label);
+            cfg.append_instruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         },
         .match => {
@@ -394,9 +394,9 @@ fn lower_AST(
             const rhs_label_list = try generate_match_pattern_checks(cfg, expr, ast.children().*, none_label, labels, errors, allocator);
 
             if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
-                cfg.appendInstruction(none_label);
+                cfg.append_instruction(none_label);
                 try generate_control_flow_else(cfg, null, symbol, ast.token().span, labels, errors, allocator);
-                cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+                cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
             }
 
             try generate_match_bodies(
@@ -413,10 +413,10 @@ fn lower_AST(
                 allocator,
             );
 
-            cfg.appendInstruction(end_label);
+            cfg.append_instruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         },
-        ._while => {
+        .@"while" => {
             // Create the result symbol and labels used
             const symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
             const cond_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
@@ -424,7 +424,7 @@ fn lower_AST(
             const else_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
             const end_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
 
-            if (ast._while.let) |let| { // do `let` if there's a let
+            if (ast.@"while".let) |let| { // do `let` if there's a let
                 _ = try lower_AST(cfg, let, labels, errors, allocator);
             }
 
@@ -442,22 +442,22 @@ fn lower_AST(
             };
 
             // Test condition, branch to either body or else block
-            cfg.appendInstruction(cond_label);
-            try flow(ast._while.condition, else_label, false, cfg, ast.token().span, loop_labels, errors, allocator);
+            cfg.append_instruction(cond_label);
+            try flow(ast.@"while".condition, else_label, false, cfg, ast.token().span, loop_labels, errors, allocator);
 
             // Body block
-            try generate_control_flow_block(cfg, ast._while.bodyBlock, symbol, ast._while.elseBlock != null, loop_labels, errors, allocator);
+            try generate_control_flow_block(cfg, ast.@"while".body_block, symbol, ast.@"while".else_block != null, loop_labels, errors, allocator);
 
-            cfg.appendInstruction(current_continue_label);
-            if (ast._while.post) |post| { // do `post` if there's a post, jump to end_label to break
+            cfg.append_instruction(current_continue_label);
+            if (ast.@"while".post) |post| { // do `post` if there's a post, jump to end_label to break
                 _ = try lower_AST(cfg, post, post_labels, errors, allocator);
             }
-            cfg.appendInstruction(ir_.IR.initJump(cond_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(cond_label, ast.token().span, allocator));
 
-            cfg.appendInstruction(else_label);
-            try generate_control_flow_else(cfg, ast._while.elseBlock, symbol, ast.token().span, labels, errors, allocator);
+            cfg.append_instruction(else_label);
+            try generate_control_flow_else(cfg, ast.@"while".else_block, symbol, ast.token().span, labels, errors, allocator);
 
-            cfg.appendInstruction(end_label);
+            cfg.append_instruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         },
         .block => { // TODO: TOO LONG
@@ -492,12 +492,12 @@ fn lower_AST(
             var temp: ?*lval_.L_Value = null;
             for (ast.children().items) |child| {
                 temp = try lower_AST(cfg, child, current_labels, errors, allocator);
-                if (child.* == ._defer) {
+                if (child.* == .@"defer") {
                     current_labels.continue_label = continue_labels.items[defer_label_index];
                     current_labels.break_label = break_labels.items[defer_label_index];
                     current_labels.return_label = return_labels.items[defer_label_index];
                     defer_label_index += 1;
-                } else if (child.* == ._errdefer) {
+                } else if (child.* == .@"errdefer") {
                     current_labels.error_label = error_labels.items[errdefer_label_index];
                     errdefer_label_index += 1;
                 }
@@ -509,18 +509,18 @@ fn lower_AST(
             }
 
             try generateDefers(cfg, &ast.block.scope.?.defers, &continue_labels, errors, allocator);
-            cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
 
             try generateDefers(cfg, &ast.block.scope.?.defers, &break_labels, errors, allocator);
-            cfg.appendInstruction(ir_.IR.initJump(labels.break_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(labels.break_label, ast.token().span, allocator));
 
             try generateDefers(cfg, &ast.block.scope.?.defers, &return_labels, errors, allocator);
-            cfg.appendInstruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
 
             try generateDefers(cfg, &ast.block.scope.?.errdefers, &error_labels, errors, allocator);
-            cfg.appendInstruction(ir_.IR.initJump(labels.error_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(labels.error_label, ast.token().span, allocator));
 
-            cfg.appendInstruction(end_label);
+            cfg.append_instruction(end_label);
 
             return temp;
         },
@@ -534,30 +534,30 @@ fn lower_AST(
             try generate_pattern(cfg, ast.decl.pattern, ast.decl.type.expand_type(allocator), def.?, errors, allocator);
             return null;
         },
-        .fnDecl => return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator),
-        ._errdefer, ._defer => return null,
-        ._continue => {
-            cfg.appendInstruction(ir_.IR.initJump(labels.continue_label, ast.token().span, allocator));
+        .fn_decl => return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator),
+        .@"errdefer", .@"defer" => return null,
+        .@"continue" => {
+            cfg.append_instruction(ir_.IR.initJump(labels.continue_label, ast.token().span, allocator));
             return null;
         },
-        ._unreachable => {
-            cfg.appendInstruction(ir_.IR.initStackPush(ast.token().span, allocator));
-            cfg.appendInstruction(ir_.IR.initPanic("reached unreachable code", ast.token().span, allocator));
+        .@"unreachable" => {
+            cfg.append_instruction(ir_.IR.initStackPush(ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initPanic("reached unreachable code", ast.token().span, allocator));
             return null;
         },
-        ._break => {
-            cfg.appendInstruction(ir_.IR.initJump(labels.break_label, ast.token().span, allocator));
+        .@"break" => {
+            cfg.append_instruction(ir_.IR.initJump(labels.break_label, ast.token().span, allocator));
             return null;
         },
-        ._return => {
-            if (ast._return._ret_expr) |expr| {
+        .@"return" => {
+            if (ast.@"return"._ret_expr) |expr| {
                 // Copy expr to retval
                 const retval = (try lower_AST(cfg, expr, labels, errors, allocator)) orelse return null;
                 const retval_lval = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);
-                cfg.appendInstruction(ir_.IR.init_simple_copy(retval_lval, retval, ast.token().span, allocator));
+                cfg.append_instruction(ir_.IR.init_simple_copy(retval_lval, retval, ast.token().span, allocator));
                 wrap_error_return(retval, cfg, ast.token().span, labels, allocator);
             }
-            cfg.appendInstruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initJump(labels.return_label, ast.token().span, allocator));
             return null;
         },
 
@@ -579,7 +579,7 @@ fn lval_from_symbol_cfg(
     const lval = create_temp_lvalue(cfg, symbol._type, allocator);
     var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
     ir.data = ir_.Data{ .symbol = symbol };
-    cfg.appendInstruction(ir);
+    cfg.append_instruction(ir);
     return lval;
 }
 
@@ -589,7 +589,7 @@ fn lval_from_ast(
     allocator: std.mem.Allocator,
 ) *lval_.L_Value {
     const lval = create_temp_lvalue(cfg, ast, allocator);
-    cfg.appendInstruction(ir_.IR.init_ast(lval, ast, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.init_ast(lval, ast, ast.token().span, allocator));
     return lval;
 }
 
@@ -601,7 +601,7 @@ fn lval_from_int(
     allocator: std.mem.Allocator,
 ) *lval_.L_Value {
     const temp = create_temp_lvalue(cfg, _type, allocator);
-    cfg.appendInstruction(ir_.IR.initInt(temp, int, span, allocator));
+    cfg.append_instruction(ir_.IR.initInt(temp, int, span, allocator));
     return temp;
 }
 
@@ -612,12 +612,12 @@ fn unop(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !?*lval_.L_Value { // TODO: Uninfer error
-    if ((ast.typeof(allocator)).typesMatch(primitives_.type_type)) {
+    if ((ast.typeof(allocator)).types_match(primitives_.type_type)) {
         return lval_from_ast(ast, cfg, allocator); // for addrOf
     }
     const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator) orelse return null;
     const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-    cfg.appendInstruction(ir_.IR.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.init_int_float_kind(int_kind(ast), float_kind(ast), temp, expr, null, ast.token().span, allocator));
     return temp;
 }
 
@@ -633,7 +633,7 @@ fn or_and_op(
     const jump_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
     const end_label = ir_.IR.initLabel(cfg, ast.token().span, allocator);
 
-    const should_jump = ast.* == ._or;
+    const should_jump = ast.* == .@"or";
 
     // Test condition
     try flow(ast.lhs(), jump_label, should_jump, cfg, ast.token().span, labels, errors, allocator);
@@ -641,15 +641,15 @@ fn or_and_op(
 
     // never jumped, store whether that's good or not in temp
     const load_false_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
-    cfg.appendInstruction(ir_.IR.initInt(load_false_lval, if (should_jump) 0 else 1, ast.token().span, allocator));
-    cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initInt(load_false_lval, if (should_jump) 0 else 1, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
 
     // jumped, store whether that's good or not in temp
-    cfg.appendInstruction(jump_label);
+    cfg.append_instruction(jump_label);
     const load_true_lval = lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
-    cfg.appendInstruction(ir_.IR.initInt(load_true_lval, if (should_jump) 1 else 0, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initInt(load_true_lval, if (should_jump) 1 else 0, ast.token().span, allocator));
 
-    cfg.appendInstruction(end_label);
+    cfg.append_instruction(end_label);
     return lval_.L_Value.create_unversioned_symbver(or_and_symbol, allocator);
 }
 
@@ -666,7 +666,7 @@ fn binop(
         return null;
     }
     const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-    cfg.appendInstruction(ir_.IR.init_int_float_kind(int_kind(ast), float_kind(ast), temp, lhs_lval, rhs_lval, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.init_int_float_kind(int_kind(ast), float_kind(ast), temp, lhs_lval, rhs_lval, ast.token().span, allocator));
     return temp;
 }
 
@@ -674,7 +674,7 @@ fn int_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_int,
-        .addrOf => .addr_of,
+        .addr_of => .addr_of,
         .add => .add_int,
         .sub => .sub_int,
         .mult => .mult_int,
@@ -692,7 +692,7 @@ fn float_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_float,
-        .addrOf => .addr_of,
+        .addr_of => .addr_of,
         .add => .add_float,
         .sub => .sub_float,
         .mult => .mult_float,
@@ -727,13 +727,13 @@ fn tuple_equality_check(
 
     tuple_equality_flow(cfg, lhs.?, rhs.?, fail_label, allocator);
 
-    cfg.appendInstruction(ir_.IR.initInt(temp, if (ast.* == .equal) 1 else 0, ast.token().span, allocator));
-    cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initInt(temp, if (ast.* == .equal) 1 else 0, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
 
-    cfg.appendInstruction(fail_label);
-    cfg.appendInstruction(ir_.IR.initInt(temp, if (ast.* == .equal) 0 else 1, ast.token().span, allocator));
+    cfg.append_instruction(fail_label);
+    cfg.append_instruction(ir_.IR.initInt(temp, if (ast.* == .equal) 0 else 1, ast.token().span, allocator));
 
-    cfg.appendInstruction(end_label);
+    cfg.append_instruction(end_label);
     return temp;
 }
 
@@ -777,13 +777,13 @@ fn tuple_equality_flow(
     } else if (lhs_type.* == .sum) {
         const lhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
         const rhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-        cfg.appendInstruction(ir_.IR.initGetTag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, allocator));
-        cfg.appendInstruction(ir_.IR.initGetTag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span, allocator));
-        cfg.appendInstruction(ir_.IR.init(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span, allocator));
-        cfg.appendInstruction(ir_.IR.initBranch(temp, fail_label, lhs.extract_symbver().symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.initGetTag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.initGetTag(rhs_tag, new_rhs, lhs.extract_symbver().symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.init(.equal, temp, lhs_tag, rhs_tag, lhs.extract_symbver().symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.initBranch(temp, fail_label, lhs.extract_symbver().symbol.span, allocator));
     } else {
-        cfg.appendInstruction(ir_.IR.init(.equal, temp, new_lhs, rhs, lhs.extract_symbver().symbol.span, allocator));
-        cfg.appendInstruction(ir_.IR.initBranch(temp, fail_label, lhs.extract_symbver().symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.init(.equal, temp, new_lhs, rhs, lhs.extract_symbver().symbol.span, allocator));
+        cfg.append_instruction(ir_.IR.initBranch(temp, fail_label, lhs.extract_symbver().symbol.span, allocator));
     }
 }
 
@@ -802,24 +802,24 @@ fn coalesce_op(
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
     const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-    cfg.appendInstruction(ir_.IR.initGetTag(condition, lhs, ast.token().span, allocator));
-    cfg.appendInstruction(ir_.IR.initBranch(condition, zero_label, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initGetTag(condition, lhs, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initBranch(condition, zero_label, ast.token().span, allocator));
 
     // tag was an error/none, store rhs in temp
     const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
     const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
-    cfg.appendInstruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
-    cfg.appendInstruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.initJump(end_label, ast.token().span, allocator));
 
     // tag was `.ok` or `.some`, store lhs in temp
-    cfg.appendInstruction(zero_label);
+    cfg.append_instruction(zero_label);
     const _type = ast.typeof(allocator);
     const size = _type.expand_type(allocator).sizeof();
     const val = lval_.L_Value.create_select(lhs, 0, 0, size, _type, _type.expand_type(allocator), null, allocator);
     const ok_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
-    cfg.appendInstruction(ir_.IR.init_simple_copy(ok_lval, val, ast.token().span, allocator));
+    cfg.append_instruction(ir_.IR.init_simple_copy(ok_lval, val, ast.token().span, allocator));
 
-    cfg.appendInstruction(end_label);
+    cfg.append_instruction(end_label);
     return lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
 }
 
@@ -835,27 +835,27 @@ fn flow(
     allocator: std.mem.Allocator,
 ) !void { // TODO: Uninfer error
     switch (condition.*) {
-        ._true => if (sense) {
-            cfg.appendInstruction(ir_.IR.initJump(label, span, allocator));
+        .true => if (sense) {
+            cfg.append_instruction(ir_.IR.initJump(label, span, allocator));
         },
-        ._false => if (!sense) {
-            cfg.appendInstruction(ir_.IR.initJump(label, span, allocator));
+        .false => if (!sense) {
+            cfg.append_instruction(ir_.IR.initJump(label, span, allocator));
         },
         .not => try flow(condition.expr(), label, !sense, cfg, span, labels, errors, allocator),
-        ._or => if (sense) {
+        .@"or" => if (sense) {
             try flow(condition.lhs(), label, true, cfg, span, labels, errors, allocator);
             try flow(condition.rhs(), label, true, cfg, span, labels, errors, allocator);
         } else {
             const skip_label = ir_.IR.initLabel(cfg, span, allocator);
             try flow(condition.lhs(), skip_label, true, cfg, span, labels, errors, allocator);
             try flow(condition.rhs(), label, false, cfg, span, labels, errors, allocator);
-            cfg.appendInstruction(skip_label);
+            cfg.append_instruction(skip_label);
         },
-        ._and => if (sense) {
+        .@"and" => if (sense) {
             const skip_label = ir_.IR.initLabel(cfg, span, allocator);
             try flow(condition.lhs(), skip_label, false, cfg, span, labels, errors, allocator);
             try flow(condition.rhs(), label, true, cfg, span, labels, errors, allocator);
-            cfg.appendInstruction(skip_label);
+            cfg.append_instruction(skip_label);
         } else {
             try flow(condition.lhs(), label, false, cfg, span, labels, errors, allocator);
             try flow(condition.rhs(), label, false, cfg, span, labels, errors, allocator);
@@ -863,11 +863,11 @@ fn flow(
         else => if (sense) {
             const condition_lval = try lower_AST(cfg, condition, labels, errors, allocator) orelse return;
             const not_condition_lval = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.not, not_condition_lval, condition_lval, null, span, allocator)); // Will be optimized out!
-            cfg.appendInstruction(ir_.IR.initBranch(not_condition_lval, label, span, allocator));
+            cfg.append_instruction(ir_.IR.init(.not, not_condition_lval, condition_lval, null, span, allocator)); // Will be optimized out!
+            cfg.append_instruction(ir_.IR.initBranch(not_condition_lval, label, span, allocator));
         } else {
             const condition_lval = try lower_AST(cfg, condition, labels, errors, allocator) orelse return;
-            cfg.appendInstruction(ir_.IR.initBranch(condition_lval, label, span, allocator));
+            cfg.append_instruction(ir_.IR.initBranch(condition_lval, label, span, allocator));
         },
     }
 }
@@ -913,7 +913,7 @@ fn generate_assign(
         var ir = ir_.IR.init(.copy, null, rhs, null, lhs.token().span, allocator);
         ir.dest = lval;
         ir.safe = true;
-        cfg.appendInstruction(ir);
+        cfg.append_instruction(ir);
         return null;
     }
 }
@@ -929,7 +929,7 @@ fn generate_pattern(
     if (pattern.* == .pattern_symbol) {
         if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
             const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, allocator);
-            cfg.appendInstruction(ir_.IR.init_simple_copy(symbver, def, pattern.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init_simple_copy(symbver, def, pattern.token().span, allocator));
         }
     } else if (pattern.* == .product) {
         for (pattern.children().items, 0..) |term, i| {
@@ -978,7 +978,7 @@ fn generate_indexable_length(
         return lval_.L_Value.create_select(lhs, 1, offset, 8, primitives_.int64_type, primitives_.int64_type, null, allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
         const retval = create_temp_lvalue(cfg, primitives_.int_type, allocator);
-        cfg.appendInstruction(ir_.IR.initInt(retval, _type.children().items.len, span, allocator));
+        cfg.append_instruction(ir_.IR.initInt(retval, _type.children().items.len, span, allocator));
         return retval;
     } else {
         unreachable;
@@ -995,11 +995,11 @@ fn generate_subslice_check(
 ) void {
     const end_label = ir_.IR.initLabel(cfg, span, allocator);
     const compare = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-    cfg.appendInstruction(ir_.IR.init(.greater_int, compare, lower, upper, span, allocator));
-    cfg.appendInstruction(ir_.IR.initBranch(compare, end_label, span, allocator));
-    cfg.appendInstruction(ir_.IR.initStackPush(span, allocator));
-    cfg.appendInstruction(ir_.IR.initPanic("subslice lower bound is greater than upper bound", span, allocator));
-    cfg.appendInstruction(end_label);
+    cfg.append_instruction(ir_.IR.init(.greater_int, compare, lower, upper, span, allocator));
+    cfg.append_instruction(ir_.IR.initBranch(compare, end_label, span, allocator));
+    cfg.append_instruction(ir_.IR.initStackPush(span, allocator));
+    cfg.append_instruction(ir_.IR.initPanic("subslice lower bound is greater than upper bound", span, allocator));
+    cfg.append_instruction(end_label);
 }
 
 /// Wraps stores to an lval in either a union or as a simple-copy
@@ -1015,9 +1015,9 @@ fn generate_control_flow_block(
     if (try lower_AST(cfg, ast, labels, errors, allocator)) |rhs_lval| {
         const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         if (has_else) {
-            cfg.appendInstruction(ir_.IR.init_simple_copy(rhs_copy_lval, rhs_lval, ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init_simple_copy(rhs_copy_lval, rhs_lval, ast.token().span, allocator));
         } else {
-            cfg.appendInstruction(ir_.IR.initUnion(rhs_copy_lval, rhs_lval, 0, ast.token().span, allocator)); // `some` is 0
+            cfg.append_instruction(ir_.IR.initUnion(rhs_copy_lval, rhs_lval, 0, ast.token().span, allocator)); // `some` is 0
         }
     }
 }
@@ -1031,15 +1031,15 @@ fn generate_control_flow_else(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !void { // TODO: Uninfer error
-    if (ast) |elseBlock| {
-        if (try lower_AST(cfg, elseBlock, labels, errors, allocator)) |else_lval| {
+    if (ast) |else_block| {
+        if (try lower_AST(cfg, else_block, labels, errors, allocator)) |else_lval| {
             const else_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
-            cfg.appendInstruction(ir_.IR.init_simple_copy(else_copy_lval, else_lval, span, allocator));
+            cfg.append_instruction(ir_.IR.init_simple_copy(else_copy_lval, else_lval, span, allocator));
         }
     } else {
         // no else block => store null
         const else_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
-        cfg.appendInstruction(ir_.IR.initUnion(else_copy_lval, null, 1, span, allocator)); // `none` is 1
+        cfg.append_instruction(ir_.IR.initUnion(else_copy_lval, null, 1, span, allocator)); // `none` is 1
     }
 }
 
@@ -1061,7 +1061,7 @@ fn generate_match_pattern_checks(
         rhs_label_list.append(ir_.IR.initLabel(cfg, mapping.token().span, allocator)) catch unreachable;
     }
     for (mappings.items, 0..) |mapping, i| {
-        cfg.appendInstruction(lhs_label_list.items[i]);
+        cfg.append_instruction(lhs_label_list.items[i]);
         if (mapping.mapping_lhs()) |lhs| {
             const next_label = if (i < lhs_label_list.items.len - 1)
                 lhs_label_list.items[i + 1]
@@ -1069,7 +1069,7 @@ fn generate_match_pattern_checks(
                 none_label;
             try generate_match_pattern_check(cfg, lhs, expr, next_label, labels, errors, allocator);
         }
-        cfg.appendInstruction(ir_.IR.initJump(rhs_label_list.items[i], mapping.token().span, allocator));
+        cfg.append_instruction(ir_.IR.initJump(rhs_label_list.items[i], mapping.token().span, allocator));
     }
     return rhs_label_list;
 }
@@ -1092,16 +1092,16 @@ fn generate_match_pattern_check(
         .pattern_symbol => {}, // Infallible check, do not branch to next pattern
         .int,
         .float,
-        ._true,
-        ._false,
+        .true,
+        .false,
         .char,
         .string,
         .block,
         => {
             const value = try lower_AST(cfg, pattern.?, labels, errors, allocator);
             const condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.equal, condition, expr, value.?, pattern.?.token().span, allocator));
-            cfg.appendInstruction(ir_.IR.initBranch(condition, next_pattern, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init(.equal, condition, expr, value.?, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initBranch(condition, next_pattern, pattern.?.token().span, allocator));
         },
         .product => {
             for (pattern.?.children().items, 0..) |term, i| {
@@ -1122,19 +1122,19 @@ fn generate_match_pattern_check(
                 try generate_match_pattern_check(cfg, term, lval, next_pattern, labels, errors, allocator);
             }
         },
-        .select, .inferredMember => {
+        .select, .inferred_member => {
             // Get tag of pattern
             const sel = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-            cfg.appendInstruction(ir_.IR.initInt(sel, pattern.?.pos().?, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initInt(sel, pattern.?.pos().?, pattern.?.token().span, allocator));
 
             // Get tag of expr
             const tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-            cfg.appendInstruction(ir_.IR.initGetTag(tag, expr, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initGetTag(tag, expr, pattern.?.token().span, allocator));
 
             // Compare them, jump to next pattern if they are not equal
             const neql = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.equal, neql, tag, sel, pattern.?.token().span, allocator));
-            cfg.appendInstruction(ir_.IR.initBranch(neql, next_pattern, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init(.equal, neql, tag, sel, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.initBranch(neql, next_pattern, pattern.?.token().span, allocator));
         },
         .inject => {
             try generate_match_pattern_check(cfg, pattern.?.lhs(), expr, next_pattern, labels, errors, allocator);
@@ -1160,7 +1160,7 @@ fn generate_match_bodies(
     allocator: std.mem.Allocator,
 ) !void { // TODO: Uninfer error
     for (mappings.items, 0..) |mapping, i| {
-        cfg.appendInstruction(rhs_label_list.items[i]);
+        cfg.append_instruction(rhs_label_list.items[i]);
         if (mapping.mapping_lhs()) |lhs| {
             // Generate initialization for patterns before the rhs
             try generate_pattern(cfg, lhs, expr.get_type(), expr, errors, allocator);
@@ -1168,7 +1168,7 @@ fn generate_match_bodies(
 
         // Generate the rhs, copy result to symbol
         try generate_control_flow_block(cfg, mapping.rhs(), symbol, has_else, labels, errors, allocator);
-        cfg.appendInstruction(ir_.IR.initJump(end_label, span, allocator));
+        cfg.append_instruction(ir_.IR.initJump(end_label, span, allocator));
     }
 }
 
@@ -1183,10 +1183,10 @@ fn wrap_error_return(
     if (labels.error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.from == .@"error") {
         // Returning error sum, runtime check if error, branch to error path
         const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
-        cfg.appendInstruction(ir_.IR.initGetTag(condition, expr, span, allocator)); // `ok` is 0 `err`s nonzero
+        cfg.append_instruction(ir_.IR.initGetTag(condition, expr, span, allocator)); // `ok` is 0 `err`s nonzero
         const not_condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-        cfg.appendInstruction(ir_.IR.init(.not, not_condition, condition, null, span, allocator));
-        cfg.appendInstruction(ir_.IR.initBranch(not_condition, labels.error_label, span, allocator));
+        cfg.append_instruction(ir_.IR.init(.not, not_condition, condition, null, span, allocator));
+        cfg.append_instruction(ir_.IR.initBranch(not_condition, labels.error_label, span, allocator));
     }
 }
 
@@ -1199,7 +1199,7 @@ fn generateDefers(
 ) FlattenASTError!void {
     var i: usize = defers.items.len;
     while (i > 0) : (i -= 1) {
-        cfg.appendInstruction(deferLabels.items[i - 1]);
+        cfg.append_instruction(deferLabels.items[i - 1]);
         _ = try lower_AST(cfg, defers.items[i - 1], Labels.null_labels, errors, allocator);
     }
 }

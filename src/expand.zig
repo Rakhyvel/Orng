@@ -28,33 +28,33 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .string,
         .field,
         .identifier,
-        ._unreachable,
-        ._true,
-        ._false,
-        ._break,
-        ._continue,
-        .inferredMember,
+        .@"unreachable",
+        .true,
+        .false,
+        .@"break",
+        .@"continue",
+        .inferred_member,
         .poison,
         .pattern_symbol,
-        .domainOf,
+        .domain_of,
         => {},
 
-        ._typeOf,
+        .type_of,
         .default,
-        .sizeOf,
+        .size_of,
         .not,
         .negate,
         .dereference,
-        ._try,
+        .@"try",
         .discard,
-        ._comptime,
-        .addrOf,
-        .sliceOf,
+        .@"comptime",
+        .addr_of,
+        .slice_of,
         => try expand(ast.expr(), errors, allocator),
 
         .assign,
-        ._or,
-        ._and,
+        .@"or",
+        .@"and",
         .add,
         .sub,
         .mult,
@@ -73,7 +73,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .function,
         .invoke,
         .inject,
-        ._union,
+        .@"union",
         => {
             try expand(ast.lhs(), errors, allocator);
             try expand(ast.rhs(), errors, allocator);
@@ -113,27 +113,27 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand_from_list(ast.children().*, errors, allocator);
         },
         .inferred_error, .product => try expand_from_list(ast.children().*, errors, allocator),
-        .arrayOf => {
+        .array_of => {
             try expand(ast.expr(), errors, allocator);
-            try expand(ast.arrayOf.len, errors, allocator);
+            try expand(ast.array_of.len, errors, allocator);
         },
-        .subSlice => {
-            if (ast.subSlice.lower == null) {
-                ast.subSlice.lower = ast_.AST.createInt(ast.token(), 0, allocator);
+        .sub_slice => {
+            if (ast.sub_slice.lower == null) {
+                ast.sub_slice.lower = ast_.AST.create_int(ast.token(), 0, allocator);
             }
-            if (ast.subSlice.upper == null) {
-                const length = ast_.AST.createField(token_.Token.init("length", null, "", "", 0, 0), allocator);
-                ast.subSlice.upper = ast_.AST.createSelect(
+            if (ast.sub_slice.upper == null) {
+                const length = ast_.AST.create_field(token_.Token.init("length", null, "", "", 0, 0), allocator);
+                ast.sub_slice.upper = ast_.AST.create_select(
                     ast.token(),
-                    ast.subSlice.super,
+                    ast.sub_slice.super,
                     length,
                     allocator,
                 );
             }
 
-            try expand(ast.subSlice.super, errors, allocator);
-            try expand(ast.subSlice.lower, errors, allocator);
-            try expand(ast.subSlice.upper, errors, allocator);
+            try expand(ast.sub_slice.super, errors, allocator);
+            try expand(ast.sub_slice.lower, errors, allocator);
+            try expand(ast.sub_slice.upper, errors, allocator);
         },
         .annotation => {
             try expand(ast.annotation.type, errors, allocator);
@@ -141,11 +141,11 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.annotation.init, errors, allocator);
         },
 
-        ._if => {
-            try expand(ast._if.let, errors, allocator);
-            try expand(ast._if.condition, errors, allocator);
-            try expand(ast._if.bodyBlock, errors, allocator);
-            try expand(ast._if.elseBlock, errors, allocator);
+        .@"if" => {
+            try expand(ast.@"if".let, errors, allocator);
+            try expand(ast.@"if".condition, errors, allocator);
+            try expand(ast.@"if".body_block, errors, allocator);
+            try expand(ast.@"if".else_block, errors, allocator);
         },
         .match => {
             try expand(ast.match.let, errors, allocator);
@@ -156,19 +156,19 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.mapping_lhs(), errors, allocator);
             try expand(ast.rhs(), errors, allocator);
         },
-        ._while => {
-            try expand(ast._while.let, errors, allocator);
-            try expand(ast._while.condition, errors, allocator);
-            try expand(ast._while.post, errors, allocator);
-            try expand(ast._while.bodyBlock, errors, allocator);
-            try expand(ast._while.elseBlock, errors, allocator);
+        .@"while" => {
+            try expand(ast.@"while".let, errors, allocator);
+            try expand(ast.@"while".condition, errors, allocator);
+            try expand(ast.@"while".post, errors, allocator);
+            try expand(ast.@"while".body_block, errors, allocator);
+            try expand(ast.@"while".else_block, errors, allocator);
         },
-        ._for => {
-            try expand(ast._for.let, errors, allocator);
-            try expand(ast._for.elem, errors, allocator);
-            try expand(ast._for.iterable, errors, allocator);
-            try expand(ast._for.bodyBlock, errors, allocator);
-            try expand(ast._for.elseBlock, errors, allocator);
+        .@"for" => {
+            try expand(ast.@"for".let, errors, allocator);
+            try expand(ast.@"for".elem, errors, allocator);
+            try expand(ast.@"for".iterable, errors, allocator);
+            try expand(ast.@"for".body_block, errors, allocator);
+            try expand(ast.@"for".else_block, errors, allocator);
         },
         .block => {
             try expand_from_list(ast.children().*, errors, allocator);
@@ -177,17 +177,17 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             }
         },
 
-        ._return => try expand(ast._return._ret_expr, errors, allocator),
+        .@"return" => try expand(ast.@"return"._ret_expr, errors, allocator),
         .decl => {
             try expand(ast.decl.type, errors, allocator);
             try expand(ast.decl.init, errors, allocator);
         },
-        .fnDecl => {
-            try expand(ast.fnDecl.init, errors, allocator);
+        .fn_decl => {
+            try expand(ast.fn_decl.init, errors, allocator);
             try expand_from_list(ast.children().*, errors, allocator);
-            try expand(ast.fnDecl.retType, errors, allocator);
+            try expand(ast.fn_decl.ret_type, errors, allocator);
         },
-        ._defer, ._errdefer => try expand(ast.statement(), errors, allocator),
+        .@"defer", .@"errdefer" => try expand(ast.statement(), errors, allocator),
     }
 }
 
@@ -195,7 +195,7 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {
-        return ast_.AST.createAnnotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
+        return ast_.AST.create_annotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
     } else {
         errors.addError(errs_.Error{ .basic = .{
             .span = ast.token().span,

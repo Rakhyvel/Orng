@@ -60,8 +60,8 @@ pub fn calculate_offsets(
 
     // Calculate parameters offsets, descending from retval address offset
     var phony_sp: i64 = 0;
-    if (symbol.decl.?.* == .fnDecl) {
-        const items = symbol.decl.?.fnDecl.param_symbols.items;
+    if (symbol.decl.?.* == .fn_decl) {
+        const items = symbol.decl.?.fn_decl.param_symbols.items;
         // Go through params, as if we were pushing them
         var i: i64 = @as(i64, @intCast(items.len)) - 1;
         while (i >= 0) : (i -= 1) {

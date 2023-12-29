@@ -111,13 +111,13 @@ pub const CFG = struct {
 
     // BBs aren't trees, so `defer self.visited = false` won't work
     // Use this function instead
-    pub fn clearVisitedBBs(self: *CFG) void {
+    pub fn clear_visited_BBs(self: *CFG) void {
         for (self.basic_blocks.items) |bb| {
             bb.visited = false;
         }
     }
 
-    pub fn clearVisited(self: *CFG) void {
+    pub fn clear_visited(self: *CFG) void {
         self.visited = false;
         for (self.children.items) |child| {
             if (child.visited) {
@@ -141,7 +141,7 @@ pub const CFG = struct {
         }
     }
 
-    pub fn appendInstruction(self: *CFG, ir: *ir_.IR) void {
+    pub fn append_instruction(self: *CFG, ir: *ir_.IR) void {
         if (self.ir_head == null) {
             self.ir_head = ir;
         } else if (self.ir_tail == null) {
@@ -157,7 +157,7 @@ pub const CFG = struct {
 
     /// Converts the list of IR to a web of BB's
     /// Also versions IR dest's if they are symbvers. This versioning should persist and should not be wiped.
-    pub fn basicBlockFromIR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
+    pub fn basic_block_from_IR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
         if (maybe_ir == null) {
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
@@ -177,7 +177,7 @@ pub const CFG = struct {
             if (ir.kind == .label) {
                 // If you find a label declaration, end this block and jump to new block
                 retval.has_branch = false;
-                retval.next = self.basicBlockFromIR(ir.next, allocator);
+                retval.next = self.basic_block_from_IR(ir.next, allocator);
                 ir.snip();
                 break;
             } else if (ir.kind == .jump) {
@@ -185,9 +185,9 @@ pub const CFG = struct {
                 retval.has_branch = false;
                 if (ir.data == .branch) {
                     if (ir.data.branch) |branch| {
-                        retval.next = self.basicBlockFromIR(branch.next, allocator);
+                        retval.next = self.basic_block_from_IR(branch.next, allocator);
                     } else {
-                        retval.next = self.basicBlockFromIR(null, allocator);
+                        retval.next = self.basic_block_from_IR(null, allocator);
                     }
                 } else {
                     retval.next = null;
@@ -207,15 +207,15 @@ pub const CFG = struct {
             } else if (ir.kind == .branch_if_false) {
                 // If you find a branch, end this block, start both blocks
                 retval.has_branch = true;
-                var branchNext: ?*ir_.IR = null; // = ir.data.branch.next;
+                var branch_next: ?*ir_.IR = null; // = ir.data.branch.next;
                 // Since ir->branch->next may get nullifued by calling this function on ir->next
                 if (ir.data.branch) |branch| {
-                    branchNext = branch.next;
+                    branch_next = branch.next;
                 } else {
-                    branchNext = null;
+                    branch_next = null;
                 }
-                retval.next = self.basicBlockFromIR(ir.next, allocator);
-                retval.branch = self.basicBlockFromIR(branchNext, allocator);
+                retval.next = self.basic_block_from_IR(ir.next, allocator);
+                retval.branch = self.basic_block_from_IR(branch_next, allocator);
                 retval.condition = ir.src1;
                 ir.snip();
                 break;
@@ -224,7 +224,7 @@ pub const CFG = struct {
         return retval;
     }
 
-    pub fn removeBasicBlockLastInstruction(cfg: *CFG) void {
+    pub fn remove_last_instruction(cfg: *CFG) void {
         for (cfg.basic_blocks.items) |bb| {
             if (bb.ir_head == null) {
                 continue;
@@ -240,7 +240,7 @@ pub const CFG = struct {
 
     // Determines which symbol versions need to be requested as phi parameters, and which need to be passed to children basic-blocks as phi
     // arguments
-    pub fn calculatePhiParamsAndArgs(self: *CFG, allocator: std.mem.Allocator) void {
+    pub fn calculate_phi_params_and_args(self: *CFG, allocator: std.mem.Allocator) void {
         // clear arguments
         for (self.basic_blocks.items) |bb| {
             bb.parameters.clearRetainingCapacity();
@@ -277,13 +277,13 @@ pub const CFG = struct {
         }
 
         // Find phi arguments
-        self.clearVisitedBBs();
+        self.clear_visited_BBs();
         var i: usize = 0;
-        while (self.childrenArgPropagation(self.block_graph_head orelse return, allocator)) {
-            self.clearVisitedBBs();
+        while (self.children_arg_propagation(self.block_graph_head orelse return, allocator)) {
+            self.clear_visited_BBs();
             i += 1;
         }
-        self.clearVisitedBBs();
+        self.clear_visited_BBs();
     }
 
     fn version_lvalue(
@@ -322,7 +322,7 @@ pub const CFG = struct {
     ///
     /// This is called `argument propagation` because a basic blocks arguments are propagated to parameters if they are not defined inside
     /// it
-    fn childrenArgPropagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
+    fn children_arg_propagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
         var retval: bool = false;
         if (bb.visited) {
             return false;
@@ -345,7 +345,7 @@ pub const CFG = struct {
         args: *std.ArrayList(*lval_.Symbol_Version),
         allocator: std.mem.Allocator,
     ) bool {
-        var retval = self.childrenArgPropagation(bb, allocator);
+        var retval = self.children_arg_propagation(bb, allocator);
 
         // Go through the parameters the block requested, see if they exist in this block.
         // Request them if they do not.
@@ -353,8 +353,8 @@ pub const CFG = struct {
             var symbver = param.findVersion(bb.ir_head, null);
             if (symbver == param) {
                 // Could not find param def in this block, require it as a parameter for this own block
-                const myParam = param.findSymbolVersionSet(&bb.parameters);
-                if (myParam) |_myParam| {
+                const my_param = param.findSymbolVersionSet(&bb.parameters);
+                if (my_param) |_myParam| {
                     symbver = _myParam; // if so, we will add param to arglist
                 } else {
                     // else, create a new param and add to paramlist. (will later be added to arglist too)

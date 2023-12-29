@@ -116,19 +116,19 @@ pub fn get_scope() *symbol_.Scope {
         // Setup default values
         // These have to be all different AST nodes because they then represent different types
         // The types are created later, and then the represents field is set after that
-        const default_bool = ast_.AST.createFalse(token_.Token.init_simple("false"), std.heap.page_allocator);
-        const default_char = ast_.AST.createChar(token_.Token.init_simple("'\\\\0'"), std.heap.page_allocator);
-        const default_float32 = ast_.AST.createFloat(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_float64 = ast_.AST.createFloat(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
-        const default_int8 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_int16 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_int32 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_int64 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word8 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word16 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word32 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_word64 = ast_.AST.createInt(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-        const default_string = ast_.AST.createString(token_.Token.init_simple("\"\""), "", std.heap.page_allocator);
+        const default_bool = ast_.AST.create_false(token_.Token.init_simple("false"), std.heap.page_allocator);
+        const default_char = ast_.AST.create_char(token_.Token.init_simple("'\\\\0'"), std.heap.page_allocator);
+        const default_float32 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_float64 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        const default_int8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_int64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_word64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
+        const default_string = ast_.AST.create_string(token_.Token.init_simple("\"\""), "", std.heap.page_allocator);
 
         // Setup primitive map
         primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
@@ -337,11 +337,11 @@ pub fn get_scope() *symbol_.Scope {
 }
 
 fn create_identifier(name: []const u8) *ast_.AST {
-    return ast_.AST.createIdentifier(token_.Token.init_simple(name), std.heap.page_allocator).assert_valid();
+    return ast_.AST.create_identifier(token_.Token.init_simple(name), std.heap.page_allocator).assert_valid();
 }
 
 fn create_unit_type() *ast_.AST {
-    return ast_.AST.createUnitType(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
+    return ast_.AST.create_unit_type(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
 }
 
 fn create_info(
@@ -407,7 +407,7 @@ pub fn get_bounds(_type: *ast_.AST) Bounds {
                 else => unreachable,
             };
         },
-        .addrOf, .function => return Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
+        .addr_of, .function => return Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
         else => unreachable,
     }
 }

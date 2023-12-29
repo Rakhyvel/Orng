@@ -275,17 +275,17 @@ pub const Errors = struct {
             .unexpected_type => {
                 std.debug.assert(err.unexpected_type.expected.* != .poison);
                 try out.print("expected a value of the type `", .{});
-                try err.unexpected_type.expected.printType(out);
+                try err.unexpected_type.expected.print_type(out);
                 if (err.unexpected_type.got.* != .poison) {
                     try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
-                    try err.unexpected_type.got.printType(out);
+                    try err.unexpected_type.got.print_type(out);
                 }
                 try out.print("`\n", .{});
             },
             .expected_builtin_typeclass => {
                 // just so happens to work out that all builtin type classes start with a vowel :-)
                 try out.print("expected a value of an {s} type, got `", .{err.expected_builtin_typeclass.expected});
-                try err.expected_builtin_typeclass.got.printType(out);
+                try err.expected_builtin_typeclass.got.print_type(out);
                 try out.print("`\n", .{});
             },
             .sum_duplicate => try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier}),
@@ -301,7 +301,7 @@ pub const Errors = struct {
             .modify_immutable => try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modify_immutable.identifier.data}),
             .not_indexable => {
                 try out.print("the type `", .{});
-                try err.not_indexable._type.printType(out);
+                try err.not_indexable._type.print_type(out);
                 try out.print("` is not indexable\n", .{});
             },
             .non_exhaustive_sum => try out.print("match over sum type is not exhaustive\n", .{}),
@@ -323,7 +323,7 @@ pub const Errors = struct {
             },
             .no_default => {
                 try out.print("no default value for the type `", .{});
-                try err.no_default._type.printType(out);
+                try err.no_default._type.print_type(out);
                 try out.print("`\n", .{});
             },
             .wrong_coalesce_from => {
