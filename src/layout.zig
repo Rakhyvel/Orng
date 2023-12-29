@@ -5,7 +5,7 @@ const token_ = @import("token.zig");
 
 const PRINT_TOKENS = false;
 
-pub fn doLayout(tokens: *std.ArrayList(token_.Token)) void {
+pub fn do_layout(tokens: *std.ArrayList(token_.Token)) void {
     strip_comments(tokens);
     combine_multilines(tokens);
     trailing_comma_rules(tokens);

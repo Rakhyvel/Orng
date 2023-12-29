@@ -88,7 +88,7 @@ pub const Module = struct {
 
         // Layout
         if (!fuzz_tokens) {
-            layout_.doLayout(&tokens);
+            layout_.do_layout(&tokens);
         }
 
         if (false) { // Print out tokens after layout_
