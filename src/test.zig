@@ -14,7 +14,7 @@ const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
-const Test_File_Fn = @TypeOf(integrateTestFile);
+const Test_File_Fn = @TypeOf(integrate_test_file);
 
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -26,15 +26,15 @@ pub fn main() !void {
             arg = args.next().?;
         }
         if (std.mem.eql(u8, "integration", arg)) {
-            try parse_args(args, false, integrateTestFile);
+            try parse_args(args, false, integrate_test_file);
         } else if (std.mem.eql(u8, "coverage", arg)) {
-            try parse_args(args, true, integrateTestFile);
+            try parse_args(args, true, integrate_test_file);
         } else if (std.mem.eql(u8, "negative", arg)) {
-            try parse_args(args, false, negativeTestFile);
+            try parse_args(args, false, negative_test_file);
         } else if (std.mem.eql(u8, "negative-coverage", arg)) {
-            try parse_args(args, true, negativeTestFile);
+            try parse_args(args, true, negative_test_file);
         } else if (std.mem.eql(u8, "fuzz", arg)) {
-            try fuzzTests();
+            try fuzz_tests();
         } else {
             std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{arg});
             return error.InvalidCliArgument;
@@ -74,11 +74,11 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 }
 
-fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
+fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
-    const dot_index = indexOf(filename, '.') orelse {
+    const dot_index = index_of(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return error.InvalidFilename;
     };
@@ -114,7 +114,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bo
     defer contents_arraylist.deinit();
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     var contents = try contents_arraylist.toOwnedSlice();
-    const expectedOut = contents[3..untilNewline(contents)];
+    const expected_out = contents[3..until_newline(contents)];
 
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
@@ -188,9 +188,9 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bo
         try out.print("Execution interrupted!\n", .{});
         return false;
     };
-    if (!std.mem.eql(u8, res.stdout, expectedOut)) {
+    if (!std.mem.eql(u8, res.stdout, expected_out)) {
         try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-        try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expectedOut, res.stdout });
+        try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout });
         return false;
     }
 
@@ -199,11 +199,11 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bo
     return true;
 }
 
-fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
+fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
-    const dot_index = indexOf(filename, '.') orelse {
+    const dot_index = index_of(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return error.InvalidFilename;
     };
@@ -278,7 +278,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: boo
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
-fn fuzzTests() !void { // TODO: Uninfer error
+fn fuzz_tests() !void { // TODO: Uninfer error
     // Open and read tests/fuzz/fuzz.txt
     var file = try std.fs.cwd().openFile("tests/fuzz/fuzz.txt", .{});
     defer file.close();
@@ -298,14 +298,14 @@ fn fuzzTests() !void { // TODO: Uninfer error
     const prelude = primitives_.get_scope();
 
     // Add lines to arraylist
-    var start: usize = indexOf(contents, '"').? + 1;
+    var start: usize = index_of(contents, '"').? + 1;
     var end: usize = start + 1;
     var broken: bool = false;
     while (end < contents.len and !broken) : (end += 1) {
         if (contents[end] == '"') {
             defer {
                 if (end < contents.len - 4) {
-                    start = indexOf(contents[end + 1 ..], '"').? + end + 2;
+                    start = index_of(contents[end + 1 ..], '"').? + end + 2;
                     end = start;
                 } else {
                     broken = true;
@@ -405,7 +405,7 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TO
 }
 
 // Great std lib function candidate! Holy hell...
-fn indexOf(str: []const u8, c: u8) ?usize {
+fn index_of(str: []const u8, c: u8) ?usize {
     for (0..str.len) |i| {
         if (str[i] == c) {
             return i;
@@ -424,7 +424,7 @@ fn last_index_of(str: []const u8, c: u8) ?usize {
     return null;
 }
 
-fn untilNewline(str: []const u8) usize {
+fn until_newline(str: []const u8) usize {
     var i: usize = 0;
     while (i < str.len and str[i] != '\n') : (i += 1) {}
     return i;
