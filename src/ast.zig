@@ -312,7 +312,7 @@ pub const AST = union(enum) {
     pattern_symbol: struct {
         common: AST_Common,
         name: []const u8,
-        kind: symbol_.SymbolKind,
+        kind: symbol_.Symbol_Kind,
         _symbol: ?*symbol_.Symbol = undefined,
     },
     decl: struct {
@@ -815,7 +815,7 @@ pub const AST = union(enum) {
         );
     }
 
-    pub fn create_symbol(_token: token_.Token, kind: symbol_.SymbolKind, name: []const u8, allocator: std.mem.Allocator) *AST {
+    pub fn create_symbol(_token: token_.Token, kind: symbol_.Symbol_Kind, name: []const u8, allocator: std.mem.Allocator) *AST {
         return AST.box(
             AST{ .pattern_symbol = .{ .common = AST_Common{ ._token = _token, ._type = null }, .kind = kind, .name = name } },
             allocator,

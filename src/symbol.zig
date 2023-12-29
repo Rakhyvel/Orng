@@ -6,9 +6,9 @@ const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const validation_state_ = @import("validation_state.zig");
 
-const LookupResult = union(enum) { found_but_rt, found_but_fn, not_found, found: *Symbol };
+const Lookup_Result = union(enum) { found_but_rt, found_but_fn, not_found, found: *Symbol };
 
-var scopeUID: usize = 0;
+var scope_UID: usize = 0;
 pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
@@ -29,10 +29,10 @@ pub const Scope = struct {
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
         retval.name = name;
-        retval.uid = scopeUID;
+        retval.uid = scope_UID;
         retval.defers = std.ArrayList(*ast_.AST).init(allocator);
         retval.errdefers = std.ArrayList(*ast_.AST).init(allocator);
-        scopeUID += 1;
+        scope_UID += 1;
         if (parent) |_parent| {
             _parent.children.append(retval) catch unreachable;
             retval.in_loop = _parent.in_loop;
@@ -48,14 +48,14 @@ pub const Scope = struct {
         return retval;
     }
 
-    pub fn lookup(self: *Scope, name: []const u8, crossed_boundary: bool) LookupResult {
+    pub fn lookup(self: *Scope, name: []const u8, crossed_boundary: bool) Lookup_Result {
         if (self.symbols.get(name)) |symbol| {
             if (crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
                 // Found the symbol, but it's non-const and we've crossed an inner-function boundary
                 return .found_but_fn;
             } else {
                 // Found the symbol just fine
-                return LookupResult{ .found = symbol };
+                return Lookup_Result{ .found = symbol };
             }
         } else if (self.parent) |parent| {
             const res = parent.lookup(name, parent.in_function < self.in_function or crossed_boundary);
@@ -88,7 +88,7 @@ pub const Scope = struct {
     }
 };
 
-pub const SymbolKind = enum {
+pub const Symbol_Kind = enum {
     @"fn",
     @"const",
     let,
@@ -106,7 +106,7 @@ pub const Symbol = struct {
     _type: *ast_.AST,
     expanded_type: ?*ast_.AST,
     init: *ast_.AST,
-    kind: SymbolKind,
+    kind: Symbol_Kind,
     cfg: ?*cfg_.CFG,
     decl: ?*ast_.AST,
 
@@ -132,7 +132,7 @@ pub const Symbol = struct {
         _type: *ast_.AST,
         _init: *ast_.AST,
         decl: ?*ast_.AST,
-        kind: SymbolKind,
+        kind: Symbol_Kind,
         allocator: std.mem.Allocator,
     ) *Symbol {
         var retval = allocator.create(Symbol) catch unreachable;

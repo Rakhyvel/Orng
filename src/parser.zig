@@ -161,7 +161,7 @@ pub const Parser = struct {
 
     fn let_pattern_atom(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.peek_kind(.mut) or self.peek_kind(.@"const") or self.peek_kind(.identifier)) {
-            var kind: symbol_.SymbolKind = undefined;
+            var kind: symbol_.Symbol_Kind = undefined;
             if (self.accept(.mut) != null) {
                 kind = .mut;
             } else if (self.accept(.@"const") != null) {

@@ -61,7 +61,7 @@ pub const Error = union(enum) {
     },
     discard_marked: struct {
         span: span_.Span,
-        kind: symbol_.SymbolKind,
+        kind: symbol_.Symbol_Kind,
     },
     not_inside_loop: struct {
         span: span_.Span,
