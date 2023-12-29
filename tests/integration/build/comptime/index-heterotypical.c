@@ -14,11 +14,11 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _233_add(int64_t _233_a,int64_t _233_b);
+int64_t _233_add(int64_t _233_a, int64_t _233_b);
 int64_t _230_main(void);
 
 /* Function definitions */
-int64_t _233_add(int64_t _233_a,int64_t _233_b){
+int64_t _233_add(int64_t _233_a, int64_t _233_b){
     int64_t _233_$retval;
     _233_$retval = $add_int64_t(_233_a, _233_b, "tests/integration/comptime/index-heterotypical.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
     return _233_$retval;

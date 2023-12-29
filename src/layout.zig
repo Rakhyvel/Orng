@@ -17,12 +17,12 @@ fn strip_comments(tokens: *std.ArrayList(token_.Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 1) : (i += 1) {
         const token = tokens.items[i];
-        if (token.kind != .COMMENT) {
+        if (token.kind != .comment) {
             continue;
         }
 
         var j: usize = i;
-        while (j >= 0 and (tokens.items[j].kind == .NEWLINE or tokens.items[j].kind == .COMMENT)) {
+        while (j >= 0 and (tokens.items[j].kind == .newline or tokens.items[j].kind == .comment)) {
             _ = tokens.orderedRemove(j);
             if (j != 0) {
                 j -= 1;
@@ -39,7 +39,7 @@ fn combine_multilines(tokens: *std.ArrayList(token_.Token)) void {
     while (i < tokens.items.len) : (i += 1) {
         var out: ?String = null;
         var span: ?span_.Span = null;
-        while (i < tokens.items.len and tokens.items[i].kind == .MULTI_LINE) : (i += 1) {
+        while (i < tokens.items.len and tokens.items[i].kind == .multi_line_string) : (i += 1) {
             if (out == null) {
                 out = String.init(std.heap.page_allocator);
                 span = tokens.items[i].span;
@@ -55,7 +55,7 @@ fn combine_multilines(tokens: *std.ArrayList(token_.Token)) void {
         if (out != null) {
             const token = token_.Token.init(
                 (out.?.toOwned() catch unreachable).?,
-                .MULTI_LINE,
+                .multi_line_string,
                 span.?.filename,
                 span.?.line_text,
                 span.?.line,
@@ -66,7 +66,7 @@ fn combine_multilines(tokens: *std.ArrayList(token_.Token)) void {
     }
 }
 
-/// THIS PASS MUST BE RUN BEFORE NEWLINES ARE REMOVED. It uses newlines and
+/// THIS PASS MUST BE RUN BEFORE newlineS ARE REMOVED. It uses newlines and
 /// parentheses to detect and remove trailing commas and bars.
 ///
 /// Given an input token stream:
@@ -93,13 +93,13 @@ fn trailing_comma_rules(tokens: *std.ArrayList(token_.Token)) void {
     var i: usize = 0;
     while (i < tokens.items.len - 4) : (i += 1) {
         if (tokens.items[i + 0].kind.is_end_token() and
-            (tokens.items[i + 1].kind == .COMMA or tokens.items[i + 1].kind == .BAR) and
-            tokens.items[i + 2].kind == .NEWLINE and
-            tokens.items[i + 3].kind == .R_PAREN)
+            (tokens.items[i + 1].kind == .comma or tokens.items[i + 1].kind == .bar) and
+            tokens.items[i + 2].kind == .newline and
+            tokens.items[i + 3].kind == .right_parenthesis)
         {
             _ = tokens.orderedRemove(i + 2); // Remove newline
             i += 2;
-            std.debug.assert(tokens.items[i].kind == .R_PAREN); // Make sure `i` is correct
+            std.debug.assert(tokens.items[i].kind == .right_parenthesis); // Make sure `i` is correct
         }
     }
 }
@@ -124,15 +124,15 @@ fn newline_rules(tokens: *std.ArrayList(token_.Token)) void {
     while (i < tokens.items.len - 1) : (i += 1) {
         // If token at `i` is a newline, ...
         const token = tokens.items[i];
-        if (token.kind == .L_PAREN or token.kind == .L_BRACE) {
+        if (token.kind == .left_parenthesis or token.kind == .left_brace) {
             stack.append(token.kind) catch unreachable;
-        } else if (token.kind == .R_PAREN or token.kind == .R_BRACE and stack.items.len > 0) {
+        } else if (token.kind == .right_parenthesis or token.kind == .right_brace and stack.items.len > 0) {
             const popped = stack.pop();
             if (popped != token.kind) {
                 // TODO: Throw a great big ol fit
             }
-        } else if (token.kind == .NEWLINE) {
-            if (stack.items.len > 0 and stack.getLast() == .L_PAREN) {
+        } else if (token.kind == .newline) {
+            if (stack.items.len > 0 and stack.getLast() == .left_parenthesis) {
                 // Remove if stack is not empty and l paren is on top of stack
                 _ = tokens.orderedRemove(i);
                 i -|= 1;

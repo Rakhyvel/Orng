@@ -28,7 +28,7 @@ typedef struct {
 
 /* Function forward definitions */
 int64_t _1481_main(void);
-struct2 _1483_get_array(int64_t _1483_a,int64_t _1483_b);
+struct2 _1483_get_array(int64_t _1483_a, int64_t _1483_b);
 
 /* Function definitions */
 int64_t _1481_main(void){
@@ -54,7 +54,7 @@ int64_t _1481_main(void){
     return _1481_$retval;
 }
 
-struct2 _1483_get_array(int64_t _1483_a,int64_t _1483_b){
+struct2 _1483_get_array(int64_t _1483_a, int64_t _1483_b){
     struct2 _1483_$retval;
     _1483_$retval = (struct2) {_1483_a, _1483_b, _1483_a, _1483_b};
     return _1483_$retval;

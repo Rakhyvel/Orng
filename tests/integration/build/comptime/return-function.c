@@ -16,10 +16,10 @@ typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 function0 _302_g(int64_t _302_x);
-int64_t _309_add(int64_t _309_x,int64_t _309_y);
-int64_t _311_sub(int64_t _311_x,int64_t _311_y);
-int64_t _313_mul(int64_t _313_x,int64_t _313_y);
-int64_t _315_div(int64_t _315_x,int64_t _315_y);
+int64_t _309_add(int64_t _309_x, int64_t _309_y);
+int64_t _311_sub(int64_t _311_x, int64_t _311_y);
+int64_t _313_mul(int64_t _313_x, int64_t _313_y);
+int64_t _315_div(int64_t _315_x, int64_t _315_y);
 int64_t _296_main(void);
 
 /* Function definitions */
@@ -85,25 +85,25 @@ BB372:
     $panic("reached unreachable code\n");
 }
 
-int64_t _309_add(int64_t _309_x,int64_t _309_y){
+int64_t _309_add(int64_t _309_x, int64_t _309_y){
     int64_t _309_$retval;
     _309_$retval = $add_int64_t(_309_x, _309_y, "tests/integration/comptime/return-function.orng:17:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
     return _309_$retval;
 }
 
-int64_t _311_sub(int64_t _311_x,int64_t _311_y){
+int64_t _311_sub(int64_t _311_x, int64_t _311_y){
     int64_t _311_$retval;
     _311_$retval = $sub_int64_t(_311_x, _311_y, "tests/integration/comptime/return-function.orng:18:36:\nfn sub(x: Int, y: Int) -> Int { x - y }\n                                  ^");
     return _311_$retval;
 }
 
-int64_t _313_mul(int64_t _313_x,int64_t _313_y){
+int64_t _313_mul(int64_t _313_x, int64_t _313_y){
     int64_t _313_$retval;
     _313_$retval = $mult_int64_t(_313_x, _313_y, "tests/integration/comptime/return-function.orng:19:36:\nfn mul(x: Int, y: Int) -> Int { x * y }\n                                  ^");
     return _313_$retval;
 }
 
-int64_t _315_div(int64_t _315_x,int64_t _315_y){
+int64_t _315_div(int64_t _315_x, int64_t _315_y){
     int64_t _315_$retval;
     _315_$retval = $div_int64_t(_315_x, _315_y, "tests/integration/comptime/return-function.orng:20:36:\nfn div(x: Int, y: Int) -> Int { x / y }\n                                  ^");
     return _315_$retval;

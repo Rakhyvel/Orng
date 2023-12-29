@@ -24,11 +24,11 @@ pub const Error = union(enum) {
     },
 
     // Parse errors
-    expectedBasicToken: struct {
+    expected_basic_token: struct {
         expected: []const u8,
         got: token_.Token,
     },
-    expected2Token: struct {
+    expected2token: struct {
         expected: token_.TokenKind,
         got: token_.Token,
     },
@@ -78,7 +78,7 @@ pub const Error = union(enum) {
         expected: *ast_.AST,
         got: *ast_.AST,
     },
-    expectedBuiltinTypeclass: struct {
+    expected_builtin_typeclass: struct {
         span: span_.Span,
         expected: []const u8, // name of the type class
         got: *ast_.AST,
@@ -93,7 +93,7 @@ pub const Error = union(enum) {
         identifier: []const u8,
         group_name: []const u8,
     },
-    undeclaredIdentifier: struct {
+    undeclared_identifier: struct {
         identifier: token_.Token,
         expected: ?*ast_.AST,
     },
@@ -103,26 +103,26 @@ pub const Error = union(enum) {
     inner_fn_access_runtime: struct {
         identifier: token_.Token,
     },
-    useBeforeDef: struct {
+    use_before_def: struct {
         identifier: token_.Token,
     },
-    modifyImmutable: struct {
+    modify_immutable: struct {
         identifier: token_.Token,
     },
-    notIndexable: struct {
+    not_indexable: struct {
         span: span_.Span,
         _type: *ast_.AST,
     },
-    nonExhaustiveSum: struct {
+    non_exhaustive_sum: struct {
         span: span_.Span,
         forgotten: std.ArrayList(*ast_.AST),
     },
-    mismatchCallArity: struct {
+    mismatch_call_arity: struct {
         span: span_.Span,
         takes: usize,
         given: usize,
     },
-    mismatchTupleArity: struct {
+    mismatch_tuple_arity: struct {
         span: span_.Span,
         takes: usize,
         given: usize,
@@ -165,8 +165,8 @@ pub const Error = union(enum) {
             .invalid_digit => return self.invalid_digit.span,
             .invalid_escape => return self.invalid_escape.span,
 
-            .expectedBasicToken => return self.expectedBasicToken.got.span,
-            .expected2Token => return self.expected2Token.got.span,
+            .expected_basic_token => return self.expected_basic_token.got.span,
+            .expected2token => return self.expected2token.got.span,
             .missing_close => return self.missing_close.got.span,
             .comptime_known => return self.comptime_known.span,
             .unrecognized_builtin => return self.unrecognized_builtin.span,
@@ -178,18 +178,18 @@ pub const Error = union(enum) {
             .not_inside_function => return self.not_inside_function.span,
 
             .unexpected_type => return self.unexpected_type.span,
-            .expectedBuiltinTypeclass => return self.expectedBuiltinTypeclass.span,
+            .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
             .sum_duplicate => return self.sum_duplicate.span,
             .member_not_in => return self.member_not_in.span,
-            .undeclaredIdentifier => return self.undeclaredIdentifier.identifier.span,
+            .undeclared_identifier => return self.undeclared_identifier.identifier.span,
             .comptime_access_runtime => return self.comptime_access_runtime.identifier.span,
             .inner_fn_access_runtime => return self.inner_fn_access_runtime.identifier.span,
-            .useBeforeDef => return self.useBeforeDef.identifier.span,
-            .modifyImmutable => return self.modifyImmutable.identifier.span,
-            .notIndexable => return self.notIndexable.span,
-            .nonExhaustiveSum => return self.nonExhaustiveSum.span,
-            .mismatchCallArity => return self.mismatchCallArity.span,
-            .mismatchTupleArity => return self.mismatchTupleArity.span,
+            .use_before_def => return self.use_before_def.identifier.span,
+            .modify_immutable => return self.modify_immutable.identifier.span,
+            .not_indexable => return self.not_indexable.span,
+            .non_exhaustive_sum => return self.non_exhaustive_sum.span,
+            .mismatch_call_arity => return self.mismatch_call_arity.span,
+            .mismatch_tuple_arity => return self.mismatch_tuple_arity.span,
             .no_default => return self.no_default.span,
             .wrong_coalesce_from => return self.wrong_coalesce_from.span,
 
@@ -246,13 +246,13 @@ pub const Errors = struct {
             .invalid_escape => try out.print("invalid escape sequence '\\{c}'\n", .{err.invalid_escape.digit}),
 
             // Parser errors
-            .expectedBasicToken => try out.print("expected {s}, got `{s}`\n", .{
-                err.expectedBasicToken.expected,
-                err.expectedBasicToken.got.kind.repr() orelse err.expectedBasicToken.got.data,
+            .expected_basic_token => try out.print("expected {s}, got `{s}`\n", .{
+                err.expected_basic_token.expected,
+                err.expected_basic_token.got.kind.repr() orelse err.expected_basic_token.got.data,
             }),
-            .expected2Token => try out.print("expected `{s}`, got `{s}`\n", .{
-                err.expected2Token.expected.repr() orelse "identifier",
-                err.expected2Token.got.kind.repr() orelse err.expected2Token.got.data,
+            .expected2token => try out.print("expected `{s}`, got `{s}`\n", .{
+                err.expected2token.expected.repr() orelse "identifier",
+                err.expected2token.got.kind.repr() orelse err.expected2token.got.data,
             }),
             .missing_close => {
                 try out.print("expected closing `{s}` to match opening `{s}` here, got `{s}`\n", .{
@@ -267,7 +267,7 @@ pub const Errors = struct {
             // Symbol
             .redefinition => try out.print("redefinition of symbol `{s}`\n", .{err.redefinition.name}),
             .symbol_error => try out.print("symbol `{s}` {s}\n", .{ err.symbol_error.name, err.symbol_error.problem }),
-            .discard_marked => try out.print("discarded symbol marked as `{s}`\n", .{symbol_.SymbolKind.to_string(err.discard_marked.kind)}),
+            .discard_marked => try out.print("discarded symbol marked as `{s}`\n", .{@tagName(err.discard_marked.kind)}),
             .not_inside_loop => try out.print("`{s}` is not inside a loop\n", .{err.not_inside_loop.name}),
             .not_inside_function => try out.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}),
 
@@ -282,43 +282,43 @@ pub const Errors = struct {
                 }
                 try out.print("`\n", .{});
             },
-            .expectedBuiltinTypeclass => {
+            .expected_builtin_typeclass => {
                 // just so happens to work out that all builtin type classes start with a vowel :-)
-                try out.print("expected a value of an {s} type, got `", .{err.expectedBuiltinTypeclass.expected});
-                try err.expectedBuiltinTypeclass.got.printType(out);
+                try out.print("expected a value of an {s} type, got `", .{err.expected_builtin_typeclass.expected});
+                try err.expected_builtin_typeclass.got.printType(out);
                 try out.print("`\n", .{});
             },
             .sum_duplicate => try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier}),
             .member_not_in => try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name }),
-            .undeclaredIdentifier => try out.print("use of undeclared identifier `{s}`\n", .{err.undeclaredIdentifier.identifier.data}),
+            .undeclared_identifier => try out.print("use of undeclared identifier `{s}`\n", .{err.undeclared_identifier.identifier.data}),
             .comptime_access_runtime => try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{
                 err.comptime_access_runtime.identifier.data,
             }),
             .inner_fn_access_runtime => try out.print("cannot access non-const variable `{s}` from an inner-function\n", .{
                 err.inner_fn_access_runtime.identifier.data,
             }),
-            .useBeforeDef => try out.print("use of identifier `{s}` before its definition\n", .{err.useBeforeDef.identifier.data}),
-            .modifyImmutable => try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modifyImmutable.identifier.data}),
-            .notIndexable => {
+            .use_before_def => try out.print("use of identifier `{s}` before its definition\n", .{err.use_before_def.identifier.data}),
+            .modify_immutable => try out.print("cannot modify non-mutable symbol `{s}`\n", .{err.modify_immutable.identifier.data}),
+            .not_indexable => {
                 try out.print("the type `", .{});
-                try err.notIndexable._type.printType(out);
+                try err.not_indexable._type.printType(out);
                 try out.print("` is not indexable\n", .{});
             },
-            .nonExhaustiveSum => try out.print("match over sum type is not exhaustive\n", .{}),
-            .mismatchCallArity => {
+            .non_exhaustive_sum => try out.print("match over sum type is not exhaustive\n", .{}),
+            .mismatch_call_arity => {
                 try out.print("function takes {} parameter{s}, {} argument{s} given\n", .{
-                    err.mismatchCallArity.takes,
-                    if (err.mismatchCallArity.takes == 1) "" else "s",
-                    err.mismatchCallArity.given,
-                    if (err.mismatchCallArity.given == 1) "" else "s",
+                    err.mismatch_call_arity.takes,
+                    if (err.mismatch_call_arity.takes == 1) "" else "s",
+                    err.mismatch_call_arity.given,
+                    if (err.mismatch_call_arity.given == 1) "" else "s",
                 });
             },
-            .mismatchTupleArity => {
+            .mismatch_tuple_arity => {
                 try out.print("expected tuple of {} term{s}, got tuple of {} term{s}\n", .{
-                    err.mismatchTupleArity.takes,
-                    if (err.mismatchTupleArity.takes == 1) "" else "s",
-                    err.mismatchTupleArity.given,
-                    if (err.mismatchTupleArity.given == 1) "" else "s",
+                    err.mismatch_tuple_arity.takes,
+                    if (err.mismatch_tuple_arity.takes == 1) "" else "s",
+                    err.mismatch_tuple_arity.given,
+                    if (err.mismatch_tuple_arity.given == 1) "" else "s",
                 });
             },
             .no_default => {
@@ -399,8 +399,8 @@ pub const Errors = struct {
                 try not_bold.dump(out);
                 try printEpilude(err.sum_duplicate.first);
             },
-            .nonExhaustiveSum => {
-                for (err.nonExhaustiveSum.forgotten.items) |_type| {
+            .non_exhaustive_sum => {
+                for (err.non_exhaustive_sum.forgotten.items) |_type| {
                     try bold.dump(out);
                     try print_note_label(_type.token().span);
                     try bold.dump(out);

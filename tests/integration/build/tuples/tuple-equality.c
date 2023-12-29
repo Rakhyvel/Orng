@@ -27,7 +27,7 @@ typedef uint8_t(*function2)(struct1, struct1);
 
 /* Function forward definitions */
 int64_t _1519_main(void);
-uint8_t _1524_f(struct1 _1524_x,struct1 _1524_y);
+uint8_t _1524_f(struct1 _1524_x, struct1 _1524_y);
 
 /* Function definitions */
 int64_t _1519_main(void){
@@ -79,7 +79,7 @@ BB1819:
     return _1519_$retval;
 }
 
-uint8_t _1524_f(struct1 _1524_x,struct1 _1524_y){
+uint8_t _1524_f(struct1 _1524_x, struct1 _1524_y){
     uint8_t _1524_t2;
     uint8_t _1524_t4;
     uint8_t _1524_t5;

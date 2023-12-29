@@ -30,6 +30,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     lines.append(contents[start..end]) catch unreachable;
 }
 
+// TODO: Make lexer into a class
 const LexState = enum {
     none,
     whitespace,
@@ -39,29 +40,29 @@ const LexState = enum {
     uncapitalized, //        => "_" | e
     string,
     escapedString,
-    byteString1,
-    byteString2,
+    byte_string1,
+    byte_string2,
     char,
     escapedChar,
     integer,
-    integerDigit,
+    integer_digit,
     float,
-    floatDigit,
+    float_digit,
     hex,
-    hexDigit,
+    hex_digit,
     octal,
-    octalDigit,
+    octal_digit,
     binary,
-    binaryDigit,
+    binary_digit,
     symbol,
     multiline,
     comment,
 
     fn state_from_integer(c: u8) LexState {
         return switch (c) {
-            'x' => .hexDigit,
-            'o' => .octalDigit,
-            'b' => .binaryDigit,
+            'x' => .hex_digit,
+            'o' => .octal_digit,
+            'b' => .binary_digit,
             else => unreachable,
         };
     }
@@ -261,7 +262,7 @@ pub fn getTokens(
                             ix += 1;
                             col += 1;
                             tokens.append(
-                                token_.Token.init(contents[slice_start..ix], .STRING, filename, contents, line, col),
+                                token_.Token.init(contents[slice_start..ix], .string, filename, contents, line, col),
                             ) catch unreachable;
                             slice_start = ix;
                             state = .none;
@@ -298,7 +299,7 @@ pub fn getTokens(
                     } else if (next_char == 'x') {
                         ix += 1;
                         col += 1;
-                        state = .byteString1;
+                        state = .byte_string1;
                     } else {
                         errors.addError(errs_.Error{ .invalid_escape = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
@@ -308,14 +309,14 @@ pub fn getTokens(
                     }
                 },
 
-                .byteString1 => {
+                .byte_string1 => {
                     if (std.ascii.isDigit(next_char) or
                         ('a' <= next_char and next_char <= 'f') or
                         ('A' <= next_char and next_char <= 'F'))
                     {
                         ix += 1;
                         col += 1;
-                        state = .byteString2;
+                        state = .byte_string2;
                     } else {
                         errors.addError(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
@@ -326,7 +327,7 @@ pub fn getTokens(
                     }
                 },
 
-                .byteString2 => {
+                .byte_string2 => {
                     if (std.ascii.isDigit(next_char) or
                         ('a' <= next_char and next_char <= 'f') or
                         ('A' <= next_char and next_char <= 'F'))
@@ -365,7 +366,7 @@ pub fn getTokens(
                                 return LexerErrors.lexerError;
                             }
                             tokens.append(
-                                token_.Token.init(contents[slice_start..ix], .CHAR, filename, contents, line, col),
+                                token_.Token.init(contents[slice_start..ix], .char, filename, contents, line, col),
                             ) catch unreachable;
                             slice_start = ix;
                             state = .none;
@@ -417,7 +418,7 @@ pub fn getTokens(
                             state = .float;
                         } else {
                             tokens.append(
-                                token_.Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col),
+                                token_.Token.init(contents[slice_start..ix], .dec_int, filename, contents, line, col),
                             ) catch unreachable;
                             slice_start = ix;
                             state = .none;
@@ -430,10 +431,10 @@ pub fn getTokens(
                     } else if (next_char == '_') {
                         ix += 1;
                         col += 1;
-                        state = .integerDigit;
+                        state = .integer_digit;
                     } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                         tokens.append(
-                            token_.Token.init(contents[slice_start..ix], .DECIMAL_INTEGER, filename, contents, line, col),
+                            token_.Token.init(contents[slice_start..ix], .dec_int, filename, contents, line, col),
                         ) catch unreachable;
                         slice_start = ix;
                         state = .none;
@@ -443,7 +444,7 @@ pub fn getTokens(
                     }
                 },
 
-                .integerDigit => {
+                .integer_digit => {
                     if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                         errors.addError(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
@@ -462,10 +463,10 @@ pub fn getTokens(
                     if (next_char == '_') {
                         ix += 1;
                         col += 1;
-                        state = .floatDigit;
+                        state = .float_digit;
                     } else if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                         tokens.append(
-                            token_.Token.init(contents[slice_start..ix], .FLOAT, filename, contents, line, col),
+                            token_.Token.init(contents[slice_start..ix], .float, filename, contents, line, col),
                         ) catch unreachable;
                         slice_start = ix;
                         state = .none;
@@ -475,7 +476,7 @@ pub fn getTokens(
                     }
                 },
 
-                .floatDigit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
+                .float_digit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
                     errors.addError(errs_.Error{ .invalid_digit = .{
                         .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                         .digit = next_char,
@@ -492,7 +493,7 @@ pub fn getTokens(
                     '_' => {
                         ix += 1;
                         col += 1;
-                        state = .hexDigit;
+                        state = .hex_digit;
                     },
                     '0'...'9', 'a'...'f', 'A'...'F' => {
                         ix += 1;
@@ -500,14 +501,14 @@ pub fn getTokens(
                     },
                     else => {
                         tokens.append(
-                            token_.Token.init(contents[slice_start..ix], .HEX_INTEGER, filename, contents, line, col),
+                            token_.Token.init(contents[slice_start..ix], .hex_int, filename, contents, line, col),
                         ) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
                 },
 
-                .hexDigit => switch (next_char) {
+                .hex_digit => switch (next_char) {
                     '0'...'9', 'a'...'f', 'A'...'F' => {
                         ix += 1;
                         col += 1;
@@ -527,7 +528,7 @@ pub fn getTokens(
                     '_' => {
                         ix += 1;
                         col += 1;
-                        state = .octalDigit;
+                        state = .octal_digit;
                     },
                     '0'...'7' => {
                         ix += 1;
@@ -535,14 +536,14 @@ pub fn getTokens(
                     },
                     else => {
                         tokens.append(
-                            token_.Token.init(contents[slice_start..ix], .OCT_INTEGER, filename, contents, line, col),
+                            token_.Token.init(contents[slice_start..ix], .oct_int, filename, contents, line, col),
                         ) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
                 },
 
-                .octalDigit => switch (next_char) {
+                .octal_digit => switch (next_char) {
                     '0'...'7' => {
                         ix += 1;
                         col += 1;
@@ -562,7 +563,7 @@ pub fn getTokens(
                     '_' => {
                         ix += 1;
                         col += 1;
-                        state = .binaryDigit;
+                        state = .binary_digit;
                     },
                     '0'...'1' => {
                         ix += 1;
@@ -570,14 +571,14 @@ pub fn getTokens(
                     },
                     else => {
                         tokens.append(
-                            token_.Token.init(contents[slice_start..ix], .BIN_INTEGER, filename, contents, line, col),
+                            token_.Token.init(contents[slice_start..ix], .bin_int, filename, contents, line, col),
                         ) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     },
                 },
 
-                .binaryDigit => switch (next_char) {
+                .binary_digit => switch (next_char) {
                     '0'...'1' => {
                         ix += 1;
                         col += 1;
@@ -603,7 +604,7 @@ pub fn getTokens(
                         state = .comment;
                         ix += 1;
                         col += 1;
-                    } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .IDENTIFIER) {
+                    } else if (ix == contents.len or token_.kindFromString(contents[slice_start .. ix + 1]) == .identifier) {
                         // Couldn't maximally munch, this must be the end of the token
                         const token = token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         tokens.append(token) catch unreachable;
@@ -618,7 +619,7 @@ pub fn getTokens(
                 .multiline => {
                     if (next_char == '\n') {
                         tokens.append(
-                            token_.Token.init(contents[slice_start + 2 .. ix], .MULTI_LINE, filename, contents, line, col),
+                            token_.Token.init(contents[slice_start + 2 .. ix], .multi_line_string, filename, contents, line, col),
                         ) catch unreachable;
                         slice_start = ix;
                         state = .none;
@@ -630,7 +631,7 @@ pub fn getTokens(
 
                 .comment => {
                     if (next_char == '\n') {
-                        tokens.append(token_.Token.init("", .COMMENT, filename, contents, line, col)) catch unreachable;
+                        tokens.append(token_.Token.init("", .comment, filename, contents, line, col)) catch unreachable;
                         slice_start = ix;
                         state = .none;
                     } else {
@@ -641,7 +642,7 @@ pub fn getTokens(
             }
         }
 
-        tokens.append(token_.Token.init("\n", .NEWLINE, filename, contents, line, col)) catch unreachable;
+        tokens.append(token_.Token.init("\n", .newline, filename, contents, line, col)) catch unreachable;
     }
 
     tokens.append(token_.Token.init("EOF", .EOF, filename, "", line, col)) catch unreachable;
@@ -649,21 +650,17 @@ pub fn getTokens(
 }
 
 fn fuzz_token(token: *token_.Token) void {
-    if (std.mem.eql(u8, token.data, "indent")) {
-        token.kind = .INDENT;
-    } else if (std.mem.eql(u8, token.data, "dedent")) {
-        token.kind = .DEDENT;
-    } else if (std.mem.eql(u8, token.data, "newline")) {
-        token.kind = .NEWLINE;
+    if (std.mem.eql(u8, token.data, "newline")) {
+        token.kind = .newline;
     } else if (std.mem.eql(u8, token.data, "eof")) {
-        token.kind = .NEWLINE;
+        token.kind = .newline;
     } else if (std.mem.eql(u8, token.data, "int") or
         std.mem.eql(u8, token.data, "hex") or
         std.mem.eql(u8, token.data, "oct") or
         std.mem.eql(u8, token.data, "bin"))
     {
         const some_random_num = rnd.random().int(i32);
-        token.kind = .DECIMAL_INTEGER;
+        token.kind = .dec_int;
         switch (@mod(some_random_num, 3)) {
             0 => token.data = "0",
             1 => token.data = "1",
@@ -672,7 +669,7 @@ fn fuzz_token(token: *token_.Token) void {
         }
     } else if (std.mem.eql(u8, token.data, "char")) {
         const some_random_num = rnd.random().int(i32);
-        token.kind = .CHAR;
+        token.kind = .char;
         switch (@mod(some_random_num, 3)) {
             0 => token.data = "'0'",
             1 => token.data = "'1'",

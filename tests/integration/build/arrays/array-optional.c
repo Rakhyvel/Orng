@@ -42,8 +42,8 @@ typedef struct4(*function5)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _34_main(void);
-struct3 _36_safe_div_vec(struct2 _36_x,struct2 _36_y);
-struct4 _38_safe_div(int64_t _38_x,int64_t _38_y);
+struct3 _36_safe_div_vec(struct2 _36_x, struct2 _36_y);
+struct4 _38_safe_div(int64_t _38_x, int64_t _38_y);
 
 /* Function definitions */
 int64_t _34_main(void){
@@ -85,7 +85,7 @@ int64_t _34_main(void){
     return _34_$retval;
 }
 
-struct3 _36_safe_div_vec(struct2 _36_x,struct2 _36_y){
+struct3 _36_safe_div_vec(struct2 _36_x, struct2 _36_y){
     struct4 _36_t1;
     struct4 _36_t2;
     struct4 _36_t3;
@@ -165,7 +165,7 @@ struct3 _36_safe_div_vec(struct2 _36_x,struct2 _36_y){
     return _36_$retval;
 }
 
-struct4 _38_safe_div(int64_t _38_x,int64_t _38_y){
+struct4 _38_safe_div(int64_t _38_x, int64_t _38_y){
     int64_t _38_t1;
     uint8_t _38_t3;
     int64_t _38_t5;

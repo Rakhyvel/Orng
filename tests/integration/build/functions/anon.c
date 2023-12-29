@@ -19,7 +19,7 @@ typedef int64_t(*function1)(function0, int64_t);
 /* Function forward definitions */
 int64_t _915_main(void);
 int64_t _917_$anon93(int64_t _917_x);
-int64_t _919_apply(function0 _919_f,int64_t _919_x);
+int64_t _919_apply(function0 _919_f, int64_t _919_x);
 
 /* Function definitions */
 int64_t _915_main(void){
@@ -44,7 +44,7 @@ int64_t _917_$anon93(int64_t _917_x){
     return _917_$retval;
 }
 
-int64_t _919_apply(function0 _919_f,int64_t _919_x){
+int64_t _919_apply(function0 _919_f, int64_t _919_x){
     int64_t _919_t0;
     int64_t _919_$retval;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";

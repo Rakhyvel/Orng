@@ -13,11 +13,11 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _130_add(int64_t _130_a,int64_t _130_b);
+int64_t _130_add(int64_t _130_a, int64_t _130_b);
 int64_t _122_main(void);
 
 /* Function definitions */
-int64_t _130_add(int64_t _130_a,int64_t _130_b){
+int64_t _130_add(int64_t _130_a, int64_t _130_b){
     int64_t _130_$retval;
     _130_$retval = $add_int64_t(_130_a, _130_b, "tests/integration/comptime/default-init.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
     return _130_$retval;

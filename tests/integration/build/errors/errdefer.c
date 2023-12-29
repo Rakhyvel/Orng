@@ -20,7 +20,7 @@ typedef struct2(*function0)(int64_t*, uint8_t);
 
 /* Function forward definitions */
 int64_t _554_main(void);
-struct2 _556_f(int64_t* _556_x,uint8_t _556_fail);
+struct2 _556_f(int64_t* _556_x, uint8_t _556_fail);
 
 /* Function definitions */
 int64_t _554_main(void){
@@ -55,7 +55,7 @@ int64_t _554_main(void){
     return _554_$retval;
 }
 
-struct2 _556_f(int64_t* _556_x,uint8_t _556_fail){
+struct2 _556_f(int64_t* _556_x, uint8_t _556_fail){
     struct2 _556_$retval;
     *_556_x = 4;
     if (_556_fail) {

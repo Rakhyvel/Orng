@@ -7,11 +7,11 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _147_f(float _147_x,double _147_y,float _147_z,double _147_a);
+int64_t _147_f(float _147_x, double _147_y, float _147_z, double _147_a);
 int64_t _144_main(void);
 
 /* Function definitions */
-int64_t _147_f(float _147_x,double _147_y,float _147_z,double _147_a){
+int64_t _147_f(float _147_x, double _147_y, float _147_z, double _147_a){
     float _147_t1;
     float _147_t2;
     uint8_t _147_t4;

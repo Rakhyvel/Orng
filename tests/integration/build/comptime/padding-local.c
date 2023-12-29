@@ -17,7 +17,7 @@ typedef int64_t(*function0)(int8_t, int16_t, int8_t);
 
 /* Function forward definitions */
 int64_t _255_main(void);
-int64_t _257_f(int8_t _257_x,int16_t _257_y,int8_t _257_z);
+int64_t _257_f(int8_t _257_x, int16_t _257_y, int8_t _257_z);
 
 /* Function definitions */
 int64_t _255_main(void){
@@ -38,7 +38,7 @@ int64_t _255_main(void){
     return _255_$retval;
 }
 
-int64_t _257_f(int8_t _257_x,int16_t _257_y,int8_t _257_z){
+int64_t _257_f(int8_t _257_x, int16_t _257_y, int8_t _257_z){
     int8_t _257_t1;
     uint8_t _257_t3;
     int64_t _257_$retval;

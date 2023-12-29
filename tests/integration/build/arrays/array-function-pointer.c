@@ -30,12 +30,12 @@ typedef struct {
 
 /* Function forward definitions */
 int64_t _19_main(void);
-int64_t _21_sum(int64_t _21_x,int64_t _21_y);
-int64_t _23_diff(int64_t _23_x,int64_t _23_y);
-int64_t _27_div(int64_t _27_x,int64_t _27_y);
+int64_t _21_sum(int64_t _21_x, int64_t _21_y);
+int64_t _23_diff(int64_t _23_x, int64_t _23_y);
+int64_t _27_div(int64_t _27_x, int64_t _27_y);
 int64_t _29_double(int64_t _29_x);
 int64_t _31_halve(int64_t _31_x);
-int64_t _25_mult(int64_t _25_x,int64_t _25_y);
+int64_t _25_mult(int64_t _25_x, int64_t _25_y);
 
 /* Function definitions */
 int64_t _19_main(void){
@@ -88,19 +88,19 @@ int64_t _19_main(void){
     return _19_$retval;
 }
 
-int64_t _21_sum(int64_t _21_x,int64_t _21_y){
+int64_t _21_sum(int64_t _21_x, int64_t _21_y){
     int64_t _21_$retval;
     _21_$retval = $add_int64_t(_21_x, _21_y, "tests/integration/arrays/array-function-pointer.orng:10:8:\n    x + y\n      ^");
     return _21_$retval;
 }
 
-int64_t _23_diff(int64_t _23_x,int64_t _23_y){
+int64_t _23_diff(int64_t _23_x, int64_t _23_y){
     int64_t _23_$retval;
     _23_$retval = $sub_int64_t(_23_x, _23_y, "tests/integration/arrays/array-function-pointer.orng:14:8:\n    x - y\n      ^");
     return _23_$retval;
 }
 
-int64_t _27_div(int64_t _27_x,int64_t _27_y){
+int64_t _27_div(int64_t _27_x, int64_t _27_y){
     int64_t _27_$retval;
     _27_$retval = $div_int64_t(_27_x, _27_y, "tests/integration/arrays/array-function-pointer.orng:22:8:\n    x / y\n      ^");
     return _27_$retval;
@@ -122,7 +122,7 @@ int64_t _31_halve(int64_t _31_x){
     return _31_$retval;
 }
 
-int64_t _25_mult(int64_t _25_x,int64_t _25_y){
+int64_t _25_mult(int64_t _25_x, int64_t _25_y){
     int64_t _25_$retval;
     _25_$retval = $mult_int64_t(_25_x, _25_y, "tests/integration/arrays/array-function-pointer.orng:18:8:\n    x * y\n      ^");
     return _25_$retval;

@@ -15,11 +15,11 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _90_add(int64_t _90_a,int64_t _90_b);
+int64_t _90_add(int64_t _90_a, int64_t _90_b);
 int64_t _86_main(void);
 
 /* Function definitions */
-int64_t _90_add(int64_t _90_a,int64_t _90_b){
+int64_t _90_add(int64_t _90_a, int64_t _90_b){
     int64_t _90_$retval;
     _90_$retval = $add_int64_t(_90_a, _90_b, "tests/integration/comptime/array-size.orng:12:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
     return _90_$retval;

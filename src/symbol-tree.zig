@@ -180,7 +180,7 @@ fn symbolTableFromAST(
 
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
-                    if (symbol.kind != ._const) {
+                    if (symbol.kind != .@"const") {
                         errors.addError(errs_.Error{ .basic = .{
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",
@@ -280,7 +280,7 @@ fn create_symbol(
                     return;
                 }
             }
-            const symbol_init = if (pattern.pattern_symbol.kind != ._const)
+            const symbol_init = if (pattern.pattern_symbol.kind != .@"const")
                 init
             else
                 try create_comptime_init(init, _type, scope, errors, allocator);
@@ -398,7 +398,7 @@ fn createFunctionSymbol(
         _type,
         ast.fnDecl.init,
         ast,
-        ._fn,
+        .@"fn",
         allocator,
     );
     fnScope.inner_function = retval;
@@ -492,7 +492,7 @@ fn create_temp_comptime_symbol(
         _type,
         ast.expr(),
         ast,
-        ._comptime,
+        .@"comptime",
         allocator,
     );
     comptime_scope.inner_function = retval;

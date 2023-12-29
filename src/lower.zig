@@ -94,7 +94,7 @@ fn lower_AST(
         // Literals
         .unit_value => {
             const lval = create_temp_lvalue(cfg, primitives_.unit_type, allocator);
-            cfg.appendInstruction(ir_.IR.init(.loadUnit, lval, null, null, ast.token().span, allocator));
+            cfg.appendInstruction(ir_.IR.init(.load_unit, lval, null, null, ast.token().span, allocator));
             return lval;
         },
         .int => return lval_from_int(ast.int.data, ast.typeof(allocator), ast.token().span, cfg, allocator),
@@ -140,11 +140,11 @@ fn lower_AST(
         },
         .identifier => {
             const symbol = ast.symbol().?;
-            if (symbol.kind == ._fn) {
+            if (symbol.kind == .@"fn") {
                 return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator);
             } else if (symbol.expanded_type.?.typesMatch(primitives_.type_type)) {
                 return lval_from_ast(ast, cfg, allocator);
-            } else if (symbol.kind == ._const) {
+            } else if (symbol.kind == .@"const") {
                 return try lower_AST(cfg, symbol.init, labels, errors, allocator);
             } else {
                 const src = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -309,7 +309,7 @@ fn lower_AST(
                 return lval_from_ast(ast, cfg, allocator);
             } else {
                 const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-                var ir = ir_.IR.initLoadStruct(temp, ast.token().span, allocator);
+                var ir = ir_.IR.init_load_struct(temp, ast.token().span, allocator);
                 for (ast.children().items) |term| {
                     ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse return null) catch unreachable;
                 }
@@ -337,7 +337,7 @@ fn lower_AST(
             cfg.appendInstruction(ir_.IR.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, allocator));
 
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-            var load_struct = ir_.IR.initLoadStruct(temp, ast.token().span, allocator);
+            var load_struct = ir_.IR.init_load_struct(temp, ast.token().span, allocator);
             load_struct.data.lval_list.append(new_data_ptr) catch unreachable;
             load_struct.data.lval_list.append(new_size) catch unreachable;
             cfg.appendInstruction(load_struct);
@@ -577,7 +577,7 @@ fn lval_from_symbol_cfg(
 ) !*lval_.L_Value {
     _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
     const lval = create_temp_lvalue(cfg, symbol._type, allocator);
-    var ir = ir_.IR.init(.loadSymbol, lval, null, null, span, allocator);
+    var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
     ir.data = ir_.Data{ .symbol = symbol };
     cfg.appendInstruction(ir);
     return lval;
@@ -674,7 +674,7 @@ fn int_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_int,
-        .addrOf => .addrOf,
+        .addrOf => .addr_of,
         .add => .add_int,
         .sub => .sub_int,
         .mult => .mult_int,
@@ -692,7 +692,7 @@ fn float_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_float,
-        .addrOf => .addrOf,
+        .addrOf => .addr_of,
         .add => .add_float,
         .sub => .sub_float,
         .mult => .mult_float,

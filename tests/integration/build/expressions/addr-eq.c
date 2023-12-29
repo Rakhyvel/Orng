@@ -16,7 +16,7 @@ typedef uint8_t(*function0)(int64_t*, int64_t*);
 
 /* Function forward definitions */
 int64_t _627_main(void);
-uint8_t _632_addr_equal(int64_t* _632_x,int64_t* _632_y);
+uint8_t _632_addr_equal(int64_t* _632_x, int64_t* _632_y);
 
 /* Function definitions */
 int64_t _627_main(void){
@@ -68,7 +68,7 @@ BB790:
     return _627_$retval;
 }
 
-uint8_t _632_addr_equal(int64_t* _632_x,int64_t* _632_y){
+uint8_t _632_addr_equal(int64_t* _632_x, int64_t* _632_y){
     uint8_t _632_t1;
     uint8_t _632_t0;
     uint8_t _632_$retval;

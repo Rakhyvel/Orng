@@ -19,7 +19,7 @@ typedef int64_t(*function1)(int64_t, int64_t);
 /* Function forward definitions */
 int64_t _967_main(void);
 int64_t _969_fib(int64_t _969_n);
-int64_t _974_add(int64_t _974_x,int64_t _974_y);
+int64_t _974_add(int64_t _974_x, int64_t _974_y);
 
 /* Function definitions */
 int64_t _967_main(void){
@@ -100,7 +100,7 @@ BB1194:
     goto BB1189;
 }
 
-int64_t _974_add(int64_t _974_x,int64_t _974_y){
+int64_t _974_add(int64_t _974_x, int64_t _974_y){
     int64_t _974_$retval;
     _974_$retval = $add_int64_t(_974_x, _974_y, "tests/integration/functions/nested.orng:14:33:\nfn add(x: Int, y: Int)->Int {x + y}\n                               ^");
     return _974_$retval;

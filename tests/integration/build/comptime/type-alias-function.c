@@ -16,7 +16,7 @@ typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _359_main(void);
-int64_t _361_add(int64_t _361_x,int64_t _361_y);
+int64_t _361_add(int64_t _361_x, int64_t _361_y);
 
 /* Function definitions */
 int64_t _359_main(void){
@@ -35,7 +35,7 @@ int64_t _359_main(void){
     return _359_$retval;
 }
 
-int64_t _361_add(int64_t _361_x,int64_t _361_y){
+int64_t _361_add(int64_t _361_x, int64_t _361_y){
     int64_t _361_$retval;
     _361_$retval = $add_int64_t(_361_x, _361_y, "tests/integration/comptime/type-alias-function.orng:9:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
     return _361_$retval;

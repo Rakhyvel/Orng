@@ -378,7 +378,7 @@ fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *s
         _type,
         init,
         null,
-        ._const,
+        .@"const",
         std.heap.page_allocator,
     ).assert_valid();
     symbol.is_temp = true;

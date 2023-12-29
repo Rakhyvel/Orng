@@ -16,7 +16,7 @@ typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _939_main(void);
-int64_t _941_add(int64_t _941_x,int64_t _941_y);
+int64_t _941_add(int64_t _941_x, int64_t _941_y);
 
 /* Function definitions */
 int64_t _939_main(void){
@@ -51,7 +51,7 @@ int64_t _939_main(void){
     return _939_$retval;
 }
 
-int64_t _941_add(int64_t _941_x,int64_t _941_y){
+int64_t _941_add(int64_t _941_x, int64_t _941_y){
     int64_t _941_$retval;
     _941_$retval = $add_int64_t(_941_x, _941_y, "tests/integration/functions/default-args.orng:4:43:\nfn add(x: Int = 1, y: Int = 1) -> Int {x + y}\n                                         ^");
     return _941_$retval;

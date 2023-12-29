@@ -357,7 +357,7 @@ fn fuzzTests() !void {
 
             var should_continue: bool = false;
             for (errors.errors_list.items) |err| {
-                if (err == .expected2Token or err == .expectedBasicToken or err == .missing_close) {
+                if (err == .expected2token or err == .expected_basic_token or err == .missing_close) {
                     try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                     try out.print("Orng failed to parse the above correctly!\n", .{});
                     failed += 1;

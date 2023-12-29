@@ -204,7 +204,7 @@ pub const CFG = struct {
                     ir.next.?.next = null;
                 }
                 break;
-            } else if (ir.kind == .branchIfFalse) {
+            } else if (ir.kind == .branch_if_false) {
                 // If you find a branch, end this block, start both blocks
                 retval.has_branch = true;
                 var branchNext: ?*ir_.IR = null; // = ir.data.branch.next;

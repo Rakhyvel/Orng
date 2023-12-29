@@ -241,24 +241,24 @@ pub const Context = struct {
     inline fn execute(self: *Context, ir: *ir_.IR) error{interpreter_panic}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
             // Invalid instructions
-            .loadExtern,
-            .sizeOf,
+            .load_extern,
+            .size_of,
             => unreachable,
 
             // Nops
-            .label, .discard, .loadUnit => {},
+            .label, .discard, .load_unit => {},
 
             // Load literals
-            .loadInt => {
+            .load_int => {
                 try self.assert_fits(ir.data.int, ir.dest.?.get_expanded_type(), "integer value", ir.span);
                 self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
             },
-            .loadFloat => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
-            .loadString => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
-            .loadSymbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
-            .loadAST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
-            .loadStruct => self.move_lval_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
-            .loadUnion => {
+            .load_float => self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
+            .load_string => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
+            .load_symbol => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
+            .load_AST => self.store_int(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
+            .load_struct => self.move_lval_list(self.get_lval(ir.dest.?), &ir.data.lval_list),
+            .load_union => {
                 if (ir.src1 != null) {
                     // Store data into first field
                     self.move(self.get_lval(ir.dest.?), self.get_lval(ir.src1.?), ir.src1.?.sizeof());
@@ -283,7 +283,7 @@ pub const Context = struct {
                 const data = self.load_float(self.get_lval(ir.src1.?), ir.src1.?.sizeof());
                 self.store_float(self.get_lval(ir.dest.?), ir.dest.?.sizeof(), -data);
             },
-            .addrOf => {
+            .addr_of => {
                 const data = self.get_lval(ir.src1.?);
                 self.store_int(self.get_lval(ir.dest.?), 8, data);
             },
@@ -389,7 +389,7 @@ pub const Context = struct {
                     self.ret();
                 }
             },
-            .branchIfFalse => { // TODO: This is confusing...
+            .branch_if_false => { // TODO: This is confusing...
                 if (self.load_int(self.get_lval(ir.src1.?), ir.src1.?.sizeof()) != 0) {
                     if (ir.data.branch_bb.next) |next| {
                         self.instruction_pointer = next.offset.?;
@@ -435,10 +435,10 @@ pub const Context = struct {
                 // jump to symbol addr
                 self.instruction_pointer = symbol.cfg.?.offset.?;
             },
-            .pushStackTrace => { // Pushes a static span/code to the lines array if debug mode is on
+            .push_stack_trace => { // Pushes a static span/code to the lines array if debug mode is on
                 self.debug_call_stack.append(ir.span) catch unreachable;
             },
-            .popStackTrace => { // Pops a message off the stack after a function is successfully called
+            .pop_stack_trace => { // Pops a message off the stack after a function is successfully called
                 _ = self.debug_call_stack.pop();
             },
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
@@ -526,7 +526,7 @@ pub const Context = struct {
                 const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
                 const ast = ast_.AST.createSymbol(
                     token_.Token.init_simple("function"),
-                    ._fn,
+                    .@"fn",
                     symbol.name,
                     allocator,
                 );
@@ -538,7 +538,7 @@ pub const Context = struct {
                 var retval = ast_.AST.createInferredMember(
                     _type.token(),
                     ast_.AST.createIdentifier(
-                        token_.Token.init("extracted from interpreter", .IDENTIFIER, "", "", 0, 0),
+                        token_.Token.init("extracted from interpreter", .identifier, "", "", 0, 0),
                         allocator,
                     ).assert_valid(),
                     allocator,

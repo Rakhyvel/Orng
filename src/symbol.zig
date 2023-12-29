@@ -89,20 +89,11 @@ pub const Scope = struct {
 };
 
 pub const SymbolKind = enum {
-    _fn,
-    _const,
+    @"fn",
+    @"const",
     let,
     mut,
-    _comptime,
-    pub fn to_string(self: SymbolKind) []const u8 {
-        return switch (self) {
-            ._fn => "fn",
-            ._const => "const",
-            .let => "let",
-            .mut => "mut",
-            ._comptime => "comptime",
-        };
-    }
+    @"comptime",
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);
@@ -158,7 +149,7 @@ pub const Symbol = struct {
         retval.offset = null;
         retval.kind = kind;
         retval.cfg = null;
-        if (kind == ._fn or kind == ._const or kind == ._comptime) {
+        if (kind == .@"fn" or kind == .@"const" or kind == .@"comptime") {
             retval.defined = true;
         } else {
             retval.defined = false;

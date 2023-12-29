@@ -326,28 +326,28 @@ fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
 
 fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     switch (ir.kind) {
-        .loadUnit => {}, // Nop!
-        .loadSymbol => {
+        .load_unit => {}, // Nop!
+        .load_symbol => {
             try output_var_assign(ir.dest.?, writer);
             try output_symbol(ir.data.symbol, writer);
             try writer.print(";\n", .{});
         },
-        .loadInt => {
+        .load_int => {
             try output_var_assign(ir.dest.?, writer);
             try writer.print("{};\n", .{ir.data.int});
         },
-        .loadFloat => {
+        .load_float => {
             try output_var_assign(ir.dest.?, writer);
             try writer.print("{};\n", .{ir.data.float});
         },
-        .loadString => {
+        .load_string => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
                 ir.data.string_id,
                 cheat_module.interned_strings.keys()[ir.data.string_id].len,
             });
         },
-        .loadStruct => {
+        .load_struct => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{", .{});
             var product_list = ir.dest.?.get_expanded_type().children().*;
@@ -362,7 +362,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             }
             try writer.print("}};\n", .{});
         },
-        .loadUnion => {
+        .load_union => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{.tag={}", .{ir.data.int});
             if (ir.src1 != null and ir.src1.?.get_expanded_type().* != .unit_type) {
@@ -376,7 +376,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(";\n", .{});
         },
-        .addrOf => {
+        .addr_of => {
             try output_var_assign(ir.dest.?, writer);
             try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(";\n", .{});
@@ -431,9 +431,9 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .label,
         .jump,
-        .branchIfFalse,
+        .branch_if_false,
         => {},
-        .pushStackTrace => {
+        .push_stack_trace => {
             var spaces = String.init(std.heap.page_allocator);
             defer spaces.deinit();
             for (1..ir.span.col - 1) |_| {
@@ -443,7 +443,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try ir.span.print_debug_line(writer, span_.c_format);
             try writer.print(";\n", .{});
         },
-        .popStackTrace => {
+        .pop_stack_trace => {
             try writer.print(
                 \\    $line_idx--;
                 \\

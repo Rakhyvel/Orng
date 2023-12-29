@@ -186,7 +186,7 @@ pub const L_Value = union(enum) {
 
     pub fn precedence(self: *L_Value) i64 {
         return switch (self.*) {
-            .symbver => ir_.Kind.precedence(ir_.Kind.loadSymbol),
+            .symbver => ir_.Kind.precedence(ir_.Kind.load_symbol),
             .dereference => 2,
             .index => 2,
             .select => 1,

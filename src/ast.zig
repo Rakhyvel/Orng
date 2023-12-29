@@ -23,10 +23,10 @@ pub fn init_structures() void {
 
 /// Represents the kind of a slice.
 pub const SliceKind = union(enum) {
-    SLICE, // data ptr and len
-    MUT, // mutable data ptr and len
-    MULTIPTR, // c-style `*` pointer, no len
-    ARRAY, // static homogenous tuple, compile-time len
+    slice, // data ptr and len
+    mut, // mutable data ptr and len
+    multiptr, // c-style `*` pointer, no len
+    array, // static homogenous tuple, compile-time len
 };
 
 pub const Sum_From = enum {
@@ -1184,7 +1184,7 @@ pub const AST = union(enum) {
                 }
             },
             .product => {
-                if (expand_type_list(self.children())) |new_terms| {
+                if (expand_type_list(self.children(), allocator)) |new_terms| {
                     var retval = AST.createProduct(self.token(), new_terms, allocator);
                     retval.product.was_slice = self.product.was_slice;
                     return retval;
@@ -1193,7 +1193,7 @@ pub const AST = union(enum) {
                 }
             },
             .sum => {
-                if (expand_type_list(self.children())) |new_terms| {
+                if (expand_type_list(self.children(), allocator)) |new_terms| {
                     var retval = AST.createSum(self.token(), new_terms, allocator);
                     retval.sum.from = self.sum.from;
                     return retval;
@@ -1249,11 +1249,11 @@ pub const AST = union(enum) {
 
     pub fn createBinop(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         switch (_token.kind) {
-            .PLUS_EQUALS => return createAdd(_token, _lhs, _rhs, allocator),
-            .MINUS_EQUALS => return createSub(_token, _lhs, _rhs, allocator),
-            .STAR_EQUALS => return createMult(_token, _lhs, _rhs, allocator),
-            .SLASH_EQUALS => return createDiv(_token, _lhs, _rhs, allocator),
-            .PERCENT_EQUALS => return createMod(_token, _lhs, _rhs, allocator),
+            .plus_equals => return createAdd(_token, _lhs, _rhs, allocator),
+            .minus_equals => return createSub(_token, _lhs, _rhs, allocator),
+            .star_equals => return createMult(_token, _lhs, _rhs, allocator),
+            .slash_equals => return createDiv(_token, _lhs, _rhs, allocator),
+            .percent_equals => return createMod(_token, _lhs, _rhs, allocator),
             else => {
                 std.debug.print("not a operator-assign token\n", .{});
                 unreachable;
@@ -1275,10 +1275,10 @@ pub const AST = union(enum) {
             .sliceOf => {
                 try out.print("[", .{});
                 switch (self.sliceOf.kind) {
-                    .MUT => try out.print("mut", .{}),
-                    .MULTIPTR => try out.print("*", .{}),
-                    .SLICE => {},
-                    .ARRAY => unreachable,
+                    .mut => try out.print("mut", .{}),
+                    .multiptr => try out.print("*", .{}),
+                    .slice => {},
+                    .array => unreachable,
                 }
                 try out.print("]", .{});
                 try self.expr().printType(out);
@@ -1527,7 +1527,7 @@ pub const AST = union(enum) {
                     if (child_type.typesMatch(primitives_.type_type)) {
                         return primitives_.type_type;
                     } else {
-                        return create_slice_type(expr_type.children().items[0], self.sliceOf.kind == .MUT, allocator);
+                        return create_slice_type(expr_type.children().items[0], self.sliceOf.kind == .mut, allocator);
                     }
                 }
             },
@@ -1643,7 +1643,7 @@ pub const AST = union(enum) {
         switch (A.*) {
             .identifier => return std.mem.eql(u8, A.token().data, B.token().data),
             .addrOf => return (B.addrOf.mut == false or B.addrOf.mut == A.addrOf.mut) and typesMatch(A.expr(), B.expr()),
-            .sliceOf => return (B.sliceOf.kind != .MUT or
+            .sliceOf => return (B.sliceOf.kind != .mut or
                 @intFromEnum(B.sliceOf.kind) == @intFromEnum(A.sliceOf.kind)) and
                 typesMatch(A.expr(), B.expr()),
             .unit_type => return true,

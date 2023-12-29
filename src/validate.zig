@@ -35,13 +35,13 @@ fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
         symbol.expanded_type = symbol._type.expand_type(allocator);
-        const expected = if (symbol.kind == ._fn or symbol.kind == ._comptime) symbol._type.rhs() else symbol._type;
+        const expected = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
         symbol.init = validateAST(symbol.init, expected, errors, allocator);
         if (symbol.init.* == .poison) {
             symbol.validation_state = .invalid;
             return error.typeError;
             // unreachable;
-        } else if ((symbol.kind == ._fn or symbol.kind == ._comptime) and symbol._type.rhs().* == .inferred_error) {
+        } else if ((symbol.kind == .@"fn" or symbol.kind == .@"comptime") and symbol._type.rhs().* == .inferred_error) {
             const terms = symbol._type.rhs().children().*;
             symbol._type.rhs().* = ast_.AST{ .sum = .{ .common = symbol._type.rhs().common().*, ._terms = terms, .from = .@"error" } };
         }
@@ -375,7 +375,7 @@ fn validate_AST_internal(
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (lhs_expanded_type.* != .product) {
-                errors.addError(errs_.Error{ .notIndexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
+                errors.addError(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
                 return error.typeError;
             } else if (lhs_expanded_type.* == .product and
                 !lhs_expanded_type.product.was_slice and
@@ -383,7 +383,7 @@ fn validate_AST_internal(
             {
                 if (ast.rhs().* == .int) {
                     // rhs is compile-time known, change to select
-                    const field = ast_.AST.createIdentifier(token_.Token.init("homotypical index", .IDENTIFIER, "", "", 0, 0), allocator);
+                    const field = ast_.AST.createIdentifier(token_.Token.init("homotypical index", .identifier, "", "", 0, 0), allocator);
                     var select = ast_.AST.createSelect(ast.token(), ast.lhs(), field, allocator).assert_valid();
                     select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
                     return select;
@@ -470,7 +470,7 @@ fn validate_AST_internal(
                 _ = ast.assert_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, errors, allocator));
                 if (expanded_expected.?.children().items.len != ast.children().items.len) {
-                    errors.addError(errs_.Error{ .mismatchTupleArity = .{
+                    errors.addError(errs_.Error{ .mismatch_tuple_arity = .{
                         .span = ast.token().span,
                         .takes = expanded_expected.?.children().items.len,
                         .given = ast.children().items.len,
@@ -549,7 +549,7 @@ fn validate_AST_internal(
 
             if (expr_type.* != .unit_type and primitives_.type_type.typesMatch(expr_type)) {
                 // Regular slice type, change to product of data address and length
-                return ast_.AST.create_slice_type(ast.expr(), ast.sliceOf.kind == .MUT, allocator);
+                return ast_.AST.create_slice_type(ast.expr(), ast.sliceOf.kind == .mut, allocator);
             } else { // Slice-of value, expected must be an slice, inner must match with expected's inner
                 // ast.expr() must be homotypical product type of expected
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
@@ -570,10 +570,10 @@ fn validate_AST_internal(
                     // This is mirrored with addr_of a product.
                     try validateLValue(ast.expr(), errors);
                 }
-                if (ast.sliceOf.kind == .MUT) {
+                if (ast.sliceOf.kind == .mut) {
                     try assertMutable(ast.expr(), errors, allocator);
                 }
-                return ast_.AST.create_slice_value(ast.expr(), ast.sliceOf.kind == .MUT, expr_type, allocator);
+                return ast_.AST.create_slice_value(ast.expr(), ast.sliceOf.kind == .mut, expr_type, allocator);
             }
         },
         .arrayOf => {
@@ -891,28 +891,28 @@ fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors)
 
 fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
     if (!got.is_eq_type()) {
-        errors.addError(errs_.Error{ .expectedBuiltinTypeclass = .{ .span = ast.token().span, .expected = "equalable", .got = got } });
+        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "equalable", .got = got } });
         return error.typeError;
     }
 }
 
 fn type_check_ord(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
     if (!got.is_ord_type()) {
-        errors.addError(errs_.Error{ .expectedBuiltinTypeclass = .{ .span = ast.token().span, .expected = "orderable", .got = got } });
+        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "orderable", .got = got } });
         return error.typeError;
     }
 }
 
 fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
     if (!got.is_num_type()) {
-        errors.addError(errs_.Error{ .expectedBuiltinTypeclass = .{ .span = ast.token().span, .expected = "arithmetic", .got = got } });
+        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "arithmetic", .got = got } });
         return error.typeError;
     }
 }
 
 fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
     if (!got.is_int_type()) {
-        errors.addError(errs_.Error{ .expectedBuiltinTypeclass = .{ .span = ast.token().span, .expected = "integral", .got = got } });
+        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integral", .got = got } });
         return error.typeError;
     }
 }
@@ -1182,12 +1182,12 @@ fn validate_args(
     var poisoned = false;
     if (expected.* == .unit_type) {
         if (args.items.len > 0) {
-            errors.addError(errs_.Error{ .mismatchCallArity = .{ .span = span, .takes = 0, .given = args.items.len } });
+            errors.addError(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 0, .given = args.items.len } });
             return error.typeError;
         }
     } else if (expected.* == .product) {
         if (args.items.len != expected.children().items.len) {
-            errors.addError(errs_.Error{ .mismatchCallArity = .{
+            errors.addError(errs_.Error{ .mismatch_call_arity = .{
                 .span = span,
                 .takes = expected.children().items.len,
                 .given = args.items.len,
@@ -1204,7 +1204,7 @@ fn validate_args(
         }
     } else {
         if (args.items.len != 1) {
-            errors.addError(errs_.Error{ .mismatchCallArity = .{ .span = span, .takes = 1, .given = args.items.len } });
+            errors.addError(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 1, .given = args.items.len } });
             return error.typeError;
         }
 
@@ -1222,7 +1222,7 @@ fn validate_args(
 
 fn putAssign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void {
     if (ast.lhs().* != .inferredMember) {
-        errors.addError(errs_.Error{ .expectedBasicToken = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
+        errors.addError(errs_.Error{ .expected_basic_token = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
         return error.typeError;
     }
     try put_ast_map(ast.rhs(), ast.lhs().inferredMember.ident.token().data, ast.token().span, arg_map, errors);
@@ -1290,7 +1290,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .identifier => {
             const symbol = ast.symbol().?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
-                errors.addError(errs_.Error{ .modifyImmutable = .{ .identifier = ast.token() } });
+                errors.addError(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
                 return error.typeError;
             }
         },
@@ -1419,7 +1419,7 @@ fn exhaustive_check(
             for (ids.items) |id| {
                 forgotten.append(_type.children().items[id]) catch unreachable;
             }
-            errors.addError(errs_.Error{ .nonExhaustiveSum = .{ .span = match_span, .forgotten = forgotten } });
+            errors.addError(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten } });
             return error.typeError;
         }
     }
@@ -1486,7 +1486,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
         .addrOf, .function => return ast_.AST.createInt(_type.token(), 0, allocator),
         .unit_type => return ast_.AST.createUnitValue(_type.token(), allocator),
         .sum => {
-            const identifier = ast_.AST.createIdentifier(token_.Token.init("default lmao", .IDENTIFIER, "", "", 0, 0), allocator);
+            const identifier = ast_.AST.createIdentifier(token_.Token.init("default lmao", .identifier, "", "", 0, 0), allocator);
             var retval = ast_.AST.createInferredMember(_type.token(), identifier, allocator);
             if (_type.sum.from == .optional) {
                 retval.set_pos(1);

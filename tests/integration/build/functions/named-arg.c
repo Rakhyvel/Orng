@@ -16,7 +16,7 @@ typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _962_main(void);
-int64_t _964_div(int64_t _964_x,int64_t _964_y);
+int64_t _964_div(int64_t _964_x, int64_t _964_y);
 
 /* Function definitions */
 int64_t _962_main(void){
@@ -35,7 +35,7 @@ int64_t _962_main(void){
     return _962_$retval;
 }
 
-int64_t _964_div(int64_t _964_x,int64_t _964_y){
+int64_t _964_div(int64_t _964_x, int64_t _964_y){
     int64_t _964_$retval;
     _964_$retval = $div_int64_t(_964_x, _964_y, "tests/integration/functions/named-arg.orng:6:35:\nfn div(x: Int, y: Int) -> Int {x / y}\n                                 ^");
     return _964_$retval;

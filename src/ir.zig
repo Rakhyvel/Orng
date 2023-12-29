@@ -53,25 +53,25 @@ pub const IR = struct {
     }
 
     pub fn initInt(dest: *lval_.L_Value, int: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.loadInt, dest, null, null, span, allocator);
+        var retval = IR.init(.load_int, dest, null, null, span, allocator);
         retval.data = Data{ .int = int };
         return retval;
     }
 
     pub fn initFloat(dest: *lval_.L_Value, float: f64, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.loadFloat, dest, null, null, span, allocator);
+        var retval = IR.init(.load_float, dest, null, null, span, allocator);
         retval.data = Data{ .float = float };
         return retval;
     }
 
     pub fn initString(dest: *lval_.L_Value, id: usize, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.loadString, dest, null, null, span, allocator);
+        var retval = IR.init(.load_string, dest, null, null, span, allocator);
         retval.data = Data{ .string_id = id };
         return retval;
     }
 
     pub fn init_ast(dest: *lval_.L_Value, ast: *ast_.AST, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        const retval = IR.init(.loadAST, dest, null, null, span, allocator);
+        const retval = IR.init(.load_AST, dest, null, null, span, allocator);
         retval.data = Data{ .ast = ast };
         return retval;
     }
@@ -88,7 +88,7 @@ pub const IR = struct {
     }
 
     pub fn initBranch(condition: *lval_.L_Value, label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.branchIfFalse, null, condition, null, span, allocator);
+        var retval = IR.init(.branch_if_false, null, condition, null, span, allocator);
         retval.data = Data{ .branch = label };
         return retval;
     }
@@ -113,7 +113,7 @@ pub const IR = struct {
         span: span_.Span,
         allocator: std.mem.Allocator,
     ) *IR {
-        var retval = IR.init(.branchIfFalse, null, condition, null, span, allocator);
+        var retval = IR.init(.branch_if_false, null, condition, null, span, allocator);
         retval.data = Data{ .branch_bb = .{ .next = next, .branch = branch } };
         return retval;
     }
@@ -124,8 +124,8 @@ pub const IR = struct {
         return retval;
     }
 
-    pub fn initLoadStruct(dest: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.loadStruct, dest, null, null, span, allocator);
+    pub fn init_load_struct(dest: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
+        var retval = IR.init(.load_struct, dest, null, null, span, allocator);
         retval.data = Data{ .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) };
         return retval;
     }
@@ -136,7 +136,7 @@ pub const IR = struct {
     }
 
     pub fn initUnion(dest: *lval_.L_Value, _init: ?*lval_.L_Value, tag: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.loadUnion, dest, _init, null, span, allocator);
+        var retval = IR.init(.load_union, dest, _init, null, span, allocator);
         retval.data = Data{ .int = tag };
         return retval;
     }
@@ -148,13 +148,13 @@ pub const IR = struct {
     }
 
     pub fn initStackPush(span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.pushStackTrace, null, null, null, span, allocator);
+        var retval = IR.init(.push_stack_trace, null, null, null, span, allocator);
         retval.data = Data.none;
         return retval;
     }
 
     pub fn initStackPop(span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.popStackTrace, null, null, null, span, allocator);
+        var retval = IR.init(.pop_stack_trace, null, null, null, span, allocator);
         retval.data = Data.none;
         return retval;
     }
@@ -208,28 +208,28 @@ pub const IR = struct {
         switch (self.kind) {
             .label => try out.writer().print("BB{}:\n", .{self.uid}),
 
-            .loadInt => {
+            .load_int => {
                 try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.int });
             },
-            .loadFloat => {
+            .load_float => {
                 try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.float });
             },
             .loadSymbol => {
                 try out.writer().print("    {} := {s}\n", .{ self.dest.?, self.data.symbol.name });
             },
-            .loadStruct => {
+            .load_struct => {
                 try out.writer().print("    {} := {{", .{self.dest.?});
                 try print_lval_list(&self.data.lval_list, out.writer());
                 try out.writer().print("}}\n", .{});
             },
-            .loadUnion => {
+            .load_union => {
                 // init may be null, if it is unit
                 try out.writer().print("    {} := {{init={?}, tag={}}}\n", .{ self.dest.?, self.src1, self.data.int });
             },
-            .loadString => {
+            .load_string => {
                 try out.writer().print("    {} := <interned string:{}>\n", .{ self.dest.?, self.data.string_id });
             },
-            .loadAST => {
+            .load_AST => {
                 try out.writer().print("    {} := AST({})\n", .{ self.dest.?, self.data.ast });
             },
             .loadUnit => {
@@ -251,7 +251,7 @@ pub const IR = struct {
             .sizeOf => {
                 try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
             },
-            .addrOf => {
+            .addr_of => {
                 try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
             },
 
@@ -324,7 +324,7 @@ pub const IR = struct {
                     try out.writer().print("    ret\n", .{});
                 }
             },
-            .branchIfFalse => {
+            .branch_if_false => {
                 if (self.data.branch_bb.next) |next| {
                     try out.writer().print("    if ({}) jump BB{}", .{ self.src1.?, next.uid });
                 } else {
@@ -346,10 +346,10 @@ pub const IR = struct {
             .discard => {
                 try out.writer().print("    _ := {}\n", .{self.src1.?});
             },
-            .pushStackTrace => {
+            .push_stack_trace => {
                 try out.writer().print("    push-stack-trace\n", .{});
             },
-            .popStackTrace => {
+            .pop_stack_trace => {
                 try out.writer().print("    pop-stack-trace\n", .{});
             },
             .panic => {
@@ -396,7 +396,7 @@ pub const IR = struct {
                 return null;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 retval = ir;
-            } else if (ir.kind == .addrOf and ir.src1.?.extract_symbver().symbol == symbol) {
+            } else if (ir.kind == .addr_of and ir.src1.?.extract_symbver().symbol == symbol) {
                 retval = null;
             }
         }
@@ -412,7 +412,7 @@ pub const IR = struct {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .index and ir.dest.?.extract_symbver().symbol == symbol) {
                 return ir;
-            } else if (ir.kind == .addrOf and ir.src1.?.extract_symbver().symbol == symbol) {
+            } else if (ir.kind == .addr_of and ir.src1.?.extract_symbver().symbol == symbol) {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 return ir;
@@ -424,23 +424,23 @@ pub const IR = struct {
 
 pub const Kind = enum {
     // nullary instructions
-    loadSymbol,
-    loadExtern,
-    loadInt,
-    loadFloat,
-    loadStruct, // TODO: Rename to load_tuple
-    loadUnion, // src1 is init, data.int is tag id // TODO: Rename to load_sum
-    loadString,
-    loadAST,
-    loadUnit, // no-op, but required. DO NOT optimize away
+    load_symbol,
+    load_extern,
+    load_int,
+    load_float,
+    load_struct, // TODO: Rename to load_tuple
+    load_union, // src1 is init, data.int is tag id // TODO: Rename to load_sum
+    load_string,
+    load_AST,
+    load_unit, // no-op, but required. DO NOT optimize away
 
     // Monadic instructions
     copy,
     not,
     negate_int,
     negate_float,
-    sizeOf, //< For extern types that Orng can't do automatically
-    addrOf,
+    size_of, //< For extern types that Orng can't do automatically
+    addr_of,
 
     // Diadic instructions
     equal,
@@ -468,15 +468,15 @@ pub const Kind = enum {
     // Control-flow
     label,
     jump, // jump to BB{uid} if codegen, ip := {addr} if interpreting
-    branchIfFalse,
+    branch_if_false,
     call, // dest = src1(symbver_list...)
 
     // Non-Code Generating
     discard, // Marks that a symbol isn't used, but that's OK
 
     // Errors
-    pushStackTrace, // Pushes a static span/code to the lines array if debug mode is on
-    popStackTrace, // Pops a message off the stack after a function is successfully called
+    push_stack_trace, // Pushes a static span/code to the lines array if debug mode is on
+    pop_stack_trace, // Pops a message off the stack after a function is successfully called
     panic, // if debug mode is on, panics with a message, unrolls lines stack, exits
 
     pub fn is_checked(self: Kind) bool {
@@ -552,13 +552,13 @@ pub const Kind = enum {
 
     pub fn precedence(self: Kind) i64 {
         return switch (self) {
-            .loadSymbol,
-            .loadExtern,
-            .loadInt,
-            .loadFloat,
-            .loadStruct,
-            .loadUnion,
-            .loadString,
+            .load_symbol,
+            .load_extern,
+            .load_int,
+            .load_float,
+            .load_struct,
+            .load_union,
+            .load_string,
             => 0,
 
             .call,
@@ -568,9 +568,9 @@ pub const Kind = enum {
             .negate_int,
             .negate_float,
             .not,
-            .sizeOf,
+            .size_of,
             .cast,
-            .addrOf,
+            .addr_of,
             => 2,
 
             .mult_int,

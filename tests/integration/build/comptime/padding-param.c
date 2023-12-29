@@ -7,11 +7,11 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _266_f(int8_t _266_x,int16_t _266_y,int8_t _266_z);
+int64_t _266_f(int8_t _266_x, int16_t _266_y, int8_t _266_z);
 int64_t _263_main(void);
 
 /* Function definitions */
-int64_t _266_f(int8_t _266_x,int16_t _266_y,int8_t _266_z){
+int64_t _266_f(int8_t _266_x, int16_t _266_y, int8_t _266_z){
     int8_t _266_t1;
     uint8_t _266_t3;
     int64_t _266_$retval;

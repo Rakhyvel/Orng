@@ -135,7 +135,7 @@ pub const Module = struct {
         // Add each CFG's instructions to the module's instruction's list
         for (module.scope.symbols.keys()) |key| {
             const symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
-            if (symbol.kind != ._fn) {
+            if (symbol.kind != .@"fn") {
                 continue;
             }
             // IR translation
@@ -324,7 +324,7 @@ pub fn get_cfg(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !*cfg_.CFG {
-    std.debug.assert(symbol.kind == ._fn or symbol.kind == ._comptime);
+    std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.cfg == null) {
         symbol.cfg = try cfg_.CFG.init(symbol, caller, interned_strings, allocator);

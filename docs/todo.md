@@ -1,18 +1,9 @@
 ### Nits
 <!-- These are good first-issues for those looking to contribute -->
 - [x] Rename `case` to `match`
-- [ ] Find copy-pasted code and tidy it up
-- [ ] Standardize token, ast, ir *kind* naming convention
-- [ ] Alphabetize type imports by the module, then by the type.
-- [ ] Standardize the names of parameters, ie:
-    - `const <file>_ = @import("<file>.zig")` for zig files
-    - `token` for a Tokens
-    - `ast` for an AST nodes
-    - `def` for the def IR node of a SymbolVersions
-    - `ir` for an arbitrary IR node
-    - `symbver` for an arbitrary SymbolVersion
-    - `maybe_x` for an optional variant of a type
-- [ ] Errors should be given a type name
+- [x] Find copy-pasted code and tidy it up
+- [x] Standardize token, ast, ir *kind* naming convention
+- [x] Alphabetize type imports by the module, then by the type.
 - [ ] Errors should be capitalized
 - [ ] Everything should be snake_case
     - [ ] Token Kinds should be snake_case, prefer not to use abbreviations
@@ -22,12 +13,9 @@
 - [ ] Order switches on enums to the order they were declared in
     - [ ] Order enums better too
 - [ ] Comments on each function and struct field
-- [ ] Make sure nothing is more than 140 columns
-- [ ] *probably* should only be one struct per file
+- [x] Make sure nothing is more than 140 columns
 - [ ] Change some while loops with counter to enhanced for loops
 - [ ] See if things *really* need to be marked `pub`
-- [ ] Go through files and find TODO comments
-- [ ] Maybe have some fields be private, when they make sense
 - [x] All inits have a corresponding deinit
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it

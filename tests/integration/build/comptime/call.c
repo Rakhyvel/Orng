@@ -7,11 +7,11 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _103_add(int64_t _103_x,int64_t _103_y);
+int64_t _103_add(int64_t _103_x, int64_t _103_y);
 int64_t _99_main(void);
 
 /* Function definitions */
-int64_t _103_add(int64_t _103_x,int64_t _103_y){
+int64_t _103_add(int64_t _103_x, int64_t _103_y){
     int64_t _103_$retval;
     _103_$retval = $add_int64_t(_103_x, _103_y, "tests/integration/comptime/call.orng:8:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
     return _103_$retval;

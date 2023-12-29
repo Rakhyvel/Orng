@@ -23,7 +23,7 @@ typedef struct2(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _75_main(void);
-struct2 _77_get_array(int64_t _77_a,int64_t _77_b);
+struct2 _77_get_array(int64_t _77_a, int64_t _77_b);
 
 /* Function definitions */
 int64_t _75_main(void){
@@ -68,7 +68,7 @@ int64_t _75_main(void){
     return _75_$retval;
 }
 
-struct2 _77_get_array(int64_t _77_a,int64_t _77_b){
+struct2 _77_get_array(int64_t _77_a, int64_t _77_b){
     struct2 _77_$retval;
     _77_$retval = (struct2) {_77_a, _77_b, _77_a, _77_b};
     return _77_$retval;

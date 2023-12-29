@@ -21,7 +21,7 @@ typedef int64_t(*function0)(int64_t, struct2);
 
 /* Function forward definitions */
 int64_t _515_main(void);
-int64_t _517_add_fields(int64_t _517_scale,struct2 _517_mt);
+int64_t _517_add_fields(int64_t _517_scale, struct2 _517_mt);
 
 /* Function definitions */
 int64_t _515_main(void){
@@ -44,7 +44,7 @@ int64_t _515_main(void){
     return _515_$retval;
 }
 
-int64_t _517_add_fields(int64_t _517_scale,struct2 _517_mt){
+int64_t _517_add_fields(int64_t _517_scale, struct2 _517_mt){
     int64_t _517_t0;
     int64_t _517_$retval;
     _517_t0 = $add_int64_t(_517_mt._0, _517_mt._1, "tests/integration/default/default-keyword.orng:14:12:\n    (mt.x + mt.y) / scale\n          ^");

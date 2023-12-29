@@ -55,7 +55,7 @@ fn decorate_identifiers(
 
                 // Couldn't find the symbol
                 .not_found => {
-                    errors.addError(errs_.Error{ .undeclaredIdentifier = .{ .identifier = ast.token(), .expected = null } });
+                    errors.addError(errs_.Error{ .undeclared_identifier = .{ .identifier = ast.token(), .expected = null } });
                     return error.symbolError;
                 },
 
@@ -72,7 +72,7 @@ fn decorate_identifiers(
                 },
             }
             if (!ast.symbol().?.defined) {
-                errors.addError(errs_.Error{ .useBeforeDef = .{ .identifier = ast.token() } });
+                errors.addError(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
                 return error.symbolError;
             }
         },
