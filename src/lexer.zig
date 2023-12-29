@@ -3,15 +3,15 @@ const errs_ = @import("errors.zig");
 const span_ = @import("span.zig");
 const token_ = @import("token.zig");
 
-const LexerErrors = error{LexerError};
-const RndGen = std.rand.DefaultPrng;
-var rnd = RndGen.init(0);
+const Lexer_Errors = error{LexerError};
+const Rnd_Gen = std.rand.DefaultPrng;
+var rnd = Rnd_Gen.init(0);
 
 // Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
 // However, we couldn't print out the line for the error if we did tokens and lines at the same time
 // It's desirable to print the line, therefore lines must be done before tokens
 // TODO: Move to own file
-pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void { // TODO: Uninfer error
+pub fn get_lines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void { // TODO: Uninfer error
     var start: usize = 0;
     var end: usize = 1;
     if (contents.len == 0) {
@@ -31,7 +31,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
 }
 
 // TODO: Make lexer into a class
-const LexState = enum {
+const Lex_State = enum {
     none,
     whitespace,
     underscore, //           => uncapitalized | capitalized
@@ -58,7 +58,7 @@ const LexState = enum {
     multiline,
     comment,
 
-    fn state_from_integer(c: u8) LexState {
+    fn state_from_integer(c: u8) Lex_State {
         return switch (c) {
             'x' => .hex_digit,
             'o' => .octal_digit,
@@ -70,7 +70,7 @@ const LexState = enum {
 
 /// Will always end in an EOF on the first column of the next line
 /// TODO: Make scanner a struct with member functions n shiet
-pub fn getTokens(
+pub fn get_tokens(
     lines: *std.ArrayList([]const u8),
     filename: []const u8,
     errors: *errs_.Errors,
@@ -84,7 +84,7 @@ pub fn getTokens(
     for (lines.items) |contents| {
         var slice_start: usize = 0;
         var ix: usize = 0;
-        var state: LexState = .none;
+        var state: Lex_State = .none;
         line += 1;
         col = 1;
 
@@ -143,7 +143,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .msg = "may not have more than one underscore in a row in an identifier",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else if (std.ascii.isUpper(next_char) or std.ascii.isDigit(next_char)) {
                         // => all caps on [A-Z0-9]
                         ix += 1;
@@ -160,7 +160,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "identifiers may not end in an underscore",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     }
                 },
 
@@ -177,7 +177,7 @@ pub fn getTokens(
                                 .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                                 .msg = "camelCase is not supported; consider spliting with an underscore",
                             } });
-                            return LexerErrors.LexerError;
+                            return Lexer_Errors.LexerError;
                         } else {
                             // => capitalized on a-z
                             ix += 1;
@@ -208,7 +208,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "camelCase is not supported; consider spliting with an underscore",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
                         tokens.append(token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
@@ -233,7 +233,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "camelCase is not supported",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
                         var token = token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col);
@@ -256,7 +256,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected `\"`, got end-of-file",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else switch (next_char) {
                         '"' => {
                             ix += 1;
@@ -285,7 +285,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a string, got end-of-file",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else if (next_char == 'n' or
                         next_char == 'r' or
                         next_char == 't' or
@@ -305,7 +305,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     }
                 },
 
@@ -323,7 +323,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "hexadecimal",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     }
                 },
 
@@ -341,7 +341,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "hexadecimal",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     }
                 },
 
@@ -351,7 +351,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a `'`, got end-of-file",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else switch (next_char) {
                         '\'' => {
                             ix += 1;
@@ -363,7 +363,7 @@ pub fn getTokens(
                                     .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                                     .msg = "more than one codepoint specified in character literal",
                                 } });
-                                return LexerErrors.LexerError;
+                                return Lexer_Errors.LexerError;
                             }
                             tokens.append(
                                 token_.Token.init(contents[slice_start..ix], .char, filename, contents, line, col),
@@ -389,7 +389,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a character, got end-of-file",
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     } else if (next_char == 'n' or
                         next_char == 'r' or
                         next_char == 't' or
@@ -405,7 +405,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                         } });
-                        return LexerErrors.LexerError;
+                        return Lexer_Errors.LexerError;
                     }
                 },
 
@@ -427,7 +427,7 @@ pub fn getTokens(
                         // Base identifier
                         ix += 1;
                         col += 1;
-                        state = LexState.state_from_integer(next_char);
+                        state = Lex_State.state_from_integer(next_char);
                     } else if (next_char == '_') {
                         ix += 1;
                         col += 1;

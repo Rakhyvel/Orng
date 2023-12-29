@@ -75,8 +75,8 @@ pub const Module = struct {
         // Tokenize, and also append lines to the list of lines
         var lines = std.ArrayList([]const u8).init(allocator);
         defer lines.deinit();
-        try lexer_.getLines(contents, &lines, errors);
-        var tokens = try lexer_.getTokens(&lines, in_name, errors, fuzz_tokens, allocator);
+        try lexer_.get_lines(contents, &lines, errors);
+        var tokens = try lexer_.get_tokens(&lines, in_name, errors, fuzz_tokens, allocator);
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
         if (false and fuzz_tokens) { // print tokens before layout_
