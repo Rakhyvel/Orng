@@ -45,7 +45,7 @@ pub const L_Value = union(enum) {
     }
 
     pub fn create_unversioned_symbver(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *L_Value {
-        const retval = L_Value.create_symbver(Symbol_Version.createUnversioned(symbol, allocator), allocator);
+        const retval = L_Value.create_symbver(Symbol_Version.create_unversioned(symbol, allocator), allocator);
         return retval;
     }
 
@@ -203,7 +203,7 @@ pub const Symbol_Version = struct {
 
     allocator: std.mem.Allocator,
 
-    pub fn createUnversioned(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Symbol_Version {
+    pub fn create_unversioned(symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Symbol_Version {
         var retval = allocator.create(Symbol_Version) catch unreachable;
         retval.symbol = symbol;
         retval.uses = 0;
@@ -218,7 +218,7 @@ pub const Symbol_Version = struct {
         // self.allocator.destroy(self); // TODO: Bwuh?!
     }
 
-    pub fn makeUnique(self: *Symbol_Version) void {
+    pub fn make_unique(self: *Symbol_Version) void {
         if (self.version == null) {
             self.version = self.symbol.versions;
             self.symbol.versions += 1;
@@ -251,7 +251,7 @@ pub const Symbol_Version = struct {
         // try writer.print("{s:<10}", .{out.str()});
     }
 
-    pub fn findVersion(self: *Symbol_Version, ir: ?*ir_.IR, stop: ?*ir_.IR) *Symbol_Version {
+    pub fn find_version(self: *Symbol_Version, ir: ?*ir_.IR, stop: ?*ir_.IR) *Symbol_Version {
         var retval: *Symbol_Version = self;
         var maybe_ir = ir;
         while (maybe_ir != null and maybe_ir != stop) : (maybe_ir = maybe_ir.?.next) {
@@ -262,7 +262,7 @@ pub const Symbol_Version = struct {
         return retval;
     }
 
-    pub fn findSymbolVersionSet(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) ?*Symbol_Version {
+    pub fn find_symbol_version_set(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) ?*Symbol_Version {
         for (set.items) |symbver| {
             if (symbver.symbol == self.symbol) {
                 return symbver;
@@ -271,7 +271,7 @@ pub const Symbol_Version = struct {
         return null;
     }
 
-    pub fn putSymbolVersionSet(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) bool {
+    pub fn put_symbol_version_set(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) bool {
         for (set.items) |v| {
             if (v.symbol == self.symbol) {
                 return false;

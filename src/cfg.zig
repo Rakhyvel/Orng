@@ -133,9 +133,9 @@ pub const CFG = struct {
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and
                     ir.dest.?.* == .symbver and
-                    ir.dest.?.symbver.findSymbolVersionSet(&self.parameters) == null)
+                    ir.dest.?.symbver.find_symbol_version_set(&self.parameters) == null)
                 {
-                    _ = ir.dest.?.symbver.putSymbolVersionSet(&self.symbvers);
+                    _ = ir.dest.?.symbver.put_symbol_version_set(&self.symbvers);
                 }
             }
         }
@@ -171,7 +171,7 @@ pub const CFG = struct {
             ir.in_block = retval;
 
             if (ir.dest != null and ir.dest.?.* == .symbver) {
-                ir.dest.?.symbver.makeUnique();
+                ir.dest.?.symbver.make_unique();
             }
 
             if (ir.kind == .label) {
@@ -294,9 +294,9 @@ pub const CFG = struct {
     ) void {
         switch (lval.*) {
             .symbver => {
-                var retval = lval.symbver.findVersion(bb.ir_head, ir);
+                var retval = lval.symbver.find_version(bb.ir_head, ir);
                 if (retval.version == null) {
-                    _ = retval.putSymbolVersionSet(parameters);
+                    _ = retval.put_symbol_version_set(parameters);
                 }
                 lval.symbver = retval;
             },
@@ -350,19 +350,19 @@ pub const CFG = struct {
         // Go through the parameters the block requested, see if they exist in this block.
         // Request them if they do not.
         for (bb.parameters.items) |param| {
-            var symbver = param.findVersion(bb.ir_head, null);
+            var symbver = param.find_version(bb.ir_head, null);
             if (symbver == param) {
                 // Could not find param def in this block, require it as a parameter for this own block
-                const my_param = param.findSymbolVersionSet(&bb.parameters);
+                const my_param = param.find_symbol_version_set(&bb.parameters);
                 if (my_param) |_myParam| {
                     symbver = _myParam; // if so, we will add param to arglist
                 } else {
                     // else, create a new param and add to paramlist. (will later be added to arglist too)
-                    symbver = lval_.Symbol_Version.createUnversioned(param.symbol, allocator);
-                    _ = symbver.putSymbolVersionSet(&bb.parameters);
+                    symbver = lval_.Symbol_Version.create_unversioned(param.symbol, allocator);
+                    _ = symbver.put_symbol_version_set(&bb.parameters);
                 }
             } // else found in this block already, add it to the arguments
-            retval = symbver.putSymbolVersionSet(args) or retval;
+            retval = symbver.put_symbol_version_set(args) or retval;
         }
         return retval;
     }

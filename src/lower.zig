@@ -57,7 +57,7 @@ pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.
     if (cfg.symbol.decl.?.* == .fn_decl) {
         // `_comptime` symbols don't have parameters anyway
         for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
-            cfg.parameters.append(lval_.Symbol_Version.createUnversioned(param, allocator)) catch unreachable;
+            cfg.parameters.append(lval_.Symbol_Version.create_unversioned(param, allocator)) catch unreachable;
         }
     }
     const return_version = lval_.L_Value.create_unversioned_symbver(cfg.return_symbol, allocator);
