@@ -54,10 +54,10 @@ pub const Error = union(enum) {
     },
     symbol_error: struct {
         span: span_.Span,
-        context_span: ?span_.Span,
+        context_span: ?span_.Span = null,
         name: []const u8,
         problem: []const u8,
-        context_message: []const u8,
+        context_message: []const u8 = "",
     },
     discard_marked: struct {
         span: span_.Span,
@@ -131,6 +131,11 @@ pub const Error = union(enum) {
         span: span_.Span,
         _type: *ast_.AST,
     },
+    wrong_coalesce_from: struct {
+        span: span_.Span,
+        operator: []const u8, // either "orelse" or "catch"
+        from: []const u8, // either "optional" or "error"
+    },
 
     // Optimizer
     out_of_bounds: struct {
@@ -186,6 +191,7 @@ pub const Error = union(enum) {
             .mismatchCallArity => return self.mismatchCallArity.span,
             .mismatchTupleArity => return self.mismatchTupleArity.span,
             .no_default => return self.no_default.span,
+            .wrong_coalesce_from => return self.wrong_coalesce_from.span,
 
             .out_of_bounds => return self.out_of_bounds.span,
             .negative_index => return self.negative_index.span,
@@ -319,6 +325,12 @@ pub const Errors = struct {
                 try out.print("no default value for the type `", .{});
                 try err.no_default._type.printType(out);
                 try out.print("`\n", .{});
+            },
+            .wrong_coalesce_from => {
+                try out.print("left-hand side of `{s}` is not an `{s}` type\n", .{
+                    err.wrong_coalesce_from.operator,
+                    err.wrong_coalesce_from.from,
+                });
             },
 
             // Optimizer

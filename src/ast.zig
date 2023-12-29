@@ -16,7 +16,7 @@ var inited: bool = false;
 pub fn init_structures() void {
     if (!inited) {
         poisoned = AST.createPoison(token_.Token.init_simple("LMAO GET POISONED!"), std.heap.page_allocator);
-        poisoned.common().validation_state = .invalid;
+        _ = poisoned.enpoison();
         inited = true;
     }
 }
@@ -27,6 +27,12 @@ pub const SliceKind = union(enum) {
     MUT, // mutable data ptr and len
     MULTIPTR, // c-style `*` pointer, no len
     ARRAY, // static homogenous tuple, compile-time len
+};
+
+pub const Sum_From = enum {
+    optional,
+    @"error",
+    none,
 };
 
 /// Contains common properties of all AST nodes
@@ -125,8 +131,8 @@ pub const AST = union(enum) {
     lesser: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     greater_equal: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     lesser_equal: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
-    _catch: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
-    _orelse: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
+    @"catch": struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
+    @"orelse": struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     call: struct { common: ASTCommon, _lhs: *AST, _args: std.ArrayList(*AST) },
     index: struct { common: ASTCommon, _lhs: *AST, _rhs: *AST },
     select: struct {
@@ -152,8 +158,7 @@ pub const AST = union(enum) {
     sum: struct {
         common: ASTCommon,
         _terms: std.ArrayList(*AST),
-        was_optional: bool = false,
-        was_error: bool = false,
+        from: Sum_From = .none,
         all_unit: ?bool = null,
         pub fn is_all_unit(self: *@This()) bool {
             if (self.all_unit) |all_unit| {
@@ -166,38 +171,10 @@ pub const AST = union(enum) {
             self.all_unit = res;
             return res;
         }
-
-        pub fn get_pos(self: *@This(), field_name: []const u8) ?usize {
-            for (self._terms.items, 0..) |term, i| {
-                if (std.mem.eql(u8, term.annotation.pattern.token().data, field_name)) {
-                    return i;
-                }
-            }
-            return null;
-        }
-
-        // TODO: Duck type this with product/sum
-        pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
-            var offset: i64 = 0;
-            for (0..field + 1) |i| {
-                var item = self._terms.items[i];
-                offset += item.expand_type(allocator).sizeof();
-            }
-            return offset;
-        }
     },
     inferred_error: struct {
         common: ASTCommon,
         _terms: std.ArrayList(*AST),
-
-        pub fn get_pos(self: *@This(), field_name: []const u8) ?usize {
-            for (self._terms.items, 0..) |term, i| {
-                if (std.mem.eql(u8, term.annotation.pattern.token().data, field_name)) {
-                    return i;
-                }
-            }
-            return null;
-        }
     },
     inject: struct {
         common: ASTCommon,
@@ -378,10 +355,7 @@ pub const AST = union(enum) {
 
     fn sizeof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => {
-                const info = primitives_.get(self.token().data);
-                return info.size;
-            },
+            .identifier => return primitives_.get(self.token().data).size,
 
             .product => {
                 var total_size: i64 = 0;
@@ -423,10 +397,7 @@ pub const AST = union(enum) {
 
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => {
-                const info = primitives_.get(self.token().data);
-                return info.size;
-            },
+            .identifier => return primitives_.get(self.token().data).size,
 
             .product => {
                 var max_align: i64 = 0;
@@ -615,12 +586,12 @@ pub const AST = union(enum) {
 
     pub fn createCatch(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         const _common: ASTCommon = .{ ._token = _token };
-        return AST.box(AST{ ._catch = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
+        return AST.box(AST{ .@"catch" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
     pub fn createOrelse(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         const _common: ASTCommon = .{ ._token = _token };
-        return AST.box(AST{ ._orelse = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
+        return AST.box(AST{ .@"orelse" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
     pub fn createCall(_token: token_.Token, _lhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
@@ -1018,6 +989,15 @@ pub const AST = union(enum) {
         return get_field(self, "_pos");
     }
 
+    pub fn get_pos(self: *AST, field_name: []const u8) ?usize {
+        for (self.children().items, 0..) |term, i| {
+            if (std.mem.eql(u8, term.annotation.pattern.token().data, field_name)) {
+                return i;
+            }
+        }
+        return null;
+    }
+
     pub fn set_pos(self: *AST, val: ?usize) void {
         set_field(self, "_pos", val);
     }
@@ -1120,7 +1100,7 @@ pub const AST = union(enum) {
         term_types.append(none_type) catch unreachable;
 
         var retval = AST.createSum(of_type.token(), term_types, allocator);
-        retval.sum.was_optional = true;
+        retval.sum.from = .optional;
         return retval;
     }
 
@@ -1128,7 +1108,7 @@ pub const AST = union(enum) {
         const member = createInferredMember(value.token(), AST.createIdentifier(token_.Token.init_simple("some"), allocator), allocator);
         member.inferredMember.base = opt_type;
         member.inferredMember.init = value;
-        member.set_pos(opt_type.sum.get_pos("some"));
+        member.set_pos(opt_type.get_pos("some"));
         return member.assert_valid();
     }
 
@@ -1139,7 +1119,7 @@ pub const AST = union(enum) {
             allocator,
         );
         member.inferredMember.base = opt_type;
-        member.set_pos(opt_type.sum.get_pos("none"));
+        member.set_pos(opt_type.get_pos("none"));
         return member.assert_valid();
     }
 
@@ -1155,7 +1135,7 @@ pub const AST = union(enum) {
         var ok_sum_terms = std.ArrayList(*AST).init(allocator);
         ok_sum_terms.append(ok_annot) catch unreachable;
         var ok_sum = AST.createSum(ok_type.token(), ok_sum_terms, allocator);
-        ok_sum.sum.was_error = true;
+        ok_sum.sum.from = .@"error";
 
         // Err!Ok => (ok:Ok|) || Err
         // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
@@ -1163,18 +1143,24 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    /// Retrieves either the `ok` or `some` type from either an optional type or an error type
+    pub fn get_nominal_type(opt_or_error_sum: *AST) *AST {
+        std.debug.assert(opt_or_error_sum.sum.from == .optional or opt_or_error_sum.sum.from == .@"error");
+        return opt_or_error_sum.children().items[0];
+    }
+
     pub fn get_some_type(opt_sum: *AST) *AST {
-        std.debug.assert(opt_sum.sum.was_optional);
+        std.debug.assert(opt_sum.sum.from == .optional);
         return opt_sum.children().items[0];
     }
 
     pub fn get_none_type(opt_sum: *AST) *AST {
-        std.debug.assert(opt_sum.sum.was_optional);
+        std.debug.assert(opt_sum.sum.from == .optional);
         return opt_sum.children().items[1];
     }
 
     pub fn get_ok_type(err_union: *AST) *AST {
-        std.debug.assert(err_union.sum.was_error);
+        std.debug.assert(err_union.sum.from == .@"error");
         return err_union.children().items[0];
     }
 
@@ -1198,37 +1184,20 @@ pub const AST = union(enum) {
                 }
             },
             .product => {
-                var terms = std.ArrayList(*AST).init(allocator);
-                var change = false;
-                for (self.children().items) |term| {
-                    const new_term = term.expand_type(allocator);
-                    terms.append(new_term) catch unreachable;
-                    change = new_term != term or change;
-                }
-                if (change) {
-                    var retval = AST.createProduct(self.token(), terms, allocator);
+                if (expand_type_list(self.children())) |new_terms| {
+                    var retval = AST.createProduct(self.token(), new_terms, allocator);
                     retval.product.was_slice = self.product.was_slice;
                     return retval;
                 } else {
-                    terms.deinit();
                     return self;
                 }
             },
             .sum => {
-                var terms = std.ArrayList(*AST).init(allocator);
-                var change = false;
-                for (self.children().items) |term| {
-                    const new_term = term.expand_type(allocator);
-                    terms.append(new_term) catch unreachable;
-                    change = new_term != term or change;
-                }
-                if (change) {
-                    var retval = AST.createSum(self.token(), terms, allocator);
-                    retval.sum.was_error = self.sum.was_error;
-                    retval.sum.was_optional = self.sum.was_optional;
+                if (expand_type_list(self.children())) |new_terms| {
+                    var retval = AST.createSum(self.token(), new_terms, allocator);
+                    retval.sum.from = self.sum.from;
                     return retval;
                 } else {
-                    terms.deinit();
                     return self;
                 }
             },
@@ -1259,6 +1228,22 @@ pub const AST = union(enum) {
             .poison, .unit_type => return self,
 
             else => return self,
+        }
+    }
+
+    fn expand_type_list(asts: *std.ArrayList(*AST), allocator: std.mem.Allocator) ?std.ArrayList(*AST) {
+        var terms = std.ArrayList(*AST).init(allocator);
+        var change = false;
+        for (asts.items) |term| {
+            const new_term = term.expand_type(allocator);
+            terms.append(new_term) catch unreachable;
+            change = new_term != term or change;
+        }
+        if (change) {
+            return terms;
+        } else {
+            terms.deinit();
+            return null;
         }
     }
 
@@ -1327,7 +1312,7 @@ pub const AST = union(enum) {
                 try self.children().items[self.children().items.len - 1].printType(out);
                 try out.print(")", .{});
             },
-            .sum => if (self.sum.was_optional) {
+            .sum => if (self.sum.from == .optional) {
                 try out.print("?", .{});
                 try self.get_some_type().annotation.type.printType(out);
             } else {
@@ -1456,8 +1441,8 @@ pub const AST = union(enum) {
             .div,
             .mod,
             => return self.lhs().typeof(allocator),
-            ._catch,
-            ._orelse,
+            .@"catch",
+            .@"orelse",
             .mapping,
             => return self.rhs().typeof(allocator),
 
@@ -1900,8 +1885,8 @@ pub const AST = union(enum) {
             .lesser => try out.writer().print("lesser()", .{}),
             .greater_equal => try out.writer().print("greater_equal()", .{}),
             .lesser_equal => try out.writer().print("lesser_equal()", .{}),
-            ._catch => try out.writer().print("catch()", .{}),
-            ._orelse => try out.writer().print("orelse()", .{}),
+            .@"catch" => try out.writer().print("catch()", .{}),
+            .@"orelse" => try out.writer().print("orelse()", .{}),
             .call => try out.writer().print("call()", .{}),
             .index => try out.writer().print("index()", .{}),
             .select => try out.writer().print("select()", .{}),

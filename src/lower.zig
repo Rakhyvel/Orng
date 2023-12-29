@@ -235,7 +235,7 @@ fn lower_AST(
 
         .equal, .not_equal => return try tuple_equality_check(ast, cfg, labels, errors, allocator),
 
-        ._catch, ._orelse => return try coalesce_op(ast, cfg, labels, errors, allocator),
+        .@"catch", .@"orelse" => return try coalesce_op(ast, cfg, labels, errors, allocator),
 
         .call => {
             const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
@@ -281,7 +281,7 @@ fn lower_AST(
             const offset = if (lhs_expanded_type.* == .product)
                 lhs_expanded_type.product.get_offset(ast.pos().?, allocator)
             else
-                lhs_expanded_type.sum.get_offset(ast.pos().?, allocator);
+                0;
 
             var tag: ?*lval_.L_Value = null;
             if (lhs_expanded_type.* == .sum) {
@@ -1180,7 +1180,7 @@ fn wrap_error_return(
     allocator: std.mem.Allocator,
 ) void {
     const expanded_temp_type = expr.get_type().expand_type(allocator);
-    if (labels.error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.was_error) {
+    if (labels.error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.from == .@"error") {
         // Returning error sum, runtime check if error, branch to error path
         const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
         cfg.appendInstruction(ir_.IR.initGetTag(condition, expr, span, allocator)); // `ok` is 0 `err`s nonzero

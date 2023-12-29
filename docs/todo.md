@@ -89,12 +89,12 @@
 - [x] Functions with long switches should not have any external state, cases should be ideally <20~30 lines long
     - [x] Perhaps create an `arrayOf` AST kind
 - [x] In import graph, 1.5 <= (E+1)/N <= 4.0
-- [ ] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
+- [x] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
     - rewrite `ast` to be like IR
-- [ ] Write a python script to look for duplicate code!
-- [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
+- [x] Write a python script to look for duplicate code!
 - [ ] Go through nits
 - [ ] Go through TODO's in source
+- [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [ ] Figure out how to do lints before GCC does
 - [ ] Go through MISRA when writing reqs
 

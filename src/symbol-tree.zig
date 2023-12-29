@@ -88,14 +88,14 @@ fn symbolTableFromAST(
         .lesser,
         .greater_equal,
         .lesser_equal,
-        ._catch,
         .index,
         .select,
         .function,
         .invoke,
         .inject,
         ._union,
-        ._orelse,
+        .@"catch",
+        .@"orelse",
         => {
             try symbolTableFromAST(ast.lhs(), scope, errors, allocator);
             try symbolTableFromAST(ast.rhs(), scope, errors, allocator);

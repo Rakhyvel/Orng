@@ -178,12 +178,12 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void {
     try output_symbol(cfg.symbol, writer);
     try writer.print("(", .{});
     var num_non_unit_params: i64 = 0;
-    for (cfg.symbol.decl.?.fnDecl.param_symbols.items, 0..) |param, i| {
-        if (!param.expanded_type.?.c_typesMatch(primitives_.unit_type)) {
+    for (cfg.symbol.decl.?.fnDecl.param_symbols.items, 0..) |term, i| {
+        if (!term.expanded_type.?.c_typesMatch(primitives_.unit_type)) {
             // Print out parameter declarations
-            try output_var_decl(param, writer, true);
+            try output_var_decl(term, writer, true);
             if (i + 1 < cfg.symbol.decl.?.fnDecl.param_symbols.items.len) {
-                try writer.print(",", .{});
+                try writer.print(", ", .{});
             }
             num_non_unit_params += 1;
         }
@@ -351,10 +351,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{", .{});
             var product_list = ir.dest.?.get_expanded_type().children().*;
-            for (ir.data.lval_list.items, product_list.items, 1..) |lval, expected, i| {
+            for (ir.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
                 if (!expected.c_typesMatch(primitives_.unit_type)) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
-                    try output_rvalue(lval, ir.kind.precedence(), writer);
+                    try output_rvalue(term, ir.kind.precedence(), writer);
                     if (i < product_list.items.len and !product_list.items[i - 1].c_typesMatch(primitives_.unit_type)) {
                         try writer.print(", ", .{});
                     }
@@ -418,10 +418,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             }
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print("(", .{});
-            for (ir.data.lval_list.items, 0..) |lval, i| {
-                if (!lval.get_expanded_type().c_typesMatch(primitives_.unit_type)) {
+            for (ir.data.lval_list.items, 0..) |term, i| {
+                if (!term.get_expanded_type().c_typesMatch(primitives_.unit_type)) {
                     // Do not output `void` arguments
-                    try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
+                    try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
                     if (i + 1 < ir.data.lval_list.items.len) {
                         try writer.print(", ", .{});
                     }

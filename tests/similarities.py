@@ -1,5 +1,5 @@
 def main():
-    with open("src/symbol-tree.zig") as f:
+    with open("src/codegen.zig") as f:
         text = f.read()
         scanner = Scanner(text)
         tokens = scanner.tokenize()
@@ -60,6 +60,8 @@ def longest_substr(tokens):
             if len(x) > len(lrs) and x != lrs:
                 lrs = x
                 print(x)
+            elif len(x) > 40: 
+                print("also:", x)
         p = (100 * i) // n
         if p > prev_p:
             print(f"{p}%")
