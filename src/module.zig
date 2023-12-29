@@ -249,7 +249,7 @@ pub const Module = struct {
             }
 
             bb.offset = @as(i64, @intCast(self.instructions.items.len));
-            var label = ir_.IR.initLabel(cfg, span_.phony_span, self.allocator);
+            var label = ir_.IR.init_label(cfg, span_.phony_span, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
 
@@ -292,7 +292,7 @@ pub const Module = struct {
     fn append_phony_block(self: *Module, cfg: *cfg_.CFG) i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
-        self.instructions.append(ir_.IR.initLabel(
+        self.instructions.append(ir_.IR.init_label(
             cfg,
             span_.phony_span,
             self.allocator,

@@ -52,19 +52,19 @@ pub const IR = struct {
         return retval;
     }
 
-    pub fn initInt(dest: *lval_.L_Value, int: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_int(dest: *lval_.L_Value, int: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_int, dest, null, null, span, allocator);
         retval.data = Data{ .int = int };
         return retval;
     }
 
-    pub fn initFloat(dest: *lval_.L_Value, float: f64, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_float(dest: *lval_.L_Value, float: f64, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_float, dest, null, null, span, allocator);
         retval.data = Data{ .float = float };
         return retval;
     }
 
-    pub fn initString(dest: *lval_.L_Value, id: usize, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_string(dest: *lval_.L_Value, id: usize, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_string, dest, null, null, span, allocator);
         retval.data = Data{ .string_id = id };
         return retval;
@@ -81,20 +81,20 @@ pub const IR = struct {
         return ir;
     }
 
-    pub fn initLabel(cfg: *cfg_.CFG, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_label(cfg: *cfg_.CFG, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.label, null, null, null, span, allocator);
         retval.data = Data{ .cfg = cfg };
         return retval;
     }
 
-    pub fn initBranch(condition: *lval_.L_Value, label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_branch(condition: *lval_.L_Value, label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.branch_if_false, null, condition, null, span, allocator);
         retval.data = Data{ .branch = label };
         return retval;
     }
 
     // TODO: Rename create_jump_ir, rename IR kind as well
-    pub fn initJump(label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_jump(label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.jump, null, null, null, span, allocator);
         retval.data = Data{ .branch = label };
         return retval;
@@ -118,7 +118,7 @@ pub const IR = struct {
         return retval;
     }
 
-    pub fn initCall(dest: *lval_.L_Value, src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_call(dest: *lval_.L_Value, src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.call, dest, src1, null, span, allocator);
         retval.data = Data{ .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) };
         return retval;
@@ -130,36 +130,36 @@ pub const IR = struct {
         return retval;
     }
 
-    pub fn initGetTag(dest: *lval_.L_Value, src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_get_tag(dest: *lval_.L_Value, src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
         const retval = IR.init(.get_tag, dest, src1, null, span, allocator);
         return retval;
     }
 
-    pub fn initUnion(dest: *lval_.L_Value, _init: ?*lval_.L_Value, tag: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_union(dest: *lval_.L_Value, _init: ?*lval_.L_Value, tag: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_union, dest, _init, null, span, allocator);
         retval.data = Data{ .int = tag };
         return retval;
     }
 
-    pub fn initDiscard(src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_discard(src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.discard, null, src1, null, span, allocator);
         retval.data = Data.none;
         return retval;
     }
 
-    pub fn initStackPush(span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_stack_push(span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.push_stack_trace, null, null, null, span, allocator);
         retval.data = Data.none;
         return retval;
     }
 
-    pub fn initStackPop(span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_stack_pop(span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.pop_stack_trace, null, null, null, span, allocator);
         retval.data = Data.none;
         return retval;
     }
 
-    pub fn initPanic(message: []const u8, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_panic(message: []const u8, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.panic, null, null, null, span, allocator);
         retval.data = Data{ .string = message };
         return retval;
@@ -188,7 +188,7 @@ pub const IR = struct {
         self.allocator.destroy(self);
     }
 
-    pub fn getTail(self: *IR) *IR {
+    pub fn get_tail(self: *IR) *IR {
         var mut_self: *IR = self;
         while (mut_self.next != null) : (mut_self = mut_self.next.?) {}
         return mut_self;

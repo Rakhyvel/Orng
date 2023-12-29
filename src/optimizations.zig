@@ -71,7 +71,7 @@ fn bbOptimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             defer log_msg.deinit();
             log_msg.writer().print("adopt BB{} into BB{}", .{ bb.next.?.uid, bb.uid }) catch unreachable;
             defer log_optimization_pass(log_msg.str(), cfg);
-            var end: *ir_.IR = bb.ir_head.?.getTail();
+            var end: *ir_.IR = bb.ir_head.?.get_tail();
 
             // Join next block at the end of this block
             end.next = bb.next.?.ir_head;
