@@ -139,12 +139,12 @@ fn output_field_list(fields: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_
 }
 
 fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) !void { // TODO: Uninfer error
-    const keySet = interned_strings.keys();
-    if (keySet.len > 0) {
+    const key_set = interned_strings.keys();
+    if (key_set.len > 0) {
         try writer.print("/* Interned Strings */\n", .{});
     }
-    for (0..keySet.len) |i| {
-        const str = keySet[i];
+    for (0..key_set.len) |i| {
+        const str = key_set[i];
         const id = interned_strings.get(str).?;
         try writer.print("char* string_{} = \"", .{id});
         for (str) |byte| {
@@ -152,7 +152,7 @@ fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), wri
         }
         try writer.print("\";\n", .{});
     }
-    if (keySet.len > 0) {
+    if (key_set.len > 0) {
         try writer.print("\n", .{});
     }
 }

@@ -53,13 +53,13 @@ fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std
     // Symbol's name must be capitalized iff its type is Type
     if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_")) {
         if (type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
-            errors.addError(errs_.Error{ .symbol_error = .{
+            errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type `Type` must start with an uppercase letter",
                 .span = symbol.span,
                 .name = symbol.name,
             } });
         } else if (!type_is_type_type(symbol.expanded_type.?) and is_capitalized(symbol.name)) {
-            errors.addError(errs_.Error{ .symbol_error = .{
+            errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type other than `Type` must start with a lowercase letter",
                 .span = symbol.span,
                 .name = symbol.name,
@@ -81,7 +81,7 @@ fn is_capitalized(name: []const u8) bool {
 fn validateAST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) *ast_.AST {
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
-        errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
+        errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
         return ast_.poisoned;
     } else if (ast.common().validation_state == .invalid) {
         return ast_.poisoned;
@@ -168,7 +168,7 @@ fn validate_AST_internal(
             }
             try validateSymbol(symbol, errors, allocator);
             if (symbol.validation_state != .valid or symbol._type.common().validation_state != .valid) {
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
                 return ast.enpoison();
             }
             try type_check(ast, symbol._type, expected, errors);
@@ -205,7 +205,7 @@ fn validate_AST_internal(
             const expanded_expr_type = expr_type.expand_type(allocator);
             if (expanded_expr_type.* != .addr_of) {
                 // TODO: Got?
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "expected an address" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "expected an address" } });
                 return ast.enpoison();
             } else {
                 return ast;
@@ -219,7 +219,7 @@ fn validate_AST_internal(
             if (expr_expanded_type.* != .sum or expr_expanded_type.sum.from != .@"error") {
                 // expr is not even an error type
                 // TODO: What type is it?
-                errors.addError(errs_.Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
                 return ast.enpoison();
             }
             try type_check(ast, expr_expanded_type.get_ok_type().annotation.type, expected, errors);
@@ -230,7 +230,7 @@ fn validate_AST_internal(
                     try add_term(expanded_function_return, term, errors);
                 }
             } else if (expanded_function_return.* != .sum or expanded_function_return.sum.from != .@"error") {
-                errors.addError(errs_.Error{ .basic = .{
+                errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
                     .msg = "enclosing function around try expression does not return an error",
                 } });
@@ -345,7 +345,7 @@ fn validate_AST_internal(
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (expanded_lhs_type.* != .function) {
                 // TODO: Emit expanded_lhs_type for user
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "call is not to a function" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "call is not to a function" } });
                 return ast.enpoison();
             }
             ast.set_children(try default_args(ast.children().*, expanded_lhs_type.lhs(), errors, allocator));
@@ -375,7 +375,7 @@ fn validate_AST_internal(
                 // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (lhs_expanded_type.* != .product) {
-                errors.addError(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
+                errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
                 return error.TypeError;
             } else if (lhs_expanded_type.* == .product and
                 !lhs_expanded_type.product.was_slice and
@@ -389,7 +389,7 @@ fn validate_AST_internal(
                     return select;
                 } else {
                     // rhs is not int, error
-                    errors.addError(errs_.Error{ .basic = .{
+                    errors.add_error(errs_.Error{ .basic = .{
                         .span = lhs_span,
                         .msg = "array is not homotypical and index is not compile-time known",
                     } });
@@ -470,7 +470,7 @@ fn validate_AST_internal(
                 _ = ast.assert_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, errors, allocator));
                 if (expanded_expected.?.children().items.len != ast.children().items.len) {
-                    errors.addError(errs_.Error{ .mismatch_tuple_arity = .{
+                    errors.add_error(errs_.Error{ .mismatch_tuple_arity = .{
                         .span = ast.token().span,
                         .takes = expanded_expected.?.children().items.len,
                         .given = ast.children().items.len,
@@ -498,10 +498,10 @@ fn validate_AST_internal(
             const expand_lhs = new_ast.lhs().expand_type(allocator);
             const expand_rhs = new_ast.rhs().expand_type(allocator);
             if (expand_lhs.* != .sum) {
-                errors.addError(errs_.Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type" } });
                 return error.TypeError;
             } else if (expand_rhs.* != .sum) {
-                errors.addError(errs_.Error{ .basic = .{ .span = rhs_span, .msg = "right hand side of union is not a sum type" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = rhs_span, .msg = "right hand side of union is not a sum type" } });
                 return error.TypeError;
             }
 
@@ -553,7 +553,7 @@ fn validate_AST_internal(
             } else { // Slice-of value, expected must be an slice, inner must match with expected's inner
                 // ast.expr() must be homotypical product type of expected
                 if (expr_type.* != .product or !expr_type.product.is_homotypical()) {
-                    errors.addError(errs_.Error{ .basic = .{
+                    errors.add_error(errs_.Error{ .basic = .{
                         .span = ast.token().span,
                         .msg = "attempt to take slice-of something that is not an array",
                     } });
@@ -585,11 +585,11 @@ fn validate_AST_internal(
             ast.array_of.len = validateAST(ast.array_of.len, primitives_.int_type, errors, allocator);
             try assert_none_poisoned(ast.array_of.len);
             if (ast.array_of.len.* != .int) {
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not integer literal" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not integer literal" } });
                 return ast.enpoison();
             }
             if (ast.array_of.len.int.data <= 0) {
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is negative" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is negative" } });
                 return ast.enpoison();
             }
             return ast_.AST.create_array_type(ast.array_of.len, ast.expr(), allocator);
@@ -601,7 +601,7 @@ fn validate_AST_internal(
             try assert_none_poisoned(.{ ast.sub_slice.super, ast.sub_slice.lower, ast.sub_slice.upper });
             const super_type = ast.sub_slice.super.typeof(allocator);
             if (super_type.* != .product or !super_type.product.was_slice) {
-                errors.addError(errs_.Error{ .basic = .{
+                errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
                     .msg = "cannot take a sub-slice of something that is not a slice",
                 } });
@@ -626,7 +626,7 @@ fn validate_AST_internal(
             }
 
             if (expected == null) {
-                errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer the sum type" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer the sum type" } });
                 return ast.enpoison();
             } else if (expected_expanded.* == .inferred_error) {
                 ast.inferred_member.base = expected;
@@ -648,7 +648,7 @@ fn validate_AST_internal(
             } else {
                 ast.inferred_member.base = expected;
                 ast.set_pos(expected_expanded.get_pos(ast.inferred_member.ident.token().data) orelse {
-                    errors.addError(errs_.Error{ .member_not_in = .{
+                    errors.add_error(errs_.Error{ .member_not_in = .{
                         .span = ast.token().span,
                         .identifier = ast.inferred_member.ident.token().data,
                         .group_name = "sum",
@@ -891,39 +891,39 @@ fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors)
 
 fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_eq_type()) {
-        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "equalable", .got = got } });
+        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "equalable", .got = got } });
         return error.TypeError;
     }
 }
 
 fn type_check_ord(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_ord_type()) {
-        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "orderable", .got = got } });
+        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "orderable", .got = got } });
         return error.TypeError;
     }
 }
 
 fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_num_type()) {
-        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "arithmetic", .got = got } });
+        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "arithmetic", .got = got } });
         return error.TypeError;
     }
 }
 
 fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_int_type()) {
-        errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integral", .got = got } });
+        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integral", .got = got } });
         return error.TypeError;
     }
 }
 
 fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) error{TypeError} {
-    errors.addError(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
+    errors.add_error(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
     return error.TypeError;
 }
 
 fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) error{TypeError} {
-    errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
+    errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
     return error.TypeError;
 }
 
@@ -989,7 +989,7 @@ fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, errors: *errs
     const expected: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
     if (lhs_expanded_type.* != .sum or lhs_expanded_type.sum.from != expected) {
         // TODO: What type is it?
-        errors.addError(errs_.Error{ .wrong_coalesce_from = .{
+        errors.add_error(errs_.Error{ .wrong_coalesce_from = .{
             .span = ast.lhs().token().span,
             .operator = @tagName(ast.*),
             .from = @tagName(expected),
@@ -1032,7 +1032,7 @@ fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) !bool {
     }
     std.debug.assert(seen_named or seen_pos);
     if (seen_named and seen_pos) {
-        errors.addError(errs_.Error{ .basic = .{
+        errors.add_error(errs_.Error{ .basic = .{
             .span = asts.items[0].token().span,
             .msg = "mixed positional and named arguments are not allowed",
         } });
@@ -1127,7 +1127,7 @@ fn named_args(
     switch (new_expected.*) {
         .annotation => {
             if (arg_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
-                errors.addError(errs_.Error{ .basic = .{
+                errors.add_error(errs_.Error{ .basic = .{
                     .span = asts.items[0].token().span,
                     .msg = "too many arguments/fields specifed",
                 } });
@@ -1141,7 +1141,7 @@ fn named_args(
         .product => {
             for (new_expected.children().items) |term| {
                 if (term.* != .annotation) {
-                    errors.addError(errs_.Error{ .basic = .{
+                    errors.add_error(errs_.Error{ .basic = .{
                         .span = asts.items[0].token().span,
                         .msg = "expected type does not accept named arugments",
                     } });
@@ -1152,7 +1152,7 @@ fn named_args(
                     if (term.annotation.init != null) {
                         retval.append(term.annotation.init.?) catch unreachable;
                     } else {
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = asts.items[0].token().span,
                             .msg = "not all arguments are specified",
                         } });
@@ -1182,12 +1182,12 @@ fn validate_args(
     var poisoned = false;
     if (expected.* == .unit_type) {
         if (args.items.len > 0) {
-            errors.addError(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 0, .given = args.items.len } });
+            errors.add_error(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 0, .given = args.items.len } });
             return error.TypeError;
         }
     } else if (expected.* == .product) {
         if (args.items.len != expected.children().items.len) {
-            errors.addError(errs_.Error{ .mismatch_call_arity = .{
+            errors.add_error(errs_.Error{ .mismatch_call_arity = .{
                 .span = span,
                 .takes = expected.children().items.len,
                 .given = args.items.len,
@@ -1204,7 +1204,7 @@ fn validate_args(
         }
     } else {
         if (args.items.len != 1) {
-            errors.addError(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 1, .given = args.items.len } });
+            errors.add_error(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 1, .given = args.items.len } });
             return error.TypeError;
         }
 
@@ -1222,7 +1222,7 @@ fn validate_args(
 
 fn putAssign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (ast.lhs().* != .inferred_member) {
-        errors.addError(errs_.Error{ .expected_basic_token = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
+        errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
         return error.TypeError;
     }
     try put_ast_map(ast.rhs(), ast.lhs().inferred_member.ident.token().data, ast.token().span, arg_map, errors);
@@ -1257,7 +1257,7 @@ fn put_many_annot_map(
 fn put_ast_map(ast: *ast_.AST, name: []const u8, span: span_.Span, map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (map.get(name)) |_| {
         // TODO: What is the name?
-        errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "duplicate identifier" } });
+        errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "duplicate identifier" } });
         return error.TypeError;
     } else {
         map.put(name, ast) catch unreachable;
@@ -1279,7 +1279,7 @@ fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfe
         },
 
         else => {
-            errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
+            errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
             return error.TypeError;
         },
     }
@@ -1290,7 +1290,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .identifier => {
             const symbol = ast.symbol().?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
-                errors.addError(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
+                errors.add_error(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
                 return error.TypeError;
             }
         },
@@ -1318,7 +1318,7 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
 
 fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!ast.addr_of.mut) {
-        errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot modify non-mutable address" } });
+        errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot modify non-mutable address" } });
         return error.TypeError;
     }
 }
@@ -1345,7 +1345,7 @@ fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors
             return i;
         }
     } else {
-        errors.addError(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .group_name = "tuple" } });
+        errors.add_error(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .group_name = "tuple" } });
         return error.TypeError;
     }
 }
@@ -1419,7 +1419,7 @@ fn exhaustive_check(
             for (ids.items) |id| {
                 forgotten.append(_type.children().items[id]) catch unreachable;
             }
-            errors.addError(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten } });
+            errors.add_error(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten } });
             return error.TypeError;
         }
     }
@@ -1447,7 +1447,7 @@ fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void { //
     for (ast.children().items) |term| {
         if (std.mem.eql(u8, term.annotation.pattern.token().data, addend.annotation.pattern.token().data)) {
             if (!term.annotation.type.types_match(term)) {
-                errors.addError(errs_.Error{ .sum_duplicate = .{
+                errors.add_error(errs_.Error{ .sum_duplicate = .{
                     .span = ast.token().span,
                     .identifier = term.annotation.pattern.token().data,
                     .first = term.token().span,
@@ -1476,7 +1476,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
                 if (primitive_info.default_value != null) {
                     return primitive_info.default_value.?;
                 } else {
-                    errors.addError(errs_.Error{ .no_default = .{ .span = _type.token().span, ._type = _type } });
+                    errors.add_error(errs_.Error{ .no_default = .{ .span = _type.token().span, ._type = _type } });
                     return error.TypeError;
                 }
             } else {
@@ -1539,7 +1539,7 @@ fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocat
         const proper_term: *ast_.AST = (ast.lhs().typeof(allocator)).children().items[pos];
         return proper_term.annotation.type;
     } else {
-        errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "inject is not to a sum" } });
+        errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "inject is not to a sum" } });
         return ast_.poisoned;
     }
 }

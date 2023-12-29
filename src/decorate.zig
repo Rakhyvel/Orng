@@ -55,24 +55,24 @@ fn decorate_identifiers(
 
                 // Couldn't find the symbol
                 .not_found => {
-                    errors.addError(errs_.Error{ .undeclared_identifier = .{ .identifier = ast.token(), .expected = null } });
+                    errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = ast.token(), .expected = null } });
                     return error.SymbolError;
                 },
 
                 // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
                 .found_but_rt => {
-                    errors.addError(errs_.Error{ .comptime_access_runtime = .{ .identifier = ast.token() } });
+                    errors.add_error(errs_.Error{ .comptime_access_runtime = .{ .identifier = ast.token() } });
                     return error.SymbolError;
                 },
 
                 // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
                 .found_but_fn => {
-                    errors.addError(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = ast.token() } });
+                    errors.add_error(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = ast.token() } });
                     return error.SymbolError;
                 },
             }
             if (!ast.symbol().?.defined) {
-                errors.addError(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
+                errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
                 return error.SymbolError;
             }
         },

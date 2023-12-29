@@ -15,7 +15,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
     var start: usize = 0;
     var end: usize = 1;
     if (contents.len == 0) {
-        errors.addError(errs_.Error{ .basic = .{
+        errors.add_error(errs_.Error{ .basic = .{
             .span = span_.phony_span,
             .msg = "file is empty",
         } });
@@ -139,7 +139,7 @@ pub fn getTokens(
                 .underscore => { // _ A-Z a-z 0-9 $
                     if (next_char == '_') {
                         // => error on _
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .msg = "may not have more than one underscore in a row in an identifier",
                         } });
@@ -156,7 +156,7 @@ pub fn getTokens(
                         state = .uncapitalized;
                     } else {
                         // => error on $
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "identifiers may not end in an underscore",
                         } });
@@ -173,7 +173,7 @@ pub fn getTokens(
                     } else if (std.ascii.isLower(next_char)) {
                         if (ix - slice_start > 1 and contents[ix - 2] != '_') {
                             // => error on $ if length is too long
-                            errors.addError(errs_.Error{ .basic = .{
+                            errors.add_error(errs_.Error{ .basic = .{
                                 .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                                 .msg = "camelCase is not supported; consider spliting with an underscore",
                             } });
@@ -204,7 +204,7 @@ pub fn getTokens(
                         state = .underscore;
                     } else if (std.ascii.isUpper(next_char)) {
                         // => error on [A-Z]
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "camelCase is not supported; consider spliting with an underscore",
                         } });
@@ -229,7 +229,7 @@ pub fn getTokens(
                         state = .underscore;
                     } else if (std.ascii.isUpper(next_char)) {
                         // => error on [A-Z]
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "camelCase is not supported",
                         } });
@@ -252,7 +252,7 @@ pub fn getTokens(
 
                 .string => {
                     if (ix == contents.len) {
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected `\"`, got end-of-file",
                         } });
@@ -281,7 +281,7 @@ pub fn getTokens(
 
                 .escapedString => {
                     if (ix == contents.len) {
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a string, got end-of-file",
                         } });
@@ -301,7 +301,7 @@ pub fn getTokens(
                         col += 1;
                         state = .byte_string1;
                     } else {
-                        errors.addError(errs_.Error{ .invalid_escape = .{
+                        errors.add_error(errs_.Error{ .invalid_escape = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                         } });
@@ -318,7 +318,7 @@ pub fn getTokens(
                         col += 1;
                         state = .byte_string2;
                     } else {
-                        errors.addError(errs_.Error{ .invalid_digit = .{
+                        errors.add_error(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                             .base = "hexadecimal",
@@ -336,7 +336,7 @@ pub fn getTokens(
                         col += 1;
                         state = .string;
                     } else {
-                        errors.addError(errs_.Error{ .invalid_digit = .{
+                        errors.add_error(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                             .base = "hexadecimal",
@@ -347,7 +347,7 @@ pub fn getTokens(
 
                 .char => {
                     if (ix == contents.len) {
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a `'`, got end-of-file",
                         } });
@@ -359,7 +359,7 @@ pub fn getTokens(
                             const num_codepoints = try std.unicode.utf8CountCodepoints(contents[slice_start + 1 .. ix - 1]);
                             const escaped = contents[slice_start + 1] == '\\';
                             if ((!escaped and num_codepoints > 1) or (escaped and num_codepoints > 2)) {
-                                errors.addError(errs_.Error{ .basic = .{
+                                errors.add_error(errs_.Error{ .basic = .{
                                     .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                                     .msg = "more than one codepoint specified in character literal",
                                 } });
@@ -385,7 +385,7 @@ pub fn getTokens(
 
                 .escapedChar => {
                     if (ix == contents.len) {
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a character, got end-of-file",
                         } });
@@ -401,7 +401,7 @@ pub fn getTokens(
                         col += 1;
                         state = .char;
                     } else {
-                        errors.addError(errs_.Error{ .invalid_escape = .{
+                        errors.add_error(errs_.Error{ .invalid_escape = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                         } });
@@ -446,7 +446,7 @@ pub fn getTokens(
 
                 .integer_digit => {
                     if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                        errors.addError(errs_.Error{ .invalid_digit = .{
+                        errors.add_error(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                             .base = "decimal",
@@ -477,7 +477,7 @@ pub fn getTokens(
                 },
 
                 .float_digit => if (ix == contents.len or !std.ascii.isDigit(next_char)) {
-                    errors.addError(errs_.Error{ .invalid_digit = .{
+                    errors.add_error(errs_.Error{ .invalid_digit = .{
                         .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                         .digit = next_char,
                         .base = "decimal",
@@ -515,7 +515,7 @@ pub fn getTokens(
                         state = .hex;
                     },
                     else => {
-                        errors.addError(errs_.Error{ .invalid_digit = .{
+                        errors.add_error(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                             .base = "hexadecimal",
@@ -550,7 +550,7 @@ pub fn getTokens(
                         state = .octal;
                     },
                     else => {
-                        errors.addError(errs_.Error{ .invalid_digit = .{
+                        errors.add_error(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                             .base = "octal",
@@ -585,7 +585,7 @@ pub fn getTokens(
                         state = .binary;
                     },
                     else => {
-                        errors.addError(errs_.Error{ .invalid_digit = .{
+                        errors.add_error(errs_.Error{ .invalid_digit = .{
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                             .base = "binary",

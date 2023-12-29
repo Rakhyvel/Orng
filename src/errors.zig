@@ -158,7 +158,7 @@ pub const Error = union(enum) {
         inactive: []const u8,
     },
 
-    pub fn getSpan(self: *const Error) ?span_.Span {
+    fn get_span(self: *const Error) ?span_.Span {
         switch (self.*) {
             .basic => return self.basic.span,
 
@@ -218,19 +218,19 @@ pub const Errors = struct {
     pub fn deinit(self: *Errors) void {
         self.errors_list.deinit();
     }
-    pub fn addError(self: *Errors, err: Error) void {
+    pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
         // unreachable; // uncomment if you want to see where errors come from
     }
 
-    pub fn printErrors(self: *Errors) !void { // TODO: Uninfer error
+    pub fn print_errors(self: *Errors) !void { // TODO: Uninfer error
         for (self.errors_list.items) |err| {
             try bold.dump(out);
-            try print_label(err.getSpan(), "error: ", .red);
+            try print_label(err.get_span(), "error: ", .red);
             try bold.dump(out);
             try print_main_error(err, self.allocator);
             try not_bold.dump(out);
-            try printEpilude(err.getSpan());
+            try print_epilude(err.get_span());
             try print_extra_info(err);
         }
     }
@@ -362,7 +362,7 @@ pub const Errors = struct {
                 try bold.dump(out);
                 try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
                 try not_bold.dump(out);
-                try printEpilude(err.missing_close.open.span);
+                try print_epilude(err.missing_close.open.span);
             },
             .comptime_known => {
                 try bold.dump(out);
@@ -378,7 +378,7 @@ pub const Errors = struct {
                     try bold.dump(out);
                     try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
                     try not_bold.dump(out);
-                    try printEpilude(err.redefinition.first_defined_span);
+                    try print_epilude(err.redefinition.first_defined_span);
                 }
             },
             .symbol_error => {
@@ -388,7 +388,7 @@ pub const Errors = struct {
                     try bold.dump(out);
                     try out.print("{s}\n", .{err.symbol_error.context_message});
                     try not_bold.dump(out);
-                    try printEpilude(err.symbol_error.context_span.?);
+                    try print_epilude(err.symbol_error.context_span.?);
                 }
             },
             .sum_duplicate => {
@@ -397,7 +397,7 @@ pub const Errors = struct {
                 try bold.dump(out);
                 try out.print("other definition of sum member `{s}` here\n", .{err.sum_duplicate.identifier});
                 try not_bold.dump(out);
-                try printEpilude(err.sum_duplicate.first);
+                try print_epilude(err.sum_duplicate.first);
             },
             .non_exhaustive_sum => {
                 for (err.non_exhaustive_sum.forgotten.items) |_type| {
@@ -406,7 +406,7 @@ pub const Errors = struct {
                     try bold.dump(out);
                     try out.print("term not handled: `{s}`\n", .{_type.annotation.pattern.token().data});
                     try not_bold.dump(out);
-                    try printEpilude(_type.token().span);
+                    try print_epilude(_type.token().span);
                 }
             },
             else => {},
@@ -428,7 +428,7 @@ pub const Errors = struct {
         try print_label(maybe_span, "note: ", .cyan);
     }
 
-    fn printEpilude(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
+    fn print_epilude(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
         if (maybe_span) |old_span| {
             const span = old_span;
             if (span.line == 0) {

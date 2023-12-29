@@ -121,7 +121,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bo
     defer errors.deinit();
     const module = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
-            try errors.printErrors();
+            try errors.print_errors();
             try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
             switch (err) {
                 error.LexerError,
@@ -242,7 +242,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: boo
                 error.TypeError,
                 error.InterpreterPanic,
                 => {
-                    try errors.printErrors();
+                    try errors.print_errors();
                     try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                     return true;
                 },
@@ -253,7 +253,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: boo
                         std.debug.print("{}\n", .{err});
                         try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Regression tests should parse!\n", .{});
-                        try errors.printErrors();
+                        try errors.print_errors();
                         return false;
                     } else {
                         try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
@@ -323,7 +323,7 @@ fn fuzzTests() !void { // TODO: Uninfer error
             defer lines.deinit();
             i += 1;
             const module = module_.Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
-                try errors.printErrors();
+                try errors.print_errors();
                 switch (err) {
                     error.LexerError,
                     error.SymbolError,

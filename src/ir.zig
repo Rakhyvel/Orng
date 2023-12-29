@@ -693,7 +693,7 @@ pub const Data = union(enum) {
         return Data{
             .int = if (std.math.add(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
-                errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
                 return error.TypeError; // TODO: Shouldn't be `TypeError`...
             },
         };
@@ -703,7 +703,7 @@ pub const Data = union(enum) {
         return Data{
             .int = if (std.math.sub(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
-                errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
                 return error.TypeError; // TODO: Shouldn't be `TypeError`...
             },
         };
@@ -713,7 +713,7 @@ pub const Data = union(enum) {
         return Data{
             .int = if (std.math.mul(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
-                errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
                 return error.TypeError; // TODO: Shouldn't be `TypeError`...
             },
         };

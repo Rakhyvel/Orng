@@ -692,13 +692,13 @@ fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
 fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (ir != null) {
         if (ir.?.kind == .load_int and ir.?.data.int == 0) {
-            errors.addError(errs_.Error{ .basic = .{
+            errors.add_error(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0",
             } });
             return error.TypeError; // TODO: Type Error???
         } else if (ir.?.kind == .load_float and ir.?.data.float == 0.0) {
-            errors.addError(errs_.Error{ .basic = .{
+            errors.add_error(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0.0",
             } });
@@ -732,7 +732,7 @@ fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer er
 
 fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (symbol.discards > 1) {
-        errors.addError(errs_.Error{ .symbol_error = .{
+        errors.add_error(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
             .context_span = symbol.span,
             .name = symbol.name,
@@ -741,7 +741,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
         } });
         return error.TypeError;
     } else if (symbol.discards == 1 and symbol.uses > 1) {
-        errors.addError(errs_.Error{ .symbol_error = .{
+        errors.add_error(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
             .context_span = symbol.span,
             .name = symbol.name,
@@ -751,7 +751,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
         return error.TypeError;
     } else if (symbol.kind != .@"const" and symbol.discards == 0 and symbol.uses == 0) {
         // TODO: Shouldn't do this if the type is unit!
-        errors.addError(errs_.Error{ .symbol_error = .{
+        errors.add_error(errs_.Error{ .symbol_error = .{
             .span = symbol.span,
             .context_span = null,
             .name = symbol.name,
@@ -789,7 +789,7 @@ fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Unin
                     if (ir.src1.?.extract_symbver().symbol.expanded_type.?.rhs().* != .unit_type) {
                         // It is an error for the return val of a non-unit-returning function to not be used
                         // DO NOT remove an unused call for a unit function
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = ir.span,
                             .msg = "value of call is never used",
                         } });

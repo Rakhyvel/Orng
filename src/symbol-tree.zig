@@ -180,7 +180,7 @@ fn symbolTableFromAST(
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
                     if (symbol.kind != .@"const") {
-                        errors.addError(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .basic = .{
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",
                         } });
@@ -211,7 +211,7 @@ fn symbolTableFromAST(
 
 fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!scope.in_loop) {
-        errors.addError(errs_.Error{ .not_inside_loop = .{
+        errors.add_error(errs_.Error{ .not_inside_loop = .{
             .span = ast.token().span,
             .name = @tagName(ast.*),
         } });
@@ -222,7 +222,7 @@ fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) !
 /// Returns the inner symbol of a scope, or an error if one doesnt exist
 fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) !*symbol_.Symbol { // TODO: Uninfer error
     if (scope.inner_function == null) {
-        errors.addError(errs_.Error{ .not_inside_function = .{
+        errors.add_error(errs_.Error{ .not_inside_function = .{
             .span = ast.token().span,
             .name = @tagName(ast.*),
         } });
@@ -237,7 +237,7 @@ fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Err
     switch (res) {
         .found => {
             const first = res.found;
-            errors.addError(errs_.Error{ .redefinition = .{
+            errors.add_error(errs_.Error{ .redefinition = .{
                 .first_defined_span = first.span,
                 .redefined_span = symbol.span,
                 .name = symbol.name,
@@ -268,7 +268,7 @@ fn create_symbol(
             if (std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
                 if (pattern.pattern_symbol.kind != .let) {
                     // It is an error for `_` to be marked as `const` or `mut`
-                    errors.addError(errs_.Error{ .discard_marked = .{
+                    errors.add_error(errs_.Error{ .discard_marked = .{
                         .span = pattern.token().span,
                         .kind = pattern.pattern_symbol.kind,
                     } });
