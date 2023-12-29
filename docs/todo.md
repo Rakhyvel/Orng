@@ -5,7 +5,7 @@
 - [x] Standardize token, ast, ir *kind* naming convention
 - [x] Alphabetize type imports by the module, then by the type.
 - [x] Errors should be capitalized
-- [ ] Everything should be snake_case
+- [x] Everything should be snake_case
     - [x] Token Kinds should be snake_case, prefer not to use abbreviations
 - [x] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
 - [x] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig

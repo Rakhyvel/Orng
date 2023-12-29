@@ -337,92 +337,6 @@ pub const AST = union(enum) {
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
 
-    /// Boxes an AST value into an allocator.
-    fn box(ast: AST, alloc: std.mem.Allocator) *AST {
-        const retval = alloc.create(AST) catch unreachable;
-        retval.* = ast;
-        return retval;
-    }
-
-    /// Retrieves the size in bytes of an AST node.
-    pub fn sizeof(self: *AST) i64 {
-        if (self.common().size == null) {
-            self.common().size = self.sizeof_internal(); // memoize call
-        }
-
-        return self.common().size.?;
-    }
-
-    fn sizeof_internal(self: *AST) i64 {
-        switch (self.*) {
-            .identifier => return primitives_.get(self.token().data).size,
-
-            .product => {
-                var total_size: i64 = 0;
-                for (self.children().items) |child| {
-                    total_size = offsets_.next_alignment(total_size, child.alignof());
-                    total_size += child.sizeof();
-                }
-                return total_size;
-            },
-
-            .sum => {
-                var max_size: i64 = 0;
-                for (self.children().items) |child| {
-                    max_size = @max(max_size, child.sizeof());
-                }
-                return offsets_.next_alignment(max_size, 8) + 8;
-            },
-
-            .function, .addr_of => return 8,
-
-            .unit_type => return 0,
-
-            .annotation => return self.annotation.type.sizeof(),
-
-            else => {
-                std.debug.print("Unimplemented sizeof for {}\n", .{self});
-                unreachable;
-            },
-        }
-    }
-
-    pub fn alignof(self: *AST) i64 {
-        if (self.common().alignof == null) {
-            self.common().alignof = self.alignof_internal(); // memoize call
-        }
-
-        return self.common().alignof.?;
-    }
-
-    fn alignof_internal(self: *AST) i64 {
-        switch (self.*) {
-            .identifier => return primitives_.get(self.token().data).size,
-
-            .product => {
-                var max_align: i64 = 0;
-                for (self.children().items) |child| {
-                    max_align = @max(max_align, child.alignof());
-                }
-                return max_align;
-            },
-
-            .sum, // this pains me :-( but has to be this way for the tag
-            .function,
-            .addr_of,
-            => return 8,
-
-            .unit_type => return 1, // fogedda bout it
-
-            .annotation => return self.annotation.type.alignof(),
-
-            else => {
-                std.debug.print("Unimplemented alignof for {}\n", .{self});
-                unreachable;
-            },
-        }
-    }
-
     pub fn create_poison(_token: token_.Token, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .poison = .{ .common = AST_Common{ ._token = _token, ._type = null } } }, allocator);
     }
@@ -869,38 +783,11 @@ pub const AST = union(enum) {
         );
     }
 
-    fn Unwrapped(comptime Union: type, comptime field: []const u8) type {
-        return inline for (std.meta.fields(Union)) |variant| {
-            const Struct = variant.type;
-            const s: Struct = undefined;
-            if (@hasField(Struct, field)) break @TypeOf(@field(s, field));
-        } else @compileError("No such field in any of the variants!");
-    }
-
-    fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
-        return switch (u) {
-            inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
-        } catch {
-            std.debug.print("`{s}` does not have field `{s}` {}\n", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
-            unreachable;
-        };
-    }
-
-    fn get_field_ref(u: anytype, comptime field: []const u8) *Unwrapped(@TypeOf(u.*), field) {
-        return switch (u.*) {
-            inline else => |*v| &@field(v, field),
-        };
-    }
-
-    fn set_field(u: anytype, comptime field: []const u8, val: Unwrapped(@TypeOf(u.*), field)) void {
-        switch (u.*) {
-            inline else => |*v| if (@hasField(@TypeOf(v.*), field)) {
-                @field(v, field) = val;
-            } else {
-                std.debug.print("`{s}` does not have field `{s}`\n", .{ @tagName(u.*), field });
-                unreachable;
-            },
-        }
+    /// Boxes an AST value into an allocator.
+    fn box(ast: AST, alloc: std.mem.Allocator) *AST {
+        const retval = alloc.create(AST) catch unreachable;
+        retval.* = ast;
+        return retval;
     }
 
     pub fn common(self: *AST) *AST_Common {
@@ -1008,6 +895,40 @@ pub const AST = union(enum) {
 
     pub fn set_statement(self: *AST, val: *AST) void {
         set_field(self, "_statement", val);
+    }
+
+    fn Unwrapped(comptime Union: type, comptime field: []const u8) type {
+        return inline for (std.meta.fields(Union)) |variant| {
+            const Struct = variant.type;
+            const s: Struct = undefined;
+            if (@hasField(Struct, field)) break @TypeOf(@field(s, field));
+        } else @compileError("No such field in any of the variants!");
+    }
+
+    fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
+        return switch (u) {
+            inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
+        } catch {
+            std.debug.print("`{s}` does not have field `{s}` {}\n", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
+            unreachable;
+        };
+    }
+
+    fn get_field_ref(u: anytype, comptime field: []const u8) *Unwrapped(@TypeOf(u.*), field) {
+        return switch (u.*) {
+            inline else => |*v| &@field(v, field),
+        };
+    }
+
+    fn set_field(u: anytype, comptime field: []const u8, val: Unwrapped(@TypeOf(u.*), field)) void {
+        switch (u.*) {
+            inline else => |*v| if (@hasField(@TypeOf(v.*), field)) {
+                @field(v, field) = val;
+            } else {
+                std.debug.print("`{s}` does not have field `{s}`\n", .{ @tagName(u.*), field });
+                unreachable;
+            },
+        }
     }
 
     pub fn create_array_type(len: *AST, of: *AST, allocator: std.mem.Allocator) *AST {
@@ -1244,6 +1165,15 @@ pub const AST = union(enum) {
         } else {
             terms.deinit();
             return null;
+        }
+    }
+
+    // Expands an ast one level if it is an identifier
+    pub fn expand_identifier(self: *AST) *AST {
+        if (self.* == .identifier) {
+            return self.symbol().?.init;
+        } else {
+            return self;
         }
     }
 
@@ -1576,12 +1506,82 @@ pub const AST = union(enum) {
         }
     }
 
-    // Expands an ast one level if it is an identifier
-    pub fn expand_identifier(self: *AST) *AST {
-        if (self.* == .identifier) {
-            return self.symbol().?.init;
-        } else {
-            return self;
+    /// Retrieves the size in bytes of an AST node.
+    pub fn sizeof(self: *AST) i64 {
+        if (self.common().size == null) {
+            self.common().size = self.sizeof_internal(); // memoize call
+        }
+
+        return self.common().size.?;
+    }
+
+    fn sizeof_internal(self: *AST) i64 {
+        switch (self.*) {
+            .identifier => return primitives_.get(self.token().data).size,
+
+            .product => {
+                var total_size: i64 = 0;
+                for (self.children().items) |child| {
+                    total_size = offsets_.next_alignment(total_size, child.alignof());
+                    total_size += child.sizeof();
+                }
+                return total_size;
+            },
+
+            .sum => {
+                var max_size: i64 = 0;
+                for (self.children().items) |child| {
+                    max_size = @max(max_size, child.sizeof());
+                }
+                return offsets_.next_alignment(max_size, 8) + 8;
+            },
+
+            .function, .addr_of => return 8,
+
+            .unit_type => return 0,
+
+            .annotation => return self.annotation.type.sizeof(),
+
+            else => {
+                std.debug.print("Unimplemented sizeof for {}\n", .{self});
+                unreachable;
+            },
+        }
+    }
+
+    pub fn alignof(self: *AST) i64 {
+        if (self.common().alignof == null) {
+            self.common().alignof = self.alignof_internal(); // memoize call
+        }
+
+        return self.common().alignof.?;
+    }
+
+    fn alignof_internal(self: *AST) i64 {
+        switch (self.*) {
+            .identifier => return primitives_.get(self.token().data).size,
+
+            .product => {
+                var max_align: i64 = 0;
+                for (self.children().items) |child| {
+                    max_align = @max(max_align, child.alignof());
+                }
+                return max_align;
+            },
+
+            .sum, // this pains me :-( but has to be this way for the tag
+            .function,
+            .addr_of,
+            => return 8,
+
+            .unit_type => return 1, // fogedda bout it
+
+            .annotation => return self.annotation.type.alignof(),
+
+            else => {
+                std.debug.print("Unimplemented alignof for {}\n", .{self});
+                unreachable;
+            },
         }
     }
 

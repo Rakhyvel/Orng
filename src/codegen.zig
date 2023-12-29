@@ -39,39 +39,6 @@ pub fn generate(module: *module_.Module, writer: Writer) !void { // TODO: Uninfe
     try output_main_function(module.entry, writer);
 }
 
-fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
-    const codomain = cfg.symbol.expanded_type.?.rhs();
-    var string_access: []const u8 = "";
-    var specifier: []const u8 = undefined;
-    switch (codomain.*) {
-        .identifier => {
-            const info = primitives_.get(codomain.token().data);
-            specifier = switch (info.type_kind) {
-                .boolean, .signed_integer => "d",
-                .unsigned_integer => "u",
-                .floating_point => "f",
-                else => unreachable,
-            };
-        },
-        .product => {
-            string_access = "._0";
-            specifier = "s";
-        },
-        else => unreachable,
-    }
-    try writer.print(
-        \\int main(void) {{
-        \\  printf("%{s}{s}",
-    , .{ if (codomain.sizeof() == 8) "l" else "", specifier });
-    try output_symbol(cfg.symbol, writer);
-    try writer.print(
-        \\(){s});
-        \\  return 0;
-        \\}}
-        \\
-    , .{string_access});
-}
-
 fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) !void { // TODO: Uninfer error
     if (type_set.types.items.len > 0) {
         try writer.print("/* Typedefs */\n", .{});
@@ -171,30 +138,6 @@ fn forall_functions(
     }
 }
 
-fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
-    // Print function return type, name, parameter list
-    try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
-    try writer.print(" ", .{});
-    try output_symbol(cfg.symbol, writer);
-    try writer.print("(", .{});
-    var num_non_unit_params: i64 = 0;
-    for (cfg.symbol.decl.?.fn_decl.param_symbols.items, 0..) |term, i| {
-        if (!term.expanded_type.?.c_types_match(primitives_.unit_type)) {
-            // Print out parameter declarations
-            try output_var_decl(term, writer, true);
-            if (i + 1 < cfg.symbol.decl.?.fn_decl.param_symbols.items.len) {
-                try writer.print(", ", .{});
-            }
-            num_non_unit_params += 1;
-        }
-    }
-    if (num_non_unit_params == 0) {
-        // If there are no parameters, mark as void
-        try writer.print("void", .{});
-    }
-    try writer.print(")", .{});
-}
-
 fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     try output_function_prototype(cfg, writer);
     try writer.print(";\n", .{});
@@ -231,6 +174,113 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
     }
 
     try writer.print("}}\n\n", .{});
+}
+
+fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
+    // Print function return type, name, parameter list
+    try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
+    try writer.print(" ", .{});
+    try output_symbol(cfg.symbol, writer);
+    try writer.print("(", .{});
+    var num_non_unit_params: i64 = 0;
+    for (cfg.symbol.decl.?.fn_decl.param_symbols.items, 0..) |term, i| {
+        if (!term.expanded_type.?.c_types_match(primitives_.unit_type)) {
+            // Print out parameter declarations
+            try output_var_decl(term, writer, true);
+            if (i + 1 < cfg.symbol.decl.?.fn_decl.param_symbols.items.len) {
+                try writer.print(", ", .{});
+            }
+            num_non_unit_params += 1;
+        }
+    }
+    if (num_non_unit_params == 0) {
+        // If there are no parameters, mark as void
+        try writer.print("void", .{});
+    }
+    try writer.print(")", .{});
+}
+
+fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
+    const codomain = cfg.symbol.expanded_type.?.rhs();
+    var string_access: []const u8 = "";
+    var specifier: []const u8 = undefined;
+    switch (codomain.*) {
+        .identifier => {
+            const info = primitives_.get(codomain.token().data);
+            specifier = switch (info.type_kind) {
+                .boolean, .signed_integer => "d",
+                .unsigned_integer => "u",
+                .floating_point => "f",
+                else => unreachable,
+            };
+        },
+        .product => {
+            string_access = "._0";
+            specifier = "s";
+        },
+        else => unreachable,
+    }
+    try writer.print(
+        \\int main(void) {{
+        \\  printf("%{s}{s}",
+    , .{ if (codomain.sizeof() == 8) "l" else "", specifier });
+    try output_symbol(cfg.symbol, writer);
+    try writer.print(
+        \\(){s});
+        \\  return 0;
+        \\}}
+        \\
+    , .{string_access});
+}
+
+/// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
+/// semicolon nor newline.
+/// TODO: No bool parameters!
+fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) !void { // TODO: Uninfer error
+    if (!is_parameter) {
+        try writer.print("    ", .{});
+    }
+    try output_type(symbol.expanded_type.?, writer);
+    try writer.print(" ", .{});
+    try output_symbol(symbol, writer);
+    if (!is_parameter) {
+        try writer.print(";\n", .{});
+    }
+}
+
+/// Outputs a symbol with it's unique identifier to a file
+fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
+    try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
+}
+
+fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
+    switch (_type.*) {
+        .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
+            if (_type.common().expanded_type.? != _type) {
+                try output_type(_type.common().expanded_type.?, writer);
+            } else {
+                try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
+            }
+        },
+        .addr_of => {
+            try output_type(_type.expr(), writer);
+            try writer.print("*", .{});
+        },
+        .function => {
+            const i = (cheat_module.type_set.get(_type)).?.uid;
+            try writer.print("function{}", .{i});
+        },
+        .sum, .product => {
+            const i = (cheat_module.type_set.get(_type)).?.uid;
+            try writer.print("struct{}", .{i});
+        },
+        .unit_type => try writer.print("void", .{}),
+        .annotation => try output_type(_type.annotation.type, writer),
+        else => {
+            std.debug.print("Unimplemented output_type() for {?}", .{_type.*});
+            unreachable;
+        },
+    }
 }
 
 fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
@@ -469,31 +519,6 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     }
 }
 
-fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
-    try output_var_assign(ir.dest.?, writer);
-    if (ir.kind.is_checked() and primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) { // TODO: Check if checked operations are enabled, too
-        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name });
-        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
-        try writer.print(", ", .{});
-        if (ir.kind.arity() == .binop) {
-            try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
-            try writer.print(", ", .{});
-        }
-        try ir.span.print_debug_line(writer, span_.c_format);
-        try writer.print(")", .{});
-    } else if (ir.kind.arity() == .unop) {
-        // Unop, no-check
-        try writer.print("{s}", .{ir.kind.symbol()});
-        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
-    } else {
-        // Binop, no-check
-        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
-        try writer.print("{s}", .{ir.kind.symbol()});
-        try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
-    }
-    try writer.print(";\n", .{});
-}
-
 fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer) CodeGen_Error!void {
     switch (lvalue.*) {
         .symbver => {},
@@ -523,6 +548,32 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
                 try writer.print(");\n", .{});
             }
         },
+    }
+}
+
+fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
+    if (outer_precedence < lvalue.precedence()) {
+        // Opening paren, if needed by precedence
+        try writer.print("(", .{});
+    }
+    switch (lvalue.*) {
+        .dereference => {
+            try writer.print("*", .{});
+            try output_rvalue(lvalue.dereference.expr, lvalue.precedence(), writer);
+        },
+        .index => {
+            try writer.print("*", .{});
+            try output_lvalue(lvalue, lvalue.precedence(), writer);
+        },
+        .select => {
+            try output_rvalue(lvalue.select.lhs, lvalue.precedence(), writer); // This will dereference, no need for `->`
+            try writer.print("._{}", .{lvalue.select.field});
+        },
+        .symbver => try output_symbol(lvalue.symbver.symbol, writer),
+    }
+    if (outer_precedence < lvalue.precedence()) {
+        // Closing paren, if needed by precedence
+        try writer.print(")", .{});
     }
 }
 
@@ -562,60 +613,14 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
     }
 }
 
-fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
-    if (outer_precedence < lvalue.precedence()) {
-        // Opening paren, if needed by precedence
-        try writer.print("(", .{});
+/// Emits the return statement from a function
+fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
+    try writer.print("    return", .{});
+    if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
+        try writer.print(" ", .{});
+        try output_symbol(return_symbol, writer);
     }
-    switch (lvalue.*) {
-        .dereference => {
-            try writer.print("*", .{});
-            try output_rvalue(lvalue.dereference.expr, lvalue.precedence(), writer);
-        },
-        .index => {
-            try writer.print("*", .{});
-            try output_lvalue(lvalue, lvalue.precedence(), writer);
-        },
-        .select => {
-            try output_rvalue(lvalue.select.lhs, lvalue.precedence(), writer); // This will dereference, no need for `->`
-            try writer.print("._{}", .{lvalue.select.field});
-        },
-        .symbver => try output_symbol(lvalue.symbver.symbol, writer),
-    }
-    if (outer_precedence < lvalue.precedence()) {
-        // Closing paren, if needed by precedence
-        try writer.print(")", .{});
-    }
-}
-
-fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
-    switch (_type.*) {
-        .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
-            if (_type.common().expanded_type.? != _type) {
-                try output_type(_type.common().expanded_type.?, writer);
-            } else {
-                try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
-            }
-        },
-        .addr_of => {
-            try output_type(_type.expr(), writer);
-            try writer.print("*", .{});
-        },
-        .function => {
-            const i = (cheat_module.type_set.get(_type)).?.uid;
-            try writer.print("function{}", .{i});
-        },
-        .sum, .product => {
-            const i = (cheat_module.type_set.get(_type)).?.uid;
-            try writer.print("struct{}", .{i});
-        },
-        .unit_type => try writer.print("void", .{}),
-        .annotation => try output_type(_type.annotation.type, writer),
-        else => {
-            std.debug.print("Unimplemented output_type() for {?}", .{_type.*});
-            unreachable;
-        },
-    }
+    try writer.print(";\n", .{});
 }
 
 /// Outputs an assignment to a symbol template. It is expected that a value is output immediately
@@ -633,32 +638,27 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
     try writer.print(") ", .{});
 }
 
-/// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
-/// semicolon nor newline.
-/// TODO: No bool parameters!
-fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) !void { // TODO: Uninfer error
-    if (!is_parameter) {
-        try writer.print("    ", .{});
-    }
-    try output_type(symbol.expanded_type.?, writer);
-    try writer.print(" ", .{});
-    try output_symbol(symbol, writer);
-    if (!is_parameter) {
-        try writer.print(";\n", .{});
-    }
-}
-
-/// Outputs a symbol with it's unique identifier to a file
-fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
-    try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
-}
-
-/// Emits the return statement from a function
-fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
-    try writer.print("    return", .{});
-    if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
-        try writer.print(" ", .{});
-        try output_symbol(return_symbol, writer);
+fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
+    try output_var_assign(ir.dest.?, writer);
+    if (ir.kind.is_checked() and primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) { // TODO: Check if checked operations are enabled, too
+        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name });
+        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+        try writer.print(", ", .{});
+        if (ir.kind.arity() == .binop) {
+            try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
+            try writer.print(", ", .{});
+        }
+        try ir.span.print_debug_line(writer, span_.c_format);
+        try writer.print(")", .{});
+    } else if (ir.kind.arity() == .unop) {
+        // Unop, no-check
+        try writer.print("{s}", .{ir.kind.symbol()});
+        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+    } else {
+        // Binop, no-check
+        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+        try writer.print("{s}", .{ir.kind.symbol()});
+        try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
     }
     try writer.print(";\n", .{});
 }
