@@ -603,7 +603,7 @@ pub fn get_tokens(
                         state = .comment;
                         ix += 1;
                         col += 1;
-                    } else if (ix == contents.len or token_.kind_from_string(contents[slice_start .. ix + 1]) == .identifier) {
+                    } else if (ix == contents.len or token_.Token_Kind.from_string(contents[slice_start .. ix + 1]) == .identifier) {
                         // Couldn't maximally munch, this must be the end of the token
                         const token = token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col);
                         tokens.append(token) catch unreachable;

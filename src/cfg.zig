@@ -117,15 +117,6 @@ pub const CFG = struct {
         }
     }
 
-    pub fn clear_visited(self: *CFG) void {
-        self.visited = false;
-        for (self.children.items) |child| {
-            if (child.visited) {
-                child.clearVisited();
-            }
-        }
-    }
-
     // Fills in a passed in list with symbol versions which are used in the CFG
     pub fn collect_generated_symbvers(self: *CFG) void {
         for (self.basic_blocks.items) |bb| {

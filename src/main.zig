@@ -49,7 +49,7 @@ pub fn main() !void {
 }
 
 /// Compiles and outputs a file
-pub fn compile(
+fn compile(
     errors: *errs_.Errors,
     in_name: []const u8,
     out_name: []const u8,

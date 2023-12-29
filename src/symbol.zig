@@ -78,14 +78,6 @@ pub const Scope = struct {
         try self.serialize(&out, 0);
         std.debug.print("{s}\n", .{out.str()});
     }
-
-    pub fn root(self: *Scope) ?*Scope {
-        if (self.parent) |_parent| {
-            return root(_parent);
-        } else {
-            return self;
-        }
-    }
 };
 
 pub const Symbol_Kind = enum {

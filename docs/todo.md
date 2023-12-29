@@ -14,7 +14,7 @@
     - [ ] Order enums better too
 - [ ] Comments on each function and struct field
 - [x] Make sure nothing is more than 140 columns
-- [ ] Change some while loops with counter to enhanced for loops
+- [x] Change some while loops with counter to enhanced for loops
 - [ ] See if things *really* need to be marked `pub`
 - [x] All inits have a corresponding deinit
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...

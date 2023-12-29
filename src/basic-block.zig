@@ -119,30 +119,6 @@ pub const Basic_Block = struct {
         }
     }
 
-    pub fn print_symbver_list(list: *std.ArrayList(*lval_.Symbol_Version)) void {
-        std.debug.print("(", .{});
-        for (0..list.items.len) |i| {
-            const symbver = list.items[i];
-            std.debug.print("{s}_{?}", .{ symbver.symbol.name, symbver.version });
-            if (i < list.items.len - 1) {
-                std.debug.print(", ", .{});
-            }
-        }
-        std.debug.print(")", .{});
-    }
-
-    pub fn append_instruction(self: *Basic_Block, ir: *ir_.IR) *ir_.IR {
-        if (self.ir_head == null) {
-            self.ir_head = ir;
-        } else {
-            ir.in_block = self;
-            var elem = self.ir_head.?.getTail();
-            elem.next = ir;
-            ir.prev = elem;
-        }
-        return ir;
-    }
-
     pub fn remove_instruction(bb: *Basic_Block, ir: *ir_.IR) void {
         ir.removed = true;
         if (bb.ir_head != null and bb.ir_head == ir) {

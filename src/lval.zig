@@ -280,18 +280,4 @@ pub const Symbol_Version = struct {
         set.append(self) catch unreachable;
         return true;
     }
-
-    pub fn hide_temporary(symbver: *Symbol_Version) bool {
-        if (symbver.def == null) {
-            // parameters do not have defs; they should never be hidden
-            return false;
-        } else if (symbver.symbol.discards > 0) {
-            return true;
-        }
-        return symbver.symbol.is_temp and
-            symbver.uses == 1 and
-            symbver.symbol.versions == 1 and
-            symbver.def.?.kind != .call and
-            symbver.type.* == .identifier;
-    }
 };

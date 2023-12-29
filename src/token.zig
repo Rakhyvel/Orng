@@ -221,71 +221,88 @@ pub const Token_Kind = enum(u32) {
             .EOF => "(EOF)",
         };
     }
-};
 
-pub const unary_operators = [_]Token_Kind{
-    .not,
-    .exclamation_mark,
-    .minus,
-    .ampersand,
-    .left_square,
-    .question_mark,
-    .@"try",
-    .caret,
-};
+    pub fn from_string(data: []const u8) Token_Kind {
+        var ix: usize = 0;
+        const num_ctors = @intFromEnum(Token_Kind.len);
 
-pub const binary_operators = [_]Token_Kind{
-    .single_equals,
-    .plus_equals,
-    .minus_equals,
-    .star_equals,
-    .slash_equals,
-    .percent_equals,
-    .bar,
-    .comma,
-    .colon,
-    .right_skinny_arrow,
-    .@"and",
-    .@"or",
-    .e_mark_equals,
-    .double_equals,
-    .greater,
-    .greater_equal,
-    .lesser,
-    .lesser_equal,
-    .@"orelse",
-    .@"catch",
-    .plus,
-    .minus,
-    .exclamation_mark,
-    .star,
-    .slash,
-    .percent,
-    .double_bar,
-    .invoke,
-    .left_skinny_arrow,
-    .where,
-};
+        while (ix < num_ctors) : (ix += 1) {
+            const kind: Token_Kind = @enumFromInt(ix);
+            const repr_kind: ?[]const u8 = kind.repr();
+            if (repr_kind) |_repr| {
+                if (std.mem.eql(u8, data, _repr)) {
+                    // Found the kind!
+                    return kind;
+                }
+            }
+        }
+        return Token_Kind.identifier;
+    }
 
-pub const end_tokens = [_]Token_Kind{
-    .identifier,
-    .dec_int,
-    .hex_int,
-    .oct_int,
-    .bin_int,
-    .float,
-    .char,
-    .string,
-    .@"unreachable",
-    .@"break",
-    .@"continue",
-    .@"return",
-    .right_parenthesis,
-    .right_square,
-    .right_brace,
-    .true,
-    .false,
-    .caret,
+    const unary_operators = [_]Token_Kind{
+        .not,
+        .exclamation_mark,
+        .minus,
+        .ampersand,
+        .left_square,
+        .question_mark,
+        .@"try",
+        .caret,
+    };
+
+    const binary_operators = [_]Token_Kind{
+        .single_equals,
+        .plus_equals,
+        .minus_equals,
+        .star_equals,
+        .slash_equals,
+        .percent_equals,
+        .bar,
+        .comma,
+        .colon,
+        .right_skinny_arrow,
+        .@"and",
+        .@"or",
+        .e_mark_equals,
+        .double_equals,
+        .greater,
+        .greater_equal,
+        .lesser,
+        .lesser_equal,
+        .@"orelse",
+        .@"catch",
+        .plus,
+        .minus,
+        .exclamation_mark,
+        .star,
+        .slash,
+        .percent,
+        .double_bar,
+        .invoke,
+        .left_skinny_arrow,
+        .where,
+    };
+
+    const end_tokens = [_]Token_Kind{
+        .identifier,
+        .dec_int,
+        .hex_int,
+        .oct_int,
+        .bin_int,
+        .float,
+        .char,
+        .string,
+        .@"unreachable",
+        .@"break",
+        .@"continue",
+        .@"return",
+        .right_parenthesis,
+        .right_square,
+        .right_brace,
+        .true,
+        .false,
+        .caret,
+    };
 };
 
 pub const Token = struct {
@@ -296,7 +313,7 @@ pub const Token = struct {
     span: span_.Span,
 
     pub fn init(data: []const u8, kind: ?Token_Kind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
-        return .{ .data = data, .kind = kind orelse kind_from_string(data), .span = span_.Span{
+        return .{ .data = data, .kind = kind orelse Token_Kind.from_string(data), .span = span_.Span{
             .filename = filename,
             .line_text = line_text,
             .line = line,
@@ -309,28 +326,7 @@ pub const Token = struct {
         return Token.init(data, .identifier, "", "", 0, 0);
     }
 
-    pub fn repr(self: *Token) []const u8 {
-        return self.kind.repr() orelse self.data;
-    }
-
     pub fn pprint(self: *Token) void {
         std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line, self.repr(), self.data });
     }
 };
-
-pub fn kind_from_string(data: []const u8) Token_Kind {
-    var ix: usize = 0;
-    const num_ctors = @intFromEnum(Token_Kind.len);
-
-    while (ix < num_ctors) : (ix += 1) {
-        const kind: Token_Kind = @enumFromInt(ix);
-        const repr_kind: ?[]const u8 = kind.repr();
-        if (repr_kind) |repr| {
-            if (std.mem.eql(u8, data, repr)) {
-                // Found the kind!
-                return kind;
-            }
-        }
-    }
-    return Token_Kind.identifier;
-}

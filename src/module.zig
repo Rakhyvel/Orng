@@ -213,6 +213,7 @@ pub const Module = struct {
     /// instructions for the CFG start.
     ///
     /// Returns the index in the cfg in the cfgs list.
+    /// TODO: Rename to something like `register_cfg`?
     pub fn append_instructions(self: *Module, cfg: *cfg_.CFG) i64 {
         const len = @as(i64, @intCast(self.cfgs.items.len));
         if (cfg.offset != null) {
