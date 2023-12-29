@@ -54,7 +54,7 @@ pub const CFG = struct {
         caller: ?*CFG,
         interned_strings: *std.StringArrayHashMap(usize),
         allocator: std.mem.Allocator,
-    ) !*CFG {
+    ) !*CFG { // TODO: Uninfer error
         if (symbol.cfg) |cfg| {
             return cfg;
         }

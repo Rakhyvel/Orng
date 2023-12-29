@@ -66,7 +66,7 @@ pub const Module = struct {
         fuzz_tokens: bool,
         errors: *errs_.Errors,
         allocator: std.mem.Allocator,
-    ) !*Module {
+    ) !*Module { // TODO: Uninfer error
         // Construct the name
         var i: usize = 0;
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
@@ -129,7 +129,7 @@ pub const Module = struct {
         // Validate the module
         try validate_.validate_module(module, errors, allocator);
         if (errors.errors_list.items.len > 0) {
-            return error.typeError;
+            return error.TypeError;
         }
 
         // Add each CFG's instructions to the module's instruction's list
@@ -188,7 +188,7 @@ pub const Module = struct {
     pub fn output(
         self: *Module,
         out_name: []const u8, // TODO: Replace with writer, shouldn't be responsible for handling files
-    ) !void {
+    ) !void { // TODO: Uninfer error
         // Open the output file
         var output_file = std.fs.cwd().createFile(
             out_name,
@@ -323,7 +323,7 @@ pub fn get_cfg(
     interned_strings: *std.StringArrayHashMap(usize),
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*cfg_.CFG {
+) !*cfg_.CFG { // TODO: Uninfer error
     std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.cfg == null) {

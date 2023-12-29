@@ -227,7 +227,7 @@ pub const Context = struct {
         return .{ .src1 = self.load_float(self.get_lval(src1), src1.sizeof()), .src2 = self.load_float(self.get_lval(src2), src2.sizeof()) };
     }
 
-    pub fn interpret(self: *Context) error{interpreter_panic}!void {
+    pub fn interpret(self: *Context) error{InterpreterPanic}!void {
         // Halt whenever instruction pointer is negative
         while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
             const ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
@@ -238,7 +238,7 @@ pub const Context = struct {
         }
     }
 
-    inline fn execute(self: *Context, ir: *ir_.IR) error{interpreter_panic}!void { // This doesn't work if it's not inlined, lol!
+    inline fn execute(self: *Context, ir: *ir_.IR) error{InterpreterPanic}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
             // Invalid instructions
             .load_extern,
@@ -447,14 +447,14 @@ pub const Context = struct {
         }
     }
 
-    fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) error{interpreter_panic}!void {
-        std.io.getStdErr().writer().print(msg, args) catch return error.interpreter_panic;
+    fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) error{InterpreterPanic}!void {
+        std.io.getStdErr().writer().print(msg, args) catch return error.InterpreterPanic;
         self.debug_call_stack.append(span) catch unreachable;
 
         var i = self.debug_call_stack.items.len - 1;
         while (true) {
             var stack_span = self.debug_call_stack.items[i];
-            stack_span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.interpreter_panic;
+            stack_span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.InterpreterPanic;
 
             if (i == 0) {
                 break;
@@ -462,10 +462,10 @@ pub const Context = struct {
                 i -= 1;
             }
         }
-        return error.interpreter_panic;
+        return error.InterpreterPanic;
     }
 
-    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, name: []const u8, span: span_.Span) !void {
+    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, name: []const u8, span: span_.Span) !void { // TODO: Uninfer error
         const bounds = primitives_.get_bounds(_type);
         if (val < bounds.lower or val > bounds.upper) {
             try self.panic(span, "error: {s} is out of bounds; value={}\n", .{ name, val });

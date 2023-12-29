@@ -46,7 +46,7 @@ pub fn main() !void {
 /// When `coverage` is false, integration testing occurs as normal, and child processes are spawned for gcc, executing the executable, etc
 /// When `coverage` is true, no child processes are spawned, and no output is given.
 const Results = struct { passed: usize, failed: usize };
-fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void {
+fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
     var args = old_args;
     if (!coverage) {
         try term_.outputColor(succeed_color, "[============]\n", out);
@@ -74,7 +74,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 }
 
-fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool {
+fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -124,10 +124,10 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bo
             try errors.printErrors();
             try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
             switch (err) {
-                error.lexerError,
-                error.parseError,
-                error.symbolError,
-                error.typeError,
+                error.LexerError,
+                error.ParseError,
+                error.SymbolError,
+                error.TypeError,
                 => try out.print("Orng -> C.\n", .{}),
                 else => try out.print("Orng Compiler crashed!\n", .{}),
             }
@@ -199,7 +199,7 @@ fn integrateTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bo
     return true;
 }
 
-fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool {
+fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -237,16 +237,16 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: boo
     _ = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
-                error.lexerError,
-                error.symbolError,
-                error.typeError,
-                error.interpreter_panic,
+                error.LexerError,
+                error.SymbolError,
+                error.TypeError,
+                error.InterpreterPanic,
                 => {
                     try errors.printErrors();
                     try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
                     return true;
                 },
-                error.parseError => {
+                error.ParseError => {
                     var str = try String.init_with_contents(allocator, filename);
                     defer str.deinit();
                     if (str.find("regression") != null) {
@@ -278,7 +278,7 @@ fn negativeTestFile(filename: []const u8, prelude: *symbol_.Scope, coverage: boo
 }
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
-fn fuzzTests() !void {
+fn fuzzTests() !void { // TODO: Uninfer error
     // Open and read tests/fuzz/fuzz.txt
     var file = try std.fs.cwd().openFile("tests/fuzz/fuzz.txt", .{});
     defer file.close();
@@ -325,16 +325,16 @@ fn fuzzTests() !void {
             const module = module_.Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
                 try errors.printErrors();
                 switch (err) {
-                    error.lexerError,
-                    error.symbolError,
-                    error.typeError,
+                    error.LexerError,
+                    error.SymbolError,
+                    error.TypeError,
                     => {
                         // passed += 1;
                         // try term_.outputColor(succeed_color, "[ ... PASSED ] ", out);
                         // try out.print("Orng -> IR. {}\n", .{i});
                         continue;
                     },
-                    error.parseError => {
+                    error.ParseError => {
                         failed += 1;
                         try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
@@ -376,7 +376,7 @@ fn fuzzTests() !void {
     std.debug.print("Fuzz test percentage: {d}% ({} / {})\n", .{ 100.0 * std.math.lossyCast(f64, passed) / std.math.lossyCast(f64, passed + failed), passed, failed });
 }
 
-fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } {
+fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TODO: Uninfer error
     const max_output_size = 100 * 1024 * 1024;
     var child_process = std.ChildProcess.init(argv, allocator);
     defer _ = child_process.kill() catch unreachable;

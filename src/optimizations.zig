@@ -30,7 +30,7 @@ fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
 }
 
 // TODO: typeError should be called something else
-pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{typeError}!void {
+pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -239,7 +239,7 @@ fn removeBasic_Block(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipeIR: bool
     bb.removed = true;
 }
 
-fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !bool {
+fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !bool { // TODO: Uninfer error
     var retval = false;
 
     calculateVersions(cfg);
@@ -279,7 +279,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
     return retval;
 }
 
-fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) !bool {
+fn propagateIR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) !bool { // TODO: Uninfer error
     var retval = false;
 
     switch (ir.kind) {
@@ -689,25 +689,25 @@ fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
     ir.src2 = null;
 }
 
-fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void {
+fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (ir != null) {
         if (ir.?.kind == .load_int and ir.?.data.int == 0) {
             errors.addError(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0",
             } });
-            return error.typeError; // TODO: Type Error???
+            return error.TypeError; // TODO: Type Error???
         } else if (ir.?.kind == .load_float and ir.?.data.float == 0.0) {
             errors.addError(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0.0",
             } });
-            return error.typeError; // TODO: Type Error???
+            return error.TypeError; // TODO: Type Error???
         }
     }
 }
 
-fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void {
+fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
     calculateUsage(cfg);
     if (cfg.symbol.decl.?.* == .fnDecl) {
         for (cfg.symbol.decl.?.fnDecl.param_symbols.items) |param_symbol| {
@@ -730,7 +730,7 @@ fn findUnused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void {
     }
 }
 
-fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void {
+fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (symbol.discards > 1) {
         errors.addError(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
@@ -739,7 +739,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void {
             .problem = "is discarded more than once",
             .context_message = "defined here",
         } });
-        return error.typeError;
+        return error.TypeError;
     } else if (symbol.discards == 1 and symbol.uses > 1) {
         errors.addError(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
@@ -748,7 +748,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void {
             .problem = "is discarded when it is used",
             .context_message = "defined here",
         } });
-        return error.typeError;
+        return error.TypeError;
     } else if (symbol.kind != .@"const" and symbol.discards == 0 and symbol.uses == 0) {
         // TODO: Shouldn't do this if the type is unit!
         errors.addError(errs_.Error{ .symbol_error = .{
@@ -758,11 +758,11 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void {
             .problem = "is never used",
             .context_message = "",
         } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
-fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool {
+fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Uninfer error
     var retval = false;
 
     calculateUsage(cfg);
@@ -793,7 +793,7 @@ fn removeUnusedDefs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool {
                             .span = ir.span,
                             .msg = "value of call is never used",
                         } });
-                        return error.typeError;
+                        return error.TypeError;
                     }
                 } else {
                     bb.removeInstruction(ir);

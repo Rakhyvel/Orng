@@ -13,7 +13,7 @@ pub const Span = struct {
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: Span, writer: anytype, comptime span_format: []const u8) !void {
+    pub fn print_debug_line(self: Span, writer: anytype, comptime span_format: []const u8) !void { // TODO: Uninfer error
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
 

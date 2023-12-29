@@ -3,7 +3,7 @@ const errs_ = @import("errors.zig");
 const span_ = @import("span.zig");
 const token_ = @import("token.zig");
 
-const LexerErrors = error{lexerError};
+const LexerErrors = error{LexerError};
 const RndGen = std.rand.DefaultPrng;
 var rnd = RndGen.init(0);
 
@@ -11,7 +11,7 @@ var rnd = RndGen.init(0);
 // However, we couldn't print out the line for the error if we did tokens and lines at the same time
 // It's desirable to print the line, therefore lines must be done before tokens
 // TODO: Move to own file
-pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void {
+pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) !void { // TODO: Uninfer error
     var start: usize = 0;
     var end: usize = 1;
     if (contents.len == 0) {
@@ -19,7 +19,7 @@ pub fn getLines(contents: []const u8, lines: *std.ArrayList([]const u8), errors:
             .span = span_.phony_span,
             .msg = "file is empty",
         } });
-        return error.lexerError;
+        return error.LexerError;
     }
     while (end < contents.len) : (end += 1) {
         if (contents[end] == '\n') {
@@ -76,7 +76,7 @@ pub fn getTokens(
     errors: *errs_.Errors,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) !std.ArrayList(token_.Token) {
+) !std.ArrayList(token_.Token) { // TODO: Uninfer error
     var tokens = std.ArrayList(token_.Token).init(allocator);
     var line: usize = 0;
     var col: usize = 1;
@@ -143,7 +143,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .msg = "may not have more than one underscore in a row in an identifier",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else if (std.ascii.isUpper(next_char) or std.ascii.isDigit(next_char)) {
                         // => all caps on [A-Z0-9]
                         ix += 1;
@@ -160,7 +160,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "identifiers may not end in an underscore",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     }
                 },
 
@@ -177,7 +177,7 @@ pub fn getTokens(
                                 .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                                 .msg = "camelCase is not supported; consider spliting with an underscore",
                             } });
-                            return LexerErrors.lexerError;
+                            return LexerErrors.LexerError;
                         } else {
                             // => capitalized on a-z
                             ix += 1;
@@ -208,7 +208,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "camelCase is not supported; consider spliting with an underscore",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
                         tokens.append(token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col)) catch unreachable;
@@ -233,7 +233,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "camelCase is not supported",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else if (ix == contents.len or !std.ascii.isAlphanumeric(next_char)) {
                         // Split on $
                         var token = token_.Token.init(contents[slice_start..ix], null, filename, contents, line, col);
@@ -256,7 +256,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected `\"`, got end-of-file",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else switch (next_char) {
                         '"' => {
                             ix += 1;
@@ -285,7 +285,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a string, got end-of-file",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else if (next_char == 'n' or
                         next_char == 'r' or
                         next_char == 't' or
@@ -305,7 +305,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     }
                 },
 
@@ -323,7 +323,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "hexadecimal",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     }
                 },
 
@@ -341,7 +341,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "hexadecimal",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     }
                 },
 
@@ -351,7 +351,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a `'`, got end-of-file",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else switch (next_char) {
                         '\'' => {
                             ix += 1;
@@ -363,7 +363,7 @@ pub fn getTokens(
                                     .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                                     .msg = "more than one codepoint specified in character literal",
                                 } });
-                                return LexerErrors.lexerError;
+                                return LexerErrors.LexerError;
                             }
                             tokens.append(
                                 token_.Token.init(contents[slice_start..ix], .char, filename, contents, line, col),
@@ -389,7 +389,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col, .line = line },
                             .msg = "expected a character, got end-of-file",
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     } else if (next_char == 'n' or
                         next_char == 'r' or
                         next_char == 't' or
@@ -405,7 +405,7 @@ pub fn getTokens(
                             .span = span_.Span{ .filename = filename, .line_text = contents, .col = col + 1, .line = line },
                             .digit = next_char,
                         } });
-                        return LexerErrors.lexerError;
+                        return LexerErrors.LexerError;
                     }
                 },
 
@@ -451,7 +451,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "decimal",
                         } });
-                        return error.lexerError;
+                        return error.LexerError;
                     } else {
                         ix += 1;
                         col += 1;
@@ -482,7 +482,7 @@ pub fn getTokens(
                         .digit = next_char,
                         .base = "decimal",
                     } });
-                    return error.lexerError;
+                    return error.LexerError;
                 } else {
                     ix += 1;
                     col += 1;
@@ -520,7 +520,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "hexadecimal",
                         } });
-                        return error.lexerError;
+                        return error.LexerError;
                     },
                 },
 
@@ -555,7 +555,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "octal",
                         } });
-                        return error.lexerError;
+                        return error.LexerError;
                     },
                 },
 
@@ -590,7 +590,7 @@ pub fn getTokens(
                             .digit = next_char,
                             .base = "binary",
                         } });
-                        return error.lexerError;
+                        return error.LexerError;
                     },
                 },
 

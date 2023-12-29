@@ -6,7 +6,7 @@ const errs_ = @import("errors.zig");
 const primitives_ = @import("primitives.zig");
 const token_ = @import("token.zig");
 
-const Expand_Error = error{parseError};
+const Expand_Error = error{ParseError};
 
 pub fn expand_from_list(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!void {
     for (asts.items) |ast| {
@@ -100,7 +100,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                     errors.addError(errs_.Error{
                         .sum_duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
                     });
-                    return error.parseError;
+                    return error.ParseError;
                 }
             }
 
@@ -191,7 +191,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
     }
 }
 
-fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {
@@ -201,6 +201,6 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             .span = ast.token().span,
             .msg = "invalid sum expression, must be annotation or identifier",
         } });
-        return error.parseError;
+        return error.ParseError;
     }
 }

@@ -375,7 +375,7 @@ pub const IR = struct {
         try writer.print("{s}", .{out});
     }
 
-    fn print_lval_list(lval_list: *std.ArrayList(*lval_.L_Value), writer: anytype) !void {
+    fn print_lval_list(lval_list: *std.ArrayList(*lval_.L_Value), writer: anytype) !void { // TODO: Uninfer error
         for (lval_list.items, 0..) |lval, i| {
             try writer.print("{}", .{lval});
             if (i < lval_list.items.len - 1) {
@@ -689,32 +689,32 @@ pub const Data = union(enum) {
         }
     }
 
-    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data {
+    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data { // TODO: Uninfer error
         return Data{
             .int = if (std.math.add(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
                 errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
-                return error.typeError; // TODO: Shouldn't be `typeError`...
+                return error.TypeError; // TODO: Shouldn't be `TypeError`...
             },
         };
     }
 
-    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data {
+    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data { // TODO: Uninfer error
         return Data{
             .int = if (std.math.sub(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
                 errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
-                return error.typeError; // TODO: Shouldn't be `typeError`...
+                return error.TypeError; // TODO: Shouldn't be `TypeError`...
             },
         };
     }
 
-    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data {
+    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data { // TODO: Uninfer error
         return Data{
             .int = if (std.math.mul(i128, self.int, other.int)) |res| res else |_| {
                 // TODO: What were the arguments?
                 errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
-                return error.typeError; // TODO: Shouldn't be `typeError`...
+                return error.TypeError; // TODO: Shouldn't be `TypeError`...
             },
         };
     }

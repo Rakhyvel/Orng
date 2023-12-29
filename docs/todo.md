@@ -81,6 +81,7 @@
     - rewrite `ast` to be like IR
 - [x] Write a python script to look for duplicate code!
 - [ ] Go through nits
+- [ ] Dedupe any common error throws
 - [ ] Go through TODO's in source
 - [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [ ] Figure out how to do lints before GCC does

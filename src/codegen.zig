@@ -18,7 +18,7 @@ const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
 /// Takes in a file handler and a module structure
-pub fn generate(module: *module_.Module, writer: Writer) !void {
+pub fn generate(module: *module_.Module, writer: Writer) !void { // TODO: Uninfer error
     cheat_module = module;
     try writer.print(
         \\/* Code generated using the Orng compiler https://ornglang.org */
@@ -39,7 +39,7 @@ pub fn generate(module: *module_.Module, writer: Writer) !void {
     try output_main_function(module.entry, writer);
 }
 
-fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void {
+fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
     const codomain = cfg.symbol.expanded_type.?.rhs();
     var string_access: []const u8 = "";
     var specifier: []const u8 = undefined;
@@ -72,7 +72,7 @@ fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void {
     , .{string_access});
 }
 
-fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) !void {
+fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) !void { // TODO: Uninfer error
     if (type_set.types.items.len > 0) {
         try writer.print("/* Typedefs */\n", .{});
     }
@@ -81,7 +81,7 @@ fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) !void {
     }
 }
 
-fn output_typedef(dag: *type_set_.DAG, writer: Writer) !void {
+fn output_typedef(dag: *type_set_.DAG, writer: Writer) !void { // TODO: Uninfer error
     if (dag.visited) {
         return;
     }
@@ -138,7 +138,7 @@ fn output_field_list(fields: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_
     }
 }
 
-fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) !void {
+fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) !void { // TODO: Uninfer error
     const keySet = interned_strings.keys();
     if (keySet.len > 0) {
         try writer.print("/* Interned Strings */\n", .{});
@@ -171,7 +171,7 @@ fn forall_functions(
     }
 }
 
-fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void {
+fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
     // Print function return type, name, parameter list
     try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
     try writer.print(" ", .{});
@@ -620,13 +620,13 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
 
 /// Outputs an assignment to a symbol template. It is expected that a value is output immediately
 /// after this to complete the assignment.
-fn output_var_assign(lval: *lval_.L_Value, writer: Writer) !void {
+fn output_var_assign(lval: *lval_.L_Value, writer: Writer) !void { // TODO: Uninfer error
     try writer.print("    ", .{});
     try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
     try writer.print(" = ", .{});
 }
 
-fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer) !void {
+fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer) !void { // TODO: Uninfer error
     try output_var_assign(lval, writer);
     try writer.print("(", .{});
     try output_type(_type, writer);
@@ -636,7 +636,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
 /// semicolon nor newline.
 /// TODO: No bool parameters!
-fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) !void {
+fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) !void { // TODO: Uninfer error
     if (!is_parameter) {
         try writer.print("    ", .{});
     }
@@ -649,12 +649,12 @@ fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) 
 }
 
 /// Outputs a symbol with it's unique identifier to a file
-fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) !void {
+fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
     try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
 
 /// Emits the return statement from a function
-fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) !void {
+fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
     try writer.print("    return", .{});
     if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
         try writer.print(" ", .{});

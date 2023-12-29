@@ -9,11 +9,11 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     try validate_scope(module.scope, errors, allocator);
 }
 
-fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
         try validateSymbol(symbol, errors, allocator);
@@ -23,7 +23,7 @@ fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.m
     }
 }
 
-fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) error{typeError}!void {
+fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!void {
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -39,7 +39,7 @@ fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std
         symbol.init = validateAST(symbol.init, expected, errors, allocator);
         if (symbol.init.* == .poison) {
             symbol.validation_state = .invalid;
-            return error.typeError;
+            return error.TypeError;
             // unreachable;
         } else if ((symbol.kind == .@"fn" or symbol.kind == .@"comptime") and symbol._type.rhs().* == .inferred_error) {
             const terms = symbol._type.rhs().children().*;
@@ -47,7 +47,7 @@ fn validateSymbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std
         }
     } else {
         symbol.validation_state = .invalid;
-        return error.typeError;
+        return error.TypeError;
     }
 
     // Symbol's name must be capitalized iff its type is Type
@@ -127,7 +127,7 @@ fn validate_AST_internal(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ interpreter_panic, typeError, NotAnLValue }!*ast_.AST {
+) error{ InterpreterPanic, TypeError, NotAnLValue }!*ast_.AST {
     // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => return ast,
@@ -376,7 +376,7 @@ fn validate_AST_internal(
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (lhs_expanded_type.* != .product) {
                 errors.addError(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
-                return error.typeError;
+                return error.TypeError;
             } else if (lhs_expanded_type.* == .product and
                 !lhs_expanded_type.product.was_slice and
                 !lhs_expanded_type.product.is_homotypical())
@@ -475,7 +475,7 @@ fn validate_AST_internal(
                         .takes = expanded_expected.?.children().items.len,
                         .given = ast.children().items.len,
                     } });
-                    return error.typeError;
+                    return error.TypeError;
                 }
                 for (0.., expanded_expected.?.children().items) |i, expected_term| { // Ok, this is cool!
                     ast.children().items[i] = validateAST(ast.children().items[i], expected_term, errors, allocator);
@@ -499,10 +499,10 @@ fn validate_AST_internal(
             const expand_rhs = new_ast.rhs().expand_type(allocator);
             if (expand_lhs.* != .sum) {
                 errors.addError(errs_.Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type" } });
-                return error.typeError;
+                return error.TypeError;
             } else if (expand_rhs.* != .sum) {
                 errors.addError(errs_.Error{ .basic = .{ .span = rhs_span, .msg = "right hand side of union is not a sum type" } });
-                return error.typeError;
+                return error.TypeError;
             }
 
             return try merge_sums(expand_lhs, expand_rhs, new_ast.token(), errors, allocator);
@@ -605,7 +605,7 @@ fn validate_AST_internal(
                     .span = ast.token().span,
                     .msg = "cannot take a sub-slice of something that is not a slice",
                 } });
-                return error.typeError;
+                return error.TypeError;
             }
             return ast;
         },
@@ -861,20 +861,20 @@ fn validate_AST_internal(
     }
 }
 
-fn type_check(ast: *ast_.AST, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
+fn type_check(ast: *ast_.AST, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (expected != null and !got.typesMatch(expected.?)) {
         return throw_unexpected_type(ast.token().span, expected.?, got, errors);
     }
 }
 
-fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
+fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (expected != null and primitives_.type_type.typesMatch(expected.?)) {
         // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
         return throw_unexpected_type(ast.token().span, expected.?, primitives_.void_type, errors);
     }
 }
 
-fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
+fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (expected != null and !expected.?.can_represent_integer(ast.int.data)) {
         // TODO: Add emit a separate error if not representable because the value doesn't fit, vs because it's not an integer primitive type at all
         return throw_unexpected_type(ast.token().span, expected.?, primitives_.int_type, errors);
@@ -882,58 +882,58 @@ fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !
     ast.set_represents(expected orelse primitives_.int_type);
 }
 
-fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void {
+fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (expected != null and !expected.?.can_represent_float()) {
         return throw_unexpected_type(ast.token().span, expected.?, primitives_.float_type, errors);
     }
     ast.set_represents(expected orelse primitives_.float_type);
 }
 
-fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
+fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_eq_type()) {
         errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "equalable", .got = got } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
-fn type_check_ord(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
+fn type_check_ord(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_ord_type()) {
         errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "orderable", .got = got } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
-fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
+fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_num_type()) {
         errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "arithmetic", .got = got } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
-fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void {
+fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_int_type()) {
         errors.addError(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integral", .got = got } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
-fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) error{typeError} {
+fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) error{TypeError} {
     errors.addError(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
-    return error.typeError;
+    return error.TypeError;
 }
 
-fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) error{typeError} {
+fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) error{TypeError} {
     errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
-    return error.typeError;
+    return error.TypeError;
 }
 
-fn assert_none_poisoned(value: anytype) !void {
+fn assert_none_poisoned(value: anytype) !void { // TODO: Uninfer error
     // This entire function is cursed...
     const T = @TypeOf(value);
     if (T == *std.ArrayList(*ast_.AST)) {
         for (value.items) |ast| {
             if (ast.* == .poison) {
-                return error.typeError;
+                return error.TypeError;
             }
         }
     } else switch (@typeInfo(T)) {
@@ -942,13 +942,13 @@ fn assert_none_poisoned(value: anytype) !void {
                 try assert_none_poisoned(@field(value, f.name));
             }
         },
-        .Optional => if (value != null and value.?.* == .poison) return error.typeError,
-        .Pointer => if (value.* == .poison) return error.typeError,
+        .Optional => if (value != null and value.?.* == .poison) return error.TypeError,
+        .Pointer => if (value.* == .poison) return error.TypeError,
         else => {},
     }
 }
 
-fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST {
+fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
     const _true = ast_.AST.createTrue(ast.token(), allocator);
     const _false = ast_.AST.createFalse(ast.token(), allocator);
@@ -960,7 +960,7 @@ fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) !*ast_.
 }
 
 /// Validates a polymorphic binary operator
-fn binary_operator(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn binary_operator(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     ast.set_lhs(validateAST(ast.lhs(), expected, errors, allocator));
     const lhs_type = ast.lhs().typeof(allocator);
     try assert_none_poisoned(lhs_type);
@@ -976,7 +976,7 @@ fn binary_operator_closed(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*ast_.AST {
+) !*ast_.AST { // TODO: Uninfer error
     ast.set_lhs(validateAST(ast.lhs(), self_type, errors, allocator));
     ast.set_rhs(validateAST(ast.rhs(), self_type, errors, allocator));
     try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
@@ -984,7 +984,7 @@ fn binary_operator_closed(
     return ast;
 }
 
-fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, errors: *errs_.Errors) !void {
+fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
     if (lhs_expanded_type.* != .sum or lhs_expanded_type.sum.from != expected) {
@@ -994,7 +994,7 @@ fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, errors: *errs
             .operator = @tagName(ast.*),
             .from = @tagName(expected),
         } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
@@ -1003,11 +1003,11 @@ fn default_args(
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ast_.AST) {
+) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
     if (try args_are_named(asts, errors)) {
         return named_args(asts, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => asts,
-            error.typeError => error.typeError,
+            error.TypeError => error.TypeError,
         };
     } else {
         return positional_args(asts, expected, allocator) catch |err| switch (err) {
@@ -1016,7 +1016,7 @@ fn default_args(
     }
 }
 
-fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) !bool {
+fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) !bool { // TODO: Uninfer error
     if (asts.items.len == 0) {
         return false;
     }
@@ -1036,13 +1036,13 @@ fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) !bool {
             .span = asts.items[0].token().span,
             .msg = "mixed positional and named arguments are not allowed",
         } });
-        return error.typeError;
+        return error.TypeError;
     } else {
         return seen_named;
     }
 }
 
-fn positional_args(asts: std.ArrayList(*ast_.AST), expected: *ast_.AST, allocator: std.mem.Allocator) !std.ArrayList(*ast_.AST) {
+fn positional_args(asts: std.ArrayList(*ast_.AST), expected: *ast_.AST, allocator: std.mem.Allocator) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
     var retval = std.ArrayList(*ast_.AST).init(allocator);
     errdefer retval.deinit();
 
@@ -1096,7 +1096,7 @@ fn named_args(
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ast_.AST) {
+) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
     var arg_map = std.StringArrayHashMap(*ast_.AST).init(allocator);
@@ -1105,13 +1105,13 @@ fn named_args(
     // Associate argument names with their values
     if (asts.items.len == 1) {
         putAssign(asts.items[0], &arg_map, errors) catch |err| switch (err) {
-            error.typeError => return error.NoDefault,
+            error.TypeError => return error.NoDefault,
             else => return err,
         };
     } else {
         for (asts.items) |term| {
             putAssign(term, &arg_map, errors) catch |err| switch (err) {
-                error.typeError => return error.NoDefault,
+                error.TypeError => return error.NoDefault,
                 else => return err,
             };
         }
@@ -1175,7 +1175,7 @@ fn validate_args(
     span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ast_.AST) {
+) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
     var new_args = std.ArrayList(*ast_.AST).init(allocator);
     errdefer new_args.deinit();
     var changed = false;
@@ -1183,7 +1183,7 @@ fn validate_args(
     if (expected.* == .unit_type) {
         if (args.items.len > 0) {
             errors.addError(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 0, .given = args.items.len } });
-            return error.typeError;
+            return error.TypeError;
         }
     } else if (expected.* == .product) {
         if (args.items.len != expected.children().items.len) {
@@ -1192,7 +1192,7 @@ fn validate_args(
                 .takes = expected.children().items.len,
                 .given = args.items.len,
             } });
-            return error.typeError;
+            return error.TypeError;
         }
         for (expected.children().items, args.items) |param_type, arg| {
             const new_arg = validateAST(arg, param_type, errors, allocator);
@@ -1205,13 +1205,13 @@ fn validate_args(
     } else {
         if (args.items.len != 1) {
             errors.addError(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 1, .given = args.items.len } });
-            return error.typeError;
+            return error.TypeError;
         }
 
         args.items[0] = validateAST(args.items[0], expected, errors, allocator);
     }
     if (poisoned) {
-        return error.typeError;
+        return error.TypeError;
     } else if (changed) {
         return new_args;
     } else {
@@ -1220,15 +1220,15 @@ fn validate_args(
     }
 }
 
-fn putAssign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void {
+fn putAssign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (ast.lhs().* != .inferredMember) {
         errors.addError(errs_.Error{ .expected_basic_token = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
-        return error.typeError;
+        return error.TypeError;
     }
     try put_ast_map(ast.rhs(), ast.lhs().inferredMember.ident.token().data, ast.token().span, arg_map, errors);
 }
 
-fn merge_sums(lhs: *ast_.AST, rhs: *ast_.AST, token: token_.Token, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn merge_sums(lhs: *ast_.AST, rhs: *ast_.AST, token: token_.Token, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     var new_terms = std.ArrayList(*ast_.AST).init(allocator);
     var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
     defer names.deinit();
@@ -1246,7 +1246,7 @@ fn put_many_annot_map(
     new_terms: *std.ArrayList(*ast_.AST),
     map: *std.StringArrayHashMap(*ast_.AST),
     errors: *errs_.Errors,
-) !void {
+) !void { // TODO: Uninfer error
     for (asts.items) |term| {
         try put_ast_map(term.annotation.type, term.annotation.pattern.token().data, term.token().span, map, errors);
         new_terms.append(term) catch unreachable;
@@ -1254,17 +1254,17 @@ fn put_many_annot_map(
 }
 
 /// Puts an ast into a String->AST map, if a given name isn't already in the map.
-fn put_ast_map(ast: *ast_.AST, name: []const u8, span: span_.Span, map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void {
+fn put_ast_map(ast: *ast_.AST, name: []const u8, span: span_.Span, map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (map.get(name)) |_| {
         // TODO: What is the name?
         errors.addError(errs_.Error{ .basic = .{ .span = span, .msg = "duplicate identifier" } });
-        return error.typeError;
+        return error.TypeError;
     } else {
         map.put(name, ast) catch unreachable;
     }
 }
 
-fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void {
+fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     switch (ast.*) {
         .identifier => {},
 
@@ -1280,18 +1280,18 @@ fn validateLValue(ast: *ast_.AST, errors: *errs_.Errors) !void {
 
         else => {
             errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
-            return error.typeError;
+            return error.TypeError;
         },
     }
 }
 
-fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     switch (ast.*) {
         .identifier => {
             const symbol = ast.symbol().?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
                 errors.addError(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
-                return error.typeError;
+                return error.TypeError;
             }
         },
 
@@ -1316,14 +1316,14 @@ fn assertMutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
     }
 }
 
-fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) !void {
+fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!ast.addrOf.mut) {
         errors.addError(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot modify non-mutable address" } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
-fn implicit_dereference(ast: *ast_.AST, old_lhs_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn implicit_dereference(ast: *ast_.AST, old_lhs_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addrOf) {
         ast.set_lhs(validateAST(ast_.AST.createDereference(ast.token(), ast.lhs(), allocator), null, errors, allocator));
@@ -1333,7 +1333,7 @@ fn implicit_dereference(ast: *ast_.AST, old_lhs_type: *ast_.AST, errors: *errs_.
     return lhs_type;
 }
 
-fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) !usize {
+fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) !usize { // TODO: Uninfer error
     if (_type.* != .product and _type.* != .sum and _type.* != .inferred_error) {
         return throw_not_selectable(span, errors);
     }
@@ -1346,12 +1346,12 @@ fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors
         }
     } else {
         errors.addError(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .group_name = "tuple" } });
-        return error.typeError;
+        return error.TypeError;
     }
 }
 
 /// Validates that `pattern` is valid given a match's `expr`
-fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     switch (pattern.*) {
         .unit_value => try type_check(pattern, primitives_.unit_type, expr_type, errors),
         .int => try type_check_int(pattern, expr_type, errors),
@@ -1400,7 +1400,7 @@ fn exhaustive_check(
     match_span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void {
+) !void { // TODO: Uninfer error
     if (_type.* == .sum) {
         var ids = std.ArrayList(usize).init(allocator);
         defer ids.deinit();
@@ -1420,7 +1420,7 @@ fn exhaustive_check(
                 forgotten.append(_type.children().items[id]) catch unreachable;
             }
             errors.addError(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten } });
-            return error.typeError;
+            return error.TypeError;
         }
     }
 }
@@ -1442,7 +1442,7 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
 }
 
 /// Adds a term to an inferred error
-fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
+fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     std.debug.assert(addend.* == .annotation);
     for (ast.children().items) |term| {
         if (std.mem.eql(u8, term.annotation.pattern.token().data, addend.annotation.pattern.token().data)) {
@@ -1452,7 +1452,7 @@ fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
                     .identifier = term.annotation.pattern.token().data,
                     .first = term.token().span,
                 } });
-                return error.typeError;
+                return error.TypeError;
             } else {
                 // Duplicate found, types match. OK!
                 return;
@@ -1463,11 +1463,11 @@ fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void {
     ast.children().append(addend) catch unreachable;
 }
 
-fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     return (try generate_default_unvalidated(_type, errors, allocator)).assert_valid();
 }
 
-fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) error{typeError}!*ast_.AST {
+fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!*ast_.AST {
     switch (_type.*) {
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
@@ -1477,7 +1477,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
                     return primitive_info.default_value.?;
                 } else {
                     errors.addError(errs_.Error{ .no_default = .{ .span = _type.token().span, ._type = _type } });
-                    return error.typeError;
+                    return error.TypeError;
                 }
             } else {
                 return try generate_default(expanded_type, errors, allocator);
@@ -1521,7 +1521,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
 
 // Takes in an inject AST (pattern or expr) of the form `lhs <- rhs` and returns the type that `rhs` should be.
 // Also validates the inject ast_.AST. Thus, if `lhs` is an inferred member, it will find out the sum type it belongs to.
-fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST {
+fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
     if (ast.lhs().* == .inferredMember) {
         // Pass sum_type so that base can be inferred call
         ast.set_lhs(validateAST(ast.lhs(), sum_type, errors, allocator));

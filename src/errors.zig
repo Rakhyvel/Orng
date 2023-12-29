@@ -223,7 +223,7 @@ pub const Errors = struct {
         // unreachable; // uncomment if you want to see where errors come from
     }
 
-    pub fn printErrors(self: *Errors) !void {
+    pub fn printErrors(self: *Errors) !void { // TODO: Uninfer error
         for (self.errors_list.items) |err| {
             try bold.dump(out);
             try print_label(err.getSpan(), "error: ", .red);
@@ -235,7 +235,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_main_error(err: Error, allocator: std.mem.Allocator) !void {
+    fn print_main_error(err: Error, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
         _ = allocator;
         switch (err) {
             // General errors
@@ -354,7 +354,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_extra_info(err: Error) !void {
+    fn print_extra_info(err: Error) !void { // TODO: Uninfer error
         switch (err) {
             .missing_close => {
                 try bold.dump(out);
@@ -413,7 +413,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) !void {
+    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) !void { // TODO: Uninfer error
         if (maybe_span) |span| {
             if (span.line > 0 and span.col > 0) {
                 try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
@@ -424,11 +424,11 @@ pub const Errors = struct {
         try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
     }
 
-    fn print_note_label(maybe_span: ?span_.Span) !void {
+    fn print_note_label(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
         try print_label(maybe_span, "note: ", .cyan);
     }
 
-    fn printEpilude(maybe_span: ?span_.Span) !void {
+    fn printEpilude(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
         if (maybe_span) |old_span| {
             const span = old_span;
             if (span.line == 0) {

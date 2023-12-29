@@ -6,7 +6,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-const SymbolErrorEnum = error{symbolError};
+const SymbolErrorEnum = error{SymbolError};
 
 pub fn symbolTableFromASTList(
     asts: std.ArrayList(*ast_.AST),
@@ -185,7 +185,7 @@ fn symbolTableFromAST(
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",
                         } });
-                        return error.symbolError;
+                        return error.SymbolError;
                     }
                 }
             }
@@ -210,30 +210,30 @@ fn symbolTableFromAST(
     }
 }
 
-fn in_loop_check(ast: *ast_.AST, name: []const u8, scope: *symbol_.Scope, errors: *errs_.Errors) !void {
+fn in_loop_check(ast: *ast_.AST, name: []const u8, scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!scope.in_loop) {
         errors.addError(errs_.Error{ .not_inside_loop = .{
             .span = ast.token().span,
             .name = name,
         } });
-        return error.symbolError;
+        return error.SymbolError;
     }
 }
 
 /// Returns the inner symbol of a scope, or an error if one doesnt exist
-fn in_function_check(ast: *ast_.AST, name: []const u8, scope: *symbol_.Scope, errors: *errs_.Errors) !*symbol_.Symbol {
+fn in_function_check(ast: *ast_.AST, name: []const u8, scope: *symbol_.Scope, errors: *errs_.Errors) !*symbol_.Symbol { // TODO: Uninfer error
     if (scope.inner_function == null) {
         errors.addError(errs_.Error{ .not_inside_function = .{
             .span = ast.token().span,
             .name = name,
         } });
-        return error.symbolError;
+        return error.SymbolError;
     } else {
         return scope.inner_function.?;
     }
 }
 
-fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) !void {
+fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
     const res = scope.lookup(symbol.name, false);
     switch (res) {
         .found => {
@@ -243,13 +243,13 @@ fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Err
                 .redefined_span = symbol.span,
                 .name = symbol.name,
             } });
-            return error.symbolError;
+            return error.SymbolError;
         },
         else => scope.symbols.put(symbol.name, symbol) catch unreachable,
     }
 }
 
-fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Scope, errors: *errs_.Errors) !void {
+fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
     for (symbols.items) |symbol| {
         try put_symbol(symbol, scope, errors);
     }
@@ -273,7 +273,7 @@ fn create_symbol(
                         .span = pattern.token().span,
                         .kind = pattern.pattern_symbol.kind,
                     } });
-                    return error.symbolError;
+                    return error.SymbolError;
                 } else {
                     // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
                     pattern.set_symbol(primitives_.blackhole);
@@ -319,7 +319,7 @@ fn create_symbol(
     }
 }
 
-fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void {
+fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     for (match.children().items) |mapping| {
         if (mapping.mapping_lhs() != null) {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
@@ -454,7 +454,7 @@ fn create_comptime_init(
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*ast_.AST {
+) !*ast_.AST { // TODO: Uninfer error
     const retval = ast_.AST.createComptime(old_init.token(), old_init, allocator);
     const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
     try put_symbol(comptime_symbol, scope, errors);

@@ -56,7 +56,7 @@ pub fn compile(
     prelude: *symbol_.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) !void {
+) !void { // TODO: Uninfer error
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -75,14 +75,14 @@ pub fn compile(
 
     const module = module_.Module.compile(contents, in_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
         switch (err) {
-            error.lexerError,
-            error.parseError,
+            error.LexerError,
+            error.ParseError,
             => {
                 try errors.printErrors();
                 return err;
             },
-            error.symbolError,
-            error.typeError,
+            error.SymbolError,
+            error.TypeError,
             => if (!fuzz_tokens) {
                 try errors.printErrors();
                 return err;
