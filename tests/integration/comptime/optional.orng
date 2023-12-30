@@ -7,6 +7,6 @@ fn f(x: ?Int32) -> Int {
     match x {
         .some => 250
         .none => 11
-        else => unreachable
+        _ => unreachable
     }
 }

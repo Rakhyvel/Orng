@@ -42,22 +42,19 @@ const AST_Common = struct {
 
     /// The AST's type.
     /// Memoized, use `typeof()`.
-    /// TODO: Postfix with _ to signify private
     _type: ?*AST = null,
 
     /// The result of expanding the `_type` field.
     /// Memoized, use `expanded_type()`.
-    /// TODO: Postfix with _ to signify private
-    expanded_type: ?*AST = null,
+    _expanded_type: ?*AST = null,
 
     /// The number of bytes a value in an AST type takes up.
     /// Memoized, use `sizeof()`.
-    /// TODO: Postfix with _ to signify private
-    size: ?i64 = null,
+    _size: ?i64 = null,
 
     /// The alignment for values of this type.
     /// In general it is *NOT* true that size == alignof, especially for products and sums.
-    alignof: ?i64 = null,
+    _alignof: ?i64 = null,
 
     /// The AST's validation status.
     validation_state: AST_Validation_State = .unvalidated,
@@ -264,11 +261,10 @@ pub const AST = union(enum) {
         let: ?*AST,
         _expr: *AST,
         _mappings: std.ArrayList(*AST),
-        has_else: bool,
     },
     mapping: struct {
         common: AST_Common,
-        _mapping_lhs: ?*AST,
+        _lhs: *AST,
         _rhs: *AST,
         scope: ?*symbol_.Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
     },
@@ -355,7 +351,7 @@ pub const AST = union(enum) {
     }
 
     pub fn create_char(
-        _token: token_.Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings. TODO: Maybe make it like strings?
+        _token: token_.Token, // `token.data` should of course encompass the `'` used for character delimination. This is unlike strings.
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .char = .{ .common = AST_Common{ ._token = _token, ._type = null } } }, allocator);
@@ -625,7 +621,6 @@ pub const AST = union(enum) {
         let: ?*AST,
         _expr: *AST,
         mappings: std.ArrayList(*AST),
-        has_else: bool,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
@@ -635,17 +630,16 @@ pub const AST = union(enum) {
                 .let = let,
                 ._expr = _expr,
                 ._mappings = mappings,
-                .has_else = has_else,
             } },
             allocator,
         );
     }
 
-    pub fn create_mapping(_token: token_.Token, _lhs: ?*AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_mapping(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         return AST.box(
             AST{ .mapping = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                ._mapping_lhs = _lhs,
+                ._lhs = _lhs,
                 ._rhs = _rhs,
                 .scope = null,
             } },
@@ -828,14 +822,6 @@ pub const AST = union(enum) {
 
     pub fn set_lhs(self: *AST, val: *AST) void {
         set_field(self, "_lhs", val);
-    }
-
-    pub fn mapping_lhs(self: AST) ?*AST { // TODO: Don't allow `else` in `match`
-        return get_field(self, "_mapping_lhs");
-    }
-
-    pub fn set_mapping_lhs(self: *AST, val: ?*AST) void {
-        set_field(self, "_mapping_lhs", val);
     }
 
     pub fn rhs(self: AST) *AST {
@@ -1086,11 +1072,11 @@ pub const AST = union(enum) {
     }
 
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
-        if (self.common().expanded_type) |expaned_type| {
+        if (self.common()._expanded_type) |expaned_type| {
             return expaned_type;
         }
         const retval = expand_type_internal(self, allocator).assert_valid();
-        self.common().expanded_type = retval;
+        self.common()._expanded_type = retval;
         return retval;
     }
 
@@ -1402,7 +1388,7 @@ pub const AST = union(enum) {
                 var lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
                 if (lhs_type.types_match(primitives_.type_type) and self.lhs().* == .product) {
                     return self.lhs().children().items[0];
-                } else if (lhs_type.* == .product) { // TODO: Replace with if the type implements Indexable or something
+                } else if (lhs_type.* == .product) {
                     if (lhs_type.product.was_slice) {
                         return lhs_type.children().items[0].annotation.type.expr();
                     } else {
@@ -1508,11 +1494,11 @@ pub const AST = union(enum) {
 
     /// Retrieves the size in bytes of an AST node.
     pub fn sizeof(self: *AST) i64 {
-        if (self.common().size == null) {
-            self.common().size = self.sizeof_internal(); // memoize call
+        if (self.common()._size == null) {
+            self.common()._size = self.sizeof_internal(); // memoize call
         }
 
-        return self.common().size.?;
+        return self.common()._size.?;
     }
 
     fn sizeof_internal(self: *AST) i64 {
@@ -1550,11 +1536,11 @@ pub const AST = union(enum) {
     }
 
     pub fn alignof(self: *AST) i64 {
-        if (self.common().alignof == null) {
-            self.common().alignof = self.alignof_internal(); // memoize call
+        if (self.common()._alignof == null) {
+            self.common()._alignof = self.alignof_internal(); // memoize call
         }
 
-        return self.common().alignof.?;
+        return self.common()._alignof.?;
     }
 
     fn alignof_internal(self: *AST) i64 {

@@ -15,65 +15,65 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-struct0 _325_f(int64_t _325_x);
-int64_t _318_main(void);
+struct0 _328_f(int64_t _328_x);
+int64_t _320_main(void);
 
 /* Function definitions */
-struct0 _325_f(int64_t _325_x){
-    int64_t _325_t1;
-    uint8_t _325_t3;
-    struct0 _325_t0;
-    int64_t _325_t8;
-    uint8_t _325_t10;
-    int64_t _325_t4;
-    int64_t _325_t5;
-    struct0 _325_t7;
-    struct0 _325_$retval;
-    _325_t1 = 53;
-    _325_t3 = _325_x==_325_t1;
-    if (_325_t3) {
+struct0 _328_f(int64_t _328_x){
+    int64_t _328_t1;
+    uint8_t _328_t3;
+    struct0 _328_t0;
+    int64_t _328_t8;
+    uint8_t _328_t10;
+    int64_t _328_t4;
+    int64_t _328_t5;
+    struct0 _328_t7;
+    struct0 _328_$retval;
+    _328_t1 = 53;
+    _328_t3 = _328_x==_328_t1;
+    if (_328_t3) {
         goto BB380;
     } else {
         goto BB384;
     }
 BB380:
-    _325_t4 = 5;
-    _325_t5 = $mult_int64_t(_325_x, _325_t4, "tests/integration/comptime/return-sum.orng:13:19:\n        .ok <- x * 5\n                 ^");
-    _325_t0 = (struct0) {.tag=0, ._0=_325_t5};
+    _328_t4 = 5;
+    _328_t5 = $mult_int64_t(_328_x, _328_t4, "tests/integration/comptime/return-sum.orng:13:19:\n        .ok <- x * 5\n                 ^");
+    _328_t0 = (struct0) {.tag=0, ._0=_328_t5};
     goto BB383;
 BB384:
-    _325_t8 = 4;
-    _325_t10 = _325_x==_325_t8;
-    if (_325_t10) {
+    _328_t8 = 4;
+    _328_t10 = _328_x==_328_t8;
+    if (_328_t10) {
         goto BB387;
     } else {
         goto BB390;
     }
 BB383:
-    _325_$retval = _325_t0;
-    return _325_$retval;
+    _328_$retval = _328_t0;
+    return _328_$retval;
 BB387:
-    _325_t7 = (struct0) {.tag=1};
+    _328_t7 = (struct0) {.tag=1};
     goto BB389;
 BB390:
-    _325_t7 = (struct0) {.tag=2};
+    _328_t7 = (struct0) {.tag=2};
     goto BB389;
 BB389:
-    _325_t0 = _325_t7;
+    _328_t0 = _328_t7;
     goto BB383;
 }
 
-int64_t _318_main(void){
-    int64_t _318_t1;
-    struct0 _318_t2;
-    int64_t _318_$retval;
-    _318_t1 = 265;
-    _318_t2 = (struct0) {.tag=0, ._0=_318_t1};
-    _318_$retval = _318_t2._0;
-    return _318_$retval;
+int64_t _320_main(void){
+    int64_t _320_t1;
+    struct0 _320_t2;
+    int64_t _320_$retval;
+    _320_t1 = 265;
+    _320_t2 = (struct0) {.tag=0, ._0=_320_t1};
+    _320_$retval = _320_t2._0;
+    return _320_$retval;
 }
 
 int main(void) {
-  printf("%ld",_318_main());
+  printf("%ld",_320_main());
   return 0;
 }

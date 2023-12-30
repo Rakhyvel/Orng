@@ -7,16 +7,16 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1086_main(void);
+int64_t _1094_main(void);
 
 /* Function definitions */
-int64_t _1086_main(void){
-    int64_t _1086_$retval;
-    _1086_$retval = 123;
-    return _1086_$retval;
+int64_t _1094_main(void){
+    int64_t _1094_$retval;
+    _1094_$retval = 123;
+    return _1094_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1086_main());
+  printf("%ld",_1094_main());
   return 0;
 }

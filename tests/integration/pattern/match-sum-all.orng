@@ -7,6 +7,6 @@ fn main() -> Int {
         The_Type.a => 168
         The_Type.b => 171
         y          => {_ = y; 0} // Sort of a 'catch all' match, even though its not a constructor
-        else => unreachable
+        _          => unreachable
     }
 }

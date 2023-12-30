@@ -15,33 +15,33 @@ typedef struct {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _944_main(void);
-int64_t _946_add(int64_t _946_x, int64_t _946_y);
+int64_t _956_main(void);
+int64_t _958_add(int64_t _958_x, int64_t _958_y);
 
 /* Function definitions */
-int64_t _944_main(void){
-    function0 _944_t0;
-    int64_t _944_t2;
-    int64_t _944_t3;
-    int64_t _944_t1;
-    int64_t _944_$retval;
-    _944_t0 = _946_add;
-    _944_t2 = 4;
-    _944_t3 = 50;
+int64_t _956_main(void){
+    function0 _956_t0;
+    int64_t _956_t2;
+    int64_t _956_t3;
+    int64_t _956_t1;
+    int64_t _956_$retval;
+    _956_t0 = _958_add;
+    _956_t2 = 4;
+    _956_t3 = 50;
     $lines[$line_idx++] = "tests/integration/functions/default-named.orng:3:9:\n    add(.x = 4)\n       ^";
-    _944_t1 = _944_t0(_944_t2, _944_t3);
+    _956_t1 = _956_t0(_956_t2, _956_t3);
     $line_idx--;
-    _944_$retval = _944_t1;
-    return _944_$retval;
+    _956_$retval = _956_t1;
+    return _956_$retval;
 }
 
-int64_t _946_add(int64_t _946_x, int64_t _946_y){
-    int64_t _946_$retval;
-    _946_$retval = $add_int64_t(_946_x, _946_y, "tests/integration/functions/default-named.orng:6:40:\nfn add(x: Int, y: Int = 50) -> Int {x + y}\n                                      ^");
-    return _946_$retval;
+int64_t _958_add(int64_t _958_x, int64_t _958_y){
+    int64_t _958_$retval;
+    _958_$retval = $add_int64_t(_958_x, _958_y, "tests/integration/functions/default-named.orng:6:40:\nfn add(x: Int, y: Int = 50) -> Int {x + y}\n                                      ^");
+    return _958_$retval;
 }
 
 int main(void) {
-  printf("%ld",_944_main());
+  printf("%ld",_956_main());
   return 0;
 }

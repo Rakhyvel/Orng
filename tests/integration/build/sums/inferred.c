@@ -16,23 +16,23 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _1414_main(void);
+int64_t _1439_main(void);
 
 /* Function definitions */
-int64_t _1414_main(void){
-    int64_t _1414_t0;
-    struct0 _1415_x;
-    uint64_t _1414_t2;
-    int64_t _1414_$retval;
-    _1414_t0 = 101;
-    _1415_x = (struct0) {.tag=0, ._0=_1414_t0};
-    _1414_t2 = 0;
-    $tag_check(_1414_t2, 0, "tests/integration/sums/inferred.orng:2:3:\nfn main() -> Int {\n ^");
-    _1414_$retval = _1415_x._0;
-    return _1414_$retval;
+int64_t _1439_main(void){
+    int64_t _1439_t0;
+    struct0 _1440_x;
+    uint64_t _1439_t2;
+    int64_t _1439_$retval;
+    _1439_t0 = 101;
+    _1440_x = (struct0) {.tag=0, ._0=_1439_t0};
+    _1439_t2 = 0;
+    $tag_check(_1439_t2, 0, "tests/integration/sums/inferred.orng:2:3:\nfn main() -> Int {\n ^");
+    _1439_$retval = _1440_x._0;
+    return _1439_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1414_main());
+  printf("%ld",_1439_main());
   return 0;
 }

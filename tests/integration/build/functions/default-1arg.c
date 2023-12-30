@@ -10,31 +10,31 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _934_main(void);
-int64_t _936_return53(int64_t _936_x);
+int64_t _946_main(void);
+int64_t _948_return53(int64_t _948_x);
 
 /* Function definitions */
-int64_t _934_main(void){
-    function0 _934_t0;
-    int64_t _934_t2;
-    int64_t _934_t1;
-    int64_t _934_$retval;
-    _934_t0 = _936_return53;
-    _934_t2 = 53;
+int64_t _946_main(void){
+    function0 _946_t0;
+    int64_t _946_t2;
+    int64_t _946_t1;
+    int64_t _946_$retval;
+    _946_t0 = _948_return53;
+    _946_t2 = 53;
     $lines[$line_idx++] = "tests/integration/functions/default-1arg.orng:3:14:\n    return53()\n            ^";
-    _934_t1 = _934_t0(_934_t2);
+    _946_t1 = _946_t0(_946_t2);
     $line_idx--;
-    _934_$retval = _934_t1;
-    return _934_$retval;
+    _946_$retval = _946_t1;
+    return _946_$retval;
 }
 
-int64_t _936_return53(int64_t _936_x){
-    int64_t _936_$retval;
-    _936_$retval = _936_x;
-    return _936_$retval;
+int64_t _948_return53(int64_t _948_x){
+    int64_t _948_$retval;
+    _948_$retval = _948_x;
+    return _948_$retval;
 }
 
 int main(void) {
-  printf("%ld",_934_main());
+  printf("%ld",_946_main());
   return 0;
 }

@@ -5,7 +5,7 @@ fn main()->Int {
         match n {
             0 => 0
             1 => 1
-            else => add(fib(n - 1), fib(n - 2))
+            _ => add(fib(n - 1), fib(n - 2))
         }
     }
     n

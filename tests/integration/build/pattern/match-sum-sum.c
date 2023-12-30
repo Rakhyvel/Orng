@@ -24,58 +24,58 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1240_main(void);
+int64_t _1259_main(void);
 
 /* Function definitions */
-int64_t _1240_main(void){
-    int64_t _1240_t1;
-    struct0 _1240_t2;
-    struct1 _1241_x;
-    struct0 _1248_y;
-    uint64_t _1240_t19;
-    uint64_t _1240_t20;
-    uint8_t _1240_t21;
-    uint64_t _1240_t22;
-    uint64_t _1240_t23;
-    uint8_t _1240_t24;
-    int64_t _1240_$retval;
-    int64_t _1240_t18;
-    _1240_t1 = 173;
-    _1240_t2 = (struct0) {.tag=0, ._0=_1240_t1};
-    _1241_x = (struct1) {.tag=1, ._1=_1240_t2};
-    _1248_y = _1241_x._1;
-    _1240_t19 = 0;
-    _1240_t20 = _1248_y.tag;
-    _1240_t21 = _1240_t20==_1240_t19;
-    if (_1240_t21) {
-        goto BB1533;
+int64_t _1259_main(void){
+    int64_t _1259_t1;
+    struct0 _1259_t2;
+    struct1 _1260_x;
+    struct0 _1268_y;
+    uint64_t _1259_t19;
+    uint64_t _1259_t20;
+    uint8_t _1259_t21;
+    uint64_t _1259_t22;
+    uint64_t _1259_t23;
+    uint8_t _1259_t24;
+    int64_t _1259_$retval;
+    int64_t _1259_t18;
+    _1259_t1 = 173;
+    _1259_t2 = (struct0) {.tag=0, ._0=_1259_t1};
+    _1260_x = (struct1) {.tag=1, ._1=_1259_t2};
+    _1268_y = _1260_x._1;
+    _1259_t19 = 0;
+    _1259_t20 = _1268_y.tag;
+    _1259_t21 = _1259_t20==_1259_t19;
+    if (_1259_t21) {
+        goto BB1530;
     } else {
-        goto BB1535;
+        goto BB1532;
     }
-BB1533:
-    _1240_t18 = _1248_y._0;
-    goto BB1534;
-BB1535:
-    _1240_t22 = 1;
-    _1240_t23 = _1248_y.tag;
-    _1240_t24 = _1240_t23==_1240_t22;
-    if (_1240_t24) {
-        goto BB1537;
+BB1530:
+    _1259_t18 = _1268_y._0;
+    goto BB1531;
+BB1532:
+    _1259_t22 = 1;
+    _1259_t23 = _1268_y.tag;
+    _1259_t24 = _1259_t23==_1259_t22;
+    if (_1259_t24) {
+        goto BB1534;
     } else {
-        goto BB1539;
+        goto BB1536;
     }
+BB1531:
+    _1259_$retval = _1259_t18;
+    return _1259_$retval;
 BB1534:
-    _1240_$retval = _1240_t18;
-    return _1240_$retval;
-BB1537:
-    _1240_t18 = _1248_y._1;
-    goto BB1534;
-BB1539:
-    $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:15:32:\n            else => unreachable\n                              ^";
+    _1259_t18 = _1268_y._1;
+    goto BB1531;
+BB1536:
+    $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:15:36:\n            _        => unreachable\n                                  ^";
     $panic("reached unreachable code\n");
 }
 
 int main(void) {
-  printf("%ld",_1240_main());
+  printf("%ld",_1259_main());
   return 0;
 }

@@ -3,7 +3,7 @@ fn main() -> Int {
     let x: ?Int = match true {
         false => .some <- 15
         false => .some <- 15
-        else  => .some <- 128
+        _     => .some <- 128
     }
     x.some
 }

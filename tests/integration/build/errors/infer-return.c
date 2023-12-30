@@ -17,59 +17,59 @@ typedef struct {
 typedef struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _577_main(void);
-struct1 _582_f(void);
+int64_t _587_main(void);
+struct1 _593_f(void);
 
 /* Function definitions */
-int64_t _577_main(void){
-    function0 _577_t1;
-    struct1 _577_t2;
-    uint64_t _577_t3;
-    uint64_t _577_t4;
-    uint8_t _577_t5;
-    int64_t _577_$retval;
-    uint64_t _577_t6;
-    uint64_t _577_t7;
-    uint8_t _577_t8;
-    _577_t1 = _582_f;
+int64_t _587_main(void){
+    function0 _587_t1;
+    struct1 _587_t2;
+    uint64_t _587_t3;
+    uint64_t _587_t4;
+    uint8_t _587_t5;
+    int64_t _587_$retval;
+    uint64_t _587_t6;
+    uint64_t _587_t7;
+    uint8_t _587_t8;
+    _587_t1 = _593_f;
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:3:13:\n    match f() {\n           ^";
-    _577_t2 = _577_t1();
+    _587_t2 = _587_t1();
     $line_idx--;
-    _577_t3 = 0;
-    _577_t4 = _577_t2.tag;
-    _577_t5 = _577_t4==_577_t3;
-    if (_577_t5) {
-        goto BB699;
+    _587_t3 = 0;
+    _587_t4 = _587_t2.tag;
+    _587_t5 = _587_t4==_587_t3;
+    if (_587_t5) {
+        goto BB709;
     } else {
-        goto BB700;
+        goto BB710;
     }
-BB699:
+BB709:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB700:
-    _577_t6 = 1;
-    _577_t7 = _577_t2.tag;
-    _577_t8 = _577_t7==_577_t6;
-    if (_577_t8) {
-        goto BB702;
+BB710:
+    _587_t6 = 1;
+    _587_t7 = _587_t2.tag;
+    _587_t8 = _587_t7==_587_t6;
+    if (_587_t8) {
+        goto BB712;
     } else {
-        goto BB706;
+        goto BB716;
     }
-BB702:
-    _577_$retval = 238;
-    return _577_$retval;
-BB706:
-    $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:6:28:\n        else => unreachable\n                          ^";
+BB712:
+    _587_$retval = 238;
+    return _587_$retval;
+BB716:
+    $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:6:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }
 
-struct1 _582_f(void){
-    struct1 _582_$retval;
-    _582_$retval = (struct1) {.tag=1};
-    return _582_$retval;
+struct1 _593_f(void){
+    struct1 _593_$retval;
+    _593_$retval = (struct1) {.tag=1};
+    return _593_$retval;
 }
 
 int main(void) {
-  printf("%ld",_577_main());
+  printf("%ld",_587_main());
   return 0;
 }

@@ -7,6 +7,6 @@ fn main() -> Int {
         .a => 168
         .b => 169
         .c => 170
-        else => unreachable
+        _ => unreachable
     }
 }

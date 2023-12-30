@@ -15,7 +15,7 @@
 - [ ] Comments on each function and struct field
 - [x] Make sure nothing is more than 140 columns
 - [x] Change some while loops with counter to enhanced for loops
-- [ ] See if things *really* need to be marked `pub`
+- [x] See if things *really* need to be marked `pub`
 - [x] All inits have a corresponding deinit
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
@@ -237,7 +237,7 @@
         - [x] `-Wlogical-op`
         - [x] `-Wshadow`
         - [x] `-Wmisleading-indentation`
-- [x] pattern matching
+- [ ] pattern matching
     - [x] `let` product destructuring
         - [x] `mut` applies before symbols
         - [x] Identifiers define new symbols, having a name repeat is a redefinition error
@@ -271,6 +271,7 @@
         - [x] Fix syntax with nested matches
         - [x] `_` to ignore value 
         - [x] Error if match is not total
+        - [ ] Remove `else` from match blocks
 - [ ] new optimizations
     - [x] measure source-to-output ratio
     - [x] string literals should be indexed at compile-time, dont do runtime check

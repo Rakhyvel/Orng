@@ -153,7 +153,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand_from_list(ast.children().*, errors, allocator);
         },
         .mapping => {
-            try expand(ast.mapping_lhs(), errors, allocator);
+            try expand(ast.lhs(), errors, allocator);
             try expand(ast.rhs(), errors, allocator);
         },
         .@"while" => {

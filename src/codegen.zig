@@ -256,8 +256,8 @@ fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninf
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     switch (_type.*) {
         .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
-            if (_type.common().expanded_type.? != _type) {
-                try output_type(_type.common().expanded_type.?, writer);
+            if (_type.common()._expanded_type.? != _type) {
+                try output_type(_type.common()._expanded_type.?, writer);
             } else {
                 try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
             }

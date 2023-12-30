@@ -3,7 +3,7 @@ fn main() -> Int {
     match f() {
         .ok => unreachable
         .some_error => 239
-        else => unreachable
+        _ => unreachable
     }
 }
 

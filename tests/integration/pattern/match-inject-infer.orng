@@ -7,6 +7,6 @@ fn main() -> Int {
         .a <- a => a
         .b <- b => if b {10} else {3}
         .c <- c => {_ = c; 4}
-        else => unreachable
+        _ => unreachable
     }
 }

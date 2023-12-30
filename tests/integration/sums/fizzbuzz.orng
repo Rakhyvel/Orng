@@ -12,6 +12,6 @@ fn fizzbuzz(n: Int) -> Fizz_Buzz_Result {
         {n % 15} => .string <- "fizzbuzz"
         {n % 5}  => .string <- "buzz"
         {n % 3}  => .string <- "fizz"
-        else     => .integer <- n
+        _        => .integer <- n
     }
 }

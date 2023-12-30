@@ -17,42 +17,42 @@ typedef struct {
 typedef int64_t(*function1)(void);
 
 /* Function forward definitions */
-int64_t _1012_main(void);
-int64_t _1014_f(void);
+int64_t _1025_main(void);
+int64_t _1027_f(void);
 
 /* Function definitions */
-int64_t _1012_main(void){
-    int64_t _1012_t1;
-    int64_t _1012_t2;
-    int64_t _1012_t3;
-    int64_t _1012_t4;
-    struct0 _1013_x;
-    function1 _1012_t5;
-    int64_t _1012_t6;
-    int64_t _1012_t7;
-    int64_t _1012_$retval;
-    _1012_t1 = 0;
-    _1012_t2 = 0;
-    _1012_t3 = 0;
-    _1012_t4 = 0;
-    _1013_x = (struct0) {_1012_t1, _1012_t2, _1012_t3, _1012_t4};
-    _1012_t5 = _1014_f;
+int64_t _1025_main(void){
+    int64_t _1025_t1;
+    int64_t _1025_t2;
+    int64_t _1025_t3;
+    int64_t _1025_t4;
+    struct0 _1026_x;
+    function1 _1025_t5;
+    int64_t _1025_t6;
+    int64_t _1025_t7;
+    int64_t _1025_$retval;
+    _1025_t1 = 0;
+    _1025_t2 = 0;
+    _1025_t3 = 0;
+    _1025_t4 = 0;
+    _1026_x = (struct0) {_1025_t1, _1025_t2, _1025_t3, _1025_t4};
+    _1025_t5 = _1027_f;
     $lines[$line_idx++] = "tests/integration/lint/array-neg-bounds-check.orng:4:9:\n    x[f()]\n       ^";
-    _1012_t6 = _1012_t5();
+    _1025_t6 = _1025_t5();
     $line_idx--;
-    _1012_t7 = 4;
-    $bounds_check(_1012_t6, _1012_t7, "tests/integration/lint/array-neg-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
-    _1012_$retval = *((int64_t*)&_1013_x + _1012_t6);
-    return _1012_$retval;
+    _1025_t7 = 4;
+    $bounds_check(_1025_t6, _1025_t7, "tests/integration/lint/array-neg-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
+    _1025_$retval = *((int64_t*)&_1026_x + _1025_t6);
+    return _1025_$retval;
 }
 
-int64_t _1014_f(void){
-    int64_t _1014_$retval;
-    _1014_$retval = -100;
-    return _1014_$retval;
+int64_t _1027_f(void){
+    int64_t _1027_$retval;
+    _1027_$retval = -100;
+    return _1027_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1012_main());
+  printf("%ld",_1025_main());
   return 0;
 }

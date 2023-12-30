@@ -13,49 +13,49 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _531_main(void);
+int64_t _540_main(void);
 
 /* Function definitions */
-int64_t _531_main(void){
-    int64_t _531_t1;
-    double _531_t2;
-    struct0 _532_x;
-    int64_t _531_t4;
-    uint8_t _531_t6;
-    int64_t _531_t3;
-    double _531_t7;
-    uint8_t _531_t9;
-    int64_t _531_$retval;
-    _531_t1 = 0;
-    _531_t2 = 0.0e+00;
-    _532_x = (struct0) {_531_t1, _531_t2};
-    _531_t4 = 0;
-    _531_t6 = _532_x._0==_531_t4;
-    if (_531_t6) {
-        goto BB633;
+int64_t _540_main(void){
+    int64_t _540_t1;
+    double _540_t2;
+    struct0 _541_x;
+    int64_t _540_t4;
+    uint8_t _540_t6;
+    int64_t _540_t3;
+    double _540_t7;
+    uint8_t _540_t9;
+    int64_t _540_$retval;
+    _540_t1 = 0;
+    _540_t2 = 0.0e+00;
+    _541_x = (struct0) {_540_t1, _540_t2};
+    _540_t4 = 0;
+    _540_t6 = _541_x._0==_540_t4;
+    if (_540_t6) {
+        goto BB643;
     } else {
-        goto BB640;
+        goto BB650;
     }
-BB633:
-    _531_t7 = 0.0e+00;
-    _531_t9 = _532_x._1==_531_t7;
-    if (_531_t9) {
-        goto BB636;
+BB643:
+    _540_t7 = 0.0e+00;
+    _540_t9 = _541_x._1==_540_t7;
+    if (_540_t9) {
+        goto BB646;
     } else {
-        goto BB640;
+        goto BB650;
     }
-BB640:
-    _531_t3 = 0;
-    goto BB639;
-BB636:
-    _531_t3 = 135;
-    goto BB639;
-BB639:
-    _531_$retval = _531_t3;
-    return _531_$retval;
+BB650:
+    _540_t3 = 0;
+    goto BB649;
+BB646:
+    _540_t3 = 135;
+    goto BB649;
+BB649:
+    _540_$retval = _540_t3;
+    return _540_$retval;
 }
 
 int main(void) {
-  printf("%ld",_531_main());
+  printf("%ld",_540_main());
   return 0;
 }

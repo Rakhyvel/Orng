@@ -10,48 +10,48 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _792_main(void);
-int64_t _794_f(int64_t _794_x);
+int64_t _804_main(void);
+int64_t _806_f(int64_t _806_x);
 
 /* Function definitions */
-int64_t _792_main(void){
-    function0 _792_t0;
-    int64_t _792_t2;
-    int64_t _792_t1;
-    int64_t _792_$retval;
-    _792_t0 = _794_f;
-    _792_t2 = 1;
+int64_t _804_main(void){
+    function0 _804_t0;
+    int64_t _804_t2;
+    int64_t _804_t1;
+    int64_t _804_$retval;
+    _804_t0 = _806_f;
+    _804_t2 = 1;
     $lines[$line_idx++] = "tests/integration/expressions/neq-0-rhs.orng:3:7:\n    f(1)\n     ^";
-    _792_t1 = _792_t0(_792_t2);
+    _804_t1 = _804_t0(_804_t2);
     $line_idx--;
-    _792_$retval = _792_t1;
-    return _792_$retval;
+    _804_$retval = _804_t1;
+    return _804_$retval;
 }
 
-int64_t _794_f(int64_t _794_x){
-    int64_t _794_t1;
-    uint8_t _794_t3;
-    int64_t _794_t0;
-    int64_t _794_$retval;
-    _794_t1 = 0;
-    _794_t3 = _794_x==_794_t1;
-    if (_794_t3) {
-        goto BB1008;
+int64_t _806_f(int64_t _806_x){
+    int64_t _806_t1;
+    uint8_t _806_t3;
+    int64_t _806_t0;
+    int64_t _806_$retval;
+    _806_t1 = 0;
+    _806_t3 = _806_x==_806_t1;
+    if (_806_t3) {
+        goto BB1018;
     } else {
-        goto BB1004;
+        goto BB1014;
     }
-BB1008:
-    _794_t0 = 3;
-    goto BB1007;
-BB1004:
-    _794_t0 = 173;
-    goto BB1007;
-BB1007:
-    _794_$retval = _794_t0;
-    return _794_$retval;
+BB1018:
+    _806_t0 = 3;
+    goto BB1017;
+BB1014:
+    _806_t0 = 173;
+    goto BB1017;
+BB1017:
+    _806_$retval = _806_t0;
+    return _806_$retval;
 }
 
 int main(void) {
-  printf("%ld",_792_main());
+  printf("%ld",_804_main());
   return 0;
 }

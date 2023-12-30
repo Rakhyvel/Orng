@@ -149,7 +149,7 @@ fn decorate_identifiers(
             try decorate_identifiers_from_list(ast.children().*, ast.match.scope.?, errors, allocator);
         },
         .mapping => {
-            try decorate_identifiers(ast.mapping_lhs(), scope, errors, allocator);
+            try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             // non-else mappings have their own scope
             // else mappings use the surrounding match scope
             try decorate_identifiers(ast.rhs(), ast.mapping.scope orelse scope, errors, allocator);

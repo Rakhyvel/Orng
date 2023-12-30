@@ -1,8 +1,8 @@
-// 129
+// 
 fn main() -> Int {
-    let x: ?Int = match true {
+    let x: Int = match true {
         false => 1
         false => 2
     }
-    x orelse 129
+    x
 }

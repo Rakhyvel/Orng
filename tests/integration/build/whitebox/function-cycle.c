@@ -10,80 +10,80 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _1564_main(void);
-int64_t _1566_a(int64_t _1566_n);
-int64_t _1568_b(int64_t _1568_n);
-int64_t _1570_c(int64_t _1570_n);
+int64_t _1589_main(void);
+int64_t _1591_a(int64_t _1591_n);
+int64_t _1593_b(int64_t _1593_n);
+int64_t _1595_c(int64_t _1595_n);
 
 /* Function definitions */
-int64_t _1564_main(void){
-    function0 _1564_t0;
-    int64_t _1564_t2;
-    int64_t _1564_t1;
-    int64_t _1564_$retval;
-    _1564_t0 = _1566_a;
-    _1564_t2 = 47;
+int64_t _1589_main(void){
+    function0 _1589_t0;
+    int64_t _1589_t2;
+    int64_t _1589_t1;
+    int64_t _1589_$retval;
+    _1589_t0 = _1591_a;
+    _1589_t2 = 47;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:2:21:\nfn main() -> Int {a(47)}\n                   ^";
-    _1564_t1 = _1564_t0(_1564_t2);
+    _1589_t1 = _1589_t0(_1589_t2);
     $line_idx--;
-    _1564_$retval = _1564_t1;
-    return _1564_$retval;
+    _1589_$retval = _1589_t1;
+    return _1589_$retval;
 }
 
-int64_t _1566_a(int64_t _1566_n){
-    function0 _1566_t0;
-    int64_t _1566_t1;
-    int64_t _1566_$retval;
-    _1566_t0 = _1568_b;
+int64_t _1591_a(int64_t _1591_n){
+    function0 _1591_t0;
+    int64_t _1591_t1;
+    int64_t _1591_$retval;
+    _1591_t0 = _1593_b;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:4:24:\nfn a(n: Int) -> Int {b(n)}\n                      ^";
-    _1566_t1 = _1566_t0(_1566_n);
+    _1591_t1 = _1591_t0(_1591_n);
     $line_idx--;
-    _1566_$retval = _1566_t1;
-    return _1566_$retval;
+    _1591_$retval = _1591_t1;
+    return _1591_$retval;
 }
 
-int64_t _1568_b(int64_t _1568_n){
-    function0 _1568_t0;
-    int64_t _1568_t1;
-    int64_t _1568_$retval;
-    _1568_t0 = _1570_c;
+int64_t _1593_b(int64_t _1593_n){
+    function0 _1593_t0;
+    int64_t _1593_t1;
+    int64_t _1593_$retval;
+    _1593_t0 = _1595_c;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:6:24:\nfn b(n: Int) -> Int {c(n)}\n                      ^";
-    _1568_t1 = _1568_t0(_1568_n);
+    _1593_t1 = _1593_t0(_1593_n);
     $line_idx--;
-    _1568_$retval = _1568_t1;
-    return _1568_$retval;
+    _1593_$retval = _1593_t1;
+    return _1593_$retval;
 }
 
-int64_t _1570_c(int64_t _1570_n){
-    int64_t _1570_t1;
-    uint8_t _1570_t3;
-    function0 _1570_t5;
-    int64_t _1570_t6;
-    int64_t _1570_t0;
-    int64_t _1570_$retval;
-    _1570_t1 = 47;
-    _1570_t3 = _1570_n==_1570_t1;
-    if (_1570_t3) {
-        goto BB1886;
+int64_t _1595_c(int64_t _1595_n){
+    int64_t _1595_t1;
+    uint8_t _1595_t3;
+    function0 _1595_t5;
+    int64_t _1595_t6;
+    int64_t _1595_t0;
+    int64_t _1595_$retval;
+    _1595_t1 = 47;
+    _1595_t3 = _1595_n==_1595_t1;
+    if (_1595_t3) {
+        goto BB1883;
     } else {
-        goto BB1890;
+        goto BB1887;
     }
-BB1886:
-    _1570_t0 = 47;
-    goto BB1889;
-BB1890:
-    _1570_t5 = _1566_a;
+BB1883:
+    _1595_t0 = 47;
+    goto BB1886;
+BB1887:
+    _1595_t5 = _1591_a;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
-    _1570_t6 = _1570_t5(_1570_n);
+    _1595_t6 = _1595_t5(_1595_n);
     $line_idx--;
-    _1570_t0 = _1570_t6;
-    goto BB1889;
-BB1889:
-    _1570_$retval = _1570_t0;
-    return _1570_$retval;
+    _1595_t0 = _1595_t6;
+    goto BB1886;
+BB1886:
+    _1595_$retval = _1595_t0;
+    return _1595_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1564_main());
+  printf("%ld",_1589_main());
   return 0;
 }

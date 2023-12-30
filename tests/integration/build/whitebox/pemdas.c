@@ -7,57 +7,57 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1599_main(void);
+int64_t _1624_main(void);
 
 /* Function definitions */
-int64_t _1599_main(void){
-    int64_t _1600_x;
-    int64_t* _1600_y;
-    int64_t _1599_t3;
-    uint8_t _1599_t5;
-    int64_t _1599_t2;
-    int64_t _1599_$retval;
-    int64_t _1602_z;
-    int64_t* _1599_t7;
-    int64_t _1599_t10;
-    int64_t _1599_t11;
-    int64_t _1599_t13;
-    int64_t _1599_t14;
-    int64_t _1599_t17;
-    _1600_x = 0;
-    _1600_y = &_1600_x;
-    _1599_t3 = 0;
-    _1599_t5 = *_1600_y==_1599_t3;
-    if (_1599_t5) {
-        goto BB1939;
+int64_t _1624_main(void){
+    int64_t _1625_x;
+    int64_t* _1625_y;
+    int64_t _1624_t3;
+    uint8_t _1624_t5;
+    int64_t _1624_t2;
+    int64_t _1624_$retval;
+    int64_t _1627_z;
+    int64_t* _1624_t7;
+    int64_t _1624_t10;
+    int64_t _1624_t11;
+    int64_t _1624_t13;
+    int64_t _1624_t14;
+    int64_t _1624_t17;
+    _1625_x = 0;
+    _1625_y = &_1625_x;
+    _1624_t3 = 0;
+    _1624_t5 = *_1625_y==_1624_t3;
+    if (_1624_t5) {
+        goto BB1936;
     } else {
-        goto BB1943;
+        goto BB1940;
     }
+BB1936:
+    _1627_z = *_1625_y;
+    _1624_t7 = &_1627_z;
+    *_1624_t7 = $add_int64_t(_1627_z, _1627_z, "tests/integration/whitebox/pemdas.orng:7:24:\n        (&mut z)^ = z + z \n                      ^");
+    _1627_z = $sub_int64_t(_1627_z, _1627_z, "tests/integration/whitebox/pemdas.orng:8:16:\n        z = z - z \n              ^");
+    _1627_z = $mult_int64_t(_1627_z, _1627_z, "tests/integration/whitebox/pemdas.orng:9:16:\n        z = z * z \n              ^");
+    _1624_t10 = 1;
+    _1624_t11 = $add_int64_t(_1627_z, _1624_t10, "tests/integration/whitebox/pemdas.orng:10:21:\n        z = z / (z + 1)\n                   ^");
+    _1627_z = $div_int64_t(_1627_z, _1624_t11, "tests/integration/whitebox/pemdas.orng:10:16:\n        z = z / (z + 1)\n              ^");
+    _1624_t13 = 1;
+    _1624_t14 = $add_int64_t(_1627_z, _1624_t13, "tests/integration/whitebox/pemdas.orng:11:21:\n        z = z % (z + 1) \n                   ^");
+    _1627_z = $mod_int64_t(_1627_z, _1624_t14, "tests/integration/whitebox/pemdas.orng:11:16:\n        z = z % (z + 1) \n              ^");
+    _1624_t17 = -1;
+    _1627_z = $mult_int64_t(_1627_z, _1624_t17, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
+    _1624_t2 = $mult_int64_t(_1627_z, _1624_t17, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
+    goto BB1939;
+BB1940:
+    _1624_t2 = 1000;
+    goto BB1939;
 BB1939:
-    _1602_z = *_1600_y;
-    _1599_t7 = &_1602_z;
-    *_1599_t7 = $add_int64_t(_1602_z, _1602_z, "tests/integration/whitebox/pemdas.orng:7:24:\n        (&mut z)^ = z + z \n                      ^");
-    _1602_z = $sub_int64_t(_1602_z, _1602_z, "tests/integration/whitebox/pemdas.orng:8:16:\n        z = z - z \n              ^");
-    _1602_z = $mult_int64_t(_1602_z, _1602_z, "tests/integration/whitebox/pemdas.orng:9:16:\n        z = z * z \n              ^");
-    _1599_t10 = 1;
-    _1599_t11 = $add_int64_t(_1602_z, _1599_t10, "tests/integration/whitebox/pemdas.orng:10:21:\n        z = z / (z + 1)\n                   ^");
-    _1602_z = $div_int64_t(_1602_z, _1599_t11, "tests/integration/whitebox/pemdas.orng:10:16:\n        z = z / (z + 1)\n              ^");
-    _1599_t13 = 1;
-    _1599_t14 = $add_int64_t(_1602_z, _1599_t13, "tests/integration/whitebox/pemdas.orng:11:21:\n        z = z % (z + 1) \n                   ^");
-    _1602_z = $mod_int64_t(_1602_z, _1599_t14, "tests/integration/whitebox/pemdas.orng:11:16:\n        z = z % (z + 1) \n              ^");
-    _1599_t17 = -1;
-    _1602_z = $mult_int64_t(_1602_z, _1599_t17, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
-    _1599_t2 = $mult_int64_t(_1602_z, _1599_t17, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
-    goto BB1942;
-BB1943:
-    _1599_t2 = 1000;
-    goto BB1942;
-BB1942:
-    _1599_$retval = _1599_t2;
-    return _1599_$retval;
+    _1624_$retval = _1624_t2;
+    return _1624_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1599_main());
+  printf("%ld",_1624_main());
   return 0;
 }

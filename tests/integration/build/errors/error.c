@@ -16,23 +16,23 @@ typedef struct {
 } struct0;
 
 /* Function forward definitions */
-int64_t _562_main(void);
+int64_t _571_main(void);
 
 /* Function definitions */
-int64_t _562_main(void){
-    int64_t _562_t0;
-    struct0 _563_x;
-    uint64_t _562_t2;
-    int64_t _562_$retval;
-    _562_t0 = 117;
-    _563_x = (struct0) {.tag=1, ._1=_562_t0};
-    _562_t2 = 1;
-    $tag_check(_562_t2, 1, "tests/integration/errors/error.orng:2:3:\nfn main() -> Int {\n ^");
-    _562_$retval = _563_x._1;
-    return _562_$retval;
+int64_t _571_main(void){
+    int64_t _571_t0;
+    struct0 _572_x;
+    uint64_t _571_t2;
+    int64_t _571_$retval;
+    _571_t0 = 117;
+    _572_x = (struct0) {.tag=1, ._1=_571_t0};
+    _571_t2 = 1;
+    $tag_check(_571_t2, 1, "tests/integration/errors/error.orng:2:3:\nfn main() -> Int {\n ^");
+    _571_$retval = _572_x._1;
+    return _571_$retval;
 }
 
 int main(void) {
-  printf("%ld",_562_main());
+  printf("%ld",_571_main());
   return 0;
 }

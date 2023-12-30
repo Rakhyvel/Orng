@@ -136,7 +136,7 @@ fn symbol_table_from_AST(
             try create_match_pattern_symbol(ast, new_scope, errors, allocator);
             try symbol_table_from_AST_list(ast.children().*, new_scope, errors, allocator);
         },
-        .mapping => try symbol_table_from_AST(ast.mapping_lhs(), scope, errors, allocator),
+        .mapping => try symbol_table_from_AST(ast.lhs(), scope, errors, allocator),
         .@"while" => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             var loop_scope = symbol_.Scope.init(new_scope, "", allocator); // let, cond, post are NOT in loop scope
@@ -320,21 +320,17 @@ fn create_symbol(
 
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
     for (match.children().items) |mapping| {
-        if (mapping.mapping_lhs() != null) {
-            const new_scope = symbol_.Scope.init(scope, "", allocator);
-            mapping.mapping.scope = new_scope;
-            var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
-            defer symbols.deinit();
-            const _type = ast_.AST.create_type_of(match.expr().token(), match.expr(), allocator);
-            try create_symbol(&symbols, mapping.mapping_lhs().?, _type, match.expr(), new_scope, errors, allocator);
-            for (symbols.items) |symbol| {
-                symbol.defined = true;
-            }
-            try put_all_symbols(&symbols, new_scope, errors);
-            try symbol_table_from_AST(mapping.rhs(), new_scope, errors, allocator);
-        } else {
-            try symbol_table_from_AST(mapping.rhs(), scope, errors, allocator);
+        const new_scope = symbol_.Scope.init(scope, "", allocator);
+        mapping.mapping.scope = new_scope;
+        var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
+        defer symbols.deinit();
+        const _type = ast_.AST.create_type_of(match.expr().token(), match.expr(), allocator);
+        try create_symbol(&symbols, mapping.lhs(), _type, match.expr(), new_scope, errors, allocator);
+        for (symbols.items) |symbol| {
+            symbol.defined = true;
         }
+        try put_all_symbols(&symbols, new_scope, errors);
+        try symbol_table_from_AST(mapping.rhs(), new_scope, errors, allocator);
     }
 }
 

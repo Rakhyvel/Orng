@@ -10,59 +10,59 @@
 typedef uint8_t(*function0)(double);
 
 /* Function forward definitions */
-int64_t _661_main(void);
-uint8_t _666_f(double _666_x);
+int64_t _673_main(void);
+uint8_t _678_f(double _678_x);
 
 /* Function definitions */
-int64_t _661_main(void){
-    function0 _661_t1;
-    double _661_t3;
-    uint8_t _661_t2;
-    int64_t _661_t0;
-    int64_t _661_$retval;
-    _661_t1 = _666_f;
-    _661_t3 = 4.0e+00;
+int64_t _673_main(void){
+    function0 _673_t1;
+    double _673_t3;
+    uint8_t _673_t2;
+    int64_t _673_t0;
+    int64_t _673_$retval;
+    _673_t1 = _678_f;
+    _673_t3 = 4.0e+00;
     $lines[$line_idx++] = "tests/integration/expressions/div-1.orng:3:10:\n    if f(4.0) {\n        ^";
-    _661_t2 = _661_t1(_661_t3);
+    _673_t2 = _673_t1(_673_t3);
     $line_idx--;
-    if (_661_t2) {
-        goto BB816;
+    if (_673_t2) {
+        goto BB826;
     } else {
-        goto BB820;
+        goto BB830;
     }
-BB816:
-    _661_t0 = 190;
-    goto BB819;
-BB820:
-    _661_t0 = 4;
-    goto BB819;
-BB819:
-    _661_$retval = _661_t0;
-    return _661_$retval;
+BB826:
+    _673_t0 = 190;
+    goto BB829;
+BB830:
+    _673_t0 = 4;
+    goto BB829;
+BB829:
+    _673_$retval = _673_t0;
+    return _673_$retval;
 }
 
-uint8_t _666_f(double _666_x){
-    uint8_t _666_t3;
-    uint8_t _666_t2;
-    uint8_t _666_$retval;
-    _666_t3 = _666_x==_666_x;
-    if (_666_t3) {
-        goto BB811;
+uint8_t _678_f(double _678_x){
+    uint8_t _678_t3;
+    uint8_t _678_t2;
+    uint8_t _678_$retval;
+    _678_t3 = _678_x==_678_x;
+    if (_678_t3) {
+        goto BB821;
     } else {
-        goto BB814;
+        goto BB824;
     }
-BB811:
-    _666_t2 = 1;
-    goto BB813;
-BB814:
-    _666_t2 = 0;
-    goto BB813;
-BB813:
-    _666_$retval = _666_t2;
-    return _666_$retval;
+BB821:
+    _678_t2 = 1;
+    goto BB823;
+BB824:
+    _678_t2 = 0;
+    goto BB823;
+BB823:
+    _678_$retval = _678_t2;
+    return _678_$retval;
 }
 
 int main(void) {
-  printf("%ld",_661_main());
+  printf("%ld",_673_main());
   return 0;
 }

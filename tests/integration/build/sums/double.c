@@ -23,37 +23,37 @@ typedef struct {
 } struct1;
 
 /* Function forward definitions */
-int64_t _1392_main(void);
+int64_t _1416_main(void);
 
 /* Function definitions */
-int64_t _1392_main(void){
-    int64_t _1392_t0;
-    struct0 _1392_t1;
-    struct1 _1393_x;
-    uint64_t _1392_t4;
-    uint64_t _1392_t5;
-    uint64_t _1392_t6;
-    uint64_t _1392_t7;
-    int64_t _1392_$retval;
-    _1392_t0 = 4;
-    _1392_t1 = (struct0) {.tag=0, ._0=_1392_t0};
-    _1393_x = (struct1) {.tag=0, ._0=_1392_t1};
-    _1392_t4 = 0;
-    $tag_check(_1392_t4, 0, "tests/integration/sums/double.orng:4:11:\n    x.sum.int = 104\n         ^");
-    _1392_t5 = _1393_x._0.tag;
-    $tag_check(_1392_t4, 0, "tests/integration/sums/double.orng:4:20:\n    x.sum.int = 104\n                  ^");
-    $tag_check(_1392_t5, 0, "tests/integration/sums/double.orng:4:20:\n    x.sum.int = 104\n                  ^");
-    _1393_x._0._0 = 104;
-    _1392_t6 = _1393_x.tag;
-    $tag_check(_1392_t6, 0, "tests/integration/sums/double.orng:5:11:\n    x.sum.int\n         ^");
-    _1392_t7 = _1393_x._0.tag;
-    $tag_check(_1392_t6, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
-    $tag_check(_1392_t7, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
-    _1392_$retval = _1393_x._0._0;
-    return _1392_$retval;
+int64_t _1416_main(void){
+    int64_t _1416_t0;
+    struct0 _1416_t1;
+    struct1 _1417_x;
+    uint64_t _1416_t4;
+    uint64_t _1416_t5;
+    uint64_t _1416_t6;
+    uint64_t _1416_t7;
+    int64_t _1416_$retval;
+    _1416_t0 = 4;
+    _1416_t1 = (struct0) {.tag=0, ._0=_1416_t0};
+    _1417_x = (struct1) {.tag=0, ._0=_1416_t1};
+    _1416_t4 = 0;
+    $tag_check(_1416_t4, 0, "tests/integration/sums/double.orng:4:11:\n    x.sum.int = 104\n         ^");
+    _1416_t5 = _1417_x._0.tag;
+    $tag_check(_1416_t4, 0, "tests/integration/sums/double.orng:4:20:\n    x.sum.int = 104\n                  ^");
+    $tag_check(_1416_t5, 0, "tests/integration/sums/double.orng:4:20:\n    x.sum.int = 104\n                  ^");
+    _1417_x._0._0 = 104;
+    _1416_t6 = _1417_x.tag;
+    $tag_check(_1416_t6, 0, "tests/integration/sums/double.orng:5:11:\n    x.sum.int\n         ^");
+    _1416_t7 = _1417_x._0.tag;
+    $tag_check(_1416_t6, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_1416_t7, 0, "tests/integration/sums/double.orng:2:3:\nfn main() -> Int {\n ^");
+    _1416_$retval = _1417_x._0._0;
+    return _1416_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1392_main());
+  printf("%ld",_1416_main());
   return 0;
 }

@@ -55,7 +55,7 @@ BB265:
     _249_t0 = 11;
     goto BB262;
 BB267:
-    $lines[$line_idx++] = "tests/integration/comptime/optional.orng:10:28:\n        else => unreachable\n                          ^";
+    $lines[$line_idx++] = "tests/integration/comptime/optional.orng:10:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }
 

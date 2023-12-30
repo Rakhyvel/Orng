@@ -3,6 +3,6 @@ fn main() -> Int {
     match ((100, 100), (200, 200)) {
         ((100, 130), _) => 4
         ((100, 100), _) => 170
-        else => unreachable
+        _               => unreachable
     }
 }

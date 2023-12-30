@@ -4,7 +4,7 @@ fn main() -> Int {
         .ok => unreachable
         .error_1 => unreachable
         .error_2 <- x => x
-        else => unreachable
+        _ => unreachable
     }
 }
 

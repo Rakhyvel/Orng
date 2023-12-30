@@ -734,7 +734,7 @@ fn validate_AST_internal(
                 return ast;
             }
         },
-        .match => { // TODO: TOO LONG!
+        .match => {
             if (ast.match.let != null) {
                 ast.match.let = validate_AST(ast.match.let.?, null, errors, allocator);
             }
@@ -744,23 +744,10 @@ fn validate_AST_internal(
             const expr_type_expanded = ast.expr().typeof(allocator).expand_type(allocator);
             try assert_none_poisoned(expr_type_expanded);
 
-            var expected_expanded = if (expected != null) expected.?.expand_type(allocator) else null;
             for (0..ast.children().items.len) |i| {
-                if (expected == null or ast.match.has_else) {
-                    // either not expecting anything, OR match has `else` => validate regular expected type
-                    ast.children().items[i] = validate_AST(ast.children().items[i], expected, errors, allocator);
-                } else if (expected_expanded != null and expected_expanded.?.* == .sum and expected_expanded.?.sum.from == .optional) {
-                    // match has no `else`, expecting an optional type => validate mappings w/ base of optional expected type
-                    ast.children().items[i] = validate_AST(ast.children().items[i], expected_expanded.?.get_some_type(), errors, allocator);
-                } else {
-                    // match has no else, not expecting an optional type => type error
-                    // TODO: Include all that ^ in the error message (without having to asser_valid()!), because this is kinda confusing
-                    // TODO: Matches should have to be exhaustive, so they would never return none :-)
-                    return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
-                }
-                if (ast.children().items[i].mapping_lhs()) |lhs| {
-                    try assert_pattern_matches(lhs, expr_type_expanded, errors, allocator);
-                }
+                ast.children().items[i] = validate_AST(ast.children().items[i], expected, errors, allocator);
+                try assert_none_poisoned(ast.children().items[i]);
+                try assert_pattern_matches(ast.children().items[i].lhs(), expr_type_expanded, errors, allocator);
             }
             try assert_none_poisoned(ast.children());
             try exhaustive_check(expr_type_expanded, ast.children(), ast.token().span, errors, allocator);
@@ -769,7 +756,7 @@ fn validate_AST_internal(
         .mapping => {
             // lhs for match mappings must be done elsewhere
             ast.set_rhs(validate_AST(ast.rhs(), expected, errors, allocator));
-            try assert_none_poisoned(.{ ast.mapping_lhs(), ast.rhs() });
+            try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
             return ast;
         },
         .@"while" => {
@@ -1409,10 +1396,7 @@ fn exhaustive_check(
             ids.append(i) catch unreachable;
         }
         for (mappings.items) |m| {
-            if (m.mapping_lhs() == null) {
-                continue;
-            }
-            exhaustive_check_sub(m.mapping_lhs().?, &ids);
+            exhaustive_check_sub(m.lhs(), &ids);
         }
         if (ids.items.len > 0) {
             var forgotten = std.ArrayList(*ast_.AST).init(std.heap.page_allocator); // Not deallocated, lives until error emission

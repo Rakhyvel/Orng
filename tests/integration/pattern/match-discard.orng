@@ -1,5 +1,5 @@
 // 232
 fn main() -> Int {
-    _ = match 0 {else => 4}
+    _ = match 0 {_ => 4}
     232
 }

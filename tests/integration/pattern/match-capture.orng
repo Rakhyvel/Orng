@@ -3,6 +3,6 @@ fn main() -> Int {
     match 167 {
         x => x
         x => x
-        else => unreachable
+        _ => unreachable
     }
 }

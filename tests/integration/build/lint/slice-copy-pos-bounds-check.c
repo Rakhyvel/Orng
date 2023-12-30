@@ -22,52 +22,52 @@ typedef struct {
 typedef int64_t(*function2)(void);
 
 /* Function forward definitions */
-int64_t _1030_main(void);
-int64_t _1032_f(void);
+int64_t _1043_main(void);
+int64_t _1045_f(void);
 
 /* Function definitions */
-int64_t _1030_main(void){
-    int64_t _1030_t1;
-    int64_t _1030_t2;
-    int64_t _1030_t3;
-    int64_t _1030_t4;
-    struct0 _1031_x;
-    int64_t _1030_t6;
-    int64_t _1030_t7;
-    int64_t* _1030_t8;
-    int64_t _1030_t9;
-    struct1 _1031_y;
-    function2 _1030_t11;
-    int64_t _1030_t12;
-    int64_t _1030_$retval;
-    _1030_t1 = 0;
-    _1030_t2 = 0;
-    _1030_t3 = 0;
-    _1030_t4 = 0;
-    _1031_x = (struct0) {_1030_t1, _1030_t2, _1030_t3, _1030_t4};
-    _1030_t6 = 0;
-    _1030_t7 = 4;
-    $bounds_check(_1030_t6, _1030_t7, "tests/integration/lint/slice-copy-pos-bounds-check.orng:4:19:\n    let y = [mut]x\n                 ^");
-    _1030_t8 = ((int64_t*)&_1031_x + _1030_t6);
-    _1030_t9 = 4;
-    _1031_y = (struct1) {_1030_t8, _1030_t9};
-    _1030_t11 = _1032_f;
+int64_t _1043_main(void){
+    int64_t _1043_t1;
+    int64_t _1043_t2;
+    int64_t _1043_t3;
+    int64_t _1043_t4;
+    struct0 _1044_x;
+    int64_t _1043_t6;
+    int64_t _1043_t7;
+    int64_t* _1043_t8;
+    int64_t _1043_t9;
+    struct1 _1044_y;
+    function2 _1043_t11;
+    int64_t _1043_t12;
+    int64_t _1043_$retval;
+    _1043_t1 = 0;
+    _1043_t2 = 0;
+    _1043_t3 = 0;
+    _1043_t4 = 0;
+    _1044_x = (struct0) {_1043_t1, _1043_t2, _1043_t3, _1043_t4};
+    _1043_t6 = 0;
+    _1043_t7 = 4;
+    $bounds_check(_1043_t6, _1043_t7, "tests/integration/lint/slice-copy-pos-bounds-check.orng:4:19:\n    let y = [mut]x\n                 ^");
+    _1043_t8 = ((int64_t*)&_1044_x + _1043_t6);
+    _1043_t9 = 4;
+    _1044_y = (struct1) {_1043_t8, _1043_t9};
+    _1043_t11 = _1045_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
-    _1030_t12 = _1030_t11();
+    _1043_t12 = _1043_t11();
     $line_idx--;
-    $bounds_check(_1030_t12, _1031_y._1, "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:15:\n    y[f()] = 0\n             ^");
-    *((int64_t*)_1031_y._0 + _1030_t12) = 0;
-    _1030_$retval = 0;
-    return _1030_$retval;
+    $bounds_check(_1043_t12, _1044_y._1, "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:15:\n    y[f()] = 0\n             ^");
+    *((int64_t*)_1044_y._0 + _1043_t12) = 0;
+    _1043_$retval = 0;
+    return _1043_$retval;
 }
 
-int64_t _1032_f(void){
-    int64_t _1032_$retval;
-    _1032_$retval = 100;
-    return _1032_$retval;
+int64_t _1045_f(void){
+    int64_t _1045_$retval;
+    _1045_$retval = 100;
+    return _1045_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1030_main());
+  printf("%ld",_1043_main());
   return 0;
 }

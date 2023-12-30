@@ -799,16 +799,11 @@ pub const Parser = struct {
         _ = try self.expect(.left_brace);
         while (self.accept(.newline)) |_| {}
 
-        var has_else = false;
         while (!self.peek_kind(.right_brace)) {
-            if (self.peek_kind(.@"else")) {
-                mappings.append(try self.match_else()) catch unreachable;
-                has_else = true;
-                break;
-            } else if (self.next_is_expr()) {
+            if (self.next_is_expr()) {
                 mappings.append(try self.match_mapping()) catch unreachable;
             } else {
-                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "`else` or match mapping", .got = self.peek() } });
+                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "match mapping", .got = self.peek() } });
                 return error.ParseError;
             }
         }
@@ -819,7 +814,7 @@ pub const Parser = struct {
             return error.ParseError;
         }
 
-        return ast_.AST.create_match(token, let, exp, mappings, has_else, self.allocator);
+        return ast_.AST.create_match(token, let, exp, mappings, self.allocator);
     }
 
     fn match_mapping(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -831,22 +826,6 @@ pub const Parser = struct {
         }
 
         return ast_.AST.create_mapping(lhs.token(), lhs, rhs, self.allocator);
-    }
-
-    fn match_else(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const token = try self.expect(.@"else");
-        if (self.peek_kind(.right_fat_arrow)) {
-            _ = self.expect(.right_fat_arrow) catch {};
-        } else {
-            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "`=>` after `else`", .got = self.peek() } });
-            return error.ParseError;
-        }
-        const rhs = try self.expr();
-        if (!self.peek_kind(.right_brace)) {
-            _ = try self.expect(.newline);
-        }
-
-        return ast_.AST.create_mapping(token, null, rhs, self.allocator);
     }
 
     fn match_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {

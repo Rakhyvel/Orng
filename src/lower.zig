@@ -368,25 +368,13 @@ fn lower_AST(
             const expr = (try lower_AST(cfg, ast.expr(), labels, errors, allocator)) orelse return null;
             const rhs_label_list = try generate_match_pattern_checks(cfg, expr, ast.children().*, none_label, labels, errors, allocator);
 
-            if (!ast.match.has_else) { // All tests failed, no `else` mapping. Store `.none` as result
-                cfg.append_instruction(none_label);
-                try generate_control_flow_else(cfg, null, symbol, ast.token().span, labels, errors, allocator);
-                cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
-            }
+            // Couldn't match pattern, panic!
+            cfg.append_instruction(none_label);
+            cfg.append_instruction(ir_.IR.init_stack_push(ast.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init_panic("could not match pattern", ast.token().span, allocator));
 
-            try generate_match_bodies(
-                cfg,
-                expr,
-                ast.children().*,
-                rhs_label_list,
-                symbol,
-                ast.match.has_else,
-                end_label,
-                ast.token().span,
-                labels,
-                errors,
-                allocator,
-            );
+            const span = ast.token().span;
+            try generate_match_bodies(cfg, expr, ast.children().*, rhs_label_list, symbol, end_label, span, labels, errors, allocator);
 
             cfg.append_instruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -989,13 +977,11 @@ fn generate_match_pattern_checks(
     }
     for (mappings.items, 0..) |mapping, i| {
         cfg.append_instruction(lhs_label_list.items[i]);
-        if (mapping.mapping_lhs()) |lhs| {
-            const next_label = if (i < lhs_label_list.items.len - 1)
-                lhs_label_list.items[i + 1]
-            else
-                none_label;
-            try generate_match_pattern_check(cfg, lhs, expr, next_label, labels, errors, allocator);
-        }
+        const next_label = if (i < lhs_label_list.items.len - 1)
+            lhs_label_list.items[i + 1]
+        else
+            none_label;
+        try generate_match_pattern_check(cfg, mapping.lhs(), expr, next_label, labels, errors, allocator);
         cfg.append_instruction(ir_.IR.init_jump(rhs_label_list.items[i], mapping.token().span, allocator));
     }
     return rhs_label_list;
@@ -1079,7 +1065,6 @@ fn generate_match_bodies(
     mappings: std.ArrayList(*ast_.AST),
     rhs_label_list: std.ArrayList(*ir_.IR),
     symbol: *symbol_.Symbol,
-    has_else: bool,
     end_label: *ir_.IR,
     span: span_.Span,
     labels: Labels,
@@ -1088,13 +1073,14 @@ fn generate_match_bodies(
 ) !void { // TODO: Uninfer error
     for (mappings.items, 0..) |mapping, i| {
         cfg.append_instruction(rhs_label_list.items[i]);
-        if (mapping.mapping_lhs()) |lhs| {
-            // Generate initialization for patterns before the rhs
-            try generate_pattern(cfg, lhs, expr.get_type(), expr, errors, allocator);
-        }
+        // Generate initialization for patterns before the rhs
+        try generate_pattern(cfg, mapping.lhs(), expr.get_type(), expr, errors, allocator);
 
         // Generate the rhs, copy result to symbol
-        try generate_control_flow_block(cfg, mapping.rhs(), symbol, has_else, labels, errors, allocator);
+        if (try lower_AST(cfg, mapping.rhs(), labels, errors, allocator)) |rhs_lval| {
+            const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
+            cfg.append_instruction(ir_.IR.init_simple_copy(rhs_copy_lval, rhs_lval, mapping.rhs().token().span, allocator));
+        }
         cfg.append_instruction(ir_.IR.init_jump(end_label, span, allocator));
     }
 }
