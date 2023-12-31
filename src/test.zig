@@ -128,8 +128,10 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
                 error.ParseError,
                 error.SymbolError,
                 error.TypeError,
+                error.Unused,
+                error.DivideByZero,
                 => try out.print("Orng -> C.\n", .{}),
-                else => try out.print("Orng Compiler crashed!\n", .{}),
+                else => try out.print("Orng Compiler crashed! {}\n", .{err}),
             }
             std.debug.dumpCurrentStackTrace(128);
         }
@@ -241,6 +243,8 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                 error.SymbolError,
                 error.TypeError,
                 error.InterpreterPanic,
+                error.Unused,
+                error.DivideByZero,
                 => {
                     try errors.print_errors();
                     try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
@@ -328,6 +332,8 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                     error.LexerError,
                     error.SymbolError,
                     error.TypeError,
+                    error.Unused,
+                    error.DivideByZero,
                     => {
                         // passed += 1;
                         // try term_.outputColor(succeed_color, "[ ... PASSED ] ", out);

@@ -7,7 +7,6 @@ const symbol_ = @import("symbol.zig");
 
 pub const CFG = struct {
     /// Temporary, flat instruction list before the BBs are created
-    /// TODO: Maybe create a different structure for this, and CFG when creating the BBs
     ir_head: ?*ir_.IR,
     ir_tail: ?*ir_.IR,
 
@@ -48,13 +47,12 @@ pub const CFG = struct {
 
     allocator: std.mem.Allocator,
 
-    // BIG TODO: Dependency-inject errors and allocator, so that method calls don't need that explicit passed in (they do not change from method call to method call)
     pub fn init(
         symbol: *symbol_.Symbol,
         caller: ?*CFG,
         interned_strings: *std.StringArrayHashMap(usize),
         allocator: std.mem.Allocator,
-    ) !*CFG { // TODO: Uninfer error
+    ) *CFG {
         if (symbol.cfg) |cfg| {
             return cfg;
         }

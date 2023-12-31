@@ -127,10 +127,7 @@ fn newline_rules(tokens: *std.ArrayList(token_.Token)) void {
         if (token.kind == .left_parenthesis or token.kind == .left_brace) {
             stack.append(token.kind) catch unreachable;
         } else if (token.kind == .right_parenthesis or token.kind == .right_brace and stack.items.len > 0) {
-            const popped = stack.pop();
-            if (popped != token.kind) {
-                // TODO: Throw a great big ol fit
-            }
+            _ = stack.pop();
         } else if (token.kind == .newline) {
             if (stack.items.len > 0 and stack.getLast() == .left_parenthesis) {
                 // Remove if stack is not empty and l paren is on top of stack

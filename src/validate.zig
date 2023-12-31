@@ -127,7 +127,7 @@ fn validate_AST_internal(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ InterpreterPanic, TypeError, NotAnLValue }!*ast_.AST {
+) error{ InterpreterPanic, TypeError, NotAnLValue, Overflow, DivideByZero, Unused }!*ast_.AST {
     // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => return ast,

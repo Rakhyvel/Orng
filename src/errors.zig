@@ -5,6 +5,8 @@ const symbol_ = @import("symbol.zig");
 const term_ = @import("term.zig");
 const token_ = @import("token.zig");
 
+const Error_Error_Sum = std.fs.File.WriteError;
+
 pub const Error = union(enum) {
     // General errors
     basic: struct {
@@ -157,6 +159,12 @@ pub const Error = union(enum) {
         active: []const u8,
         inactive: []const u8,
     },
+    integer_overflow: struct {
+        span: span_.Span,
+        lhs: i128,
+        rhs: i128,
+        name: []const u8,
+    },
 
     fn get_span(self: *const Error) ?span_.Span {
         switch (self.*) {
@@ -197,6 +205,7 @@ pub const Error = union(enum) {
             .negative_index => return self.negative_index.span,
             .slice_lower_upper => return self.slice_lower_upper.span,
             .sum_select_inactive => return self.sum_select_inactive.span,
+            .integer_overflow => return self.integer_overflow.span,
         }
     }
 };
@@ -223,7 +232,7 @@ pub const Errors = struct {
         // unreachable; // uncomment if you want to see where errors come from
     }
 
-    pub fn print_errors(self: *Errors) !void { // TODO: Uninfer error
+    pub fn print_errors(self: *Errors) Error_Error_Sum!void {
         for (self.errors_list.items) |err| {
             try bold.dump(out);
             try print_label(err.get_span(), "error: ", .red);
@@ -235,7 +244,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) !void { // TODO: Uninfer error
+    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) Error_Error_Sum!void {
         if (maybe_span) |span| {
             if (span.line > 0 and span.col > 0) {
                 try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
@@ -246,7 +255,7 @@ pub const Errors = struct {
         try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
     }
 
-    fn print_main_error(err: Error, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+    fn print_main_error(err: Error, allocator: std.mem.Allocator) Error_Error_Sum!void {
         _ = allocator;
         switch (err) {
             // General errors
@@ -362,10 +371,17 @@ pub const Errors = struct {
                     err.sum_select_inactive.active,
                 });
             },
+            .integer_overflow => {
+                try out.print("integer {s} overflow with arguments: {}, {}\n", .{
+                    err.integer_overflow.name,
+                    err.integer_overflow.lhs,
+                    err.integer_overflow.rhs,
+                });
+            },
         }
     }
 
-    fn print_epilude(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
+    fn print_epilude(maybe_span: ?span_.Span) Error_Error_Sum!void {
         if (maybe_span) |old_span| {
             const span = old_span;
             if (span.line == 0) {
@@ -380,7 +396,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_extra_info(err: Error) !void { // TODO: Uninfer error
+    fn print_extra_info(err: Error) Error_Error_Sum!void {
         switch (err) {
             .missing_close => {
                 try bold.dump(out);
@@ -439,7 +455,7 @@ pub const Errors = struct {
         }
     }
 
-    fn print_note_label(maybe_span: ?span_.Span) !void { // TODO: Uninfer error
+    fn print_note_label(maybe_span: ?span_.Span) Error_Error_Sum!void {
         try print_label(maybe_span, "note: ", .cyan);
     }
 };

@@ -81,7 +81,7 @@ pub const IR = struct {
         return ir;
     }
 
-    pub fn init_label(cfg: *cfg_.CFG, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_label(cfg: ?*cfg_.CFG, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.label, null, null, null, span, allocator);
         retval.data = Data{ .cfg = cfg };
         return retval;
@@ -93,7 +93,6 @@ pub const IR = struct {
         return retval;
     }
 
-    // TODO: Rename create_jump_ir, rename IR kind as well
     pub fn init_jump(label: ?*IR, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.jump, null, null, null, span, allocator);
         retval.data = Data{ .branch = label };
@@ -375,7 +374,7 @@ pub const IR = struct {
         try writer.print("{s}", .{out});
     }
 
-    fn print_lval_list(lval_list: *std.ArrayList(*lval_.L_Value), writer: anytype) !void { // TODO: Uninfer error
+    fn print_lval_list(lval_list: *std.ArrayList(*lval_.L_Value), writer: anytype) !void {
         for (lval_list.items, 0..) |lval, i| {
             try writer.print("{}", .{lval});
             if (i < lval_list.items.len - 1) {
@@ -428,8 +427,8 @@ pub const Kind = enum {
     load_extern,
     load_int,
     load_float,
-    load_struct, // TODO: Rename to load_tuple
-    load_union, // src1 is init, data.int is tag id // TODO: Rename to load_sum
+    load_struct,
+    load_union, // src1 is init, data.int is tag id
     load_string,
     load_AST,
     load_unit, // no-op, but required. DO NOT optimize away
@@ -619,7 +618,7 @@ pub const Data = union(enum) {
     int: i128,
     float: f64,
     string_id: usize,
-    cfg: *cfg_.CFG, // Used by the interpreter to know how much space to leave for a CFGs locals // TODO: Couldn't this just be the integer? Why import cfg for this?
+    cfg: ?*cfg_.CFG, // Used by the interpreter to know how much space to leave for a CFGs locals
     string: []const u8,
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
@@ -689,32 +688,44 @@ pub const Data = union(enum) {
         }
     }
 
-    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data { // TODO: Uninfer error
+    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) error{Overflow}!Data {
         return Data{
             .int = if (std.math.add(i128, self.int, other.int)) |res| res else |_| {
-                // TODO: What were the arguments?
-                errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "integer addition overflow" } });
-                return error.TypeError; // TODO: Shouldn't be `TypeError`...
+                errors.add_error(errs_.Error{ .integer_overflow = .{
+                    .span = span,
+                    .name = "addition",
+                    .lhs = self.int,
+                    .rhs = other.int,
+                } });
+                return error.Overflow;
             },
         };
     }
 
-    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data { // TODO: Uninfer error
+    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) error{Overflow}!Data {
         return Data{
             .int = if (std.math.sub(i128, self.int, other.int)) |res| res else |_| {
-                // TODO: What were the arguments?
-                errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "integer subtraction overflow" } });
-                return error.TypeError; // TODO: Shouldn't be `TypeError`...
+                errors.add_error(errs_.Error{ .integer_overflow = .{
+                    .span = span,
+                    .name = "subtraction",
+                    .lhs = self.int,
+                    .rhs = other.int,
+                } });
+                return error.Overflow;
             },
         };
     }
 
-    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) !Data { // TODO: Uninfer error
+    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) error{Overflow}!Data {
         return Data{
             .int = if (std.math.mul(i128, self.int, other.int)) |res| res else |_| {
-                // TODO: What were the arguments?
-                errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "integer multiplication overflow" } });
-                return error.TypeError; // TODO: Shouldn't be `TypeError`...
+                errors.add_error(errs_.Error{ .integer_overflow = .{
+                    .span = span,
+                    .name = "multiplication",
+                    .lhs = self.int,
+                    .rhs = other.int,
+                } });
+                return error.Overflow;
             },
         };
     }

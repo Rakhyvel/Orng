@@ -1658,7 +1658,6 @@ pub const AST = union(enum) {
             .function => return A.lhs().types_match(B.lhs()) and A.rhs().types_match(B.rhs()),
             .inferred_error => return A == B,
             else => {
-                // TODO: May need to evaluate types, possibly done somewhere else though
                 std.debug.print("types_match(): Unimplemented for {s}\n", .{@tagName(A.*)});
                 unreachable;
             },

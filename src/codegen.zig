@@ -18,7 +18,7 @@ const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
 /// Takes in a file handler and a module structure
-pub fn generate(module: *module_.Module, writer: Writer) !void { // TODO: Uninfer error
+pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     cheat_module = module;
     try writer.print(
         \\/* Code generated using the Orng compiler https://ornglang.org */
@@ -39,7 +39,7 @@ pub fn generate(module: *module_.Module, writer: Writer) !void { // TODO: Uninfe
     try output_main_function(module.entry, writer);
 }
 
-fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) !void { // TODO: Uninfer error
+fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
         try writer.print("/* Typedefs */\n", .{});
     }
@@ -48,7 +48,7 @@ fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) !void { // TOD
     }
 }
 
-fn output_typedef(dag: *type_set_.DAG, writer: Writer) !void { // TODO: Uninfer error
+fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
     if (dag.visited) {
         return;
     }
@@ -105,7 +105,7 @@ fn output_field_list(fields: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_
     }
 }
 
-fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) !void { // TODO: Uninfer error
+fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) CodeGen_Error!void {
     const key_set = interned_strings.keys();
     if (key_set.len > 0) {
         try writer.print("/* Interned Strings */\n", .{});
@@ -176,7 +176,7 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
     try writer.print("}}\n\n", .{});
 }
 
-fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
+fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     // Print function return type, name, parameter list
     try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
     try writer.print(" ", .{});
@@ -200,7 +200,7 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Un
     try writer.print(")", .{});
 }
 
-fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer error
+fn output_main_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     const codomain = cfg.symbol.expanded_type.?.rhs();
     var string_access: []const u8 = "";
     var specifier: []const u8 = undefined;
@@ -235,8 +235,7 @@ fn output_main_function(cfg: *cfg_.CFG, writer: Writer) !void { // TODO: Uninfer
 
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
 /// semicolon nor newline.
-/// TODO: No bool parameters!
-fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) !void { // TODO: Uninfer error
+fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) CodeGen_Error!void {
     if (!is_parameter) {
         try writer.print("    ", .{});
     }
@@ -249,18 +248,16 @@ fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) 
 }
 
 /// Outputs a symbol with it's unique identifier to a file
-fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
+fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
 
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     switch (_type.*) {
-        .identifier => { // TODO: Print out identifier's expanded_type, make prelude types extern types
-            if (_type.common()._expanded_type.? != _type) {
-                try output_type(_type.common()._expanded_type.?, writer);
-            } else {
-                try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
-            }
+        .identifier => if (_type.common()._expanded_type.? != _type) {
+            try output_type(_type.common()._expanded_type.?, writer);
+        } else {
+            try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
         },
         .addr_of => {
             try output_type(_type.expr(), writer);
@@ -283,7 +280,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     }
 }
 
-fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
+fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator);
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
@@ -320,7 +317,7 @@ fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, symbo
                     }
                 } else {
                     try writer.print("    ", .{});
-                    try output_return(symbol, writer);
+                    try output_return(return_symbol, writer);
                     try writer.print("    }}", .{});
                 }
 
@@ -333,7 +330,7 @@ fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, symbo
                     try writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
                 } else {
                     try writer.print("    ", .{});
-                    try output_return(symbol, writer);
+                    try output_return(return_symbol, writer);
                     try writer.print("    }}\n", .{});
                 }
             } else {
@@ -344,7 +341,7 @@ fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, symbo
                     }
                     try writer.print("    goto BB{};\n", .{next.uid});
                 } else {
-                    try output_return(symbol, writer);
+                    try output_return(return_symbol, writer);
                 }
             }
         }
@@ -614,7 +611,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
 }
 
 /// Emits the return statement from a function
-fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) !void { // TODO: Uninfer error
+fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("    return", .{});
     if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
         try writer.print(" ", .{});
@@ -625,13 +622,13 @@ fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) !void { // TODO
 
 /// Outputs an assignment to a symbol template. It is expected that a value is output immediately
 /// after this to complete the assignment.
-fn output_var_assign(lval: *lval_.L_Value, writer: Writer) !void { // TODO: Uninfer error
+fn output_var_assign(lval: *lval_.L_Value, writer: Writer) CodeGen_Error!void {
     try writer.print("    ", .{});
     try output_rvalue(lval, HIGHEST_PRECEDENCE, writer);
     try writer.print(" = ", .{});
 }
 
-fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer) !void { // TODO: Uninfer error
+fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     try output_var_assign(lval, writer);
     try writer.print("(", .{});
     try output_type(_type, writer);

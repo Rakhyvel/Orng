@@ -191,7 +191,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
     }
 }
 
-fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!*ast_.AST { // TODO: Uninfer error
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {

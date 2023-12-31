@@ -8,6 +8,7 @@ const errs_ = @import("errors.zig");
 const expand_ = @import("expand.zig");
 const ir_ = @import("ir.zig");
 const layout_ = @import("layout.zig");
+const lines_ = @import("lines.zig");
 const lexer_ = @import("lexer.zig");
 const lower_ = @import("lower.zig");
 const offsets_ = @import("offsets.zig");
@@ -75,8 +76,9 @@ pub const Module = struct {
         // Tokenize, and also append lines to the list of lines
         var lines = std.ArrayList([]const u8).init(allocator);
         defer lines.deinit();
-        try lexer_.get_lines(contents, &lines, errors);
-        var tokens = try lexer_.get_tokens(&lines, in_name, errors, fuzz_tokens, allocator);
+        try lines_.get_lines(contents, &lines, errors);
+        var scanner = lexer_.Scanner.init(&lines, in_name, errors, fuzz_tokens, allocator);
+        var tokens = try scanner.get_tokens();
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
         if (false and fuzz_tokens) { // print tokens before layout_
@@ -328,7 +330,7 @@ pub fn get_cfg(
     std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.cfg == null) {
-        symbol.cfg = try cfg_.CFG.init(symbol, caller, interned_strings, allocator);
+        symbol.cfg = cfg_.CFG.init(symbol, caller, interned_strings, allocator);
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);
         symbol.cfg.?.collect_generated_symbvers();

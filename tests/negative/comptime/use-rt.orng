@@ -1,0 +1,5 @@
+fn main() -> Int {
+    let x: Int = 4
+    let y: Int = comptime x + 4
+    y
+}

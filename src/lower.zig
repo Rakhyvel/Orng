@@ -16,6 +16,9 @@ const Flatten_AST_Error = error{
     TypeError,
     NotAnLValue,
     InterpreterPanic,
+    DivideByZero,
+    Unused,
+    Overflow,
 };
 
 const Labels = struct {

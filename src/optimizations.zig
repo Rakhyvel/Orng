@@ -11,7 +11,7 @@ const symbol_ = @import("symbol.zig");
 const debug = false;
 
 // TODO: typeError should be called something else
-pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!void {
+pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ DivideByZero, Unused, Overflow }!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -62,7 +62,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
             .problem = "is discarded more than once",
             .context_message = "defined here",
         } });
-        return error.TypeError;
+        return error.Unused;
     } else if (symbol.discards == 1 and symbol.uses > 1) {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
@@ -71,7 +71,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
             .problem = "is discarded when it is used",
             .context_message = "defined here",
         } });
-        return error.TypeError;
+        return error.Unused;
     } else if (symbol.kind != .@"const" and symbol.discards == 0 and symbol.uses == 0) {
         // TODO: Shouldn't do this if the type is unit!
         errors.add_error(errs_.Error{ .symbol_error = .{
@@ -81,7 +81,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
             .problem = "is never used",
             .context_message = "",
         } });
-        return error.TypeError;
+        return error.Unused;
     }
 }
 
@@ -542,13 +542,13 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Un
                 .span = ir.?.span,
                 .msg = "divide by 0",
             } });
-            return error.TypeError; // TODO: Type Error???
+            return error.DivideByZero;
         } else if (ir.?.kind == .load_float and ir.?.data.float == 0.0) {
             errors.add_error(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0.0",
             } });
-            return error.TypeError; // TODO: Type Error???
+            return error.DivideByZero;
         }
     }
 }
@@ -584,7 +584,7 @@ fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Un
                             .span = ir.span,
                             .msg = "value of call is never used",
                         } });
-                        return error.TypeError;
+                        return error.Unused;
                     }
                 } else {
                     bb.remove_instruction(ir);
