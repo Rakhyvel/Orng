@@ -6,29 +6,32 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
+struct struct0 {
     uint64_t tag;
     union {
         int64_t _0;
     };
-} struct0;
+};
 
 /* Function forward definitions */
-struct0 _328_f(int64_t _328_x);
+struct struct0 _328_f(int64_t _328_x);
 int64_t _320_main(void);
 
 /* Function definitions */
-struct0 _328_f(int64_t _328_x){
+struct struct0 _328_f(int64_t _328_x){
     int64_t _328_t1;
     uint8_t _328_t3;
-    struct0 _328_t0;
+    struct struct0 _328_t0;
     int64_t _328_t8;
     uint8_t _328_t10;
     int64_t _328_t4;
     int64_t _328_t5;
-    struct0 _328_t7;
-    struct0 _328_$retval;
+    struct struct0 _328_t7;
+    struct struct0 _328_$retval;
     _328_t1 = 53;
     _328_t3 = _328_x==_328_t1;
     if (_328_t3) {
@@ -39,7 +42,7 @@ struct0 _328_f(int64_t _328_x){
 BB380:
     _328_t4 = 5;
     _328_t5 = $mult_int64_t(_328_x, _328_t4, "tests/integration/comptime/return-sum.orng:13:19:\n        .ok <- x * 5\n                 ^");
-    _328_t0 = (struct0) {.tag=0, ._0=_328_t5};
+    _328_t0 = (struct struct0) {.tag=0, ._0=_328_t5};
     goto BB383;
 BB384:
     _328_t8 = 4;
@@ -53,10 +56,10 @@ BB383:
     _328_$retval = _328_t0;
     return _328_$retval;
 BB387:
-    _328_t7 = (struct0) {.tag=1};
+    _328_t7 = (struct struct0) {.tag=1};
     goto BB389;
 BB390:
-    _328_t7 = (struct0) {.tag=2};
+    _328_t7 = (struct struct0) {.tag=2};
     goto BB389;
 BB389:
     _328_t0 = _328_t7;
@@ -65,10 +68,10 @@ BB389:
 
 int64_t _320_main(void){
     int64_t _320_t1;
-    struct0 _320_t2;
+    struct struct0 _320_t2;
     int64_t _320_$retval;
     _320_t1 = 265;
-    _320_t2 = (struct0) {.tag=0, ._0=_320_t1};
+    _320_t2 = (struct struct0) {.tag=0, ._0=_320_t1};
     _320_$retval = _320_t2._0;
     return _320_$retval;
 }

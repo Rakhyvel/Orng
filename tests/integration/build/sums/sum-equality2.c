@@ -6,26 +6,29 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
         int64_t _0;
     };
-} struct1;
+};
 
-typedef struct1(*function0)(void);
+typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
 int64_t _1462_main(void);
-struct1 _1467_f(void);
+struct struct1 _1467_f(void);
 
 /* Function definitions */
 int64_t _1462_main(void){
     function0 _1462_t1;
-    struct1 _1462_t2;
+    struct struct1 _1462_t2;
     function0 _1462_t3;
-    struct1 _1462_t4;
+    struct struct1 _1462_t4;
     uint64_t _1462_t7;
     uint64_t _1462_t8;
     uint8_t _1462_t6;
@@ -58,9 +61,9 @@ BB1741:
     return _1462_$retval;
 }
 
-struct1 _1467_f(void){
-    struct1 _1467_$retval;
-    _1467_$retval = (struct1) {.tag=1};
+struct struct1 _1467_f(void){
+    struct struct1 _1467_$retval;
+    _1467_$retval = (struct struct1) {.tag=1};
     return _1467_$retval;
 }
 

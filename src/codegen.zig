@@ -32,6 +32,7 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
         \\
     , .{});
 
+    try output_forward_typedefs(&module.type_set, writer);
     try output_typedefs(&module.type_set, writer);
     try output_interned_strings(&module.interned_strings, writer);
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
@@ -39,9 +40,20 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try output_main_function(module.entry, writer);
 }
 
+fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
+    if (type_set.types.items.len > 0) {
+        try writer.print("/* Forward typedefs */\n", .{});
+    }
+    for (type_set.types.items) |dag| {
+        if (dag.base.* == .product or dag.base.* == .sum) {
+            try writer.print("struct struct{};\n", .{dag.uid});
+        }
+    }
+}
+
 fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
-        try writer.print("/* Typedefs */\n", .{});
+        try writer.print("\n/* Typedefs */\n", .{});
     }
     for (type_set.types.items) |dag| {
         try output_typedef(dag, writer);
@@ -80,25 +92,27 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
         }
         try writer.print(");\n\n", .{});
     } else if (dag.base.* == .product) {
-        try writer.print("typedef struct {{\n", .{});
-        try output_field_list(dag.base.children(), writer);
-        try writer.print("}} struct{};\n\n", .{dag.uid});
+        try writer.print("struct struct{} {{\n", .{dag.uid});
+        try output_field_list(dag.base.children(), 4, writer);
+        try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .sum) {
-        try writer.print("typedef struct {{\n    uint64_t tag;\n", .{});
+        try writer.print("struct struct{} {{\n    uint64_t tag;\n", .{dag.uid});
         if (!dag.base.sum.is_all_unit()) {
             try writer.print("    union {{\n", .{});
-            try output_field_list(dag.base.children(), writer);
+            try output_field_list(dag.base.children(), 8, writer);
             try writer.print("    }};\n", .{});
         }
-        try writer.print("}} struct{};\n\n", .{dag.uid});
+        try writer.print("}};\n\n", .{});
     }
 }
 
-fn output_field_list(fields: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
+fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: Writer) CodeGen_Error!void {
     for (fields.items, 0..) |term, i| {
         if (!term.c_types_match(primitives_.unit_type)) {
             // Don't gen `void` structure fields
-            try writer.print("        ", .{});
+            for (0..spaces) |_| {
+                try writer.print(" ", .{});
+            }
             try output_type(term, writer);
             try writer.print(" _{};\n", .{i});
         }
@@ -254,7 +268,7 @@ fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
 
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     switch (_type.*) {
-        .identifier => if (_type.common()._expanded_type.? != _type) {
+        .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
         } else {
             try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
@@ -269,7 +283,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         },
         .sum, .product => {
             const i = (cheat_module.type_set.get(_type)).?.uid;
-            try writer.print("struct{}", .{i});
+            try writer.print("struct struct{}", .{i});
         },
         .unit_type => try writer.print("void", .{}),
         .annotation => try output_type(_type.annotation.type, writer),

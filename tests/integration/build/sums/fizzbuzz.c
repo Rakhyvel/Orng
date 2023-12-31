@@ -6,21 +6,25 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        uint8_t* _0;
-        int64_t _1;
-} struct2;
+/* Forward typedefs */
+struct struct1;
+struct struct2;
 
-typedef struct {
+/* Typedefs */
+struct struct2 {
+    uint8_t* _0;
+    int64_t _1;
+};
+
+struct struct1 {
     uint64_t tag;
     union {
-        struct2 _0;
+        struct struct2 _0;
         int64_t _1;
     };
-} struct1;
+};
 
-typedef struct1(*function0)(int64_t);
+typedef struct struct1(*function0)(int64_t);
 
 /* Interned Strings */
 char* string_0 = "\x66\x69\x7A\x7A\x62\x75\x7A\x7A";
@@ -28,16 +32,16 @@ char* string_1 = "\x62\x75\x7A\x7A";
 char* string_2 = "\x66\x69\x7A\x7A";
 
 /* Function forward definitions */
-struct2 _1419_main(void);
-struct1 _1422_fizzbuzz(int64_t _1422_n);
+struct struct2 _1419_main(void);
+struct struct1 _1422_fizzbuzz(int64_t _1422_n);
 
 /* Function definitions */
-struct2 _1419_main(void){
+struct struct2 _1419_main(void){
     function0 _1419_t0;
     int64_t _1419_t2;
-    struct1 _1419_t1;
+    struct struct1 _1419_t1;
     uint64_t _1419_t3;
-    struct2 _1419_$retval;
+    struct struct2 _1419_$retval;
     _1419_t0 = _1422_fizzbuzz;
     _1419_t2 = 30;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
@@ -49,19 +53,19 @@ struct2 _1419_main(void){
     return _1419_$retval;
 }
 
-struct1 _1422_fizzbuzz(int64_t _1422_n){
+struct struct1 _1422_fizzbuzz(int64_t _1422_n){
     int64_t _1422_t1;
     int64_t _1422_t2;
     int64_t _1422_t3;
     uint8_t _1422_t4;
-    struct1 _1422_t0;
-    struct2 _1422_t13;
-    struct2 _1422_t15;
-    struct2 _1422_t11;
+    struct struct1 _1422_t0;
+    struct struct2 _1422_t13;
+    struct struct2 _1422_t15;
+    struct struct2 _1422_t11;
     int64_t _1422_t8;
     int64_t _1422_t9;
     uint8_t _1422_t10;
-    struct1 _1422_$retval;
+    struct struct1 _1422_$retval;
     int64_t _1422_t5;
     int64_t _1422_t6;
     uint8_t _1422_t7;
@@ -75,8 +79,8 @@ struct1 _1422_fizzbuzz(int64_t _1422_n){
         goto BB1692;
     }
 BB1689:
-    _1422_t11 = (struct2) {(uint8_t*)string_0, 8};
-    _1422_t0 = (struct1) {.tag=0, ._0=_1422_t11};
+    _1422_t11 = (struct struct2) {(uint8_t*)string_0, 8};
+    _1422_t0 = (struct struct1) {.tag=0, ._0=_1422_t11};
     goto BB1691;
 BB1692:
     _1422_t5 = 5;
@@ -91,8 +95,8 @@ BB1691:
     _1422_$retval = _1422_t0;
     return _1422_$retval;
 BB1695:
-    _1422_t13 = (struct2) {(uint8_t*)string_1, 4};
-    _1422_t0 = (struct1) {.tag=0, ._0=_1422_t13};
+    _1422_t13 = (struct struct2) {(uint8_t*)string_1, 4};
+    _1422_t0 = (struct struct1) {.tag=0, ._0=_1422_t13};
     goto BB1691;
 BB1696:
     _1422_t8 = 3;
@@ -104,11 +108,11 @@ BB1696:
         goto BB1701;
     }
 BB1699:
-    _1422_t15 = (struct2) {(uint8_t*)string_2, 4};
-    _1422_t0 = (struct1) {.tag=0, ._0=_1422_t15};
+    _1422_t15 = (struct struct2) {(uint8_t*)string_2, 4};
+    _1422_t0 = (struct struct1) {.tag=0, ._0=_1422_t15};
     goto BB1691;
 BB1701:
-    _1422_t0 = (struct1) {.tag=1, ._1=_1422_n};
+    _1422_t0 = (struct struct1) {.tag=1, ._1=_1422_n};
     goto BB1691;
 }
 

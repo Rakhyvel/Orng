@@ -480,7 +480,7 @@ pub const Parser = struct {
                 return ast_.AST.create_slice_of(token, try self.prefix_expr(), slice_kind, self.allocator);
             }
         } else if (self.accept(.question_mark)) |_| {
-            return ast_.AST.create_optional_type(try self.invoke_expr(), self.allocator);
+            return ast_.AST.create_optional_type(try self.prefix_expr(), self.allocator);
         } else if (self.accept(.@"try")) |token| {
             return ast_.AST.create_try(token, try self.invoke_expr(), self.allocator);
         } else {

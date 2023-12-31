@@ -6,27 +6,32 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+struct struct2;
+struct struct4;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct1;
+struct struct1 {
+    int64_t _0;
+    int64_t _1;
+};
 
 typedef int64_t(*function0)(int64_t, int64_t);
 
-typedef struct {
-        function0 _0;
-        function0 _1;
-        function0 _2;
-} struct2;
+struct struct2 {
+    function0 _0;
+    function0 _1;
+    function0 _2;
+};
 
 typedef int64_t(*function3)(int64_t);
 
-typedef struct {
-        function3 _0;
-        function3 _1;
-        function3 _2;
-} struct4;
+struct struct4 {
+    function3 _0;
+    function3 _1;
+    function3 _2;
+};
 
 /* Function forward definitions */
 int64_t _19_main(void);
@@ -42,11 +47,11 @@ int64_t _19_main(void){
     function0 _19_t1;
     function0 _19_t2;
     function0 _19_t3;
-    struct2 _20_x;
+    struct struct2 _20_x;
     function3 _19_t5;
     function3 _19_t6;
     function3 _19_t7;
-    struct4 _20_y;
+    struct struct4 _20_y;
     int64_t _19_t9;
     int64_t _19_t10;
     int64_t _19_t11;
@@ -61,11 +66,11 @@ int64_t _19_main(void){
     _19_t1 = _21_sum;
     _19_t2 = _23_diff;
     _19_t3 = _27_div;
-    _20_x = (struct2) {_19_t1, _19_t2, _19_t3};
+    _20_x = (struct struct2) {_19_t1, _19_t2, _19_t3};
     _19_t5 = _29_double;
     _19_t6 = _31_halve;
     _19_t7 = _29_double;
-    _20_y = (struct4) {_19_t5, _19_t6, _19_t7};
+    _20_y = (struct struct4) {_19_t5, _19_t6, _19_t7};
     _19_t9 = 1;
     _19_t10 = 3;
     $bounds_check(_19_t9, _19_t10, "tests/integration/arrays/array-function-pointer.orng:5:16:\n    x[1] = mult\n              ^");

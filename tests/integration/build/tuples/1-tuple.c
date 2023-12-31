@@ -6,22 +6,25 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-} struct1;
+/* Forward typedefs */
+struct struct1;
 
-typedef struct1(*function0)(void);
+/* Typedefs */
+struct struct1 {
+    int64_t _0;
+};
+
+typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
 int64_t _1482_main(void);
-struct1 _1484_get(void);
+struct struct1 _1484_get(void);
 
 /* Function definitions */
 int64_t _1482_main(void){
     function0 _1482_t0;
-    struct1 _1482_t1;
-    struct1 _1483_x;
+    struct struct1 _1482_t1;
+    struct struct1 _1483_x;
     int64_t _1482_$retval;
     _1482_t0 = _1484_get;
     $lines[$line_idx++] = "tests/integration/tuples/1-tuple.orng:3:17:\n    let x = get()\n               ^";
@@ -32,11 +35,11 @@ int64_t _1482_main(void){
     return _1482_$retval;
 }
 
-struct1 _1484_get(void){
+struct struct1 _1484_get(void){
     int64_t _1484_t1;
-    struct1 _1484_$retval;
+    struct struct1 _1484_$retval;
     _1484_t1 = 234;
-    _1484_$retval = (struct1) {_1484_t1};
+    _1484_$retval = (struct struct1) {_1484_t1};
     return _1484_$retval;
 }
 

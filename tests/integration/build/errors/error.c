@@ -6,14 +6,17 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
+struct struct0 {
     uint64_t tag;
     union {
         uint32_t _0;
         int64_t _1;
     };
-} struct0;
+};
 
 /* Function forward definitions */
 int64_t _571_main(void);
@@ -21,11 +24,11 @@ int64_t _571_main(void);
 /* Function definitions */
 int64_t _571_main(void){
     int64_t _571_t0;
-    struct0 _572_x;
+    struct struct0 _572_x;
     uint64_t _571_t2;
     int64_t _571_$retval;
     _571_t0 = 117;
-    _572_x = (struct0) {.tag=1, ._1=_571_t0};
+    _572_x = (struct struct0) {.tag=1, ._1=_571_t0};
     _571_t2 = 1;
     $tag_check(_571_t2, 1, "tests/integration/errors/error.orng:2:3:\nfn main() -> Int {\n ^");
     _571_$retval = _572_x._1;

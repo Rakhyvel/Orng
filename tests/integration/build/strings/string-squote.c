@@ -6,11 +6,14 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        uint8_t* _0;
-        int64_t _1;
-} struct0;
+struct struct0 {
+    uint8_t* _0;
+    int64_t _1;
+};
 
 /* Interned Strings */
 char* string_0 = "\x0A\x0D\x09\x27\x22";
@@ -20,10 +23,10 @@ uint8_t _1391_main(void);
 
 /* Function definitions */
 uint8_t _1391_main(void){
-    struct0 _1392_x;
+    struct struct0 _1392_x;
     int64_t _1391_t1;
     uint8_t _1391_$retval;
-    _1392_x = (struct0) {(uint8_t*)string_0, 5};
+    _1392_x = (struct struct0) {(uint8_t*)string_0, 5};
     _1391_t1 = 3;
     $bounds_check(_1391_t1, _1392_x._1, "tests/integration/strings/string-squote.orng:2:3:\nfn main() -> Byte {\n ^");
     _1391_$retval = *((uint8_t*)_1392_x._0 + _1391_t1);

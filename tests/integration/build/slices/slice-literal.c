@@ -6,23 +6,27 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+struct struct2;
+
 /* Typedefs */
-typedef struct {
-        int64_t* _0;
-        int64_t _1;
-} struct1;
+struct struct1 {
+    int64_t* _0;
+    int64_t _1;
+};
 
-typedef int64_t(*function0)(struct1);
+typedef int64_t(*function0)(struct struct1);
 
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct2;
+struct struct2 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
 
 /* Function forward definitions */
 int64_t _1330_main(void);
-int64_t _1332_sum(struct1 _1332_xs);
+int64_t _1332_sum(struct struct1 _1332_xs);
 
 /* Function definitions */
 int64_t _1330_main(void){
@@ -30,25 +34,25 @@ int64_t _1330_main(void){
     int64_t _1330_t4;
     int64_t _1330_t5;
     int64_t _1330_t6;
-    struct2 _1330_t3;
+    struct struct2 _1330_t3;
     int64_t _1330_t7;
     int64_t _1330_t8;
     int64_t* _1330_t9;
     int64_t _1330_t10;
-    struct1 _1330_t2;
+    struct struct1 _1330_t2;
     int64_t _1330_t1;
     int64_t _1330_$retval;
     _1330_t0 = _1332_sum;
     _1330_t4 = 200;
     _1330_t5 = 0;
     _1330_t6 = 8;
-    _1330_t3 = (struct2) {_1330_t4, _1330_t5, _1330_t6};
+    _1330_t3 = (struct struct2) {_1330_t4, _1330_t5, _1330_t6};
     _1330_t7 = 0;
     _1330_t8 = 3;
     $bounds_check(_1330_t7, _1330_t8, "tests/integration/slices/slice-literal.orng:3:16:\n    sum([](200, 0, 8)) // Slice of product literal\n              ^");
     _1330_t9 = ((int64_t*)&_1330_t3 + _1330_t7);
     _1330_t10 = 3;
-    _1330_t2 = (struct1) {_1330_t9, _1330_t10};
+    _1330_t2 = (struct struct1) {_1330_t9, _1330_t10};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:3:9:\n    sum([](200, 0, 8)) // Slice of product literal\n       ^";
     _1330_t1 = _1330_t0(_1330_t2);
     $line_idx--;
@@ -56,12 +60,12 @@ int64_t _1330_main(void){
     return _1330_$retval;
 }
 
-int64_t _1332_sum(struct1 _1332_xs){
+int64_t _1332_sum(struct struct1 _1332_xs){
     int64_t _1332_t1;
     uint8_t _1332_t3;
     int64_t _1332_t10;
     int64_t* _1332_t11;
-    struct1 _1332_t12;
+    struct struct1 _1332_t12;
     int64_t _1332_t7;
     int64_t _1332_t0;
     int64_t _1332_$retval;
@@ -98,7 +102,7 @@ BB1618:
 BB1619:
     _1332_t10 = $sub_int64_t(_1332_xs._1, _1332_t8, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^");
     _1332_t11 = _1332_xs._0+_1332_t8;
-    _1332_t12 = (struct1) {_1332_t11, _1332_t10};
+    _1332_t12 = (struct struct1) {_1332_t11, _1332_t10};
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:21:\n        xs[0] + sum(xs[1..])\n                   ^";
     _1332_t7 = _1332_t6(_1332_t12);
     $line_idx--;

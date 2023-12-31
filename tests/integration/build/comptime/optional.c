@@ -6,20 +6,23 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
+struct struct0 {
     uint64_t tag;
     union {
         int32_t _0;
     };
-} struct0;
+};
 
 /* Function forward definitions */
-int64_t _249_f(struct0 _249_x);
+int64_t _249_f(struct struct0 _249_x);
 int64_t _246_main(void);
 
 /* Function definitions */
-int64_t _249_f(struct0 _249_x){
+int64_t _249_f(struct struct0 _249_x){
     uint64_t _249_t1;
     uint64_t _249_t2;
     uint8_t _249_t3;

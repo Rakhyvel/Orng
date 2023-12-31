@@ -6,12 +6,15 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
 
 /* Function forward definitions */
 int64_t _1114_main(void);
@@ -21,7 +24,7 @@ int64_t _1114_main(void){
     int64_t _1114_t1;
     int64_t _1114_t2;
     int64_t _1114_t3;
-    struct0 _1115_x;
+    struct struct0 _1115_x;
     int64_t _1114_t4;
     int64_t _1114_t5;
     int64_t* _1115_a;
@@ -34,13 +37,13 @@ int64_t _1114_main(void){
     int64_t _1114_t14;
     int64_t _1114_t15;
     int64_t _1114_t16;
-    struct0 _1114_t13;
+    struct struct0 _1114_t13;
     int64_t _1114_t17;
     int64_t _1114_$retval;
     _1114_t1 = 0;
     _1114_t2 = 0;
     _1114_t3 = 0;
-    _1115_x = (struct0) {_1114_t1, _1114_t2, _1114_t3};
+    _1115_x = (struct struct0) {_1114_t1, _1114_t2, _1114_t3};
     _1114_t4 = 0;
     _1114_t5 = 3;
     $bounds_check(_1114_t4, _1114_t5, "tests/integration/pattern/assign-deref-product.orng:4:14:\n    let a = &mut x[0]\n            ^");
@@ -56,7 +59,7 @@ int64_t _1114_main(void){
     _1114_t14 = 100;
     _1114_t15 = 30;
     _1114_t16 = 30;
-    _1114_t13 = (struct0) {_1114_t14, _1114_t15, _1114_t16};
+    _1114_t13 = (struct struct0) {_1114_t14, _1114_t15, _1114_t16};
     *_1115_a = _1114_t13._0;
     *_1115_b = _1114_t13._1;
     *_1115_c = _1114_t13._2;

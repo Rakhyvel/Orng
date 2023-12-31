@@ -6,22 +6,26 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct0 {
     uint64_t tag;
     union {
         int64_t _0;
         int64_t _1;
     };
-} struct0;
+};
 
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
-        struct0 _0;
-        struct0 _1;
+        struct struct0 _0;
+        struct struct0 _1;
     };
-} struct1;
+};
 
 /* Function forward definitions */
 int64_t _1259_main(void);
@@ -29,9 +33,9 @@ int64_t _1259_main(void);
 /* Function definitions */
 int64_t _1259_main(void){
     int64_t _1259_t1;
-    struct0 _1259_t2;
-    struct1 _1260_x;
-    struct0 _1268_y;
+    struct struct0 _1259_t2;
+    struct struct1 _1260_x;
+    struct struct0 _1268_y;
     uint64_t _1259_t19;
     uint64_t _1259_t20;
     uint8_t _1259_t21;
@@ -41,8 +45,8 @@ int64_t _1259_main(void){
     int64_t _1259_$retval;
     int64_t _1259_t18;
     _1259_t1 = 173;
-    _1259_t2 = (struct0) {.tag=0, ._0=_1259_t1};
-    _1260_x = (struct1) {.tag=1, ._1=_1259_t2};
+    _1259_t2 = (struct struct0) {.tag=0, ._0=_1259_t1};
+    _1260_x = (struct struct1) {.tag=1, ._1=_1259_t2};
     _1268_y = _1260_x._1;
     _1259_t19 = 0;
     _1259_t20 = _1268_y.tag;

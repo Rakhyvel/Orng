@@ -6,11 +6,14 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+};
 
 /* Function forward definitions */
 int64_t _1132_main(void);
@@ -19,10 +22,10 @@ int64_t _1132_main(void);
 int64_t _1132_main(void){
     int64_t _1132_t1;
     int64_t _1132_t2;
-    struct0 _1132_t0;
+    struct struct0 _1132_t0;
     int64_t _1133_x;
     int64_t _1133_y;
-    struct0 _1132_t3;
+    struct struct0 _1132_t3;
     int64_t _1132_t5;
     uint8_t _1132_t7;
     int64_t _1132_$retval;
@@ -30,10 +33,10 @@ int64_t _1132_main(void){
     uint8_t _1132_t10;
     _1132_t1 = 1;
     _1132_t2 = 2;
-    _1132_t0 = (struct0) {_1132_t1, _1132_t2};
+    _1132_t0 = (struct struct0) {_1132_t1, _1132_t2};
     _1133_x = _1132_t0._0;
     _1133_y = _1132_t0._1;
-    _1132_t3 = (struct0) {_1133_x, _1133_y};
+    _1132_t3 = (struct struct0) {_1133_x, _1133_y};
     _1133_y = _1132_t3._0;
     _1133_x = _1132_t3._1;
     _1132_t5 = 1;

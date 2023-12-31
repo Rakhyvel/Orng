@@ -30,13 +30,16 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
     symbol.validation_state = .validating;
 
     std.debug.assert(symbol.init.* != .poison);
-    // std.debug.print("{s}: {} = {}\n", .{ symbol.name, symbol._type, symbol.init });
+    // std.debug.print("validating type for: {s}\n", .{symbol.name});
     symbol._type = validate_AST(symbol._type, primitives_.type_type, errors, allocator);
+    // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
         symbol.expanded_type = symbol._type.expand_type(allocator);
         const expected = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
+        // std.debug.print("validating init for: {s}\n", .{symbol.name});
         symbol.init = validate_AST(symbol.init, expected, errors, allocator);
+        // std.debug.print("init for: {s}: {}\n", .{ symbol.name, symbol.init });
         if (symbol.init.* == .poison) {
             symbol.validation_state = .invalid;
             return error.TypeError;
@@ -81,14 +84,16 @@ fn is_capitalized(name: []const u8) bool {
 fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) *ast_.AST {
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
+        std.debug.print("{}\n", .{ast});
         errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
         return ast_.poisoned;
     } else if (ast.common().validation_state == .invalid) {
         return ast_.poisoned;
-    } else if (ast.common().validation_state == .valid) {
+    } else if (ast.* != .@"comptime" and ast.common().validation_state == .valid) {
+        // TODO: Why do we need comptime here?
         return ast.common().validation_state.valid.valid_form;
     }
-    // std.debug.print("{}: {?}\n", .{ ast, expected });
+    // std.debug.print("{}: {?}\n", .{ ast, expected_type });
     ast.common().validation_state = .validating;
 
     if (expected_type) |_| {
@@ -139,47 +144,36 @@ fn validate_AST_internal(
             try type_check(ast, primitives_.unit_type, expected, errors);
             return ast;
         },
-
         .int => {
             try type_check_int(ast, expected, errors);
             return ast;
         },
-
         .float => {
             try type_check_float(ast, expected, errors);
             return ast;
         },
-
         .char => {
             try type_check(ast, primitives_.char_type, expected, errors);
             return ast;
         },
-
         .string => {
             try type_check(ast, primitives_.string_type, expected, errors);
             return ast;
         },
-
         .identifier => {
             // look up symbol, that's the type
-            var symbol = ast.symbol().?;
+            const symbol = ast.symbol().?;
             if (symbol.validation_state == .invalid) {
-                return ast.enpoison();
+                return error.TypeError;
             }
             try validate_symbol(symbol, errors, allocator);
-            if (symbol.validation_state != .valid or symbol._type.common().validation_state != .valid) {
-                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
-                return ast.enpoison();
-            }
             try type_check(ast, symbol._type, expected, errors);
             return ast;
         },
-
         .true, .false => {
             try type_check(ast, primitives_.bool_type, expected, errors);
             return ast;
         },
-
         .not => {
             ast.set_expr(validate_AST(ast.expr(), primitives_.bool_type, errors, allocator));
             try assert_none_poisoned(ast.expr());
@@ -273,6 +267,9 @@ fn validate_AST_internal(
             return ast_.AST.create_int(ast.token(), ast.expr().expand_type(allocator).sizeof(), allocator);
         },
         .@"comptime" => {
+            if (ast.@"comptime".result != null) {
+                return ast.@"comptime".result.?;
+            }
             // Validate symbol
             try validate_symbol(ast.symbol().?, errors, allocator); // ast.@"comptime".symbol.? is created during symbol tree expansion
             try assert_none_poisoned(ast.symbol().?._type);
@@ -291,7 +288,8 @@ fn validate_AST_internal(
             try context.interpret();
 
             // Extract the retval
-            return context.extract_ast(0, ret_type, allocator);
+            ast.@"comptime".result = context.extract_ast(0, ret_type, allocator);
+            return ast.@"comptime".result.?;
         },
         .assign => {
             _ = try binary_operator(ast, null, errors, allocator);
@@ -457,7 +455,6 @@ fn validate_AST_internal(
                 return ast.lhs();
             }
         },
-
         .product => {
             var expanded_expected: ?*ast_.AST = if (expected == null) null else expected.?.expand_type(allocator);
             if (expanded_expected == null or expanded_expected.?.types_match(primitives_.type_type)) {
@@ -515,18 +512,24 @@ fn validate_AST_internal(
                 try validate_L_Value(ast.expr(), errors);
             } else if (primitives_.type_type.types_match(expected.?)) {
                 // Address type, type of this ast must be a type, inner must be a type
-                ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, errors, allocator));
-                try assert_none_poisoned(ast.expr());
+                if (ast.expr().* == .identifier) {
+                    _ = ast.expr().expand_type(allocator);
+                    _ = ast.expr().assert_valid();
+                } else {
+                    ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, errors, allocator));
+                    try assert_none_poisoned(ast.expr());
+                }
             } else {
                 // Address value, expected must be an address, inner must match with expected's inner
-                const expanded_expected = expected.?.expand_type(allocator); // Call is memoized
+                const expanded_expected = expected.?.expand_type(allocator);
                 if (expanded_expected.* != .addr_of) {
                     // Didn't expect an address type. Validate expr and report error
                     return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
                 }
+                _ = expanded_expected.expr().expand_type(allocator);
 
                 // Everythings Ok.
-                ast.set_expr(validate_AST(ast.expr(), expanded_expected.expr(), errors, allocator));
+                ast.set_expr(validate_AST(ast.expr(), expanded_expected.expr().assert_valid(), errors, allocator));
                 try assert_none_poisoned(ast.expr());
                 _ = ast.assert_valid();
                 if (ast.expr().* != .product) {
@@ -644,6 +647,7 @@ fn validate_AST_internal(
                 }
                 return ast;
             } else if (expected_expanded.* != .sum) {
+                std.debug.print("Lmao: {}\n", .{expected_expanded});
                 return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
             } else {
                 ast.inferred_member.base = expected;
@@ -800,7 +804,6 @@ fn validate_AST_internal(
             }
             return ast;
         },
-
         .@"break", .@"continue", .@"unreachable" => {
             try void_check(ast, expected, errors);
             return ast;

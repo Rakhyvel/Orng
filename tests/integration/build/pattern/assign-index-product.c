@@ -6,17 +6,21 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct0;
+/* Forward typedefs */
+struct struct0;
+struct struct1;
 
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct1;
+/* Typedefs */
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
+
+struct struct1 {
+    int64_t _0;
+    int64_t _1;
+};
 
 /* Function forward definitions */
 int64_t _1117_main(void);
@@ -26,12 +30,12 @@ int64_t _1117_main(void){
     int64_t _1117_t1;
     int64_t _1117_t2;
     int64_t _1117_t3;
-    struct0 _1118_x;
+    struct struct0 _1118_x;
     int64_t _1117_t5;
     int64_t _1117_t6;
     int64_t _1117_t7;
     int64_t _1117_t8;
-    struct1 _1117_t4;
+    struct struct1 _1117_t4;
     int64_t _1117_t11;
     int64_t _1117_t12;
     int64_t _1117_t15;
@@ -45,14 +49,14 @@ int64_t _1117_main(void){
     _1117_t1 = 0;
     _1117_t2 = 1;
     _1117_t3 = 2;
-    _1118_x = (struct0) {_1117_t1, _1117_t2, _1117_t3};
+    _1118_x = (struct struct0) {_1117_t1, _1117_t2, _1117_t3};
     _1117_t5 = 1;
     _1117_t6 = 3;
     _1117_t7 = 0;
     _1117_t8 = 3;
     $bounds_check(_1117_t5, _1117_t6, "tests/integration/pattern/assign-index-product.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
     $bounds_check(_1117_t7, _1117_t8, "tests/integration/pattern/assign-index-product.orng:4:26:\n    (x[0], x[1]) = (x[1], x[0])\n                        ^");
-    _1117_t4 = (struct1) {(*((int64_t*)&_1118_x + _1117_t5)), (*((int64_t*)&_1118_x + _1117_t7))};
+    _1117_t4 = (struct struct1) {(*((int64_t*)&_1118_x + _1117_t5)), (*((int64_t*)&_1118_x + _1117_t7))};
     _1117_t11 = 0;
     _1117_t12 = 3;
     $bounds_check(_1117_t11, _1117_t12, "tests/integration/pattern/assign-index-product.orng:4:8:\n    (x[0], x[1]) = (x[1], x[0])\n      ^");

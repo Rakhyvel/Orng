@@ -6,21 +6,25 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+struct struct2;
+
 /* Typedefs */
-typedef struct {
-        int64_t* _0;
-        uint8_t _1;
-} struct1;
+struct struct1 {
+    int64_t* _0;
+    uint8_t _1;
+};
 
-typedef struct {
+struct struct2 {
     uint64_t tag;
-} struct2;
+};
 
-typedef struct2(*function0)(int64_t*, uint8_t);
+typedef struct struct2(*function0)(int64_t*, uint8_t);
 
 /* Function forward definitions */
 int64_t _563_main(void);
-struct2 _565_f(int64_t* _565_x, uint8_t _565_fail);
+struct struct2 _565_f(int64_t* _565_x, uint8_t _565_fail);
 
 /* Function definitions */
 int64_t _563_main(void){
@@ -29,11 +33,11 @@ int64_t _563_main(void){
     function0 _563_t2;
     int64_t* _563_t4;
     uint8_t _563_t5;
-    struct2 _563_t3;
+    struct struct2 _563_t3;
     function0 _563_t7;
     int64_t* _563_t9;
     uint8_t _563_t10;
-    struct2 _563_t8;
+    struct struct2 _563_t8;
     int64_t _563_$retval;
     _564_x = 10;
     _564_y = 10;
@@ -55,8 +59,8 @@ int64_t _563_main(void){
     return _563_$retval;
 }
 
-struct2 _565_f(int64_t* _565_x, uint8_t _565_fail){
-    struct2 _565_$retval;
+struct struct2 _565_f(int64_t* _565_x, uint8_t _565_fail){
+    struct struct2 _565_$retval;
     *_565_x = 4;
     if (_565_fail) {
         goto BB675;
@@ -64,11 +68,11 @@ struct2 _565_f(int64_t* _565_x, uint8_t _565_fail){
         goto BB678;
     }
 BB675:
-    _565_$retval = (struct2) {.tag=1};
+    _565_$retval = (struct struct2) {.tag=1};
     *_565_x = 115;
     return _565_$retval;
 BB678:
-    _565_$retval = (struct2) {.tag=0};
+    _565_$retval = (struct struct2) {.tag=0};
     return _565_$retval;
 }
 

@@ -6,12 +6,15 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
 
 /* Function forward definitions */
 int64_t _1243_main(void);
@@ -21,7 +24,7 @@ int64_t _1243_main(void){
     int64_t _1243_t2;
     int64_t _1243_t3;
     int64_t _1243_t4;
-    struct0 _1243_t1;
+    struct struct0 _1243_t1;
     int64_t _1243_t5;
     uint8_t _1243_t6;
     int64_t _1246_x;
@@ -32,7 +35,7 @@ int64_t _1243_main(void){
     _1243_t2 = 100;
     _1243_t3 = 60;
     _1243_t4 = 8;
-    _1243_t1 = (struct0) {_1243_t2, _1243_t3, _1243_t4};
+    _1243_t1 = (struct struct0) {_1243_t2, _1243_t3, _1243_t4};
     _1243_t5 = 100;
     _1243_t6 = _1243_t1._0==_1243_t5;
     if (_1243_t6) {

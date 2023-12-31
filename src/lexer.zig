@@ -7,7 +7,6 @@ const Lexer_Errors = error{LexerError};
 const Rnd_Gen = std.rand.DefaultPrng;
 var rnd = Rnd_Gen.init(0);
 
-// TODO: Make lexer into a class
 const Lex_State = enum {
     none,
     whitespace,
@@ -59,14 +58,13 @@ pub const Scanner = struct {
     state: Lex_State,
 
     /// Will always end in an EOF on the first column of the next line
-    /// TODO: Make scanner a struct with member functions n shiet
     pub fn init(
         lines: *std.ArrayList([]const u8),
         filename: []const u8,
         errors: *errs_.Errors,
         fuzz_tokens: bool,
         allocator: std.mem.Allocator,
-    ) Scanner { // TODO: Uninfer error
+    ) Scanner {
         return Scanner{
             .tokens = std.ArrayList(token_.Token).init(allocator),
             .lines = lines,
@@ -82,7 +80,7 @@ pub const Scanner = struct {
         };
     }
 
-    pub fn get_tokens(self: *Scanner) !std.ArrayList(token_.Token) {
+    pub fn get_tokens(self: *Scanner) Lexer_Errors!std.ArrayList(token_.Token) {
         for (self.lines.items) |line| {
             self.slice_start = 0;
             self.ix = 0;
@@ -109,7 +107,7 @@ pub const Scanner = struct {
         self.state = state;
     }
 
-    fn state_machine(self: *Scanner, next_char: u8, line: []const u8) !void {
+    fn state_machine(self: *Scanner, next_char: u8, line: []const u8) Lexer_Errors!void {
         switch (self.state) {
             .none => if (std.ascii.isWhitespace(next_char)) {
                 self.advance_ix(.whitespace);
@@ -218,7 +216,7 @@ pub const Scanner = struct {
             } else switch (next_char) {
                 '\'' => {
                     self.advance_ix(.none);
-                    const num_codepoints = try std.unicode.utf8CountCodepoints(line[self.slice_start + 1 .. self.ix - 1]); // Might throw `error.TruncatedInput`
+                    const num_codepoints = std.unicode.utf8CountCodepoints(line[self.slice_start + 1 .. self.ix - 1]) catch unreachable;
                     const escaped = line[self.slice_start + 1] == '\\';
                     if ((!escaped and num_codepoints > 1) or (escaped and num_codepoints > 2)) {
                         return self.throw_basic_error(line, "more than one codepoint specified in character literal");

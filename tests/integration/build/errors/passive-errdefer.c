@@ -6,21 +6,25 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+struct struct2;
+
 /* Typedefs */
-typedef struct {
-        int64_t* _0;
-        uint8_t _1;
-} struct1;
+struct struct1 {
+    int64_t* _0;
+    uint8_t _1;
+};
 
-typedef struct {
+struct struct2 {
     uint64_t tag;
-} struct2;
+};
 
-typedef struct2(*function0)(int64_t*, uint8_t);
+typedef struct struct2(*function0)(int64_t*, uint8_t);
 
 /* Function forward definitions */
 int64_t _607_main(void);
-struct2 _609_f(int64_t* _609_x, uint8_t _609_fail);
+struct struct2 _609_f(int64_t* _609_x, uint8_t _609_fail);
 
 /* Function definitions */
 int64_t _607_main(void){
@@ -29,11 +33,11 @@ int64_t _607_main(void){
     function0 _607_t2;
     int64_t* _607_t4;
     uint8_t _607_t5;
-    struct2 _607_t3;
+    struct struct2 _607_t3;
     function0 _607_t7;
     int64_t* _607_t9;
     uint8_t _607_t10;
-    struct2 _607_t8;
+    struct struct2 _607_t8;
     int64_t _607_$retval;
     _608_z = 10;
     _608_y = 10;
@@ -55,8 +59,8 @@ int64_t _607_main(void){
     return _607_$retval;
 }
 
-struct2 _609_f(int64_t* _609_x, uint8_t _609_fail){
-    struct2 _609_$retval;
+struct struct2 _609_f(int64_t* _609_x, uint8_t _609_fail){
+    struct struct2 _609_$retval;
     int64_t _609_t5;
     int64_t _609_t12;
     *_609_x = 6;
@@ -72,7 +76,7 @@ BB742:
     *_609_x = $add_int64_t(*_609_x, _609_t12, "tests/integration/errors/passive-errdefer.orng:11:19:\n    errdefer x^ += 9\n                 ^");
     return _609_$retval;
 BB743:
-    _609_$retval = (struct2) {.tag=0};
+    _609_$retval = (struct struct2) {.tag=0};
     return _609_$retval;
 }
 

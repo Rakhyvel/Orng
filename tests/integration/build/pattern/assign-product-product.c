@@ -6,16 +6,20 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct0;
+/* Forward typedefs */
+struct struct0;
+struct struct1;
 
-typedef struct {
-        struct0 _0;
-        struct0 _1;
-} struct1;
+/* Typedefs */
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+};
+
+struct struct1 {
+    struct struct0 _0;
+    struct struct0 _1;
+};
 
 /* Function forward definitions */
 int64_t _1126_main(void);
@@ -24,43 +28,43 @@ int64_t _1126_main(void);
 int64_t _1126_main(void){
     int64_t _1126_t2;
     int64_t _1126_t3;
-    struct0 _1126_t1;
+    struct struct0 _1126_t1;
     int64_t _1126_t5;
     int64_t _1126_t6;
-    struct0 _1126_t4;
-    struct1 _1126_t0;
+    struct struct0 _1126_t4;
+    struct struct1 _1126_t0;
     int64_t _1127_x;
     int64_t _1127_y;
     int64_t _1127_a;
     int64_t _1127_b;
     int64_t _1126_t9;
     int64_t _1126_t10;
-    struct0 _1126_t8;
+    struct struct0 _1126_t8;
     int64_t _1126_t12;
     int64_t _1126_t13;
-    struct0 _1126_t11;
-    struct1 _1126_t7;
+    struct struct0 _1126_t11;
+    struct struct1 _1126_t7;
     int64_t _1126_t16;
     int64_t _1126_t17;
     int64_t _1126_$retval;
     _1126_t2 = 0;
     _1126_t3 = 0;
-    _1126_t1 = (struct0) {_1126_t2, _1126_t3};
+    _1126_t1 = (struct struct0) {_1126_t2, _1126_t3};
     _1126_t5 = 0;
     _1126_t6 = 0;
-    _1126_t4 = (struct0) {_1126_t5, _1126_t6};
-    _1126_t0 = (struct1) {_1126_t1, _1126_t4};
+    _1126_t4 = (struct struct0) {_1126_t5, _1126_t6};
+    _1126_t0 = (struct struct1) {_1126_t1, _1126_t4};
     _1127_x = _1126_t0._0._0;
     _1127_y = _1126_t0._0._1;
     _1127_a = _1126_t0._1._0;
     _1127_b = _1126_t0._1._1;
     _1126_t9 = 1;
     _1126_t10 = 40;
-    _1126_t8 = (struct0) {_1126_t9, _1126_t10};
+    _1126_t8 = (struct struct0) {_1126_t9, _1126_t10};
     _1126_t12 = 2;
     _1126_t13 = 2;
-    _1126_t11 = (struct0) {_1126_t12, _1126_t13};
-    _1126_t7 = (struct1) {_1126_t8, _1126_t11};
+    _1126_t11 = (struct struct0) {_1126_t12, _1126_t13};
+    _1126_t7 = (struct struct1) {_1126_t8, _1126_t11};
     _1127_x = _1126_t7._0._0;
     _1127_y = _1126_t7._0._1;
     _1127_a = _1126_t7._1._0;

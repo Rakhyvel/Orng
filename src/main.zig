@@ -56,7 +56,7 @@ fn compile(
     prelude: *symbol_.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) !void { // TODO: Uninfer error
+) error{}!void {
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();

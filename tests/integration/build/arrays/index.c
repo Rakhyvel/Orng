@@ -6,32 +6,36 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+struct struct2;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct1;
+struct struct1 {
+    int64_t _0;
+    int64_t _1;
+};
 
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct2;
+struct struct2 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
 
-typedef struct2(*function0)(int64_t, int64_t);
+typedef struct struct2(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
 int64_t _75_main(void);
-struct2 _77_get_array(int64_t _77_a, int64_t _77_b);
+struct struct2 _77_get_array(int64_t _77_a, int64_t _77_b);
 
 /* Function definitions */
 int64_t _75_main(void){
     function0 _75_t0;
     int64_t _75_t2;
     int64_t _75_t3;
-    struct2 _75_t1;
-    struct2 _76_x;
+    struct struct2 _75_t1;
+    struct struct2 _76_x;
     int64_t _75_t4;
     int64_t _75_t5;
     int64_t _75_t6;
@@ -68,9 +72,9 @@ int64_t _75_main(void){
     return _75_$retval;
 }
 
-struct2 _77_get_array(int64_t _77_a, int64_t _77_b){
-    struct2 _77_$retval;
-    _77_$retval = (struct2) {_77_a, _77_b, _77_a, _77_b};
+struct struct2 _77_get_array(int64_t _77_a, int64_t _77_b){
+    struct struct2 _77_$retval;
+    _77_$retval = (struct struct2) {_77_a, _77_b, _77_a, _77_b};
     return _77_$retval;
 }
 

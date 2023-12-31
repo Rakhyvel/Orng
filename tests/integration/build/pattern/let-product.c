@@ -6,11 +6,14 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+};
 
 /* Function forward definitions */
 int64_t _1162_main(void);
@@ -19,7 +22,7 @@ int64_t _1162_main(void);
 int64_t _1162_main(void){
     int64_t _1162_t1;
     int64_t _1162_t2;
-    struct0 _1162_t0;
+    struct struct0 _1162_t0;
     int64_t _1163_x;
     int64_t _1163_y;
     int64_t _1162_t3;
@@ -27,7 +30,7 @@ int64_t _1162_main(void){
     int64_t _1162_$retval;
     _1162_t1 = 5;
     _1162_t2 = 30;
-    _1162_t0 = (struct0) {_1162_t1, _1162_t2};
+    _1162_t0 = (struct struct0) {_1162_t1, _1162_t2};
     _1163_x = _1162_t0._0;
     _1163_y = _1162_t0._1;
     _1162_t3 = $mult_int64_t(_1163_x, _1163_y, "tests/integration/pattern/let-product.orng:4:8:\n    x * y + 1\n      ^");

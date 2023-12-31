@@ -6,25 +6,28 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
         int64_t _0;
     };
-} struct1;
+};
 
-typedef struct1(*function0)(void);
+typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
 int64_t _1401_main(void);
-struct1 _1403_get_the_sum(void);
+struct struct1 _1403_get_the_sum(void);
 
 /* Function definitions */
 int64_t _1401_main(void){
     function0 _1401_t0;
-    struct1 _1401_t1;
-    struct1 _1402_a;
+    struct struct1 _1401_t1;
+    struct struct1 _1402_a;
     uint64_t _1401_t2;
     int64_t _1401_$retval;
     _1401_t0 = _1403_get_the_sum;
@@ -38,11 +41,11 @@ int64_t _1401_main(void){
     return _1401_$retval;
 }
 
-struct1 _1403_get_the_sum(void){
+struct struct1 _1403_get_the_sum(void){
     int64_t _1403_t0;
-    struct1 _1403_$retval;
+    struct struct1 _1403_$retval;
     _1403_t0 = 235;
-    _1403_$retval = (struct1) {.tag=0, ._0=_1403_t0};
+    _1403_$retval = (struct struct1) {.tag=0, ._0=_1403_t0};
     return _1403_$retval;
 }
 

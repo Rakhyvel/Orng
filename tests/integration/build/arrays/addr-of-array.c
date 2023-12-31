@@ -6,18 +6,21 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct1;
+/* Forward typedefs */
+struct struct1;
 
-typedef int64_t(*function0)(struct1*);
+/* Typedefs */
+struct struct1 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
+
+typedef int64_t(*function0)(struct struct1*);
 
 /* Function forward definitions */
 int64_t _11_main(void);
-int64_t _13_sum(struct1* _13_xs);
+int64_t _13_sum(struct struct1* _13_xs);
 
 /* Function definitions */
 int64_t _11_main(void){
@@ -25,15 +28,15 @@ int64_t _11_main(void){
     int64_t _11_t3;
     int64_t _11_t4;
     int64_t _11_t5;
-    struct1 _11_t2;
-    struct1* _11_t6;
+    struct struct1 _11_t2;
+    struct struct1* _11_t6;
     int64_t _11_t1;
     int64_t _11_$retval;
     _11_t0 = _13_sum;
     _11_t3 = 200;
     _11_t4 = 0;
     _11_t5 = 9;
-    _11_t2 = (struct1) {_11_t3, _11_t4, _11_t5};
+    _11_t2 = (struct struct1) {_11_t3, _11_t4, _11_t5};
     _11_t6 = &_11_t2;
     $lines[$line_idx++] = "tests/integration/arrays/addr-of-array.orng:3:9:\n    sum(&(200, 0, 9)) // Address of product literal\n       ^";
     _11_t1 = _11_t0(_11_t6);
@@ -42,7 +45,7 @@ int64_t _11_main(void){
     return _11_$retval;
 }
 
-int64_t _13_sum(struct1* _13_xs){
+int64_t _13_sum(struct struct1* _13_xs){
     int64_t _13_t0;
     int64_t _13_t1;
     int64_t _13_t2;

@@ -6,21 +6,25 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct0 {
     uint64_t tag;
     union {
         int64_t _0;
         uint8_t _1;
     };
-} struct0;
+};
 
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
-        struct0 _0;
+        struct struct0 _0;
     };
-} struct1;
+};
 
 /* Function forward definitions */
 int64_t _1416_main(void);
@@ -28,16 +32,16 @@ int64_t _1416_main(void);
 /* Function definitions */
 int64_t _1416_main(void){
     int64_t _1416_t0;
-    struct0 _1416_t1;
-    struct1 _1417_x;
+    struct struct0 _1416_t1;
+    struct struct1 _1417_x;
     uint64_t _1416_t4;
     uint64_t _1416_t5;
     uint64_t _1416_t6;
     uint64_t _1416_t7;
     int64_t _1416_$retval;
     _1416_t0 = 4;
-    _1416_t1 = (struct0) {.tag=0, ._0=_1416_t0};
-    _1417_x = (struct1) {.tag=0, ._0=_1416_t1};
+    _1416_t1 = (struct struct0) {.tag=0, ._0=_1416_t0};
+    _1417_x = (struct struct1) {.tag=0, ._0=_1416_t1};
     _1416_t4 = 0;
     $tag_check(_1416_t4, 0, "tests/integration/sums/double.orng:4:11:\n    x.sum.int = 104\n         ^");
     _1416_t5 = _1417_x._0.tag;

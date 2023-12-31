@@ -6,18 +6,21 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct1;
+/* Forward typedefs */
+struct struct1;
 
-typedef int64_t(*function0)(struct1);
+/* Typedefs */
+struct struct1 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
+
+typedef int64_t(*function0)(struct struct1);
 
 /* Function forward definitions */
 int64_t _997_main(void);
-int64_t _999_add(struct1 _999_x);
+int64_t _999_add(struct struct1 _999_x);
 
 /* Function definitions */
 int64_t _997_main(void){
@@ -25,14 +28,14 @@ int64_t _997_main(void){
     int64_t _997_t3;
     int64_t _997_t4;
     int64_t _997_t5;
-    struct1 _997_t2;
+    struct struct1 _997_t2;
     int64_t _997_t1;
     int64_t _997_$retval;
     _997_t0 = _999_add;
     _997_t3 = 100;
     _997_t4 = 90;
     _997_t5 = 7;
-    _997_t2 = (struct1) {_997_t3, _997_t4, _997_t5};
+    _997_t2 = (struct struct1) {_997_t3, _997_t4, _997_t5};
     $lines[$line_idx++] = "tests/integration/functions/tuple-arg.orng:3:9:\n    add((100, 90, 7))\n       ^";
     _997_t1 = _997_t0(_997_t2);
     $line_idx--;
@@ -40,7 +43,7 @@ int64_t _997_main(void){
     return _997_$retval;
 }
 
-int64_t _999_add(struct1 _999_x){
+int64_t _999_add(struct struct1 _999_x){
     int64_t _999_t0;
     int64_t _999_t1;
     int64_t _999_t2;

@@ -6,24 +6,27 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
         int64_t _0;
     };
-} struct1;
+};
 
-typedef struct1(*function0)(void);
+typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
 int64_t _587_main(void);
-struct1 _593_f(void);
+struct struct1 _593_f(void);
 
 /* Function definitions */
 int64_t _587_main(void){
     function0 _587_t1;
-    struct1 _587_t2;
+    struct struct1 _587_t2;
     uint64_t _587_t3;
     uint64_t _587_t4;
     uint8_t _587_t5;
@@ -63,9 +66,9 @@ BB716:
     $panic("reached unreachable code\n");
 }
 
-struct1 _593_f(void){
-    struct1 _593_$retval;
-    _593_$retval = (struct1) {.tag=1};
+struct struct1 _593_f(void){
+    struct struct1 _593_$retval;
+    _593_$retval = (struct struct1) {.tag=1};
     return _593_$retval;
 }
 

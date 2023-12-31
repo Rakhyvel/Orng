@@ -6,6 +6,8 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+
 /* Typedefs */
 typedef void(*function0)(void);
 

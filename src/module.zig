@@ -20,6 +20,20 @@ const symbol_tree_ = @import("symbol-tree.zig");
 const type_set_ = @import("type-set.zig");
 const validate_ = @import("validate.zig");
 
+const Module_Errors = error{
+    LexerError,
+    ParseError,
+    NotCompileTimeKnown,
+    InvalidCharacter,
+    Overflow,
+    SymbolError,
+    TypeError,
+    Unused,
+    DivideByZero,
+    NotAnLValue,
+    InterpreterPanic,
+};
+
 var module_uids: usize = 0;
 /// This structure represents a module being compiled.
 pub const Module = struct {
@@ -67,7 +81,7 @@ pub const Module = struct {
         fuzz_tokens: bool,
         errors: *errs_.Errors,
         allocator: std.mem.Allocator,
-    ) !*Module { // TODO: Uninfer error
+    ) Module_Errors!*Module {
         // Construct the name
         var i: usize = 0;
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}

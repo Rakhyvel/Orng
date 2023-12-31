@@ -6,19 +6,22 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int8_t _0;
-        int32_t _1;
-        int8_t _2;
-} struct0;
+struct struct0 {
+    int8_t _0;
+    int32_t _1;
+    int8_t _2;
+};
 
 /* Function forward definitions */
-int64_t _282_f(struct0 _282_m);
+int64_t _282_f(struct struct0 _282_m);
 int64_t _278_main(void);
 
 /* Function definitions */
-int64_t _282_f(struct0 _282_m){
+int64_t _282_f(struct struct0 _282_m){
     int8_t _282_t1;
     uint8_t _282_t3;
     int64_t _282_t0;

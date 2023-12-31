@@ -6,19 +6,22 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct0;
+/* Forward typedefs */
+struct struct0;
 
-typedef struct0*(*function1)(struct0*);
+/* Typedefs */
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
+
+typedef struct struct0*(*function1)(struct struct0*);
 
 /* Function forward definitions */
 int64_t _59_main(void);
-struct0* _61_f(struct0* _61_x);
+struct struct0* _61_f(struct struct0* _61_x);
 
 /* Function definitions */
 int64_t _59_main(void){
@@ -26,10 +29,10 @@ int64_t _59_main(void){
     int64_t _59_t2;
     int64_t _59_t3;
     int64_t _59_t4;
-    struct0 _60_x;
+    struct struct0 _60_x;
     function1 _59_t5;
-    struct0* _59_t7;
-    struct0* _59_t6;
+    struct struct0* _59_t7;
+    struct struct0* _59_t6;
     int64_t _59_t8;
     int64_t _59_t9;
     int64_t _59_$retval;
@@ -37,7 +40,7 @@ int64_t _59_main(void){
     _59_t2 = 2;
     _59_t3 = 3;
     _59_t4 = 4;
-    _60_x = (struct0) {_59_t1, _59_t2, _59_t3, _59_t4};
+    _60_x = (struct struct0) {_59_t1, _59_t2, _59_t3, _59_t4};
     _59_t5 = _61_f;
     _59_t7 = &_60_x;
     $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n     ^";
@@ -50,10 +53,10 @@ int64_t _59_main(void){
     return _59_$retval;
 }
 
-struct0* _61_f(struct0* _61_x){
+struct struct0* _61_f(struct struct0* _61_x){
     int64_t _61_t1;
     int64_t _61_t2;
-    struct0* _61_$retval;
+    struct struct0* _61_$retval;
     _61_t1 = 3;
     _61_t2 = 4;
     $bounds_check(_61_t1, _61_t2, "tests/integration/arrays/call-index.orng:8:15:\n    x^[3] = 78\n             ^");

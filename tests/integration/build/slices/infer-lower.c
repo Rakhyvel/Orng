@@ -6,26 +6,30 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+struct struct1;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-        int64_t _4;
-        int64_t _5;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+    int64_t _4;
+    int64_t _5;
+};
 
-typedef struct {
-        int64_t* _0;
-        int64_t _1;
-} struct1;
+struct struct1 {
+    int64_t* _0;
+    int64_t _1;
+};
 
-typedef int64_t(*function2)(struct1);
+typedef int64_t(*function2)(struct struct1);
 
 /* Function forward definitions */
 int64_t _1308_main(void);
-int64_t _1310_sum_up(struct1 _1310_xs);
+int64_t _1310_sum_up(struct struct1 _1310_xs);
 
 /* Function definitions */
 int64_t _1308_main(void){
@@ -35,15 +39,15 @@ int64_t _1308_main(void){
     int64_t _1308_t4;
     int64_t _1308_t5;
     int64_t _1308_t6;
-    struct0 _1309_x;
+    struct struct0 _1309_x;
     int64_t _1308_t8;
     int64_t _1308_t9;
     int64_t* _1308_t10;
     int64_t _1308_t11;
-    struct1 _1309_y;
+    struct struct1 _1309_y;
     int64_t _1308_t15;
     int64_t* _1308_t16;
-    struct1 _1309_z;
+    struct struct1 _1309_z;
     function2 _1308_t18;
     int64_t _1308_t19;
     int64_t _1308_$retval;
@@ -53,16 +57,16 @@ int64_t _1308_main(void){
     _1308_t4 = 4;
     _1308_t5 = 35;
     _1308_t6 = 6;
-    _1309_x = (struct0) {_1308_t1, _1308_t2, _1308_t3, _1308_t4, _1308_t5, _1308_t6};
+    _1309_x = (struct struct0) {_1308_t1, _1308_t2, _1308_t3, _1308_t4, _1308_t5, _1308_t6};
     _1308_t8 = 0;
     _1308_t9 = 6;
     $bounds_check(_1308_t8, _1308_t9, "tests/integration/slices/infer-lower.orng:4:19:\n    let y = [mut]x\n                 ^");
     _1308_t10 = ((int64_t*)&_1309_x + _1308_t8);
     _1308_t11 = 6;
-    _1309_y = (struct1) {_1308_t10, _1308_t11};
+    _1309_y = (struct struct1) {_1308_t10, _1308_t11};
     _1308_t15 = 3;
     _1308_t16 = _1309_y._0;
-    _1309_z = (struct1) {_1308_t16, _1308_t15};
+    _1309_z = (struct struct1) {_1308_t16, _1308_t15};
     _1308_t18 = _1310_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
     _1308_t19 = _1308_t18(_1309_z);
@@ -71,7 +75,7 @@ int64_t _1308_main(void){
     return _1308_$retval;
 }
 
-int64_t _1310_sum_up(struct1 _1310_xs){
+int64_t _1310_sum_up(struct struct1 _1310_xs){
     int64_t _1311_sum;
     int64_t _1312_i;
     uint8_t _1310_t3;

@@ -6,33 +6,36 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
         int64_t _0;
     };
-} struct1;
+};
 
-typedef struct1(*function0)(uint8_t);
+typedef struct struct1(*function0)(uint8_t);
 
-typedef struct1(*function2)(void);
+typedef struct struct1(*function2)(void);
 
 /* Function forward definitions */
 int64_t _615_main(void);
-struct1 _617_f(uint8_t _617_fail);
-struct1 _622_g(void);
+struct struct1 _617_f(uint8_t _617_fail);
+struct struct1 _622_g(void);
 
 /* Function definitions */
 int64_t _615_main(void){
     function0 _615_t1;
     uint8_t _615_t3;
-    struct1 _615_t2;
+    struct struct1 _615_t2;
     uint64_t _615_t4;
     int64_t _615_t0;
     function0 _615_t7;
     uint8_t _615_t9;
-    struct1 _615_t8;
+    struct struct1 _615_t8;
     uint64_t _615_t10;
     int64_t _615_t6;
     int64_t _615_$retval;
@@ -76,13 +79,13 @@ BB764:
     return _615_$retval;
 }
 
-struct1 _617_f(uint8_t _617_fail){
+struct struct1 _617_f(uint8_t _617_fail){
     function2 _617_t1;
-    struct1 _617_t2;
+    struct struct1 _617_t2;
     uint64_t _617_t3;
-    struct1 _617_$retval;
+    struct struct1 _617_$retval;
     int64_t _617_t5;
-    struct1 _617_t0;
+    struct struct1 _617_t0;
     int64_t _620_x;
     if (_617_fail) {
         goto BB751;
@@ -102,23 +105,23 @@ BB751:
     }
 BB758:
     _617_t5 = 0;
-    _617_t0 = (struct1) {.tag=0, ._0=_617_t5};
+    _617_t0 = (struct struct1) {.tag=0, ._0=_617_t5};
     goto BB757;
 BB752:
     _617_$retval = _617_t2;
     return _617_$retval;
 BB754:
     _620_x = _617_t2._0;
-    _617_t0 = (struct1) {.tag=0, ._0=_620_x};
+    _617_t0 = (struct struct1) {.tag=0, ._0=_620_x};
     goto BB757;
 BB757:
     _617_$retval = _617_t0;
     return _617_$retval;
 }
 
-struct1 _622_g(void){
-    struct1 _622_$retval;
-    _622_$retval = (struct1) {.tag=1};
+struct struct1 _622_g(void){
+    struct struct1 _622_$retval;
+    _622_$retval = (struct struct1) {.tag=1};
     return _622_$retval;
 }
 

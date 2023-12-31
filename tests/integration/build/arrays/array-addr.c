@@ -6,13 +6,16 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t* _0;
-        int64_t* _1;
-        int64_t* _2;
-        int64_t* _3;
-} struct0;
+struct struct0 {
+    int64_t* _0;
+    int64_t* _1;
+    int64_t* _2;
+    int64_t* _3;
+};
 
 /* Function forward definitions */
 int64_t _16_main(void);
@@ -27,7 +30,7 @@ int64_t _16_main(void){
     int64_t* _16_t6;
     int64_t* _16_t7;
     int64_t* _16_t8;
-    struct0 _17_x;
+    struct struct0 _17_x;
     int64_t _16_t10;
     int64_t _16_t11;
     int64_t _16_t12;
@@ -41,7 +44,7 @@ int64_t _16_main(void){
     _16_t6 = &_17_b;
     _16_t7 = &_17_c;
     _16_t8 = &_17_d;
-    _17_x = (struct0) {_16_t5, _16_t6, _16_t7, _16_t8};
+    _17_x = (struct struct0) {_16_t5, _16_t6, _16_t7, _16_t8};
     _16_t10 = 2;
     _16_t11 = 4;
     $bounds_check(_16_t10, _16_t11, "tests/integration/arrays/array-addr.orng:8:15:\n    x[2]^ = 71\n             ^");

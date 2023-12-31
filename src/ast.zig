@@ -111,6 +111,7 @@ pub const AST = union(enum) {
         _expr: *AST,
         name: ?*AST = null,
         _symbol: ?*symbol_.Symbol = null,
+        result: ?*AST = null,
     },
 
     // Binary operators
@@ -1072,8 +1073,8 @@ pub const AST = union(enum) {
     }
 
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
-        if (self.common()._expanded_type) |expaned_type| {
-            return expaned_type;
+        if (self.common()._expanded_type != null and self.* != .identifier) {
+            return self.common()._expanded_type.?;
         }
         const retval = expand_type_internal(self, allocator).assert_valid();
         self.common()._expanded_type = retval;
@@ -1108,10 +1109,6 @@ pub const AST = union(enum) {
                     return self;
                 }
             },
-            .addr_of => {
-                const _expr = self.expr().expand_type(allocator);
-                return AST.create_addr_of(self.token(), _expr, self.addr_of.mut, allocator);
-            },
             .function => {
                 const _lhs = self.lhs().expand_type(allocator);
                 const _rhs = self.rhs().expand_type(allocator);
@@ -1132,7 +1129,7 @@ pub const AST = union(enum) {
                 const _expr = self.lhs().expand_type(allocator);
                 return _expr.children().items[@as(usize, @intCast(self.rhs().int.data))];
             },
-            .poison, .unit_type => return self,
+            .addr_of, .poison, .unit_type => return self,
 
             else => return self,
         }
@@ -1332,6 +1329,7 @@ pub const AST = union(enum) {
             .@"union",
             .function,
             .type_of,
+            .array_of,
             => return primitives_.type_type,
 
             // Unit type
@@ -1632,6 +1630,7 @@ pub const AST = union(enum) {
             .slice_of => return (B.slice_of.kind != .mut or
                 @intFromEnum(B.slice_of.kind) == @intFromEnum(A.slice_of.kind)) and
                 types_match(A.expr(), B.expr()),
+            .array_of => return types_match(A.expr(), B.expr()),
             .unit_type => return true,
             .product => {
                 if (B.children().items.len != A.children().items.len) {

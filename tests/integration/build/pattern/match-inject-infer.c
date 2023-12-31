@@ -6,15 +6,18 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
+struct struct0 {
     uint64_t tag;
     union {
         int64_t _0;
         uint8_t _1;
         uint32_t _2;
     };
-} struct0;
+};
 
 /* Function forward definitions */
 int64_t _1187_main(void);
@@ -22,10 +25,10 @@ int64_t _1187_main(void);
 /* Function definitions */
 int64_t _1187_main(void){
     int64_t _1187_t1;
-    struct0 _1188_x;
+    struct struct0 _1188_x;
     int64_t _1187_$retval;
     _1187_t1 = 172;
-    _1188_x = (struct0) {.tag=0, ._0=_1187_t1};
+    _1188_x = (struct struct0) {.tag=0, ._0=_1187_t1};
     _1187_$retval = _1188_x._0;
     return _1187_$retval;
 }

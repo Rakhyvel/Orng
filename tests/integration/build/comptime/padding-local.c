@@ -6,12 +6,15 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+
 /* Typedefs */
-typedef struct {
-        int8_t _0;
-        int16_t _1;
-        int8_t _2;
-} struct1;
+struct struct1 {
+    int8_t _0;
+    int16_t _1;
+    int8_t _2;
+};
 
 typedef int64_t(*function0)(int8_t, int16_t, int8_t);
 

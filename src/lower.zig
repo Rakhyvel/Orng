@@ -30,7 +30,7 @@ const Labels = struct {
     const null_labels: Labels = .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null };
 };
 
-pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) Flatten_AST_Error!void {
     const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, Labels.null_labels, errors, allocator);
     if (cfg.symbol.decl.?.* == .fn_decl) {
         // `_comptime` symbols don't have parameters anyway
@@ -92,7 +92,10 @@ fn lower_AST(
                 },
                 else => {
                     const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.TypeError;
-                    codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch return error.TypeError; // TODO: Add actual error diagnostics here
+                    codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch {
+                        errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "invalid character" } });
+                        return error.TypeError;
+                    };
                 },
             }
             cfg.append_instruction(ir_.IR.init_int(temp, codepoint, ast.token().span, allocator));
@@ -430,6 +433,7 @@ fn lower_AST(
             if (ast.children().items.len == 0 and ast.block.final == null) {
                 return null;
             }
+
             var continue_labels = std.ArrayList(*ir_.IR).init(allocator);
             defer continue_labels.deinit();
             var break_labels = std.ArrayList(*ir_.IR).init(allocator);
@@ -562,7 +566,7 @@ fn lval_from_symbol_cfg(
     span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*lval_.L_Value { // TODO: Uninfer error
+) Flatten_AST_Error!*lval_.L_Value {
     _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
     const lval = create_temp_lvalue(cfg, symbol._type, allocator);
     var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
@@ -577,7 +581,7 @@ fn unop(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !?*lval_.L_Value { // TODO: Uninfer error
+) Flatten_AST_Error!?*lval_.L_Value {
     if ((ast.typeof(allocator)).types_match(primitives_.type_type)) {
         return lval_from_ast(ast, cfg, allocator); // for addrOf
     }
@@ -593,7 +597,7 @@ fn binop(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !?*lval_.L_Value { // TODO: Uninfer error
+) Flatten_AST_Error!?*lval_.L_Value {
     const lhs_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
     const rhs_lval = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
     if (lhs_lval == null or rhs_lval == null) {
@@ -646,7 +650,7 @@ fn or_and_op(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !?*lval_.L_Value { // TODO: Uninfer error
+) Flatten_AST_Error!?*lval_.L_Value {
     // Create the result symbol and labels used
     const or_and_symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
     const jump_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
@@ -678,7 +682,7 @@ fn tuple_equality_check(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !?*lval_.L_Value { // TODO: Uninfer error
+) Flatten_AST_Error!?*lval_.L_Value {
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
     const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
     const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
@@ -759,7 +763,7 @@ fn coalesce_op(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !?*lval_.L_Value { // TODO: Uninfer error
+) Flatten_AST_Error!?*lval_.L_Value {
     // Create the result symbol and labels
     const coalesce_symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
     const zero_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
@@ -881,7 +885,7 @@ fn flow(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void { // TODO: Uninfer error
+) Flatten_AST_Error!void {
     switch (condition.*) {
         .true => if (sense) {
             cfg.append_instruction(ir_.IR.init_jump(label, span, allocator));
@@ -929,7 +933,7 @@ fn generate_control_flow_block(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void { // TODO: Uninfer error
+) Flatten_AST_Error!void {
     if (try lower_AST(cfg, ast, labels, errors, allocator)) |rhs_lval| {
         const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         if (has_else) {
@@ -948,7 +952,7 @@ fn generate_control_flow_else(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void { // TODO: Uninfer error
+) Flatten_AST_Error!void {
     if (ast) |else_block| {
         if (try lower_AST(cfg, else_block, labels, errors, allocator)) |else_lval| {
             const else_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -969,7 +973,7 @@ fn generate_match_pattern_checks(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ir_.IR) { // TODO: Uninfer error
+) Flatten_AST_Error!std.ArrayList(*ir_.IR) {
     var lhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on an unsuccessful test ("next pattern")
     defer lhs_label_list.deinit();
     var rhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on a successful test ("code for the mapping")
@@ -1073,7 +1077,7 @@ fn generate_match_bodies(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void { // TODO: Uninfer error
+) Flatten_AST_Error!void {
     for (mappings.items, 0..) |mapping, i| {
         cfg.append_instruction(rhs_label_list.items[i]);
         // Generate initialization for patterns before the rhs

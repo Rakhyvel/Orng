@@ -6,16 +6,20 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct0;
+/* Forward typedefs */
+struct struct0;
+struct struct1;
 
-typedef struct {
-        struct0 _0;
-        struct0 _1;
-} struct1;
+/* Typedefs */
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+};
+
+struct struct1 {
+    struct struct0 _0;
+    struct struct0 _1;
+};
 
 /* Function forward definitions */
 int64_t _1236_main(void);
@@ -24,11 +28,11 @@ int64_t _1236_main(void);
 int64_t _1236_main(void){
     int64_t _1236_t3;
     int64_t _1236_t4;
-    struct0 _1236_t2;
+    struct struct0 _1236_t2;
     int64_t _1236_t6;
     int64_t _1236_t7;
-    struct0 _1236_t5;
-    struct1 _1236_t1;
+    struct struct0 _1236_t5;
+    struct struct1 _1236_t1;
     int64_t _1236_t8;
     uint8_t _1236_t9;
     int64_t _1236_t10;
@@ -41,11 +45,11 @@ int64_t _1236_main(void){
     uint8_t _1236_t13;
     _1236_t3 = 100;
     _1236_t4 = 100;
-    _1236_t2 = (struct0) {_1236_t3, _1236_t4};
+    _1236_t2 = (struct struct0) {_1236_t3, _1236_t4};
     _1236_t6 = 200;
     _1236_t7 = 200;
-    _1236_t5 = (struct0) {_1236_t6, _1236_t7};
-    _1236_t1 = (struct1) {_1236_t2, _1236_t5};
+    _1236_t5 = (struct struct0) {_1236_t6, _1236_t7};
+    _1236_t1 = (struct struct1) {_1236_t2, _1236_t5};
     _1236_t8 = 100;
     _1236_t9 = _1236_t1._0._0==_1236_t8;
     if (_1236_t9) {

@@ -6,6 +6,8 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+
 /* Typedefs */
 typedef int64_t(*function0)(void);
 

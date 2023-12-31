@@ -6,13 +6,16 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
 
 /* Function forward definitions */
 int64_t _90_add(int64_t _90_a, int64_t _90_b);
@@ -30,7 +33,7 @@ int64_t _86_main(void){
     int64_t _86_t2;
     int64_t _86_t3;
     int64_t _86_t4;
-    struct0 _87_x;
+    struct struct0 _87_x;
     int64_t _86_t8;
     int64_t _86_t9;
     int64_t _86_t13;
@@ -54,7 +57,7 @@ int64_t _86_main(void){
     _86_t2 = 0;
     _86_t3 = 0;
     _86_t4 = 0;
-    _87_x = (struct0) {_86_t1, _86_t2, _86_t3, _86_t4};
+    _87_x = (struct struct0) {_86_t1, _86_t2, _86_t3, _86_t4};
     _86_t8 = 3;
     _86_t9 = 4;
     $bounds_check(_86_t8, _86_t9, "tests/integration/comptime/array-size.orng:4:15:\n    x[3] = 0 * 1000\n             ^");

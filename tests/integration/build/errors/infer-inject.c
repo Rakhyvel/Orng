@@ -6,26 +6,29 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+
 /* Typedefs */
-typedef struct {
+struct struct1 {
     uint64_t tag;
     union {
         int64_t _0;
         int64_t _1;
     };
-} struct1;
+};
 
-typedef struct1(*function0)(uint8_t);
+typedef struct struct1(*function0)(uint8_t);
 
 /* Function forward definitions */
 int64_t _574_main(void);
-struct1 _581_f(uint8_t _581_give_int);
+struct struct1 _581_f(uint8_t _581_give_int);
 
 /* Function definitions */
 int64_t _574_main(void){
     function0 _574_t1;
     uint8_t _574_t3;
-    struct1 _574_t2;
+    struct struct1 _574_t2;
     uint64_t _574_t4;
     uint64_t _574_t5;
     uint8_t _574_t6;
@@ -81,10 +84,10 @@ BB704:
     $panic("reached unreachable code\n");
 }
 
-struct1 _581_f(uint8_t _581_give_int){
+struct struct1 _581_f(uint8_t _581_give_int){
     int64_t _581_t1;
-    struct1 _581_t0;
-    struct1 _581_$retval;
+    struct struct1 _581_t0;
+    struct struct1 _581_$retval;
     if (_581_give_int) {
         goto BB685;
     } else {
@@ -92,10 +95,10 @@ struct1 _581_f(uint8_t _581_give_int){
     }
 BB685:
     _581_t1 = 240;
-    _581_t0 = (struct1) {.tag=1, ._1=_581_t1};
+    _581_t0 = (struct struct1) {.tag=1, ._1=_581_t1};
     goto BB688;
 BB689:
-    _581_t0 = (struct1) {.tag=2};
+    _581_t0 = (struct struct1) {.tag=2};
     goto BB688;
 BB688:
     _581_$retval = _581_t0;

@@ -6,22 +6,26 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct1;
+struct struct2;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct2;
+struct struct2 {
+    int64_t _0;
+    int64_t _1;
+};
 
-typedef struct {
-        int64_t _0;
-        struct2 _1;
-} struct1;
+struct struct1 {
+    int64_t _0;
+    struct struct2 _1;
+};
 
-typedef int64_t(*function0)(int64_t, struct2);
+typedef int64_t(*function0)(int64_t, struct struct2);
 
 /* Function forward definitions */
 int64_t _524_main(void);
-int64_t _526_add_fields(int64_t _526_scale, struct2 _526_mt);
+int64_t _526_add_fields(int64_t _526_scale, struct struct2 _526_mt);
 
 /* Function definitions */
 int64_t _524_main(void){
@@ -29,14 +33,14 @@ int64_t _524_main(void){
     int64_t _524_t2;
     int64_t _524_t4;
     int64_t _524_t5;
-    struct2 _524_t3;
+    struct struct2 _524_t3;
     int64_t _524_t1;
     int64_t _524_$retval;
     _524_t0 = _526_add_fields;
     _524_t2 = 2;
     _524_t4 = 450;
     _524_t5 = 50;
-    _524_t3 = (struct2) {_524_t4, _524_t5};
+    _524_t3 = (struct struct2) {_524_t4, _524_t5};
     $lines[$line_idx++] = "tests/integration/default/default-keyword.orng:8:16:\n    add_fields(2)\n              ^";
     _524_t1 = _524_t0(_524_t2, _524_t3);
     $line_idx--;
@@ -44,7 +48,7 @@ int64_t _524_main(void){
     return _524_$retval;
 }
 
-int64_t _526_add_fields(int64_t _526_scale, struct2 _526_mt){
+int64_t _526_add_fields(int64_t _526_scale, struct struct2 _526_mt){
     int64_t _526_t0;
     int64_t _526_$retval;
     _526_t0 = $add_int64_t(_526_mt._0, _526_mt._1, "tests/integration/default/default-keyword.orng:14:12:\n    (mt.x + mt.y) / scale\n          ^");

@@ -6,11 +6,14 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        uint8_t* _0;
-        int64_t _1;
-} struct0;
+struct struct0 {
+    uint8_t* _0;
+    int64_t _1;
+};
 
 /* Interned Strings */
 char* string_0 = "\x5C";
@@ -20,10 +23,10 @@ uint8_t _1388_main(void);
 
 /* Function definitions */
 uint8_t _1388_main(void){
-    struct0 _1389_x;
+    struct struct0 _1389_x;
     int64_t _1388_t1;
     uint8_t _1388_$retval;
-    _1389_x = (struct0) {(uint8_t*)string_0, 1};
+    _1389_x = (struct struct0) {(uint8_t*)string_0, 1};
     _1388_t1 = 0;
     $bounds_check(_1388_t1, _1389_x._1, "tests/integration/strings/string-slash.orng:2:3:\nfn main() -> Byte {\n ^");
     _1388_$retval = *((uint8_t*)_1389_x._0 + _1388_t1);

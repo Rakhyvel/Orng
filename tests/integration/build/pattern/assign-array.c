@@ -6,27 +6,30 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-} struct0;
+/* Forward typedefs */
+struct struct0;
 
-typedef struct0(*function1)(void);
+/* Typedefs */
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+};
+
+typedef struct struct0(*function1)(void);
 
 /* Function forward definitions */
 int64_t _1109_main(void);
-struct0 _1111_get_array(void);
+struct struct0 _1111_get_array(void);
 
 /* Function definitions */
 int64_t _1109_main(void){
     int64_t _1109_t1;
     int64_t _1109_t2;
     int64_t _1109_t3;
-    struct0 _1110_x;
+    struct struct0 _1110_x;
     function1 _1109_t4;
-    struct0 _1109_t5;
+    struct struct0 _1109_t5;
     int64_t _1109_t8;
     int64_t _1109_t9;
     int64_t _1109_t12;
@@ -44,7 +47,7 @@ int64_t _1109_main(void){
     _1109_t1 = 0;
     _1109_t2 = 0;
     _1109_t3 = 0;
-    _1110_x = (struct0) {_1109_t1, _1109_t2, _1109_t3};
+    _1110_x = (struct struct0) {_1109_t1, _1109_t2, _1109_t3};
     _1109_t4 = _1111_get_array;
     $lines[$line_idx++] = "tests/integration/pattern/assign-array.orng:4:36:\n    (x[0], x[1], x[2]) = get_array()\n                                  ^";
     _1109_t5 = _1109_t4();
@@ -75,15 +78,15 @@ int64_t _1109_main(void){
     return _1109_$retval;
 }
 
-struct0 _1111_get_array(void){
+struct struct0 _1111_get_array(void){
     int64_t _1111_t1;
     int64_t _1111_t2;
     int64_t _1111_t3;
-    struct0 _1111_$retval;
+    struct struct0 _1111_$retval;
     _1111_t1 = 200;
     _1111_t2 = 3;
     _1111_t3 = 4;
-    _1111_$retval = (struct0) {_1111_t1, _1111_t2, _1111_t3};
+    _1111_$retval = (struct struct0) {_1111_t1, _1111_t2, _1111_t3};
     return _1111_$retval;
 }
 

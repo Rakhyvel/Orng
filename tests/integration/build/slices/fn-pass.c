@@ -6,24 +6,28 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+struct struct1;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
 
-typedef struct {
-        int64_t* _0;
-        int64_t _1;
-} struct1;
+struct struct1 {
+    int64_t* _0;
+    int64_t _1;
+};
 
-typedef int64_t(*function2)(struct1);
+typedef int64_t(*function2)(struct struct1);
 
 /* Function forward definitions */
 int64_t _1295_main(void);
-int64_t _1297_f(struct1 _1297_x);
+int64_t _1297_f(struct struct1 _1297_x);
 
 /* Function definitions */
 int64_t _1295_main(void){
@@ -31,12 +35,12 @@ int64_t _1295_main(void){
     int64_t _1295_t2;
     int64_t _1295_t3;
     int64_t _1295_t4;
-    struct0 _1296_x;
+    struct struct0 _1296_x;
     int64_t _1295_t6;
     int64_t _1295_t7;
     int64_t* _1295_t8;
     int64_t _1295_t9;
-    struct1 _1296_y;
+    struct struct1 _1296_y;
     function2 _1295_t10;
     int64_t _1295_t11;
     int64_t _1295_$retval;
@@ -44,13 +48,13 @@ int64_t _1295_main(void){
     _1295_t2 = 2;
     _1295_t3 = 3;
     _1295_t4 = 4;
-    _1296_x = (struct0) {_1295_t1, _1295_t2, _1295_t3, _1295_t4};
+    _1296_x = (struct struct0) {_1295_t1, _1295_t2, _1295_t3, _1295_t4};
     _1295_t6 = 0;
     _1295_t7 = 4;
     $bounds_check(_1295_t6, _1295_t7, "tests/integration/slices/fn-pass.orng:4:19:\n    let y = [mut]x\n                 ^");
     _1295_t8 = ((int64_t*)&_1296_x + _1295_t6);
     _1295_t9 = 4;
-    _1296_y = (struct1) {_1295_t8, _1295_t9};
+    _1296_y = (struct struct1) {_1295_t8, _1295_t9};
     _1295_t10 = _1297_f;
     $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
     _1295_t11 = _1295_t10(_1296_y);
@@ -59,7 +63,7 @@ int64_t _1295_main(void){
     return _1295_$retval;
 }
 
-int64_t _1297_f(struct1 _1297_x){
+int64_t _1297_f(struct struct1 _1297_x){
     int64_t _1297_t0;
     int64_t _1297_t1;
     int64_t _1297_$retval;

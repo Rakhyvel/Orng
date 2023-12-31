@@ -6,6 +6,8 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+
 /* Typedefs */
 typedef uint8_t(*function0)(int64_t);
 

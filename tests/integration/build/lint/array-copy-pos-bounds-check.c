@@ -6,13 +6,16 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
 
 typedef int64_t(*function1)(void);
 
@@ -26,7 +29,7 @@ int64_t _1020_main(void){
     int64_t _1020_t2;
     int64_t _1020_t3;
     int64_t _1020_t4;
-    struct0 _1021_x;
+    struct struct0 _1021_x;
     function1 _1020_t6;
     int64_t _1020_t7;
     int64_t _1020_t8;
@@ -35,7 +38,7 @@ int64_t _1020_main(void){
     _1020_t2 = 0;
     _1020_t3 = 0;
     _1020_t4 = 0;
-    _1021_x = (struct0) {_1020_t1, _1020_t2, _1020_t3, _1020_t4};
+    _1021_x = (struct struct0) {_1020_t1, _1020_t2, _1020_t3, _1020_t4};
     _1020_t6 = _1022_f;
     $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
     _1020_t7 = _1020_t6();

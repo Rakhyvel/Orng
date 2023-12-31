@@ -1,0 +1,10 @@
+// 286
+let const A = (x: ?&B, y: Int)
+let const B = (x: ?&A, y: Int)
+
+fn main() -> Int {
+    let mut a: A = (.none, 200)
+    let b: B = (.none, 86)
+    a.x = .some <- &b
+    a.y + a.x.some.y
+}

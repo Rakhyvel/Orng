@@ -6,11 +6,14 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+};
 
 /* Function forward definitions */
 int64_t _1150_main(void);
@@ -19,7 +22,7 @@ int64_t _1150_main(void);
 int64_t _1150_main(void){
     int64_t _1150_t1;
     int64_t _1150_t2;
-    struct0 _1150_t0;
+    struct struct0 _1150_t0;
     int64_t _1151_a;
     int64_t _1151_b;
     int64_t _1150_t4;
@@ -29,7 +32,7 @@ int64_t _1150_main(void){
     int64_t _1150_$retval;
     _1150_t1 = 0;
     _1150_t2 = 0;
-    _1150_t0 = (struct0) {_1150_t1, _1150_t2};
+    _1150_t0 = (struct struct0) {_1150_t1, _1150_t2};
     _1151_a = _1150_t0._0;
     _1151_b = _1150_t0._1;
     _1150_t4 = $add_int64_t(_1151_a, _1151_b, "tests/integration/pattern/let-product-default.orng:4:11:\n    if a + b == 0 {\n         ^");

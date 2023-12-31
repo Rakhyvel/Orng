@@ -6,18 +6,22 @@
 
 #include "debug.inc"
 
-/* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct0;
+/* Forward typedefs */
+struct struct0;
+struct struct1;
 
-typedef struct {
-        int64_t* _0;
-        int64_t _1;
-} struct1;
+/* Typedefs */
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
+
+struct struct1 {
+    int64_t* _0;
+    int64_t _1;
+};
 
 typedef int64_t(*function2)(void);
 
@@ -31,12 +35,12 @@ int64_t _1038_main(void){
     int64_t _1038_t2;
     int64_t _1038_t3;
     int64_t _1038_t4;
-    struct0 _1039_x;
+    struct struct0 _1039_x;
     int64_t _1038_t6;
     int64_t _1038_t7;
     int64_t* _1038_t8;
     int64_t _1038_t9;
-    struct1 _1039_y;
+    struct struct1 _1039_y;
     function2 _1038_t11;
     int64_t _1038_t12;
     int64_t _1038_$retval;
@@ -44,13 +48,13 @@ int64_t _1038_main(void){
     _1038_t2 = 0;
     _1038_t3 = 0;
     _1038_t4 = 0;
-    _1039_x = (struct0) {_1038_t1, _1038_t2, _1038_t3, _1038_t4};
+    _1039_x = (struct struct0) {_1038_t1, _1038_t2, _1038_t3, _1038_t4};
     _1038_t6 = 0;
     _1038_t7 = 4;
     $bounds_check(_1038_t6, _1038_t7, "tests/integration/lint/slice-copy-neg-bounds-check.orng:4:19:\n    let y = [mut]x\n                 ^");
     _1038_t8 = ((int64_t*)&_1039_x + _1038_t6);
     _1038_t9 = 4;
-    _1039_y = (struct1) {_1038_t8, _1038_t9};
+    _1039_y = (struct struct1) {_1038_t8, _1038_t9};
     _1038_t11 = _1040_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
     _1038_t12 = _1038_t11();

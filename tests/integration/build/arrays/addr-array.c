@@ -6,13 +6,16 @@
 
 #include "debug.inc"
 
+/* Forward typedefs */
+struct struct0;
+
 /* Typedefs */
-typedef struct {
-        int64_t _0;
-        int64_t _1;
-        int64_t _2;
-        int64_t _3;
-} struct0;
+struct struct0 {
+    int64_t _0;
+    int64_t _1;
+    int64_t _2;
+    int64_t _3;
+};
 
 /* Function forward definitions */
 int64_t _5_main(void);
@@ -23,8 +26,8 @@ int64_t _5_main(void){
     int64_t _5_t2;
     int64_t _5_t3;
     int64_t _5_t4;
-    struct0 _6_x;
-    struct0* _6_y;
+    struct struct0 _6_x;
+    struct struct0* _6_y;
     int64_t _5_t7;
     int64_t _5_t8;
     int64_t _5_t9;
@@ -34,7 +37,7 @@ int64_t _5_main(void){
     _5_t2 = 2;
     _5_t3 = 3;
     _5_t4 = 4;
-    _6_x = (struct0) {_5_t1, _5_t2, _5_t3, _5_t4};
+    _6_x = (struct struct0) {_5_t1, _5_t2, _5_t3, _5_t4};
     _6_y = &_6_x;
     _5_t7 = 2;
     _5_t8 = 4;
