@@ -137,7 +137,19 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
         }
         return false;
     };
-    try module.output(out_name.str());
+    // Open the output file
+    var output_file = std.fs.cwd().createFile(
+        out_name.str(),
+        .{ .read = false },
+    ) catch |e| switch (e) {
+        error.FileNotFound => {
+            std.debug.print("Cannot create file: {s}\n", .{out_name.str()});
+            return error.IoError;
+        },
+        else => return error.IoError,
+    };
+    defer output_file.close();
+    try module.output(output_file.writer());
     if (coverage) {
         return false;
     }
@@ -354,7 +366,19 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                     },
                 }
             };
-            module.output("tests/fuzz/fuzz-out.c") catch {
+            // Open the output file
+            var output_file = std.fs.cwd().createFile(
+                "tests/fuzz/fuzz-out.c",
+                .{ .read = false },
+            ) catch |e| switch (e) {
+                error.FileNotFound => {
+                    std.debug.print("Cannot create file: {s}\n", .{"tests/fuzz/fuzz-out.c"});
+                    return error.IoError;
+                },
+                else => return error.IoError,
+            };
+            defer output_file.close();
+            module.output(output_file.writer()) catch {
                 failed += 1;
                 try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                 try out.print("Orng Compiler crashed with input above!\n", .{});

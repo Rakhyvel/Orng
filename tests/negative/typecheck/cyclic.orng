@@ -1,0 +1,6 @@
+let const A = (x: B, y: Int)
+let const B = (x: A, y: Int)
+
+fn main() -> Int {
+    2
+}

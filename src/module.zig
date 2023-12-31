@@ -34,6 +34,8 @@ const Module_Errors = error{
     InterpreterPanic,
 };
 
+const Writer = std.fs.File.Writer;
+
 var module_uids: usize = 0;
 /// This structure represents a module being compiled.
 pub const Module = struct {
@@ -163,10 +165,6 @@ pub const Module = struct {
             }
         }
 
-        // TODO: I don't think this works with addresses
-        //     let const A = (x: &B, y: Int)
-        //     let const B = (x: &A, y: Int)
-        // The above should work
         for (module.cfgs.items) |cfg| {
             // Add parameter types to type set
             for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
@@ -193,7 +191,7 @@ pub const Module = struct {
         cfg.visited = true;
 
         cfg.collect_generated_symbvers();
-        _ = self.append_instructions(cfg);
+        _ = self.emplace_cfg(cfg);
 
         for (cfg.children.items) |child| {
             self.collect_cfgs(child);
@@ -201,24 +199,8 @@ pub const Module = struct {
     }
 
     /// Takes in a statically correct symbol tree, writes it out to a file
-    pub fn output(
-        self: *Module,
-        out_name: []const u8, // TODO: Replace with writer, shouldn't be responsible for handling files
-    ) !void { // TODO: Uninfer error
-        // Open the output file
-        var output_file = std.fs.cwd().createFile(
-            out_name,
-            .{ .read = false },
-        ) catch |e| switch (e) {
-            error.FileNotFound => {
-                std.debug.print("Cannot create file: {s}\n", .{out_name});
-                return error.IoError;
-            },
-            else => return error.IoError,
-        };
-        defer output_file.close();
-
-        try codegen_.generate(self, output_file.writer());
+    pub fn output(self: *Module, writer: Writer) codegen_.CodeGen_Error!void {
+        try codegen_.generate(self, writer);
     }
 
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.
@@ -229,8 +211,7 @@ pub const Module = struct {
     /// instructions for the CFG start.
     ///
     /// Returns the index in the cfg in the cfgs list.
-    /// TODO: Rename to something like `register_cfg`?
-    pub fn append_instructions(self: *Module, cfg: *cfg_.CFG) i64 {
+    pub fn emplace_cfg(self: *Module, cfg: *cfg_.CFG) i64 {
         const len = @as(i64, @intCast(self.cfgs.items.len));
         if (cfg.offset != null) {
             // Already visited, do nothing
@@ -245,7 +226,7 @@ pub const Module = struct {
             self.cfgs.append(cfg) catch unreachable;
 
             for (cfg.children.items) |child| {
-                _ = self.append_instructions(child);
+                _ = self.emplace_cfg(child);
             }
         }
         return len;
@@ -340,7 +321,7 @@ pub fn get_cfg(
     interned_strings: *std.StringArrayHashMap(usize),
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*cfg_.CFG { // TODO: Uninfer error
+) lower_.Lower_Errors!*cfg_.CFG {
     std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
     if (symbol.cfg == null) {

@@ -84,7 +84,7 @@ fn is_capitalized(name: []const u8) bool {
 fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) *ast_.AST {
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
-        std.debug.print("{}\n", .{ast});
+        // std.debug.print("{}\n", .{ast});
         errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
         return ast_.poisoned;
     } else if (ast.common().validation_state == .invalid) {
@@ -279,7 +279,7 @@ fn validate_AST_internal(
             const cfg = try module_.get_cfg(ast.symbol().?, null, &ast.symbol().?.scope.module.?.interned_strings, errors, allocator);
             defer cfg.deinit(); // Remove the cfg so that it isn't output
 
-            const idx = ast.symbol().?.scope.module.?.append_instructions(cfg);
+            const idx = ast.symbol().?.scope.module.?.emplace_cfg(cfg);
             defer ast.symbol().?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
@@ -592,7 +592,7 @@ fn validate_AST_internal(
                 return ast.enpoison();
             }
             if (ast.array_of.len.int.data <= 0) {
-                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is negative" } });
+                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is not positive" } });
                 return ast.enpoison();
             }
             return ast_.AST.create_array_type(ast.array_of.len, ast.expr(), allocator);
@@ -902,7 +902,7 @@ fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) 
 
 fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
     if (!got.is_int_type()) {
-        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integral", .got = got } });
+        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integer", .got = got } });
         return error.TypeError;
     }
 }

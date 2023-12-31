@@ -12,7 +12,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const Flatten_AST_Error = error{
+pub const Lower_Errors = error{
     TypeError,
     NotAnLValue,
     InterpreterPanic,
@@ -30,7 +30,7 @@ const Labels = struct {
     const null_labels: Labels = .{ .return_label = null, .break_label = null, .continue_label = null, .error_label = null };
 };
 
-pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) Flatten_AST_Error!void {
+pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) Lower_Errors!void {
     const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, Labels.null_labels, errors, allocator);
     if (cfg.symbol.decl.?.* == .fn_decl) {
         // `_comptime` symbols don't have parameters anyway
@@ -61,7 +61,7 @@ fn lower_AST(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value {
+) Lower_Errors!?*lval_.L_Value {
     switch (ast.*) {
         // Straight up types, yo
         .function,
@@ -566,7 +566,7 @@ fn lval_from_symbol_cfg(
     span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!*lval_.L_Value {
+) Lower_Errors!*lval_.L_Value {
     _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
     const lval = create_temp_lvalue(cfg, symbol._type, allocator);
     var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
@@ -581,7 +581,7 @@ fn unop(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value {
+) Lower_Errors!?*lval_.L_Value {
     if ((ast.typeof(allocator)).types_match(primitives_.type_type)) {
         return lval_from_ast(ast, cfg, allocator); // for addrOf
     }
@@ -597,7 +597,7 @@ fn binop(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value {
+) Lower_Errors!?*lval_.L_Value {
     const lhs_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
     const rhs_lval = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
     if (lhs_lval == null or rhs_lval == null) {
@@ -650,7 +650,7 @@ fn or_and_op(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value {
+) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels used
     const or_and_symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
     const jump_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
@@ -682,7 +682,7 @@ fn tuple_equality_check(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value {
+) Lower_Errors!?*lval_.L_Value {
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
     const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
     const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
@@ -763,7 +763,7 @@ fn coalesce_op(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value {
+) Lower_Errors!?*lval_.L_Value {
     // Create the result symbol and labels
     const coalesce_symbol = create_temp_symbol(cfg, ast.typeof(allocator), allocator);
     const zero_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
@@ -799,7 +799,7 @@ fn generate_assign(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
+) Lower_Errors!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
 {
     if (lhs.* == .product) {
         // Recursively call `generate_assign` for each term in the product.
@@ -885,7 +885,7 @@ fn flow(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     switch (condition.*) {
         .true => if (sense) {
             cfg.append_instruction(ir_.IR.init_jump(label, span, allocator));
@@ -933,7 +933,7 @@ fn generate_control_flow_block(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     if (try lower_AST(cfg, ast, labels, errors, allocator)) |rhs_lval| {
         const rhs_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
         if (has_else) {
@@ -952,7 +952,7 @@ fn generate_control_flow_else(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     if (ast) |else_block| {
         if (try lower_AST(cfg, else_block, labels, errors, allocator)) |else_lval| {
             const else_copy_lval = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -973,7 +973,7 @@ fn generate_match_pattern_checks(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!std.ArrayList(*ir_.IR) {
+) Lower_Errors!std.ArrayList(*ir_.IR) {
     var lhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on an unsuccessful test ("next pattern")
     defer lhs_label_list.deinit();
     var rhs_label_list = std.ArrayList(*ir_.IR).init(allocator); // labels to branch on a successful test ("code for the mapping")
@@ -1003,7 +1003,7 @@ fn generate_match_pattern_check(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     if (pattern == null) {
         // Implies `else` branch, infallible.
         return;
@@ -1077,7 +1077,7 @@ fn generate_match_bodies(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     for (mappings.items, 0..) |mapping, i| {
         cfg.append_instruction(rhs_label_list.items[i]);
         // Generate initialization for patterns before the rhs
@@ -1141,7 +1141,7 @@ fn generate_defers(
     defer_labels: *std.ArrayList(*ir_.IR),
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     var i: usize = defers.items.len;
     while (i > 0) : (i -= 1) {
         cfg.append_instruction(defer_labels.items[i - 1]);
@@ -1156,7 +1156,7 @@ fn generate_pattern(
     def: *lval_.L_Value,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Flatten_AST_Error!void {
+) Lower_Errors!void {
     if (pattern.* == .pattern_symbol) {
         if (!std.mem.eql(u8, pattern.pattern_symbol.name, "_")) {
             const symbver = lval_.L_Value.create_unversioned_symbver(pattern.symbol().?, allocator);

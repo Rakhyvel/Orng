@@ -14,7 +14,7 @@ const symbol_ = @import("symbol.zig");
 var cheat_module: *module_.Module = undefined; // TODO: I hate this
 const HIGHEST_PRECEDENCE = 100;
 
-const CodeGen_Error = std.fs.File.WriteError;
+pub const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
 /// Takes in a file handler and a module structure
