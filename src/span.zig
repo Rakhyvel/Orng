@@ -4,12 +4,12 @@ const String = @import("zig-string/zig-string.zig").String;
 pub const c_format = "\"{s}:{}:{}:\\n{s}\\n{s}^\"";
 pub const interpreter_format = "{s}:{}:{}:\n{s}\n{s}^\n";
 
-pub const phony_span = Span{ .filename = "", .line_text = "", .line = 0, .col = 0 };
+pub const phony_span = Span{ .filename = "", .line_text = "", .line_number = 0, .col = 0 };
 
 pub const Span = struct {
     filename: []const u8,
-    line_text: []const u8, // TODO: Rename this to `line`, and `line` to `line_number`
-    line: usize,
+    line_text: []const u8, // The entire gosh-darn line from the source file text that this span originates
+    line_number: usize,
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
@@ -22,7 +22,7 @@ pub const Span = struct {
         }
         try writer.print(span_format, .{
             self.filename,
-            self.line,
+            self.line_number,
             self.col,
             sanitize_string(self.line_text, std.heap.page_allocator),
             spaces.str(),
@@ -33,7 +33,7 @@ pub const Span = struct {
         var out = String.init(allocator);
         defer out.deinit();
 
-        try out.writer().print("{s}:{}:{}", .{ self.filename, self.line, self.col });
+        try out.writer().print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
 
         return (try out.toOwned()).?;
     }
@@ -65,8 +65,8 @@ fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) []const u8 {
         if (byte == '\\' or byte == '"') {
             builder.insert("\\", builder.len()) catch unreachable;
         }
-        const insert_me_daddy: [1]u8 = .{byte};
-        builder.insert(&insert_me_daddy, builder.len()) catch unreachable;
+        const insert_me: [1]u8 = .{byte};
+        builder.insert(&insert_me, builder.len()) catch unreachable;
     }
     return (builder.toOwned() catch unreachable).?;
 }

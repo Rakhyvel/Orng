@@ -51,7 +51,7 @@ pub const Scanner = struct {
     errors: *errs_.Errors,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-    line: usize,
+    line_number: usize,
     col: usize,
     slice_start: usize,
     ix: usize,
@@ -72,7 +72,7 @@ pub const Scanner = struct {
             .errors = errors,
             .fuzz_tokens = fuzz_tokens,
             .allocator = allocator,
-            .line = 0,
+            .line_number = 0,
             .col = 1,
             .slice_start = 0,
             .ix = 0,
@@ -85,7 +85,7 @@ pub const Scanner = struct {
             self.slice_start = 0;
             self.ix = 0;
             self.state = .none;
-            self.line += 1;
+            self.line_number += 1;
             self.col = 1;
 
             while (self.ix < line.len + 1) {
@@ -94,10 +94,10 @@ pub const Scanner = struct {
                 const next_char = if (self.ix < line.len) line[self.ix] else '\n';
                 try self.state_machine(next_char, line);
             }
-            self.tokens.append(token_.Token.init("\n", .newline, self.filename, line, self.line, self.col)) catch unreachable;
+            self.tokens.append(token_.Token.init("\n", .newline, self.filename, line, self.line_number, self.col)) catch unreachable;
         }
 
-        self.tokens.append(token_.Token.init("EOF", .EOF, self.filename, "", self.line, self.col)) catch unreachable;
+        self.tokens.append(token_.Token.init("EOF", .EOF, self.filename, "", self.line_number, self.col)) catch unreachable;
         return self.tokens;
     }
 
@@ -369,7 +369,7 @@ pub const Scanner = struct {
 
             .multiline => if (next_char == '\n') {
                 self.tokens.append(
-                    token_.Token.init(line[self.slice_start + 2 .. self.ix], .multi_line_string, self.filename, line, self.line, self.col),
+                    token_.Token.init(line[self.slice_start + 2 .. self.ix], .multi_line_string, self.filename, line, self.line_number, self.col),
                 ) catch unreachable;
                 self.slice_start = self.ix;
                 self.state = .none;
@@ -378,7 +378,7 @@ pub const Scanner = struct {
             },
 
             .comment => if (next_char == '\n') {
-                self.tokens.append(token_.Token.init("", .comment, self.filename, line, self.line, self.col)) catch unreachable;
+                self.tokens.append(token_.Token.init("", .comment, self.filename, line, self.line_number, self.col)) catch unreachable;
                 self.slice_start = self.ix;
                 self.state = .none;
             } else {
@@ -388,7 +388,7 @@ pub const Scanner = struct {
     }
 
     fn get_span(self: *Scanner, line: []const u8, offset: usize) span_.Span {
-        return span_.Span{ .filename = self.filename, .line_text = line, .col = self.col + offset, .line = self.line };
+        return span_.Span{ .filename = self.filename, .line_text = line, .col = self.col + offset, .line_number = self.line_number };
     }
 
     fn throw_invalid_decimal(self: *Scanner, line: []const u8, digit: u8, base: []const u8) Lexer_Errors {
@@ -446,7 +446,7 @@ pub const Scanner = struct {
             kind,
             self.filename,
             line,
-            self.line,
+            self.line_number,
             self.col,
         );
     }

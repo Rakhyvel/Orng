@@ -348,7 +348,7 @@ fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *s
     var symbol = symbol_.Symbol.init(
         prelude.?,
         name,
-        span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
+        span_.phony_span,
         _type,
         init,
         null,
@@ -366,13 +366,13 @@ fn create_info(
     bounds: ?Bounds, // Optional bounds info for integral types
     c_name: []const u8, // Name to use when generating the primitive to C
     _ast: *ast_.AST, // The AST representation of the type
-    alias: ?*ast_.AST, // Optional alias for primitive (TODO: Aliases aren't actually supported... this is a new type!)
+    definition: ?*ast_.AST, // Optional definition for primitive (not an alias, but a newtype)
     type_class: Type_Class, // Typeclass this primitive belongs to
     type_kind: Type_Kind, // What kind of type this type is
     default_value: ?*ast_.AST, // Optional AST of default value for the primitive
     size: i64, // Size of values of the type in bytes
 ) void {
-    const symbol = create_prelude_symbol(name, type_type, alias orelse _ast);
+    const symbol = create_prelude_symbol(name, type_type, definition orelse _ast);
     _ast.set_symbol(symbol);
     primitives.put(name, Primitive_Info{
         .name = name,

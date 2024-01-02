@@ -58,7 +58,7 @@ fn combine_multilines(tokens: *std.ArrayList(token_.Token)) void {
                 .multi_line_string,
                 span.?.filename,
                 span.?.line_text,
-                span.?.line,
+                span.?.line_number,
                 span.?.col,
             );
             tokens.insert(i, token) catch unreachable;

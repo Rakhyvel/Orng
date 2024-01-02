@@ -308,10 +308,6 @@ pub const Parser = struct {
     fn assignment_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.inject_expr();
         if (self.accept(.single_equals)) |token| {
-            // if (exp.* == .identifier and std.mem.eql(u8, exp.token().data, "_")) {
-            //     // TODO: With new pattern matching is this needed?
-            //     return ast_.AST.create_discard(token, try self.inject_expr(), self.allocator);
-            // } else {}
             return ast_.AST.create_assign(token, exp, try self.inject_expr(), self.allocator);
         } else if (self.accept(.plus_equals)) |token| {
             return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.inject_expr(), self.allocator), self.allocator);

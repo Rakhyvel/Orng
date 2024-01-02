@@ -69,7 +69,7 @@ pub const CFG = struct {
         retval.return_symbol = symbol_.Symbol.init(
             symbol.scope,
             "$retval",
-            span_.Span{ .filename = "", .line_text = "", .col = 0, .line = 0 },
+            span_.phony_span,
             symbol._type.rhs(),
             undefined,
             null,

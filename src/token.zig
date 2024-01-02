@@ -312,11 +312,11 @@ pub const Token = struct {
     data: []const u8,
     span: span_.Span,
 
-    pub fn init(data: []const u8, kind: ?Token_Kind, filename: []const u8, line_text: []const u8, line: usize, col: usize) Token {
+    pub fn init(data: []const u8, kind: ?Token_Kind, filename: []const u8, line_text: []const u8, line_number: usize, col: usize) Token {
         return .{ .data = data, .kind = kind orelse Token_Kind.from_string(data), .span = span_.Span{
             .filename = filename,
             .line_text = line_text,
-            .line = line,
+            .line_number = line_number,
             .col = col,
         } };
     }
@@ -327,6 +327,6 @@ pub const Token = struct {
     }
 
     pub fn pprint(self: *Token) void {
-        std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line, self.repr(), self.data });
+        std.debug.print("Token {{line: {:03}, kind: {s}, data: {s}}}\n", .{ self.span.line_number, self.repr(), self.data });
     }
 };

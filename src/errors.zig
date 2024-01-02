@@ -247,8 +247,8 @@ pub const Errors = struct {
 
     fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) Error_Error_Sum!void {
         if (maybe_span) |span| {
-            if (span.line > 0 and span.col > 0) {
-                try out.print("{s}:{}:{}: ", .{ span.filename, span.line, span.col });
+            if (span.line_number > 0 and span.col > 0) {
+                try out.print("{s}:{}:{}: ", .{ span.filename, span.line_number, span.col });
             } else {
                 try out.print("{s}: ", .{span.filename});
             }
@@ -387,7 +387,7 @@ pub const Errors = struct {
     fn print_epilude(maybe_span: ?span_.Span) Error_Error_Sum!void {
         if (maybe_span) |old_span| {
             const span = old_span;
-            if (span.line == 0) {
+            if (span.line_number == 0) {
                 return;
             } else if (span.line_text.len > 0) {
                 try out.print("{s}\n", .{span.line_text});
@@ -417,7 +417,7 @@ pub const Errors = struct {
                 try not_bold.dump(out);
             },
             .redefinition => {
-                if (err.redefinition.first_defined_span.line != 0) { // Don't print redefinitions for places that don't exist
+                if (err.redefinition.first_defined_span.line_number != 0) { // Don't print redefinitions for places that don't exist
                     try bold.dump(out);
                     try print_note_label(err.redefinition.first_defined_span);
                     try bold.dump(out);
