@@ -1,7 +1,7 @@
 // 45
-fn main()->Int {
+fn main() -> Int {
     let n = fib(10) - 10
-    fn fib(n: Int)->Int {
+    fn fib(n: Int) -> Int {
         match n {
             0 => 0
             1 => 1

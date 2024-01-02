@@ -28,17 +28,17 @@ int64_t _673_main(void){
     _673_t2 = _673_t1(_673_t3);
     $line_idx--;
     if (_673_t2) {
-        goto BB826;
+        goto BB816;
     } else {
-        goto BB830;
+        goto BB820;
     }
-BB826:
+BB816:
     _673_t0 = 190;
-    goto BB829;
-BB830:
+    goto BB819;
+BB820:
     _673_t0 = 4;
-    goto BB829;
-BB829:
+    goto BB819;
+BB819:
     _673_$retval = _673_t0;
     return _673_$retval;
 }
@@ -49,17 +49,17 @@ uint8_t _678_f(double _678_x){
     uint8_t _678_$retval;
     _678_t3 = _678_x==_678_x;
     if (_678_t3) {
-        goto BB821;
+        goto BB811;
     } else {
-        goto BB824;
+        goto BB814;
     }
-BB821:
+BB811:
     _678_t2 = 1;
-    goto BB823;
-BB824:
+    goto BB813;
+BB814:
     _678_t2 = 0;
-    goto BB823;
-BB823:
+    goto BB813;
+BB813:
     _678_$retval = _678_t2;
     return _678_$retval;
 }

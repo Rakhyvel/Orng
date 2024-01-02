@@ -28,17 +28,17 @@ int64_t _763_main(void){
     _763_t2 = _763_t1(_763_t3);
     $line_idx--;
     if (_763_t2) {
-        goto BB943;
+        goto BB933;
     } else {
-        goto BB947;
+        goto BB937;
     }
-BB943:
+BB933:
     _763_t0 = 186;
-    goto BB946;
-BB947:
+    goto BB936;
+BB937:
     _763_t0 = 4;
-    goto BB946;
-BB946:
+    goto BB936;
+BB936:
     _763_$retval = _763_t0;
     return _763_$retval;
 }

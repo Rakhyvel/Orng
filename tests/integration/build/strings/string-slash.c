@@ -19,21 +19,21 @@ struct struct0 {
 char* string_0 = "\x5C";
 
 /* Function forward definitions */
-uint8_t _1388_main(void);
+uint8_t _1391_main(void);
 
 /* Function definitions */
-uint8_t _1388_main(void){
-    struct struct0 _1389_x;
-    int64_t _1388_t1;
-    uint8_t _1388_$retval;
-    _1389_x = (struct struct0) {(uint8_t*)string_0, 1};
-    _1388_t1 = 0;
-    $bounds_check(_1388_t1, _1389_x._1, "tests/integration/strings/string-slash.orng:2:3:\nfn main() -> Byte {\n ^");
-    _1388_$retval = *((uint8_t*)_1389_x._0 + _1388_t1);
-    return _1388_$retval;
+uint8_t _1391_main(void){
+    struct struct0 _1392_x;
+    int64_t _1391_t1;
+    uint8_t _1391_$retval;
+    _1392_x = (struct struct0) {(uint8_t*)string_0, 1};
+    _1391_t1 = 0;
+    $bounds_check(_1391_t1, _1392_x._1, "tests/integration/strings/string-slash.orng:2:3:\nfn main() -> Byte {\n ^");
+    _1391_$retval = *((uint8_t*)_1392_x._0 + _1391_t1);
+    return _1391_$retval;
 }
 
 int main(void) {
-  printf("%u",_1388_main());
+  printf("%u",_1391_main());
   return 0;
 }

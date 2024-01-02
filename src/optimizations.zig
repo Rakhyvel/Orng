@@ -10,7 +10,6 @@ const symbol_ = @import("symbol.zig");
 
 const debug = false;
 
-// TODO: typeError should be called something else
 pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ DivideByZero, Unused, Overflow }!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
@@ -21,16 +20,16 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
     try find_unused(cfg, errors);
 
     while (try propagate(cfg, errors, allocator) or
-        try remove_unused_defs(cfg, errors) or
+        remove_unused_defs(cfg) or
         bb_optimizations(cfg, allocator) or
-        try remove_unused_defs(cfg, errors))
+        remove_unused_defs(cfg))
     {}
     cfg.clear_visited_BBs();
 
     log_optimization_pass("final", cfg);
 }
 
-fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) error{Unused}!void {
     calculate_usage(cfg);
     if (cfg.symbol.decl.?.* == .fn_decl) {
         for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
@@ -53,7 +52,11 @@ fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) !void { // TODO: Uninfer e
     }
 }
 
-fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO: Uninfer error
+/// Throws `error.Unused` if a symbol:
+/// - is not used
+/// - is discarded more than once
+/// - discarded and used.
+fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{Unused}!void {
     if (symbol.discards > 1) {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = symbol.discard_span.?,
@@ -72,8 +75,11 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
             .context_message = "defined here",
         } });
         return error.Unused;
-    } else if (symbol.kind != .@"const" and symbol.discards == 0 and symbol.uses == 0) {
-        // TODO: Shouldn't do this if the type is unit!
+    } else if (symbol.kind != .@"const" and
+        symbol.discards == 0 and
+        symbol.uses == 0 and
+        !primitives_.unit_type.types_match(symbol.expanded_type.?)) // Unit-typed symbols do not need to be discarded!
+    {
         errors.add_error(errs_.Error{ .symbol_error = .{
             .span = symbol.span,
             .context_span = null,
@@ -85,7 +91,7 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) !void { // TODO
     }
 }
 
-fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) !bool { // TODO: Uninfer error
+fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ Overflow, DivideByZero }!bool {
     var retval = false;
 
     calculate_versions(cfg);
@@ -125,7 +131,9 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
     return retval;
 }
 
-fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) !bool { // TODO: Uninfer error
+/// May throw `error.Overflow` for integer arithmetic overflow, or `error.DivideByZero` when it can be
+/// proven that code would divide by zero.
+fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) error{ Overflow, DivideByZero }!bool {
     var retval = false;
 
     switch (ir.kind) {
@@ -535,7 +543,7 @@ fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
     ir.src2 = null;
 }
 
-fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{DivideByZero}!void {
     if (ir != null) {
         if (ir.?.kind == .load_int and ir.?.data.int == 0) {
             errors.add_error(errs_.Error{ .basic = .{
@@ -553,7 +561,7 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) !void { // TODO: Un
     }
 }
 
-fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Uninfer error
+fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     var retval = false;
 
     calculate_usage(cfg);
@@ -562,9 +570,6 @@ fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Un
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.kind == .discard) {
-                continue;
-            }
             if (ir.dest != null and
                 !ir.removed and
                 ir.dest.?.* == .symbver and
@@ -575,18 +580,7 @@ fn remove_unused_defs(cfg: *cfg_.CFG, errors: *errs_.Errors) !bool { // TODO: Un
                 if (debug) {
                     std.debug.print("removing: {}", .{ir});
                 }
-                if (ir.kind == .call) {
-                    // TODO: Fix, need some way to get the expanded type of an lvalue!
-                    if (ir.src1.?.extract_symbver().symbol.expanded_type.?.rhs().* != .unit_type) {
-                        // It is an error for the return val of a non-unit-returning function to not be used
-                        // DO NOT remove an unused call for a unit function
-                        errors.add_error(errs_.Error{ .basic = .{
-                            .span = ir.span,
-                            .msg = "value of call is never used",
-                        } });
-                        return error.Unused;
-                    }
-                } else {
+                if (ir.kind != .call) {
                     bb.remove_instruction(ir);
                     retval = true;
                 }
@@ -775,9 +769,6 @@ fn calculate_usage(cfg: *cfg_.CFG) void {
         // Go through and see if each symbol is used
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.kind == .discard) {
-                ir.src1.?.extract_symbver().symbol.discards += 1;
-            }
             if (ir.dest != null and ir.dest.?.* != .symbver) {
                 calculate_usage_lval(ir.dest.?);
             }

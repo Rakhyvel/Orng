@@ -33,35 +33,35 @@ int64_t _282_f(struct struct0 _282_m){
     _282_t1 = 100;
     _282_t3 = _282_m._0==_282_t1;
     if (_282_t3) {
-        goto BB318;
+        goto BB309;
     } else {
-        goto BB328;
+        goto BB319;
     }
-BB318:
+BB309:
     _282_t4 = 50;
     _282_t6 = _282_m._1==_282_t4;
     if (_282_t6) {
-        goto BB321;
+        goto BB312;
     } else {
-        goto BB328;
+        goto BB319;
     }
-BB328:
+BB319:
     _282_t0 = 0;
-    goto BB327;
-BB321:
+    goto BB318;
+BB312:
     _282_t7 = 7;
     _282_t9 = _282_m._2==_282_t7;
     if (_282_t9) {
-        goto BB324;
+        goto BB315;
     } else {
-        goto BB328;
+        goto BB319;
     }
-BB327:
+BB318:
     _282_$retval = _282_t0;
     return _282_$retval;
-BB324:
+BB315:
     _282_t0 = 248;
-    goto BB327;
+    goto BB318;
 }
 
 int64_t _278_main(void){

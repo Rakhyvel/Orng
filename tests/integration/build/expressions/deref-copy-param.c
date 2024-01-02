@@ -25,7 +25,7 @@ int64_t _659_main(void){
     _660_y = &_660_x;
     _659_t2 = _661_f;
     $lines[$line_idx++] = "tests/integration/expressions/deref-copy-param.orng:5:7:\n    f(y)\n     ^";
-    _659_t2(_660_y);
+    (void) _659_t2(_660_y);
     $line_idx--;
     _659_$retval = *_660_y;
     return _659_$retval;

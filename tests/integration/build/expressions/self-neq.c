@@ -28,17 +28,17 @@ int64_t _865_main(void){
     _865_t2 = _865_t1(_865_t3);
     $line_idx--;
     if (_865_t2) {
-        goto BB1088;
+        goto BB1078;
     } else {
-        goto BB1092;
+        goto BB1082;
     }
-BB1088:
+BB1078:
     _865_t0 = 0;
-    goto BB1091;
-BB1092:
+    goto BB1081;
+BB1082:
     _865_t0 = 223;
-    goto BB1091;
-BB1091:
+    goto BB1081;
+BB1081:
     _865_$retval = _865_t0;
     return _865_$retval;
 }

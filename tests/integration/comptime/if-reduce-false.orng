@@ -7,5 +7,6 @@ let const system: (bits_64 | bits_32) = .bits_64
 fn main() -> Int {
     if comptime (system == .bits_32) {
         return constant_32 // must be syntactically correct, but not type checked if reduced!
-    } orelse constant_64
+    } 
+    return constant_64
 }

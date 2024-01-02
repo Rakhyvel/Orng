@@ -38,17 +38,17 @@ int64_t _798_f(int64_t _798_x){
     _798_t1 = 0;
     _798_t3 = _798_t1==_798_x;
     if (_798_t3) {
-        goto BB1006;
+        goto BB996;
     } else {
-        goto BB1002;
+        goto BB992;
     }
-BB1006:
+BB996:
     _798_t0 = 3;
-    goto BB1005;
-BB1002:
+    goto BB995;
+BB992:
     _798_t0 = 174;
-    goto BB1005;
-BB1005:
+    goto BB995;
+BB995:
     _798_$retval = _798_t0;
     return _798_$retval;
 }

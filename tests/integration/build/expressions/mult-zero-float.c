@@ -28,17 +28,17 @@ int64_t _777_main(void){
     _777_t2 = _777_t1(_777_t3);
     $line_idx--;
     if (_777_t2) {
-        goto BB972;
+        goto BB962;
     } else {
-        goto BB976;
+        goto BB966;
     }
-BB972:
+BB962:
     _777_t0 = 188;
-    goto BB975;
-BB976:
+    goto BB965;
+BB966:
     _777_t0 = 4;
-    goto BB975;
-BB975:
+    goto BB965;
+BB965:
     _777_$retval = _777_t0;
     return _777_$retval;
 }

@@ -43,26 +43,26 @@ int64_t _596_main(void){
     _596_t4 = _596_t2.tag;
     _596_t5 = _596_t4==_596_t3;
     if (_596_t5) {
-        goto BB726;
+        goto BB716;
     } else {
-        goto BB727;
+        goto BB717;
     }
-BB726:
+BB716:
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB727:
+BB717:
     _596_t6 = 1;
     _596_t7 = _596_t2.tag;
     _596_t8 = _596_t7==_596_t6;
     if (_596_t8) {
-        goto BB729;
+        goto BB719;
     } else {
-        goto BB733;
+        goto BB723;
     }
-BB729:
+BB719:
     _596_$retval = 239;
     return _596_$retval;
-BB733:
+BB723:
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:6:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }
@@ -78,14 +78,14 @@ struct struct1 _602_f(void){
     $line_idx--;
     _602_t2 = _602_t1.tag;
     if (_602_t2) {
-        goto BB719;
+        goto BB709;
     } else {
-        goto BB721;
+        goto BB711;
     }
-BB719:
+BB709:
     _602_$retval = _602_t1;
     return _602_$retval;
-BB721:
+BB711:
     _602_$retval = (struct struct1) {.tag=0, ._0=(_602_t1._0)};
     return _602_$retval;
 }

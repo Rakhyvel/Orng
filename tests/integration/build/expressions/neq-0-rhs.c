@@ -38,17 +38,17 @@ int64_t _806_f(int64_t _806_x){
     _806_t1 = 0;
     _806_t3 = _806_x==_806_t1;
     if (_806_t3) {
-        goto BB1018;
+        goto BB1008;
     } else {
-        goto BB1014;
+        goto BB1004;
     }
-BB1018:
+BB1008:
     _806_t0 = 3;
-    goto BB1017;
-BB1014:
+    goto BB1007;
+BB1004:
     _806_t0 = 173;
-    goto BB1017;
-BB1017:
+    goto BB1007;
+BB1007:
     _806_$retval = _806_t0;
     return _806_$retval;
 }

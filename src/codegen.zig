@@ -163,18 +163,22 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
 
     // Collect and then declare all local variables
     for (cfg.symbvers.items) |symbver| {
-        if (symbver.symbol.expanded_type.?.* == .unit_type) {
+        if (symbver.symbol.expanded_type.?.* == .unit_type or // symbol's C type is `void`
+            symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$' // non-bookkeeping symbol is not used
+        ) {
             continue; // Do not output unit variables
         }
         try output_var_decl(symbver.symbol, writer, false);
         symbver.symbol.decld = true;
     }
 
+    // Mark unused parameters as discarded
     for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
-        // Mark unused parameters as discarded
         // Do this only if they aren't discarded in source
         // Users can discard parameters, however used parameters may also become unused through optimizations
-        if (param.uses == 0 and param.discards == 0) {
+        if (param.expanded_type.?.* != .unit_type and // unit-typed parameters aren't emitted
+            param.uses == 0)
+        {
             try writer.print("    (void)", .{});
             try output_symbol(param, writer);
             try writer.print(";\n", .{});
@@ -208,7 +212,7 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void 
         }
     }
     if (num_non_unit_params == 0) {
-        // If there are no parameters, mark as void
+        // If there are no parameters, mark parameter list as void
         try writer.print("void", .{});
     }
     try writer.print(")", .{});
@@ -472,7 +476,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .call => {
             const void_fn = ir.dest.?.get_type().* == .unit_type;
-            if (!void_fn) {
+            const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
+            if (!symbol_used) {
+                try writer.print("    (void) ", .{});
+            } else if (!void_fn) {
                 try output_var_assign(ir.dest.?, writer);
             } else {
                 try writer.print("    ", .{});
@@ -518,11 +525,11 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 .{ir.data.string},
             );
         },
-        .discard => if (ir.src1.?.get_expanded_type().* != .unit_type) {
-            try writer.print("    (void)", .{});
-            try output_rvalue(ir.src1.?, ir_.Kind.cast.precedence(), writer);
-            try writer.print(";\n", .{});
-        },
+        // .discard => if (ir.src1.?.get_expanded_type().* != .unit_type) {
+        //     try writer.print("    (void)", .{});
+        //     try output_rvalue(ir.src1.?, ir_.Kind.cast.precedence(), writer);
+        //     try writer.print(";\n", .{});
+        // },
         else => {
             std.debug.print("Unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)});
             unreachable;

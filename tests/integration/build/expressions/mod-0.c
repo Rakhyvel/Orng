@@ -28,17 +28,17 @@ int64_t _747_main(void){
     _747_t2 = _747_t1(_747_t3);
     $line_idx--;
     if (_747_t2) {
-        goto BB912;
+        goto BB902;
     } else {
-        goto BB916;
+        goto BB906;
     }
-BB912:
+BB902:
     _747_t0 = 191;
-    goto BB915;
-BB916:
+    goto BB905;
+BB906:
     _747_t0 = 4;
-    goto BB915;
-BB915:
+    goto BB905;
+BB905:
     _747_$retval = _747_t0;
     return _747_$retval;
 }

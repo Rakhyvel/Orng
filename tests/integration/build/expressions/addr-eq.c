@@ -44,11 +44,11 @@ int64_t _639_main(void){
     _639_t4 = _639_t3(_639_t5, _639_t6);
     $line_idx--;
     if (_639_t4) {
-        goto BB796;
+        goto BB786;
     } else {
-        goto BB801;
+        goto BB791;
     }
-BB796:
+BB786:
     _639_t7 = _644_addr_equal;
     _639_t9 = &_640_x;
     _639_t10 = &_640_y;
@@ -56,17 +56,17 @@ BB796:
     _639_t8 = _639_t7(_639_t9, _639_t10);
     $line_idx--;
     if (_639_t8) {
-        goto BB801;
+        goto BB791;
     } else {
-        goto BB797;
+        goto BB787;
     }
-BB801:
+BB791:
     _639_t2 = -3;
-    goto BB800;
-BB797:
+    goto BB790;
+BB787:
     _639_t2 = 236;
-    goto BB800;
-BB800:
+    goto BB790;
+BB790:
     _639_$retval = _639_t2;
     return _639_$retval;
 }
@@ -77,17 +77,17 @@ uint8_t _644_addr_equal(int64_t* _644_x, int64_t* _644_y){
     uint8_t _644_$retval;
     _644_t1 = _644_x==_644_y;
     if (_644_t1) {
-        goto BB791;
+        goto BB781;
     } else {
-        goto BB794;
+        goto BB784;
     }
-BB791:
+BB781:
     _644_t0 = 1;
-    goto BB793;
-BB794:
+    goto BB783;
+BB784:
     _644_t0 = 0;
-    goto BB793;
-BB793:
+    goto BB783;
+BB783:
     _644_$retval = _644_t0;
     return _644_$retval;
 }

@@ -328,11 +328,12 @@ fn validate_AST_internal(
             return ast;
         },
         .@"catch", .@"orelse" => {
+            const lhs_span = ast.lhs().token().span;
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             ast.set_rhs(validate_AST(ast.rhs(), expected, errors, allocator));
             try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
             var lhs_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);
-            try coalesce_operator(lhs_expanded_type, ast, errors);
+            try coalesce_operator(lhs_expanded_type, ast, lhs_span, errors);
             try type_check(ast, lhs_expanded_type.get_nominal_type().annotation.type, expected, errors);
             return ast;
         },
@@ -477,7 +478,8 @@ fn validate_AST_internal(
                 for (0.., expanded_expected.?.children().items) |i, expected_term| { // Ok, this is cool!
                     ast.children().items[i] = validate_AST(ast.children().items[i], expected_term, errors, allocator);
                 }
-            } else {
+            } else if (expanded_expected == null or !primitives_.unit_type.types_match(expanded_expected.?)) {
+                // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
                 return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
@@ -679,14 +681,17 @@ fn validate_AST_internal(
             // expecting a type
             var expected_type: ?*ast_.AST = undefined;
             var expected_expanded: *ast_.AST = undefined;
+            var is_result_optional: bool = false;
             if (expected == null) {
                 expected_type = null;
             } else {
                 expected_expanded = expected.?.expand_type(allocator);
-                const is_expected_optional = expected_expanded.* == .sum and expected_expanded.sum.from == .optional;
+                is_result_optional = expected_expanded.* == .sum and
+                    expected_expanded.sum.from == .optional and
+                    !expected_expanded.types_match(primitives_.void_type);
                 if (ast.@"if".else_block != null) {
                     expected_type = expected.?;
-                } else if (is_expected_optional) {
+                } else if (is_result_optional) {
                     expected_type = expected_expanded.get_some_type();
                 } else {
                     return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
@@ -723,13 +728,17 @@ fn validate_AST_internal(
                 }
                 return ast.@"if".else_block.?;
             } else if (ast.@"if".condition.* == .false and ast.@"if".else_block == null) {
-                // condition is false and theres no else => return {let; none()}
-                const opt_type = ast_.AST.create_optional_type(ast.@"if".body_block.typeof(allocator), allocator);
                 var statements = std.ArrayList(*ast_.AST).init(allocator);
                 if (ast.@"if".let != null) {
                     statements.append(ast.@"if".let.?) catch unreachable;
                 }
-                statements.append(ast_.AST.create_none_value(opt_type, allocator)) catch unreachable;
+                if (ast.@"if".body_block.typeof(allocator).types_match(primitives_.void_type)) {
+                    // condition is false and theres no else and void type => return {let}
+                } else {
+                    // condition is false and theres no else => return {let; none()}
+                    const opt_type = ast_.AST.create_optional_type(ast.@"if".body_block.typeof(allocator), allocator);
+                    statements.append(ast_.AST.create_none_value(opt_type, allocator)) catch unreachable;
+                }
                 const ret_block = ast_.AST.create_block(token_.Token.init_simple("{"), statements, null, allocator);
                 ret_block.block.scope = ast.@"if".scope.?.parent.?;
                 return ret_block;
@@ -793,6 +802,15 @@ fn validate_AST_internal(
             for (0..ast.children().items.len) |i| {
                 const expect_type: ?*ast_.AST = if (ast.block.final == null and i == ast.children().items.len - 1) expected else null;
                 ast.children().items[i] = validate_AST(ast.children().items[i], expect_type, errors, allocator);
+                const child = ast.children().items[i];
+                // A middle-statement is any but the last statement if there is no final, or any statement if there is a final
+                // Middle statements' type must be unit
+                const is_middle_statement = if (ast.block.final == null) i < ast.children().items.len - 1 else true;
+                if (child.* != .fn_decl and is_middle_statement) {
+                    // Don't worry about fn_decl's, those should be allowed to be "discarded"
+                    const statement_type = child.typeof(allocator).expand_type(allocator);
+                    try middle_statement_check(child, statement_type, errors);
+                }
             }
             try assert_none_poisoned(ast.children());
             if (ast.block.final) |final| {
@@ -861,6 +879,13 @@ fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void
     if (expected != null and primitives_.type_type.types_match(expected.?)) {
         // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
         return throw_unexpected_type(ast.token().span, expected.?, primitives_.void_type, errors);
+    }
+}
+
+/// Checks that a type is equal to unit, throws an error if it is not.
+fn middle_statement_check(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+    if (!primitives_.unit_type.types_match(got) and !got.types_match(primitives_.void_type)) {
+        return throw_unexpected_type(ast.token().span, primitives_.unit_type, got, errors);
     }
 }
 
@@ -974,15 +999,15 @@ fn binary_operator_closed(
     return ast;
 }
 
-fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.Span, errors: *errs_.Errors) !void { // TODO: Uninfer error
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
     if (lhs_expanded_type.* != .sum or lhs_expanded_type.sum.from != expected) {
-        // TODO: What type is it?
         errors.add_error(errs_.Error{ .wrong_coalesce_from = .{
-            .span = ast.lhs().token().span,
+            .span = span,
             .operator = @tagName(ast.*),
             .from = @tagName(expected),
+            .got = lhs_expanded_type,
         } });
         return error.TypeError;
     }

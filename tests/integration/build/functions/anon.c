@@ -20,44 +20,44 @@ struct struct2 {
 typedef int64_t(*function1)(function0, int64_t);
 
 /* Function forward definitions */
-int64_t _927_main(void);
-int64_t _929_$anon93(int64_t _929_x);
-int64_t _931_apply(function0 _931_f, int64_t _931_x);
+int64_t _930_main(void);
+int64_t _932_$anon93(int64_t _932_x);
+int64_t _934_apply(function0 _934_f, int64_t _934_x);
 
 /* Function definitions */
-int64_t _927_main(void){
-    function0 _928_id;
-    function1 _927_t1;
-    int64_t _927_t3;
-    int64_t _927_t2;
-    int64_t _927_$retval;
-    _928_id = _929_$anon93;
-    _927_t1 = _931_apply;
-    _927_t3 = 43;
+int64_t _930_main(void){
+    function0 _931_id;
+    function1 _930_t1;
+    int64_t _930_t3;
+    int64_t _930_t2;
+    int64_t _930_$retval;
+    _931_id = _932_$anon93;
+    _930_t1 = _934_apply;
+    _930_t3 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _927_t2 = _927_t1(_928_id, _927_t3);
+    _930_t2 = _930_t1(_931_id, _930_t3);
     $line_idx--;
-    _927_$retval = _927_t2;
-    return _927_$retval;
+    _930_$retval = _930_t2;
+    return _930_$retval;
 }
 
-int64_t _929_$anon93(int64_t _929_x){
-    int64_t _929_$retval;
-    _929_$retval = _929_x;
-    return _929_$retval;
+int64_t _932_$anon93(int64_t _932_x){
+    int64_t _932_$retval;
+    _932_$retval = _932_x;
+    return _932_$retval;
 }
 
-int64_t _931_apply(function0 _931_f, int64_t _931_x){
-    int64_t _931_t0;
-    int64_t _931_$retval;
+int64_t _934_apply(function0 _934_f, int64_t _934_x){
+    int64_t _934_t0;
+    int64_t _934_$retval;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
-    _931_t0 = _931_f(_931_x);
+    _934_t0 = _934_f(_934_x);
     $line_idx--;
-    _931_$retval = _931_t0;
-    return _931_$retval;
+    _934_$retval = _934_t0;
+    return _934_$retval;
 }
 
 int main(void) {
-  printf("%ld",_927_main());
+  printf("%ld",_930_main());
   return 0;
 }

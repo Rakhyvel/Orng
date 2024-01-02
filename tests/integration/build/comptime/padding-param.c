@@ -22,30 +22,30 @@ int64_t _267_f(int8_t _267_x, int16_t _267_y, int8_t _267_z){
     _267_t1 = 20;
     _267_t3 = _267_x==_267_t1;
     if (_267_t3) {
-        goto BB293;
+        goto BB284;
     } else {
-        goto BB303;
+        goto BB294;
     }
-BB293:
+BB284:
     _267_t4 = 40;
     _267_t6 = _267_y==_267_t4;
     if (_267_t6) {
-        goto BB296;
+        goto BB287;
     } else {
-        goto BB303;
+        goto BB294;
     }
-BB303:
+BB294:
     $lines[$line_idx++] = "tests/integration/comptime/padding-param.orng:10:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB296:
+BB287:
     _267_t7 = 60;
     _267_t9 = _267_z==_267_t7;
     if (_267_t9) {
-        goto BB299;
+        goto BB290;
     } else {
-        goto BB303;
+        goto BB294;
     }
-BB299:
+BB290:
     _267_$retval = 255;
     return _267_$retval;
 }

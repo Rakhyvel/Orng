@@ -52,30 +52,30 @@ int64_t _258_f(int8_t _258_x, int16_t _258_y, int8_t _258_z){
     _258_t1 = 50;
     _258_t3 = _258_x==_258_t1;
     if (_258_t3) {
-        goto BB274;
+        goto BB265;
     } else {
-        goto BB284;
+        goto BB275;
     }
-BB274:
+BB265:
     _258_t4 = 200;
     _258_t6 = _258_y==_258_t4;
     if (_258_t6) {
-        goto BB277;
+        goto BB268;
     } else {
-        goto BB284;
+        goto BB275;
     }
-BB284:
+BB275:
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:13:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB277:
+BB268:
     _258_t7 = 6;
     _258_t9 = _258_z==_258_t7;
     if (_258_t9) {
-        goto BB280;
+        goto BB271;
     } else {
-        goto BB284;
+        goto BB275;
     }
-BB280:
+BB271:
     _258_$retval = 256;
     return _258_$retval;
 }

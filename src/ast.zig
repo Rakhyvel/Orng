@@ -1451,9 +1451,12 @@ pub const AST = union(enum) {
             .default => return self.expr(),
 
             // Control-flow expressions
-            .@"if" => {
+            .@"if" => { // TODO: This could be unified with .@"while"'s typeof
                 const body_type = self.@"if".body_block.typeof(allocator);
-                if (self.@"if".else_block) |_| {
+                if (self.@"if".else_block != null or
+                    primitives_.unit_type.types_match(body_type.expand_type(allocator)) or
+                    body_type.expand_type(allocator).types_match(primitives_.void_type))
+                {
                     return body_type;
                 } else {
                     return create_optional_type(body_type, allocator);
@@ -1462,7 +1465,9 @@ pub const AST = union(enum) {
             .match => return self.children().items[0].typeof(allocator),
             .@"while" => {
                 const body_type = self.@"while".body_block.typeof(allocator);
-                if (self.@"while".else_block) |_| {
+                if (body_type.types_match(primitives_.void_type)) {
+                    return primitives_.unit_type;
+                } else if (self.@"while".else_block != null or primitives_.unit_type.types_match(body_type)) {
                     return body_type;
                 } else {
                     return create_optional_type(body_type, allocator);
@@ -1575,20 +1580,26 @@ pub const AST = union(enum) {
     /// Another way to view this is if `(a: A) <: (b: B)`, then the assignment `b = a` is permissible, since
     /// `a: B`.
     ///
-    /// Since the type `Void` has no values, it is vacuously true that `Void <: X` where `X` is any type.
-    /// Thus, `let x: Void = y` is never type-sound, since there is no value `y` can be, and
-    /// `let x: T = void_typed_expression` is always type-sound.
+    /// Since the type `Void` has no values, the following are always true for any type T:
+    /// - `Void <: T`
+    /// - `let x: Void = y` is never type sound (there is no possible value `y` can be)
+    /// - `let x: T = void_typed_expression` is always type-sound.
+    /// - `types_match(primitives_.void_type, T)` is always true
     ///
-    /// The unit type (`()`) acts like the top type. This means `X <: ()` where `X` is any type. Thus,
-    /// `let x: T = unit_typed_expression` is type-sound only if `T == ()`, and `let x: () = y` is always
-    /// type-sound.
+    /// The unit type (`()`) acts like the top type. The following are always true for any type T:
+    /// - `T <: ()`
+    /// - `let x: T = unit_typed_expression` type-sound only if `T == ()`
+    /// - `let x: () = y` is always type-sound (y is discarded)
+    /// - `types_match(X, primitives_.unit_type)` is always true
     ///
     /// Thus, we have the following type map:
+    /// ```txt
     ///                        ( )
     ///       /     /     /     |    \      \     \
     ///     Bool  Byte  Char  Float  Int  String  ...
     ///       \     \     \     |    /      /     /
     ///                       Void
+    /// ```
     ///
     /// Also, `&mut T <: &T`, because for every `t: &mut T`, `t: &T`. Thus, `let x: &T = mut_expression` is
     /// always type-sound.
@@ -1916,7 +1927,16 @@ pub const AST = union(enum) {
             .mapping => try out.writer().print("mapping()", .{}),
             .@"while" => try out.writer().print("while()", .{}),
             .@"for" => try out.writer().print("for()", .{}),
-            .block => try out.writer().print("block()", .{}),
+            .block => {
+                try out.writer().print("block(", .{});
+                for (self.block._statements.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.block._statements.items.len) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(".final={?})", .{self.block.final});
+            },
             .@"break" => try out.writer().print("break", .{}),
             .@"continue" => try out.writer().print("continue", .{}),
             .@"return" => try out.writer().print("return()", .{}),

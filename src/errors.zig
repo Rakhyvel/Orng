@@ -137,6 +137,7 @@ pub const Error = union(enum) {
         span: span_.Span,
         operator: []const u8, // either "orelse" or "catch"
         from: []const u8, // either "optional" or "error"
+        got: *ast_.AST, // What the type actually was
     },
 
     // Optimizer
@@ -347,10 +348,12 @@ pub const Errors = struct {
                 try out.print("`\n", .{});
             },
             .wrong_coalesce_from => {
-                try out.print("left-hand side of `{s}` is not an `{s}` type\n", .{
-                    err.wrong_coalesce_from.operator,
+                try out.print("expected {s} type for left-hand-side of `{s}`, got `", .{
                     err.wrong_coalesce_from.from,
+                    err.wrong_coalesce_from.operator,
                 });
+                try err.wrong_coalesce_from.got.print_type(out);
+                try out.print("`\n", .{});
             },
 
             // Optimizer

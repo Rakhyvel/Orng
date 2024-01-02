@@ -140,12 +140,6 @@ pub const IR = struct {
         return retval;
     }
 
-    pub fn init_discard(src1: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
-        var retval = IR.init(.discard, null, src1, null, span, allocator);
-        retval.data = Data.none;
-        return retval;
-    }
-
     pub fn init_stack_push(span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.push_stack_trace, null, null, null, span, allocator);
         retval.data = Data.none;
@@ -206,7 +200,6 @@ pub const IR = struct {
 
         switch (self.kind) {
             .label => try out.writer().print("BB{}:\n", .{self.uid}),
-
             .load_int => {
                 try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.int });
             },
@@ -234,7 +227,6 @@ pub const IR = struct {
             .loadUnit => {
                 try out.writer().print("    {} := {{}}\n", .{self.dest.?});
             },
-
             .copy => {
                 try out.writer().print("    {} := {?}\n", .{ self.dest.?, self.src1 });
             },
@@ -253,7 +245,6 @@ pub const IR = struct {
             .addr_of => {
                 try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
             },
-
             .equal => {
                 try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
@@ -311,11 +302,9 @@ pub const IR = struct {
             .mod => {
                 try out.writer().print("    {} := {} % {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
-
             .get_tag => {
                 try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
             },
-
             .jump => {
                 if (self.data.jump_bb.next) |next| {
                     try out.writer().print("    jump BB{}\n", .{next.uid});
@@ -341,10 +330,6 @@ pub const IR = struct {
                 try print_lval_list(&self.data.lval_list, out.writer());
                 try out.writer().print(")\n", .{});
             },
-
-            .discard => {
-                try out.writer().print("    _ := {}\n", .{self.src1.?});
-            },
             .push_stack_trace => {
                 try out.writer().print("    push-stack-trace\n", .{});
             },
@@ -354,7 +339,6 @@ pub const IR = struct {
             .panic => {
                 try out.writer().print("    panic\n", .{});
             },
-
             else => {
                 try out.writer().print("<TODO: {s}>\n", .{@tagName(self.kind)});
             },
@@ -469,9 +453,6 @@ pub const Kind = enum {
     jump, // jump to BB{uid} if codegen, ip := {addr} if interpreting
     branch_if_false,
     call, // dest = src1(symbver_list...)
-
-    // Non-Code Generating
-    discard, // Marks that a symbol isn't used, but that's OK
 
     // Errors
     push_stack_trace, // Pushes a static span/code to the lines array if debug mode is on

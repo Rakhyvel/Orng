@@ -46,17 +46,17 @@ int64_t _615_main(void){
     $line_idx--;
     _615_t4 = _615_t2.tag;
     if (_615_t4) {
-        goto BB761;
+        goto BB751;
     } else {
-        goto BB767;
+        goto BB757;
     }
-BB761:
+BB751:
     _615_t0 = 122;
-    goto BB762;
-BB767:
+    goto BB752;
+BB757:
     _615_t0 = _615_t2._0;
-    goto BB762;
-BB762:
+    goto BB752;
+BB752:
     _615_t7 = _617_f;
     _615_t9 = 0;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
@@ -64,17 +64,17 @@ BB762:
     $line_idx--;
     _615_t10 = _615_t8.tag;
     if (_615_t10) {
-        goto BB763;
+        goto BB753;
     } else {
-        goto BB766;
+        goto BB756;
     }
-BB763:
+BB753:
     _615_t6 = 122;
-    goto BB764;
-BB766:
+    goto BB754;
+BB756:
     _615_t6 = _615_t8._0;
-    goto BB764;
-BB764:
+    goto BB754;
+BB754:
     _615_$retval = $add_int64_t(_615_t0, _615_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
     return _615_$retval;
 }
@@ -88,33 +88,33 @@ struct struct1 _617_f(uint8_t _617_fail){
     struct struct1 _617_t0;
     int64_t _620_x;
     if (_617_fail) {
-        goto BB751;
+        goto BB741;
     } else {
-        goto BB758;
+        goto BB748;
     }
-BB751:
+BB741:
     _617_t1 = _622_g;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
     _617_t2 = _617_t1();
     $line_idx--;
     _617_t3 = _617_t2.tag;
     if (_617_t3) {
-        goto BB752;
+        goto BB742;
     } else {
-        goto BB754;
+        goto BB744;
     }
-BB758:
+BB748:
     _617_t5 = 0;
     _617_t0 = (struct struct1) {.tag=0, ._0=_617_t5};
-    goto BB757;
-BB752:
+    goto BB747;
+BB742:
     _617_$retval = _617_t2;
     return _617_$retval;
-BB754:
+BB744:
     _620_x = _617_t2._0;
     _617_t0 = (struct struct1) {.tag=0, ._0=_620_x};
-    goto BB757;
-BB757:
+    goto BB747;
+BB747:
     _617_$retval = _617_t0;
     return _617_$retval;
 }

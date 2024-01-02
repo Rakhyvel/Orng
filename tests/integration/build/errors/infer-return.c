@@ -42,26 +42,26 @@ int64_t _587_main(void){
     _587_t4 = _587_t2.tag;
     _587_t5 = _587_t4==_587_t3;
     if (_587_t5) {
-        goto BB709;
+        goto BB699;
     } else {
-        goto BB710;
+        goto BB700;
     }
-BB709:
+BB699:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB710:
+BB700:
     _587_t6 = 1;
     _587_t7 = _587_t2.tag;
     _587_t8 = _587_t7==_587_t6;
     if (_587_t8) {
-        goto BB712;
+        goto BB702;
     } else {
-        goto BB716;
+        goto BB706;
     }
-BB712:
+BB702:
     _587_$retval = 238;
     return _587_$retval;
-BB716:
+BB706:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:6:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }

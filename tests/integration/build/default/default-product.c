@@ -35,25 +35,25 @@ int64_t _540_main(void){
     _540_t4 = 0;
     _540_t6 = _541_x._0==_540_t4;
     if (_540_t6) {
-        goto BB643;
+        goto BB633;
     } else {
-        goto BB650;
+        goto BB640;
     }
-BB643:
+BB633:
     _540_t7 = 0.0e+00;
     _540_t9 = _541_x._1==_540_t7;
     if (_540_t9) {
-        goto BB646;
+        goto BB636;
     } else {
-        goto BB650;
+        goto BB640;
     }
-BB650:
+BB640:
     _540_t3 = 0;
-    goto BB649;
-BB646:
+    goto BB639;
+BB636:
     _540_t3 = 135;
-    goto BB649;
-BB649:
+    goto BB639;
+BB639:
     _540_$retval = _540_t3;
     return _540_$retval;
 }

@@ -28,17 +28,17 @@ int64_t _755_main(void){
     _755_t2 = _755_t1(_755_t3);
     $line_idx--;
     if (_755_t2) {
-        goto BB924;
+        goto BB914;
     } else {
-        goto BB928;
+        goto BB918;
     }
-BB924:
+BB914:
     _755_t0 = 192;
-    goto BB927;
-BB928:
+    goto BB917;
+BB918:
     _755_t0 = 4;
-    goto BB927;
-BB927:
+    goto BB917;
+BB917:
     _755_$retval = _755_t0;
     return _755_$retval;
 }

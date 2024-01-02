@@ -24,37 +24,37 @@ int64_t _387_main(void){
     int64_t _387_$retval;
     _388_x = 36;
     _389_i = 0;
-    goto BB448;
-BB448:
+    goto BB439;
+BB439:
     _387_t3 = 70;
     _387_t4 = _389_i<_387_t3;
     if (_387_t4) {
-        goto BB449;
+        goto BB440;
     } else {
-        goto BB460;
+        goto BB451;
     }
-BB449:
+BB440:
     _387_t6 = 2;
     _387_t7 = $mod_int64_t(_389_i, _387_t6, "tests/integration/control-flow/break.orng:5:15:\n        if i % 2 == 0 {\n             ^");
     _387_t8 = 0;
     _387_t10 = _387_t7==_387_t8;
     if (_387_t10) {
-        goto BB454;
+        goto BB445;
     } else {
-        goto BB456;
+        goto BB447;
     }
-BB460:
+BB451:
     _388_x = 10;
-    goto BB454;
-BB454:
+    goto BB445;
+BB445:
     _387_$retval = _388_x;
     return _387_$retval;
-BB456:
+BB447:
     _387_t11 = 1;
     _388_x = $add_int64_t(_388_x, _387_t11, "tests/integration/control-flow/break.orng:8:13:\n        x += 1\n           ^");
     _387_t13 = 1;
     _389_i = $add_int64_t(_389_i, _387_t13, "tests/integration/control-flow/break.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
-    goto BB448;
+    goto BB439;
 }
 
 int main(void) {

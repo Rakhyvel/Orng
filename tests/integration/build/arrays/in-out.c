@@ -40,7 +40,7 @@ int64_t _67_main(void){
     _67_t4 = _69_f;
     _67_t6 = &_68_x;
     $lines[$line_idx++] = "tests/integration/arrays/in-out.orng:4:7:\n    f(&mut x)\n     ^";
-    _67_t4(_67_t6);
+    (void) _67_t4(_67_t6);
     $line_idx--;
     _67_t7 = 1;
     _67_t8 = 3;

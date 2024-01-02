@@ -1,0 +1,5 @@
+// 287
+fn main() -> Int {
+    let x: () = {} // This is ok, it shouldn't complain that it's not used, because it's a unit type
+    287
+}

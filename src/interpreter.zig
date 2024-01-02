@@ -251,7 +251,7 @@ pub const Context = struct {
             => unreachable,
 
             // Nops
-            .label, .discard, .load_unit => {},
+            .label, .load_unit => {},
 
             // Load literals
             .load_int => {
