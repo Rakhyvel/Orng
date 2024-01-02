@@ -412,12 +412,15 @@ pub fn get_bounds(_type: *ast_.AST) Bounds {
     }
 }
 
-pub fn from_ast(_type: *ast_.AST) Primitive_Info {
-    std.debug.assert(_type.* == .identifier);
-    return primitives.get(_type.token().data) orelse {
-        std.debug.print("compiler error: `{s}` is not a primitive\n", .{_type.token().data});
-        unreachable;
-    };
+pub fn from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
+    var unwrapped = expanded_type;
+    while (unwrapped.* == .annotation) {
+        unwrapped = unwrapped.annotation.type;
+    }
+    if (unwrapped.* != .identifier) { // Cannot be a primitive!
+        return null;
+    }
+    return get(unwrapped.token().data);
 }
 
 pub fn represents_signed_primitive(_type: *ast_.AST) bool {

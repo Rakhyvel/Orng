@@ -14,7 +14,6 @@ const symbol_ = @import("symbol.zig");
 
 pub const Lower_Errors = error{
     TypeError,
-    NotAnLValue,
     InterpreterPanic,
     DivideByZero,
     Unused,
@@ -179,16 +178,6 @@ fn lower_AST(
 
             return ok_lval;
         },
-        // .discard => {
-        //     var expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator);
-        //     if (expr == null) {
-        //         return null;
-        //     }
-        //     expr.?.extract_symbver().symbol.discard_span = ast.token().span;
-        //     const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-        //     cfg.append_instruction(ir_.IR.init_discard(expr.?, ast.token().span, allocator));
-        //     return temp;
-        // },
 
         // Binary operators
         .assign => {

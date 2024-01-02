@@ -659,7 +659,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
 fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     try output_var_assign(ir.dest.?, writer);
     if (ir.kind.is_checked() and primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) { // TODO: Check if checked operations are enabled, too
-        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.from_ast(ir.dest.?.get_expanded_type()).c_name });
+        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.from_ast(ir.dest.?.get_expanded_type()).?.c_name });
         try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
         try writer.print(", ", .{});
         if (ir.kind.arity() == .binop) {

@@ -1739,7 +1739,7 @@ pub const AST = union(enum) {
         } else if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).is_eq();
+        return primitives_.from_ast(expanded).?.is_eq();
     }
 
     /// Ord <: Eq
@@ -1751,7 +1751,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).is_ord();
+        return primitives_.from_ast(expanded).?.is_ord();
     }
 
     /// Num <: Ord
@@ -1763,7 +1763,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).is_num();
+        return primitives_.from_ast(expanded).?.is_num();
     }
 
     /// Int <: Num
@@ -1775,7 +1775,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).is_int();
+        return primitives_.from_ast(expanded).?.is_int();
     }
 
     pub fn is_comptime_expr(self: *AST) bool {

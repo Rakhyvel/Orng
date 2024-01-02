@@ -9,11 +9,13 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+const Validate_Error_Enum = error{TypeError};
+
+pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     try validate_scope(module.scope, errors, allocator);
 }
 
-fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
         try validate_symbol(symbol, errors, allocator);
@@ -23,7 +25,7 @@ fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.m
     }
 }
 
-fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!void {
+fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -132,7 +134,7 @@ fn validate_AST_internal(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ InterpreterPanic, TypeError, NotAnLValue, Overflow, DivideByZero, Unused }!*ast_.AST {
+) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, Unused }!*ast_.AST {
     // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => return ast,
@@ -145,7 +147,7 @@ fn validate_AST_internal(
             return ast;
         },
         .int => {
-            try type_check_int(ast, expected, errors);
+            try type_check_int(ast, expected, errors, allocator);
             return ast;
         },
         .float => {
@@ -188,6 +190,7 @@ fn validate_AST_internal(
             return ast;
         },
         .dereference => {
+            const expr_span = ast.expr().token().span;
             if (expected != null) {
                 const addr_of = ast_.AST.create_addr_of(ast.token(), expected.?, false, std.heap.page_allocator).assert_valid();
                 ast.set_expr(validate_AST(ast.expr(), addr_of, errors, allocator));
@@ -198,9 +201,13 @@ fn validate_AST_internal(
             const expr_type = ast.expr().typeof(allocator);
             const expanded_expr_type = expr_type.expand_type(allocator);
             if (expanded_expr_type.* != .addr_of) {
-                // TODO: Got?
-                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "expected an address" } });
-                return ast.enpoison();
+                errors.add_error(errs_.Error{ .wrong_from = .{
+                    .span = expr_span,
+                    .operator = @tagName(ast.*),
+                    .from = "address",
+                    .got = expanded_expr_type,
+                } });
+                return error.TypeError;
             } else {
                 return ast;
             }
@@ -211,10 +218,13 @@ fn validate_AST_internal(
             try assert_none_poisoned(ast.expr());
             var expr_expanded_type = ast.expr().typeof(allocator).expand_type(allocator);
             if (expr_expanded_type.* != .sum or expr_expanded_type.sum.from != .@"error") {
-                // expr is not even an error type
-                // TODO: What type is it?
-                errors.add_error(errs_.Error{ .basic = .{ .span = expr_span, .msg = "not an error expression" } });
-                return ast.enpoison();
+                errors.add_error(errs_.Error{ .wrong_from = .{
+                    .span = expr_span,
+                    .operator = @tagName(ast.*),
+                    .from = "error",
+                    .got = expr_expanded_type,
+                } });
+                return error.TypeError;
             }
             try type_check(ast, expr_expanded_type.get_ok_type().annotation.type, expected, errors);
             const expanded_function_return = ast.symbol().?._type.rhs().expand_type(allocator);
@@ -229,10 +239,15 @@ fn validate_AST_internal(
                     .msg = "enclosing function around try expression does not return an error",
                 } });
                 return ast.enpoison();
-            } else if (!expr_expanded_type.children().items[1].annotation.type.types_match(expanded_function_return.children().items[1].annotation.type)) {
-                // MASSIVE TODO: Check ALL sum terms, not just the first one
-                // expr error union's `.err` member is not a compatible type with the function's error type
-                return throw_unexpected_type(expr_span, expr_expanded_type, expanded_function_return, errors);
+            } else {
+                for (1..expr_expanded_type.children().items.len) |i| {
+                    const error_type = expr_expanded_type.children().items[i].annotation.type;
+                    const function_type = expanded_function_return.children().items[i].annotation.type;
+                    if (!error_type.types_match(function_type)) {
+                        // expr error union's `.err` member is not a compatible type with the function's error type
+                        return throw_unexpected_type(expr_span, expr_expanded_type, expanded_function_return, errors);
+                    }
+                }
             }
             return ast;
         },
@@ -338,17 +353,22 @@ fn validate_AST_internal(
             return ast;
         },
         .call => {
+            const lhs_span = ast.lhs().token().span;
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
             var lhs_type = ast.lhs().typeof(allocator);
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (expanded_lhs_type.* != .function) {
-                // TODO: Emit expanded_lhs_type for user
-                errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "call is not to a function" } });
-                return ast.enpoison();
+                errors.add_error(errs_.Error{ .wrong_from = .{
+                    .span = lhs_span,
+                    .operator = @tagName(ast.*),
+                    .from = "function",
+                    .got = expanded_lhs_type,
+                } });
+                return error.TypeError;
             }
             ast.set_children(try default_args(ast.children().*, expanded_lhs_type.lhs(), errors, allocator));
-            ast.set_children(try validate_args(ast.children().*, expanded_lhs_type.lhs(), ast.token().span, errors, allocator)); // TODO: Is this compatible with product?
+            ast.set_children(try validate_args(ast.children().*, expanded_lhs_type.lhs(), ast.token().span, errors, allocator));
             try type_check(ast, expanded_lhs_type.rhs(), expected, errors);
             return ast;
         },
@@ -371,7 +391,6 @@ fn validate_AST_internal(
                 ast.rhs().* == .int and ast.lhs().children().items.len > ast.rhs().int.data)
             {
                 // Index a product type, resolve immediately
-                // TODO: Perhaps add a pattern-index type that's only used by patterns, gauranteed to be infallible
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (lhs_expanded_type.* != .product) {
                 errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
@@ -869,80 +888,96 @@ fn validate_AST_internal(
     }
 }
 
-fn type_check(ast: *ast_.AST, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn type_check(ast: *ast_.AST, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and !got.types_match(expected.?)) {
         return throw_unexpected_type(ast.token().span, expected.?, got, errors);
     }
 }
 
-fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn void_check(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and primitives_.type_type.types_match(expected.?)) {
-        // TODO: This check won't be necessary after first-class-types, as values will need to be known at compile-time.
         return throw_unexpected_type(ast.token().span, expected.?, primitives_.void_type, errors);
     }
 }
 
 /// Checks that a type is equal to unit, throws an error if it is not.
-fn middle_statement_check(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn middle_statement_check(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!primitives_.unit_type.types_match(got) and !got.types_match(primitives_.void_type)) {
         return throw_unexpected_type(ast.token().span, primitives_.unit_type, got, errors);
     }
 }
 
-fn type_check_int(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
-    if (expected != null and !expected.?.can_represent_integer(ast.int.data)) {
-        // TODO: Add emit a separate error if not representable because the value doesn't fit, vs because it's not an integer primitive type at all
-        return throw_unexpected_type(ast.token().span, expected.?, primitives_.int_type, errors);
+fn type_check_int(
+    ast: *ast_.AST,
+    expected: ?*ast_.AST, // This should NOT be expanded
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Validate_Error_Enum!void {
+    const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
+    if (expanded_expected != null and !primitives_.unit_type.types_match(expanded_expected.?)) {
+        const info = primitives_.from_ast(expanded_expected.?);
+        if (info != null and info.?.bounds != null) {
+            if (ast.int.data < info.?.bounds.?.lower or
+                ast.int.data > info.?.bounds.?.upper)
+            {
+                // This error is thrown because the `expanded_expected` is out of bounds of the expected type
+                errors.add_error(errs_.Error{ .integer_out_of_bounds = .{ .span = ast.token().span, .expected = expected.? } });
+                return error.TypeError;
+            }
+        } else {
+            // This error is thrown because the `expanded_expected` is not an integer primitive type
+            return throw_unexpected_type(ast.token().span, expanded_expected.?, primitives_.int_type, errors);
+        }
     }
     ast.set_represents(expected orelse primitives_.int_type);
 }
 
-fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (expected != null and !expected.?.can_represent_float()) {
         return throw_unexpected_type(ast.token().span, expected.?, primitives_.float_type, errors);
     }
     ast.set_represents(expected orelse primitives_.float_type);
 }
 
-fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn type_check_eq(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_eq_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "equalable", .got = got } });
         return error.TypeError;
     }
 }
 
-fn type_check_ord(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn type_check_ord(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_ord_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "orderable", .got = got } });
         return error.TypeError;
     }
 }
 
-fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn type_check_arithmetic(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_num_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "arithmetic", .got = got } });
         return error.TypeError;
     }
 }
 
-fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn type_check_integral(ast: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_int_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = ast.token().span, .expected = "integer", .got = got } });
         return error.TypeError;
     }
 }
 
-fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) error{TypeError} {
+fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
     return error.TypeError;
 }
 
-fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) error{TypeError} {
+fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
     return error.TypeError;
 }
 
-fn assert_none_poisoned(value: anytype) !void { // TODO: Uninfer error
+fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
     // This entire function is cursed...
     const T = @TypeOf(value);
     if (T == *std.ArrayList(*ast_.AST)) {
@@ -963,7 +998,7 @@ fn assert_none_poisoned(value: anytype) !void { // TODO: Uninfer error
     }
 }
 
-fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
     const _true = ast_.AST.create_true(ast.token(), allocator);
     const _false = ast_.AST.create_false(ast.token(), allocator);
@@ -975,7 +1010,7 @@ fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) !*ast_.
 }
 
 /// Validates a polymorphic binary operator
-fn binary_operator(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn binary_operator(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     ast.set_lhs(validate_AST(ast.lhs(), expected, errors, allocator));
     const lhs_type = ast.lhs().typeof(allocator);
     try assert_none_poisoned(lhs_type);
@@ -991,7 +1026,7 @@ fn binary_operator_closed(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*ast_.AST { // TODO: Uninfer error
+) Validate_Error_Enum!*ast_.AST {
     ast.set_lhs(validate_AST(ast.lhs(), self_type, errors, allocator));
     ast.set_rhs(validate_AST(ast.rhs(), self_type, errors, allocator));
     try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
@@ -999,11 +1034,11 @@ fn binary_operator_closed(
     return ast;
 }
 
-fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.Span, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
     const expected: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
     if (lhs_expanded_type.* != .sum or lhs_expanded_type.sum.from != expected) {
-        errors.add_error(errs_.Error{ .wrong_coalesce_from = .{
+        errors.add_error(errs_.Error{ .wrong_from = .{
             .span = span,
             .operator = @tagName(ast.*),
             .from = @tagName(expected),
@@ -1018,7 +1053,7 @@ fn default_args(
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
+) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
     if (try args_are_named(asts, errors)) {
         return named_args(asts, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => asts,
@@ -1031,7 +1066,7 @@ fn default_args(
     }
 }
 
-fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) !bool { // TODO: Uninfer error
+fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!bool {
     if (asts.items.len == 0) {
         return false;
     }
@@ -1057,19 +1092,27 @@ fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) !bool {
     }
 }
 
-fn positional_args(asts: std.ArrayList(*ast_.AST), expected: *ast_.AST, allocator: std.mem.Allocator) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
+/// Returns NoDefault when a default value cannot be created
+fn positional_args(
+    asts: std.ArrayList(*ast_.AST),
+    expected: *ast_.AST,
+    allocator: std.mem.Allocator,
+) error{NoDefault}!std.ArrayList(*ast_.AST) {
     var retval = std.ArrayList(*ast_.AST).init(allocator);
     errdefer retval.deinit();
 
     switch (expected.*) {
         .annotation => {
             if (asts.items.len == 0 and expected.annotation.init != null) {
+                // Use expected's init, asts are empty
                 retval.append(expected.annotation.init.?) catch unreachable;
             } else if (asts.items.len > 0) {
+                // Copy asts over to retval
                 for (asts.items) |item| {
                     retval.append(item) catch unreachable;
                 }
             } else {
+                // asts.items.len > 0 or expected.annotation.init == null
                 return error.NoDefault;
             }
         },
@@ -1111,7 +1154,7 @@ fn named_args(
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
+) error{ TypeError, NoDefault }!std.ArrayList(*ast_.AST) {
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
     var arg_map = std.StringArrayHashMap(*ast_.AST).init(allocator);
@@ -1190,7 +1233,7 @@ fn validate_args(
     span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !std.ArrayList(*ast_.AST) { // TODO: Uninfer error
+) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
     var new_args = std.ArrayList(*ast_.AST).init(allocator);
     errdefer new_args.deinit();
     var changed = false;
@@ -1235,7 +1278,7 @@ fn validate_args(
     }
 }
 
-fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!void {
     if (ast.lhs().* != .inferred_member) {
         errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
         return error.TypeError;
@@ -1243,7 +1286,13 @@ fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), error
     try put_ast_map(ast.rhs(), ast.lhs().inferred_member.ident.token().data, ast.token().span, arg_map, errors);
 }
 
-fn merge_sums(lhs: *ast_.AST, rhs: *ast_.AST, token: token_.Token, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn merge_sums(
+    lhs: *ast_.AST,
+    rhs: *ast_.AST,
+    token: token_.Token,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Validate_Error_Enum!*ast_.AST {
     var new_terms = std.ArrayList(*ast_.AST).init(allocator);
     var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
     defer names.deinit();
@@ -1252,7 +1301,7 @@ fn merge_sums(lhs: *ast_.AST, rhs: *ast_.AST, token: token_.Token, errors: *errs
     try put_many_annot_map(rhs.children(), &new_terms, &names, errors);
 
     const retval = ast_.AST.create_sum(token, new_terms, allocator);
-    retval.sum.from = lhs.sum.from; // TODO: Assert that lhs from and rhs from are the same (or at least aren't optional and error)
+    retval.sum.from = .none; // Yep! Deal with it
     return retval;
 }
 
@@ -1261,7 +1310,7 @@ fn put_many_annot_map(
     new_terms: *std.ArrayList(*ast_.AST),
     map: *std.StringArrayHashMap(*ast_.AST),
     errors: *errs_.Errors,
-) !void { // TODO: Uninfer error
+) Validate_Error_Enum!void {
     for (asts.items) |term| {
         try put_ast_map(term.annotation.type, term.annotation.pattern.token().data, term.token().span, map, errors);
         new_terms.append(term) catch unreachable;
@@ -1269,17 +1318,25 @@ fn put_many_annot_map(
 }
 
 /// Puts an ast into a String->AST map, if a given name isn't already in the map.
-fn put_ast_map(ast: *ast_.AST, name: []const u8, span: span_.Span, map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn put_ast_map(
+    ast: *ast_.AST,
+    name: []const u8,
+    span: span_.Span,
+    map: *std.StringArrayHashMap(*ast_.AST),
+    errors: *errs_.Errors,
+) Validate_Error_Enum!void {
     if (map.get(name)) |_| {
-        // TODO: What is the name?
-        errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "duplicate identifier" } });
-        return error.TypeError;
+        errors.add_error(errs_.Error{ .duplicate = .{
+            .span = span,
+            .identifier = name,
+            .first = null,
+        } });
     } else {
         map.put(name, ast) catch unreachable;
     }
 }
 
-fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     switch (ast.*) {
         .identifier => {},
 
@@ -1300,7 +1357,7 @@ fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Unin
     }
 }
 
-fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     switch (ast.*) {
         .identifier => {
             const symbol = ast.symbol().?;
@@ -1331,14 +1388,19 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     }
 }
 
-fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!ast.addr_of.mut) {
         errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot modify non-mutable address" } });
         return error.TypeError;
     }
 }
 
-fn implicit_dereference(ast: *ast_.AST, old_lhs_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn implicit_dereference(
+    ast: *ast_.AST,
+    old_lhs_type: *ast_.AST,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Validate_Error_Enum!*ast_.AST {
     var lhs_type = old_lhs_type;
     if (lhs_type.* == .addr_of) {
         ast.set_lhs(validate_AST(ast_.AST.create_dereference(ast.token(), ast.lhs(), allocator), null, errors, allocator));
@@ -1348,7 +1410,7 @@ fn implicit_dereference(ast: *ast_.AST, old_lhs_type: *ast_.AST, errors: *errs_.
     return lhs_type;
 }
 
-fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) !usize { // TODO: Uninfer error
+fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
     if (_type.* != .product and _type.* != .sum and _type.* != .inferred_error) {
         return throw_not_selectable(span, errors);
     }
@@ -1366,10 +1428,15 @@ fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors
 }
 
 /// Validates that `pattern` is valid given a match's `expr`
-fn assert_pattern_matches(pattern: *ast_.AST, expr_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+fn assert_pattern_matches(
+    pattern: *ast_.AST,
+    expr_type: *ast_.AST,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Validate_Error_Enum!void {
     switch (pattern.*) {
         .unit_value => try type_check(pattern, primitives_.unit_type, expr_type, errors),
-        .int => try type_check_int(pattern, expr_type, errors),
+        .int => try type_check_int(pattern, expr_type, errors, allocator),
         .char => try type_check(pattern, primitives_.char_type, expr_type, errors),
         .string => try type_check(pattern, primitives_.string_type, expr_type, errors),
         .float => try type_check_float(pattern, expr_type, errors),
@@ -1415,7 +1482,7 @@ fn exhaustive_check(
     match_span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !void { // TODO: Uninfer error
+) Validate_Error_Enum!void {
     if (_type.* == .sum) {
         var ids = std.ArrayList(usize).init(allocator);
         defer ids.deinit();
@@ -1454,12 +1521,12 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
 }
 
 /// Adds a term to an inferred error
-fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(addend.* == .annotation);
     for (ast.children().items) |term| {
         if (std.mem.eql(u8, term.annotation.pattern.token().data, addend.annotation.pattern.token().data)) {
             if (!term.annotation.type.types_match(term)) {
-                errors.add_error(errs_.Error{ .sum_duplicate = .{
+                errors.add_error(errs_.Error{ .duplicate = .{
                     .span = ast.token().span,
                     .identifier = term.annotation.pattern.token().data,
                     .first = term.token().span,
@@ -1475,11 +1542,11 @@ fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) !void { //
     ast.children().append(addend) catch unreachable;
 }
 
-fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     return (try generate_default_unvalidated(_type, errors, allocator)).assert_valid();
 }
 
-fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) error{TypeError}!*ast_.AST {
+fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     switch (_type.*) {
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
@@ -1533,7 +1600,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
 
 // Takes in an inject AST (pattern or expr) of the form `lhs <- rhs` and returns the type that `rhs` should be.
 // Also validates the inject ast_.AST. Thus, if `lhs` is an inferred member, it will find out the sum type it belongs to.
-fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) !*ast_.AST { // TODO: Uninfer error
+fn domainof(ast: *ast_.AST, sum_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     if (ast.lhs().* == .inferred_member) {
         // Pass sum_type so that base can be inferred call
         ast.set_lhs(validate_AST(ast.lhs(), sum_type, errors, allocator));

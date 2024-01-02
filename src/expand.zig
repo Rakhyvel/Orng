@@ -98,7 +98,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                 const res = idents_seen.fetchPut(name, annotation) catch unreachable;
                 if (res) |_res| {
                     errors.add_error(errs_.Error{
-                        .sum_duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
+                        .duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
                     });
                     return error.ParseError;
                 }

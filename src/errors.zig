@@ -85,10 +85,10 @@ pub const Error = union(enum) {
         expected: []const u8, // name of the type class
         got: *ast_.AST,
     },
-    sum_duplicate: struct {
+    duplicate: struct {
         span: span_.Span,
         identifier: []const u8,
-        first: span_.Span,
+        first: ?span_.Span, // printed out as extra information
     },
     member_not_in: struct {
         span: span_.Span,
@@ -133,11 +133,15 @@ pub const Error = union(enum) {
         span: span_.Span,
         _type: *ast_.AST,
     },
-    wrong_coalesce_from: struct {
+    wrong_from: struct {
         span: span_.Span,
         operator: []const u8, // either "orelse" or "catch"
         from: []const u8, // either "optional" or "error"
         got: *ast_.AST, // What the type actually was
+    },
+    integer_out_of_bounds: struct {
+        span: span_.Span,
+        expected: *ast_.AST,
     },
 
     // Optimizer
@@ -188,7 +192,7 @@ pub const Error = union(enum) {
 
             .unexpected_type => return self.unexpected_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
-            .sum_duplicate => return self.sum_duplicate.span,
+            .duplicate => return self.duplicate.span,
             .member_not_in => return self.member_not_in.span,
             .undeclared_identifier => return self.undeclared_identifier.identifier.span,
             .comptime_access_runtime => return self.comptime_access_runtime.identifier.span,
@@ -200,7 +204,8 @@ pub const Error = union(enum) {
             .mismatch_call_arity => return self.mismatch_call_arity.span,
             .mismatch_tuple_arity => return self.mismatch_tuple_arity.span,
             .no_default => return self.no_default.span,
-            .wrong_coalesce_from => return self.wrong_coalesce_from.span,
+            .wrong_from => return self.wrong_from.span,
+            .integer_out_of_bounds => return self.integer_out_of_bounds.span,
 
             .out_of_bounds => return self.out_of_bounds.span,
             .negative_index => return self.negative_index.span,
@@ -309,7 +314,7 @@ pub const Errors = struct {
                 try err.expected_builtin_typeclass.got.print_type(out);
                 try out.print("`\n", .{});
             },
-            .sum_duplicate => try out.print("duplicate sum member `{s}`\n", .{err.sum_duplicate.identifier}),
+            .duplicate => try out.print("duplicate item `{s}`\n", .{err.duplicate.identifier}),
             .member_not_in => try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name }),
             .undeclared_identifier => try out.print("use of undeclared identifier `{s}`\n", .{err.undeclared_identifier.identifier.data}),
             .comptime_access_runtime => try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{
@@ -347,12 +352,18 @@ pub const Errors = struct {
                 try err.no_default._type.print_type(out);
                 try out.print("`\n", .{});
             },
-            .wrong_coalesce_from => {
-                try out.print("expected {s} type for left-hand-side of `{s}`, got `", .{
-                    err.wrong_coalesce_from.from,
-                    err.wrong_coalesce_from.operator,
+            .wrong_from => {
+                try out.print("expected {s} type for {s}, got `", .{
+                    err.wrong_from.from,
+                    err.wrong_from.operator,
                 });
-                try err.wrong_coalesce_from.got.print_type(out);
+                try err.wrong_from.got.print_type(out);
+                try out.print("`\n", .{});
+            },
+            .integer_out_of_bounds => {
+                // This is always going to point to an integer literal...
+                try out.print("error: integer is out of bounds for type `", .{});
+                try err.integer_out_of_bounds.expected.print_type(out);
                 try out.print("`\n", .{});
             },
 
@@ -436,13 +447,13 @@ pub const Errors = struct {
                     try print_epilude(err.symbol_error.context_span.?);
                 }
             },
-            .sum_duplicate => {
+            .duplicate => if (err.duplicate.first != null) {
                 try bold.dump(out);
-                try print_note_label(err.sum_duplicate.first);
+                try print_note_label(err.duplicate.first);
                 try bold.dump(out);
-                try out.print("other definition of sum member `{s}` here\n", .{err.sum_duplicate.identifier});
+                try out.print("other definition of sum member `{s}` here\n", .{err.duplicate.identifier});
                 try not_bold.dump(out);
-                try print_epilude(err.sum_duplicate.first);
+                try print_epilude(err.duplicate.first);
             },
             .non_exhaustive_sum => {
                 for (err.non_exhaustive_sum.forgotten.items) |_type| {
