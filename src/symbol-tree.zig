@@ -209,7 +209,7 @@ fn symbol_table_from_AST(
     }
 }
 
-fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) Symbol_Error_Enum!void {
     if (!scope.in_loop) {
         errors.add_error(errs_.Error{ .not_inside_loop = .{
             .span = ast.token().span,
@@ -220,7 +220,7 @@ fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) !
 }
 
 /// Returns the inner symbol of a scope, or an error if one doesnt exist
-fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) !*symbol_.Symbol { // TODO: Uninfer error
+fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) Symbol_Error_Enum!*symbol_.Symbol {
     if (scope.inner_function == null) {
         errors.add_error(errs_.Error{ .not_inside_function = .{
             .span = ast.token().span,
@@ -232,7 +232,7 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
     }
 }
 
-fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Symbol_Error_Enum!void {
     const res = scope.lookup(symbol.name, false);
     switch (res) {
         .found => {
@@ -248,7 +248,7 @@ fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Err
     }
 }
 
-fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Scope, errors: *errs_.Errors) !void { // TODO: Uninfer error
+fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Scope, errors: *errs_.Errors) Symbol_Error_Enum!void {
     for (symbols.items) |symbol| {
         try put_symbol(symbol, scope, errors);
     }
@@ -318,7 +318,7 @@ fn create_symbol(
     }
 }
 
-fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) !void { // TODO: Uninfer error
+fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Symbol_Error_Enum!void {
     for (match.children().items) |mapping| {
         const new_scope = symbol_.Scope.init(scope, "", allocator);
         mapping.mapping.scope = new_scope;
@@ -447,7 +447,7 @@ fn create_comptime_init(
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) !*ast_.AST { // TODO: Uninfer error
+) Symbol_Error_Enum!*ast_.AST {
     const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
     const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
     try put_symbol(comptime_symbol, scope, errors);

@@ -14,7 +14,7 @@ const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
-const Test_File_Fn = @TypeOf(integrate_test_file);
+const Test_File_Fn = fn ([]const u8, *symbol_.Scope, bool) bool;
 
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -56,7 +56,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     ast_.init_structures();
     const prelude = primitives_.get_scope();
     while (args.next()) |next| {
-        const res = try test_file(next, prelude, coverage);
+        const res = test_file(next, prelude, coverage);
         if (res) {
             results.passed += 1;
         } else {
@@ -74,46 +74,46 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 }
 
-fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
+fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
     const dot_index = index_of(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
-        return error.InvalidFilename;
+        return false;
     };
     var test_name = filename[17..dot_index];
 
     // Output .c file
-    var out_name: String = try String.init_with_contents(allocator, "tests/integration/build");
+    var out_name: String = String.init_with_contents(allocator, "tests/integration/build") catch unreachable;
     defer out_name.deinit();
-    try out_name.concat(test_name);
+    out_name.concat(test_name) catch unreachable;
     if (!coverage) { // Create output directory if it doesn't exist
         const slash_index = last_index_of(out_name.str(), '/').?;
         _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str()[0..slash_index] }) catch {};
     }
-    try out_name.concat(".c");
+    out_name.concat(".c") catch unreachable;
 
     if (!coverage) {
-        try term_.outputColor(succeed_color, "[ RUN    ... ] ", out);
-        try out.print("{s}.orng\n", .{test_name[1..]});
+        term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
+        out.print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
 
     // Read in the expected value and stdout
     var f = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
         error.FileNotFound => {
             std.debug.print("filename {s} doesn't exist\n", .{filename});
-            return err;
+            return false;
         },
-        else => return err,
+        else => return false,
     };
     defer f.close();
     var buf_reader = std.io.bufferedReader(f.reader());
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
     defer contents_arraylist.deinit();
-    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-    var contents = try contents_arraylist.toOwnedSlice();
+    in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
+    var contents = contents_arraylist.toOwnedSlice() catch unreachable;
     const expected_out = contents[3..until_newline(contents)];
 
     // Try to compile Orng (make sure no errors)
@@ -121,8 +121,8 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
     defer errors.deinit();
     const module = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
-            try errors.print_errors();
-            try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
+            errors.print_errors() catch unreachable;
+            term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
             switch (err) {
                 error.LexerError,
                 error.ParseError,
@@ -130,8 +130,8 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
                 error.TypeError,
                 error.Unused,
                 error.DivideByZero,
-                => try out.print("Orng -> C.\n", .{}),
-                else => try out.print("Orng Compiler crashed! {}\n", .{err}),
+                => out.print("Orng -> C.\n", .{}) catch unreachable,
+                else => out.print("Orng Compiler crashed! {}\n", .{err}) catch unreachable,
             }
             std.debug.dumpCurrentStackTrace(128);
         }
@@ -144,12 +144,12 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
     ) catch |e| switch (e) {
         error.FileNotFound => {
             std.debug.print("Cannot create file: {s}\n", .{out_name.str()});
-            return error.IoError;
+            return false;
         },
-        else => return error.IoError,
+        else => return false,
     };
     defer output_file.close();
-    try module.output(output_file.writer());
+    module.output(output_file.writer()) catch unreachable;
     if (coverage) {
         return false;
     }
@@ -190,50 +190,50 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
         return false;
     };
     if (gcc_res.retcode != 0) {
-        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-        try out.print("C -> Executable.\n", .{});
+        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+        out.print("C -> Executable.\n", .{}) catch unreachable;
         return false;
     }
 
     // execute (make sure no signals)
     const res = exec(&[_][]const u8{"./a.out"}) catch |e| {
-        try out.print("{?}\n", .{e});
-        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-        try out.print("Execution interrupted!\n", .{});
+        out.print("{?}\n", .{e}) catch unreachable;
+        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+        out.print("Execution interrupted!\n", .{}) catch unreachable;
         return false;
     };
     if (!std.mem.eql(u8, res.stdout, expected_out)) {
-        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-        try out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout });
+        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+        out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout }) catch unreachable;
         return false;
     }
 
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
-    try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+    term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
     return true;
 }
 
-fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) !bool { // TODO: Uninfer error
+fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) bool {
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
     const dot_index = index_of(filename, '.') orelse {
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
-        return error.InvalidFilename;
+        return false;
     };
     const test_name = filename[0..dot_index];
     _ = test_name;
 
     if (!coverage) {
-        try term_.outputColor(succeed_color, "[ RUN    ... ] ", out);
-        try out.print("{s}\n", .{filename});
+        term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
+        out.print("{s}\n", .{filename}) catch unreachable;
     }
 
     // Read in the expected value and stdout
     var f = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
         error.FileNotFound => {
             std.debug.print("filename {s} doesn't exist\n", .{filename});
-            return err;
+            return false;
         },
         else => return false,
     };
@@ -242,8 +242,8 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
     defer contents_arraylist.deinit();
-    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-    const contents = try contents_arraylist.toOwnedSlice();
+    in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
+    const contents = contents_arraylist.toOwnedSlice() catch unreachable;
 
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
@@ -258,28 +258,28 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                 error.Unused,
                 error.DivideByZero,
                 => {
-                    try errors.print_errors();
-                    try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+                    errors.print_errors() catch unreachable;
+                    term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                     return true;
                 },
                 error.ParseError => {
-                    var str = try String.init_with_contents(allocator, filename);
+                    var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
                     if (str.find("regression") != null) {
                         std.debug.print("{}\n", .{err});
-                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                        try out.print("Regression tests should parse!\n", .{});
-                        try errors.print_errors();
+                        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+                        out.print("Regression tests should parse!\n", .{}) catch unreachable;
+                        errors.print_errors() catch unreachable;
                         return false;
                     } else {
-                        try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+                        term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                         return true;
                     }
                 },
                 else => {
                     std.debug.print("{}\n", .{err});
-                    try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                    try out.print("Orng Compiler crashed unexpectedly!\n", .{});
+                    term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+                    out.print("Orng Compiler crashed unexpectedly!\n", .{}) catch unreachable;
                     std.debug.dumpCurrentStackTrace(128);
                     return false;
                 },
@@ -288,8 +288,8 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
             return false;
         }
     };
-    try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-    try out.print("Negative test compiled without error.\n", .{});
+    term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+    out.print("Negative test compiled without error.\n", .{}) catch unreachable;
     return false;
 }
 
