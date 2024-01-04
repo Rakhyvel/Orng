@@ -251,20 +251,32 @@ pub const Symbol_Version = struct {
         // try writer.print("{s:<10}", .{out.str()});
     }
 
+    /// Finds the last definition of a Symbol_Version in a given range of an IR linked-list
     pub fn find_version(self: *Symbol_Version, ir: ?*ir_.IR, stop: ?*ir_.IR) *Symbol_Version {
         var retval: *Symbol_Version = self;
         var maybe_ir = ir;
+        // Go through IR linked-list, stop at `stop` IR, if it's not null.
         while (maybe_ir != null and maybe_ir != stop) : (maybe_ir = maybe_ir.?.next) {
-            if (maybe_ir.?.dest != null and maybe_ir.?.dest.?.* == .symbver and maybe_ir.?.dest.?.symbver.symbol == self.symbol) {
+            if (maybe_ir.?.dest != null and // ir dest exists
+                maybe_ir.?.dest.?.* == .symbver and // ir dest is a symbver lvalue
+                maybe_ir.?.dest.?.symbver.symbol == self.symbol // ir dest symbver symbol is this symbol
+            ) {
+                // remember this symbver, but keep looking to find the very latest until `stop`
                 retval = maybe_ir.?.dest.?.symbver;
             }
         }
         return retval;
     }
 
+    /// Finds a Symbol Version in a Symbol Version set, or null if not found.
+    ///
+    /// Two Symbol Versions are considered equivalent if they refer to the same Symbol.
     pub fn find_symbol_version_set(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) ?*Symbol_Version {
+        // Go through the set's symbvers
         for (set.items) |symbver| {
             if (symbver.symbol == self.symbol) {
+                // Set element symbver has the same symbol as the symbver we're looking for
+                // Return it
                 return symbver;
             }
         }

@@ -47,6 +47,7 @@ pub const CFG = struct {
 
     allocator: std.mem.Allocator,
 
+    /// Initializes a CFG
     pub fn init(
         symbol: *symbol_.Symbol,
         caller: ?*CFG,
@@ -91,6 +92,7 @@ pub const CFG = struct {
         return retval;
     }
 
+    /// Deinitializes a CFG
     pub fn deinit(self: *CFG) void {
         for (self.basic_blocks.items) |bb| {
             bb.deinit();
@@ -107,15 +109,17 @@ pub const CFG = struct {
         self.allocator.destroy(self);
     }
 
-    // BBs aren't trees, so `defer self.visited = false` won't work
-    // Use this function instead
+    /// Sets the `visited` flag for all basic-blocks in this CFG to false.
+    ///
+    /// BBs aren't trees, so `defer self.visited = false` won't work
+    /// Use this function instead
     pub fn clear_visited_BBs(self: *CFG) void {
         for (self.basic_blocks.items) |bb| {
             bb.visited = false;
         }
     }
 
-    // Fills in a passed in list with symbol versions which are used in the CFG
+    /// Fills in a the `symbvers` list with the symbol versions which are used in the CFG
     pub fn collect_generated_symbvers(self: *CFG) void {
         for (self.basic_blocks.items) |bb| {
             var maybe_ir = bb.ir_head;
@@ -130,6 +134,7 @@ pub const CFG = struct {
         }
     }
 
+    /// Appends an IR instruction to the end of a CFG's temporary instruction list
     pub fn append_instruction(self: *CFG, ir: *ir_.IR) void {
         if (self.ir_head == null) {
             self.ir_head = ir;
@@ -213,6 +218,7 @@ pub const CFG = struct {
         return retval;
     }
 
+    /// Removes the last instruction from each basic-block of a CFG.
     pub fn remove_last_instruction(cfg: *CFG) void {
         for (cfg.basic_blocks.items) |bb| {
             if (bb.ir_head == null) {
@@ -227,8 +233,11 @@ pub const CFG = struct {
         }
     }
 
-    // Determines which symbol versions need to be requested as phi parameters, and which need to be passed to children basic-blocks as phi
-    // arguments
+    /// Calculates phi parameters and arguments for each basic block in the CFG.
+    ///
+    /// Determines the symbol versions that:
+    /// - Need to be requested as phi parameters,
+    /// - Need to be passed to children basic-blocks as phi arguments
     pub fn calculate_phi_params_and_args(self: *CFG, allocator: std.mem.Allocator) void {
         // clear arguments
         for (self.basic_blocks.items) |bb| {
@@ -275,6 +284,8 @@ pub const CFG = struct {
         self.clear_visited_BBs();
     }
 
+    /// Recursively versions an L_Value in a basic-block. If no version can be found, adds symbol-version to
+    /// the basic-block's requested phi parameters.
     fn version_lvalue(
         lval: *lval_.L_Value,
         bb: *basic_block_.Basic_Block,
@@ -285,6 +296,8 @@ pub const CFG = struct {
             .symbver => {
                 var retval = lval.symbver.find_version(bb.ir_head, ir);
                 if (retval.version == null) {
+                    // symbver symbol isn't defined in this basic-block
+                    // request it as a parameter
                     _ = retval.put_symbol_version_set(parameters);
                 }
                 lval.symbver = retval;
@@ -293,25 +306,23 @@ pub const CFG = struct {
             .index => {
                 version_lvalue(lval.index.rhs, bb, ir, parameters);
                 version_lvalue(lval.index.lhs, bb, ir, parameters);
-                if (lval.index.upper_bound != null) {
+                if (lval.index.upper_bound != null) { // index is bounded, version bound lval
                     version_lvalue(lval.index.upper_bound.?, bb, ir, parameters);
                 }
             },
             .select => {
                 version_lvalue(lval.select.lhs, bb, ir, parameters);
-                if (lval.select.tag != null) {
+                if (lval.select.tag != null) { // select is a sum-select, version expected tag
                     version_lvalue(lval.select.tag.?, bb, ir, parameters);
                 }
             },
         }
     }
 
-    /// Finds the phi *arguments* that each basic block needs to pass along, whereas calculatePhiParamsAndArgs finds the *parameters* it
-    /// needs to include.
-    ///
-    /// This is called `argument propagation` because a basic blocks arguments are propagated to parameters if they are not defined inside
-    /// it
-    fn children_arg_propagation(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
+    /// Propagates children basic-block phi parameters up to their parent's arguments sets. Also checks that
+    /// arguments are defined in parent basic-blocks, and if not, bubbles the arguments up to the parent's
+    /// parameter set, too.
+    fn propagate_arguments(self: *CFG, bb: *basic_block_.Basic_Block, allocator: std.mem.Allocator) bool {
         var retval: bool = false;
         if (bb.visited) {
             return false;
@@ -319,40 +330,66 @@ pub const CFG = struct {
         bb.visited = true;
 
         if (bb.next) |next| { // Have the next block request parameters
-            retval = self.request_undefined_symbvers(next, &bb.next_arguments, allocator);
+            retval = self.propagate_arguments(next, allocator) or
+                request_undefined_args(next, bb, allocator) or
+                fill_parent_args(next, bb, &bb.branch_arguments) or
+                retval;
         }
         if (bb.has_branch and bb.branch != null) { // Have the branch block request parameters
-            retval = self.request_undefined_symbvers(bb.branch.?, &bb.branch_arguments, allocator);
+            retval = self.propagate_arguments(bb.branch.?, allocator) or
+                request_undefined_args(bb.branch.?, bb, allocator) or
+                fill_parent_args(bb.branch.?, bb, &bb.branch_arguments) or
+                retval;
         }
 
         return retval;
     }
 
-    fn request_undefined_symbvers(
-        self: *CFG,
-        bb: *basic_block_.Basic_Block,
-        args: *std.ArrayList(*lval_.Symbol_Version),
+    /// Checks each parameter symbver of the child basic-block. If the symbver is not defined in the parent
+    /// basic-block, requests symbver as a parameter for the parent basic-block.
+    fn request_undefined_args(
+        child_bb: *basic_block_.Basic_Block,
+        parent_bb: *basic_block_.Basic_Block,
         allocator: std.mem.Allocator,
     ) bool {
-        var retval = self.children_arg_propagation(bb, allocator);
+        for (child_bb.parameters.items) |parameter| {
+            var symbver = parameter.find_version(parent_bb.ir_head, null); // search the entire parent bb for the last definition of `parameter`
 
-        // Go through the parameters the block requested, see if they exist in this block.
-        // Request them if they do not.
-        for (bb.parameters.items) |param| {
-            var symbver = param.find_version(bb.ir_head, null);
-            if (symbver == param) {
-                // Could not find param def in this block, require it as a parameter for this own block
-                const my_param = param.find_symbol_version_set(&bb.parameters);
-                if (my_param) |_myParam| {
-                    symbver = _myParam; // if so, we will add param to arglist
+            if (symbver == parameter) {
+                // Could not find parameter def in the parent block, require it as a parameter for the parent block
+                const parent_param = parameter.find_symbol_version_set(&parent_bb.parameters);
+                if (parent_param != null) {
+                    // was already in parent block's parameters
+                    // still make sure to add `symbver` to args set later on
+                    //
+                    // DO NOT try to simplify this logic by adding symbver to the parameter set no matter what
+                    // we need to add an BRAND NEW UNVERSIONED symbver to the parameter set, adding it no mater what would be wasteful
+                    symbver = parent_param.?;
                 } else {
-                    // else, create a new param and add to paramlist. (will later be added to arglist too)
-                    symbver = lval_.Symbol_Version.create_unversioned(param.symbol, allocator);
-                    _ = symbver.put_symbol_version_set(&bb.parameters);
+                    // was not already in parent block's parameters
+                    // add the symbver to the parent block's parameters
+                    symbver = lval_.Symbol_Version.create_unversioned(parameter.symbol, allocator);
+                    _ = symbver.put_symbol_version_set(&parent_bb.parameters);
                 }
-            } // else found in this block already, add it to the arguments
-            retval = symbver.put_symbol_version_set(args) or retval;
+            } // else found in this block already, no need to request as parameter
         }
+        return false;
+    }
+
+    /// Fills the parent basic-block's argument set based on the child-block's parameters
+    fn fill_parent_args(
+        child_bb: *basic_block_.Basic_Block,
+        parent_bb: *basic_block_.Basic_Block,
+        parent_args: *std.ArrayList(*lval_.Symbol_Version), // This is separate from parent_bb because it could either be `branch` or `child` args
+    ) bool {
+        var retval = false;
+
+        // Add each parameter symbver of the child basic-block's parameter set to the parent basic-block's arguments
+        for (child_bb.parameters.items) |parameter| {
+            var symbver = parameter.find_version(parent_bb.ir_head, null); // search the entire parent bb for the last definition of `parameter`
+            retval = symbver.put_symbol_version_set(parent_args) or retval;
+        }
+
         return retval;
     }
 };
