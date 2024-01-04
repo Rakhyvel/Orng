@@ -28,6 +28,7 @@ pub const Basic_Block = struct {
     /// Used for IR interpretation
     offset: ?i64,
 
+    /// Initializes a basic-block
     pub fn init(allocator: std.mem.Allocator) *Basic_Block {
         var retval = allocator.create(Basic_Block) catch unreachable;
         retval.ir_head = null;
@@ -46,6 +47,7 @@ pub const Basic_Block = struct {
         return retval;
     }
 
+    /// Deinitializes a basic-block
     pub fn deinit(self: *Basic_Block) void {
         for (self.parameters.items) |param| {
             param.deinit();
@@ -119,6 +121,7 @@ pub const Basic_Block = struct {
         }
     }
 
+    /// Removes an instruction from a basic-block
     pub fn remove_instruction(bb: *Basic_Block, ir: *ir_.IR) void {
         ir.removed = true;
         if (bb.ir_head != null and bb.ir_head == ir) {
@@ -133,6 +136,9 @@ pub const Basic_Block = struct {
         bb.removed_irs.append(ir) catch unreachable;
     }
 
+    /// Gets the latest definition of an L_Value's symbol from the start of the basic-block to a stop-at IR. If
+    /// the stop-at IR is `null`, will check entire block's instructions.
+    ///
     /// This functions is O(n)
     pub fn get_latest_def(bb: *Basic_Block, lval: *lval_.L_Value, stop_at_ir: ?*ir_.IR) ?*ir_.IR {
         if (lval.* != .symbver) {

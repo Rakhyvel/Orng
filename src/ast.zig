@@ -1163,6 +1163,7 @@ pub const AST = union(enum) {
         }
     }
 
+    /// Expand the types of each AST in a list
     fn expand_type_list(asts: *std.ArrayList(*AST), allocator: std.mem.Allocator) ?std.ArrayList(*AST) {
         var terms = std.ArrayList(*AST).init(allocator);
         var change = false;
@@ -1179,7 +1180,7 @@ pub const AST = union(enum) {
         }
     }
 
-    // Expands an ast one level if it is an identifier
+    /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
         if (self.* == .identifier) {
             return self.symbol().?.init;
@@ -1310,7 +1311,8 @@ pub const AST = union(enum) {
         }
     }
 
-    // Must always return a valid type!
+    /// Determine the type of an AST value. Call is memoized.
+    /// Must always return a valid type!
     pub fn typeof(self: *AST, allocator: std.mem.Allocator) *AST {
         // std.debug.assert(self.common().validation_state != .unvalidated);
         if (self.common()._type) |_type| {
@@ -1321,6 +1323,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    /// Non-memoized slow-path for determining the type of an AST value.
     fn typeof_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             // Poisoned type
@@ -1522,6 +1525,7 @@ pub const AST = union(enum) {
         return self.common()._size.?;
     }
 
+    /// Non-memoized slow-path for calculating the size of an AST type in bytes.
     fn sizeof_internal(self: *AST) i64 {
         switch (self.*) {
             .identifier => return primitives_.get(self.token().data).size,
@@ -1556,6 +1560,7 @@ pub const AST = union(enum) {
         }
     }
 
+    /// Calculates the alignment of an AST type in bytes. Call is memoized.
     pub fn alignof(self: *AST) i64 {
         if (self.common()._alignof == null) {
             self.common()._alignof = self.alignof_internal(); // memoize call
@@ -1564,6 +1569,7 @@ pub const AST = union(enum) {
         return self.common()._alignof.?;
     }
 
+    /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
             .identifier => return primitives_.get(self.token().data).size,
@@ -1692,36 +1698,12 @@ pub const AST = union(enum) {
         }
     }
 
-    /// Determines if a given integer type can represent a given integer value.
-    pub fn can_represent_integer(self: *AST, value: i128) bool {
-        var expanded = self.expand_identifier();
-        while (expanded.* == .annotation) {
-            expanded = expanded.annotation.type;
-        }
-        if (expanded.* == .unit_type) {
-            // Top type
-            return true;
-        } else if (expanded.* != .identifier) {
-            // Clearly not an integer type
-            return false;
-        }
-        for (primitives_.keys()) |key| {
-            const info = primitives_.get(key);
-            if (std.mem.eql(u8, info.name, expanded.token().data) and
-                info.bounds != null and
-                value >= info.bounds.?.lower and
-                value <= info.bounds.?.upper)
-            {
-                return true;
-            }
-        }
-        return false;
-    }
-
+    /// Determines if an AST type can represent a floating-point number value
     pub fn can_represent_float(self: *AST) bool {
         return can_expanded_represent_float(self.expand_identifier());
     }
 
+    /// Determines if an expanded AST type can represent a floating-point number value
     pub fn can_expanded_represent_float(self: *AST) bool {
         var expanded = self;
         while (expanded.* == .annotation) {
@@ -1738,6 +1720,7 @@ pub const AST = union(enum) {
         return info.type_kind == .floating_point;
     }
 
+    /// Determines if an AST type has the operators `==` and `!=` defined
     pub fn is_eq_type(self: *AST) bool {
         var expanded = self.expand_identifier();
         while (expanded.* == .annotation) {
@@ -1760,6 +1743,7 @@ pub const AST = union(enum) {
         return primitives_.from_ast(expanded).?.is_eq();
     }
 
+    /// Determines if an AST type has the operators `<` and `>` defined.
     /// Ord <: Eq
     pub fn is_ord_type(self: *AST) bool {
         var expanded = self.expand_identifier();
@@ -1772,6 +1756,7 @@ pub const AST = union(enum) {
         return primitives_.from_ast(expanded).?.is_ord();
     }
 
+    /// Determines if an AST type has the operators `+`, `-`, `/` and `*` defined.
     /// Num <: Ord
     pub fn is_num_type(self: *AST) bool {
         var expanded = self.expand_identifier();
@@ -1784,6 +1769,7 @@ pub const AST = union(enum) {
         return primitives_.from_ast(expanded).?.is_num();
     }
 
+    /// Determines if an AST type has the operator `%` defined.
     /// Int <: Num
     pub fn is_int_type(self: *AST) bool {
         var expanded = self.expand_identifier();
@@ -1796,6 +1782,8 @@ pub const AST = union(enum) {
         return primitives_.from_ast(expanded).?.is_int();
     }
 
+    /// Determines if an AST expression can be evaluated at compile-time without having to specify a `comptime`
+    /// keyword.
     pub fn is_comptime_expr(self: *AST) bool {
         // It's easier to list all the ASTs that AREN'T comptime! :-)
         return !(self.* == .@"try" or
@@ -1809,17 +1797,19 @@ pub const AST = union(enum) {
         // would be annoying to have to wrap these in comptime.
     }
 
-    // Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
+    /// Used to poison an AST node. Marks as valid, so any attempt to validate is memoized to return poison.
     pub fn enpoison(self: *AST) *AST {
         self.common().validation_state = .invalid;
         return poisoned;
     }
 
+    /// Sets an ASTs validation status to valid.
     pub fn assert_valid(self: *AST) *AST {
         self.common().validation_state = AST_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }
 
+    /// Checks whether two AST types would generate to the same C type.
     pub fn c_types_match(self: *AST, other: *AST) bool {
         if (self.* == .annotation) {
             return c_types_match(self.annotation.type, other);
