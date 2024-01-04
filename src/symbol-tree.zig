@@ -125,8 +125,8 @@ fn symbol_table_from_AST(
             ast.@"if".scope = new_scope;
             try symbol_table_from_AST(ast.@"if".let, scope, errors, allocator);
             try symbol_table_from_AST(ast.@"if".condition, new_scope, errors, allocator);
-            try symbol_table_from_AST(ast.@"if".body_block, new_scope, errors, allocator);
-            try symbol_table_from_AST(ast.@"if".else_block, new_scope, errors, allocator);
+            try symbol_table_from_AST(ast.body_block(), new_scope, errors, allocator);
+            try symbol_table_from_AST(ast.else_block(), new_scope, errors, allocator);
         },
         .match => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
@@ -145,8 +145,8 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST(ast.@"while".let, new_scope, errors, allocator);
             try symbol_table_from_AST(ast.@"while".condition, new_scope, errors, allocator);
             try symbol_table_from_AST(ast.@"while".post, new_scope, errors, allocator);
-            try symbol_table_from_AST(ast.@"while".body_block, loop_scope, errors, allocator);
-            try symbol_table_from_AST(ast.@"while".else_block, loop_scope, errors, allocator);
+            try symbol_table_from_AST(ast.body_block(), loop_scope, errors, allocator);
+            try symbol_table_from_AST(ast.else_block(), loop_scope, errors, allocator);
         },
         .@"for" => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
@@ -154,8 +154,8 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST(ast.@"for".let, scope, errors, allocator);
             try symbol_table_from_AST(ast.@"for".elem, scope, errors, allocator);
             try symbol_table_from_AST(ast.@"for".iterable, scope, errors, allocator);
-            try symbol_table_from_AST(ast.@"for".body_block, scope, errors, allocator);
-            try symbol_table_from_AST(ast.@"for".else_block, scope, errors, allocator);
+            try symbol_table_from_AST(ast.body_block(), scope, errors, allocator);
+            try symbol_table_from_AST(ast.else_block(), scope, errors, allocator);
         },
         .block => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);

@@ -340,12 +340,12 @@ fn lower_AST(
             try flow(ast.@"if".condition, else_label, false, cfg, ast.token().span, labels, errors, allocator);
 
             // lhs was true
-            try generate_control_flow_block(cfg, ast.@"if".body_block, symbol, ast.@"if".else_block != null, labels, errors, allocator);
+            try generate_control_flow_block(cfg, ast.body_block(), symbol, ast.else_block() != null, labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
 
             // lhs was false
             cfg.append_instruction(else_label);
-            try generate_control_flow_else(cfg, ast.@"if".else_block, symbol, ast.token().span, labels, errors, allocator);
+            try generate_control_flow_else(cfg, ast.else_block(), symbol, ast.token().span, labels, errors, allocator);
 
             cfg.append_instruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);
@@ -404,7 +404,7 @@ fn lower_AST(
             try flow(ast.@"while".condition, else_label, false, cfg, ast.token().span, loop_labels, errors, allocator);
 
             // Body block
-            try generate_control_flow_block(cfg, ast.@"while".body_block, symbol, ast.@"while".else_block != null, loop_labels, errors, allocator);
+            try generate_control_flow_block(cfg, ast.body_block(), symbol, ast.else_block() != null, loop_labels, errors, allocator);
 
             cfg.append_instruction(current_continue_label);
             if (ast.@"while".post) |post| { // do `post` if there's a post, jump to end_label to break
@@ -413,7 +413,7 @@ fn lower_AST(
             cfg.append_instruction(ir_.IR.init_jump(cond_label, ast.token().span, allocator));
 
             cfg.append_instruction(else_label);
-            try generate_control_flow_else(cfg, ast.@"while".else_block, symbol, ast.token().span, labels, errors, allocator);
+            try generate_control_flow_else(cfg, ast.else_block(), symbol, ast.token().span, labels, errors, allocator);
 
             cfg.append_instruction(end_label);
             return lval_.L_Value.create_unversioned_symbver(symbol, allocator);

@@ -144,8 +144,8 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .@"if" => {
             try expand(ast.@"if".let, errors, allocator);
             try expand(ast.@"if".condition, errors, allocator);
-            try expand(ast.@"if".body_block, errors, allocator);
-            try expand(ast.@"if".else_block, errors, allocator);
+            try expand(ast.body_block(), errors, allocator);
+            try expand(ast.else_block(), errors, allocator);
         },
         .match => {
             try expand(ast.match.let, errors, allocator);
@@ -160,15 +160,15 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.@"while".let, errors, allocator);
             try expand(ast.@"while".condition, errors, allocator);
             try expand(ast.@"while".post, errors, allocator);
-            try expand(ast.@"while".body_block, errors, allocator);
-            try expand(ast.@"while".else_block, errors, allocator);
+            try expand(ast.body_block(), errors, allocator);
+            try expand(ast.else_block(), errors, allocator);
         },
         .@"for" => {
             try expand(ast.@"for".let, errors, allocator);
             try expand(ast.@"for".elem, errors, allocator);
             try expand(ast.@"for".iterable, errors, allocator);
-            try expand(ast.@"for".body_block, errors, allocator);
-            try expand(ast.@"for".else_block, errors, allocator);
+            try expand(ast.body_block(), errors, allocator);
+            try expand(ast.else_block(), errors, allocator);
         },
         .block => {
             try expand_from_list(ast.children().*, errors, allocator);
@@ -191,7 +191,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
     }
 }
 
-fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!*ast_.AST { // TODO: Uninfer error
+fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!*ast_.AST {
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {

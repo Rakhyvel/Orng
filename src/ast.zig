@@ -139,6 +139,8 @@ pub const AST = union(enum) {
         _rhs: *AST,
         _pos: ?usize,
 
+        /// Calculates offsets for the select expression given it's underlying product type and selection
+        /// position
         pub fn offsets_at(self: *@This(), allocator: std.mem.Allocator) i64 {
             var lhs_expanded_type = self.lhs.typeof(allocator).expand_type(allocator);
             if (lhs_expanded_type.* == .product) {
@@ -158,6 +160,8 @@ pub const AST = union(enum) {
         _terms: std.ArrayList(*AST),
         from: Sum_From = .none,
         all_unit: ?bool = null,
+
+        /// Checks if all terms in the sum are unit-typed
         pub fn is_all_unit(self: *@This()) bool {
             if (self.all_unit) |all_unit| {
                 return all_unit;
@@ -186,6 +190,7 @@ pub const AST = union(enum) {
         homotypical: ?bool = null,
         was_slice: bool = false,
 
+        /// Checks if all the terms in the product have the same type (ie the product is homotypical)
         pub fn is_homotypical(self: *@This()) bool {
             if (self.homotypical) |homotypical| {
                 return homotypical;
@@ -204,6 +209,7 @@ pub const AST = union(enum) {
             return true;
         }
 
+        /// Retrieves the offset in bytes given a field's index
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
@@ -253,8 +259,8 @@ pub const AST = union(enum) {
         scope: ?*symbol_.Scope,
         let: ?*AST,
         condition: *AST,
-        body_block: *AST,
-        else_block: ?*AST,
+        _body_block: *AST,
+        _else_block: ?*AST,
     },
     match: struct {
         common: AST_Common,
@@ -275,8 +281,8 @@ pub const AST = union(enum) {
         let: ?*AST,
         condition: *AST,
         post: ?*AST,
-        body_block: *AST,
-        else_block: ?*AST,
+        _body_block: *AST,
+        _else_block: ?*AST,
     },
     @"for": struct {
         common: AST_Common,
@@ -284,8 +290,8 @@ pub const AST = union(enum) {
         let: ?*AST,
         elem: *AST,
         iterable: *AST,
-        body_block: *AST,
-        else_block: ?*AST,
+        _body_block: *AST,
+        _else_block: ?*AST,
     },
     block: struct {
         common: AST_Common,
@@ -599,8 +605,8 @@ pub const AST = union(enum) {
         _token: token_.Token,
         let: ?*AST,
         condition: *AST,
-        body_block: *AST,
-        else_block: ?*AST,
+        _body_block: *AST,
+        _else_block: ?*AST,
         allocator: std.mem.Allocator,
     ) *AST {
         const _common: AST_Common = .{ ._token = _token };
@@ -610,8 +616,8 @@ pub const AST = union(enum) {
                 .scope = null,
                 .let = let,
                 .condition = condition,
-                .body_block = body_block,
-                .else_block = else_block,
+                ._body_block = _body_block,
+                ._else_block = _else_block,
             } },
             allocator,
         );
@@ -653,8 +659,8 @@ pub const AST = union(enum) {
         let: ?*AST,
         condition: *AST,
         post: ?*AST,
-        body_block: *AST,
-        else_block: ?*AST,
+        _body_block: *AST,
+        _else_block: ?*AST,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
@@ -664,8 +670,8 @@ pub const AST = union(enum) {
                 .let = let,
                 .condition = condition,
                 .post = post,
-                .body_block = body_block,
-                .else_block = else_block,
+                ._body_block = _body_block,
+                ._else_block = _else_block,
             } },
             allocator,
         );
@@ -676,8 +682,8 @@ pub const AST = union(enum) {
         let: ?*AST,
         elem: *AST,
         iterable: *AST,
-        body_block: *AST,
-        else_block: ?*AST,
+        _body_block: *AST,
+        _else_block: ?*AST,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(
@@ -687,8 +693,8 @@ pub const AST = union(enum) {
                 .let = let,
                 .elem = elem,
                 .iterable = iterable,
-                .body_block = body_block,
-                .else_block = else_block,
+                ._body_block = _body_block,
+                ._else_block = _else_block,
             } },
             allocator,
         );
@@ -884,6 +890,23 @@ pub const AST = union(enum) {
         set_field(self, "_statement", val);
     }
 
+    pub fn body_block(self: AST) *AST {
+        return get_field(self, "_body_block");
+    }
+
+    pub fn set_body_block(self: *AST, val: *AST) void {
+        set_field(self, "_body_block", val);
+    }
+
+    pub fn else_block(self: AST) ?*AST {
+        return get_field(self, "_else_block");
+    }
+
+    pub fn set_else_block(self: *AST, val: ?*AST) void {
+        set_field(self, "_else_block", val);
+    }
+
+    /// Returns the type of the field with a given name in a Zig union type
     fn Unwrapped(comptime Union: type, comptime field: []const u8) type {
         return inline for (std.meta.fields(Union)) |variant| {
             const Struct = variant.type;
@@ -892,6 +915,7 @@ pub const AST = union(enum) {
         } else @compileError("No such field in any of the variants!");
     }
 
+    /// Generically retrieve the value of a field in a Zig union type
     fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
         return switch (u) {
             inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
@@ -901,12 +925,14 @@ pub const AST = union(enum) {
         };
     }
 
+    /// Generically retrieve a reference to a field in a Zig union type
     fn get_field_ref(u: anytype, comptime field: []const u8) *Unwrapped(@TypeOf(u.*), field) {
         return switch (u.*) {
             inline else => |*v| &@field(v, field),
         };
     }
 
+    /// Generically set a field in a Zig union type
     fn set_field(u: anytype, comptime field: []const u8, val: Unwrapped(@TypeOf(u.*), field)) void {
         switch (u.*) {
             inline else => |*v| if (@hasField(@TypeOf(v.*), field)) {
@@ -1072,6 +1098,7 @@ pub const AST = union(enum) {
         return err_union.children().items[0];
     }
 
+    /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
@@ -1081,6 +1108,7 @@ pub const AST = union(enum) {
         return retval;
     }
 
+    /// Non-memoized slow path for expanding the type of an AST value.
     fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             .identifier => {
@@ -1451,9 +1479,9 @@ pub const AST = union(enum) {
             .default => return self.expr(),
 
             // Control-flow expressions
-            .@"if" => { // TODO: This could be unified with .@"while"'s typeof
-                const body_type = self.@"if".body_block.typeof(allocator);
-                if (self.@"if".else_block != null or
+            .@"while", .@"if" => {
+                const body_type = self.body_block().typeof(allocator);
+                if (self.else_block() != null or
                     primitives_.unit_type.types_match(body_type.expand_type(allocator)) or
                     body_type.expand_type(allocator).types_match(primitives_.void_type))
                 {
@@ -1463,16 +1491,6 @@ pub const AST = union(enum) {
                 }
             },
             .match => return self.children().items[0].typeof(allocator),
-            .@"while" => {
-                const body_type = self.@"while".body_block.typeof(allocator);
-                if (body_type.types_match(primitives_.void_type)) {
-                    return primitives_.unit_type;
-                } else if (self.@"while".else_block != null or primitives_.unit_type.types_match(body_type)) {
-                    return body_type;
-                } else {
-                    return create_optional_type(body_type, allocator);
-                }
-            },
             .block => if (self.block.final) |_| {
                 return primitives_.void_type;
             } else if (self.children().items.len == 0) {
@@ -1895,7 +1913,7 @@ pub const AST = union(enum) {
                         try out.writer().print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                try out.writer().print(", .from={s})", .{@tagName(self.sum.from)});
             },
             .inferred_error => try out.writer().print("inferred_error()", .{}),
             .inject => try out.writer().print("inject()", .{}),
@@ -1915,7 +1933,7 @@ pub const AST = union(enum) {
             .slice_of => try out.writer().print("sliceOf()", .{}),
             .array_of => try out.writer().print("arrayOf()", .{}),
             .sub_slice => try out.writer().print("subSlice()", .{}),
-            .annotation => try out.writer().print("annotation(.field={}, .type={},.init={?})", .{
+            .annotation => try out.writer().print("annotation(.field={}, .type={}, .init={?})", .{
                 self.annotation.pattern,
                 self.annotation.type,
                 self.annotation.init,

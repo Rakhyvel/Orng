@@ -395,20 +395,23 @@ pub fn get(name: []const u8) Primitive_Info {
     return primitives.get(name).?;
 }
 
-pub fn get_bounds(_type: *ast_.AST) Bounds {
+pub fn get_bounds(_type: *ast_.AST) ?Bounds {
     // _type is expanded
     switch (_type.*) {
         .identifier => {
-            const info = get(_type.token().data);
+            const info = primitives.get(_type.token().data) orelse return null;
+            if (info.bounds == null) {
+                return null;
+            }
             return switch (info.type_kind) {
                 .signed_integer => info.bounds.?,
                 .unsigned_integer => info.bounds.?,
                 .boolean => Bounds{ .lower = 0, .upper = 2 },
-                else => unreachable,
+                else => return null,
             };
         },
         .addr_of, .function => return Bounds{ .lower = 0, .upper = 0xFFFF_FFFF_FFFF_FFFF },
-        else => unreachable,
+        else => return null,
     }
 }
 

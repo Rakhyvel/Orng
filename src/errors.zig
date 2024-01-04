@@ -142,6 +142,7 @@ pub const Error = union(enum) {
     integer_out_of_bounds: struct {
         span: span_.Span,
         expected: *ast_.AST,
+        value: i128,
     },
 
     // Optimizer
@@ -298,12 +299,17 @@ pub const Errors = struct {
             .not_inside_function => try out.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}),
 
             // Typecheck
-            .unexpected_type => {
+            .unexpected_type => if (err.unexpected_type.expected.* == .identifier and std.mem.eql(u8, err.unexpected_type.expected.token().data, "Void")) {
+                std.debug.assert(err.unexpected_type.expected.* != .poison);
+                try out.print("cannot assign a value of type `", .{});
+                try err.unexpected_type.got.print_type(out);
+                try out.print("` to type `Void`\n", .{});
+            } else {
                 std.debug.assert(err.unexpected_type.expected.* != .poison);
                 try out.print("expected a value of the type `", .{});
                 try err.unexpected_type.expected.print_type(out);
                 if (err.unexpected_type.got.* != .poison) {
-                    try out.print("`, got a value of the type `", .{}); // Tiny TODO: if got is Void, print something else
+                    try out.print("`, got a value of the type `", .{});
                     try err.unexpected_type.got.print_type(out);
                 }
                 try out.print("`\n", .{});
@@ -361,10 +367,9 @@ pub const Errors = struct {
                 try out.print("`\n", .{});
             },
             .integer_out_of_bounds => {
-                // This is always going to point to an integer literal...
                 try out.print("error: integer is out of bounds for type `", .{});
                 try err.integer_out_of_bounds.expected.print_type(out);
-                try out.print("`\n", .{});
+                try out.print("`; value={}\n", .{err.integer_out_of_bounds.value});
             },
 
             // Optimizer

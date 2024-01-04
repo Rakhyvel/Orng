@@ -24,6 +24,7 @@ pub const Context = struct {
     debug_call_mem: [stack_limit]u8,
     debug_call_stack: std.ArrayList(span_.Span),
 
+    /// Initializes a new interpreter context.
     pub fn init(
         cfg: *cfg_.CFG,
         instructions: *std.ArrayList(*ir_.IR), // Flat list of instructions to interpret
@@ -56,7 +57,8 @@ pub const Context = struct {
         return retval;
     }
 
-    fn get_lval(self: *Context, lval: *lval_.L_Value) error{InterpreterPanic}!i64 {
+    /// Gets the effective address of an lvalue in the interpreter's memory.
+    fn effective_address(self: *Context, lval: *lval_.L_Value) error{InterpreterPanic}!i64 {
         switch (lval.*) {
             .symbver => {
                 if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
@@ -79,25 +81,27 @@ pub const Context = struct {
                     return self.base_pointer + lval.symbver.symbol.offset.?;
                 }
             },
-            .dereference => return self.load(i64, try self.get_lval(lval.dereference.expr)),
+            .dereference => return self.load(i64, try self.effective_address(lval.dereference.expr)),
             .index => {
-                const base = try self.get_lval(lval.index.lhs);
-                const index = self.load(i64, try self.get_lval(lval.index.rhs));
+                const base = try self.effective_address(lval.index.lhs);
+                const index = self.load(i64, try self.effective_address(lval.index.rhs));
                 return base + index * lval.index.size;
             },
             .select => {
-                const base = try self.get_lval(lval.select.lhs);
+                const base = try self.effective_address(lval.select.lhs);
                 return base + lval.select.offset;
             },
         }
     }
 
+    /// Stores a value of type T at the specified address in the interpreter's memory.
     fn store(self: *Context, comptime T: type, address: i64, val: T) void {
         std.debug.assert(address >= 0);
         // std.debug.print("[0x{X}:{}] = {}\n", .{ address, @alignOf(T), val });
         @as(*T, @alignCast(@ptrCast(&self.stack[@as(usize, @intCast(address))]))).* = val;
     }
 
+    /// Stores an integer value at the specified address in the interpreter's memory.
     fn store_int(self: *Context, address: i64, size: i64, val: i128) void {
         std.debug.assert(address >= 0);
         switch (size) {
@@ -112,6 +116,7 @@ pub const Context = struct {
         }
     }
 
+    /// Stores a floating-point value at the specified address in the interpreter's memory.
     fn store_float(self: *Context, address: i64, size: i64, val: f64) void {
         std.debug.assert(address >= 0);
         switch (size) {
@@ -121,6 +126,7 @@ pub const Context = struct {
         }
     }
 
+    /// Loads a value of type T from the specified address in the interpreter's memory.
     fn load(self: *Context, comptime T: type, address: i64) T {
         std.debug.assert(address >= 0);
         const val = @as(*T, @ptrCast(@alignCast(&self.stack[@as(usize, @intCast(address))]))).*;
@@ -128,6 +134,7 @@ pub const Context = struct {
         return val;
     }
 
+    /// Loads an integer value from the specified address in the interpreter's memory.
     fn load_int(self: *Context, address: i64, size: i64) i128 {
         std.debug.assert(address >= 0);
         return switch (size) {
@@ -139,6 +146,7 @@ pub const Context = struct {
         };
     }
 
+    /// Loads a floating-point value from the specified address in the interpreter's memory.
     fn load_float(self: *Context, address: i64, size: i64) f64 {
         std.debug.assert(address >= 0);
         return switch (size) {
@@ -148,6 +156,7 @@ pub const Context = struct {
         };
     }
 
+    /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
     fn move(self: *Context, dest: i64, src: i64, len: i64) void {
         std.debug.assert(dest >= 0);
         std.debug.assert(src >= 0);
@@ -167,32 +176,38 @@ pub const Context = struct {
         );
     }
 
+    /// Copies memory blocks referenced by a list of L_Values to the specified destination address in the
+    /// interpreter's memory.
     fn move_lval_list(self: *Context, dest: i64, list: *std.ArrayList(*lval_.L_Value)) !void {
         std.debug.assert(dest >= 0);
         var cursor = dest;
         for (list.items) |lval| {
             cursor = offsets_.next_alignment(cursor, lval.alignof());
             const len = lval.sizeof();
-            self.move(cursor, try self.get_lval(lval), len);
+            self.move(cursor, try self.effective_address(lval), len);
             cursor += len;
         }
     }
 
+    /// Pushes an integer value onto the interpreter's stack.
     fn push_int(self: *Context, size: i64, val: i128) void {
         self.store_int(self.stack_pointer, size, val);
         self.stack_pointer += size;
     }
 
-    fn push_move(self: *Context, addr: i64, size: i64) void {
-        self.move(self.stack_pointer, addr, size);
-        self.stack_pointer += size;
+    /// Pushes a memory block of the specified size onto the interpreter's stack.
+    fn push_move(self: *Context, block_addr: i64, block_size: i64) void {
+        self.move(self.stack_pointer, block_addr, block_size);
+        self.stack_pointer += block_size;
     }
 
-    fn pop_int(self: *Context, size: i64) i128 {
-        self.stack_pointer -= size;
-        return self.load_int(self.stack_pointer, size);
+    /// Pops and returns an integer value from the interpreter's stack.
+    fn pop_int(self: *Context, int_size_bytes: i64) i128 {
+        self.stack_pointer -= int_size_bytes;
+        return self.load_int(self.stack_pointer, int_size_bytes);
     }
 
+    /// Handles the return operation in the interpreter's calling convention
     fn ret(self: *Context) void {
         // deallocate locals
         self.stack_pointer = self.base_pointer + 8;
@@ -205,10 +220,12 @@ pub const Context = struct {
         // self.print_registers();
     }
 
+    /// Prints the values of the interpreter's registers
     fn print_registers(self: *Context) void {
         std.debug.print("bp:0x{X} sp:0x{X} ip:0x{X}\n", .{ self.base_pointer, self.stack_pointer, self.instruction_pointer });
     }
 
+    /// Prints the contents of the interpreter's stack. Used for debugging.
     fn print_stack(self: *Context) void {
         for (0..@as(usize, @intCast(self.stack_pointer))) |i| {
             if (@rem(i, 8) == 0) {
@@ -224,26 +241,39 @@ pub const Context = struct {
         }
     }
 
+    /// Loads integer values from the specified L_Values and returns a structure containing both the loaded
+    /// values.
     fn binop_load_int(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: i128, src2: i128 } {
-        return .{ .src1 = self.load_int(try self.get_lval(src1), src1.sizeof()), .src2 = self.load_int(try self.get_lval(src2), src2.sizeof()) };
+        return .{
+            .src1 = self.load_int(try self.effective_address(src1), src1.sizeof()),
+            .src2 = self.load_int(try self.effective_address(src2), src2.sizeof()),
+        };
     }
 
+    /// Loads floating-point values from the specified L_Values and returns a structure containing both the
+    /// loaded values.
     fn binop_load_float(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: f64, src2: f64 } {
-        return .{ .src1 = self.load_float(try self.get_lval(src1), src1.sizeof()), .src2 = self.load_float(try self.get_lval(src2), src2.sizeof()) };
+        return .{
+            .src1 = self.load_float(try self.effective_address(src1), src1.sizeof()),
+            .src2 = self.load_float(try self.effective_address(src2), src2.sizeof()),
+        };
     }
 
+    /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
+    /// the maximum allowed instructions.
     pub fn interpret(self: *Context) error{InterpreterPanic}!void {
-        // Halt whenever instruction pointer is negative
+        // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
             const ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
             // self.print_registers();
             // self.print_stack();
             // std.debug.print("\n\n\n\n{}=>\n", .{ir});
-            try self.execute(ir);
+            try self.execute_instruction(ir);
         }
     }
 
-    inline fn execute(self: *Context, ir: *ir_.IR) error{InterpreterPanic}!void { // This doesn't work if it's not inlined, lol!
+    /// Executes an instruction within the interpreter context.
+    inline fn execute_instruction(self: *Context, ir: *ir_.IR) error{InterpreterPanic}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
             // Invalid instructions
             .load_extern,
@@ -256,111 +286,111 @@ pub const Context = struct {
             // Load literals
             .load_int => {
                 try self.assert_fits(ir.data.int, ir.dest.?.get_expanded_type(), "integer value", ir.span);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
             },
-            .load_float => self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
-            .load_string => self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
-            .load_symbol => self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
-            .load_AST => self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
-            .load_struct => try self.move_lval_list(try self.get_lval(ir.dest.?), &ir.data.lval_list),
+            .load_float => self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
+            .load_string => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
+            .load_symbol => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
+            .load_AST => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
+            .load_struct => try self.move_lval_list(try self.effective_address(ir.dest.?), &ir.data.lval_list),
             .load_union => {
                 if (ir.src1 != null) {
                     // Store data into first field
-                    self.move(try self.get_lval(ir.dest.?), try self.get_lval(ir.src1.?), ir.src1.?.sizeof());
+                    self.move(try self.effective_address(ir.dest.?), try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
                 }
                 // Store tag in last field
-                self.store(i64, try self.get_lval(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
+                self.store(i64, try self.effective_address(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
             },
 
             .copy => {
                 std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
-                self.move(try self.get_lval(ir.dest.?), try self.get_lval(ir.src1.?), ir.dest.?.sizeof());
+                self.move(try self.effective_address(ir.dest.?), try self.effective_address(ir.src1.?), ir.dest.?.sizeof());
             },
             .not => {
-                const data = self.load_int(try self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data != 0) 0 else 1);
+                const data = self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data != 0) 0 else 1);
             },
             .negate_int => {
-                const data = self.load_int(try self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), -data);
+                const data = self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), -data);
             },
             .negate_float => {
-                const data = self.load_float(try self.get_lval(ir.src1.?), ir.src1.?.sizeof());
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), -data);
+                const data = self.load_float(try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), -data);
             },
             .addr_of => {
-                const data = try self.get_lval(ir.src1.?);
-                self.store_int(try self.get_lval(ir.dest.?), 8, data);
+                const data = try self.effective_address(ir.src1.?);
+                self.store_int(try self.effective_address(ir.dest.?), 8, data);
             },
             .equal => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 == data.src2) 1 else 0);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 == data.src2) 1 else 0);
             },
             .not_equal => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 != data.src2) 1 else 0);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 != data.src2) 1 else 0);
             },
             .greater_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 > data.src2) 1 else 0);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 > data.src2) 1 else 0);
             },
             .greater_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 > data.src2) 1 else 0);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 > data.src2) 1 else 0);
             },
             .lesser_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 < data.src2) 1 else 0);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 < data.src2) 1 else 0);
             },
             .lesser_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 < data.src2) 1 else 0);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 < data.src2) 1 else 0);
             },
             .greater_equal_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 >= data.src2) 1 else 0);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 >= data.src2) 1 else 0);
             },
             .greater_equal_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 >= data.src2) 1 else 0);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 >= data.src2) 1 else 0);
             },
             .lesser_equal_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 <= data.src2) 1 else 0);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 <= data.src2) 1 else 0);
             },
             .lesser_equal_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 <= data.src2) 1 else 0);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), if (data.src1 <= data.src2) 1 else 0);
             },
             .add_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = data.src1 + data.src2;
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "addition results", ir.span);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .add_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data.src1 + data.src2);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), data.src1 + data.src2);
             },
             .sub_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = data.src1 - data.src2;
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "subtraction results", ir.span);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .sub_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data.src1 - data.src2);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), data.src1 - data.src2);
             },
             .mult_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = data.src1 * data.src2;
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "multiplication results", ir.span);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .mult_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), data.src1 * data.src2);
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), data.src1 * data.src2);
             },
             .div_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
@@ -369,22 +399,22 @@ pub const Context = struct {
                 }
                 const val = @divTrunc(data.src1, data.src2);
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division results", ir.span);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .div_float => {
                 const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(data.src1, data.src2));
+                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @divTrunc(data.src1, data.src2));
             },
             .mod => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = @rem(data.src1, data.src2);
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "modulus results", ir.span);
-                self.store_int(try self.get_lval(ir.dest.?), ir.dest.?.sizeof(), val);
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
                 const tag_offset = ir.src1.?.sizeof() - 8;
                 std.debug.assert(ir.dest.?.sizeof() == 8);
-                self.move(try self.get_lval(ir.dest.?), try self.get_lval(ir.src1.?) + tag_offset, 8);
+                self.move(try self.effective_address(ir.dest.?), try self.effective_address(ir.src1.?) + tag_offset, 8);
             },
             .cast => std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
             .jump => {
@@ -395,7 +425,7 @@ pub const Context = struct {
                 }
             },
             .branch_if_false => {
-                if (self.load_int(try self.get_lval(ir.src1.?), ir.src1.?.sizeof()) != 0) {
+                if (self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.sizeof()) != 0) {
                     if (ir.data.branch_bb.next) |next| {
                         self.instruction_pointer = next.offset.?;
                     } else {
@@ -410,7 +440,7 @@ pub const Context = struct {
                 }
             },
             .call => {
-                const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(try self.get_lval(ir.src1.?), 8))));
+                const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(try self.effective_address(ir.src1.?), 8))));
 
                 // Save old stack pointer
                 const old_sp = self.stack_pointer;
@@ -423,12 +453,12 @@ pub const Context = struct {
                     const size = arg.get_expanded_type().sizeof();
                     const alignof = arg.get_expanded_type().alignof();
                     self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
-                    self.push_move(try self.get_lval(arg), size);
+                    self.push_move(try self.effective_address(arg), size);
                 }
                 self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
 
                 // Setup next stackframe
-                self.push_int(8, try self.get_lval(ir.dest.?)); //          push return-value address
+                self.push_int(8, try self.effective_address(ir.dest.?)); //          push return-value address
                 self.push_int(8, old_sp); //                            push old sp
                 self.push_int(8, self.base_pointer); //                 push bp
                 self.push_int(8, self.instruction_pointer); //          push return address
@@ -452,6 +482,7 @@ pub const Context = struct {
         }
     }
 
+    /// Signals an interpreter panic, printing an error message and call stack information.
     fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
         std.io.getStdErr().writer().print(msg, args) catch return error.InterpreterPanic;
         self.debug_call_stack.append(span) catch unreachable;
@@ -470,13 +501,16 @@ pub const Context = struct {
         return error.InterpreterPanic;
     }
 
-    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
-        const bounds = primitives_.get_bounds(_type);
+    /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
+    /// Adds an error if the value is out of bounds.
+    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
+        const bounds = primitives_.get_bounds(_type) orelse return;
         if (val < bounds.lower or val > bounds.upper) {
-            return self.panic(span, "error: {s} is out of bounds; value={}\n", .{ name, val });
+            return self.panic(span, "error: {s} is out of bounds; value={}\n", .{ operation_name, val });
         }
     }
 
+    /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
     pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
         std.debug.assert(address >= 0);
         switch (_type.*) {

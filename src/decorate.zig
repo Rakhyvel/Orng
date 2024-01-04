@@ -140,8 +140,8 @@ fn decorate_identifiers(
         .@"if" => {
             try decorate_identifiers(ast.@"if".let, scope, errors, allocator);
             try decorate_identifiers(ast.@"if".condition, ast.@"if".scope.?, errors, allocator);
-            try decorate_identifiers(ast.@"if".body_block, ast.@"if".scope.?, errors, allocator);
-            try decorate_identifiers(ast.@"if".else_block, ast.@"if".scope.?, errors, allocator);
+            try decorate_identifiers(ast.body_block(), ast.@"if".scope.?, errors, allocator);
+            try decorate_identifiers(ast.else_block(), ast.@"if".scope.?, errors, allocator);
         },
         .match => {
             try decorate_identifiers(ast.match.let, scope, errors, allocator);
@@ -158,15 +158,15 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.@"while".let, scope, errors, allocator);
             try decorate_identifiers(ast.@"while".condition, ast.@"while".scope.?, errors, allocator);
             try decorate_identifiers(ast.@"while".post, ast.@"while".scope.?, errors, allocator);
-            try decorate_identifiers(ast.@"while".body_block, ast.@"while".scope.?, errors, allocator);
-            try decorate_identifiers(ast.@"while".else_block, ast.@"while".scope.?, errors, allocator);
+            try decorate_identifiers(ast.body_block(), ast.@"while".scope.?, errors, allocator);
+            try decorate_identifiers(ast.else_block(), ast.@"while".scope.?, errors, allocator);
         },
         .@"for" => {
             try decorate_identifiers(ast.@"for".let, scope, errors, allocator);
             try decorate_identifiers(ast.@"for".elem, ast.@"for".scope.?, errors, allocator);
             try decorate_identifiers(ast.@"for".iterable, ast.@"for".scope.?, errors, allocator);
-            try decorate_identifiers(ast.@"for".body_block, ast.@"for".scope.?, errors, allocator);
-            try decorate_identifiers(ast.@"for".else_block, ast.@"for".scope.?, errors, allocator);
+            try decorate_identifiers(ast.body_block(), ast.@"for".scope.?, errors, allocator);
+            try decorate_identifiers(ast.else_block(), ast.@"for".scope.?, errors, allocator);
         },
         .block => {
             try decorate_identifiers_from_list(ast.children().*, ast.block.scope.?, errors, allocator);

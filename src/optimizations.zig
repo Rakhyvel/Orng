@@ -1,4 +1,5 @@
 const std = @import("std");
+const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
@@ -6,6 +7,7 @@ const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
 const primitives_ = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
+const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
 const debug = false;
@@ -152,20 +154,20 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
                 retval = true;
             } else {
                 log("copy-propagation");
-                retval = copy_prop(ir, src1_def, .load_int) or // TODO: Check if data fits int type bounds!
-                    copy_prop(ir, src1_def, .load_float) or
-                    copy_prop(ir, src1_def, .load_string) or
-                    (ir.src1.?.* == .symbver and ir.src1.?.symbver.uses == 1 and copy_prop(ir, src1_def, .load_struct)) or
-                    copy_prop(ir, src1_def, .load_union) or
-                    copy_prop(ir, src1_def, .load_symbol) or
-                    copy_prop(ir, src1_def, .load_AST) or
-                    (copy_prop(ir, src1_def, .copy) and ir.src1 != src1_def.?.src1.?) or
-                    copy_prop(ir, src1_def, .addr_of) or
-                    copy_prop(ir, src1_def, .add_int) or copy_prop(ir, src1_def, .add_float) or
-                    copy_prop(ir, src1_def, .sub_int) or copy_prop(ir, src1_def, .sub_float) or
-                    copy_prop(ir, src1_def, .mult_int) or copy_prop(ir, src1_def, .mult_float) or
-                    copy_prop(ir, src1_def, .div_int) or copy_prop(ir, src1_def, .div_float) or
-                    copy_prop(ir, src1_def, .mod);
+                retval = try copy_prop(ir, src1_def, .load_int, errors) or // TODO: Check if data fits int type bounds!
+                    try copy_prop(ir, src1_def, .load_float, errors) or
+                    try copy_prop(ir, src1_def, .load_string, errors) or
+                    (ir.src1.?.* == .symbver and ir.src1.?.symbver.uses == 1 and try copy_prop(ir, src1_def, .load_struct, errors)) or
+                    try copy_prop(ir, src1_def, .load_union, errors) or
+                    try copy_prop(ir, src1_def, .load_symbol, errors) or
+                    try copy_prop(ir, src1_def, .load_AST, errors) or
+                    (try copy_prop(ir, src1_def, .copy, errors) and ir.src1 != src1_def.?.src1.?) or
+                    try copy_prop(ir, src1_def, .addr_of, errors) or
+                    try copy_prop(ir, src1_def, .add_int, errors) or try copy_prop(ir, src1_def, .add_float, errors) or
+                    try copy_prop(ir, src1_def, .sub_int, errors) or try copy_prop(ir, src1_def, .sub_float, errors) or
+                    try copy_prop(ir, src1_def, .mult_int, errors) or try copy_prop(ir, src1_def, .mult_float, errors) or
+                    try copy_prop(ir, src1_def, .div_int, errors) or try copy_prop(ir, src1_def, .div_float, errors) or
+                    try copy_prop(ir, src1_def, .mod, errors);
                 // DO NOT IMPLEMENT .call => propagation
             }
         },
@@ -173,7 +175,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .not => {
             if (src1_def != null and src1_def.?.kind == .load_int) {
                 log("not; known int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int == 0) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int == 0) 1 else 0 }, errors);
                 retval = true;
             }
         },
@@ -181,7 +183,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .negate_int => {
             if (src1_def != null and src1_def.?.kind == .load_int) {
                 log("negate_int; known value");
-                convert_to_load(ir, .load_int, .{ .int = -src1_def.?.data.int });
+                try convert_to_load(ir, .load_int, .{ .int = -src1_def.?.data.int }, errors);
                 retval = true;
             }
         },
@@ -189,7 +191,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .negate_float => {
             if (src1_def != null and src1_def.?.kind == .load_float) {
                 log("negate_float; known value");
-                convert_to_load(ir, .load_float, .{ .float = -src1_def.?.data.float });
+                try convert_to_load(ir, .load_float, .{ .float = -src1_def.?.data.float }, errors);
                 retval = true;
             }
         },
@@ -197,11 +199,11 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .equal => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("equal; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int == src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("equal; known float,float value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float == src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and
                 ir.src2.?.* == .symbver and
@@ -211,7 +213,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
                 // `x == x => true (where x is NOT floating-point type)`
                 // NOTE: Cannot do `x == x  ==> true` optimization for floats, `NaN == NaN` is false!
                 log("equal; self inequality");
-                convert_to_load(ir, .load_int, .{ .int = 1 });
+                try convert_to_load(ir, .load_int, .{ .int = 1 }, errors);
                 retval = true;
             }
         },
@@ -219,16 +221,16 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .not_equal => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("not_equal; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int != src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("not_equal; known float,float value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float != src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x != x` => `false`
                 log("not_equal; self inequality");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -236,12 +238,12 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .greater_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("greater_int; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int > src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x > x` => `false`
                 log("greater_int; self compare");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -249,12 +251,12 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .greater_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("greater_float; known float,float value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float > src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x > x` => `false`
                 log("greater_float; self compare");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -262,12 +264,12 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .lesser_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("lesser_int; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int < src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x < x` => `false`
                 log("lesser_int; self compare");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -275,12 +277,12 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .lesser_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("lesser_float; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float < src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x < x` => `false`
                 log("lesser_float; self compare");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -288,12 +290,12 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .greater_equal_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("greater_equal_int; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int >= src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x >= x` => `true`
                 log("greater_equal_int; self compare");
-                convert_to_load(ir, .load_int, .{ .int = 1 });
+                try convert_to_load(ir, .load_int, .{ .int = 1 }, errors);
                 retval = true;
             }
         },
@@ -301,7 +303,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .greater_equal_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("greater_equal_float; known float,float value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float >= src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             }
             // NOTE: Cannot do `x >= x  ==> true` optimization for floats, `NaN >= NaN` is false!
@@ -310,12 +312,12 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .lesser_equal_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("lesser_equal_int; known int,int value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.int <= src2_def.?.data.int) 1 else 0 }, errors);
                 retval = true;
             } else if (ir.src1.?.* == .symbver and ir.src2.?.* == .symbver and ir.src1.?.symbver.symbol == ir.src2.?.symbver.symbol) {
                 // `x <= x` => `true`
                 log("lesser_equal_int; self compare");
-                convert_to_load(ir, .load_int, .{ .int = 1 });
+                try convert_to_load(ir, .load_int, .{ .int = 1 }, errors);
                 retval = true;
             }
         },
@@ -323,7 +325,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .lesser_equal_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("lesser_equal_float; known float,float value");
-                convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 });
+                try convert_to_load(ir, .load_int, .{ .int = if (src1_def.?.data.float <= src2_def.?.data.float) 1 else 0 }, errors);
                 retval = true;
             }
             // NOTE: Cannot do `x <= x  ==> true` optimization, `NaN <= NaN` is false!
@@ -332,7 +334,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .add_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("add_int; known int,int value");
-                convert_to_load(ir, .load_int, try src1_def.?.data.add_int_overflow(src2_def.?.data, ir.span, errors));
+                try convert_to_load(ir, .load_int, try src1_def.?.data.add_int_overflow(src2_def.?.data, ir.span, errors), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) {
                 log("add_int; add 0 lhs");
@@ -348,7 +350,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .add_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("add_float; known float,float value");
-                convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float + src2_def.?.data.float });
+                try convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float + src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 0.0) {
                 log("add_float; add 0.0 lhs");
@@ -364,7 +366,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .sub_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("sub; known int,int value");
-                convert_to_load(ir, .load_int, try src1_def.?.data.sub_int_overflow(src2_def.?.data, ir.span, errors));
+                try convert_to_load(ir, .load_int, try src1_def.?.data.sub_int_overflow(src2_def.?.data, ir.span, errors), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) {
                 log("sub; sub 0 lhs");
@@ -380,7 +382,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .sub_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("sub; known float,float value");
-                convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float - src2_def.?.data.float });
+                try convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float - src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 0.0) {
                 log("sub; sub 0.0 lhs");
@@ -396,7 +398,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .mult_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("mult_int; known int,int value");
-                convert_to_load(ir, .load_int, try src1_def.?.data.mult_int_overflow(src2_def.?.data, ir.span, errors));
+                try convert_to_load(ir, .load_int, try src1_def.?.data.mult_int_overflow(src2_def.?.data, ir.span, errors), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 1) {
                 log("mult; mult 1 lhs");
@@ -410,7 +412,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
                 (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 0))
             {
                 log("mult; mult 0 lhs int");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -418,7 +420,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .mult_float => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("mult_float; known float,float value");
-                convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float * src2_def.?.data.float });
+                try convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float * src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_float and src1_def.?.data.float == 1.0) {
                 log("mult; mult 1.0 lhs");
@@ -432,7 +434,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
                 (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 0.0))
             {
                 log("mult; mult 0.0 lhs float");
-                convert_to_load(ir, .load_float, .{ .float = 0.0 });
+                try convert_to_load(ir, .load_float, .{ .float = 0.0 }, errors);
                 retval = true;
             }
         },
@@ -441,7 +443,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
             try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("div_int; known int value");
-                convert_to_load(ir, .load_int, .{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) });
+                try convert_to_load(ir, .load_int, .{ .int = @divTrunc(src1_def.?.data.int, src2_def.?.data.int) }, errors);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 1) {
                 log("div; div 1 rhs");
@@ -454,7 +456,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
             try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_float and src2_def.?.kind == .load_float) {
                 log("div_float; known float value");
-                convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float / src2_def.?.data.float });
+                try convert_to_load(ir, .load_float, .{ .float = src1_def.?.data.float / src2_def.?.data.float }, errors);
                 retval = true;
             } else if (src2_def != null and src2_def.?.kind == .load_float and src2_def.?.data.float == 1.0) {
                 log("div; div 1.0 rhs");
@@ -467,13 +469,13 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
             try divide_by_zero_check(src2_def, errors); // Static check; divide by zero
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("mod; known int value");
-                convert_to_load(ir, .load_int, .{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) });
+                try convert_to_load(ir, .load_int, .{ .int = @rem(src1_def.?.data.int, src2_def.?.data.int) }, errors);
                 retval = true;
             } else if ((src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) or
                 (src2_def != null and src2_def.?.kind == .load_int and src2_def.?.data.int == 1))
             {
                 log("mod; mod 0 lhs");
-                convert_to_load(ir, .load_int, .{ .int = 0 });
+                try convert_to_load(ir, .load_int, .{ .int = 0 }, errors);
                 retval = true;
             }
         },
@@ -481,7 +483,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .get_tag => {
             if (src1_def != null and src1_def.?.kind == .load_union) {
                 log("get_tag; known tag");
-                convert_to_load(ir, .load_int, .{ .int = src1_def.?.data.int }); // Copy the src's tag (in data.int)
+                try convert_to_load(ir, .load_int, .{ .int = src1_def.?.data.int }, errors); // Copy the src's tag (in data.int)
                 retval = true;
             }
         },
@@ -516,8 +518,11 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
     return retval;
 }
 
-fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind) bool {
+fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Errors) error{Overflow}!bool {
     if (src1_def != null and src1_def.?.kind == kind) {
+        if (kind == .load_int) {
+            try assert_fits(src1_def.?.data.int, ir.dest.?.get_type(), ir.span, errors);
+        }
         ir.kind = kind;
         ir.data = src1_def.?.data;
         ir.span = src1_def.?.span;
@@ -529,7 +534,22 @@ fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind) bool {
     }
 }
 
-fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data) void {
+fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Errors) error{Overflow}!void {
+    const bounds = primitives_.get_bounds(_type);
+    if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
+        errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
+            .span = span,
+            .expected = _type,
+            .value = val,
+        } });
+        return error.Overflow;
+    }
+}
+
+fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data, errors: *errs_.Errors) error{Overflow}!void {
+    if (kind == .load_int) {
+        try assert_fits(data.int, ir.dest.?.get_type(), ir.span, errors);
+    }
     ir.kind = kind;
     ir.data = data;
     ir.src1 = null;

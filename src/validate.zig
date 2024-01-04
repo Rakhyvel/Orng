@@ -201,13 +201,7 @@ fn validate_AST_internal(
             const expr_type = ast.expr().typeof(allocator);
             const expanded_expr_type = expr_type.expand_type(allocator);
             if (expanded_expr_type.* != .addr_of) {
-                errors.add_error(errs_.Error{ .wrong_from = .{
-                    .span = expr_span,
-                    .operator = @tagName(ast.*),
-                    .from = "address",
-                    .got = expanded_expr_type,
-                } });
-                return error.TypeError;
+                return throw_wrong_from("address", "dereference", expanded_expr_type, expr_span, errors);
             } else {
                 return ast;
             }
@@ -218,13 +212,7 @@ fn validate_AST_internal(
             try assert_none_poisoned(ast.expr());
             var expr_expanded_type = ast.expr().typeof(allocator).expand_type(allocator);
             if (expr_expanded_type.* != .sum or expr_expanded_type.sum.from != .@"error") {
-                errors.add_error(errs_.Error{ .wrong_from = .{
-                    .span = expr_span,
-                    .operator = @tagName(ast.*),
-                    .from = "error",
-                    .got = expr_expanded_type,
-                } });
-                return error.TypeError;
+                return throw_wrong_from("error", "try", expr_expanded_type, expr_span, errors);
             }
             try type_check(ast, expr_expanded_type.get_ok_type().annotation.type, expected, errors);
             const expanded_function_return = ast.symbol().?._type.rhs().expand_type(allocator);
@@ -359,13 +347,7 @@ fn validate_AST_internal(
             var lhs_type = ast.lhs().typeof(allocator);
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (expanded_lhs_type.* != .function) {
-                errors.add_error(errs_.Error{ .wrong_from = .{
-                    .span = lhs_span,
-                    .operator = @tagName(ast.*),
-                    .from = "function",
-                    .got = expanded_lhs_type,
-                } });
-                return error.TypeError;
+                return throw_wrong_from("function", "call", expanded_lhs_type, lhs_span, errors);
             }
             ast.set_children(try default_args(ast.children().*, expanded_lhs_type.lhs(), errors, allocator));
             ast.set_children(try validate_args(ast.children().*, expanded_lhs_type.lhs(), ast.token().span, errors, allocator));
@@ -516,11 +498,9 @@ fn validate_AST_internal(
             const expand_lhs = new_ast.lhs().expand_type(allocator);
             const expand_rhs = new_ast.rhs().expand_type(allocator);
             if (expand_lhs.* != .sum) {
-                errors.add_error(errs_.Error{ .basic = .{ .span = lhs_span, .msg = "left hand side of union is not a sum type" } });
-                return error.TypeError;
+                return throw_wrong_from("sum", "union", expand_lhs, lhs_span, errors);
             } else if (expand_rhs.* != .sum) {
-                errors.add_error(errs_.Error{ .basic = .{ .span = rhs_span, .msg = "right hand side of union is not a sum type" } });
-                return error.TypeError;
+                return throw_wrong_from("sum", "union", expand_rhs, rhs_span, errors);
             }
 
             return try merge_sums(expand_lhs, expand_rhs, new_ast.token(), errors, allocator);
@@ -668,8 +648,7 @@ fn validate_AST_internal(
                 }
                 return ast;
             } else if (expected_expanded.* != .sum) {
-                std.debug.print("Lmao: {}\n", .{expected_expanded});
-                return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
+                return throw_wrong_from("sum", "inferred member", expected_expanded, ast.token().span, errors);
             } else {
                 ast.inferred_member.base = expected;
                 ast.set_pos(expected_expanded.get_pos(ast.inferred_member.ident.token().data) orelse {
@@ -708,7 +687,7 @@ fn validate_AST_internal(
                 is_result_optional = expected_expanded.* == .sum and
                     expected_expanded.sum.from == .optional and
                     !expected_expanded.types_match(primitives_.void_type);
-                if (ast.@"if".else_block != null) {
+                if (ast.else_block() != null) {
                     expected_type = expected.?;
                 } else if (is_result_optional) {
                     expected_type = expected_expanded.get_some_type();
@@ -718,44 +697,44 @@ fn validate_AST_internal(
             }
 
             if (ast.@"if".condition.* != .false) {
-                ast.@"if".body_block = validate_AST(ast.@"if".body_block, expected_type, errors, allocator);
+                ast.set_body_block(validate_AST(ast.body_block(), expected_type, errors, allocator));
             }
 
-            if (ast.@"if".else_block != null and ast.@"if".condition.* != .true) {
-                ast.@"if".else_block = validate_AST(ast.@"if".else_block.?, expected_type, errors, allocator);
+            if (ast.else_block() != null and ast.@"if".condition.* != .true) {
+                ast.set_else_block(validate_AST(ast.else_block().?, expected_type, errors, allocator));
             }
 
-            try assert_none_poisoned(.{ ast.@"if".let, ast.@"if".body_block, ast.@"if".else_block });
+            try assert_none_poisoned(.{ ast.@"if".let, ast.body_block(), ast.else_block() });
 
-            if (ast.@"if".condition.* == .true and ast.@"if".else_block != null) {
+            if (ast.@"if".condition.* == .true and ast.else_block() != null) {
                 // condition is true and theres an else => return {let; body}
                 if (ast.@"if".let != null) {
-                    ast.@"if".body_block.children().insert(0, ast.@"if".let.?) catch unreachable;
+                    ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
                 }
-                return ast.@"if".body_block;
-            } else if (ast.@"if".condition.* == .true and ast.@"if".else_block == null) {
+                return ast.body_block();
+            } else if (ast.@"if".condition.* == .true and ast.else_block() == null) {
                 // condition is true and theres no else => return {let; some(body)}
                 if (ast.@"if".let != null) {
-                    ast.@"if".body_block.children().insert(0, ast.@"if".let.?) catch unreachable;
+                    ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
                 }
-                const opt_type = ast_.AST.create_optional_type(ast.@"if".body_block.typeof(allocator), allocator);
-                return ast_.AST.create_some_value(opt_type, ast.@"if".body_block, allocator);
-            } else if (ast.@"if".condition.* == .false and ast.@"if".else_block != null) {
+                const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(allocator), allocator);
+                return ast_.AST.create_some_value(opt_type, ast.body_block(), allocator);
+            } else if (ast.@"if".condition.* == .false and ast.else_block() != null) {
                 // condition is false and theres an else => return {let; else}
                 if (ast.@"if".let != null) {
-                    ast.@"if".else_block.?.children().insert(0, ast.@"if".let.?) catch unreachable;
+                    ast.else_block().?.children().insert(0, ast.@"if".let.?) catch unreachable;
                 }
-                return ast.@"if".else_block.?;
-            } else if (ast.@"if".condition.* == .false and ast.@"if".else_block == null) {
+                return ast.else_block().?;
+            } else if (ast.@"if".condition.* == .false and ast.else_block() == null) {
                 var statements = std.ArrayList(*ast_.AST).init(allocator);
                 if (ast.@"if".let != null) {
                     statements.append(ast.@"if".let.?) catch unreachable;
                 }
-                if (ast.@"if".body_block.typeof(allocator).types_match(primitives_.void_type)) {
+                if (ast.body_block().typeof(allocator).types_match(primitives_.void_type)) {
                     // condition is false and theres no else and void type => return {let}
                 } else {
                     // condition is false and theres no else => return {let; none()}
-                    const opt_type = ast_.AST.create_optional_type(ast.@"if".body_block.typeof(allocator), allocator);
+                    const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(allocator), allocator);
                     statements.append(ast_.AST.create_none_value(opt_type, allocator)) catch unreachable;
                 }
                 const ret_block = ast_.AST.create_block(token_.Token.init_simple("{"), statements, null, allocator);
@@ -804,17 +783,17 @@ fn validate_AST_internal(
             if (expected != null) {
                 var expected_expanded = expected.?.expand_type(allocator);
                 if (expected_expanded.* == .sum and expected_expanded.sum.from == .optional) {
-                    ast.@"while".body_block = validate_AST(ast.@"while".body_block, expected_expanded.get_some_type(), errors, allocator);
+                    ast.set_body_block(validate_AST(ast.body_block(), expected_expanded.get_some_type(), errors, allocator));
                     optional_type = true;
                 }
             }
             if (!optional_type) {
-                ast.@"while".body_block = validate_AST(ast.@"while".body_block, expected, errors, allocator);
-                if (ast.@"while".else_block) |else_block| {
-                    ast.@"while".else_block = validate_AST(else_block, expected, errors, allocator);
+                ast.set_body_block(validate_AST(ast.body_block(), expected, errors, allocator));
+                if (ast.else_block()) |else_block| {
+                    ast.set_else_block(validate_AST(else_block, expected, errors, allocator));
                 }
             }
-            try assert_none_poisoned(.{ ast.@"while".let, ast.@"while".post, ast.@"while".condition, ast.@"while".body_block, ast.@"while".else_block });
+            try assert_none_poisoned(.{ ast.@"while".let, ast.@"while".post, ast.@"while".condition, ast.body_block(), ast.else_block() });
             return ast;
         },
         .block => {
@@ -825,7 +804,7 @@ fn validate_AST_internal(
                 // A middle-statement is any but the last statement if there is no final, or any statement if there is a final
                 // Middle statements' type must be unit
                 const is_middle_statement = if (ast.block.final == null) i < ast.children().items.len - 1 else true;
-                if (child.* != .fn_decl and is_middle_statement) {
+                if ((child.* != .fn_decl or child.fn_decl.name == null) and is_middle_statement) {
                     // Don't worry about fn_decl's, those should be allowed to be "discarded"
                     const statement_type = child.typeof(allocator).expand_type(allocator);
                     try middle_statement_check(child, statement_type, errors);
@@ -921,7 +900,11 @@ fn type_check_int(
                 ast.int.data > info.?.bounds.?.upper)
             {
                 // This error is thrown because the `expanded_expected` is out of bounds of the expected type
-                errors.add_error(errs_.Error{ .integer_out_of_bounds = .{ .span = ast.token().span, .expected = expected.? } });
+                errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
+                    .span = ast.token().span,
+                    .expected = expected.?,
+                    .value = ast.int.data,
+                } });
                 return error.TypeError;
             }
         } else {
@@ -974,6 +957,22 @@ fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, 
 
 fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
+    return error.TypeError;
+}
+
+fn throw_wrong_from(
+    from_name: []const u8,
+    operator_name: []const u8,
+    got: *ast_.AST,
+    span: span_.Span,
+    errors: *errs_.Errors,
+) Validate_Error_Enum {
+    errors.add_error(errs_.Error{ .wrong_from = .{
+        .span = span,
+        .operator = operator_name,
+        .from = from_name,
+        .got = got,
+    } });
     return error.TypeError;
 }
 
@@ -1301,7 +1300,11 @@ fn merge_sums(
     try put_many_annot_map(rhs.children(), &new_terms, &names, errors);
 
     const retval = ast_.AST.create_sum(token, new_terms, allocator);
-    retval.sum.from = .none; // Yep! Deal with it
+    if (lhs.sum.from == .@"error" or rhs.sum.from == .@"error") {
+        retval.sum.from = .@"error";
+    } else {
+        retval.sum.from = .none;
+    }
     return retval;
 }
 
