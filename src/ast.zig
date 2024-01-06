@@ -145,8 +145,8 @@ pub const AST = union(enum) {
             var lhs_expanded_type = self.lhs.typeof(allocator).expand_type(allocator);
             if (lhs_expanded_type.* == .product) {
                 return lhs_expanded_type.product.get_offset(self.pos.?, allocator);
-            } else if (lhs_expanded_type.* == .sum) {
-                return lhs_expanded_type.sum.get_offset(self.pos.?, allocator);
+            } else if (lhs_expanded_type.* == .sum_type) {
+                return lhs_expanded_type.sum_type.get_offset(self.pos.?, allocator);
             } else {
                 std.debug.print("{s}\n", .{@tagName(lhs_expanded_type.*)});
                 unreachable;
@@ -155,7 +155,7 @@ pub const AST = union(enum) {
     },
     function: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     invoke: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
-    sum: struct {
+    sum_type: struct {
         common: AST_Common,
         _terms: std.ArrayList(*AST),
         from: Sum_From = .none,
@@ -174,15 +174,20 @@ pub const AST = union(enum) {
             return res;
         }
     },
+    sum_value: struct {
+        common: AST_Common,
+        domain: ?*AST = null, // kept in it's annotation form, for compatability with calls
+        init: ?*AST = null,
+        base: ?*AST = null,
+        _pos: ?usize = null,
+
+        pub fn get_name(self: *@This()) []const u8 {
+            return self.common._token.data;
+        }
+    },
     inferred_error: struct {
         common: AST_Common,
         _terms: std.ArrayList(*AST),
-    },
-    inject: struct {
-        common: AST_Common,
-        _lhs: *AST,
-        _rhs: *AST,
-        domain: ?*AST, // Filled by validate
     },
     product: struct {
         common: AST_Common,
@@ -228,13 +233,6 @@ pub const AST = union(enum) {
     array_of: struct { common: AST_Common, _expr: *AST, len: *AST },
     sub_slice: struct { common: AST_Common, super: *AST, lower: ?*AST, upper: ?*AST },
     annotation: struct { common: AST_Common, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
-    inferred_member: struct {
-        common: AST_Common,
-        ident: *AST,
-        init: ?*AST = null,
-        base: ?*AST = null, // This should ideally be kept in unexpanded form. use `typeof(inferredMember)` for expanded form
-        _pos: ?usize = null,
-    },
     type_of: struct {
         common: AST_Common,
         _expr: *AST,
@@ -247,9 +245,25 @@ pub const AST = union(enum) {
         common: AST_Common,
         _expr: *AST,
     },
+
+    /// This node type is needed for pattern matching.
+    /// Symbols for captured sum-values in a `match` statement are created before their type information is
+    /// known. For example:
+    ///
+    /// ```rust
+    /// match 3 {
+    ///   .var1(x, y, z) => // ...
+    /// }
+    /// ```
+    ///
+    /// Here, we *need* a type to create the symbols `x`, `y`, and `z`, but we don't have the type
+    /// information yet to know which domain-type the variant `var1` takes.
+    ///
+    /// The domain-of node allows us to specify: "the domain type of this sum value in this sum type"
+    /// without knowing it fully yet.
     domain_of: struct {
         common: AST_Common,
-        sum_expr: *AST,
+        sum_type: *AST,
         _expr: *AST,
     },
 
@@ -435,9 +449,9 @@ pub const AST = union(enum) {
         return AST.box(AST{ .size_of = .{ .common = AST_Common{ ._token = _token, ._type = null }, ._expr = _expr } }, allocator);
     }
 
-    pub fn create_domain_of(_token: token_.Token, sum_expr: *AST, _expr: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_domain_of(_token: token_.Token, sum_type: *AST, _expr: *AST, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .domain_of = .{ .common = _common, .sum_expr = sum_expr, ._expr = _expr } }, allocator);
+        return AST.box(AST{ .domain_of = .{ .common = _common, .sum_type = sum_type, ._expr = _expr } }, allocator);
     }
 
     pub fn create_assign(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -524,8 +538,13 @@ pub const AST = union(enum) {
         return AST.box(AST{ .select = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._pos = null } }, allocator);
     }
 
-    pub fn create_sum(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .sum = .{ .common = AST_Common{ ._token = _token, ._type = null }, ._terms = terms } }, allocator);
+    pub fn create_sum_type(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .sum_type = .{ .common = AST_Common{ ._token = _token, ._type = null }, ._terms = terms } }, allocator);
+    }
+
+    pub fn create_sum_value(_token: token_.Token, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(AST{ .sum_value = .{ .common = _common } }, allocator);
     }
 
     pub fn create_inferred_error(_token: token_.Token, ok: *AST, allocator: std.mem.Allocator) *AST {
@@ -536,11 +555,6 @@ pub const AST = union(enum) {
         retval.children().append(ok_annot) catch unreachable;
 
         return AST.box(retval, allocator);
-    }
-
-    pub fn create_inject(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .inject = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, .domain = null } }, allocator);
     }
 
     pub fn create_function(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -595,10 +609,6 @@ pub const AST = union(enum) {
             AST{ .annotation = .{ .common = _common, .pattern = pattern, .type = _type, .predicate = predicate, .init = init } },
             allocator,
         );
-    }
-
-    pub fn create_inferred_member(_token: token_.Token, ident: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .inferred_member = .{ .common = AST_Common{ ._token = _token, ._type = null }, .ident = ident } }, allocator);
     }
 
     pub fn create_if(
@@ -842,7 +852,7 @@ pub const AST = union(enum) {
     pub fn children(self: *AST) *std.ArrayList(*AST) {
         return switch (self.*) {
             .call => &self.call._args,
-            .sum => &self.sum._terms,
+            .sum_type => &self.sum_type._terms,
             .inferred_error => &self.inferred_error._terms,
             .product => &self.product._terms,
             .match => &self.match._mappings,
@@ -855,7 +865,7 @@ pub const AST = union(enum) {
     pub fn set_children(self: *AST, val: std.ArrayList(*AST)) void {
         switch (self.*) {
             .call => self.call._args = val,
-            .sum => self.sum._terms = val,
+            .sum_type => self.sum_type._terms = val,
             .inferred_error => self.inferred_error._terms = val,
             .product => self.product._terms = val,
             .match => self.match._mappings = val,
@@ -1033,26 +1043,22 @@ pub const AST = union(enum) {
         );
         term_types.append(none_type) catch unreachable;
 
-        var retval = AST.create_sum(of_type.token(), term_types, allocator);
-        retval.sum.from = .optional;
+        var retval = AST.create_sum_type(of_type.token(), term_types, allocator);
+        retval.sum_type.from = .optional;
         return retval;
     }
 
     pub fn create_some_value(opt_type: *AST, value: *AST, allocator: std.mem.Allocator) *AST {
-        const member = create_inferred_member(value.token(), AST.create_identifier(token_.Token.init_simple("some"), allocator), allocator);
-        member.inferred_member.base = opt_type;
-        member.inferred_member.init = value;
+        const member = create_sum_value(value.token(), allocator);
+        member.sum_value.base = opt_type;
+        member.sum_value.init = value;
         member.set_pos(opt_type.get_pos("some"));
         return member.assert_valid();
     }
 
     pub fn create_none_value(opt_type: *AST, allocator: std.mem.Allocator) *AST {
-        const member = create_inferred_member(
-            token_.Token.init_simple("none"),
-            AST.create_identifier(token_.Token.init_simple("none"), allocator),
-            allocator,
-        );
-        member.inferred_member.base = opt_type;
+        const member = create_sum_value(token_.Token.init_simple("none"), allocator);
+        member.sum_value.base = opt_type;
         member.set_pos(opt_type.get_pos("none"));
         return member.assert_valid();
     }
@@ -1068,8 +1074,8 @@ pub const AST = union(enum) {
         );
         var ok_sum_terms = std.ArrayList(*AST).init(allocator);
         ok_sum_terms.append(ok_annot) catch unreachable;
-        var ok_sum = AST.create_sum(ok_type.token(), ok_sum_terms, allocator);
-        ok_sum.sum.from = .@"error";
+        var ok_sum = AST.create_sum_type(ok_type.token(), ok_sum_terms, allocator);
+        ok_sum.sum_type.from = .@"error";
 
         // Err!Ok => (ok:Ok|) || Err
         // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
@@ -1079,22 +1085,22 @@ pub const AST = union(enum) {
 
     /// Retrieves either the `ok` or `some` type from either an optional type or an error type
     pub fn get_nominal_type(opt_or_error_sum: *AST) *AST {
-        std.debug.assert(opt_or_error_sum.sum.from == .optional or opt_or_error_sum.sum.from == .@"error");
+        std.debug.assert(opt_or_error_sum.sum_type.from == .optional or opt_or_error_sum.sum_type.from == .@"error");
         return opt_or_error_sum.children().items[0];
     }
 
     pub fn get_some_type(opt_sum: *AST) *AST {
-        std.debug.assert(opt_sum.sum.from == .optional);
+        std.debug.assert(opt_sum.sum_type.from == .optional);
         return opt_sum.children().items[0];
     }
 
     pub fn get_none_type(opt_sum: *AST) *AST {
-        std.debug.assert(opt_sum.sum.from == .optional);
+        std.debug.assert(opt_sum.sum_type.from == .optional);
         return opt_sum.children().items[1];
     }
 
     pub fn get_ok_type(err_union: *AST) *AST {
-        std.debug.assert(err_union.sum.from == .@"error");
+        std.debug.assert(err_union.sum_type.from == .@"error");
         return err_union.children().items[0];
     }
 
@@ -1128,10 +1134,10 @@ pub const AST = union(enum) {
                     return self;
                 }
             },
-            .sum => {
+            .sum_type => {
                 if (expand_type_list(self.children(), allocator)) |new_terms| {
-                    var retval = AST.create_sum(self.token(), new_terms, allocator);
-                    retval.sum.from = self.sum.from;
+                    var retval = AST.create_sum_type(self.token(), new_terms, allocator);
+                    retval.sum_type.from = self.sum_type.from;
                     return retval;
                 } else {
                     return self;
@@ -1254,19 +1260,25 @@ pub const AST = union(enum) {
                 try self.children().items[self.children().items.len - 1].print_type(out);
                 try out.print(")", .{});
             },
-            .sum => if (self.sum.from == .optional) {
+            .sum_type => if (self.sum_type.from == .optional) {
                 try out.print("?", .{});
                 try self.get_some_type().annotation.type.print_type(out);
             } else {
                 try out.print("(", .{});
-                for (self.sum._terms.items, 0..) |term, i| {
+                for (self.sum_type._terms.items, 0..) |term, i| {
                     try term.print_type(out);
-                    if (self.sum._terms.items.len == 1 or i + 1 != self.sum._terms.items.len) {
+                    if (self.sum_type._terms.items.len == 1 or i + 1 != self.sum_type._terms.items.len) {
                         try out.print(" | ", .{});
                     }
                 }
                 try out.print(")", .{});
             },
+            .select => {
+                try self.select._lhs.print_type(out);
+                try out.print(".", .{});
+                try self.select._rhs.print_type(out);
+            },
+            .field => try out.print("{s}", .{self.field.common._token.data}),
             .inferred_error => {
                 try out.print("!", .{});
                 try self.inferred_error._terms.items[0].annotation.type.print_type(out);
@@ -1355,7 +1367,7 @@ pub const AST = union(enum) {
             // Type type
             .unit_type,
             .annotation,
-            .sum,
+            .sum_type,
             .inferred_error,
             .@"union",
             .function,
@@ -1477,7 +1489,7 @@ pub const AST = union(enum) {
                 }
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
-            .inferred_member => return self.inferred_member.base.?.expand_type(allocator),
+            .sum_value => return self.sum_value.base.?.expand_type(allocator),
             .@"try" => return self.expr().typeof(allocator).get_ok_type(),
             .default => return self.expr(),
 
@@ -1507,7 +1519,6 @@ pub const AST = union(enum) {
             },
             .fn_decl => return self.symbol().?._type,
             .pattern_symbol => return self.symbol().?._type,
-            .inject => return self.lhs().typeof(allocator),
 
             else => {
                 std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
@@ -1539,7 +1550,7 @@ pub const AST = union(enum) {
                 return total_size;
             },
 
-            .sum => {
+            .sum_type => {
                 var max_size: i64 = 0;
                 for (self.children().items) |child| {
                     max_size = @max(max_size, child.sizeof());
@@ -1582,7 +1593,7 @@ pub const AST = union(enum) {
                 return max_align;
             },
 
-            .sum, // this pains me :-( but has to be this way for the tag
+            .sum_type, // this pains me :-( but has to be this way for the tag // TODO: This is fixable...
             .function,
             .addr_of,
             => return 8,
@@ -1677,7 +1688,7 @@ pub const AST = union(enum) {
                 }
                 return retval;
             },
-            .sum => {
+            .sum_type => {
                 if (B.children().items.len != A.children().items.len) {
                     return false;
                 }
@@ -1735,7 +1746,7 @@ pub const AST = union(enum) {
                 }
             }
             return true;
-        } else if (expanded.* == .sum) {
+        } else if (expanded.* == .sum_type) {
             return true;
         } else if (expanded.* != .identifier) {
             return false;
@@ -1827,7 +1838,7 @@ pub const AST = union(enum) {
             .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
             .addr_of => return c_types_match(self.expr(), other.expr()),
             .unit_type => return other.* == .unit_type,
-            .product, .sum => {
+            .product, .sum_type => {
                 if (other.children().items.len != self.children().items.len) {
                     return false;
                 }
@@ -1890,23 +1901,34 @@ pub const AST = union(enum) {
             .lesser_equal => try out.writer().print("lesser_equal()", .{}),
             .@"catch" => try out.writer().print("catch()", .{}),
             .@"orelse" => try out.writer().print("orelse()", .{}),
-            .call => try out.writer().print("call()", .{}),
-            .index => try out.writer().print("index()", .{}),
-            .select => try out.writer().print("select()", .{}),
-            .function => try out.writer().print("function({},{})", .{ self.lhs(), self.rhs() }),
-            .invoke => try out.writer().print("invoke()", .{}),
-            .sum => {
-                try out.writer().print("sum(", .{});
-                for (self.sum._terms.items, 0..) |item, i| {
+            .call => {
+                try out.writer().print("call({},", .{self.call._lhs});
+                for (self.call._args.items, 0..) |item, i| {
                     try out.writer().print("{}", .{item});
-                    if (i < self.sum._terms.items.len - 1) {
+                    if (i < self.call._args.items.len - 1) {
                         try out.writer().print(",", .{});
                     }
                 }
-                try out.writer().print(", .from={s})", .{@tagName(self.sum.from)});
+                try out.writer().print(")", .{});
+            },
+            .index => try out.writer().print("index()", .{}),
+            .select => {
+                try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });
+            },
+            .function => try out.writer().print("function({},{})", .{ self.lhs(), self.rhs() }),
+            .invoke => try out.writer().print("invoke()", .{}),
+            .sum_type => {
+                try out.writer().print("sum(", .{});
+                for (self.sum_type._terms.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.sum_type._terms.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(", .from={s})", .{@tagName(self.sum_type.from)});
             },
             .inferred_error => try out.writer().print("inferred_error()", .{}),
-            .inject => try out.writer().print("inject()", .{}),
+            .sum_value => try out.writer().print("sum_value()", .{}),
             .product => {
                 try out.writer().print("product(", .{});
                 for (self.product._terms.items, 0..) |item, i| {
@@ -1928,7 +1950,6 @@ pub const AST = union(enum) {
                 self.annotation.type,
                 self.annotation.init,
             }),
-            .inferred_member => try out.writer().print("inferredMember(.ident={s})", .{self.inferred_member.ident.token().data}),
 
             .@"if" => try out.writer().print("if()", .{}),
             .match => try out.writer().print("match()", .{}),

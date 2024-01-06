@@ -4,7 +4,7 @@ fn main() -> Int {
 
 fn f() -> (err:Char|)!Int {
     let x = try g()
-    (.ok <- x)
+    .ok(x)
 }
 
 fn g() -> (err|)!Int {

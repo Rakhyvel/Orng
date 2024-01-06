@@ -16,10 +16,10 @@ int64_t _404_main(void){
     uint8_t _404_t3;
     int64_t _404_t5;
     uint8_t _404_t6;
+    int64_t _404_$retval;
+    int64_t _404_t9;
     int64_t _404_t7;
     int64_t _404_t13;
-    int64_t _404_t9;
-    int64_t _404_$retval;
     _405_x = 0;
     goto BB468;
 BB468:

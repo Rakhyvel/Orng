@@ -41,7 +41,6 @@ fn decorate_identifiers(
         .false,
         .@"break",
         .@"continue",
-        .inferred_member,
         .poison,
         .pattern_symbol,
         .domain_of,
@@ -110,7 +109,6 @@ fn decorate_identifiers(
         .select,
         .function,
         .invoke,
-        .inject,
         .@"union",
         => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
@@ -120,7 +118,12 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
         },
-        .sum, .inferred_error, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
+        .sum_type, .inferred_error, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
+
+        .sum_value => {
+            try decorate_identifiers(ast.sum_value.init, scope, errors, allocator);
+            try decorate_identifiers(ast.sum_value.base, scope, errors, allocator);
+        },
 
         .array_of => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);

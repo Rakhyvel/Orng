@@ -16,6 +16,6 @@ fn safe_div(x:Int, y: Int) -> ?Int {
     if y == 0 {
         .none
     } else {
-        .some <- x / y
+        .some(x / y)
     }
 }

@@ -52,14 +52,11 @@
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
 - [x] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
-- [ ] If a mismatch type error is produced by a control-structure where the only difference is that its optional, suggest adding an `else`
 - [ ] Error if a symbol is marked mut when it isn't muted
 - [x] 1-tuple, 1-sum
 - [x] Equality of products is just equality of all members in a product. Same with slices, strings, etc
     - [x] Addresses are equalable
     - [ ] tuple not-equal
-- [ ] "dependency injection" to remove error/allocator arguments
-- [ ] "packaging" to remove label arguments, possibly something else too
 - [x] Some function call lines are prepended and then popped before function call
 - [x] IRs should use L_Values for sources too (its not harder to optimize btw)
 - [x] Put Validation_State in its own file, bring along poisoned and init_structures
@@ -80,11 +77,8 @@
 - [x] look into `Walk.zig` from ziglang, seems like a pretty good way to walk over an AST
     - rewrite `ast` to be like IR
 - [x] Write a python script to look for duplicate code!
-- [ ] Go through nits
-- [ ] Dedupe any common error throws
-- [ ] Go through TODO's in source
-- [ ] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
-- [ ] Figure out how to do lints before GCC does
+- [x] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
+- [x] Figure out how to do lints before GCC does
 - [ ] Go through MISRA when writing reqs
 
 ### Testing
@@ -167,7 +161,7 @@
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
     - [x] equality on sum type values
-    - [ ] consider a different inject syntax, maybe even bite the bullet with a call-like syntax
+    - [ ] reset back to call syntax, arrow syntax sucks weenee
     - [ ] Builtin-function (?) to get tag name as string from sum
 - [x] optionals
     - [x] `?` constructor
@@ -271,7 +265,7 @@
         - [x] Fix syntax with nested matches
         - [x] `_` to ignore value 
         - [x] Error if match is not total
-        - [ ] Remove `else` from match blocks
+        - [x] Remove `else` from match blocks
 - [ ] new optimizations
     - [x] measure source-to-output ratio
     - [x] string literals should be indexed at compile-time, dont do runtime check
@@ -314,7 +308,7 @@
         - [ ] `printSymbolVersion` should collapse addrOf IR, etc
     - [x] coverage!
     - [x] fuzz with updated `fuzz.ebnf` to force a proper main function
-- [ ] compile-time evaluation (12/17/23)
+- [x] compile-time evaluation (12/17/23)
     > Validate, IR, Optimize. Don't codegen, interpret!
         > Create the program struct very early on
         > Pass the program struct to validator, as validation may result in comptime code execution
@@ -351,17 +345,38 @@
         - [x] make `typeof`, `default`, `sizeof` functions that start with `@`
     - [x] reduce `if` at comptime
     - [x] Panic for div by zero, if int type cannot represent value, out of bounds (redo this for codegen!!)
-- [ ] build system (built upon compile-time evaluation) (1/21/24)
+- [ ] type classes / interfaces / traits 
+    > Do not use for operator overloading!
+    - [ ] `trait T { ... }` to define it
+    - [ ] `impl [T] for X { ... }` to implement it for a type
+        > This should create a global vtable
+        - [ ] If T isn't null, either T or X must be defined in the same module
+        - [ ] If T is null, X must be defined in the same module
+    - [ ] `dyn T`, which is two pointers, one to the data, the other to the global vtable
+    - [ ] dot prepend `x.>f()`
+        > Lookup any impl for the typeof x
+        > If x is a `dyn`, still works
+    - [ ] `Ty <: Tr` returns if a type implements a trait
+    - [ ] iterators & for loops
+        - [ ] multi-loops, ranges like zig
+    - [ ] allocators
+    - [ ] Eq, Ord, Num, Bits, Convertible in prelude
+    - [ ] derive
+- [ ] build system (built upon compile-time evaluation) 
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
-    - [ ] `test` to do tests
-        > Rework integration tests
-    - [ ] `build.orng` which contains a `build()` function, like zig
-        > specifies the entry function (is this possible?)
-        > specifies the orng code to use (is this possible?)
-        > sets build modes, like debug, executable, library, etc
-            - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
-        > be able to include C source files, and header directories
-        > be able to link static and dynamic libraries
+    - [ ] compile phase
+        - [ ] locate `build.orng`
+        - [ ] compile `build.orng` file into a module
+    - [ ] build phase
+        - [ ] Setup a `Builder` object, which represents a DAG of goals (ie compiling an executable), and steps that achieve those goals
+        - [ ] Pass the Builder (along with cmd line args) to `build()` in `build.orng`, interpret
+        - [ ] `build()` fleshes out the DAG
+            - [ ] executables have build modes like (debug | release), (executable | static library | dynamic library)
+                - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
+            - [ ] be able to include C source files, and header directories
+            - [ ] be able to link static and dynamic libraries
+    - [ ] make phase
+        - [ ] Directed by the Builder object, and by the target specified by the cmd line args, execute the steps
     - [ ] `pub` keyword
     - [ ] import syntax before any definitions `["from" package {"." package}] "import" module ["as" ident]`
         > Packages are directories, mapped in the build file
@@ -369,6 +384,8 @@
         > Also makes canonical names the norm
         > `module` is the filename in the package without the `.orng`, so file names have to abide by identifier syntax
     - [ ] `::` for module selection
+    - [ ] `test` to do tests
+        > Rework integration tests
     - [ ] `fn main(sys: System)->!()`
         > System contains:
             - args: []String // the command line args
@@ -380,22 +397,14 @@
             - net: // Socket system?
             - env: // How should environment variables work?
     > How do externs work?
-- [ ] type classes / interfaces / traits (3/24/24)
-    > Do not use for operator overloading!
-    - [ ] `lhs<:rhs` operator with lhs being a capture pattern and rhs being a class
-    - [ ] allocators
-    - [ ] iterators & for loops
-        - [ ] multi-loops, ranges like zig
-    - [ ] Eq, Ord, Num, Bits, Convertible
-    - [ ] derive
-    - [ ] dot prepend `.>`
-- [ ] function stamping (4/28/24)
+- [ ] function stamping
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
     - [ ] first-class types based generics (stamp)
     - [ ] generic type unification
         > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
         - [ ] error if an identifier is `$` twice
         - [ ] error if `$` appears anywhere else but a type annotation
+    - [ ] `$Ty impls Tr` stamps out a new monomorphised function for every new impl of `Tr`
     - [ ] `@as` which can do reinterpret casting (maybe different name?)
     - [ ] `id` function in standard
 - [ ] refinement types

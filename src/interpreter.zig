@@ -13,6 +13,7 @@ const stack_limit = 0x4000; // 16 KiB
 const uninit_byte: u8 = 0x58; // It is, in general, not a good idea to memset to 0x00!
 const halt_trap: i64 = 0xFFFF_FFFF_FFF0;
 
+// TODO: Could you make a debugger, that lets you step to the next instruction etc?
 pub const Context = struct {
     stack: [stack_limit]u8,
     stack_pointer: i64,
@@ -573,20 +574,13 @@ pub const Context = struct {
                 return ast.assert_valid();
             },
             .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator).assert_valid(),
-            .sum => {
-                var retval = ast_.AST.create_inferred_member(
-                    _type.token(),
-                    ast_.AST.create_identifier(
-                        token_.Token.init("extracted from interpreter", .identifier, "", "", 0, 0),
-                        allocator,
-                    ).assert_valid(),
-                    allocator,
-                ).assert_valid();
+            .sum_type => {
+                var retval = ast_.AST.create_sum_value(_type.token(), allocator).assert_valid();
                 const tag = self.load_int(address + _type.sizeof() - 8, 8);
                 retval.set_pos(@as(usize, @intCast(tag)));
-                retval.inferred_member.base = _type;
+                retval.sum_value.base = _type;
                 const proper_term: *ast_.AST = _type.children().items[@as(usize, @intCast(tag))];
-                retval.inferred_member.init = self.extract_ast(address, proper_term, allocator);
+                retval.sum_value.init = self.extract_ast(address, proper_term, allocator);
                 return retval;
             },
             .product => {

@@ -59,7 +59,7 @@ pub const Token_Kind = enum(u32) {
     bar,
     caret,
     double_bar,
-    right_fat_arrow,
+    fat_arrow,
     greater,
     greater_equal,
     lesser,
@@ -67,8 +67,7 @@ pub const Token_Kind = enum(u32) {
     minus,
     percent,
     plus,
-    left_skinny_arrow,
-    right_skinny_arrow,
+    skinny_arrow,
     slash,
     star,
 
@@ -178,11 +177,10 @@ pub const Token_Kind = enum(u32) {
             .star_equals => "*=",
 
             // Math
-            .left_skinny_arrow => "<-",
             .bar => "|",
             .caret => "^",
             .double_bar => "||",
-            .right_fat_arrow => "=>",
+            .fat_arrow => "=>",
             .greater => ">",
             .greater_equal => ">=",
             .lesser => "<",
@@ -190,7 +188,7 @@ pub const Token_Kind = enum(u32) {
             .minus => "-",
             .percent => "%",
             .plus => "+",
-            .right_skinny_arrow => "->",
+            .skinny_arrow => "->",
             .slash => "/",
             .star => "*",
 
@@ -260,7 +258,7 @@ pub const Token_Kind = enum(u32) {
         .bar,
         .comma,
         .colon,
-        .right_skinny_arrow,
+        .skinny_arrow,
         .@"and",
         .@"or",
         .e_mark_equals,
@@ -279,7 +277,6 @@ pub const Token_Kind = enum(u32) {
         .percent,
         .double_bar,
         .invoke,
-        .left_skinny_arrow,
         .where,
     };
 

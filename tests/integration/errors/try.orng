@@ -6,9 +6,9 @@ fn main() -> Int {
 fn f(fail: Bool) -> (err|)!Int {
     if fail {
         let x = try g()
-        (.ok<-x)
+        (.ok(x))
     } else {
-        (.ok<-0)
+        (.ok(0))
     }
 }
 

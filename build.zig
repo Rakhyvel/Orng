@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
     // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
+    const target = b.host;
 
     // Standard optimization options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
     executable(b, optimize, target, "orng", "src/main.zig", "orng", "Runs the compiler");
 }
 
-fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.zig.CrossTarget, name: []const u8, path: []const u8, run: []const u8, run_desc: []const u8) void {
+fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget, name: []const u8, path: []const u8, run: []const u8, run_desc: []const u8) void {
     const exe = b.addExecutable(.{
         .name = name,
         .root_source_file = .{ .path = path },

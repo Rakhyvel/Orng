@@ -1,6 +1,6 @@
 fn main() -> Int {
     let const T = (a: Int | b: Int)
     let const S = (a: Int | b: Char)
-    let x:T = S.b <- 3
+    let x:T = S.b(3)
     0
 }

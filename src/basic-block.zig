@@ -1,8 +1,18 @@
+// This file defines the Basic_Block struct.
+
 const std = @import("std");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
 
+/// Unique id for a basic-block.
 var uid: u64 = 0;
+
+/// Basic-blocks are contiguous chunks of IR instructions with one entry point and one exit point.
+///
+/// Basic-blocks use a parameter/argument system rather than the traditional phi-nodes. This means that
+/// symbol-versions are passed to basic-blocks as parameters, like function parameters. This is
+/// equivalently powerful to using phi-nodes, but more intuitive to reason about. Argument-parameter
+/// copying can be optimized out.
 pub const Basic_Block = struct {
     uid: u64,
     ir_head: ?*ir_.IR,
@@ -84,7 +94,7 @@ pub const Basic_Block = struct {
         self.visited = true;
 
         std.debug.print("BB{}", .{self.uid});
-        Basic_Block.printSymbverList(&self.parameters);
+        Basic_Block.print_symbver_list(&self.parameters);
         std.debug.print(":\n", .{});
         var maybe_ir = self.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
@@ -93,21 +103,21 @@ pub const Basic_Block = struct {
         if (self.has_branch) {
             if (self.next) |next| {
                 std.debug.print("    if ({}) jump BB{}", .{ self.condition.?, next.uid });
-                Basic_Block.printSymbverList(&self.next_arguments);
+                Basic_Block.print_symbver_list(&self.next_arguments);
             } else {
                 std.debug.print("    if ({}) return", .{self.condition.?});
             }
             std.debug.print(" ", .{});
             if (self.branch) |branch| {
                 std.debug.print("else jump BB{}", .{branch.uid});
-                Basic_Block.printSymbverList(&self.branch_arguments);
+                Basic_Block.print_symbver_list(&self.branch_arguments);
             } else {
                 std.debug.print("else return", .{});
             }
         } else {
             if (self.next) |next| {
                 std.debug.print("    jump BB{}", .{next.uid});
-                Basic_Block.printSymbverList(&self.next_arguments);
+                Basic_Block.print_symbver_list(&self.next_arguments);
             } else {
                 std.debug.print("    return", .{});
             }
@@ -121,8 +131,22 @@ pub const Basic_Block = struct {
         }
     }
 
+    pub fn print_symbver_list(list: *std.ArrayList(*lval_.Symbol_Version)) void {
+        std.debug.print("(", .{});
+        var i: usize = 0;
+        while (i < list.items.len) : (i += 1) {
+            const symbver = list.items[i];
+            std.debug.print("{s}_{?}", .{ symbver.symbol.name, symbver.version });
+            if (i < list.items.len - 1) {
+                std.debug.print(", ", .{});
+            }
+        }
+        std.debug.print(")", .{});
+    }
+
     /// Removes an instruction from a basic-block
     pub fn remove_instruction(bb: *Basic_Block, ir: *ir_.IR) void {
+        std.debug.assert(ir.in_block == bb); // Can't remove ir from random blocks! It's gotta belong to this block!
         ir.removed = true;
         if (bb.ir_head != null and bb.ir_head == ir) {
             bb.ir_head = bb.ir_head.?.next;
@@ -136,10 +160,10 @@ pub const Basic_Block = struct {
         bb.removed_irs.append(ir) catch unreachable;
     }
 
-    /// Gets the latest definition of an L_Value's symbol from the start of the basic-block to a stop-at IR. If
+    /// Gets the latest definition of an L_Value's symbol from the start of this basic-block to a stop-at IR. If
     /// the stop-at IR is `null`, will check entire block's instructions.
     ///
-    /// This functions is O(n)
+    /// This functions is O(n) where n is the number of instructions in the block.
     pub fn get_latest_def(bb: *Basic_Block, lval: *lval_.L_Value, stop_at_ir: ?*ir_.IR) ?*ir_.IR {
         if (lval.* != .symbver) {
             return null;

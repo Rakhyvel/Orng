@@ -65,7 +65,7 @@ fn lower_AST(
         // Straight up types, yo
         .function,
         .unit_type,
-        .sum,
+        .sum_type,
         .annotation,
         => return lval_from_ast(ast, cfg, allocator),
         // Literals
@@ -254,7 +254,7 @@ fn lower_AST(
                 0;
 
             var tag: ?*lval_.L_Value = null;
-            if (lhs_expanded_type.* == .sum) {
+            if (lhs_expanded_type.* == .sum_type) {
                 // Check that the sum value has the proper tag before a selection
                 tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
                 cfg.append_instruction(ir_.IR.init_get_tag(tag.?, ast_lval.?, ast.token().span, allocator));
@@ -313,12 +313,12 @@ fn lower_AST(
             cfg.append_instruction(load_struct);
             return temp;
         },
-        .inferred_member => {
+        .sum_value => {
             var init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
             const proper_term: *ast_.AST = (ast.typeof(allocator)).children().items[pos];
             if (proper_term.annotation.type.* != .unit_type) {
-                init = try lower_AST(cfg, ast.inferred_member.init.?, labels, errors, allocator);
+                init = try lower_AST(cfg, ast.sum_value.init.?, labels, errors, allocator);
             }
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             cfg.append_instruction(ir_.IR.init_union(temp, init, ast.pos().?, ast.token().span, allocator));
@@ -733,7 +733,7 @@ fn tuple_equality_flow(
             );
             tuple_equality_flow(cfg, lhs_select, rhs_select, fail_label, allocator);
         }
-    } else if (lhs_type.* == .sum) {
+    } else if (lhs_type.* == .sum_type) {
         const lhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
         const rhs_tag = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
         cfg.append_instruction(ir_.IR.init_get_tag(lhs_tag, new_lhs, lhs.extract_symbver().symbol.span, allocator));
@@ -1031,7 +1031,7 @@ fn generate_match_pattern_check(
                 try generate_match_pattern_check(cfg, term, lval, next_pattern, labels, errors, allocator);
             }
         },
-        .select, .inferred_member => {
+        .select, .sum_value => {
             // Get tag of pattern
             const sel = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             cfg.append_instruction(ir_.IR.init_int(sel, pattern.?.pos().?, pattern.?.token().span, allocator));
@@ -1044,9 +1044,6 @@ fn generate_match_pattern_check(
             const neql = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
             cfg.append_instruction(ir_.IR.init(.equal, neql, tag, sel, pattern.?.token().span, allocator));
             cfg.append_instruction(ir_.IR.init_branch(neql, next_pattern, pattern.?.token().span, allocator));
-        },
-        .inject => {
-            try generate_match_pattern_check(cfg, pattern.?.lhs(), expr, next_pattern, labels, errors, allocator);
         },
         else => {
             std.debug.print("Unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)});
@@ -1089,7 +1086,7 @@ fn wrap_error_return(
     allocator: std.mem.Allocator,
 ) void {
     const expanded_temp_type = expr.get_type().expand_type(allocator);
-    if (labels.error_label != null and expanded_temp_type.* == .sum and expanded_temp_type.sum.from == .@"error") {
+    if (labels.error_label != null and expanded_temp_type.* == .sum_type and expanded_temp_type.sum_type.from == .@"error") {
         // Returning error sum, runtime check if error, branch to error path
         const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
         cfg.append_instruction(ir_.IR.init_get_tag(condition, expr, span, allocator)); // `ok` is 0 `err`s nonzero
@@ -1138,6 +1135,7 @@ fn generate_defers(
     }
 }
 
+/// Generates all symbol definitions in a pattern
 fn generate_pattern(
     cfg: *cfg_.CFG,
     pattern: *ast_.AST,
@@ -1168,12 +1166,12 @@ fn generate_pattern(
             );
             try generate_pattern(cfg, term, subscript_type, lval, errors, allocator);
         }
-    } else if (pattern.* == .inject) {
-        const domain = pattern.inject.domain.?;
+    } else if (pattern.* == .sum_value) {
+        const domain = pattern.sum_value.domain.?.annotation.type;
         const size = domain.expand_type(allocator).sizeof();
         const lval = lval_.L_Value.create_select(
             def,
-            pattern.lhs().pos().?,
+            pattern.pos().?,
             0,
             size,
             domain,
@@ -1181,6 +1179,6 @@ fn generate_pattern(
             null,
             allocator,
         );
-        try generate_pattern(cfg, pattern.rhs(), domain, lval, errors, allocator);
+        try generate_pattern(cfg, pattern.sum_value.init.?, domain, lval, errors, allocator);
     }
 }

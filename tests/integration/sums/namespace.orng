@@ -2,6 +2,6 @@
 let const Int_Or_Bool = (int: Int | bool: Bool)
 
 fn main() -> Int {
-    let x = Int_Or_Bool.int <- 104
+    let x = Int_Or_Bool.int(104)
     x.int
 }

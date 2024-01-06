@@ -1,9 +1,9 @@
 // 128
 fn main() -> Int {
     let x: ?Int = match true {
-        false => .some <- 15
-        false => .some <- 15
-        _     => .some <- 128
+        false => .some(15)
+        false => .some(15)
+        _     => .some(128)
     }
     x.some
 }

@@ -9,9 +9,9 @@ let const Fizz_Buzz_Result: Type = (
 
 fn fizzbuzz(n: Int) -> Fizz_Buzz_Result {
     match 0 {
-        {n % 15} => .string <- "fizzbuzz"
-        {n % 5}  => .string <- "buzz"
-        {n % 3}  => .string <- "fizz"
-        _        => .integer <- n
+        {n % 15} => .string("fizzbuzz")
+        {n % 5}  => .string("buzz")
+        {n % 3}  => .string("fizz")
+        _        => .integer(n)
     }
 }

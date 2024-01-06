@@ -43,7 +43,6 @@ fn symbol_table_from_AST(
         .@"unreachable",
         .true,
         .false,
-        .inferred_member,
         .poison,
         .pattern_symbol,
         .domain_of,
@@ -91,7 +90,6 @@ fn symbol_table_from_AST(
         .select,
         .function,
         .invoke,
-        .inject,
         .@"union",
         .@"catch",
         .@"orelse",
@@ -103,7 +101,11 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
             try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator);
         },
-        .sum, .inferred_error, .product => try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator),
+        .sum_type, .inferred_error, .product => try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator),
+        .sum_value => {
+            try symbol_table_from_AST(ast.sum_value.init, scope, errors, allocator);
+            try symbol_table_from_AST(ast.sum_value.base, scope, errors, allocator);
+        },
 
         .array_of => {
             try symbol_table_from_AST(ast.expr(), scope, errors, allocator);
@@ -258,7 +260,7 @@ fn create_symbol(
     symbols: *std.ArrayList(*symbol_.Symbol),
     pattern: *ast_.AST,
     _type: *ast_.AST,
-    init: *ast_.AST,
+    init: *ast_.AST, // The value being matched on
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -304,15 +306,16 @@ fn create_symbol(
                 try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
             }
         },
-        .inject => {
+        .sum_value => {
             const lhs_type = ast_.AST.create_type_of(pattern.token(), init, allocator);
             const rhs_type = ast_.AST.create_domain_of(pattern.token(), lhs_type, pattern, allocator);
             // All symbols need inits, this is just a phony init since these symbols are more like parameters.
-            // We do the same for parameters, btw!
+            // (We do the same for parameters, btw!)
             const phony_init = ast_.AST.create_default(pattern.token(), rhs_type, allocator);
 
-            try create_symbol(symbols, pattern.lhs(), lhs_type, phony_init, scope, errors, allocator);
-            try create_symbol(symbols, pattern.rhs(), rhs_type, phony_init, scope, errors, allocator);
+            if (pattern.sum_value.init != null) {
+                try create_symbol(symbols, pattern.sum_value.init.?, rhs_type, phony_init, scope, errors, allocator);
+            }
         },
         else => {},
     }

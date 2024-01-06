@@ -1,3 +1,5 @@
+// This file contains the implementation of the Orng compiler's C code generator.
+
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
@@ -17,7 +19,7 @@ const HIGHEST_PRECEDENCE = 100;
 pub const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
-/// Takes in a file handler and a module structure
+/// Generates C code for the provided Orng module and writes it to the given writer.
 pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     cheat_module = module;
     try writer.print(
@@ -40,32 +42,43 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try output_main_function(module.entry, writer);
 }
 
+/// Outputs forward declarations for typedefs based on the provided `Type_Set`.
 fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
+        // Don't generate typedefs header comment if there are no typedefs!
         try writer.print("/* Forward typedefs */\n", .{});
     }
+
+    // Forward declare all structs/unions
     for (type_set.types.items) |dag| {
-        if (dag.base.* == .product or dag.base.* == .sum) {
+        if (dag.base.* == .product or dag.base.* == .sum_type) {
             try writer.print("struct struct{};\n", .{dag.uid});
         }
     }
 }
 
+/// Outputs typedefs based on the provided `Type_Set`.
 fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
+        // Don't generate typedefs header comment if there are no typedefs!
         try writer.print("\n/* Typedefs */\n", .{});
     }
+
+    // Output all typedefs
     for (type_set.types.items) |dag| {
         try output_typedef(dag, writer);
     }
 }
 
+/// Outputs a typedef declaration based on the provided `DAG`.
 fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
     if (dag.visited) {
+        // only visit a DAG node once
         return;
     }
     dag.visited = true;
 
+    // output any types that this type depends on
     for (dag.dependencies.items) |depen| {
         try output_typedef(depen, writer);
     }
@@ -95,9 +108,9 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
         try writer.print("struct struct{} {{\n", .{dag.uid});
         try output_field_list(dag.base.children(), 4, writer);
         try writer.print("}};\n\n", .{});
-    } else if (dag.base.* == .sum) {
+    } else if (dag.base.* == .sum_type) {
         try writer.print("struct struct{} {{\n    uint64_t tag;\n", .{dag.uid});
-        if (!dag.base.sum.is_all_unit()) {
+        if (!dag.base.sum_type.is_all_unit()) {
             try writer.print("    union {{\n", .{});
             try output_field_list(dag.base.children(), 8, writer);
             try writer.print("    }};\n", .{});
@@ -106,10 +119,12 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
     }
 }
 
+/// Outputs the fields of a structure or union type based on the provided list of AST types.
 fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: Writer) CodeGen_Error!void {
+    // output each field in the list
     for (fields.items, 0..) |term, i| {
         if (!term.c_types_match(primitives_.unit_type)) {
-            // Don't gen `void` structure fields
+            // Don't gen `void` structure/union fields
             for (0..spaces) |_| {
                 try writer.print(" ", .{});
             }
@@ -119,25 +134,33 @@ fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: W
     }
 }
 
+/// Outputs the interned strings declarations
 fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) CodeGen_Error!void {
     const key_set = interned_strings.keys();
     if (key_set.len > 0) {
+        // Do not output header comment if there are no interned strings!
         try writer.print("/* Interned Strings */\n", .{});
     }
+
+    // Output each string in the string hash map
     for (0..key_set.len) |i| {
         const str = key_set[i];
         const id = interned_strings.get(str).?;
         try writer.print("char* string_{} = \"", .{id});
+        // Print each byte in the string in hex format
         for (str) |byte| {
             try writer.print("\\x{X:0>2}", .{byte});
         }
         try writer.print("\";\n", .{});
     }
+
     if (key_set.len > 0) {
+        // Do not output this newline if there are no interned strings!
         try writer.print("\n", .{});
     }
 }
 
+/// Applies a function to all CFGs in a list of CFGs.
 fn forall_functions(
     cfgs: *std.ArrayList(*cfg_.CFG),
     header_comment: []const u8,
@@ -145,6 +168,8 @@ fn forall_functions(
     comptime f: fn (*cfg_.CFG, Writer) CodeGen_Error!void,
 ) CodeGen_Error!void {
     try writer.print("{s}\n", .{header_comment});
+
+    // apply the function `f` to all CFGs in the `cfgs` list
     for (cfgs.items) |cfg| {
         if (cfg.symbol.decl.?.* == .fn_decl) { // Don't output for `_comptime` decls
             try f(cfg, writer);
@@ -152,11 +177,13 @@ fn forall_functions(
     }
 }
 
+/// Outputs the forward declaration of a function.
 fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     try output_function_prototype(cfg, writer);
     try writer.print(";\n", .{});
 }
 
+/// Output the definition of a function.
 fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     try output_function_prototype(cfg, writer);
     try writer.print("{{\n", .{});
@@ -194,13 +221,16 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
     try writer.print("}}\n\n", .{});
 }
 
+/// Outputs the prototype of a function
 fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
-    // Print function return type, name, parameter list
+    // Output function return type and name
     try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
     try writer.print(" ", .{});
     try output_symbol(cfg.symbol, writer);
-    try writer.print("(", .{});
+
+    // Output function parameters
     var num_non_unit_params: i64 = 0;
+    try writer.print("(", .{});
     for (cfg.symbol.decl.?.fn_decl.param_symbols.items, 0..) |term, i| {
         if (!term.expanded_type.?.c_types_match(primitives_.unit_type)) {
             // Print out parameter declarations
@@ -211,6 +241,7 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void 
             num_non_unit_params += 1;
         }
     }
+
     if (num_non_unit_params == 0) {
         // If there are no parameters, mark parameter list as void
         try writer.print("void", .{});
@@ -270,6 +301,7 @@ fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
 
+/// Outputs the C type corresponding to an AST type.
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
@@ -285,7 +317,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
             const i = (cheat_module.type_set.get(_type)).?.uid;
             try writer.print("function{}", .{i});
         },
-        .sum, .product => {
+        .sum_type, .product => {
             const i = (cheat_module.type_set.get(_type)).?.uid;
             try writer.print("struct struct{}", .{i});
         },
@@ -298,12 +330,14 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     }
 }
 
+/// Outputs the C code for a basic-block in the given control flow graph.
 fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator);
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
 
+    // Output basic-blocks in BFS order
     var head: usize = 0;
     while (head < bb_queue.items.len) {
         const bb: *basic_block_.Basic_Block = bb_queue.items[head];
@@ -312,8 +346,11 @@ fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, retur
         const is_head_bb = cfg.block_graph_head != null and cfg.block_graph_head.? == bb;
         const more_than_one_incoming = bb.number_predecessors > 1;
         if (!is_head_bb or more_than_one_incoming) {
+            // Do not output a label for a block that is never jumped to (gcc complains)
             try writer.print("BB{}:\n", .{bb.uid});
         }
+
+        // Output IR instructions for the basic-block
         var maybe_ir = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             try output_IR(ir, writer);
@@ -366,6 +403,7 @@ fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, retur
     }
 }
 
+/// Outputs the C code for an IR instruction.
 fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     if (ir.dest != null) {
         try output_lvalue_check(ir.span, ir.dest.?, writer);
@@ -389,6 +427,7 @@ fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     try output_IR_post_check(ir, writer);
 }
 
+/// Outputs the C code for an IR instruction after runtime checks have run.
 fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     switch (ir.kind) {
         .load_unit => {}, // Nop!
@@ -525,11 +564,6 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 .{ir.data.string},
             );
         },
-        // .discard => if (ir.src1.?.get_expanded_type().* != .unit_type) {
-        //     try writer.print("    (void)", .{});
-        //     try output_rvalue(ir.src1.?, ir_.Kind.cast.precedence(), writer);
-        //     try writer.print(";\n", .{});
-        // },
         else => {
             std.debug.print("Unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)});
             unreachable;
@@ -537,6 +571,9 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     }
 }
 
+/// Outputs the C code for checking lvalue operations. The current checks are:
+/// - Index bounds check
+/// - Tag check on union selects
 fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer) CodeGen_Error!void {
     switch (lvalue.*) {
         .symbver => {},
@@ -569,6 +606,7 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
     }
 }
 
+/// Outputs the C code for an rvalue expression based on the provided lvalue.
 fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
     if (outer_precedence < lvalue.precedence()) {
         // Opening paren, if needed by precedence
@@ -595,6 +633,7 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
     }
 }
 
+/// Outputs the C code for an lvalue expression.
 fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
     switch (lvalue.*) {
         .dereference => {
@@ -649,6 +688,7 @@ fn output_var_assign(lval: *lval_.L_Value, writer: Writer) CodeGen_Error!void {
     try writer.print(" = ", .{});
 }
 
+/// Outputs the C code for assigning a value to a variable with a cast.
 fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     try output_var_assign(lval, writer);
     try writer.print("(", .{});
@@ -656,6 +696,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
     try writer.print(") ", .{});
 }
 
+/// Outputs the C code for an operator from an IR.
 fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     try output_var_assign(ir.dest.?, writer);
     if (ir.kind.is_checked() and primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) { // TODO: Check if checked operations are enabled, too

@@ -1,12 +1,12 @@
 // 172
 fn main() -> Int {
     let const The_Type = (a: Int | b: Bool | c: Char)
-    let x: The_Type = The_Type.a <- 172
+    let x: The_Type = The_Type.a(172)
 
     match x {
-        .a <- a => a
-        .b <- b => if b {10} else {3}
-        .c <- c => {_ = c; 4}
+        .a(a) => a
+        .b(b) => if b {10} else {3}
+        .c(c) => {_ = c; 4}
         _ => unreachable
     }
 }

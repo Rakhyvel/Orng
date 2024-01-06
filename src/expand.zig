@@ -33,7 +33,6 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .false,
         .@"break",
         .@"continue",
-        .inferred_member,
         .poison,
         .pattern_symbol,
         .domain_of,
@@ -72,7 +71,6 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .select,
         .function,
         .invoke,
-        .inject,
         .@"union",
         => {
             try expand(ast.lhs(), errors, allocator);
@@ -82,7 +80,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.lhs(), errors, allocator);
             try expand_from_list(ast.children().*, errors, allocator);
         },
-        .sum => {
+        .sum_type => {
             var changed = false;
             var new_terms = std.ArrayList(*ast_.AST).init(allocator);
             var idents_seen = std.StringArrayHashMap(*ast_.AST).init(allocator);
@@ -111,6 +109,10 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             }
 
             try expand_from_list(ast.children().*, errors, allocator);
+        },
+        .sum_value => {
+            try expand(ast.sum_value.init, errors, allocator);
+            try expand(ast.sum_value.base, errors, allocator);
         },
         .inferred_error, .product => try expand_from_list(ast.children().*, errors, allocator),
         .array_of => {

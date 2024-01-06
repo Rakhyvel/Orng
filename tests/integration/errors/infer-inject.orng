@@ -3,14 +3,14 @@ fn main() -> Int {
     match f(true) {
         .ok => unreachable
         .error_1 => unreachable
-        .error_2 <- x => x
+        .error_2(x) => x
         _ => unreachable
     }
 }
 
 fn f(give_int: Bool) -> !Int {
     if give_int {
-        .error_2 <- 240
+        .error_2(240)
     } else {
         .error_1
     }

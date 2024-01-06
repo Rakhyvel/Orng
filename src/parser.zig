@@ -135,13 +135,13 @@ pub const Parser = struct {
         var _init: ?*ast_.AST = null;
 
         if (self.accept(.colon)) |_| {
-            _type = try self.inject_expr();
+            _type = try self.arrow_expr();
             if (self.peek_kind(.single_equals)) {
                 _ = try self.expect(.single_equals);
-                _init = try self.inject_expr();
+                _init = try self.arrow_expr();
             }
         } else if (self.accept(.single_equals)) |_| {
-            _init = try self.inject_expr();
+            _init = try self.arrow_expr();
         } else {
             self.errors.add_error(errs_.Error{ .basic = .{
                 .span = self.peek().span,
@@ -253,7 +253,7 @@ pub const Parser = struct {
             terms.?.append(try self.annotation_expr()) catch unreachable;
         }
         if (terms) |terms_list| {
-            return ast_.AST.create_sum(firsttoken_.?, terms_list, self.allocator);
+            return ast_.AST.create_sum_type(firsttoken_.?, terms_list, self.allocator);
         } else {
             return exp;
         }
@@ -285,14 +285,14 @@ pub const Parser = struct {
     fn annotation_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.assignment_expr();
         if (self.accept(.colon)) |token| {
-            const _type = try self.inject_expr();
+            const _type = try self.arrow_expr();
             var predicate: ?*ast_.AST = null;
             var _init: ?*ast_.AST = null;
             if (self.accept(.where)) |_| {
-                predicate = try self.inject_expr();
+                predicate = try self.arrow_expr();
             }
             if (self.accept(.single_equals)) |_| {
-                const pre__init = try self.inject_expr();
+                const pre__init = try self.arrow_expr();
                 if (!pre__init.is_comptime_expr()) {
                     self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = pre__init.token().span, .what = "default values" } });
                     return error.ParseError;
@@ -306,35 +306,27 @@ pub const Parser = struct {
     }
 
     fn assignment_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const exp = try self.inject_expr();
+        const exp = try self.arrow_expr();
         if (self.accept(.single_equals)) |token| {
-            return ast_.AST.create_assign(token, exp, try self.inject_expr(), self.allocator);
+            return ast_.AST.create_assign(token, exp, try self.arrow_expr(), self.allocator);
         } else if (self.accept(.plus_equals)) |token| {
-            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.inject_expr(), self.allocator), self.allocator);
+            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
         } else if (self.accept(.minus_equals)) |token| {
-            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.inject_expr(), self.allocator), self.allocator);
+            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
         } else if (self.accept(.star_equals)) |token| {
-            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.inject_expr(), self.allocator), self.allocator);
+            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
         } else if (self.accept(.slash_equals)) |token| {
-            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.inject_expr(), self.allocator), self.allocator);
+            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
         } else if (self.accept(.percent_equals)) |token| {
-            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.inject_expr(), self.allocator), self.allocator);
+            return ast_.AST.create_assign(token, exp, ast_.AST.create_binop(token, exp, try self.arrow_expr(), self.allocator), self.allocator);
         } else {
             return exp;
         }
     }
 
-    fn inject_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const exp = try self.arrow_expr();
-        if (self.accept(.left_skinny_arrow)) |token| {
-            return ast_.AST.create_inject(token, exp, try self.arrow_expr(), self.allocator);
-        }
-        return exp;
-    }
-
     fn arrow_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         var exp = try self.bool_expr();
-        while (self.accept(.right_skinny_arrow)) |token| {
+        while (self.accept(.skinny_arrow)) |token| {
             exp = ast_.AST.create_function(token, exp, try self.bool_expr(), self.allocator);
         }
         return exp;
@@ -455,7 +447,7 @@ pub const Parser = struct {
                 slice_kind = .multiptr;
             } else if (self.next_is_expr()) {
                 slice_kind = .array;
-                len = try self.inject_expr();
+                len = try self.arrow_expr();
                 if (!len.?.is_comptime_expr()) {
                     self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = len.?.token().span, .what = "array lengths" } });
                     return error.NotCompileTimeKnown;
@@ -598,9 +590,13 @@ pub const Parser = struct {
             return ast_.AST.create_string(token, token.data, self.allocator);
         } else if (self.peek_kind(.left_brace)) {
             return try self.block_expr();
-        } else if (self.accept(.period)) |token| {
-            const field = ast_.AST.create_field(try self.expect(.identifier), self.allocator);
-            return ast_.AST.create_inferred_member(token, field, self.allocator);
+        } else if (self.accept(.period)) |_| {
+            const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
+            if (self.accept(.left_parenthesis) != null) {
+                sum_val.sum_value.init = try self.annotation_expr();
+                _ = try self.expect(.right_parenthesis);
+            }
+            return sum_val;
         } else if (self.accept(.@"unreachable")) |token| {
             return ast_.AST.create_unreachable(token, self.allocator);
         } else if (self.peek_kind(.left_parenthesis)) {
@@ -717,7 +713,7 @@ pub const Parser = struct {
             maybe_ident = ast_.AST.create_identifier(token, self.allocator);
         }
         const params = try self.paramlist();
-        _ = try self.expect(.right_skinny_arrow);
+        _ = try self.expect(.skinny_arrow);
         const inferred_errortoken_ = self.accept(.exclamation_mark);
         var ret_type = try self.bool_expr();
         if (inferred_errortoken_ != null) {
@@ -726,7 +722,7 @@ pub const Parser = struct {
 
         const refinement: ?*ast_.AST = null;
         if (self.accept(.where)) |_| {
-            _ = try self.inject_expr();
+            _ = try self.arrow_expr();
         }
 
         const _init = try self.block_expr();
@@ -770,10 +766,10 @@ pub const Parser = struct {
         var _init: ?*ast_.AST = null;
 
         _ = try self.expect(.colon);
-        _type = try self.inject_expr();
+        _type = try self.arrow_expr();
         if (self.peek_kind(.single_equals)) {
             _ = try self.expect(.single_equals);
-            _init = try self.inject_expr();
+            _init = try self.arrow_expr();
         }
 
         return ast_.AST.create_decl(
@@ -813,8 +809,8 @@ pub const Parser = struct {
     }
 
     fn match_mapping(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        var lhs = try self.match_pattern_inject();
-        _ = try self.expect(.right_fat_arrow);
+        var lhs = try self.match_pattern_sum_value();
+        _ = try self.expect(.fat_arrow);
         const rhs = try self.expr();
         if (!self.peek_kind(.right_brace)) {
             _ = try self.expect(.newline);
@@ -824,7 +820,7 @@ pub const Parser = struct {
     }
 
     fn match_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const exp = try self.match_pattern_inject();
+        const exp = try self.match_pattern_sum_value();
         var terms: ?std.ArrayList(*ast_.AST) = null;
         var firsttoken_: ?token_.Token = null;
         while (self.accept(.comma)) |token| {
@@ -833,7 +829,7 @@ pub const Parser = struct {
                 firsttoken_ = token;
                 terms.?.append(exp) catch unreachable;
             }
-            terms.?.append(try self.match_pattern_inject()) catch unreachable;
+            terms.?.append(try self.match_pattern_sum_value()) catch unreachable;
         }
         if (terms) |terms_list| {
             return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
@@ -842,11 +838,17 @@ pub const Parser = struct {
         }
     }
 
-    fn match_pattern_inject(self: *Parser) Parser_Error_Enum!*ast_.AST {
+    fn match_pattern_sum_value(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.match_pattern_atom();
-        if (self.accept(.left_skinny_arrow)) |token| {
-            const rhs = try self.match_pattern_atom();
-            return ast_.AST.create_inject(token, exp, rhs, self.allocator);
+        if (self.accept(.left_parenthesis)) |_| {
+            const retval = ast_.AST.create_sum_value(exp.token(), self.allocator);
+            if (exp.* == .select) {
+                retval.sum_value.base = exp.lhs();
+                retval.common()._token = exp.rhs().token();
+            }
+            retval.sum_value.init = try self.match_pattern_atom();
+            _ = try self.expect(.right_parenthesis);
+            return retval;
         } else {
             return exp;
         }
@@ -871,6 +873,13 @@ pub const Parser = struct {
             } else {
                 return ast_.AST.create_symbol(token, .let, token.data, self.allocator);
             }
+        } else if (self.accept(.period)) |_| {
+            const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
+            if (self.accept(.left_parenthesis) != null) {
+                sum_val.sum_value.init = try self.match_pattern_product();
+                _ = try self.expect(.right_parenthesis);
+            }
+            return sum_val;
         } else if (self.accept(.left_parenthesis)) |_| {
             const pattern = try self.match_pattern_product();
             _ = try self.expect(.right_parenthesis);

@@ -206,12 +206,12 @@ pub const IR = struct {
             .load_float => {
                 try out.writer().print("    {} := {}\n", .{ self.dest.?, self.data.float });
             },
-            .loadSymbol => {
+            .load_symbol => {
                 try out.writer().print("    {} := {s}\n", .{ self.dest.?, self.data.symbol.name });
             },
             .load_struct => {
                 try out.writer().print("    {} := {{", .{self.dest.?});
-                try print_lval_list(&self.data.lval_list, out.writer());
+                try print_lval_list(self.data.lval_list, out.writer());
                 try out.writer().print("}}\n", .{});
             },
             .load_union => {
@@ -224,7 +224,7 @@ pub const IR = struct {
             .load_AST => {
                 try out.writer().print("    {} := AST({})\n", .{ self.dest.?, self.data.ast });
             },
-            .loadUnit => {
+            .load_unit => {
                 try out.writer().print("    {} := {{}}\n", .{self.dest.?});
             },
             .copy => {
@@ -239,7 +239,7 @@ pub const IR = struct {
             .negate_float => {
                 try out.writer().print("    {} := -.{}\n", .{ self.dest.?, self.src1.? });
             },
-            .sizeOf => {
+            .size_of => {
                 try out.writer().print("    {} := sizeof({})\n", .{ self.dest.?, self.src1.? });
             },
             .addr_of => {
@@ -327,7 +327,7 @@ pub const IR = struct {
             },
             .call => {
                 try out.writer().print("    {} := {}(", .{ self.dest.?, self.src1.? });
-                try print_lval_list(&self.data.lval_list, out.writer());
+                try print_lval_list(self.data.lval_list, out.writer());
                 try out.writer().print(")\n", .{});
             },
             .push_stack_trace => {
@@ -358,7 +358,7 @@ pub const IR = struct {
         try writer.print("{s}", .{out});
     }
 
-    fn print_lval_list(lval_list: *std.ArrayList(*lval_.L_Value), writer: anytype) !void {
+    fn print_lval_list(lval_list: std.ArrayList(*lval_.L_Value), writer: anytype) !void {
         for (lval_list.items, 0..) |lval, i| {
             try writer.print("{}", .{lval});
             if (i < lval_list.items.len - 1) {

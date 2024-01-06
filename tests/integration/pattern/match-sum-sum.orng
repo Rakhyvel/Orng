@@ -1,17 +1,17 @@
 // 173
 fn main() -> Int {
     let const The_Type = (a: (aa: Int | ab: Int) | b: (ba: Int | bb: Int))
-    let x: The_Type = The_Type.b <- (.ba <- 173)
+    let x: The_Type = The_Type.b(.ba(173))
 
     match x {
-        .a <- y => match y {
-            .aa <- z => z
-            .ab <- z => z
+        .a(y) => match y {
+            .aa(z) => z
+            .ab(z) => z
             _        => unreachable
         }
-        .b <- y => match y {
-            .ba <- z => z
-            .bb <- z => z
+        .b(y) => match y {
+            .ba(z) => z
+            .bb(z) => z
             _        => unreachable
         }
         _ => unreachable

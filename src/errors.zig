@@ -222,21 +222,31 @@ const bold = term_.Attr{ .bold = true };
 const not_bold = term_.Attr{ .bold = false };
 pub const Errors = struct {
     errors_list: std.ArrayList(Error),
-    allocator: std.mem.Allocator,
 
     pub fn init(allocator: std.mem.Allocator) Errors {
         return .{
             .errors_list = std.ArrayList(Error).init(allocator),
-            .allocator = allocator,
         };
     }
 
     pub fn deinit(self: *Errors) void {
         self.errors_list.deinit();
     }
+
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        // unreachable; // uncomment if you want to see where errors come from
+        // peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
+    }
+
+    fn peek_error(err: Error) !void {
+        try bold.dump(out);
+        try print_label(err.get_span(), "error: ", .red);
+        try bold.dump(out);
+        try print_main_error(err);
+        try not_bold.dump(out);
+        try print_epilude(err.get_span());
+        try print_extra_info(err);
+        unreachable;
     }
 
     pub fn print_errors(self: *Errors) Error_Error_Sum!void {
@@ -244,7 +254,7 @@ pub const Errors = struct {
             try bold.dump(out);
             try print_label(err.get_span(), "error: ", .red);
             try bold.dump(out);
-            try print_main_error(err, self.allocator);
+            try print_main_error(err);
             try not_bold.dump(out);
             try print_epilude(err.get_span());
             try print_extra_info(err);
@@ -262,8 +272,7 @@ pub const Errors = struct {
         try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
     }
 
-    fn print_main_error(err: Error, allocator: std.mem.Allocator) Error_Error_Sum!void {
-        _ = allocator;
+    fn print_main_error(err: Error) Error_Error_Sum!void {
         switch (err) {
             // General errors
             .basic => try out.print("{s}\n", .{err.basic.msg}),
@@ -306,10 +315,10 @@ pub const Errors = struct {
                 try out.print("` to type `Void`\n", .{});
             } else {
                 std.debug.assert(err.unexpected_type.expected.* != .poison);
-                try out.print("expected a value of the type `", .{});
+                try out.print("expected a value of type `", .{});
                 try err.unexpected_type.expected.print_type(out);
                 if (err.unexpected_type.got.* != .poison) {
-                    try out.print("`, got a value of the type `", .{});
+                    try out.print("`, got a value of type `", .{});
                     try err.unexpected_type.got.print_type(out);
                 }
                 try out.print("`\n", .{});
@@ -354,7 +363,7 @@ pub const Errors = struct {
                 });
             },
             .no_default => {
-                try out.print("no default value for the type `", .{});
+                try out.print("no default value for type `", .{});
                 try err.no_default._type.print_type(out);
                 try out.print("`\n", .{});
             },

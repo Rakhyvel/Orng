@@ -1,2 +1,2 @@
-let const y: Char!Int = .ok <- 0
+let const y: Char!Int = .ok(0)
 let const x = try y

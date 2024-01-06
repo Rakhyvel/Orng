@@ -18,23 +18,23 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1077_main(void);
+int64_t _1082_main(void);
 
 /* Function definitions */
-int64_t _1077_main(void){
-    int64_t _1077_t10;
-    struct struct0 _1078_x;
-    uint64_t _1077_t12;
-    int64_t _1077_$retval;
-    _1077_t10 = 128;
-    _1078_x = (struct struct0) {.tag=0, ._0=_1077_t10};
-    _1077_t12 = 0;
-    $tag_check(_1077_t12, 0, "tests/integration/optional/expected-option-match-else.orng:2:3:\nfn main() -> Int {\n ^");
-    _1077_$retval = _1078_x._0;
-    return _1077_$retval;
+int64_t _1082_main(void){
+    int64_t _1082_t10;
+    struct struct0 _1083_x;
+    uint64_t _1082_t12;
+    int64_t _1082_$retval;
+    _1082_t10 = 128;
+    _1083_x = (struct struct0) {.tag=0, ._0=_1082_t10};
+    _1082_t12 = 0;
+    $tag_check(_1082_t12, 0, "tests/integration/optional/expected-option-match-else.orng:2:3:\nfn main() -> Int {\n ^");
+    _1082_$retval = _1083_x._0;
+    return _1082_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1077_main());
+  printf("%ld",_1082_main());
   return 0;
 }

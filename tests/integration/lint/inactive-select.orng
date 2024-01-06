@@ -4,4 +4,4 @@ fn main() -> Int {
     x.b
 }
 
-fn f()->(a: Int | b: Int) {.a <- 4}
+fn f()->(a: Int | b: Int) {.a(4)}

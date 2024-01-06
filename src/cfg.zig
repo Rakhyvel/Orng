@@ -1,3 +1,5 @@
+// This file contains the definition of a Control Flow Graph (CFG) data structure.
+
 const std = @import("std");
 const basic_block_ = @import("basic-block.zig");
 const ir_ = @import("ir.zig");
@@ -277,7 +279,7 @@ pub const CFG = struct {
         // Find phi arguments
         self.clear_visited_BBs();
         var i: usize = 0;
-        while (self.children_arg_propagation(self.block_graph_head orelse return, allocator)) {
+        while (self.propagate_arguments(self.block_graph_head orelse return, allocator)) {
             self.clear_visited_BBs();
             i += 1;
         }

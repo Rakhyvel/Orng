@@ -41,7 +41,7 @@ struct struct0 _328_f(int64_t _328_x){
     }
 BB371:
     _328_t4 = 5;
-    _328_t5 = $mult_int64_t(_328_x, _328_t4, "tests/integration/comptime/return-sum.orng:13:19:\n        .ok <- x * 5\n                 ^");
+    _328_t5 = $mult_int64_t(_328_x, _328_t4, "tests/integration/comptime/return-sum.orng:13:16:\n        .ok(x * 5)\n              ^");
     _328_t0 = (struct struct0) {.tag=0, ._0=_328_t5};
     goto BB374;
 BB375:

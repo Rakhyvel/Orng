@@ -4,9 +4,9 @@ let const B = (ba: Int | bb: String)
 let const Union = A || B
 
 fn main()->Int {
-    let mut x: Union = .aa <- 3
-    x = .ab <- "Lmao!"
-    x = .bb <- "lol"
-    x = .ba <- 108
+    let mut x: Union = .aa(3)
+    x = .ab("Lmao!")
+    x = .bb("lol")
+    x = .ba(108)
     x.ba
 }

@@ -26,52 +26,52 @@ struct struct1 {
 typedef int64_t(*function2)(void);
 
 /* Function forward definitions */
-int64_t _1041_main(void);
-int64_t _1043_f(void);
+int64_t _1046_main(void);
+int64_t _1048_f(void);
 
 /* Function definitions */
-int64_t _1041_main(void){
-    int64_t _1041_t1;
-    int64_t _1041_t2;
-    int64_t _1041_t3;
-    int64_t _1041_t4;
-    struct struct0 _1042_x;
-    int64_t _1041_t6;
-    int64_t _1041_t7;
-    int64_t* _1041_t8;
-    int64_t _1041_t9;
-    struct struct1 _1042_y;
-    function2 _1041_t11;
-    int64_t _1041_t12;
-    int64_t _1041_$retval;
-    _1041_t1 = 0;
-    _1041_t2 = 0;
-    _1041_t3 = 0;
-    _1041_t4 = 0;
-    _1042_x = (struct struct0) {_1041_t1, _1041_t2, _1041_t3, _1041_t4};
-    _1041_t6 = 0;
-    _1041_t7 = 4;
-    $bounds_check(_1041_t6, _1041_t7, "tests/integration/lint/slice-copy-neg-bounds-check.orng:4:19:\n    let y = [mut]x\n                 ^");
-    _1041_t8 = ((int64_t*)&_1042_x + _1041_t6);
-    _1041_t9 = 4;
-    _1042_y = (struct struct1) {_1041_t8, _1041_t9};
-    _1041_t11 = _1043_f;
+int64_t _1046_main(void){
+    int64_t _1046_t1;
+    int64_t _1046_t2;
+    int64_t _1046_t3;
+    int64_t _1046_t4;
+    struct struct0 _1047_x;
+    int64_t _1046_t6;
+    int64_t _1046_t7;
+    int64_t* _1046_t8;
+    int64_t _1046_t9;
+    struct struct1 _1047_y;
+    function2 _1046_t11;
+    int64_t _1046_t12;
+    int64_t _1046_$retval;
+    _1046_t1 = 0;
+    _1046_t2 = 0;
+    _1046_t3 = 0;
+    _1046_t4 = 0;
+    _1047_x = (struct struct0) {_1046_t1, _1046_t2, _1046_t3, _1046_t4};
+    _1046_t6 = 0;
+    _1046_t7 = 4;
+    $bounds_check(_1046_t6, _1046_t7, "tests/integration/lint/slice-copy-neg-bounds-check.orng:4:19:\n    let y = [mut]x\n                 ^");
+    _1046_t8 = ((int64_t*)&_1047_x + _1046_t6);
+    _1046_t9 = 4;
+    _1047_y = (struct struct1) {_1046_t8, _1046_t9};
+    _1046_t11 = _1048_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
-    _1041_t12 = _1041_t11();
+    _1046_t12 = _1046_t11();
     $line_idx--;
-    $bounds_check(_1041_t12, _1042_y._1, "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:15:\n    y[f()] = 0\n             ^");
-    *((int64_t*)_1042_y._0 + _1041_t12) = 0;
-    _1041_$retval = 0;
-    return _1041_$retval;
+    $bounds_check(_1046_t12, _1047_y._1, "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:15:\n    y[f()] = 0\n             ^");
+    *((int64_t*)_1047_y._0 + _1046_t12) = 0;
+    _1046_$retval = 0;
+    return _1046_$retval;
 }
 
-int64_t _1043_f(void){
-    int64_t _1043_$retval;
-    _1043_$retval = -100;
-    return _1043_$retval;
+int64_t _1048_f(void){
+    int64_t _1048_$retval;
+    _1048_$retval = -100;
+    return _1048_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1041_main());
+  printf("%ld",_1046_main());
   return 0;
 }

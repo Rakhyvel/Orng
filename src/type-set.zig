@@ -27,7 +27,7 @@ pub const Type_Set = struct {
                 dag.dependencies.append(codomain) catch unreachable;
             }
             return dag;
-        } else if (ast.* == .product or ast.* == .sum) {
+        } else if (ast.* == .product or ast.* == .sum_type) {
             var dag = DAG.init(ast, self.types.items.len, allocator);
             self.types.append(dag) catch unreachable;
             for (ast.children().items) |term| {

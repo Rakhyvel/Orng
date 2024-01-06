@@ -7,5 +7,5 @@ fn main() -> Int {
 }
 
 fn get_the_sum() -> The_Type {
-    .x <- 235
+    .x(235)
 }

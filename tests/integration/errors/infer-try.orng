@@ -8,7 +8,7 @@ fn main() -> Int {
 }
 
 fn f() -> !Int {
-    (.ok <- try g())
+    .ok(try g())
 }
 
 fn g() -> !Int {

@@ -73,7 +73,7 @@ struct struct1 _602_f(void){
     uint64_t _602_t2;
     struct struct1 _602_$retval;
     _602_t0 = _604_g;
-    $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:11:19:\n    (.ok <- try g())\n                 ^";
+    $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:11:15:\n    .ok(try g())\n             ^";
     _602_t1 = _602_t0();
     $line_idx--;
     _602_t2 = _602_t1.tag;

@@ -11,8 +11,8 @@ fn f(x: &mut Int, fail: Bool)->(err |)!() {
     errdefer x^ = 115
     x^ = 4
     if fail {
-        return .err <- ()
+        return .err
     } else {
-        return .ok <- ()
+        return .ok
     }
 }

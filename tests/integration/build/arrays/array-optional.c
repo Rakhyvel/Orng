@@ -189,7 +189,7 @@ BB29:
     _38_t0 = (struct struct4) {.tag=1};
     goto BB32;
 BB33:
-    _38_t5 = $div_int64_t(_38_x, _38_y, "tests/integration/arrays/array-optional.orng:19:21:\n        .some <- x / y\n                   ^");
+    _38_t5 = $div_int64_t(_38_x, _38_y, "tests/integration/arrays/array-optional.orng:19:18:\n        .some(x / y)\n                ^");
     _38_t0 = (struct struct4) {.tag=0, ._0=_38_t5};
     goto BB32;
 BB32:
