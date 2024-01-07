@@ -103,9 +103,9 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Er
         // expected must be a valid Type type
         std.debug.assert(expected_type.?.* != .poison);
         std.debug.assert(expected_type.?.common().validation_state == .valid);
-        var type_expected = expected_type.?.typeof(allocator);
+        var expected_type_type = expected_type.?.typeof(allocator);
         // std.debug.print("typeof({?}) = {}\n", .{ expected, expected_type });
-        std.debug.assert(type_expected.types_match(primitives_.type_type));
+        std.debug.assert(expected_type_type.types_match(primitives_.type_type));
 
         if (expected_type.?.* == .annotation) {
             expected_type = expected_type.?.annotation.type;
@@ -200,8 +200,7 @@ fn validate_AST_internal(
                 ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
             }
             try assert_none_poisoned(ast.expr());
-            const expr_type = ast.expr().typeof(allocator);
-            const expanded_expr_type = expr_type.expand_type(allocator);
+            const expanded_expr_type = ast.expr().typeof(allocator).expand_type(allocator);
             if (expanded_expr_type.* != .addr_of) {
                 return throw_wrong_from("address", "dereference", expanded_expr_type, expr_span, errors);
             } else {
@@ -212,30 +211,30 @@ fn validate_AST_internal(
             const expr_span = ast.expr().token().span;
             ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
             try assert_none_poisoned(ast.expr());
-            var expr_expanded_type = ast.expr().typeof(allocator).expand_type(allocator);
-            if (expr_expanded_type.* != .sum_type or expr_expanded_type.sum_type.from != .@"error") {
-                return throw_wrong_from("error", "try", expr_expanded_type, expr_span, errors);
+            var expanded_expr_type = ast.expr().typeof(allocator).expand_type(allocator);
+            if (expanded_expr_type.* != .sum_type or expanded_expr_type.sum_type.from != .@"error") {
+                return throw_wrong_from("error", "try", expanded_expr_type, expr_span, errors);
             }
-            try type_check(ast, expr_expanded_type.get_ok_type().annotation.type, expected, errors);
-            const expanded_function_return = ast.symbol().?._type.rhs().expand_type(allocator);
-            if (expanded_function_return.* == .inferred_error) {
+            try type_check(ast, expanded_expr_type.get_ok_type().annotation.type, expected, errors);
+            const expanded_function_codomain = ast.symbol().?._type.rhs().expand_type(allocator);
+            if (expanded_function_codomain.* == .inferred_error) {
                 // This checks that the `ok` fields match, for free!
-                for (expr_expanded_type.children().items) |term| {
-                    try add_term(expanded_function_return, term, errors);
+                for (expanded_expr_type.children().items) |term| {
+                    try add_term(expanded_function_codomain, term, errors);
                 }
-            } else if (expanded_function_return.* != .sum_type or expanded_function_return.sum_type.from != .@"error") {
+            } else if (expanded_function_codomain.* != .sum_type or expanded_function_codomain.sum_type.from != .@"error") {
                 errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
                     .msg = "enclosing function around try expression does not return an error",
                 } });
                 return ast.enpoison();
             } else {
-                for (1..expr_expanded_type.children().items.len) |i| {
-                    const error_type = expr_expanded_type.children().items[i].annotation.type;
-                    const function_type = expanded_function_return.children().items[i].annotation.type;
-                    if (!error_type.types_match(function_type)) {
+                for (1..expanded_expr_type.children().items.len) |i| {
+                    const expr_error_type = expanded_expr_type.children().items[i].annotation.type;
+                    const function_error_type = expanded_function_codomain.children().items[i].annotation.type;
+                    if (!expr_error_type.types_match(function_error_type)) {
                         // expr error union's `.err` member is not a compatible type with the function's error type
-                        return throw_unexpected_type(expr_span, expr_expanded_type, expanded_function_return, errors);
+                        return throw_unexpected_type(expr_span, expanded_expr_type, expanded_function_codomain, errors);
                     }
                 }
             }
@@ -299,7 +298,7 @@ fn validate_AST_internal(
             return ast.@"comptime".result.?;
         },
         .assign => {
-            _ = try binary_operator(ast, null, errors, allocator);
+            _ = try binary_operator_open(ast, null, errors, allocator);
             try validate_L_Value(ast.lhs(), errors);
             try assert_mutable(ast.lhs(), errors, allocator);
             try type_check(ast, primitives_.unit_type, expected, errors);
@@ -307,19 +306,20 @@ fn validate_AST_internal(
         },
         .@"or", .@"and" => return try binary_operator_closed(ast, primitives_.bool_type, expected, errors, allocator),
         .add, .sub, .mult, .div => {
-            const lhs_type = try binary_operator(ast, expected, errors, allocator);
+            // These operators are open, since they allow for polymorphism between their operands.
+            const lhs_type = try binary_operator_open(ast, expected, errors, allocator);
             try type_check_arithmetic(ast, lhs_type, errors);
             try type_check(ast, lhs_type, expected, errors);
             return ast;
         },
         .mod => {
-            const lhs_type = try binary_operator(ast, null, errors, allocator);
+            const lhs_type = try binary_operator_open(ast, null, errors, allocator);
             try type_check_integral(ast, lhs_type, errors);
             try type_check(ast, lhs_type, expected, errors);
             return ast;
         },
         .equal, .not_equal => {
-            const lhs_type = try binary_operator(ast, null, errors, allocator);
+            const lhs_type = try binary_operator_open(ast, null, errors, allocator);
             const expanded_lhs_type = lhs_type.expand_type(allocator);
             if (primitives_.type_type.types_match(expanded_lhs_type)) {
                 return type_equality_operation(ast, allocator);
@@ -329,7 +329,7 @@ fn validate_AST_internal(
             return ast;
         },
         .greater, .lesser, .greater_equal, .lesser_equal => {
-            const lhs_type = try binary_operator(ast, null, errors, allocator);
+            const lhs_type = try binary_operator_open(ast, null, errors, allocator);
             try type_check_ord(ast, lhs_type, errors);
             try type_check(ast, primitives_.bool_type, expected, errors);
             return ast;
@@ -339,9 +339,9 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             ast.set_rhs(validate_AST(ast.rhs(), expected, errors, allocator));
             try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-            var lhs_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);
-            try coalesce_operator(lhs_expanded_type, ast, lhs_span, errors);
-            try type_check(ast, lhs_expanded_type.get_nominal_type().annotation.type, expected, errors);
+            var expanded_lhs_type = ast.lhs().typeof(allocator).expand_type(allocator);
+            try coalesce_operator(expanded_lhs_type, ast, lhs_span, errors);
+            try type_check(ast, expanded_lhs_type.get_nominal_type().annotation.type, expected, errors);
             return ast;
         },
         .call => {
@@ -359,7 +359,7 @@ fn validate_AST_internal(
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children(try validate_args(ast.children().*, domain, ast.token().span, errors, allocator));
+            ast.set_children((try validate_args(ast.children(), domain, ast.token().span, errors, allocator)).*);
             try type_check(ast, codomain, expected, errors);
             if (ast.lhs().* == .sum_value) {
                 // lhs is a sum value, usurp its init with ast's rhs
@@ -385,8 +385,7 @@ fn validate_AST_internal(
             try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
 
             const lhs_type = ast.lhs().typeof(allocator);
-            var lhs_expanded_type = lhs_type.expand_type(allocator);
-            lhs_expanded_type = try implicit_dereference(ast, lhs_expanded_type, errors, allocator);
+            const expanded_lhs_type = try implicit_dereference(ast, lhs_type.expand_type(allocator), errors, allocator);
 
             if (lhs_type.types_match(primitives_.type_type) and
                 ast.lhs().* == .product and
@@ -394,20 +393,14 @@ fn validate_AST_internal(
             {
                 // Index a product type, resolve immediately
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
-            } else if (lhs_expanded_type.* != .product) {
-                errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = lhs_expanded_type } });
+            } else if (expanded_lhs_type.* != .product) {
+                errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.TypeError;
-            } else if (lhs_expanded_type.* == .product and
-                !lhs_expanded_type.product.was_slice and
-                !lhs_expanded_type.product.is_homotypical())
+            } else if (expanded_lhs_type.* == .product and
+                !expanded_lhs_type.product.was_slice and
+                !expanded_lhs_type.product.is_homotypical())
             {
-                if (ast.rhs().* == .int) {
-                    // rhs is compile-time known, change to select
-                    const field = ast_.AST.create_identifier(token_.Token.init("homotypical index", .identifier, "", "", 0, 0), allocator);
-                    var select = ast_.AST.create_select(ast.token(), ast.lhs(), field, allocator).assert_valid();
-                    select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
-                    return select;
-                } else {
+                if (ast.rhs().* != .int) {
                     // rhs is not int, error
                     errors.add_error(errs_.Error{ .basic = .{
                         .span = lhs_span,
@@ -415,11 +408,16 @@ fn validate_AST_internal(
                     } });
                     return ast.enpoison();
                 }
+                // rhs is compile-time known, change to select
+                const field = ast_.AST.create_field(token_.Token.init_simple(""), allocator);
+                const select = ast_.AST.create_select(ast.token(), ast.lhs(), field, allocator).assert_valid();
+                select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
+                return select;
             } else if (expected != null) {
-                if (lhs_expanded_type.* == .product and !lhs_expanded_type.product.was_slice) {
-                    try type_check(ast, lhs_expanded_type.children().items[0], expected, errors);
-                } else if (lhs_expanded_type.* == .product and lhs_expanded_type.product.was_slice) {
-                    try type_check(ast, lhs_expanded_type.children().items[0].annotation.type.expr(), expected, errors);
+                if (expanded_lhs_type.* == .product and !expanded_lhs_type.product.was_slice) {
+                    try type_check(ast, expanded_lhs_type.children().items[0], expected, errors);
+                } else if (expanded_lhs_type.* == .product and expanded_lhs_type.product.was_slice) {
+                    try type_check(ast, expanded_lhs_type.children().items[0].annotation.type.expr(), expected, errors);
                 }
             }
             return ast;
@@ -427,15 +425,15 @@ fn validate_AST_internal(
         .select => {
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
-            var lhs_type = ast.lhs().typeof(allocator);
-            const select_lhs_type = try implicit_dereference(ast, lhs_type.expand_type(allocator), errors, allocator);
-            if (select_lhs_type.types_match(primitives_.type_type) and ast.lhs().expand_type(allocator).* == .sum_type) {
+            const lhs_type = ast.lhs().typeof(allocator);
+            const expanded_lhs_type = try implicit_dereference(ast, lhs_type.expand_type(allocator), errors, allocator);
+            if (expanded_lhs_type.types_match(primitives_.type_type) and ast.lhs().expand_type(allocator).* == .sum_type) {
                 // Select on a Type (only valid for a sum type), change to sum value
                 const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), allocator);
                 sum_value.sum_value.base = ast.lhs();
                 return validate_AST(sum_value, expected, errors, allocator);
             } else if (ast.pos() == null) {
-                ast.set_pos(try find_select_pos(select_lhs_type, ast.rhs().token().data, ast.token().span, errors));
+                ast.set_pos(try find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, errors));
             }
 
             _ = ast.assert_valid();
@@ -462,34 +460,24 @@ fn validate_AST_internal(
             return ast;
         },
         .product => {
-            var expanded_expected: ?*ast_.AST = if (expected == null) null else expected.?.expand_type(allocator);
+            const expanded_expected: ?*ast_.AST = if (expected == null) null else expected.?.expand_type(allocator);
             if (expanded_expected == null or expanded_expected.?.types_match(primitives_.type_type)) {
                 // Not expecting anything OR expecting ast to be a product type
                 for (0..ast.children().items.len) |i| {
                     ast.children().items[i] = validate_AST(ast.children().items[i], expanded_expected, errors, allocator);
                 }
+                try assert_none_poisoned(ast.children());
             } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, errors, allocator));
-                if (expanded_expected.?.children().items.len != ast.children().items.len) {
-                    errors.add_error(errs_.Error{ .mismatch_tuple_arity = .{
-                        .span = ast.token().span,
-                        .takes = expanded_expected.?.children().items.len,
-                        .given = ast.children().items.len,
-                    } });
-                    return error.TypeError;
-                }
-                for (0.., expanded_expected.?.children().items) |i, expected_term| { // Ok, this is cool!
-                    ast.children().items[i] = validate_AST(ast.children().items[i], expected_term, errors, allocator);
-                }
+                ast.set_children((try validate_args(ast.children(), expanded_expected.?, ast.token().span, errors, allocator)).*);
             } else if (expanded_expected == null or !primitives_.unit_type.types_match(expanded_expected.?)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
-                // expecting something that is not a type nor a product!
+                // expecting something that is not a type nor a product is not ok!
                 // poison `got`, so that it doesn't print anything for the `got` section, wouldn't make sense anyway
                 return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
             }
-            try assert_none_poisoned(ast.children());
             return ast;
         },
         .@"union" => {
@@ -497,17 +485,17 @@ fn validate_AST_internal(
             const lhs_span = ast.lhs().token().span;
             const rhs_span = ast.rhs().token().span;
 
-            var new_ast = try binary_operator_closed(ast, primitives_.type_type, expected, errors, allocator);
+            const new_ast = try binary_operator_closed(ast, primitives_.type_type, expected, errors, allocator);
 
-            const expand_lhs = new_ast.lhs().expand_type(allocator);
-            const expand_rhs = new_ast.rhs().expand_type(allocator);
-            if (expand_lhs.* != .sum_type) {
-                return throw_wrong_from("sum", "union", expand_lhs, lhs_span, errors);
-            } else if (expand_rhs.* != .sum_type) {
-                return throw_wrong_from("sum", "union", expand_rhs, rhs_span, errors);
+            const expanded_lhs = new_ast.lhs().expand_type(allocator);
+            const expanded_rhs = new_ast.rhs().expand_type(allocator);
+            if (expanded_lhs.* != .sum_type) {
+                return throw_wrong_from("sum", "union", expanded_lhs, lhs_span, errors);
+            } else if (expanded_rhs.* != .sum_type) {
+                return throw_wrong_from("sum", "union", expanded_rhs, rhs_span, errors);
             }
 
-            return try merge_sums(expand_lhs, expand_rhs, new_ast.token(), errors, allocator);
+            return try merge_sums(expanded_lhs, expanded_rhs, new_ast.token(), errors, allocator);
         },
         .addr_of => {
             if (expected == null) {
@@ -635,7 +623,7 @@ fn validate_AST_internal(
                 ast.sum_value.base = expected;
             }
 
-            var expanded_base: *ast_.AST = ast.sum_value.base.?.expand_type(allocator);
+            const expanded_base: *ast_.AST = ast.sum_value.base.?.expand_type(allocator);
             if (expanded_base.* != .sum_type and expanded_base.* != .inferred_error) {
                 return throw_wrong_from("sum", "sum value", expanded_base, ast.token().span, errors);
             }
@@ -643,10 +631,10 @@ fn validate_AST_internal(
             var pos = expanded_base.get_pos(ast.token().data);
             if (pos == null and expanded_base.* == .inferred_error) {
                 // Wasn't in inferred error set, put in inferred error set
-                const annot_type = if (ast.sum_value.init == null) primitives_.unit_type else ast.sum_value.init.?.typeof(allocator);
-                const name = ast_.AST.create_identifier(ast.token(), allocator);
-                const annot = ast_.AST.create_annotation(ast.token(), name, annot_type, null, null, allocator);
-                expanded_base.children().append(annot) catch unreachable;
+                const init_type = if (ast.sum_value.init == null) primitives_.unit_type else ast.sum_value.init.?.typeof(allocator);
+                const identifier = ast_.AST.create_identifier(ast.token(), allocator);
+                const annotation = ast_.AST.create_annotation(ast.token(), identifier, init_type, null, null, allocator);
+                expanded_base.children().append(annotation) catch unreachable;
                 pos = expanded_base.children().items.len - 1;
             } else if (pos == null and expanded_base.* == .sum_type) {
                 errors.add_error(errs_.Error{ .member_not_in = .{ .span = ast.token().span, .identifier = ast.token().data, .group_name = "sum" } });
@@ -675,19 +663,19 @@ fn validate_AST_internal(
 
             // expecting a type
             var expected_type: ?*ast_.AST = undefined;
-            var expected_expanded: *ast_.AST = undefined;
+            var expanded_expected: *ast_.AST = undefined;
             var is_result_optional: bool = false;
             if (expected == null) {
                 expected_type = null;
             } else {
-                expected_expanded = expected.?.expand_type(allocator);
-                is_result_optional = expected_expanded.* == .sum_type and
-                    expected_expanded.sum_type.from == .optional and
-                    !expected_expanded.types_match(primitives_.void_type);
+                expanded_expected = expected.?.expand_type(allocator);
+                is_result_optional = expanded_expected.* == .sum_type and
+                    expanded_expected.sum_type.from == .optional and
+                    !expanded_expected.types_match(primitives_.void_type);
                 if (ast.else_block() != null) {
                     expected_type = expected.?;
                 } else if (is_result_optional) {
-                    expected_type = expected_expanded.get_some_type();
+                    expected_type = expanded_expected.get_some_type();
                 } else {
                     return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
                 }
@@ -749,16 +737,16 @@ fn validate_AST_internal(
             ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
             try assert_none_poisoned(.{ ast.match.let, ast.expr() });
 
-            const expr_type_expanded = ast.expr().typeof(allocator).expand_type(allocator);
-            try assert_none_poisoned(expr_type_expanded);
+            const expanded_expr_type = ast.expr().typeof(allocator).expand_type(allocator);
+            try assert_none_poisoned(expanded_expr_type);
 
             for (0..ast.children().items.len) |i| {
                 ast.children().items[i] = validate_AST(ast.children().items[i], expected, errors, allocator);
                 try assert_none_poisoned(ast.children().items[i]);
-                try assert_pattern_matches(ast.children().items[i].lhs(), expr_type_expanded, errors, allocator);
+                try assert_pattern_matches(ast.children().items[i].lhs(), expanded_expr_type, errors, allocator);
             }
             try assert_none_poisoned(ast.children());
-            try exhaustive_check(expr_type_expanded, ast.children(), ast.token().span, errors, allocator);
+            try exhaustive_check(expanded_expr_type, ast.children(), ast.token().span, errors, allocator);
             return ast;
         },
         .mapping => {
@@ -776,15 +764,15 @@ fn validate_AST_internal(
             }
             ast.@"while".condition = validate_AST(ast.@"while".condition, primitives_.bool_type, errors, allocator);
 
-            var optional_type = false; //< Set if expected is an optional type
+            var is_optional_type = false; //< Set if expected is an optional type
             if (expected != null) {
-                var expected_expanded = expected.?.expand_type(allocator);
-                if (expected_expanded.* == .sum_type and expected_expanded.sum_type.from == .optional) {
-                    ast.set_body_block(validate_AST(ast.body_block(), expected_expanded.get_some_type(), errors, allocator));
-                    optional_type = true;
+                const expanded_expected = expected.?.expand_type(allocator);
+                if (expanded_expected.* == .sum_type and expanded_expected.sum_type.from == .optional) {
+                    ast.set_body_block(validate_AST(ast.body_block(), expanded_expected.get_some_type(), errors, allocator));
+                    is_optional_type = true;
                 }
             }
-            if (!optional_type) {
+            if (!is_optional_type) {
                 ast.set_body_block(validate_AST(ast.body_block(), expected, errors, allocator));
                 if (ast.else_block()) |else_block| {
                     ast.set_else_block(validate_AST(else_block, expected, errors, allocator));
@@ -795,16 +783,16 @@ fn validate_AST_internal(
         },
         .block => {
             for (0..ast.children().items.len) |i| {
-                const expect_type: ?*ast_.AST = if (ast.block.final == null and i == ast.children().items.len - 1) expected else null;
-                ast.children().items[i] = validate_AST(ast.children().items[i], expect_type, errors, allocator);
-                const child = ast.children().items[i];
+                const expected_type: ?*ast_.AST = if (ast.block.final == null and i == ast.children().items.len - 1) expected else null;
+                ast.children().items[i] = validate_AST(ast.children().items[i], expected_type, errors, allocator);
+                const statement = ast.children().items[i];
                 // A middle-statement is any but the last statement if there is no final, or any statement if there is a final
                 // Middle statements' type must be unit
                 const is_middle_statement = if (ast.block.final == null) i < ast.children().items.len - 1 else true;
-                if ((child.* != .fn_decl or child.fn_decl.name == null) and is_middle_statement) {
+                if ((statement.* != .fn_decl or statement.fn_decl.name == null) and is_middle_statement) {
                     // Don't worry about fn_decl's, those should be allowed to be "discarded"
-                    const statement_type = child.typeof(allocator).expand_type(allocator);
-                    try middle_statement_check(child, statement_type, errors);
+                    const expanded_statement_type = statement.typeof(allocator).expand_type(allocator);
+                    try middle_statement_check(statement, expanded_statement_type, errors);
                 }
             }
             try assert_none_poisoned(ast.children());
@@ -840,9 +828,9 @@ fn validate_AST_internal(
             try validate_symbol(ast.symbol().?, errors, allocator);
             try assert_none_poisoned(ast.symbol().?._type);
             if (expected) |_expected| {
-                const expected_expanded = _expected.expand_type(allocator);
-                const self_type = ast.typeof(allocator);
-                try type_check(ast, self_type, expected_expanded, errors);
+                const expanded_expected = _expected.expand_type(allocator);
+                const ast_type = ast.typeof(allocator);
+                try type_check(ast, ast_type, expanded_expected, errors);
             }
             return ast;
         },
@@ -891,7 +879,7 @@ fn type_check_int(
 ) Validate_Error_Enum!void {
     const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
     if (expanded_expected != null and !primitives_.unit_type.types_match(expanded_expected.?)) {
-        const info = primitives_.from_ast(expanded_expected.?);
+        const info = primitives_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
             if (ast.int.data < info.?.bounds.?.lower or
                 ast.int.data > info.?.bounds.?.upper)
@@ -996,26 +984,16 @@ fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
 
 fn type_equality_operation(ast: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
-    const _true = ast_.AST.create_true(ast.token(), allocator);
-    const _false = ast_.AST.create_false(ast.token(), allocator);
+    const true_ast = ast_.AST.create_true(ast.token(), allocator);
+    const false_ast = ast_.AST.create_false(ast.token(), allocator);
     if (ast.lhs().types_match(ast.rhs()) and ast.rhs().types_match(ast.lhs())) {
-        return if (ast.* == .equal) _true else _false;
+        return if (ast.* == .equal) true_ast else false_ast;
     } else {
-        return if (ast.* == .equal) _false else _true;
+        return if (ast.* == .equal) false_ast else true_ast;
     }
 }
 
-/// Validates a polymorphic binary operator
-fn binary_operator(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
-    ast.set_lhs(validate_AST(ast.lhs(), expected, errors, allocator));
-    const lhs_type = ast.lhs().typeof(allocator);
-    try assert_none_poisoned(lhs_type);
-    ast.set_rhs(validate_AST(ast.rhs(), lhs_type, errors, allocator));
-    try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
-    return lhs_type;
-}
-
-/// Validates a closed binary operator
+/// Validates a closed binary operator. Returns the valid form of the binary operator.
 fn binary_operator_closed(
     ast: *ast_.AST,
     self_type: *ast_.AST,
@@ -1030,14 +1008,27 @@ fn binary_operator_closed(
     return ast;
 }
 
+/// Validates an open binary operator. An operator is `open` if it returns a type different from the
+/// ones it acts on.
+///
+/// Returns the type of the validated operator.
+fn binary_operator_open(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+    ast.set_lhs(validate_AST(ast.lhs(), expected, errors, allocator));
+    const lhs_type = ast.lhs().typeof(allocator);
+    try assert_none_poisoned(lhs_type);
+    ast.set_rhs(validate_AST(ast.rhs(), lhs_type, errors, allocator));
+    try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
+    return lhs_type;
+}
+
 fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!void {
     std.debug.assert(ast.* == .@"orelse" or ast.* == .@"catch");
-    const expected: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
-    if (lhs_expanded_type.* != .sum_type or lhs_expanded_type.sum_type.from != expected) {
+    const expected_sum_from: ast_.Sum_From = if (ast.* == .@"orelse") .optional else .@"error";
+    if (lhs_expanded_type.* != .sum_type or lhs_expanded_type.sum_type.from != expected_sum_from) {
         errors.add_error(errs_.Error{ .wrong_from = .{
             .span = span,
             .operator = @tagName(ast.*),
-            .from = @tagName(expected),
+            .from = @tagName(expected_sum_from),
             .got = lhs_expanded_type,
         } });
         return error.TypeError;
@@ -1062,29 +1053,31 @@ fn default_args(
     }
 }
 
+/// Determines if there are named arguments in an argument list. If there are no arguments, there are
+/// no named arguments.
+///
+/// Throws `error.TypeError` if there is a mix of positional and named arguments.
 fn args_are_named(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!bool {
     if (asts.items.len == 0) {
         return false;
     }
 
-    var seen_named = false;
-    var seen_pos = false;
+    var has_named_arg = false;
+    var has_pos_arg = false;
     for (asts.items) |term| {
         if (term.* == .assign) {
-            seen_named = true;
+            has_named_arg = true;
         } else {
-            seen_pos = true;
+            has_pos_arg = true;
         }
     }
-    std.debug.assert(seen_named or seen_pos);
-    if (seen_named and seen_pos) {
-        errors.add_error(errs_.Error{ .basic = .{
-            .span = asts.items[0].token().span,
-            .msg = "mixed positional and named arguments are not allowed",
-        } });
+    std.debug.assert(has_named_arg or has_pos_arg);
+    if (has_named_arg and has_pos_arg) {
+        const arg_span = asts.items[0].token().span;
+        errors.add_error(errs_.Error{ .basic = .{ .span = arg_span, .msg = "mixed positional and named arguments are not allowed" } });
         return error.TypeError;
     } else {
-        return seen_named;
+        return has_named_arg;
     }
 }
 
@@ -1097,18 +1090,18 @@ fn positional_args(
     expected: *ast_.AST,
     allocator: std.mem.Allocator,
 ) error{NoDefault}!std.ArrayList(*ast_.AST) {
-    var retval = std.ArrayList(*ast_.AST).init(allocator);
-    errdefer retval.deinit();
+    var filled_args = std.ArrayList(*ast_.AST).init(allocator);
+    errdefer filled_args.deinit();
 
     switch (expected.*) {
         .annotation => {
             if (asts.items.len == 0 and expected.annotation.init != null) {
                 // Use expected's init, asts are empty
-                retval.append(expected.annotation.init.?) catch unreachable;
+                filled_args.append(expected.annotation.init.?) catch unreachable;
             } else if (asts.items.len > 0) {
-                // Copy asts over to retval
+                // Copy asts over to filled_args
                 for (asts.items) |item| {
-                    retval.append(item) catch unreachable;
+                    filled_args.append(item) catch unreachable;
                 }
             } else {
                 // empty args, no default init in parameter. No default possible!
@@ -1120,32 +1113,32 @@ fn positional_args(
             for (expected.children().items, 0..) |term, i| {
                 // ast is product, append ast's corresponding term
                 if (asts.items.len > 1 and i < asts.items.len) {
-                    retval.append(asts.items[i]) catch unreachable;
+                    filled_args.append(asts.items[i]) catch unreachable;
                 }
                 // ast is unit or ast isn't a product and i > 0 or ast is a product and off the edge of ast's terms
                 // try to fill with the default
                 else if (asts.items.len == 0 or (asts.items.len <= 1 and i > 0) or (asts.items.len > 1 and i >= asts.items.len)) {
                     if (term.* == .annotation and term.annotation.init != null) {
-                        retval.append(term.annotation.init.?) catch unreachable;
+                        filled_args.append(term.annotation.init.?) catch unreachable;
                     } else {
                         return error.NoDefault;
                     }
                 }
                 // ast is not product, i != 0, append ast as first term
                 else {
-                    retval.append(asts.items[0]) catch unreachable;
+                    filled_args.append(asts.items[0]) catch unreachable;
                 }
             }
         },
 
-        .unit_type, .identifier => retval = asts,
+        .unit_type, .identifier => filled_args = asts,
 
         else => {
             std.debug.print("positional_args(): unimplemented for {s}\n", .{@tagName(expected.*)});
             unreachable;
         },
     }
-    return retval;
+    return filled_args;
 }
 
 fn named_args(
@@ -1156,18 +1149,18 @@ fn named_args(
 ) error{ TypeError, NoDefault }!std.ArrayList(*ast_.AST) {
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
-    var arg_map = std.StringArrayHashMap(*ast_.AST).init(allocator);
-    defer arg_map.deinit();
+    var arg_name_to_val_map = std.StringArrayHashMap(*ast_.AST).init(allocator);
+    defer arg_name_to_val_map.deinit();
 
     // Associate argument names with their values
     if (asts.items.len == 1) {
-        put_assign(asts.items[0], &arg_map, errors) catch |err| switch (err) {
+        put_assign(asts.items[0], &arg_name_to_val_map, errors) catch |err| switch (err) {
             error.TypeError => return error.NoDefault,
             else => return err,
         };
     } else {
         for (asts.items) |term| {
-            put_assign(term, &arg_map, errors) catch |err| switch (err) {
+            put_assign(term, &arg_name_to_val_map, errors) catch |err| switch (err) {
                 error.TypeError => return error.NoDefault,
                 else => return err,
             };
@@ -1175,15 +1168,15 @@ fn named_args(
     }
 
     // Construct positional args in the order specified by `expected`
-    var retval = std.ArrayList(*ast_.AST).init(allocator);
-    errdefer retval.deinit();
+    var filled_args = std.ArrayList(*ast_.AST).init(allocator);
+    errdefer filled_args.deinit();
     var new_expected = expected;
     if (expected.* == .annotation and (expected.annotation.type.expand_type(allocator)).* == .product) {
         new_expected = expected.annotation.type.expand_type(allocator);
     }
     switch (new_expected.*) {
         .annotation => {
-            if (arg_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
+            if (arg_name_to_val_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
                 errors.add_error(errs_.Error{ .basic = .{
                     .span = asts.items[0].token().span,
                     .msg = "too many arguments/fields specifed",
@@ -1191,7 +1184,7 @@ fn named_args(
                 // return error.NoDefault;
                 unreachable;
             } else {
-                retval.append(arg_map.values()[0]) catch unreachable;
+                filled_args.append(arg_name_to_val_map.values()[0]) catch unreachable;
             }
         },
 
@@ -1204,10 +1197,10 @@ fn named_args(
                     } });
                     return error.NoDefault;
                 }
-                const arg = arg_map.get(term.annotation.pattern.token().data);
+                const arg = arg_name_to_val_map.get(term.annotation.pattern.token().data);
                 if (arg == null) {
                     if (term.annotation.init != null) {
-                        retval.append(term.annotation.init.?) catch unreachable;
+                        filled_args.append(term.annotation.init.?) catch unreachable;
                     } else {
                         errors.add_error(errs_.Error{ .basic = .{
                             .span = asts.items[0].token().span,
@@ -1216,65 +1209,34 @@ fn named_args(
                         return error.NoDefault;
                     }
                 } else {
-                    retval.append(arg.?) catch unreachable;
+                    filled_args.append(arg.?) catch unreachable;
                 }
             }
         },
 
         else => unreachable,
     }
-    return retval;
+    return filled_args;
 }
 
 fn validate_args(
-    args: std.ArrayList(*ast_.AST),
+    args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
-    var new_args = std.ArrayList(*ast_.AST).init(allocator);
-    errdefer new_args.deinit();
-    var changed = false;
-    var poisoned = false;
-    if (expected.* == .unit_type) {
-        if (args.items.len > 0) {
-            errors.add_error(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 0, .given = args.items.len } });
-            return error.TypeError;
-        }
-    } else if (expected.* == .product) {
-        if (args.items.len != expected.children().items.len) {
-            errors.add_error(errs_.Error{ .mismatch_call_arity = .{
-                .span = span,
-                .takes = expected.children().items.len,
-                .given = args.items.len,
-            } });
-            return error.TypeError;
-        }
-        for (expected.children().items, args.items) |param_type, arg| {
-            const new_arg = validate_AST(arg, param_type, errors, allocator);
-            changed = changed or new_arg != arg;
-            new_args.append(new_arg) catch unreachable;
-            if (new_arg.* == .poison) {
-                poisoned = true;
-            }
-        }
-    } else {
-        if (args.items.len != 1) {
-            errors.add_error(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = 1, .given = args.items.len } });
-            return error.TypeError;
-        }
-
-        args.items[0] = validate_AST(args.items[0], expected, errors, allocator);
-    }
-    if (poisoned) {
+) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
+    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
+    if (args.items.len != expected_length) {
+        errors.add_error(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = expected_length, .given = args.items.len } });
         return error.TypeError;
-    } else if (changed) {
-        return new_args;
-    } else {
-        new_args.deinit();
-        return args;
     }
+    for (0..expected_length) |i| {
+        const param_type = if (expected.* == .product) expected.children().items[i] else expected;
+        args.items[i] = validate_AST(args.items[i], param_type, errors, allocator);
+    }
+    try assert_none_poisoned(args);
+    return args;
 }
 
 fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!void {
@@ -1292,20 +1254,22 @@ fn merge_sums(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!*ast_.AST {
+    // List of merged terms for retval sum AST
     var new_terms = std.ArrayList(*ast_.AST).init(allocator);
+    // Map of names to AST, used to detect duplicate names when merging
     var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
     defer names.deinit();
 
     try put_many_annot_map(lhs.children(), &new_terms, &names, errors);
     try put_many_annot_map(rhs.children(), &new_terms, &names, errors);
 
-    const retval = ast_.AST.create_sum_type(token, new_terms, allocator);
+    const merged_sum = ast_.AST.create_sum_type(token, new_terms, allocator);
     if (lhs.sum_type.from == .@"error" or rhs.sum_type.from == .@"error") {
-        retval.sum_type.from = .@"error";
+        merged_sum.sum_type.from = .@"error";
     } else {
-        retval.sum_type.from = .none;
+        merged_sum.sum_type.from = .none;
     }
-    return retval;
+    return merged_sum;
 }
 
 fn put_many_annot_map(
@@ -1450,17 +1414,17 @@ fn assert_pattern_matches(
             try type_check(pattern, new_pattern.typeof(allocator), expr_type, errors);
         },
         .select, .sum_value => {
-            var new_pattern = validate_AST(pattern, expr_type, errors, allocator);
+            const new_pattern = validate_AST(pattern, expr_type, errors, allocator);
             try assert_none_poisoned(new_pattern);
             pattern.set_pos(new_pattern.pos().?);
             try type_check(pattern, new_pattern.typeof(allocator), expr_type, errors);
         },
         .product => {
-            const expanded_expr = expr_type.expand_type(allocator);
-            if (expanded_expr.* != .product or expanded_expr.children().items.len != pattern.children().items.len) {
+            const expanded_expr_type = expr_type.expand_type(allocator);
+            if (expanded_expr_type.* != .product or expanded_expr_type.children().items.len != pattern.children().items.len) {
                 return throw_unexpected_type(pattern.token().span, expr_type, pattern.typeof(allocator), errors);
             }
-            for (pattern.children().items, expanded_expr.children().items) |term, expanded_term| {
+            for (pattern.children().items, expanded_expr_type.children().items) |term, expanded_term| {
                 try assert_pattern_matches(term, expanded_term, errors, allocator);
             }
         },
@@ -1481,21 +1445,25 @@ fn exhaustive_check(
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
     if (_type.* == .sum_type) {
-        var ids = std.ArrayList(usize).init(allocator);
-        defer ids.deinit();
+        var total_sum_ids = std.ArrayList(usize).init(allocator);
+        defer total_sum_ids.deinit();
 
+        // Append all sum IDs to the ids list
         for (_type.children().items, 0..) |_, i| {
-            ids.append(i) catch unreachable;
+            total_sum_ids.append(i) catch unreachable;
         }
+        // For each sum ID, remove it if it's covered
+        // Yeah I know this sucks. Figure out something better!
         for (mappings.items) |m| {
-            exhaustive_check_sub(m.lhs(), &ids);
+            exhaustive_check_sub(m.lhs(), &total_sum_ids);
         }
-        if (ids.items.len > 0) {
-            var forgotten = std.ArrayList(*ast_.AST).init(std.heap.page_allocator); // Not deallocated, lives until error emission
-            for (ids.items) |id| {
-                forgotten.append(_type.children().items[id]) catch unreachable;
+        // If there were any IDs that weren't removed, they weren't covered with a pattern match
+        if (total_sum_ids.items.len > 0) {
+            var forgotten_sum_variants = std.ArrayList(*ast_.AST).init(std.heap.page_allocator); // Not deallocated, lives until error emission
+            for (total_sum_ids.items) |id| {
+                forgotten_sum_variants.append(_type.children().items[id]) catch unreachable;
             }
-            errors.add_error(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten } });
+            errors.add_error(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten_sum_variants } });
             return error.TypeError;
         }
     }
@@ -1547,7 +1515,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
-                const primitive_info = primitives_.get(_type.token().data);
+                const primitive_info = primitives_.info_from_name(_type.token().data);
                 if (primitive_info.default_value != null) {
                     return primitive_info.default_value.?;
                 } else {

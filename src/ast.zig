@@ -1539,7 +1539,7 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path for calculating the size of an AST type in bytes.
     fn sizeof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.get(self.token().data).size,
+            .identifier => return primitives_.info_from_name(self.token().data).size,
 
             .product => {
                 var total_size: i64 = 0;
@@ -1583,7 +1583,7 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.get(self.token().data).size,
+            .identifier => return primitives_.info_from_name(self.token().data).size,
 
             .product => {
                 var max_align: i64 = 0;
@@ -1727,7 +1727,7 @@ pub const AST = union(enum) {
             // Clearly not a float type
             return false;
         }
-        const info = primitives_.get(expanded.token().data);
+        const info = primitives_.info_from_name(expanded.token().data);
         return info.type_kind == .floating_point;
     }
 
@@ -1751,7 +1751,7 @@ pub const AST = union(enum) {
         } else if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).?.is_eq();
+        return primitives_.info_from_ast(expanded).?.is_eq();
     }
 
     /// Determines if an AST type has the operators `<` and `>` defined.
@@ -1764,7 +1764,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).?.is_ord();
+        return primitives_.info_from_ast(expanded).?.is_ord();
     }
 
     /// Determines if an AST type has the operators `+`, `-`, `/` and `*` defined.
@@ -1777,7 +1777,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).?.is_num();
+        return primitives_.info_from_ast(expanded).?.is_num();
     }
 
     /// Determines if an AST type has the operator `%` defined.
@@ -1790,7 +1790,7 @@ pub const AST = union(enum) {
         if (expanded.* != .identifier) {
             return false;
         }
-        return primitives_.from_ast(expanded).?.is_int();
+        return primitives_.info_from_ast(expanded).?.is_int();
     }
 
     /// Determines if an AST expression can be evaluated at compile-time without having to specify a `comptime`

@@ -535,7 +535,7 @@ fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Err
 }
 
 fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Errors) error{Overflow}!void {
-    const bounds = primitives_.get_bounds(_type);
+    const bounds = primitives_.bounds_from_ast(_type);
     if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
         errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
             .span = span,

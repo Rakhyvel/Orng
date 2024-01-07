@@ -255,7 +255,7 @@ fn output_main_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     var specifier: []const u8 = undefined;
     switch (codomain.*) {
         .identifier => {
-            const info = primitives_.get(codomain.token().data);
+            const info = primitives_.info_from_name(codomain.token().data);
             specifier = switch (info.type_kind) {
                 .boolean, .signed_integer => "d",
                 .unsigned_integer => "u",
@@ -307,7 +307,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
         } else {
-            try writer.print("{s}", .{primitives_.get(_type.token().data).c_name});
+            try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).c_name});
         },
         .addr_of => {
             try output_type(_type.expr(), writer);
@@ -700,7 +700,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
 fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     try output_var_assign(ir.dest.?, writer);
     if (ir.kind.is_checked() and primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) { // TODO: Check if checked operations are enabled, too
-        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.from_ast(ir.dest.?.get_expanded_type()).?.c_name });
+        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.info_from_ast(ir.dest.?.get_expanded_type()).?.c_name });
         try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
         try writer.print(", ", .{});
         if (ir.kind.arity() == .binop) {

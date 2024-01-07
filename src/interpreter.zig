@@ -505,7 +505,7 @@ pub const Context = struct {
     /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
     /// Adds an error if the value is out of bounds.
     fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
-        const bounds = primitives_.get_bounds(_type) orelse return;
+        const bounds = primitives_.bounds_from_ast(_type) orelse return;
         if (val < bounds.lower or val > bounds.upper) {
             return self.panic(span, "error: {s} is out of bounds; value={}\n", .{ operation_name, val });
         }
@@ -516,7 +516,7 @@ pub const Context = struct {
         std.debug.assert(address >= 0);
         switch (_type.*) {
             .identifier => {
-                const info = primitives_.get(_type.token().data);
+                const info = primitives_.info_from_name(_type.token().data);
                 switch (info.type_kind) {
                     .type => return @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8)))),
                     .none => unreachable,

@@ -1,5 +1,5 @@
 def main():
-    with open("src/lexer.zig") as f:
+    with open("src/validate.zig") as f:
         text = f.read()
         scanner = Scanner(text)
         tokens = scanner.tokenize()

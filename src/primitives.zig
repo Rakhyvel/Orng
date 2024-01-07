@@ -391,11 +391,11 @@ pub fn keys() [][]const u8 {
     return primitives.keys();
 }
 
-pub fn get(name: []const u8) Primitive_Info {
+pub fn info_from_name(name: []const u8) Primitive_Info {
     return primitives.get(name).?;
 }
 
-pub fn get_bounds(_type: *ast_.AST) ?Bounds {
+pub fn bounds_from_ast(_type: *ast_.AST) ?Bounds {
     // _type is expanded
     switch (_type.*) {
         .identifier => {
@@ -415,7 +415,7 @@ pub fn get_bounds(_type: *ast_.AST) ?Bounds {
     }
 }
 
-pub fn from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
+pub fn info_from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
     var unwrapped = expanded_type;
     while (unwrapped.* == .annotation) {
         unwrapped = unwrapped.annotation.type;
@@ -423,7 +423,7 @@ pub fn from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
     if (unwrapped.* != .identifier) { // Cannot be a primitive!
         return null;
     }
-    return get(unwrapped.token().data);
+    return info_from_name(unwrapped.token().data);
 }
 
 pub fn represents_signed_primitive(_type: *ast_.AST) bool {

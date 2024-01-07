@@ -161,7 +161,7 @@
     - [x] `||` for union
     - [x] Optimize `double.orng`: use-def analysis is buggy for selects, select-copy elimination opt isn't working
     - [x] equality on sum type values
-    - [ ] reset back to call syntax, arrow syntax sucks weenee
+    - [x] reset back to call syntax, arrow syntax sucks weenee
     - [ ] Builtin-function (?) to get tag name as string from sum
 - [x] optionals
     - [x] `?` constructor
