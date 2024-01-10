@@ -219,6 +219,9 @@ pub const AST = union(enum) {
             var offset: i64 = 0;
             for (0..field) |i| {
                 var item = self._terms.items[i].expand_type(allocator);
+                if (self._terms.items[i + 1].alignof() == 0) {
+                    continue;
+                }
                 offset += item.sizeof();
                 offset = offsets_.next_alignment(offset, self._terms.items[i + 1].alignof());
             }
@@ -1455,11 +1458,7 @@ pub const AST = union(enum) {
             },
 
             // Identifier
-            .identifier => if (std.mem.eql(u8, self.token().data, "_")) {
-                return primitives_.unit_type;
-            } else {
-                return self.symbol().?._type;
-            },
+            .identifier => return self.symbol().?._type,
 
             // Unary Operators
             .@"comptime", .negate => return self.expr().typeof(allocator),
@@ -1621,16 +1620,8 @@ pub const AST = union(enum) {
     /// - `let x: T = void_typed_expression` is always type-sound.
     /// - `types_match(primitives_.void_type, T)` is always true
     ///
-    /// The unit type (`()`) acts like the top type. The following are always true for any type T:
-    /// - `T <: ()`
-    /// - `let x: T = unit_typed_expression` type-sound only if `T == ()`
-    /// - `let x: () = y` is always type-sound (y is discarded)
-    /// - `types_match(X, primitives_.unit_type)` is always true
-    ///
     /// Thus, we have the following type map:
     /// ```txt
-    ///                        ( )
-    ///       /     /     /     |    \      \     \
     ///     Bool  Byte  Char  Float  Int  String  ...
     ///       \     \     \     |    /      /     /
     ///                       Void
@@ -1656,9 +1647,6 @@ pub const AST = union(enum) {
         }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever
-        }
-        if (B.* == .unit_type) {
-            return true; // Top type - vacuously true
         }
         if (A.* == .identifier and std.mem.eql(u8, "Void", A.token().data)) {
             return true; // Bottom type - vacuously true
@@ -1709,6 +1697,12 @@ pub const AST = union(enum) {
         }
     }
 
+    /// Determines if an expanded AST type can represent a floating-point number value
+    pub fn can_expanded_represent_int(self: *AST) bool {
+        const info = primitives_.info_from_ast(self) orelse return false;
+        return info.type_kind == .signed_integer or info.type_kind == .unsigned_integer;
+    }
+
     /// Determines if an AST type can represent a floating-point number value
     pub fn can_represent_float(self: *AST) bool {
         return can_expanded_represent_float(self.expand_identifier());
@@ -1716,18 +1710,7 @@ pub const AST = union(enum) {
 
     /// Determines if an expanded AST type can represent a floating-point number value
     pub fn can_expanded_represent_float(self: *AST) bool {
-        var expanded = self;
-        while (expanded.* == .annotation) {
-            expanded = expanded.annotation.type;
-        }
-        if (expanded.* == .unit_type) {
-            // Top type
-            return true;
-        } else if (expanded.* != .identifier) {
-            // Clearly not a float type
-            return false;
-        }
-        const info = primitives_.info_from_name(expanded.token().data);
+        const info = primitives_.info_from_ast(self) orelse return false;
         return info.type_kind == .floating_point;
     }
 
@@ -1854,6 +1837,10 @@ pub const AST = union(enum) {
                 unreachable;
             },
         }
+    }
+
+    pub fn is_c_void_type(self: *AST) bool {
+        return primitives_.unit_type.c_types_match(self);
     }
 
     pub fn pprint(self: AST, allocator: std.mem.Allocator) ![]const u8 {

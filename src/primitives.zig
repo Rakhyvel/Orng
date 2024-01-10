@@ -425,11 +425,3 @@ pub fn info_from_ast(expanded_type: *ast_.AST) ?Primitive_Info {
     }
     return info_from_name(unwrapped.token().data);
 }
-
-pub fn represents_signed_primitive(_type: *ast_.AST) bool {
-    if (_type.* != .identifier) {
-        return false;
-    }
-    const info = primitives.get(_type.token().data) orelse return false;
-    return info.type_kind == .signed_integer;
-}

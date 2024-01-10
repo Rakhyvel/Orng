@@ -105,7 +105,7 @@ def negative(args):
 
     
 def fuzz():
-    res = subprocess.run(["zig", "build", "orng"]).returncode
+    res = subprocess.run(["zig", "build", "orng", "-target x86_64-linux-gnu "]).returncode
     if res != 0:
         return
     subprocess.run(["rm", "tests/fuzz/problems.txt"]).returncode

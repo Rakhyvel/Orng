@@ -91,7 +91,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
             // Function pointer takes more than one argument
             const product = dag.base.lhs();
             for (product.children().items, 0..) |term, i| {
-                if (!term.c_types_match(primitives_.unit_type)) {
+                if (!term.is_c_void_type()) {
                     // Do not output `void` parameters
                     try output_type(term, writer);
                     if (i + 1 < product.children().items.len) {
@@ -123,7 +123,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
 fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: Writer) CodeGen_Error!void {
     // output each field in the list
     for (fields.items, 0..) |term, i| {
-        if (!term.c_types_match(primitives_.unit_type)) {
+        if (!term.is_c_void_type()) {
             // Don't gen `void` structure/union fields
             for (0..spaces) |_| {
                 try writer.print(" ", .{});
@@ -190,7 +190,7 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
 
     // Collect and then declare all local variables
     for (cfg.symbvers.items) |symbver| {
-        if (symbver.symbol.expanded_type.?.* == .unit_type or // symbol's C type is `void`
+        if (symbver.symbol.expanded_type.?.is_c_void_type() or // symbol's C type is `void`
             symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$' // non-bookkeeping symbol is not used
         ) {
             continue; // Do not output unit variables
@@ -203,7 +203,7 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
     for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
         // Do this only if they aren't discarded in source
         // Users can discard parameters, however used parameters may also become unused through optimizations
-        if (param.expanded_type.?.* != .unit_type and // unit-typed parameters aren't emitted
+        if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
             param.uses == 0)
         {
             try writer.print("    (void)", .{});
@@ -232,7 +232,7 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void 
     var num_non_unit_params: i64 = 0;
     try writer.print("(", .{});
     for (cfg.symbol.decl.?.fn_decl.param_symbols.items, 0..) |term, i| {
-        if (!term.expanded_type.?.c_types_match(primitives_.unit_type)) {
+        if (!term.expanded_type.?.is_c_void_type()) {
             // Print out parameter declarations
             try output_var_decl(term, writer, true);
             if (i + 1 < cfg.symbol.decl.?.fn_decl.param_symbols.items.len) {
@@ -420,7 +420,7 @@ fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         }
     }
 
-    if (ir.dest != null and ir.dest.?.get_type().* == .unit_type and ir.kind != .call) {
+    if (ir.dest != null and ir.dest.?.get_type().is_c_void_type() and ir.kind != .call) {
         return;
     }
 
@@ -456,10 +456,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print("{{", .{});
             var product_list = ir.dest.?.get_expanded_type().children().*;
             for (ir.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
-                if (!expected.c_types_match(primitives_.unit_type)) {
+                if (!expected.is_c_void_type()) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
                     try output_rvalue(term, ir.kind.precedence(), writer);
-                    if (i < product_list.items.len and !product_list.items[i - 1].c_types_match(primitives_.unit_type)) {
+                    if (i < product_list.items.len and !product_list.items[i - 1].is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -469,7 +469,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .load_union => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{.tag={}", .{ir.data.int});
-            if (ir.src1 != null and ir.src1.?.get_expanded_type().* != .unit_type) {
+            if (ir.src1 != null and !ir.src1.?.get_expanded_type().is_c_void_type()) {
                 try writer.print(", ._{}=", .{ir.data.int});
                 try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             }
@@ -514,7 +514,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print(".tag;\n", .{});
         },
         .call => {
-            const void_fn = ir.dest.?.get_type().* == .unit_type;
+            const void_fn = ir.dest.?.get_type().is_c_void_type();
             const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
             if (!symbol_used) {
                 try writer.print("    (void) ", .{});
@@ -526,7 +526,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print("(", .{});
             for (ir.data.lval_list.items, 0..) |term, i| {
-                if (!term.get_expanded_type().c_types_match(primitives_.unit_type)) {
+                if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
                     if (i + 1 < ir.data.lval_list.items.len) {
@@ -673,7 +673,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
 /// Emits the return statement from a function
 fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("    return", .{});
-    if (return_symbol.versions > 0 and return_symbol.expanded_type.?.* != .unit_type) {
+    if (return_symbol.versions > 0 and !return_symbol.expanded_type.?.is_c_void_type()) {
         try writer.print(" ", .{});
         try output_symbol(return_symbol, writer);
     }
@@ -699,7 +699,7 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
 /// Outputs the C code for an operator from an IR.
 fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     try output_var_assign(ir.dest.?, writer);
-    if (ir.kind.is_checked() and primitives_.represents_signed_primitive(ir.dest.?.get_expanded_type())) { // TODO: Check if checked operations are enabled, too
+    if (ir.kind.is_checked() and ir.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
         try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.info_from_ast(ir.dest.?.get_expanded_type()).?.c_name });
         try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
         try writer.print(", ", .{});

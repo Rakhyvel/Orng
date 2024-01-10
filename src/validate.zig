@@ -38,7 +38,7 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
         symbol.expanded_type = symbol._type.expand_type(allocator);
-        const expected = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
+        const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
         symbol.init = validate_AST(symbol.init, expected, errors, allocator);
         // std.debug.print("init for: {s}: {}\n", .{ symbol.name, symbol.init });
@@ -298,7 +298,12 @@ fn validate_AST_internal(
             return ast.@"comptime".result.?;
         },
         .assign => {
-            _ = try binary_operator_open(ast, null, errors, allocator);
+            ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
+            const lhs_type = ast.lhs().typeof(allocator);
+            try assert_none_poisoned(lhs_type);
+            const rhs_expected: ?*ast_.AST = if (ast.lhs().* == .identifier and std.mem.eql(u8, ast.lhs().token().data, "_")) null else lhs_type;
+            ast.set_rhs(validate_AST(ast.rhs(), rhs_expected, errors, allocator));
+            try assert_none_poisoned(.{ ast.lhs(), ast.rhs() });
             try validate_L_Value(ast.lhs(), errors);
             try assert_mutable(ast.lhs(), errors, allocator);
             try type_check(ast, primitives_.unit_type, expected, errors);

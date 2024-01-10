@@ -59,25 +59,7 @@ fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) error{Unused}!void {
 /// - is discarded more than once
 /// - discarded and used.
 fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{Unused}!void {
-    if (symbol.discards > 1) {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.discard_span.?,
-            .context_span = symbol.span,
-            .name = symbol.name,
-            .problem = "is discarded more than once",
-            .context_message = "defined here",
-        } });
-        return error.Unused;
-    } else if (symbol.discards == 1 and symbol.uses > 1) {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.discard_span.?,
-            .context_span = symbol.span,
-            .name = symbol.name,
-            .problem = "is discarded when it is used",
-            .context_message = "defined here",
-        } });
-        return error.Unused;
-    } else if (symbol.kind != .@"const" and
+    if (symbol.kind != .@"const" and
         symbol.discards == 0 and
         symbol.uses == 0 and
         !primitives_.unit_type.types_match(symbol.expanded_type.?)) // Unit-typed symbols do not need to be discarded!
