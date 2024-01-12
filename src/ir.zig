@@ -167,7 +167,7 @@ pub const IR = struct {
         span: span_.Span,
         allocator: std.mem.Allocator,
     ) *IR {
-        if (src1.?.get_type().can_represent_float()) {
+        if (src1.?.get_expanded_type().can_represent_float()) {
             return init(float_kind, dest, src1, src2, span, allocator);
         } else {
             return init(int_kind, dest, src1, src2, span, allocator);

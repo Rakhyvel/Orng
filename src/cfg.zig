@@ -308,8 +308,8 @@ pub const CFG = struct {
             .index => {
                 version_lvalue(lval.index.rhs, bb, ir, parameters);
                 version_lvalue(lval.index.lhs, bb, ir, parameters);
-                if (lval.index.upper_bound != null) { // index is bounded, version bound lval
-                    version_lvalue(lval.index.upper_bound.?, bb, ir, parameters);
+                if (lval.index.length != null) { // index is bounded, version bound lval
+                    version_lvalue(lval.index.length.?, bb, ir, parameters);
                 }
             },
             .select => {

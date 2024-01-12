@@ -344,11 +344,7 @@ fn create_function_symbol(
     allocator: std.mem.Allocator,
 ) Symbol_Error_Enum!*symbol_.Symbol {
     // Calculate the domain type from the function paramter types
-    const domain = extract_domain(
-        ast.children().*,
-        ast.fn_decl.ret_type.token(),
-        allocator,
-    );
+    const domain = extract_domain(ast.children().*, allocator);
 
     // Create the function type
     const _type = ast_.AST.create_function(
@@ -413,9 +409,9 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     return (out.toOwned() catch unreachable).?;
 }
 
-fn extract_domain(params: std.ArrayList(*ast_.AST), token: token_.Token, allocator: std.mem.Allocator) *ast_.AST {
+fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
     if (params.items.len == 0) {
-        return ast_.AST.create_unit_type(token, allocator);
+        return primitives_.unit_type;
     } else if (params.items.len <= 1) {
         return ast_.AST.create_annotation(
             params.items[0].token(),
@@ -467,7 +463,7 @@ fn create_temp_comptime_symbol(
     allocator: std.mem.Allocator,
 ) Symbol_Error_Enum!*symbol_.Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
-    const lhs = ast_.AST.create_unit_type(ast.expr().token(), allocator);
+    const lhs = primitives_.unit_type;
     const rhs = ast_.AST.create_type_of(ast.expr().token(), ast.expr(), allocator);
     const _type = ast_.AST.create_function(ast.expr().token(), lhs, rhs_type_hint orelse rhs, allocator);
 

@@ -5,35 +5,59 @@ const symbol_ = @import("symbol.zig");
 const String = @import("zig-string/zig-string.zig").String;
 
 /// Represents different forms of l-values in an l-value tree.
+///
+/// The root of every L-Value tree is a symbol-version. If an L-Value tree represents a destination address, only the root symbol is modified.
+/// Most nodes are unary, however, indices have two children.
 pub const L_Value = union(enum) {
-    /// L-Value is the address of the symbol
+    /// Represents an SSA version of a symbol
+    ///
+    /// lval is the address of the symbol
     symbver: *Symbol_Version,
-    /// L-Value is lhs.
+
+    /// Represents an address dereference
+    ///
+    /// lval is `expr`
     dereference: struct {
+        /// Address to dereference
         expr: *L_Value,
-        size: i64,
-        type: *ast_.AST,
+        /// Dereference's resulting expanded type
         expanded_type: *ast_.AST,
+        /// Allocator that allocated this lvalue
         allocator: std.mem.Allocator,
     },
-    /// L-Value is L-Value of lhs, + rhs * size
+
+    /// Represents a runtime array or slice index
+    ///
+    /// lval is `lhs + rhs * sizeof()`
     index: struct {
+        /// The base of the array/slice.
         lhs: *L_Value,
+        /// The element's index, which is multiplied by the element size to get the lval
         rhs: *L_Value,
-        upper_bound: ?*L_Value, // Debug UB info
-        size: i64,
-        type: *ast_.AST,
+        /// Debug UB info. Is the length of the array/slice. In debug mode, a panic is raised if rhs is greater-to-or-equal to this length.
+        length: ?*L_Value,
+        /// Index's resulting expanded type
         expanded_type: *ast_.AST,
+        /// Allocator that allocated this lvalue
         allocator: std.mem.Allocator,
     },
-    /// L-Value is L-Value + offset
+
+    /// Represents a product selection based on a comptile-time known field and offset.
+    ///
+    /// lval is `lhs + offset`
     select: struct {
+        /// The base lval that is being projected
         lhs: *L_Value,
+        /// The id of the field that is being selected. Used by codegen.
         field: i128,
+        /// The offset, in bytes, of the selection from the `lhs` address. Used by interpreter.
         offset: i64,
-        type: *ast_.AST,
+        /// Selection's resulting expanded type
         expanded_type: *ast_.AST,
-        tag: ?*L_Value, // Debug UB info
+        /// Debug UB info. Populated by a `get_tag` before selection.
+        /// In debug mode, a panic is raised if this doesn't match `field` at runtime.
+        tag: ?*L_Value,
+        /// Allocator that allocated this lvalue
         allocator: std.mem.Allocator,
     },
 
@@ -48,24 +72,22 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_dereference(lhs: *L_Value, size: i64, _type: *ast_.AST, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_dereference(lhs: *L_Value, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
-        retval.* = L_Value{ .dereference = .{
-            .expr = lhs,
-            .size = size,
-            .type = _type,
-            .expanded_type = expanded_type,
-            .allocator = allocator,
-        } };
+        retval.* = L_Value{
+            .dereference = .{
+                .expr = lhs,
+                .expanded_type = expanded_type,
+                .allocator = allocator,
+            },
+        };
         return retval;
     }
 
     pub fn create_index(
         lhs: *L_Value,
         rhs: *L_Value,
-        upper_bound: ?*L_Value,
-        size: i64,
-        _type: *ast_.AST,
+        length: ?*L_Value,
         expanded_type: *ast_.AST,
         allocator: std.mem.Allocator,
     ) *L_Value {
@@ -73,9 +95,7 @@ pub const L_Value = union(enum) {
         retval.* = L_Value{ .index = .{
             .lhs = lhs,
             .rhs = rhs,
-            .upper_bound = upper_bound,
-            .size = size,
-            .type = _type,
+            .length = length,
             .expanded_type = expanded_type,
             .allocator = allocator,
         } };
@@ -86,7 +106,6 @@ pub const L_Value = union(enum) {
         lhs: *L_Value,
         field: i128,
         offset: i64,
-        _type: *ast_.AST,
         expanded_type: *ast_.AST,
         tag: ?*L_Value,
         allocator: std.mem.Allocator,
@@ -97,7 +116,6 @@ pub const L_Value = union(enum) {
                 .lhs = lhs,
                 .field = field,
                 .offset = offset,
-                .type = _type,
                 .expanded_type = expanded_type,
                 .tag = tag,
                 .allocator = allocator,
@@ -165,15 +183,6 @@ pub const L_Value = union(enum) {
         return self.get_expanded_type().alignof();
     }
 
-    pub fn get_type(self: *L_Value) *ast_.AST {
-        switch (self.*) {
-            .symbver => return self.symbver.symbol._type,
-            .dereference => return self.dereference.type,
-            .index => return self.index.type,
-            .select => return self.select.type,
-        }
-    }
-
     pub fn get_expanded_type(self: *L_Value) *ast_.AST {
         switch (self.*) {
             .symbver => return self.symbver.symbol.expanded_type.?,
@@ -202,8 +211,8 @@ pub const L_Value = union(enum) {
             .index => {
                 lval.index.lhs.reset_usage();
                 lval.index.rhs.reset_usage();
-                if (lval.index.upper_bound != null) {
-                    lval.index.upper_bound.?.reset_usage();
+                if (lval.index.length != null) {
+                    lval.index.length.?.reset_usage();
                 }
             },
             .select => {
@@ -225,8 +234,8 @@ pub const L_Value = union(enum) {
             .index => {
                 lval.index.lhs.calculate_usage();
                 lval.index.rhs.calculate_usage();
-                if (lval.index.upper_bound != null) {
-                    lval.index.upper_bound.?.calculate_usage();
+                if (lval.index.length != null) {
+                    lval.index.length.?.calculate_usage();
                 }
             },
             .select => {

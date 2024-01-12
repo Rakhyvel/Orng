@@ -86,7 +86,7 @@ pub const Context = struct {
             .index => {
                 const base = try self.effective_address(lval.index.lhs);
                 const index = self.load(i64, try self.effective_address(lval.index.rhs));
-                return base + index * lval.index.size;
+                return base + index * lval.sizeof();
             },
             .select => {
                 const base = try self.effective_address(lval.select.lhs);

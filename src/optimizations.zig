@@ -437,7 +437,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
 fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Errors) error{Overflow}!bool {
     if (src1_def != null and src1_def.?.kind == kind) {
         if (kind == .load_int) {
-            try assert_fits(src1_def.?.data.int, ir.dest.?.get_type(), ir.span, errors);
+            try assert_fits(src1_def.?.data.int, ir.dest.?.get_expanded_type(), ir.span, errors);
         }
         ir.kind = kind;
         ir.data = src1_def.?.data;
@@ -487,7 +487,7 @@ fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Err
 
 fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data, errors: *errs_.Errors) error{Overflow}!void {
     if (kind == .load_int) {
-        try assert_fits(data.int, ir.dest.?.get_type(), ir.span, errors);
+        try assert_fits(data.int, ir.dest.?.get_expanded_type(), ir.span, errors);
     }
     ir.kind = kind;
     ir.data = data;

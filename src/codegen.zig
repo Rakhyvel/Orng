@@ -420,7 +420,7 @@ fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         }
     }
 
-    if (ir.dest != null and ir.dest.?.get_type().is_c_void_type() and ir.kind != .call) {
+    if (ir.dest != null and ir.dest.?.get_expanded_type().is_c_void_type() and ir.kind != .call) {
         return;
     }
 
@@ -514,7 +514,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print(".tag;\n", .{});
         },
         .call => {
-            const void_fn = ir.dest.?.get_type().is_c_void_type();
+            const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
             const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
             if (!symbol_used) {
                 try writer.print("    (void) ", .{});
@@ -582,11 +582,11 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
             try output_lvalue_check(span, lvalue.index.lhs, writer);
             try output_lvalue_check(span, lvalue.index.rhs, writer);
 
-            if (lvalue.index.upper_bound != null) {
+            if (lvalue.index.length != null) {
                 try writer.print("    $bounds_check(", .{});
                 try output_rvalue(lvalue.index.rhs, HIGHEST_PRECEDENCE, writer); // idx
                 try writer.print(", ", .{});
-                try output_rvalue(lvalue.index.upper_bound.?, HIGHEST_PRECEDENCE, writer); // length
+                try output_rvalue(lvalue.index.length.?, HIGHEST_PRECEDENCE, writer); // length
                 try writer.print(", ", .{});
                 try span.print_debug_line(writer, span_.c_format);
                 try writer.print(");\n", .{});

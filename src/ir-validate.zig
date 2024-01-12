@@ -33,7 +33,7 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{IRError}!void {
     }
 }
 
-/// Throws `error.IRError` if a symbol is not used
+/// Throws an `error.IRError` if a symbol is not used.
 fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{IRError}!void {
     if (symbol.kind != .@"const" and
         symbol.uses == 0)
@@ -49,10 +49,13 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{IRError}!
     }
 }
 
+/// Throws an `error.IRError` if a symbol is marked `mut`, but is never mutated.
+///
+/// Symbols are mutated when:
+/// - They are the root of at least one IR's destination's L-Value tree, OR
+/// - They are aliased with `&mut`.
 fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{IRError}!void {
-    const unmutated_versions: usize = if (symbol.param) 0 else 1;
     if (symbol.kind == .mut and
-        symbol.versions <= unmutated_versions and
         symbol.aliases == 0 and
         symbol.roots == 0)
     {
