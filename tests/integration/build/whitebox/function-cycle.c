@@ -12,80 +12,80 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _1602_main(void);
-int64_t _1604_a(int64_t _1604_n);
-int64_t _1606_b(int64_t _1606_n);
-int64_t _1608_c(int64_t _1608_n);
+int64_t _1612_main(void);
+int64_t _1614_a(int64_t _1614_n);
+int64_t _1616_b(int64_t _1616_n);
+int64_t _1618_c(int64_t _1618_n);
 
 /* Function definitions */
-int64_t _1602_main(void){
-    function0 _1602_t0;
-    int64_t _1602_t2;
-    int64_t _1602_t1;
-    int64_t _1602_$retval;
-    _1602_t0 = _1604_a;
-    _1602_t2 = 47;
+int64_t _1612_main(void){
+    function0 _1612_t0;
+    int64_t _1612_t2;
+    int64_t _1612_t1;
+    int64_t _1612_$retval;
+    _1612_t0 = _1614_a;
+    _1612_t2 = 47;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:2:21:\nfn main() -> Int {a(47)}\n                   ^";
-    _1602_t1 = _1602_t0(_1602_t2);
+    _1612_t1 = _1612_t0(_1612_t2);
     $line_idx--;
-    _1602_$retval = _1602_t1;
-    return _1602_$retval;
+    _1612_$retval = _1612_t1;
+    return _1612_$retval;
 }
 
-int64_t _1604_a(int64_t _1604_n){
-    function0 _1604_t0;
-    int64_t _1604_t1;
-    int64_t _1604_$retval;
-    _1604_t0 = _1606_b;
+int64_t _1614_a(int64_t _1614_n){
+    function0 _1614_t0;
+    int64_t _1614_t1;
+    int64_t _1614_$retval;
+    _1614_t0 = _1616_b;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:4:24:\nfn a(n: Int) -> Int {b(n)}\n                      ^";
-    _1604_t1 = _1604_t0(_1604_n);
+    _1614_t1 = _1614_t0(_1614_n);
     $line_idx--;
-    _1604_$retval = _1604_t1;
-    return _1604_$retval;
+    _1614_$retval = _1614_t1;
+    return _1614_$retval;
 }
 
-int64_t _1606_b(int64_t _1606_n){
-    function0 _1606_t0;
-    int64_t _1606_t1;
-    int64_t _1606_$retval;
-    _1606_t0 = _1608_c;
+int64_t _1616_b(int64_t _1616_n){
+    function0 _1616_t0;
+    int64_t _1616_t1;
+    int64_t _1616_$retval;
+    _1616_t0 = _1618_c;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:6:24:\nfn b(n: Int) -> Int {c(n)}\n                      ^";
-    _1606_t1 = _1606_t0(_1606_n);
+    _1616_t1 = _1616_t0(_1616_n);
     $line_idx--;
-    _1606_$retval = _1606_t1;
-    return _1606_$retval;
+    _1616_$retval = _1616_t1;
+    return _1616_$retval;
 }
 
-int64_t _1608_c(int64_t _1608_n){
-    int64_t _1608_t1;
-    uint8_t _1608_t3;
-    function0 _1608_t5;
-    int64_t _1608_t6;
-    int64_t _1608_t0;
-    int64_t _1608_$retval;
-    _1608_t1 = 47;
-    _1608_t3 = _1608_n==_1608_t1;
-    if (_1608_t3) {
-        goto BB1883;
+int64_t _1618_c(int64_t _1618_n){
+    int64_t _1618_t1;
+    uint8_t _1618_t3;
+    function0 _1618_t5;
+    int64_t _1618_t6;
+    int64_t _1618_t0;
+    int64_t _1618_$retval;
+    _1618_t1 = 47;
+    _1618_t3 = _1618_n==_1618_t1;
+    if (_1618_t3) {
+        goto BB1895;
     } else {
-        goto BB1887;
+        goto BB1899;
     }
-BB1883:
-    _1608_t0 = 47;
-    goto BB1886;
-BB1887:
-    _1608_t5 = _1604_a;
+BB1895:
+    _1618_t0 = 47;
+    goto BB1898;
+BB1899:
+    _1618_t5 = _1614_a;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
-    _1608_t6 = _1608_t5(_1608_n);
+    _1618_t6 = _1618_t5(_1618_n);
     $line_idx--;
-    _1608_t0 = _1608_t6;
-    goto BB1886;
-BB1886:
-    _1608_$retval = _1608_t0;
-    return _1608_$retval;
+    _1618_t0 = _1618_t6;
+    goto BB1898;
+BB1898:
+    _1618_$retval = _1618_t0;
+    return _1618_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1602_main());
+  printf("%ld",_1612_main());
   return 0;
 }

@@ -104,15 +104,15 @@ pub const Symbol = struct {
 
     // Use-def
     versions: u64 = 0,
+    aliases: u64 = 0, // How many times the symbol is taken as a mutable address
+    roots: u64 = 0, // How many times the symbol is the root of an lvaue tree
     uses: u64 = 0,
-    discards: u64 = 0, // May be 0 if symbol is uses > 0; may be 1 if uses = 0; may not be greater than 1
-    discard_span: ?span_.Span,
 
     defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,
-    decld: bool, // When a local variable, whether or not the variable has been printed out or not
-    param: bool,
-    is_temp: bool = false,
+    decld: bool, // True when the symbol is a local variable, whether or not the variable has been printed out or not
+    param: bool, // True when the symbol is a parameter in a function
+    is_temp: bool = false, // True
 
     // Offset
     offset: ?i64, // The offset from the BP that this symbol
@@ -136,7 +136,8 @@ pub const Symbol = struct {
         retval.init = _init;
         retval.decl = decl;
         retval.versions = 0;
-        retval.discards = 0;
+        retval.aliases = 0;
+        retval.roots = 0;
         retval.uses = 0;
         retval.offset = null;
         retval.kind = kind;

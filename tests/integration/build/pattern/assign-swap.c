@@ -16,53 +16,53 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1140_main(void);
+int64_t _1150_main(void);
 
 /* Function definitions */
-int64_t _1140_main(void){
-    int64_t _1140_t1;
-    int64_t _1140_t2;
-    struct struct0 _1140_t0;
-    int64_t _1141_x;
-    int64_t _1141_y;
-    struct struct0 _1140_t3;
-    int64_t _1140_t5;
-    uint8_t _1140_t7;
-    int64_t _1140_$retval;
-    int64_t _1140_t8;
-    uint8_t _1140_t10;
-    _1140_t1 = 1;
-    _1140_t2 = 2;
-    _1140_t0 = (struct struct0) {_1140_t1, _1140_t2};
-    _1141_x = _1140_t0._0;
-    _1141_y = _1140_t0._1;
-    _1140_t3 = (struct struct0) {_1141_x, _1141_y};
-    _1141_y = _1140_t3._0;
-    _1141_x = _1140_t3._1;
-    _1140_t5 = 1;
-    _1140_t7 = _1141_y==_1140_t5;
-    if (_1140_t7) {
-        goto BB1335;
+int64_t _1150_main(void){
+    int64_t _1150_t1;
+    int64_t _1150_t2;
+    struct struct0 _1150_t0;
+    int64_t _1151_x;
+    int64_t _1151_y;
+    struct struct0 _1150_t3;
+    int64_t _1150_t5;
+    uint8_t _1150_t7;
+    int64_t _1150_$retval;
+    int64_t _1150_t8;
+    uint8_t _1150_t10;
+    _1150_t1 = 1;
+    _1150_t2 = 2;
+    _1150_t0 = (struct struct0) {_1150_t1, _1150_t2};
+    _1151_x = _1150_t0._0;
+    _1151_y = _1150_t0._1;
+    _1150_t3 = (struct struct0) {_1151_x, _1151_y};
+    _1151_y = _1150_t3._0;
+    _1151_x = _1150_t3._1;
+    _1150_t5 = 1;
+    _1150_t7 = _1151_y==_1150_t5;
+    if (_1150_t7) {
+        goto BB1347;
     } else {
-        goto BB1342;
+        goto BB1354;
     }
-BB1335:
-    _1140_t8 = 2;
-    _1140_t10 = _1141_x==_1140_t8;
-    if (_1140_t10) {
-        goto BB1338;
+BB1347:
+    _1150_t8 = 2;
+    _1150_t10 = _1151_x==_1150_t8;
+    if (_1150_t10) {
+        goto BB1350;
     } else {
-        goto BB1342;
+        goto BB1354;
     }
-BB1342:
+BB1354:
     $lines[$line_idx++] = "tests/integration/pattern/assign-swap.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB1338:
-    _1140_$retval = 159;
-    return _1140_$retval;
+BB1350:
+    _1150_$retval = 159;
+    return _1150_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1140_main());
+  printf("%ld",_1150_main());
   return 0;
 }

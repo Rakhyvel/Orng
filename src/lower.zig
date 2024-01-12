@@ -16,7 +16,7 @@ pub const Lower_Errors = error{
     TypeError,
     InterpreterPanic,
     DivideByZero,
-    Unused,
+    IRError,
     Overflow,
 };
 
@@ -568,8 +568,8 @@ fn unop(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!?*lval_.L_Value {
-    if ((ast.typeof(allocator)).types_match(primitives_.type_type)) {
-        return lval_from_ast(ast, cfg, allocator); // for addrOf
+    if (ast.typeof(allocator).types_match(primitives_.type_type)) {
+        return lval_from_ast(ast, cfg, allocator); // for addr_of types, ex: `&T`
     }
     const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator) orelse return null;
     const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
@@ -598,7 +598,7 @@ fn int_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_int,
-        .addr_of => .addr_of,
+        .addr_of => if (ast.addr_of.mut) .mut_addr_of else .addr_of,
         .add => .add_int,
         .sub => .sub_int,
         .mult => .mult_int,
@@ -616,7 +616,7 @@ fn float_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_float,
-        .addr_of => .addr_of,
+        .addr_of => if (ast.addr_of.mut) .mut_addr_of else .addr_of,
         .add => .add_float,
         .sub => .sub_float,
         .mult => .mult_float,

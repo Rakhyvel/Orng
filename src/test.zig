@@ -128,7 +128,7 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
                 error.ParseError,
                 error.SymbolError,
                 error.TypeError,
-                error.Unused,
+                error.IRError,
                 error.DivideByZero,
                 => out.print("Orng -> C.\n", .{}) catch unreachable,
                 else => out.print("Orng Compiler crashed! {}\n", .{err}) catch unreachable,
@@ -255,7 +255,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                 error.SymbolError,
                 error.TypeError,
                 error.InterpreterPanic,
-                error.Unused,
+                error.IRError,
                 error.DivideByZero,
                 => {
                     errors.print_errors() catch unreachable;
@@ -344,7 +344,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                     error.LexerError,
                     error.SymbolError,
                     error.TypeError,
-                    error.Unused,
+                    error.IRError,
                     error.DivideByZero,
                     => {
                         // passed += 1;

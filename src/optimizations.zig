@@ -12,14 +12,12 @@ const symbol_ = @import("symbol.zig");
 
 const debug = false;
 
-pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ DivideByZero, Unused, Overflow }!void {
+pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ DivideByZero, Overflow }!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
         log("\n\n");
     }
-
-    try find_unused(cfg, errors);
 
     while (try propagate(cfg, errors, allocator) or
         remove_unused_defs(cfg) or
@@ -31,55 +29,11 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
     log_optimization_pass("final", cfg);
 }
 
-fn find_unused(cfg: *cfg_.CFG, errors: *errs_.Errors) error{Unused}!void {
-    calculate_usage(cfg);
-    if (cfg.symbol.decl.?.* == .fn_decl) {
-        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
-            try err_if_unused(param_symbol, errors);
-        }
-    }
-
-    for (cfg.basic_blocks.items) |bb| {
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and
-                !ir.removed and
-                ir.dest.?.* == .symbver and
-                !ir.dest.?.symbver.symbol.is_temp and
-                ir.dest.?.symbver.symbol != cfg.return_symbol)
-            {
-                try err_if_unused(ir.dest.?.symbver.symbol, errors);
-            }
-        }
-    }
-}
-
-/// Throws `error.Unused` if a symbol:
-/// - is not used
-/// - is discarded more than once
-/// - discarded and used.
-fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{Unused}!void {
-    if (symbol.kind != .@"const" and
-        symbol.discards == 0 and
-        symbol.uses == 0 and
-        !primitives_.unit_type.types_match(symbol.expanded_type.?)) // Unit-typed symbols do not need to be discarded!
-    {
-        errors.add_error(errs_.Error{ .symbol_error = .{
-            .span = symbol.span,
-            .context_span = null,
-            .name = symbol.name,
-            .problem = "is never used",
-            .context_message = "",
-        } });
-        return error.Unused;
-    }
-}
-
 fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ Overflow, DivideByZero }!bool {
     var retval = false;
 
-    calculate_versions(cfg);
-    calculate_usage(cfg);
+    cfg.calculate_versions();
+    cfg.calculate_usage();
 
     for (cfg.basic_blocks.items) |bb| {
         // For each BB, keep a map of symbol versions and their definitions
@@ -95,7 +49,7 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
 
             if (ir.dest != null and ir.dest.?.* != .symbver) {
                 def_map.put(ir.dest.?.extract_symbver(), null) catch unreachable;
-            } else if (ir.kind == .addr_of) {
+            } else if (ir.kind == .mut_addr_of) {
                 def_map.put(ir.src1.?.extract_symbver(), null) catch unreachable;
             }
             if (ir.dest != null and ir.dest.?.* == .symbver) {
@@ -135,7 +89,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
                 ir.in_block.?.remove_instruction(ir);
                 retval = true;
             } else {
-                log("copy-propagation");
+                logfln("copy-propagation {?}", .{src1_def});
                 retval = try copy_prop(ir, src1_def, .load_int, errors) or // TODO: Check if data fits int type bounds!
                     try copy_prop(ir, src1_def, .load_float, errors) or
                     try copy_prop(ir, src1_def, .load_string, errors) or
@@ -145,6 +99,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
                     try copy_prop(ir, src1_def, .load_AST, errors) or
                     (try copy_prop(ir, src1_def, .copy, errors) and ir.src1 != src1_def.?.src1.?) or
                     try copy_prop(ir, src1_def, .addr_of, errors) or
+                    try copy_prop(ir, src1_def, .mut_addr_of, errors) or
                     try copy_prop(ir, src1_def, .add_int, errors) or try copy_prop(ir, src1_def, .add_float, errors) or
                     try copy_prop(ir, src1_def, .sub_int, errors) or try copy_prop(ir, src1_def, .sub_float, errors) or
                     try copy_prop(ir, src1_def, .mult_int, errors) or try copy_prop(ir, src1_def, .mult_float, errors) or
@@ -474,27 +429,8 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
     }
 
     if (!retval and ir.dest == null or ir.dest.?.* == .symbver) {
-        // Need to make sure src1_def.dest is not assigned to in between src1_def and ir.
-        //   srcn_def:        dest = ?
-        //             ...
-        //   recent_srcn_def: dest = ? // If this exists, then srcn_def is NOT the most up to date
-        //             ...
-        //   ir:              ...
-        if (src1_def != null and src1_def.?.kind == .copy and src1_def.?.src1.?.* == .symbver) {
-            // src1 copy propagation
-            const recent_src1_def = src1_def.?.next.?.any_def_after(src1_def.?.src1.?.symbver.symbol, ir);
-            if (recent_src1_def == null) {
-                ir.src1 = src1_def.?.src1;
-                retval = true;
-            }
-        } else if (src2_def != null and src2_def.?.kind == .copy and src2_def.?.src1.?.* == .symbver) {
-            // src2 copy propagation
-            const recent_src2_def = src2_def.?.next.?.any_def_after(src2_def.?.src1.?.symbver.symbol, ir);
-            if (recent_src2_def == null) {
-                ir.src2 = src2_def.?.src1;
-                retval = true;
-            }
-        }
+        retval = copy_of_prop(ir, &ir.src1, src1_def) or retval;
+        retval = copy_of_prop(ir, &ir.src2, src2_def) or retval;
     }
 
     return retval;
@@ -512,6 +448,29 @@ fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Err
         ir.src1 = src1_def.?.src1;
         return true;
     } else {
+        return false;
+    }
+}
+
+fn copy_of_prop(ir: *ir_.IR, src: *?*lval_.L_Value, src_def: ?*ir_.IR) bool {
+    if (src_def != null and // src has a definition
+        src_def.?.kind == .copy and // src's definition is a copy of something
+        src_def.?.src1.?.* == .symbver and // src's copy definition is of a plain symbver
+        (src_def.?.dest.?.* != .symbver or src_def.?.src1.?.extract_symbver() != src_def.?.dest.?.extract_symbver()) // prevent self-copy
+    ) {
+        // Find recent version of what src's definition copies
+        const src_def_redefinition = src_def.?.next.?.any_def_after(src_def.?.src1.?.symbver.symbol, ir);
+        if (src_def_redefinition == null) {
+            // there is no re-definition in between src's definition and this IR, safe to copy-propagate
+            src.* = src_def.?.src1;
+            return true;
+        } else {
+            // there was another definition in between src's definition, cannot copy-propagate.
+            // the redefinition is likely junk, too. ex: `x[3] = 4` <= here we cannot just replace `x` with `4`.
+            return false;
+        }
+    } else {
+        // src's definition isn't in a good shape to look up re-definitions. Cannot do copy-propagation.
         return false;
     }
 }
@@ -566,8 +525,8 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{DivideByZero}
 fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     var retval = false;
 
-    calculate_usage(cfg);
-    calculate_versions(cfg);
+    cfg.calculate_usage();
+    cfg.calculate_versions();
 
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
@@ -596,14 +555,15 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
 fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 
-    count_predecessors(cfg);
+    cfg.count_bb_predecessors();
     cfg.calculate_phi_params_and_args(allocator);
-    calculate_versions(cfg);
+    cfg.calculate_versions();
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {
             defer log_optimization_pass("remove unused block", cfg);
-            remove_BB(cfg, bb, true);
+            cfg.remove_basic_block(bb);
+            bb.mark_irs_as_removed();
             return true; // Perhaps mark these and remove them in a sweep pass?
         }
     }
@@ -636,7 +596,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             }
 
             // Remove the next block
-            remove_BB(cfg, bb.next.?, false);
+            cfg.remove_basic_block(bb.next.?);
             bb.next = bb.next.?.next;
             retval = true;
             break;
@@ -742,182 +702,6 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     return retval;
 }
 
-fn calculate_usage(cfg: *cfg_.CFG) void {
-    if (cfg.symbol.decl.?.* == .fn_decl) {
-        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
-            param_symbol.uses = 0;
-        }
-    }
-
-    for (cfg.basic_blocks.items) |bb| {
-        // Clear all used flags
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null) {
-                reset_usage_lval(ir.dest.?);
-            }
-        }
-    }
-
-    for (cfg.basic_blocks.items) |bb| {
-        // Arguments are default used
-        for (bb.next_arguments.items) |symbver| {
-            symbver.uses += 1;
-        }
-        for (bb.branch_arguments.items) |symbver| {
-            symbver.uses += 1;
-        }
-
-        // Go through and see if each symbol is used
-        var maybe_ir = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.* != .symbver) {
-                calculate_usage_lval(ir.dest.?);
-            }
-            if (ir.src1 != null) {
-                calculate_usage_lval(ir.src1.?);
-            }
-            if (ir.src2 != null) {
-                calculate_usage_lval(ir.src2.?);
-            }
-
-            if (ir.data == .lval_list) {
-                for (ir.data.lval_list.items) |lval| {
-                    calculate_usage_lval(lval);
-                }
-            }
-        }
-
-        // Conditions are used
-        if (bb.has_branch) {
-            bb.condition.?.extract_symbver().uses += 1;
-            bb.condition.?.extract_symbver().symbol.uses += 1;
-        }
-    }
-}
-
-fn reset_usage_lval(lval: *lval_.L_Value) void {
-    switch (lval.*) {
-        .symbver => {
-            lval.symbver.uses = 0;
-            lval.symbver.symbol.uses = 0;
-        },
-        .dereference => reset_usage_lval(lval.dereference.expr),
-        .index => {
-            reset_usage_lval(lval.index.lhs);
-            reset_usage_lval(lval.index.rhs);
-            if (lval.index.upper_bound != null) {
-                reset_usage_lval(lval.index.upper_bound.?);
-            }
-        },
-        .select => {
-            reset_usage_lval(lval.select.lhs);
-            if (lval.select.tag != null) {
-                reset_usage_lval(lval.select.tag.?);
-            }
-        },
-    }
-}
-
-fn calculate_usage_lval(lval: *lval_.L_Value) void {
-    switch (lval.*) {
-        .symbver => {
-            lval.symbver.uses += 1;
-            lval.symbver.symbol.uses += 1;
-        },
-        .dereference => calculate_usage_lval(lval.dereference.expr),
-        .index => {
-            calculate_usage_lval(lval.index.lhs);
-            calculate_usage_lval(lval.index.rhs);
-            if (lval.index.upper_bound != null) {
-                calculate_usage_lval(lval.index.upper_bound.?);
-            }
-        },
-        .select => {
-            calculate_usage_lval(lval.select.lhs);
-            if (lval.select.tag != null) {
-                calculate_usage_lval(lval.select.tag.?);
-            }
-        },
-    }
-}
-
-fn calculate_versions(cfg: *cfg_.CFG) void {
-    for (cfg.basic_blocks.items) |bb| {
-        // Reset all reachable symbol verison counts to 0
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.* == .symbver) {
-                ir.dest.?.symbver.symbol.versions = 0;
-            }
-            if (ir.src1 != null and ir.src1.?.* == .symbver) {
-                ir.src1.?.symbver.symbol.versions = 0;
-            }
-            if (ir.src2 != null and ir.src2.?.* == .symbver) {
-                ir.src2.?.symbver.symbol.versions = 0;
-            }
-        }
-        cfg.return_symbol.versions = 0;
-    }
-
-    for (cfg.basic_blocks.items) |bb| {
-        // Parameters define symbol versions
-        for (bb.next_arguments.items) |symbver| {
-            symbver.symbol.versions += 1;
-        }
-
-        // Go through sum up each definition
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and ir.dest.?.* == .symbver) {
-                ir.dest.?.symbver.def = ir;
-                ir.dest.?.symbver.symbol.versions += 1;
-            }
-        }
-    }
-}
-
-fn count_predecessors(cfg: *cfg_.CFG) void {
-    for (cfg.basic_blocks.items) |bb| {
-        bb.number_predecessors = 0;
-    }
-    cfg.clear_visited_BBs();
-    _count_predecessors(cfg.block_graph_head orelse return);
-}
-
-fn _count_predecessors(bb: *basic_block_.Basic_Block) void {
-    bb.number_predecessors += 1;
-    if (bb.visited) {
-        return;
-    }
-    bb.visited = true;
-    if (bb.next) |next| {
-        _count_predecessors(next);
-    }
-    if (bb.has_branch) {
-        if (bb.branch) |branch| {
-            _count_predecessors(branch);
-        }
-    }
-}
-
-fn remove_BB(cfg: *cfg_.CFG, bb: *basic_block_.Basic_Block, wipe_IR: bool) void {
-    var i: usize = 0;
-    while (i < cfg.basic_blocks.items.len) : (i += 1) {
-        if (bb == cfg.basic_blocks.items[i]) {
-            break;
-        }
-    }
-    _ = cfg.basic_blocks.swapRemove(i);
-    if (wipe_IR) {
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            ir.removed = true;
-        }
-    }
-    bb.removed = true;
-}
-
 fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
     if (debug) {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});
@@ -934,5 +718,12 @@ fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
 fn log(msg: []const u8) void {
     if (debug) {
         std.debug.print("{s}\n", .{msg});
+    }
+}
+
+fn logfln(comptime fmt: []const u8, args: anytype) void {
+    if (debug) {
+        std.debug.print(fmt, args);
+        std.debug.print("\n", .{});
     }
 }

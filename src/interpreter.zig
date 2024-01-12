@@ -319,7 +319,7 @@ pub const Context = struct {
                 const data = self.load_float(try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
                 self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), -data);
             },
-            .addr_of => {
+            .mut_addr_of, .addr_of => {
                 const data = try self.effective_address(ir.src1.?);
                 self.store_int(try self.effective_address(ir.dest.?), 8, data);
             },

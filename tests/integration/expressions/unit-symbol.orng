@@ -1,5 +1,6 @@
 // 287
 fn main() -> Int {
-    let x: () = {} // This is ok, it shouldn't complain that it's not used, because it's a unit type
+    let x: () = {}
+    _ = x
     287
 }

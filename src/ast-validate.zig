@@ -1,3 +1,5 @@
+// This file validates a module of ASTs. It primarily is responsible for type-checking.
+
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
@@ -135,7 +137,7 @@ fn validate_AST_internal(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, Unused }!*ast_.AST {
+) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError }!*ast_.AST {
     // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => return ast,

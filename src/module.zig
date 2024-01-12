@@ -1,4 +1,5 @@
 const std = @import("std");
+const ast_validate_ = @import("ast-validate.zig");
 const ast_ = @import("ast.zig");
 const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
@@ -6,6 +7,7 @@ const codegen_ = @import("codegen.zig");
 const decorate_ = @import("decorate.zig");
 const errs_ = @import("errors.zig");
 const expand_ = @import("expand.zig");
+const ir_validate_ = @import("ir-validate.zig");
 const ir_ = @import("ir.zig");
 const layout_ = @import("layout.zig");
 const lines_ = @import("lines.zig");
@@ -18,7 +20,6 @@ const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 const symbol_tree_ = @import("symbol-tree.zig");
 const type_set_ = @import("type-set.zig");
-const validate_ = @import("validate.zig");
 
 const Module_Errors = error{
     LexerError,
@@ -28,7 +29,7 @@ const Module_Errors = error{
     Overflow,
     SymbolError,
     TypeError,
-    Unused,
+    IRError,
     DivideByZero,
     NotAnLValue,
     InterpreterPanic,
@@ -145,7 +146,7 @@ pub const Module = struct {
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, errors, allocator);
 
         // Validate the module
-        try validate_.validate_module(module, errors, allocator);
+        try ast_validate_.validate_module(module, errors, allocator);
         if (errors.errors_list.items.len > 0) {
             return error.TypeError;
         }
@@ -327,6 +328,7 @@ pub fn get_cfg(
     if (symbol.cfg == null) {
         symbol.cfg = cfg_.CFG.init(symbol, caller, interned_strings, allocator);
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
+        try ir_validate_.validate_cfg(symbol.cfg.?, errors);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);
         symbol.cfg.?.collect_generated_symbvers();
         symbol.cfg.?.locals_size = offsets_.calculate_offsets(symbol);

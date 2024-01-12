@@ -19,16 +19,16 @@ struct struct0 {
 char* string_0 = "\x48\x65\x6C\x6C\x6F\x2C\x20\x4F\x72\x6E\x67\x21\x20\xF0\x9F\x8D\x8A";
 
 /* Function forward definitions */
-struct struct0 _1405_main(void);
+struct struct0 _1415_main(void);
 
 /* Function definitions */
-struct struct0 _1405_main(void){
-    struct struct0 _1405_$retval;
-    _1405_$retval = (struct struct0) {(uint8_t*)string_0, 17};
-    return _1405_$retval;
+struct struct0 _1415_main(void){
+    struct struct0 _1415_$retval;
+    _1415_$retval = (struct struct0) {(uint8_t*)string_0, 17};
+    return _1415_$retval;
 }
 
 int main(void) {
-  printf("%s",_1405_main()._0);
+  printf("%s",_1415_main()._0);
   return 0;
 }

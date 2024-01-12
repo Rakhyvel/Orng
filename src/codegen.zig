@@ -480,7 +480,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(";\n", .{});
         },
-        .addr_of => {
+        .mut_addr_of, .addr_of => {
             try output_var_assign(ir.dest.?, writer);
             try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(";\n", .{});

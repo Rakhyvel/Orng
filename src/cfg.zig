@@ -394,4 +394,126 @@ pub const CFG = struct {
 
         return retval;
     }
+
+    pub fn calculate_usage(cfg: *CFG) void {
+        if (cfg.symbol.decl.?.* == .fn_decl) {
+            for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
+                param_symbol.uses = 0;
+            }
+        }
+
+        for (cfg.basic_blocks.items) |bb| {
+            // Clear all used flags
+            var maybe_ir: ?*ir_.IR = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.dest != null) {
+                    ir.dest.?.reset_usage();
+                }
+            }
+        }
+
+        for (cfg.basic_blocks.items) |bb| {
+            // Arguments are default used
+            for (bb.next_arguments.items) |symbver| {
+                symbver.uses += 1;
+            }
+            for (bb.branch_arguments.items) |symbver| {
+                symbver.uses += 1;
+            }
+
+            // Go through and see if each symbol is used
+            var maybe_ir = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.dest != null and ir.dest.?.* != .symbver) {
+                    ir.dest.?.calculate_usage();
+                }
+                if (ir.src1 != null) {
+                    ir.src1.?.calculate_usage();
+                }
+                if (ir.src2 != null) {
+                    ir.src2.?.calculate_usage();
+                }
+
+                if (ir.data == .lval_list) {
+                    for (ir.data.lval_list.items) |lval| {
+                        lval.calculate_usage();
+                    }
+                }
+            }
+
+            // Conditions are used
+            if (bb.has_branch) {
+                bb.condition.?.extract_symbver().uses += 1;
+                bb.condition.?.extract_symbver().symbol.uses += 1;
+            }
+        }
+    }
+
+    pub fn calculate_versions(cfg: *CFG) void {
+        for (cfg.basic_blocks.items) |bb| {
+            // Reset all reachable symbol verison counts to 0
+            var maybe_ir: ?*ir_.IR = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.dest != null and ir.dest.?.* == .symbver) {
+                    ir.dest.?.symbver.symbol.versions = 0;
+                }
+                if (ir.src1 != null and ir.src1.?.* == .symbver) {
+                    ir.src1.?.symbver.symbol.versions = 0;
+                }
+                if (ir.src2 != null and ir.src2.?.* == .symbver) {
+                    ir.src2.?.symbver.symbol.versions = 0;
+                }
+            }
+            cfg.return_symbol.versions = 0;
+        }
+
+        for (cfg.basic_blocks.items) |bb| {
+            // Parameters define symbol versions
+            for (bb.next_arguments.items) |symbver| {
+                symbver.symbol.versions += 1;
+            }
+
+            // Go through sum up each definition
+            var maybe_ir: ?*ir_.IR = bb.ir_head;
+            while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+                if (ir.dest != null and ir.dest.?.* == .symbver) {
+                    ir.dest.?.symbver.def = ir;
+                    ir.dest.?.symbver.symbol.versions += 1;
+                }
+                if (ir.dest != null) {
+                    ir.dest.?.extract_symbver().symbol.roots += 1;
+                }
+                if (ir.kind == .mut_addr_of) {
+                    ir.src1.?.extract_symbver().symbol.aliases += 1;
+                }
+            }
+        }
+    }
+
+    pub fn count_bb_predecessors(cfg: *CFG) void {
+        // Reset all basic block predecessors to 0
+        for (cfg.basic_blocks.items) |bb| {
+            bb.number_predecessors = 0;
+        }
+        cfg.clear_visited_BBs();
+        if (cfg.block_graph_head) |head| {
+            // start predecessor count walk at head
+            head.count_predecessors();
+        }
+    }
+
+    pub fn remove_basic_block(cfg: *CFG, bb: *basic_block_.Basic_Block) void {
+        _ = cfg.basic_blocks.swapRemove(cfg.index_of_basic_block(bb));
+        bb.removed = true;
+    }
+
+    fn index_of_basic_block(cfg: *CFG, bb: *basic_block_.Basic_Block) usize {
+        for (0..cfg.basic_blocks.items.len) |i| {
+            if (bb == cfg.basic_blocks.items[i]) {
+                return i;
+            }
+        } else {
+            unreachable;
+        }
+    }
 };

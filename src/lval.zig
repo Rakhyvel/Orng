@@ -191,6 +191,52 @@ pub const L_Value = union(enum) {
             .select => 1,
         };
     }
+
+    pub fn reset_usage(lval: *L_Value) void {
+        switch (lval.*) {
+            .symbver => {
+                lval.symbver.uses = 0;
+                lval.symbver.symbol.uses = 0;
+            },
+            .dereference => lval.dereference.expr.reset_usage(),
+            .index => {
+                lval.index.lhs.reset_usage();
+                lval.index.rhs.reset_usage();
+                if (lval.index.upper_bound != null) {
+                    lval.index.upper_bound.?.reset_usage();
+                }
+            },
+            .select => {
+                lval.select.lhs.reset_usage();
+                if (lval.select.tag != null) {
+                    lval.select.tag.?.reset_usage();
+                }
+            },
+        }
+    }
+
+    pub fn calculate_usage(lval: *L_Value) void {
+        switch (lval.*) {
+            .symbver => {
+                lval.symbver.uses += 1;
+                lval.symbver.symbol.uses += 1;
+            },
+            .dereference => lval.dereference.expr.calculate_usage(),
+            .index => {
+                lval.index.lhs.calculate_usage();
+                lval.index.rhs.calculate_usage();
+                if (lval.index.upper_bound != null) {
+                    lval.index.upper_bound.?.calculate_usage();
+                }
+            },
+            .select => {
+                lval.select.lhs.calculate_usage();
+                if (lval.select.tag != null) {
+                    lval.select.tag.?.calculate_usage();
+                }
+            },
+        }
+    }
 };
 
 pub const Symbol_Version = struct {

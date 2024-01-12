@@ -174,4 +174,27 @@ pub const Basic_Block = struct {
             return bb.ir_head.?.get_latest_def_after(lval.symbver.symbol, stop_at_ir);
         }
     }
+
+    pub fn count_predecessors(bb: *Basic_Block) void {
+        bb.number_predecessors += 1;
+        if (bb.visited) {
+            return;
+        }
+        bb.visited = true;
+        if (bb.next) |next| {
+            next.count_predecessors();
+        }
+        if (bb.has_branch) {
+            if (bb.branch) |branch| {
+                branch.count_predecessors();
+            }
+        }
+    }
+
+    pub fn mark_irs_as_removed(bb: *Basic_Block) void {
+        var maybe_ir: ?*ir_.IR = bb.ir_head;
+        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
+            ir.removed = true;
+        }
+    }
 };

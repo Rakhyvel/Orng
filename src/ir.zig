@@ -245,6 +245,9 @@ pub const IR = struct {
             .addr_of => {
                 try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
             },
+            .mut_addr_of => {
+                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
+            },
             .equal => {
                 try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
             },
@@ -379,7 +382,7 @@ pub const IR = struct {
                 return null;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 retval = ir;
-            } else if (ir.kind == .addr_of and ir.src1.?.extract_symbver().symbol == symbol) {
+            } else if (ir.kind == .mut_addr_of and ir.src1.?.extract_symbver().symbol == symbol) {
                 retval = null;
             }
         }
@@ -395,7 +398,7 @@ pub const IR = struct {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .index and ir.dest.?.extract_symbver().symbol == symbol) {
                 return ir;
-            } else if (ir.kind == .addr_of and ir.src1.?.extract_symbver().symbol == symbol) {
+            } else if (ir.kind == .mut_addr_of and ir.src1.?.extract_symbver().symbol == symbol) {
                 return ir;
             } else if (ir.dest != null and ir.dest.?.* == .symbver and ir.dest.?.symbver.symbol == symbol) {
                 return ir;
@@ -424,6 +427,7 @@ pub const Kind = enum {
     negate_float,
     size_of, //< For extern types that Orng can't do automatically
     addr_of,
+    mut_addr_of, // Separate kind to allow for aliasing analysis
 
     // Diadic instructions
     equal,
@@ -550,6 +554,7 @@ pub const Kind = enum {
             .not,
             .size_of,
             .cast,
+            .mut_addr_of,
             .addr_of,
             => 2,
 
