@@ -428,10 +428,8 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         else => {},
     }
 
-    if (!retval and ir.dest == null or ir.dest.?.* == .symbver) {
-        retval = copy_of_prop(ir, &ir.src1, src1_def) or retval;
-        retval = copy_of_prop(ir, &ir.src2, src2_def) or retval;
-    }
+    retval = copy_of_prop(ir, &ir.src1, src1_def) or retval;
+    retval = copy_of_prop(ir, &ir.src2, src2_def) or retval;
 
     return retval;
 }
