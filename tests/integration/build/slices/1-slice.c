@@ -23,47 +23,47 @@ struct struct2 {
 };
 
 /* Function forward definitions */
-int64_t _1308_main(void);
-int64_t _1310_first(struct struct1 _1310_xs);
+int64_t _1313_main(void);
+int64_t _1315_first(struct struct1 _1315_xs);
 
 /* Function definitions */
-int64_t _1308_main(void){
-    function0 _1308_t0;
-    int64_t _1308_t4;
-    struct struct2 _1308_t3;
-    int64_t _1308_t5;
-    int64_t _1308_t6;
-    int64_t* _1308_t7;
-    int64_t _1308_t8;
-    struct struct1 _1308_t2;
-    int64_t _1308_t1;
-    int64_t _1308_$retval;
-    _1308_t0 = _1310_first;
-    _1308_t4 = 233;
-    _1308_t3 = (struct struct2) {_1308_t4};
-    _1308_t5 = 0;
-    _1308_t6 = 1;
-    $bounds_check(_1308_t5, _1308_t6, "tests/integration/slices/1-slice.orng:3:18:\n    first([](233,))\n                ^");
-    _1308_t7 = ((int64_t*)&_1308_t3 + _1308_t5);
-    _1308_t8 = 1;
-    _1308_t2 = (struct struct1) {_1308_t7, _1308_t8};
+int64_t _1313_main(void){
+    function0 _1313_t0;
+    int64_t _1313_t4;
+    struct struct2 _1313_t3;
+    int64_t _1313_t5;
+    int64_t _1313_t6;
+    int64_t* _1313_t7;
+    int64_t _1313_t8;
+    struct struct1 _1313_t2;
+    int64_t _1313_t1;
+    int64_t _1313_$retval;
+    _1313_t0 = _1315_first;
+    _1313_t4 = 233;
+    _1313_t3 = (struct struct2) {_1313_t4};
+    _1313_t5 = 0;
+    _1313_t6 = 1;
+    $bounds_check(_1313_t5, _1313_t6, "tests/integration/slices/1-slice.orng:3:18:\n    first([](233,))\n                ^");
+    _1313_t7 = ((int64_t*)&_1313_t3 + _1313_t5);
+    _1313_t8 = 1;
+    _1313_t2 = (struct struct1) {_1313_t7, _1313_t8};
     $lines[$line_idx++] = "tests/integration/slices/1-slice.orng:3:11:\n    first([](233,))\n         ^";
-    _1308_t1 = _1308_t0(_1308_t2);
+    _1313_t1 = _1313_t0(_1313_t2);
     $line_idx--;
-    _1308_$retval = _1308_t1;
-    return _1308_$retval;
+    _1313_$retval = _1313_t1;
+    return _1313_$retval;
 }
 
-int64_t _1310_first(struct struct1 _1310_xs){
-    int64_t _1310_t0;
-    int64_t _1310_$retval;
-    _1310_t0 = 0;
-    $bounds_check(_1310_t0, _1310_xs._1, "tests/integration/slices/1-slice.orng:6:3:\nfn first(xs: []Int) -> Int {\n ^");
-    _1310_$retval = *((int64_t*)_1310_xs._0 + _1310_t0);
-    return _1310_$retval;
+int64_t _1315_first(struct struct1 _1315_xs){
+    int64_t _1315_t0;
+    int64_t _1315_$retval;
+    _1315_t0 = 0;
+    $bounds_check(_1315_t0, _1315_xs._1, "tests/integration/slices/1-slice.orng:6:3:\nfn first(xs: []Int) -> Int {\n ^");
+    _1315_$retval = *((int64_t*)_1315_xs._0 + _1315_t0);
+    return _1315_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1308_main());
+  printf("%ld",_1313_main());
   return 0;
 }

@@ -203,6 +203,10 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             return error.TypeError;
         }
     }
+
+    for (impl.impl.method_defs.items, 0..) |def, i| {
+        impl.impl.method_defs.items[i] = validate_AST(def, null, errors, allocator);
+    }
 }
 
 fn receivers_match(a: ?*ast_.AST, b: ?*ast_.AST) bool {
@@ -583,6 +587,32 @@ fn validate_AST_internal(
             } else if (ast.pos() == null) {
                 ast.set_pos(try find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, errors));
             }
+
+            _ = ast.assert_valid();
+            const ast_type = ast.typeof(allocator);
+            try type_check(ast, ast_type, expected, errors);
+            return ast;
+        },
+        .invoke => {
+            ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
+            try assert_none_poisoned(ast.lhs());
+            const lhs_type = ast.lhs().typeof(allocator);
+            // TODO: Using the scope, lookup methods impl'd for lhs_type with rhs name
+            // There is either one method or zero methods. If zero, error
+            var method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
+            if (method_decl == null) {
+                // TODO: Add error that type does not impl method
+                unreachable;
+            }
+            method_decl = validate_AST(method_decl.?, null, errors, allocator);
+            ast.invoke.method_decl = method_decl.?;
+            const domain: *ast_.AST = method_decl.?.symbol().?._type.lhs();
+            if (method_decl.?.method_decl.receiver != null) {
+                // Prepend invoke lhs to args if there is a receiver
+                ast.children().insert(0, ast.lhs()) catch unreachable;
+            }
+            ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
+            ast.set_children((try validate_args(ast.children(), domain, ast.token().span, errors, allocator)).*);
 
             _ = ast.assert_valid();
             const ast_type = ast.typeof(allocator);
@@ -973,6 +1003,16 @@ fn validate_AST_internal(
             return ast;
         },
         .fn_decl => {
+            try validate_symbol(ast.symbol().?, errors, allocator);
+            try assert_none_poisoned(ast.symbol().?._type);
+            if (expected) |_expected| {
+                const expanded_expected = _expected.expand_type(allocator);
+                const ast_type = ast.typeof(allocator);
+                try type_check(ast, ast_type, expanded_expected, errors);
+            }
+            return ast;
+        },
+        .method_decl => {
             try validate_symbol(ast.symbol().?, errors, allocator);
             try assert_none_poisoned(ast.symbol().?._type);
             if (expected) |_expected| {

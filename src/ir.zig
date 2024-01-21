@@ -457,6 +457,7 @@ pub const Kind = enum {
     jump, // jump to BB{uid} if codegen, ip := {addr} if interpreting
     branch_if_false,
     call, // dest = src1(symbver_list...)
+    invoke, // dest = {vtable}.{method_name}(symbver_list...)
 
     // Errors
     push_stack_trace, // Pushes a static span/code to the lines array if debug mode is on

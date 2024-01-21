@@ -38,7 +38,7 @@ annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" arrow
 
 
 # Reachable by statement/expression
-assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") arrow_expr].
+assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=") arrow_expr].
 
 arrow_expr: bool_expr {"->" bool_expr}.
 
@@ -53,27 +53,30 @@ int_expr: term_expr {("+" | "-" | "!") term_expr}.
 term_expr: prefix_expr ({("*" | "/" | "||" | "%") prefix_expr}).
 
 prefix_expr: "not" prefix_expr                        # boolean not
-           | "comptime" invoke_expr                   # compile-time expression
            | "typeof" prefix_expr                     # type of an expression
-           | "default" invoke_expr                    # default value for a given type
+           | "default" postfix_expr                   # default value for a given type
            | "sizeof" prefix_expr                     # size (in bytes) of an epxression's C representation
            | "-" prefix_expr                          # negation
            | "&" ["mut"] prefix_expr                  # address-of
            | "[" ["mut" | assignment_expr | "*"] "]" prefix_expr # slice-of/tuple-of/multi-pointer
-           | "?" invoke_expr                          # optional
-           | invoke_expr
+           | "?" postfix_expr                          # optional
+           | postfix_expr
            .
 
-invoke_expr: postfix_expr {".>" postfix_expr}.
-
-postfix_expr: control_flow {call_expr | ("[" ((".."[assignment_expr]) | (assignment_expr[".." [assignment_expr]])) "]") | ("." ident) | ("^")}.
-call_expr: "(" [assignment_expr {"," assignment_expr}] ")".
+postfix_expr: (control_flow | factor) 
+      { "(" [assignment_expr {"," assignment_expr}] ")" # call expression 
+      | "[" ((".."[assignment_expr]) | (assignment_expr[".." [assignment_expr]])) "]"
+      | "." ident
+      | ".>" ident
+      | "^"
+      }.
 
 control_flow: if_expr
             | while_expr
             | match_expr
             | for_expr
-            | factor
+            | "comptime" block_expr
+            | block_expr
             .
 
 factor: ident
@@ -86,7 +89,6 @@ factor: ident
       | float
       | char
       | string
-      | block_expr
       | fn_declaration
       | "unreachable"
       | "." ident
@@ -102,14 +104,13 @@ while_expr: "while" [let_declaration ";"] assignment_expr [";" statement ] block
 for_expr: "for" ["mut"] ident "in" assignment_expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
 
 fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
-paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
+paramlist: "(" [["mut" | "const"] param {"," ["mut" | "const"] param}] ")".
+param: ident ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
 
-trait_declaration: "trait" ident "{" {method_declaration}"}". # Traits may be empty, but the braces are necessary to maintain unambiguity
-method_declaration: "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr].
-method_paramlist: "(" [(param|receiver) {"," param}] ")".
-receiver: ["&" ["mut"]] "self". # TODO: This doesn't allow `mut self` parameters. Maybe a good thing in disguise? Hmm...
-                                # Can still be done with `let mut x = self`.
+trait_declaration: "trait" ident "{" {method_declaration} "}". # Traits may be empty, but the braces are necessary to maintain unambiguity
+method_declaration: "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr].
+method_paramlist: "(" [("const" param | ["mut"](param|receiver)) {"," ["mut" | "const"]param}] ")".
+receiver: ["&" ["mut"]] "self".
 
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
 method_definition: "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.

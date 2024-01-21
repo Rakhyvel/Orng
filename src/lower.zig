@@ -212,6 +212,20 @@ fn lower_AST(
             cfg.append_instruction(ir_.IR.init_stack_pop(ast.token().span, allocator));
             return temp;
         },
+        .invoke => {
+            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
+            var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
+            temp.extract_symbver().symbol.span = ast.token().span;
+
+            var ir = ir_.IR.init_call(temp, lhs, ast.token().span, allocator);
+            for (ast.children().items) |term| {
+                ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
+            }
+            cfg.append_instruction(ir_.IR.init_stack_push(ast.token().span, allocator));
+            cfg.append_instruction(ir);
+            cfg.append_instruction(ir_.IR.init_stack_pop(ast.token().span, allocator));
+            return temp;
+        },
         .index => {
             const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;

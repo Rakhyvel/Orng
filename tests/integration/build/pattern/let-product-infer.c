@@ -16,26 +16,26 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1174_main(void);
+int64_t _1179_main(void);
 
 /* Function definitions */
-int64_t _1174_main(void){
-    int64_t _1174_t1;
-    int64_t _1174_t2;
-    struct struct0 _1174_t0;
-    int64_t _1175_a;
-    int64_t _1175_b;
-    int64_t _1174_$retval;
-    _1174_t1 = 100;
-    _1174_t2 = 58;
-    _1174_t0 = (struct struct0) {_1174_t1, _1174_t2};
-    _1175_a = _1174_t0._0;
-    _1175_b = _1174_t0._1;
-    _1174_$retval = $add_int64_t(_1175_a, _1175_b, "tests/integration/pattern/let-product-infer.orng:4:8:\n    a + b\n      ^");
-    return _1174_$retval;
+int64_t _1179_main(void){
+    int64_t _1179_t1;
+    int64_t _1179_t2;
+    struct struct0 _1179_t0;
+    int64_t _1180_a;
+    int64_t _1180_b;
+    int64_t _1179_$retval;
+    _1179_t1 = 100;
+    _1179_t2 = 58;
+    _1179_t0 = (struct struct0) {_1179_t1, _1179_t2};
+    _1180_a = _1179_t0._0;
+    _1180_b = _1179_t0._1;
+    _1179_$retval = $add_int64_t(_1180_a, _1180_b, "tests/integration/pattern/let-product-infer.orng:4:8:\n    a + b\n      ^");
+    return _1179_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1174_main());
+  printf("%ld",_1179_main());
   return 0;
 }

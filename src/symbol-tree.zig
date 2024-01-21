@@ -90,13 +90,16 @@ fn symbol_table_from_AST(
         .index,
         .select,
         .function,
-        .invoke,
         .@"union",
         .@"catch",
         .@"orelse",
         => {
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
             try symbol_table_from_AST(ast.rhs(), scope, errors, allocator);
+        },
+        .invoke => {
+            ast.invoke.scope = scope; // CANNOT do lookup here, because we do not have type info yet
+            try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
         },
         .call => {
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);

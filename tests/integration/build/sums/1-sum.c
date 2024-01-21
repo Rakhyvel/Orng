@@ -20,36 +20,36 @@ struct struct1 {
 typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1419_main(void);
-struct struct1 _1421_get_the_sum(void);
+int64_t _1424_main(void);
+struct struct1 _1426_get_the_sum(void);
 
 /* Function definitions */
-int64_t _1419_main(void){
-    function0 _1419_t0;
-    struct struct1 _1419_t1;
-    struct struct1 _1420_a;
-    uint64_t _1419_t2;
-    int64_t _1419_$retval;
-    _1419_t0 = _1421_get_the_sum;
+int64_t _1424_main(void){
+    function0 _1424_t0;
+    struct struct1 _1424_t1;
+    struct struct1 _1425_a;
+    uint64_t _1424_t2;
+    int64_t _1424_$retval;
+    _1424_t0 = _1426_get_the_sum;
     $lines[$line_idx++] = "tests/integration/sums/1-sum.orng:5:25:\n    let a = get_the_sum()\n                       ^";
-    _1419_t1 = _1419_t0();
+    _1424_t1 = _1424_t0();
     $line_idx--;
-    _1420_a = _1419_t1;
-    _1419_t2 = _1419_t1.tag;
-    $tag_check(_1419_t2, 0, "tests/integration/sums/1-sum.orng:4:3:\nfn main() -> Int {\n ^");
-    _1419_$retval = _1420_a._0;
-    return _1419_$retval;
+    _1425_a = _1424_t1;
+    _1424_t2 = _1424_t1.tag;
+    $tag_check(_1424_t2, 0, "tests/integration/sums/1-sum.orng:4:3:\nfn main() -> Int {\n ^");
+    _1424_$retval = _1425_a._0;
+    return _1424_$retval;
 }
 
-struct struct1 _1421_get_the_sum(void){
-    int64_t _1421_t0;
-    struct struct1 _1421_$retval;
-    _1421_t0 = 235;
-    _1421_$retval = (struct struct1) {.tag=0, ._0=_1421_t0};
-    return _1421_$retval;
+struct struct1 _1426_get_the_sum(void){
+    int64_t _1426_t0;
+    struct struct1 _1426_$retval;
+    _1426_t0 = 235;
+    _1426_$retval = (struct struct1) {.tag=0, ._0=_1426_t0};
+    return _1426_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1419_main());
+  printf("%ld",_1424_main());
   return 0;
 }

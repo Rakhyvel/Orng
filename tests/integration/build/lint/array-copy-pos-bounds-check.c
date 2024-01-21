@@ -20,43 +20,43 @@ struct struct0 {
 typedef int64_t(*function1)(void);
 
 /* Function forward definitions */
-int64_t _1033_main(void);
-int64_t _1035_f(void);
+int64_t _1038_main(void);
+int64_t _1040_f(void);
 
 /* Function definitions */
-int64_t _1033_main(void){
-    int64_t _1033_t1;
-    int64_t _1033_t2;
-    int64_t _1033_t3;
-    int64_t _1033_t4;
-    struct struct0 _1034_x;
-    function1 _1033_t6;
-    int64_t _1033_t7;
-    int64_t _1033_t8;
-    int64_t _1033_$retval;
-    _1033_t1 = 0;
-    _1033_t2 = 0;
-    _1033_t3 = 0;
-    _1033_t4 = 0;
-    _1034_x = (struct struct0) {_1033_t1, _1033_t2, _1033_t3, _1033_t4};
-    _1033_t6 = _1035_f;
+int64_t _1038_main(void){
+    int64_t _1038_t1;
+    int64_t _1038_t2;
+    int64_t _1038_t3;
+    int64_t _1038_t4;
+    struct struct0 _1039_x;
+    function1 _1038_t6;
+    int64_t _1038_t7;
+    int64_t _1038_t8;
+    int64_t _1038_$retval;
+    _1038_t1 = 0;
+    _1038_t2 = 0;
+    _1038_t3 = 0;
+    _1038_t4 = 0;
+    _1039_x = (struct struct0) {_1038_t1, _1038_t2, _1038_t3, _1038_t4};
+    _1038_t6 = _1040_f;
     $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
-    _1033_t7 = _1033_t6();
+    _1038_t7 = _1038_t6();
     $line_idx--;
-    _1033_t8 = 4;
-    $bounds_check(_1033_t7, _1033_t8, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:15:\n    x[f()] = 0\n             ^");
-    *((int64_t*)&_1034_x + _1033_t7) = 0;
-    _1033_$retval = 0;
-    return _1033_$retval;
+    _1038_t8 = 4;
+    $bounds_check(_1038_t7, _1038_t8, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:15:\n    x[f()] = 0\n             ^");
+    *((int64_t*)&_1039_x + _1038_t7) = 0;
+    _1038_$retval = 0;
+    return _1038_$retval;
 }
 
-int64_t _1035_f(void){
-    int64_t _1035_$retval;
-    _1035_$retval = 100;
-    return _1035_$retval;
+int64_t _1040_f(void){
+    int64_t _1040_$retval;
+    _1040_$retval = 100;
+    return _1040_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1033_main());
+  printf("%ld",_1038_main());
   return 0;
 }

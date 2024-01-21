@@ -38,34 +38,34 @@ struct struct3 {
 };
 
 /* Function forward definitions */
-int64_t _1513_main(void);
+int64_t _1531_main(void);
 
 /* Function definitions */
-int64_t _1513_main(void){
-    struct struct0 _1513_t1;
-    int64_t _1513_t2;
-    struct struct1 _1514_a;
-    struct struct2 _1513_t4;
-    int64_t _1513_t5;
-    struct struct3 _1514_b;
-    struct struct3* _1513_t6;
-    uint64_t _1513_t8;
-    int64_t _1513_$retval;
-    _1513_t1 = (struct struct0) {.tag=1};
-    _1513_t2 = 200;
-    _1514_a = (struct struct1) {_1513_t1, _1513_t2};
-    _1513_t4 = (struct struct2) {.tag=1};
-    _1513_t5 = 86;
-    _1514_b = (struct struct3) {_1513_t4, _1513_t5};
-    _1513_t6 = &_1514_b;
-    _1514_a._0 = (struct struct0) {.tag=0, ._0=_1513_t6};
-    _1513_t8 = _1514_a._0.tag;
-    $tag_check(_1513_t8, 0, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
-    _1513_$retval = $add_int64_t(_1514_a._1, (*_1514_a._0._0)._1, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
-    return _1513_$retval;
+int64_t _1531_main(void){
+    struct struct0 _1531_t1;
+    int64_t _1531_t2;
+    struct struct1 _1532_a;
+    struct struct2 _1531_t4;
+    int64_t _1531_t5;
+    struct struct3 _1532_b;
+    struct struct3* _1531_t6;
+    uint64_t _1531_t8;
+    int64_t _1531_$retval;
+    _1531_t1 = (struct struct0) {.tag=1};
+    _1531_t2 = 200;
+    _1532_a = (struct struct1) {_1531_t1, _1531_t2};
+    _1531_t4 = (struct struct2) {.tag=1};
+    _1531_t5 = 86;
+    _1532_b = (struct struct3) {_1531_t4, _1531_t5};
+    _1531_t6 = &_1532_b;
+    _1532_a._0 = (struct struct0) {.tag=0, ._0=_1531_t6};
+    _1531_t8 = _1532_a._0.tag;
+    $tag_check(_1531_t8, 0, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
+    _1531_$retval = $add_int64_t(_1532_a._1, (*_1532_a._0._0)._1, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
+    return _1531_$retval;
 }
 
 int main(void) {
-  printf("%ld",_1513_main());
+  printf("%ld",_1531_main());
   return 0;
 }

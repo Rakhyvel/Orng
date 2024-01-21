@@ -421,7 +421,7 @@ pub const Parser = struct {
         if (self.accept(.not)) |token| {
             return ast_.AST.create_not(token, try self.prefix_expr(), self.allocator);
         } else if (self.accept(.@"comptime")) |token| {
-            return ast_.AST.create_comptime(token, try self.invoke_expr(), self.allocator);
+            return ast_.AST.create_comptime(token, try self.postfix_expr(), self.allocator);
         } else if (self.accept(.at_symbol)) |_| {
             if (self.accept(.typeof)) |token| {
                 _ = try self.expect(.left_parenthesis);
@@ -478,18 +478,10 @@ pub const Parser = struct {
         } else if (self.accept(.question_mark)) |_| {
             return ast_.AST.create_optional_type(try self.prefix_expr(), self.allocator);
         } else if (self.accept(.@"try")) |token| {
-            return ast_.AST.create_try(token, try self.invoke_expr(), self.allocator);
+            return ast_.AST.create_try(token, try self.postfix_expr(), self.allocator);
         } else {
-            return try self.invoke_expr();
+            return try self.postfix_expr();
         }
-    }
-
-    fn invoke_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        var exp = try self.postfix_expr();
-        while (self.accept(.invoke)) |token| {
-            exp = ast_.AST.create_invoke(token, exp, try self.postfix_expr(), self.allocator);
-        }
-        return exp;
     }
 
     fn postfix_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -529,6 +521,14 @@ pub const Parser = struct {
                     token,
                     exp,
                     ast_.AST.create_field(try self.expect(.identifier), self.allocator),
+                    self.allocator,
+                );
+            } else if (self.accept(.invoke)) |token| {
+                exp = ast_.AST.create_invoke(
+                    token,
+                    exp,
+                    ast_.AST.create_field(try self.expect(.identifier), self.allocator),
+                    try self.call_args(),
                     self.allocator,
                 );
             } else if (self.accept(.caret)) |token| {
@@ -771,7 +771,17 @@ pub const Parser = struct {
     }
 
     fn param(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        var ident = try self.let_pattern_atom();
+        var kind: symbol_.Symbol_Kind = undefined;
+        if (self.accept(.mut) != null) {
+            kind = .mut;
+        } else if (self.accept(.@"const") != null) {
+            kind = .@"const";
+        } else {
+            kind = .let;
+        }
+        const identifier = try self.expect(.identifier);
+        const ident = ast_.AST.create_symbol(identifier, kind, identifier.data, self.allocator);
+
         var _type: *ast_.AST = undefined;
         var _init: ?*ast_.AST = null;
 

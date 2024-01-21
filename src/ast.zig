@@ -190,7 +190,14 @@ pub const AST = union(enum) {
         method_defs: std.ArrayList(*AST),
         scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
     },
-    invoke: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
+    invoke: struct {
+        common: AST_Common,
+        _lhs: *AST,
+        _rhs: *AST,
+        _args: std.ArrayList(*AST),
+        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        method_decl: ?*AST = null,
+    },
     sum_type: struct {
         common: AST_Common,
         _terms: std.ArrayList(*AST),
@@ -626,9 +633,9 @@ pub const AST = union(enum) {
         );
     }
 
-    pub fn create_invoke(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_invoke(_token: token_.Token, _lhs: *AST, _rhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .invoke = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
+        return AST.box(AST{ .invoke = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._args = args } }, allocator);
     }
 
     pub fn create_product(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
@@ -955,6 +962,7 @@ pub const AST = union(enum) {
             .trait => &self.trait.method_decls,
             .impl => &self.impl.method_defs,
             .method_decl => &self.method_decl._params,
+            .invoke => &self.invoke._args,
             else => unreachable,
         };
     }
@@ -971,6 +979,7 @@ pub const AST = union(enum) {
             .trait => self.trait.method_decls = val,
             .impl => self.impl.method_defs = val,
             .method_decl => self.method_decl._params = val,
+            .invoke => self.invoke._args = val,
             else => unreachable,
         }
     }
@@ -1554,6 +1563,8 @@ pub const AST = union(enum) {
                 }
                 return retval;
             },
+
+            .invoke => return self.invoke.method_decl.?.method_decl.ret_type,
 
             // Identifier
             .identifier => return self.symbol().?._type,

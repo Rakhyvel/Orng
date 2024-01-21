@@ -104,6 +104,30 @@ pub const Scope = struct {
         }
     }
 
+    /// Looks up the impl method_decl ast implemented for a given type, with a given name
+    pub fn method_lookup(self: *Scope, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
+        // Go through the list of implementations, check to see if the types and traits match
+        for (self.impls.items) |impl| {
+            if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
+                // Types do not match
+                continue;
+            }
+            for (impl.impl.method_defs.items) |method_def| {
+                if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
+                    return method_def;
+                }
+            }
+        }
+
+        if (self.parent != null) {
+            // Did not match in this scope. Try parent scope
+            return self.parent.?.method_lookup(for_type, name);
+        } else {
+            // Not found, parent scope is null
+            return null;
+        }
+    }
+
     /// Given a scope and a type, fills in a map of methods defined for that type in that scope.
     pub fn fill_method_map(self: *Scope, for_type: *ast_.AST, method_map: *std.StringArrayHashMap(*ast_.AST)) void {
         if (self.parent != null) {

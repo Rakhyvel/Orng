@@ -7,50 +7,50 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1604_main(void);
+int64_t _1622_main(void);
 
 /* Function definitions */
-int64_t _1604_main(void){
-    int64_t _1605_x;
-    int64_t _1604_t2;
-    uint8_t _1604_t3;
-    int64_t _1604_t5;
-    uint8_t _1604_t7;
-    int64_t _1604_t10;
-    int64_t _1604_$retval;
-    int64_t _1604_t8;
-    _1605_x = 0;
-    goto BB1879;
-BB1879:
-    _1604_t2 = 100;
-    _1604_t3 = _1605_x<_1604_t2;
-    if (_1604_t3) {
-        goto BB1880;
+int64_t _1622_main(void){
+    int64_t _1623_x;
+    int64_t _1622_t2;
+    uint8_t _1622_t3;
+    int64_t _1622_t5;
+    uint8_t _1622_t7;
+    int64_t _1622_t10;
+    int64_t _1622_$retval;
+    int64_t _1622_t8;
+    _1623_x = 0;
+    goto BB1886;
+BB1886:
+    _1622_t2 = 100;
+    _1622_t3 = _1623_x<_1622_t2;
+    if (_1622_t3) {
+        goto BB1887;
     } else {
-        goto BB1885;
+        goto BB1892;
     }
-BB1880:
-    _1604_t5 = 40;
-    _1604_t7 = _1605_x==_1604_t5;
-    if (_1604_t7) {
-        goto BB1883;
+BB1887:
+    _1622_t5 = 40;
+    _1622_t7 = _1623_x==_1622_t5;
+    if (_1622_t7) {
+        goto BB1890;
     } else {
-        goto BB1889;
+        goto BB1896;
     }
-BB1885:
-    _1604_$retval = _1605_x;
-    return _1604_$retval;
-BB1883:
-    _1604_t8 = 1;
-    _1605_x = $add_int64_t(_1605_x, _1604_t8, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
-    goto BB1885;
-BB1889:
-    _1604_t10 = 1;
-    _1605_x = $add_int64_t(_1605_x, _1604_t10, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
-    goto BB1879;
+BB1892:
+    _1622_$retval = _1623_x;
+    return _1622_$retval;
+BB1890:
+    _1622_t8 = 1;
+    _1623_x = $add_int64_t(_1623_x, _1622_t8, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
+    goto BB1892;
+BB1896:
+    _1622_t10 = 1;
+    _1623_x = $add_int64_t(_1623_x, _1622_t10, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
+    goto BB1886;
 }
 
 int main(void) {
-  printf("%ld",_1604_main());
+  printf("%ld",_1622_main());
   return 0;
 }

@@ -184,7 +184,7 @@ pub const Module = struct {
         return module;
     }
 
-    // This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
+    /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
     fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) void {
         if (cfg.visited) {
             return;
