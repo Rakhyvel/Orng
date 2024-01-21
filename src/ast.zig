@@ -22,17 +22,31 @@ pub fn init_structures() void {
 }
 
 /// Represents the kind of a slice.
-pub const Slice_Kind = union(enum) {
-    slice, // data ptr and len
-    mut, // mutable data ptr and len
-    multiptr, // c-style `*` pointer, no len
-    array, // static homogenous tuple, compile-time len
+pub const Slice_Kind = enum {
+    slice, // data ptr and len. indexing is supported.
+    mut, // mutable data ptr and len. indexing is supported.
+    multiptr, // c-style `*` pointer, no len. both dereferencing and indexing is supported.
+    array, // static homogenous tuple, compile-time len. indexing is supported.
+};
+
+pub const Receiver_Kind = enum {
+    value, // Receiver is taken by value
+    addr_of, // Receiver is taken by immutable address
+    mut_addr_of, // Receiver is taken by mutable address
+
+    pub fn to_string(self: @This()) []const u8 {
+        return switch (self) {
+            .value => "self",
+            .addr_of => "&self",
+            .mut_addr_of => "&mut self",
+        };
+    }
 };
 
 pub const Sum_From = enum {
-    optional,
-    @"error",
-    none,
+    optional, // Sum-type comes from an optional constructor (ex: `?T`)
+    @"error", // Sum-type comes from an error constructor (ex: `E!T`)
+    none, // Regular, plain sum-type
 };
 
 /// Contains common properties of all AST nodes
@@ -154,6 +168,28 @@ pub const AST = union(enum) {
         }
     },
     function: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
+    trait: struct {
+        common: AST_Common,
+        method_decls: std.ArrayList(*AST),
+        _symbol: ?*symbol_.Symbol = null, // Filled by symbol-tree pass.
+        scope: ?*symbol_.Scope = null, // Filled by symbol-tree pass.
+
+        fn find_method(self: @This(), name: []const u8) ?*AST {
+            for (self.method_decls.items) |decl| {
+                if (std.mem.eql(u8, decl.decl.symbols.items[0], name)) {
+                    return decl;
+                }
+            }
+            return null;
+        }
+    },
+    impl: struct {
+        common: AST_Common,
+        trait: ?*AST,
+        _type: *AST,
+        method_defs: std.ArrayList(*AST),
+        scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
+    },
     invoke: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     sum_type: struct {
         common: AST_Common,
@@ -236,6 +272,7 @@ pub const AST = union(enum) {
     array_of: struct { common: AST_Common, _expr: *AST, len: *AST },
     sub_slice: struct { common: AST_Common, super: *AST, lower: ?*AST, upper: ?*AST },
     annotation: struct { common: AST_Common, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
+    receiver: struct { common: AST_Common, kind: Receiver_Kind },
     type_of: struct {
         common: AST_Common,
         _expr: *AST,
@@ -351,6 +388,19 @@ pub const AST = union(enum) {
         ret_type: *AST,
         refinement: ?*AST,
         init: *AST,
+        _symbol: ?*symbol_.Symbol = null,
+        infer_error: bool,
+    },
+    method_decl: struct {
+        common: AST_Common,
+        name: *AST,
+        receiver: ?*AST,
+        _params: std.ArrayList(*AST), // Parameters' decl ASTs
+        param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
+        ret_type: *AST,
+        refinement: ?*AST,
+        init: ?*AST,
+        impl: ?*AST = null,
         _symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
     },
@@ -565,6 +615,17 @@ pub const AST = union(enum) {
         return AST.box(AST{ .function = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
+    pub fn create_trait(_token: token_.Token, method_decls: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .trait = .{ .common = AST_Common{ ._token = _token, ._type = null }, .method_decls = method_decls } }, allocator);
+    }
+
+    pub fn create_impl(_token: token_.Token, _trait: ?*AST, _type: *AST, method_defs: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(
+            AST{ .impl = .{ .common = AST_Common{ ._token = _token, ._type = null }, .trait = _trait, ._type = _type, .method_defs = method_defs } },
+            allocator,
+        );
+    }
+
     pub fn create_invoke(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .invoke = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
@@ -610,6 +671,14 @@ pub const AST = union(enum) {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(
             AST{ .annotation = .{ .common = _common, .pattern = pattern, .type = _type, .predicate = predicate, .init = init } },
+            allocator,
+        );
+    }
+
+    pub fn create_receiver(_token: token_.Token, kind: Receiver_Kind, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(
+            AST{ .receiver = .{ .common = _common, .kind = kind } },
             allocator,
         );
     }
@@ -771,7 +840,6 @@ pub const AST = union(enum) {
         ret_type: *AST,
         refinement: ?*AST,
         init: *AST,
-        infer_error: bool,
         allocator: std.mem.Allocator,
     ) *AST {
         return AST.box(AST{ .fn_decl = .{
@@ -782,7 +850,30 @@ pub const AST = union(enum) {
             .ret_type = ret_type,
             .refinement = refinement,
             .init = init,
-            .infer_error = infer_error,
+            .infer_error = false,
+        } }, allocator);
+    }
+
+    pub fn create_method_decl(
+        _token: token_.Token,
+        name: *AST,
+        receiver: ?*AST,
+        params: std.ArrayList(*AST),
+        ret_type: *AST,
+        refinement: ?*AST,
+        init: ?*AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .method_decl = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            .name = name,
+            .receiver = receiver,
+            ._params = params,
+            .param_symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
+            .ret_type = ret_type,
+            .refinement = refinement,
+            .init = init,
+            .infer_error = false,
         } }, allocator);
     }
 
@@ -861,6 +952,9 @@ pub const AST = union(enum) {
             .match => &self.match._mappings,
             .block => &self.block._statements,
             .fn_decl => &self.fn_decl._params,
+            .trait => &self.trait.method_decls,
+            .impl => &self.impl.method_defs,
+            .method_decl => &self.method_decl._params,
             else => unreachable,
         };
     }
@@ -874,6 +968,9 @@ pub const AST = union(enum) {
             .match => self.match._mappings = val,
             .block => self.block._statements = val,
             .fn_decl => self.fn_decl._params = val,
+            .trait => self.trait.method_decls = val,
+            .impl => self.impl.method_defs = val,
+            .method_decl => self.method_decl._params = val,
             else => unreachable,
         }
     }
@@ -1256,11 +1353,12 @@ pub const AST = union(enum) {
                 try out.print("()", .{});
             } else {
                 try out.print("(", .{});
-                for (self.children().items, 0..self.children().items.len) |term, _| {
+                for (self.children().items, 0..) |term, i| {
                     try term.print_type(out);
-                    try out.print(", ", .{});
+                    if (i + 1 < self.children().items.len) {
+                        try out.print(", ", .{});
+                    }
                 }
-                try self.children().items[self.children().items.len - 1].print_type(out);
                 try out.print(")", .{});
             },
             .sum_type => if (self.sum_type.from == .optional) {
@@ -1651,8 +1749,8 @@ pub const AST = union(enum) {
         if (A.* == .identifier and std.mem.eql(u8, "Void", A.token().data)) {
             return true; // Bottom type - vacuously true
         }
-        std.debug.assert(A.common().validation_state == .valid);
-        std.debug.assert(B.common().validation_state == .valid);
+        // std.debug.assert(A.common().validation_state == .valid);
+        // std.debug.assert(B.common().validation_state == .valid);
 
         if (@intFromEnum(A.*) != @intFromEnum(B.*)) {
             return false;
@@ -1903,6 +2001,8 @@ pub const AST = union(enum) {
                 try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });
             },
             .function => try out.writer().print("function({},{})", .{ self.lhs(), self.rhs() }),
+            .trait => try out.writer().print("trait()", .{}),
+            .impl => try out.writer().print("impl(.trait={?}, .type={})", .{ self.impl.trait, self.impl._type }),
             .invoke => try out.writer().print("invoke()", .{}),
             .sum_type => {
                 try out.writer().print("sum(", .{});
@@ -1937,6 +2037,7 @@ pub const AST = union(enum) {
                 self.annotation.type,
                 self.annotation.init,
             }),
+            .receiver => try out.writer().print("receiver({s})", .{@tagName(self.receiver.kind)}),
 
             .@"if" => try out.writer().print("if()", .{}),
             .match => try out.writer().print("match()", .{}),
@@ -1964,7 +2065,20 @@ pub const AST = union(enum) {
                 try out.writer().print("    .init = {?},\n", .{self.decl.init});
                 try out.writer().print(")", .{});
             },
-            .fn_decl => try out.writer().print("fnDecl()", .{}),
+            .fn_decl => try out.writer().print("fn_decl()", .{}),
+            .method_decl => {
+                try out.writer().print("method_decl(.name={s}, .receiver={?}, .params=[", .{
+                    self.method_decl.name,
+                    self.method_decl.receiver,
+                });
+                for (self.method_decl._params.items, 0..) |param, i| {
+                    try out.writer().print("{}", .{param});
+                    if (i < self.method_decl._params.items.len) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print("])", .{});
+            },
             .@"defer" => try out.writer().print("defer()", .{}),
             .@"errdefer" => try out.writer().print("errdefer()", .{}),
         }

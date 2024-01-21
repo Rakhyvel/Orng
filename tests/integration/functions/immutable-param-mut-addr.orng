@@ -1,0 +1,12 @@
+// 288
+fn main() -> Int {
+    let mut x = 40
+    change_x(&mut x)
+    x
+}
+
+fn change_x(x: &mut Int) -> () {
+    // The address is immutable (it always points to x)
+    // But the data is mutable (it can be modified)
+    x^ = 288
+}

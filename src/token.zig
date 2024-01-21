@@ -30,6 +30,7 @@ pub const Token_Kind = enum(u32) {
     @"fn",
     @"for",
     @"if",
+    impl,
     in,
     let,
     mut,
@@ -37,12 +38,14 @@ pub const Token_Kind = enum(u32) {
     @"or",
     @"orelse",
     @"return",
+    trait,
     @"try",
     @"unreachable",
     where,
     @"while",
     typeof,
     default,
+    self,
     sizeof,
 
     // Equals
@@ -150,6 +153,7 @@ pub const Token_Kind = enum(u32) {
             .@"fn" => "fn",
             .@"for" => "for",
             .@"if" => "if",
+            .impl => "impl",
             .in => "in",
             .let => "let",
             .mut => "mut",
@@ -162,8 +166,10 @@ pub const Token_Kind = enum(u32) {
             .@"unreachable" => "unreachable",
             .where => "where",
             .@"while" => "while",
+            .trait => "trait",
             .typeof => "typeof",
             .default => "default",
+            .self => "self",
             .sizeof => "sizeof",
 
             // Equals

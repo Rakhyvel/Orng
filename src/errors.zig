@@ -74,6 +74,46 @@ pub const Error = union(enum) {
         name: []const u8,
     },
 
+    // Traits
+    reimpl: struct {
+        first_defined_span: span_.Span,
+        redefined_span: span_.Span,
+        name: ?[]const u8,
+        _type: *ast_.AST,
+    },
+    method_not_in_trait: struct {
+        method_span: span_.Span,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
+    method_not_in_impl: struct {
+        impl_span: span_.Span,
+        method_span: span_.Span,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
+    receiver_mismatch: struct {
+        receiver_span: span_.Span,
+        impl_receiver: ?ast_.Receiver_Kind,
+        trait_receiver: ?ast_.Receiver_Kind,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
+    mismatch_method_param_arity: struct {
+        span: span_.Span,
+        trait_arity: usize,
+        impl_arity: usize,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
+    mismatch_method_type: struct {
+        span: span_.Span,
+        trait_type: *ast_.AST,
+        impl_type: *ast_.AST,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
+
     // Typecheck
     unexpected_type: struct {
         span: span_.Span,
@@ -93,7 +133,8 @@ pub const Error = union(enum) {
     member_not_in: struct {
         span: span_.Span,
         identifier: []const u8,
-        group_name: []const u8,
+        name: []const u8,
+        group: *ast_.AST,
     },
     undeclared_identifier: struct {
         identifier: token_.Token,
@@ -191,6 +232,13 @@ pub const Error = union(enum) {
             .not_inside_loop => return self.not_inside_loop.span,
             .not_inside_function => return self.not_inside_function.span,
 
+            .reimpl => return self.reimpl.redefined_span,
+            .method_not_in_trait => return self.method_not_in_trait.method_span,
+            .method_not_in_impl => return self.method_not_in_impl.impl_span,
+            .receiver_mismatch => return self.receiver_mismatch.receiver_span,
+            .mismatch_method_param_arity => return self.mismatch_method_param_arity.span,
+            .mismatch_method_type => return self.mismatch_method_type.span,
+
             .unexpected_type => return self.unexpected_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
             .duplicate => return self.duplicate.span,
@@ -235,7 +283,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
+        // peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
     }
 
     fn peek_error(err: Error) !void {
@@ -307,6 +355,59 @@ pub const Errors = struct {
             .not_inside_loop => try out.print("`{s}` is not inside a loop\n", .{err.not_inside_loop.name}),
             .not_inside_function => try out.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}),
 
+            // Traits
+            .reimpl => if (err.reimpl.name != null) {
+                try out.print("duplicate implementation of trait `{s}` for the type `", .{err.reimpl.name.?});
+                try err.reimpl._type.print_type(out);
+                try out.print("`\n", .{});
+            } else {
+                try out.print("duplicate implementation for the type `", .{});
+                try err.reimpl._type.print_type(out);
+                try out.print("`\n", .{});
+            },
+            .method_not_in_trait => try out.print("implementation for method `{s}` that is not in trait `{s}`\n", .{
+                err.method_not_in_trait.method_name,
+                err.method_not_in_trait.trait_name,
+            }),
+            .method_not_in_impl => try out.print("missing implementation of method `{s}` from trait `{s}`\n", .{
+                err.method_not_in_impl.method_name,
+                err.method_not_in_impl.trait_name,
+            }),
+            .receiver_mismatch => if (err.receiver_mismatch.trait_receiver != null and err.receiver_mismatch.impl_receiver != null) {
+                try out.print("trait `{s}` specifies receiver `{s}` for method `{s}`, got receiver `{s}`\n", .{
+                    err.receiver_mismatch.trait_name,
+                    err.receiver_mismatch.method_name,
+                    err.receiver_mismatch.trait_receiver.?.to_string(),
+                    err.receiver_mismatch.impl_receiver.?.to_string(),
+                });
+            } else if (err.receiver_mismatch.trait_receiver == null and err.receiver_mismatch.impl_receiver != null) {
+                try out.print("trait `{s}` does not specify a receiver for method `{s}`, got receiver `{s}`\n", .{
+                    err.receiver_mismatch.trait_name,
+                    err.receiver_mismatch.method_name,
+                    err.receiver_mismatch.impl_receiver.?.to_string(),
+                });
+            } else if (err.receiver_mismatch.trait_receiver != null and err.receiver_mismatch.impl_receiver == null) {
+                try out.print("trait `{s}` specifies receiver `{s}` for method `{s}`\n", .{
+                    err.receiver_mismatch.trait_name,
+                    err.receiver_mismatch.method_name,
+                    err.receiver_mismatch.trait_receiver.?.to_string(),
+                });
+            },
+            .mismatch_method_param_arity => try out.print("trait `{s}` specifies {} parameter{s} for method `{s}`, got {}\n", .{
+                err.mismatch_method_param_arity.trait_name,
+                err.mismatch_method_param_arity.trait_arity,
+                if (err.mismatch_method_param_arity.trait_arity != 1) "s" else "",
+                err.mismatch_method_param_arity.method_name,
+                err.mismatch_method_param_arity.impl_arity,
+            }),
+            .mismatch_method_type => {
+                try out.print("trait `{s}` specifies type `", .{err.mismatch_method_type.trait_name});
+                try err.mismatch_method_type.trait_type.print_type(out);
+                try out.print("` for method `{s}`, got `", .{err.mismatch_method_type.method_name});
+                try err.mismatch_method_type.impl_type.print_type(out);
+                try out.print("`\n", .{});
+            },
+
             // Typecheck
             .unexpected_type => if (err.unexpected_type.expected.* == .identifier and std.mem.eql(u8, err.unexpected_type.expected.token().data, "Void")) {
                 std.debug.assert(err.unexpected_type.expected.* != .poison);
@@ -330,7 +431,11 @@ pub const Errors = struct {
                 try out.print("`\n", .{});
             },
             .duplicate => try out.print("duplicate item `{s}`\n", .{err.duplicate.identifier}),
-            .member_not_in => try out.print("member `{s}` not in {s}\n", .{ err.member_not_in.identifier, err.member_not_in.group_name }),
+            .member_not_in => {
+                try out.print("member `{s}` not in {s}: `", .{ err.member_not_in.identifier, err.member_not_in.name });
+                try err.member_not_in.group.print_type(out);
+                try out.print("`\n", .{});
+            },
             .undeclared_identifier => try out.print("use of undeclared identifier `{s}`\n", .{err.undeclared_identifier.identifier.data}),
             .comptime_access_runtime => try out.print("cannot access non-const variable `{s}` in a comptime context\n", .{
                 err.comptime_access_runtime.identifier.data,
@@ -430,7 +535,7 @@ pub const Errors = struct {
                 try bold.dump(out);
                 try print_note_label(err.missing_close.open.span);
                 try bold.dump(out);
-                try out.print("opening `{s}` here\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
+                try out.print("opening `{s}` here:\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
                 try not_bold.dump(out);
                 try print_epilude(err.missing_close.open.span);
             },
@@ -446,7 +551,7 @@ pub const Errors = struct {
                     try bold.dump(out);
                     try print_note_label(err.redefinition.first_defined_span);
                     try bold.dump(out);
-                    try out.print("other definition of `{s}` here\n", .{err.redefinition.name});
+                    try out.print("other definition of `{s}` here:\n", .{err.redefinition.name});
                     try not_bold.dump(out);
                     try print_epilude(err.redefinition.first_defined_span);
                 }
@@ -465,7 +570,7 @@ pub const Errors = struct {
                 try bold.dump(out);
                 try print_note_label(err.duplicate.first);
                 try bold.dump(out);
-                try out.print("other definition of sum member `{s}` here\n", .{err.duplicate.identifier});
+                try out.print("other definition of `{s}` here:\n", .{err.duplicate.identifier});
                 try not_bold.dump(out);
                 try print_epilude(err.duplicate.first);
             },
@@ -478,6 +583,28 @@ pub const Errors = struct {
                     try not_bold.dump(out);
                     try print_epilude(_type.token().span);
                 }
+            },
+            .reimpl => {
+                if (err.reimpl.first_defined_span.line_number != 0) { // Don't print reimpls for places that don't exist!
+                    try bold.dump(out);
+                    try print_note_label(err.reimpl.first_defined_span);
+                    try bold.dump(out);
+                    if (err.reimpl.name != null) {
+                        try out.print("other implementation of `{s}` here:\n", .{err.reimpl.name.?});
+                    } else {
+                        try out.print("other implementation here:\n", .{});
+                    }
+                    try not_bold.dump(out);
+                    try print_epilude(err.reimpl.first_defined_span);
+                }
+            },
+            .method_not_in_impl => {
+                try bold.dump(out);
+                try print_note_label(err.method_not_in_impl.method_span);
+                try bold.dump(out);
+                try out.print("method specification here:\n", .{});
+                try not_bold.dump(out);
+                try print_epilude(err.method_not_in_impl.method_span);
             },
             else => {},
         }

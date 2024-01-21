@@ -366,7 +366,7 @@ pub const Context = struct {
             .add_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = data.src1 + data.src2;
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "addition results", ir.span);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "addition result", ir.span);
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .add_float => {
@@ -376,7 +376,7 @@ pub const Context = struct {
             .sub_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = data.src1 - data.src2;
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "subtraction results", ir.span);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "subtraction result", ir.span);
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .sub_float => {
@@ -386,7 +386,7 @@ pub const Context = struct {
             .mult_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = data.src1 * data.src2;
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "multiplication results", ir.span);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "multiplication result", ir.span);
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .mult_float => {
@@ -399,7 +399,7 @@ pub const Context = struct {
                     return self.panic(ir.span, "error: division by zero\n", .{});
                 }
                 const val = @divTrunc(data.src1, data.src2);
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division results", ir.span);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division result", ir.span);
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .div_float => {
@@ -409,7 +409,7 @@ pub const Context = struct {
             .mod => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 const val = @rem(data.src1, data.src2);
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "modulus results", ir.span);
+                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "modulus result", ir.span);
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), val);
             },
             .get_tag => { // gets the tag of a union value. The tag will be located in the last slot

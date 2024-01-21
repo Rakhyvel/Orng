@@ -1,0 +1,6 @@
+trait My_Trait {}
+
+impl My_Trait for Int {}
+impl My_Trait for Int {}
+
+fn main() -> Int { 0 }

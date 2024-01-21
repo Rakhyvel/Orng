@@ -6,17 +6,21 @@ program: top_level_declaration {"newline" {"newline"} top_level_declaration} "eo
 
 top_level_declaration: fn_declaration 
                      | let_declaration
+                     | trait_declaration
+                     | impl
                      .
 
-let_declaration: "let" let_pattern_atom (":" inject_expr ["=" inject_expr] | "=" inject_expr).
+let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" arrow_expr] | "=" arrow_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
                 .
 
 statement: let_declaration
-         | "defer" expr
-         | "errdefer" expr
+         | trait_declaration
+         | impl
+         | "defer" assignment_expr
+         | "errdefer" assignment_expr
          | assignment_expr
          .
 
@@ -29,14 +33,12 @@ sum_expr: product_expr {"|" annotation_expr}. # (lhs of | must be ident or annot
 
 product_expr: annotation_expr {"," annotation_expr}.
 
-annotation_expr: assignment_expr [":" inject_expr ["where" inject_expr] ["=" inject_expr]].
+annotation_expr: assignment_expr [":" arrow_expr ["where" arrow_expr] ["=" arrow_expr]].
 
 
 
 # Reachable by statement/expression
-assignment_expr: inject_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") inject_expr].
-
-inject_expr: arrow_expr ["<-" arrow_expr].
+assignment_expr: arrow_expr [("=" | "+=" | "-=" | "*=" | "/=" | "%=" | "<-") arrow_expr].
 
 arrow_expr: bool_expr {"->" bool_expr}.
 
@@ -57,15 +59,15 @@ prefix_expr: "not" prefix_expr                        # boolean not
            | "sizeof" prefix_expr                     # size (in bytes) of an epxression's C representation
            | "-" prefix_expr                          # negation
            | "&" ["mut"] prefix_expr                  # address-of
-           | "[" ["mut" | expr | "*"] "]" prefix_expr # slice-of/tuple-of/multi-pointer
+           | "[" ["mut" | assignment_expr | "*"] "]" prefix_expr # slice-of/tuple-of/multi-pointer
            | "?" invoke_expr                          # optional
            | invoke_expr
            .
 
 invoke_expr: postfix_expr {".>" postfix_expr}.
 
-postfix_expr: control_flow {call_expr | ("[" ((".."[expr]) | (expr[".." [expr]])) "]") | ("." ident) | ("^")}.
-call_expr: "(" [annotation_expr {"," annotation_expr}] ")".
+postfix_expr: control_flow {call_expr | ("[" ((".."[assignment_expr]) | (assignment_expr[".." [assignment_expr]])) "]") | ("." ident) | ("^")}.
+call_expr: "(" [assignment_expr {"," assignment_expr}] ")".
 
 control_flow: if_expr
             | while_expr
@@ -91,24 +93,30 @@ factor: ident
       | parens
       .
 
-ident: ident_unit {"_" ident_unit}.
-ident_unit: (capitalized [uncapitalized]) | uncapitalized.
+block_expr: "{" [ statement { "newline" statement } ] [("return" [assignment_expr]) | ("continue") | ("break")] "}".
 
-block_expr: "{" [ statement { "newline" statement } ] [("return" [expr]) | ("continue") | ("break")] "}".
+if_expr: "if" [let_declaration ";"] assignment_expr block_expr ["else" control_flow].
 
-if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
+while_expr: "while" [let_declaration ";"] assignment_expr [";" statement ] block_expr ["else" control_flow].
 
-while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["else" control_flow].
+for_expr: "for" ["mut"] ident "in" assignment_expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
 
-for_expr: "for" ["mut"] ident "in" expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
-
-fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" inject_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
+param: let_pattern_atom ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
 
-match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
-match_bar_clause: match_pattern_inject "=>" expr "newline".
-match_bar_else: "else" "=>" expr "newline".
+trait_declaration: "trait" ident "{" {method_declaration}"}". # Traits may be empty, but the braces are necessary to maintain unambiguity
+method_declaration: "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr].
+method_paramlist: "(" [(param|receiver) {"," param}] ")".
+receiver: ["&" ["mut"]] "self". # TODO: This doesn't allow `mut self` parameters. Maybe a good thing in disguise? Hmm...
+                                # Can still be done with `let mut x = self`.
+
+impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
+method_definition: "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
+
+match_expr: "match" [let_declaration ";"] assignment_expr "{" {match_bar_clause} [match_bar_else] "}".
+match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".
+match_bar_else: "else" "=>" assignment_expr "newline".
 
 match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
 match_pattern_inject: match_pattern_atom ["<-" match_pattern_atom].

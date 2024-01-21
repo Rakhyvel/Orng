@@ -19,6 +19,7 @@ pub var int64_type: *ast_.AST = undefined;
 pub var string_type: *ast_.AST = undefined;
 pub var type_type: *ast_.AST = undefined;
 pub var unit_type: *ast_.AST = undefined;
+pub var unit_value: *ast_.AST = undefined;
 pub var void_type: *ast_.AST = undefined;
 pub var word16_type: *ast_.AST = undefined;
 pub var word32_type: *ast_.AST = undefined;
@@ -97,6 +98,7 @@ pub fn get_scope() *symbol_.Scope {
         string_type = create_identifier("String");
         type_type = create_identifier("Type");
         unit_type = create_unit_type();
+        unit_value = create_unit_value();
         void_type = create_identifier("Void");
         word16_type = create_identifier("Word16");
         word32_type = create_identifier("Word32");
@@ -111,7 +113,7 @@ pub fn get_scope() *symbol_.Scope {
         _ = create_prelude_symbol("String", type_type, byte_slice_type);
         _ = create_prelude_symbol("Type", type_type, type_type);
         _ = create_prelude_symbol("Void", type_type, void_type);
-        blackhole = create_prelude_symbol("_", unit_type, unit_type);
+        blackhole = create_prelude_symbol("_", unit_type, unit_value);
 
         // Setup default values
         // These have to be all different AST nodes because they then represent different types
@@ -342,6 +344,10 @@ fn create_identifier(name: []const u8) *ast_.AST {
 
 fn create_unit_type() *ast_.AST {
     return ast_.AST.create_unit_type(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
+}
+
+fn create_unit_value() *ast_.AST {
+    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), std.heap.page_allocator).assert_valid();
 }
 
 fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *symbol_.Symbol {

@@ -1,0 +1,30 @@
+// 289
+trait My_Trait {
+    // Test `self` receiver
+    fn a(self, x: Int) -> Int
+
+    // Test `&self` receiver
+    fn b(&self, x: Int) -> Int
+
+    // Test `&mut self` receiver
+    fn c(&mut self, x: Int) -> Int
+    
+    // Test trait-member function
+    fn d(x: Int) -> Int
+}
+
+let const My_Type = (x: Int, y: Int)
+
+impl My_Trait for My_Type {
+    fn a(self, x: Int) -> Int { self.x + self.y * x }
+
+    fn b(&self, x: Int) -> Int { self.x + self.y * x }
+    
+    fn c(&mut self, x: Int) -> Int { self.x = x; self.x + self.y * x }
+    
+    fn d(x: Int) -> Int { x + 4 }
+}
+
+fn main() -> Int {
+    289
+}

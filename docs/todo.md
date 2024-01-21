@@ -9,7 +9,7 @@
     - [x] Token Kinds should be snake_case, prefer not to use abbreviations
 - [x] Replace `ast.<union member>.common.token` with `ast.get_token()` for ASTs outside of ast.zig
 - [x] Replace `ast.<union member>.common` with `ast.get_common()` for ASTs outside of ast.zig
-- [ ] Organize functions declarations in BFS order
+- [x] Organize functions declarations in BFS order
 - [ ] Order switches on enums to the order they were declared in
     - [ ] Order enums better too
 - [ ] Comments on each function and struct field
@@ -52,7 +52,7 @@
 - [x] Create a builtin module which contains info about builtin types
     - [x] Grep for every instance of `Int8` or something, extract that info to a file
 - [x] Fix camelCase detector (post-check, either all letters are capped, or just first of block)
-- [ ] Error if a symbol is marked mut when it isn't muted
+- [x] Error if a symbol is marked mut when it isn't muted
 - [x] 1-tuple, 1-sum
 - [x] Equality of products is just equality of all members in a product. Same with slices, strings, etc
     - [x] Addresses are equalable
@@ -266,6 +266,12 @@
         - [x] `_` to ignore value 
         - [x] Error if match is not total
         - [x] Remove `else` from match blocks
+        - [ ] `|` to match different cases
+            > All cases must have the same number of symbols defined
+            > For each symbol defined, it must have the same type for all cases
+        - [ ] `pattern if cond => rhs` for arbitrary additional conditions in match cases
+        - [ ] `low..upp` for ranges, like in Zig. Can leave off `low` or `upp` to be (theoretically) "negative and positive infinity", respectively
+            - [ ] should work for floats, also
 - [ ] new optimizations
     - [x] measure source-to-output ratio
     - [x] string literals should be indexed at compile-time, dont do runtime check
@@ -348,20 +354,23 @@
 - [ ] type classes / interfaces / traits 
     > Do not use for operator overloading!
     - [ ] `trait T { ... }` to define it
+        > These can be defined in any scope. They belong to their enclosing scope.
+        > They are namespaced separately from other symbols. Lookup is similar.
     - [ ] `impl [T] for X { ... }` to implement it for a type
+        > These can be implemented in any scope. They belong to their enclosing scope.
+        > Each scope has a `Type: AST -> Set(Trait: Trait)` "map". `Trait` types are a list of member function declarations.
         > This should create a global vtable
+        - [ ] Can leave trait null, static member functions
+        - [ ] Cannot impl an empty trait for primitives!
         - [ ] If T isn't null, either T or X must be defined in the same module
         - [ ] If T is null, X must be defined in the same module
-    - [ ] `dyn T`, which is two pointers, one to the data, the other to the global vtable
+    - [ ] `dyn Tr`, which is two pointers, one to the data, the other to the global vtable
     - [ ] dot prepend `x.>f()`
-        > Lookup any impl for the typeof x
-        > If x is a `dyn`, still works
+        > In Scope, given `T = @typeof(x)`, lookup any trait `Tr` impls for the type `T` which match function name, parameter and return type
+        > `scope.impl_map.lookup(@typeof(x))` gets you all the traits that the typeof x implements
+        > If x is a `dyn Tr`, still works
+    - [ ] `Self` type
     - [ ] `Ty <: Tr` returns if a type implements a trait
-    - [ ] iterators & for loops
-        - [ ] multi-loops, ranges like zig
-    - [ ] allocators
-    - [ ] Eq, Ord, Num, Bits, Convertible in prelude
-    - [ ] derive
 - [ ] build system (built upon compile-time evaluation) 
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] compile phase
@@ -405,6 +414,11 @@
         - [ ] error if an identifier is `$` twice
         - [ ] error if `$` appears anywhere else but a type annotation
     - [ ] `$Ty impls Tr` stamps out a new monomorphised function for every new impl of `Tr`
+    - [ ] iterators & for loops
+        - [ ] multi-loops, ranges like zig
+    - [ ] allocators
+    - [ ] Eq, Ord, Num, Bits, Convertible in prelude
+    - [ ] derive
     - [ ] `@as` which can do reinterpret casting (maybe different name?)
     - [ ] `id` function in standard
 - [ ] refinement types

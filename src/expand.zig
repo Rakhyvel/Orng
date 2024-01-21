@@ -36,6 +36,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .poison,
         .pattern_symbol,
         .domain_of,
+        .receiver,
         => {},
 
         .type_of,
@@ -143,7 +144,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.annotation.init, errors, allocator);
         },
 
-        .@"if" => {
+        .@"if" => { // TODO: Re-write `if let; cond b1 else b2` to be `{let; if cond b1 orelse b2}`
             try expand(ast.@"if".let, errors, allocator);
             try expand(ast.@"if".condition, errors, allocator);
             try expand(ast.body_block(), errors, allocator);
@@ -158,7 +159,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.lhs(), errors, allocator);
             try expand(ast.rhs(), errors, allocator);
         },
-        .@"while" => {
+        .@"while" => { // TODO: Re-write `while let; cond; post b1 else b2` to be `{let; while cond; post b1 orelse b2}`
             try expand(ast.@"while".let, errors, allocator);
             try expand(ast.@"while".condition, errors, allocator);
             try expand(ast.@"while".post, errors, allocator);
@@ -188,6 +189,17 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.fn_decl.init, errors, allocator);
             try expand_from_list(ast.children().*, errors, allocator);
             try expand(ast.fn_decl.ret_type, errors, allocator);
+        },
+        .trait => try expand_from_list(ast.trait.method_decls, errors, allocator),
+        .impl => {
+            try expand(ast.impl._type, errors, allocator);
+            try expand(ast.impl.trait, errors, allocator);
+            try expand_from_list(ast.impl.method_defs, errors, allocator);
+        },
+        .method_decl => {
+            try expand(ast.method_decl.init, errors, allocator);
+            try expand_from_list(ast.children().*, errors, allocator);
+            try expand(ast.method_decl.ret_type, errors, allocator);
         },
         .@"defer", .@"errdefer" => try expand(ast.statement(), errors, allocator),
     }

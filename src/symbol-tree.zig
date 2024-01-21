@@ -47,6 +47,7 @@ fn symbol_table_from_AST(
         .pattern_symbol,
         .domain_of,
         .size_of,
+        .receiver,
         => {},
 
         .@"break", .@"continue" => try in_loop_check(ast, scope, errors),
@@ -197,6 +198,30 @@ fn symbol_table_from_AST(
                 return;
             }
             const symbol = try create_function_symbol(ast, scope, errors, allocator);
+            try put_symbol(symbol, scope, errors);
+            ast.set_symbol(symbol);
+        },
+        .trait => {
+            if (ast.symbol() != null) {
+                // Do not re-do symboo if already declared
+                return;
+            }
+            const symbol = try create_trait_symbol(ast, scope, allocator);
+            try put_symbol(symbol, scope, errors);
+            ast.set_symbol(symbol);
+        },
+        .impl => {
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
+            ast.impl.scope = new_scope;
+            try symbol_table_from_AST(ast.impl.trait, scope, errors, allocator);
+            try symbol_table_from_AST_list(ast.impl.method_defs, new_scope, errors, allocator);
+        },
+        .method_decl => {
+            if (ast.symbol() != null or ast.method_decl.init == null) {
+                // Do not re-do symbol if already declared
+                return;
+            }
+            const symbol = try create_method_symbol(ast, scope, errors, allocator);
             try put_symbol(symbol, scope, errors);
             ast.set_symbol(symbol);
         },
@@ -439,6 +464,47 @@ fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator
     }
 }
 
+fn extract_domain_with_receiver(impl_type: *ast_.AST, receiver: *ast_.AST, params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
+    const _receiver_type = create_receiver_annot(create_receiver_addr(impl_type, receiver, allocator), receiver, allocator);
+    if (params.items.len == 0) {
+        return _receiver_type;
+    } else {
+        var param_types = std.ArrayList(*ast_.AST).init(allocator);
+        param_types.append(_receiver_type) catch unreachable;
+        for (0..params.items.len) |i| {
+            param_types.append(ast_.AST.create_annotation(
+                params.items[i].token(),
+                params.items[i].decl.pattern,
+                params.items[i].decl.type,
+                null,
+                params.items[i].decl.init,
+                allocator,
+            )) catch unreachable;
+        }
+        const retval = ast_.AST.create_product(params.items[0].token(), param_types, allocator);
+        return retval;
+    }
+}
+
+fn create_receiver_addr(impl_type: *ast_.AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
+    return switch (receiver.receiver.kind) {
+        .value => impl_type,
+        .addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, false, allocator),
+        .mut_addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, true, allocator),
+    };
+}
+
+fn create_receiver_annot(receiver_addr: *ast_.AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_annotation(
+        receiver.token(),
+        ast_.AST.create_identifier(receiver.token(), allocator),
+        receiver_addr,
+        null,
+        null,
+        allocator,
+    );
+}
+
 // `const` symbol, surround with comptime
 fn create_comptime_init(
     old_init: *ast_.AST,
@@ -490,5 +556,101 @@ fn create_temp_comptime_symbol(
     comptime_scope.inner_function = retval;
 
     try symbol_table_from_AST(ast.expr(), comptime_scope, errors, allocator);
+    return retval;
+}
+
+fn create_trait_symbol(
+    ast: *ast_.AST,
+    scope: *symbol_.Scope,
+    allocator: std.mem.Allocator,
+) Symbol_Error_Enum!*symbol_.Symbol {
+    // Create the symbol
+    const retval = symbol_.Symbol.init(
+        scope,
+        ast.token().data,
+        ast.token().span,
+        primitives_.unit_type,
+        primitives_.unit_value,
+        ast,
+        .trait,
+        allocator,
+    );
+    retval.defined = true;
+    return retval;
+}
+
+fn create_method_symbol(
+    ast: *ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Symbol_Error_Enum!*symbol_.Symbol {
+    const receiver_base_type: *ast_.AST = ast.method_decl.impl.?.impl._type;
+    // Calculate the domain type from the function paramter types
+    const domain = if (ast.method_decl.receiver) |receiver|
+        extract_domain_with_receiver(receiver_base_type, receiver, ast.children().*, allocator)
+    else
+        extract_domain(ast.children().*, allocator);
+
+    // Create the function type
+    const _type = ast_.AST.create_function(
+        ast.method_decl.ret_type.token(),
+        domain,
+        ast.method_decl.ret_type,
+        allocator,
+    );
+
+    // Create the function scope
+    var fn_scope = symbol_.Scope.init(scope, "", allocator);
+    fn_scope.in_function = scope.in_function + 1;
+
+    // Recurse parameters and init
+    try symbol_table_from_AST_list(ast.children().*, fn_scope, errors, allocator);
+    try symbol_table_from_AST(ast.method_decl.ret_type, fn_scope, errors, allocator);
+
+    if (ast.method_decl.receiver != null) {
+        const recv_type = create_receiver_addr(receiver_base_type, ast.method_decl.receiver.?, allocator);
+        const receiver_symbol = symbol_.Symbol.init(
+            fn_scope,
+            "self",
+            ast.token().span,
+            recv_type,
+            ast_.AST.create_default(ast.method_decl.receiver.?.token(), recv_type, allocator),
+            ast.method_decl.receiver,
+            .let,
+            allocator,
+        );
+        try put_symbol(receiver_symbol, fn_scope, errors);
+        ast.method_decl.param_symbols.append(receiver_symbol) catch unreachable;
+    }
+
+    // Put the param symbols in the param symbols list
+    for (ast.children().items) |param| {
+        const symbol = param.decl.symbols.items[0];
+        ast.method_decl.param_symbols.append(symbol) catch unreachable;
+    }
+
+    const key_set = fn_scope.symbols.keys();
+    for (0..key_set.len) |i| {
+        const key = key_set[i];
+        var symbol = fn_scope.symbols.get(key).?;
+        symbol.defined = true;
+        symbol.decld = true;
+        symbol.param = true;
+    }
+
+    const retval = symbol_.Symbol.init(
+        fn_scope,
+        ast.method_decl.name.token().data,
+        ast.token().span,
+        _type,
+        ast.method_decl.init.?,
+        ast,
+        .@"fn",
+        allocator,
+    );
+    fn_scope.inner_function = retval;
+
+    try symbol_table_from_AST(ast.method_decl.init, fn_scope, errors, allocator);
     return retval;
 }

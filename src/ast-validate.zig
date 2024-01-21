@@ -25,6 +25,10 @@ fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.m
     for (scope.children.items) |child| {
         try validate_scope(child, errors, allocator);
     }
+    for (scope.impls.items) |impl| {
+        // Validate that each each
+        try validate_impl(impl, errors, allocator);
+    }
 }
 
 fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
@@ -44,7 +48,9 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
         symbol.init = validate_AST(symbol.init, expected, errors, allocator);
         // std.debug.print("init for: {s}: {}\n", .{ symbol.name, symbol.init });
-        if (symbol.init.* == .poison) {
+        if (symbol.kind == .trait) {
+            try validate_trait(symbol, errors, allocator);
+        } else if (symbol.init.* == .poison) {
             symbol.validation_state = .invalid;
             return error.TypeError;
             // unreachable;
@@ -59,7 +65,7 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_")) {
+    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait) {
         if (type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
             errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type `Type` must start with an uppercase letter",
@@ -73,6 +79,141 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
                 .name = symbol.name,
             } });
         }
+    }
+}
+
+fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+    var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
+    defer names.deinit();
+    for (trait.decl.?.trait.method_decls.items) |decl| {
+        if (names.get(decl.method_decl.name.token().data)) |other| {
+            errors.add_error(errs_.Error{ .duplicate = .{
+                .span = decl.token().span,
+                .identifier = decl.method_decl.name.token().data,
+                .first = other.token().span,
+            } });
+            return error.TypeError;
+        } else {
+            names.put(decl.method_decl.name.token().data, decl) catch unreachable;
+        }
+
+        for (decl.method_decl._params.items) |param| {
+            _ = validate_AST(param.decl.type, primitives_.type_type, errors, allocator);
+        }
+        _ = validate_AST(decl.method_decl.ret_type, primitives_.type_type, errors, allocator);
+    }
+}
+
+fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+    const trait_symbol: ?*symbol_.Symbol = if (impl.impl.trait) |trait| trait.symbol() else null;
+    if (trait_symbol != null) {
+        const trait_ast = trait_symbol.?.decl.?;
+
+        // Construct a map of all trait decls
+        var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
+        defer trait_decls.deinit();
+        for (trait_ast.trait.method_decls.items) |decl| {
+            trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
+        }
+
+        // Subtract trait defs - impl decls
+        for (impl.impl.method_defs.items) |def| {
+            const def_key = def.method_decl.name.token().data;
+            const trait_decl = trait_decls.get(def_key);
+
+            // Check that the trait defines the method
+            if (trait_decl == null) {
+                errors.add_error(errs_.Error{ .method_not_in_trait = .{
+                    .method_span = def.token().span,
+                    .method_name = def.method_decl.name.token().data,
+                    .trait_name = trait_ast.token().data,
+                } });
+                return error.TypeError;
+            }
+
+            // Check that receivers match
+            if (!receivers_match(def.method_decl.receiver, trait_decl.?.method_decl.receiver)) {
+                errors.add_error(errs_.Error{ .receiver_mismatch = .{
+                    .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.token().span else def.token().span,
+                    .method_name = def.method_decl.name.token().data,
+                    .trait_name = trait_ast.token().data,
+                    .trait_receiver = if (trait_decl.?.method_decl.receiver != null) trait_decl.?.method_decl.receiver.?.receiver.kind else null,
+                    .impl_receiver = if (def.method_decl.receiver != null) def.method_decl.receiver.?.receiver.kind else null,
+                } });
+                return error.TypeError;
+            }
+
+            // Check that paramter arity matches
+            if (def.children().items.len != trait_decl.?.children().items.len) {
+                errors.add_error(errs_.Error{ .mismatch_method_param_arity = .{
+                    .span = def.token().span,
+                    .method_name = def.method_decl.name.token().data,
+                    .trait_name = trait_ast.token().data,
+                    .trait_arity = trait_decl.?.children().items.len + @intFromBool(trait_decl.?.method_decl.receiver != null),
+                    .impl_arity = def.children().items.len + @intFromBool(def.method_decl.receiver != null),
+                } });
+                return error.TypeError;
+            }
+
+            // Check that parameters match
+            for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
+                const impl_type = impl_param.decl.type;
+                const trait_type = trait_param.decl.type;
+                if (!impl_type.types_match(trait_type)) {
+                    errors.add_error(errs_.Error{ .mismatch_method_type = .{
+                        .span = impl_param.decl.type.token().span,
+                        .method_name = def.method_decl.name.token().data,
+                        .trait_name = trait_ast.token().data,
+                        .trait_type = trait_type,
+                        .impl_type = impl_type,
+                    } });
+                    return error.TypeError;
+                }
+            }
+
+            if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
+                if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
+                    errors.add_error(errs_.Error{ .mismatch_method_type = .{
+                        .span = def.method_decl.ret_type.token().span,
+                        .method_name = def.method_decl.name.token().data,
+                        .trait_name = trait_ast.token().data,
+                        .trait_type = trait_decl.?.method_decl.ret_type,
+                        .impl_type = def.method_decl.ret_type,
+                    } });
+                    return error.TypeError;
+                }
+            }
+
+            // Subtract the method from the set
+            _ = trait_decls.swapRemove(def_key);
+        }
+
+        var errant = false;
+        for (trait_decls.keys()) |trait_key| {
+            const trait_decl = trait_decls.get(trait_key).?;
+            errors.add_error(errs_.Error{ .method_not_in_impl = .{
+                .impl_span = impl.token().span,
+                .method_span = trait_decl.token().span,
+                .method_name = trait_decl.method_decl.name.token().data,
+                .trait_name = trait_ast.token().data,
+            } });
+            errant = true;
+        }
+        if (errant) {
+            return error.TypeError;
+        }
+    }
+}
+
+fn receivers_match(a: ?*ast_.AST, b: ?*ast_.AST) bool {
+    if (a == null and b != null) {
+        return false;
+    } else if (a != null and b == null) {
+        return false;
+    } else if (a == null and b == null) {
+        return true;
+    } else {
+        return a.?.receiver.kind == b.?.receiver.kind;
     }
 }
 
@@ -644,7 +785,7 @@ fn validate_AST_internal(
                 expanded_base.children().append(annotation) catch unreachable;
                 pos = expanded_base.children().items.len - 1;
             } else if (pos == null and expanded_base.* == .sum_type) {
-                errors.add_error(errs_.Error{ .member_not_in = .{ .span = ast.token().span, .identifier = ast.token().data, .group_name = "sum" } });
+                errors.add_error(errs_.Error{ .member_not_in = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .group = expanded_base } });
                 return error.TypeError;
             }
             ast.set_pos(expanded_base.get_pos(ast.token().data));
@@ -1341,7 +1482,10 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             }
         },
 
-        .dereference => try assert_mutable_address(ast.expr().typeof(allocator), errors),
+        .dereference => {
+            const expr_expanded_type = ast.expr().typeof(allocator).expand_type(allocator);
+            try assert_mutable_address(expr_expanded_type, errors);
+        },
 
         .index => {
             const lhs_type = ast.lhs().typeof(allocator);
@@ -1396,7 +1540,7 @@ fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors
             return i;
         }
     } else {
-        errors.add_error(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .group_name = "tuple" } });
+        errors.add_error(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .name = "tuple", .group = _type } });
         return error.TypeError;
     }
 }

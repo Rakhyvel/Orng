@@ -44,6 +44,7 @@ fn decorate_identifiers(
         .poison,
         .pattern_symbol,
         .domain_of,
+        .receiver,
         => {},
 
         .identifier => {
@@ -190,6 +191,30 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.fn_decl.init, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
+        },
+        .trait => try decorate_identifiers_from_list(ast.trait.method_decls, scope, errors, allocator),
+        .impl => {
+            try decorate_identifiers(ast.impl._type, scope, errors, allocator);
+            try decorate_identifiers(ast.impl.trait, scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.impl.method_defs, scope, errors, allocator);
+
+            // Want to be able to lookup (impl.type, impl.trait) to see if an implementation exists in this scope already
+            const trait_symbol: ?*symbol_.Symbol = if (ast.impl.trait) |trait| trait.symbol() else null;
+            if (scope.impl_trait_lookup(ast.impl._type, trait_symbol)) |other_impl| {
+                errors.add_error(errs_.Error{ .reimpl = .{
+                    .first_defined_span = ast.token().span,
+                    .redefined_span = other_impl.token().span,
+                    .name = if (trait_symbol != null) trait_symbol.?.name else null,
+                    ._type = ast.impl._type,
+                } });
+                return error.SymbolError;
+            }
+            scope.impls.append(ast) catch unreachable;
+        },
+        .method_decl => {
+            try decorate_identifiers(ast.method_decl.init, scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
+            try decorate_identifiers(ast.method_decl.ret_type, scope, errors, allocator);
         },
         .@"defer", .@"errdefer" => try decorate_identifiers(ast.statement(), scope, errors, allocator),
     }

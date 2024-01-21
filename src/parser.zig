@@ -66,12 +66,13 @@ pub const Parser = struct {
             next_kind == .string or
             next_kind == .multi_line_string or
             next_kind == .not or
-            next_kind == .at_symbol;
+            next_kind == .at_symbol or
+            next_kind == .self;
     }
 
     fn next_is_statement(self: *Parser) bool {
         const next_kind = self.peek().kind;
-        return next_kind == .let or next_kind == .@"defer" or next_kind == .@"errdefer" or self.next_is_expr();
+        return next_kind == .let or next_kind == .impl or next_kind == .trait or next_kind == .@"defer" or next_kind == .@"errdefer" or self.next_is_expr();
     }
 
     /// Returns the next token if its kind matches the given kind, otherwise
@@ -118,6 +119,10 @@ pub const Parser = struct {
             }
             decl.decl.top_level = true;
             return decl;
+        } else if (self.peek_kind(.trait)) {
+            return self.trait_declaration();
+        } else if (self.peek_kind(.impl)) {
+            return self.impl_declaration();
         } else {
             self.errors.add_error(errs_.Error{ .expected_basic_token = .{
                 .expected = "`fn` or `let` declaration in the top level",
@@ -220,10 +225,14 @@ pub const Parser = struct {
     fn statement(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.peek_kind(.let)) {
             return self.let_declaration();
+        } else if (self.peek_kind(.trait)) {
+            return self.trait_declaration();
+        } else if (self.peek_kind(.impl)) {
+            return self.impl_declaration();
         } else if (self.accept(.@"defer")) |token| {
-            return ast_.AST.create_defer(token, try self.expr(), self.allocator);
+            return ast_.AST.create_defer(token, try self.assignment_expr(), self.allocator);
         } else if (self.accept(.@"errdefer")) |token| {
-            return ast_.AST.create_errdefer(token, try self.expr(), self.allocator);
+            return ast_.AST.create_errdefer(token, try self.assignment_expr(), self.allocator);
         } else if (self.next_is_expr()) {
             return self.assignment_expr();
         } else {
@@ -416,17 +425,17 @@ pub const Parser = struct {
         } else if (self.accept(.at_symbol)) |_| {
             if (self.accept(.typeof)) |token| {
                 _ = try self.expect(.left_parenthesis);
-                const exp = try self.annotation_expr();
+                const exp = try self.assignment_expr();
                 _ = try self.expect(.right_parenthesis);
                 return ast_.AST.create_type_of(token, exp, self.allocator);
             } else if (self.accept(.default)) |token| {
                 _ = try self.expect(.left_parenthesis);
-                const exp = try self.annotation_expr();
+                const exp = try self.assignment_expr();
                 _ = try self.expect(.right_parenthesis);
                 return ast_.AST.create_default(token, exp, self.allocator);
             } else if (self.accept(.sizeof)) |token| {
                 _ = try self.expect(.left_parenthesis);
-                const exp = try self.annotation_expr();
+                const exp = try self.assignment_expr();
                 _ = try self.expect(.right_parenthesis);
                 return ast_.AST.create_size_of(token, exp, self.allocator);
             } else {
@@ -491,12 +500,12 @@ pub const Parser = struct {
             } else if (self.accept(.left_square)) |token| {
                 var first: ?*ast_.AST = null;
                 if (self.next_is_expr()) {
-                    first = try self.expr();
+                    first = try self.assignment_expr();
                 }
                 if (self.accept(.double_period)) |_| {
                     var second: ?*ast_.AST = null;
                     if (self.next_is_expr()) {
-                        second = try self.expr();
+                        second = try self.assignment_expr();
                     }
                     exp = ast_.AST.create_sub_slice(token, exp, first, second, self.allocator);
                 } else {
@@ -534,9 +543,9 @@ pub const Parser = struct {
         _ = try self.expect(.left_parenthesis);
         var retval = std.ArrayList(*ast_.AST).init(self.allocator);
         if (!self.peek_kind(.right_parenthesis)) {
-            retval.append(try self.annotation_expr()) catch unreachable;
+            retval.append(try self.assignment_expr()) catch unreachable;
             while (self.accept(.comma)) |_| {
-                retval.append(try self.annotation_expr()) catch unreachable;
+                retval.append(try self.assignment_expr()) catch unreachable;
             }
         }
         _ = try self.expect(.right_parenthesis);
@@ -559,6 +568,8 @@ pub const Parser = struct {
 
     fn factor(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.accept(.identifier)) |token| {
+            return ast_.AST.create_identifier(token, self.allocator);
+        } else if (self.accept(.self)) |token| {
             return ast_.AST.create_identifier(token, self.allocator);
         } else if (self.peek_kind(.@"fn")) {
             return self.fn_declaration();
@@ -593,7 +604,7 @@ pub const Parser = struct {
         } else if (self.accept(.period)) |_| {
             const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
             if (self.accept(.left_parenthesis) != null) {
-                sum_val.sum_value.init = try self.annotation_expr();
+                sum_val.sum_value.init = try self.assignment_expr();
                 _ = try self.expect(.right_parenthesis);
             }
             return sum_val;
@@ -643,7 +654,7 @@ pub const Parser = struct {
         } else if (self.accept(.@"return")) |token| {
             var exp: ?*ast_.AST = null;
             if (self.next_is_expr()) {
-                exp = try self.expr();
+                exp = try self.assignment_expr();
             }
             final = ast_.AST.create_return(token, exp, self.allocator);
             while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
@@ -662,7 +673,7 @@ pub const Parser = struct {
     fn if_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const token = try self.expect(.@"if");
         const let: ?*ast_.AST = try self.let_pre();
-        const cond = try self.expr();
+        const cond = try self.assignment_expr();
         const body_block = try self.factor();
         var else_block: ?*ast_.AST = null;
         if (self.accept(.@"else")) |_| {
@@ -675,7 +686,7 @@ pub const Parser = struct {
     fn while_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const token = try self.expect(.@"while");
         const let: ?*ast_.AST = try self.let_pre();
-        const cond = try self.expr();
+        const cond = try self.assignment_expr();
         var post: ?*ast_.AST = null;
         if (self.accept(.semicolon)) |_| {
             post = try self.statement();
@@ -695,7 +706,7 @@ pub const Parser = struct {
         _ = self.accept(.mut);
         const elem = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
         _ = try self.expect(.in);
-        const iterable = try self.expr();
+        const iterable = try self.assignment_expr();
         const body_block = try self.block_expr();
         var else_block: ?*ast_.AST = null;
         if (self.accept(.@"else")) |_| {
@@ -714,10 +725,10 @@ pub const Parser = struct {
         }
         const params = try self.paramlist();
         _ = try self.expect(.skinny_arrow);
-        const inferred_errortoken_ = self.accept(.exclamation_mark);
+        const inferred_error_token = self.accept(.exclamation_mark);
         var ret_type = try self.bool_expr();
-        if (inferred_errortoken_ != null) {
-            ret_type = ast_.AST.create_inferred_error(inferred_errortoken_.?, ret_type, self.allocator);
+        if (inferred_error_token != null) {
+            ret_type = ast_.AST.create_inferred_error(inferred_error_token.?, ret_type, self.allocator);
         }
 
         const refinement: ?*ast_.AST = null;
@@ -734,7 +745,6 @@ pub const Parser = struct {
             ret_type,
             refinement,
             _init,
-            false,
             self.allocator,
         );
     }
@@ -781,11 +791,151 @@ pub const Parser = struct {
         );
     }
 
+    fn trait_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        _ = try self.expect(.trait);
+        const trait_name: token_.Token = try self.expect(.identifier);
+        _ = try self.expect(.left_brace);
+        var method_decls = std.ArrayList(*ast_.AST).init(self.allocator);
+        errdefer method_decls.deinit();
+
+        while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
+        while (self.peek_kind(.@"fn")) {
+            method_decls.append(try self.method_declaration()) catch unreachable;
+            while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
+        }
+
+        _ = try self.expect(.right_brace);
+        return ast_.AST.create_trait(trait_name, method_decls, self.allocator);
+    }
+
+    fn impl_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const token = try self.expect(.impl);
+        const trait_ident: ?*ast_.AST = if (!self.peek_kind(.@"for")) ast_.AST.create_identifier(try self.expect(.identifier), self.allocator) else null;
+        _ = try self.expect(.@"for");
+        const _type = try self.arrow_expr();
+        _ = try self.expect(.left_brace);
+        var method_defs = std.ArrayList(*ast_.AST).init(self.allocator);
+        errdefer method_defs.deinit();
+        const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, self.allocator);
+
+        while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
+        while (self.peek_kind(.@"fn")) {
+            const method = try self.method_definition();
+            method.method_decl.impl = retval;
+            method_defs.append(method) catch unreachable;
+            while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
+        }
+        _ = try self.expect(.right_brace);
+        retval.impl.method_defs = method_defs;
+        return retval;
+    }
+
+    fn method_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const introducer = try self.expect(.@"fn");
+        const name: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
+
+        const params_and_receiver = try self.method_paramlist();
+        const params = params_and_receiver.params;
+        const _receiver = params_and_receiver.receiver;
+
+        _ = try self.expect(.skinny_arrow);
+        const ret_type = try self.bool_expr();
+
+        const refinement: ?*ast_.AST = null;
+        if (self.accept(.where)) |_| {
+            _ = try self.arrow_expr();
+        }
+
+        return ast_.AST.create_method_decl( // TODO: create `method_decl` ast
+            introducer,
+            name,
+            _receiver,
+            params,
+            ret_type,
+            refinement,
+            null, // Won't have an init!
+            self.allocator,
+        );
+    }
+
+    fn method_definition(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const introducer = try self.expect(.@"fn");
+        const name: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
+
+        const params_and_receiver = try self.method_paramlist();
+        const params = params_and_receiver.params;
+        const _receiver = params_and_receiver.receiver;
+
+        _ = try self.expect(.skinny_arrow);
+        const inferred_error_token = self.accept(.exclamation_mark);
+        var ret_type = try self.bool_expr();
+        if (inferred_error_token != null) {
+            ret_type = ast_.AST.create_inferred_error(inferred_error_token.?, ret_type, self.allocator);
+        }
+
+        const refinement: ?*ast_.AST = null;
+        if (self.accept(.where)) |_| {
+            _ = try self.arrow_expr();
+        }
+
+        const _init = try self.block_expr();
+
+        return ast_.AST.create_method_decl( // TODO: create `method_def` ast
+            introducer,
+            name,
+            _receiver,
+            params,
+            ret_type,
+            refinement,
+            _init,
+            self.allocator,
+        );
+    }
+
+    fn method_paramlist(self: *Parser) Parser_Error_Enum!struct { receiver: ?*ast_.AST, params: std.ArrayList(*ast_.AST) } {
+        var params = std.ArrayList(*ast_.AST).init(self.allocator);
+        errdefer params.deinit();
+        var _receiver: ?*ast_.AST = null;
+
+        const token = try self.expect(.left_parenthesis);
+        if (!self.peek_kind(.right_parenthesis)) {
+            if (self.peek_kind(.self) or self.peek_kind(.ampersand)) {
+                _receiver = try self.receiver();
+            } else {
+                params.append(try self.param()) catch unreachable;
+            }
+            while (self.accept(.comma)) |_| {
+                params.append(try self.param()) catch unreachable;
+            }
+        }
+        if (self.peek_kind(.right_parenthesis)) {
+            _ = self.expect(.right_parenthesis) catch unreachable;
+        } else {
+            self.errors.add_error(errs_.Error{ .missing_close = .{ .expected = .right_parenthesis, .got = self.peek(), .open = token } });
+            return error.ParseError;
+        }
+
+        return .{ .receiver = _receiver, .params = params };
+    }
+
+    fn receiver(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        var kind: ast_.Receiver_Kind = .value;
+        if (self.accept(.ampersand)) |_| {
+            if (self.accept(.mut)) |_| {
+                kind = .mut_addr_of;
+            } else {
+                kind = .addr_of;
+            }
+        }
+        const token = try self.expect(.self);
+        return ast_.AST.create_receiver(token, kind, self.allocator);
+    }
+
     fn match_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const token = try self.expect(.match);
         var mappings = std.ArrayList(*ast_.AST).init(self.allocator);
         const let: ?*ast_.AST = try self.let_pre();
-        const exp = try self.expr();
+        const exp = try self.assignment_expr();
 
         _ = try self.expect(.left_brace);
         while (self.accept(.newline)) |_| {}
@@ -811,7 +961,7 @@ pub const Parser = struct {
     fn match_mapping(self: *Parser) Parser_Error_Enum!*ast_.AST {
         var lhs = try self.match_pattern_sum_value();
         _ = try self.expect(.fat_arrow);
-        const rhs = try self.expr();
+        const rhs = try self.assignment_expr();
         if (!self.peek_kind(.right_brace)) {
             _ = try self.expect(.newline);
         }

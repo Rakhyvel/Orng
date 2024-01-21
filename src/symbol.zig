@@ -13,6 +13,7 @@ pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
+    impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope
     module: ?*module_.Module, // Enclosing module
     name: []const u8,
     uid: usize,
@@ -28,6 +29,7 @@ pub const Scope = struct {
         retval.parent = parent;
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
+        retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.name = name;
         retval.uid = scope_UID;
         retval.defers = std.ArrayList(*ast_.AST).init(allocator);
@@ -72,11 +74,53 @@ pub const Scope = struct {
         }
     }
 
-    pub fn pprint(self: *Scope) !void {
-        var out = String.init(std.heap.page_allocator);
-        defer out.deinit();
-        try self.serialize(&out, 0);
-        std.debug.print("{s}\n", .{out.str()});
+    /// Returns the unique implementation for a given type and trait
+    ///
+    /// `for_type` doesn't necessarily need to be a valid type to match. It is not expanded.
+    pub fn impl_trait_lookup(self: *Scope, for_type: *ast_.AST, trait: ?*Symbol) ?*ast_.AST {
+        // Go through the list of implementations, check to see if the types and traits match
+        for (self.impls.items) |impl| {
+            if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
+                // Types do not match
+                continue;
+            } else if ((impl.impl.trait == null and trait != null) or (impl.impl.trait != null and trait == null)) {
+                // impl trait and search trait nullality doesn't match
+                continue;
+            } else if (impl.impl.trait != null and impl.impl.trait.?.symbol() == trait.?) {
+                // non-null trait, types match => found impl
+                return impl;
+            } else {
+                // null trait, types match => found impl
+                return impl;
+            }
+        }
+
+        if (self.parent != null) {
+            // Did not match in this scope. Try parent scope
+            return self.parent.?.impl_trait_lookup(for_type, trait);
+        } else {
+            // Not found, parent scope is null
+            return null;
+        }
+    }
+
+    /// Given a scope and a type, fills in a map of methods defined for that type in that scope.
+    pub fn fill_method_map(self: *Scope, for_type: *ast_.AST, method_map: *std.StringArrayHashMap(*ast_.AST)) void {
+        if (self.parent != null) {
+            self.parent.?.fill_method_map(for_type, method_map);
+        }
+        for (self.impls.items) |impl| {
+            if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
+                // Types do not match
+                continue;
+            }
+            for (impl.impl.method_defs) |def| {
+                if (method_map.get(def.decl.symbols.items[0].name)) {
+                    unreachable; // TODO: Give an error about redefining a method for a given type
+                }
+                method_map.put(def.decl.symbols.items[0].name, def);
+            }
+        }
     }
 };
 
@@ -86,6 +130,7 @@ pub const Symbol_Kind = enum {
     let,
     mut,
     @"comptime",
+    trait,
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);
