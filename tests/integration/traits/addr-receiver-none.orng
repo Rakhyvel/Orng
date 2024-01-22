@@ -1,0 +1,19 @@
+// 295
+trait My_Trait {
+    fn d(x: Int, y: Int) -> Int
+}
+
+let const My_Type = (x: Int, y: Int)
+
+impl My_Trait for My_Type {
+    fn d(x: Int, y: Int) -> Int {
+        x + y
+    }
+}
+
+fn main() -> Int {
+    let my_val: My_Type = (100, 45)
+    let my_val_ptr = &my_val
+    _ = my_val_ptr
+    my_val_ptr.>d(200, 95)
+}

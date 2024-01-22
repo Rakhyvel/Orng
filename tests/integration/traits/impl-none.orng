@@ -1,0 +1,15 @@
+// 292
+let const My_Type = (x: Int, y: Int)
+
+impl for My_Type {
+    fn a(self, x: Int) -> Int { self.x + self.y * x }
+    
+    fn c(&mut self, x: Int) -> Int { self.x = x; self.x + self.y * x }
+    
+    fn d(x: Int) -> Int { x + 4 }
+}
+
+fn main() -> Int {
+    let my_val: My_Type = (200, 45)
+    my_val.>a(2) + 2
+}

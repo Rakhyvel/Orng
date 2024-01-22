@@ -596,7 +596,8 @@ fn validate_AST_internal(
         .invoke => {
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
-            const lhs_type = ast.lhs().typeof(allocator);
+            const true_lhs_type = ast.lhs().typeof(allocator);
+            const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
             var method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
             if (method_decl == null) {
                 errors.add_error(errs_.Error{ .type_not_impl_method = .{
@@ -610,20 +611,16 @@ fn validate_AST_internal(
             try assert_none_poisoned(method_decl);
             ast.invoke.method_decl = method_decl.?;
             const domain: *ast_.AST = method_decl.?.symbol().?._type.lhs();
-            const expanded_lhs_type = lhs_type.expand_identifier();
+            const expanded_true_lhs_type = true_lhs_type.expand_identifier();
             const receiver_kind: ?ast_.Receiver_Kind = if (method_decl.?.method_decl.receiver != null) method_decl.?.method_decl.receiver.?.receiver.kind else null;
-            if (method_decl.?.method_decl.receiver != null and receiver_kind.? != .value) {
+            if (method_decl.?.method_decl.receiver != null) {
                 // Prepend invoke lhs to args if there is a receiver
-                if (expanded_lhs_type.* == .addr_of) {
+                if (expanded_true_lhs_type.* == .addr_of) {
                     ast.children().insert(0, ast.lhs()) catch unreachable;
                 } else {
                     const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, allocator);
                     ast.children().insert(0, addr_of) catch unreachable;
                 }
-            } else if (method_decl.?.method_decl.receiver != null and receiver_kind.? == .value) {
-                // Prepend the address of invoke lhs
-                const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), false, allocator);
-                ast.children().insert(0, addr_of) catch unreachable;
             }
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
             ast.set_children((try validate_args(ast.children(), domain, ast.token().span, errors, allocator)).*);

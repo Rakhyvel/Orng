@@ -1,4 +1,4 @@
-// 289
+// 293
 trait My_Trait {
     fn a(self, x: Int) -> Int
 }
@@ -11,5 +11,6 @@ impl My_Trait for My_Type {
 
 fn main() -> Int {
     let my_val: My_Type = (200, 45)
-    my_val.>a(2) - 1
+    let my_val_ptr = &my_val
+    my_val_ptr.>a(2) + 3
 }

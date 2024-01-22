@@ -360,7 +360,7 @@
         > These can be implemented in any scope. They belong to their enclosing scope.
         > Each scope has a `Type: AST -> Set(Trait: Trait)` "map". `Trait` types are a list of member function declarations.
         > This should create a global vtable
-        - [ ] Can leave trait null, static member functions
+        - [x] Can leave trait null, static member functions
         - [ ] Cannot impl an empty trait for primitives!
         - [ ] Cannot impl for an addr-of
         - [ ] If T isn't null, either T or X must be defined in the same module

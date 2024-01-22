@@ -217,6 +217,9 @@ fn symbol_table_from_AST(
         .impl => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.impl.scope = new_scope;
+            if (ast.impl.trait == null) {
+                ast.impl.trait = ast_.AST.create_trait(ast.token(), ast.impl.method_defs, allocator);
+            }
             try symbol_table_from_AST(ast.impl.trait, scope, errors, allocator);
             try symbol_table_from_AST_list(ast.impl.method_defs, new_scope, errors, allocator);
         },
