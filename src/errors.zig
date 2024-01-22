@@ -81,6 +81,11 @@ pub const Error = union(enum) {
         name: ?[]const u8,
         _type: *ast_.AST,
     },
+    type_not_impl_method: struct {
+        span: span_.Span,
+        method_name: []const u8,
+        _type: *ast_.AST,
+    },
     method_not_in_trait: struct {
         method_span: span_.Span,
         method_name: []const u8,
@@ -233,6 +238,7 @@ pub const Error = union(enum) {
             .not_inside_function => return self.not_inside_function.span,
 
             .reimpl => return self.reimpl.redefined_span,
+            .type_not_impl_method => return self.type_not_impl_method.span,
             .method_not_in_trait => return self.method_not_in_trait.method_span,
             .method_not_in_impl => return self.method_not_in_impl.impl_span,
             .receiver_mismatch => return self.receiver_mismatch.receiver_span,
@@ -283,7 +289,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
+        // peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
     }
 
     fn peek_error(err: Error) !void {
@@ -364,6 +370,11 @@ pub const Errors = struct {
                 try out.print("duplicate implementation for the type `", .{});
                 try err.reimpl._type.print_type(out);
                 try out.print("`\n", .{});
+            },
+            .type_not_impl_method => {
+                try out.print("the type `", .{});
+                try err.type_not_impl_method._type.print_type(out);
+                try out.print("` does not implement the method `{s}`\n", .{err.type_not_impl_method.method_name});
             },
             .method_not_in_trait => try out.print("implementation for method `{s}` that is not in trait `{s}`\n", .{
                 err.method_not_in_trait.method_name,

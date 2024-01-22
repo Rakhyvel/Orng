@@ -353,7 +353,7 @@
     - [x] Panic for div by zero, if int type cannot represent value, out of bounds (redo this for codegen!!)
 - [ ] type classes / interfaces / traits 
     > Do not use for operator overloading!
-    - [ ] `trait T { ... }` to define it
+    - [x] `trait T { ... }` to define it
         > These can be defined in any scope. They belong to their enclosing scope.
         > They are namespaced separately from other symbols. Lookup is similar.
     - [ ] `impl [T] for X { ... }` to implement it for a type
@@ -362,13 +362,14 @@
         > This should create a global vtable
         - [ ] Can leave trait null, static member functions
         - [ ] Cannot impl an empty trait for primitives!
+        - [ ] Cannot impl for an addr-of
         - [ ] If T isn't null, either T or X must be defined in the same module
         - [ ] If T is null, X must be defined in the same module
     - [ ] `dyn Tr`, which is two pointers, one to the data, the other to the global vtable
     - [ ] dot prepend `x.>f()`
         > In Scope, given `T = @typeof(x)`, lookup any trait `Tr` impls for the type `T` which match function name, parameter and return type
         > `scope.impl_map.lookup(@typeof(x))` gets you all the traits that the typeof x implements
-        > If x is a `dyn Tr`, still works
+        - [ ] If x is a `dyn Tr`, still works
     - [ ] `Self` type
     - [ ] `Ty <: Tr` returns if a type implements a trait
 - [ ] build system (built upon compile-time evaluation) 

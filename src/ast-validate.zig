@@ -599,8 +599,12 @@ fn validate_AST_internal(
             const lhs_type = ast.lhs().typeof(allocator);
             var method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
             if (method_decl == null) {
-                // TODO: Add error that type does not impl method
-                unreachable;
+                errors.add_error(errs_.Error{ .type_not_impl_method = .{
+                    .span = ast.token().span,
+                    .method_name = ast.rhs().token().data,
+                    ._type = lhs_type,
+                } });
+                return error.TypeError;
             }
             method_decl = validate_AST(method_decl.?, null, errors, allocator);
             try assert_none_poisoned(method_decl);
