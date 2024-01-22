@@ -4,6 +4,7 @@ const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
+pub var anyptr_type: *ast_.AST = undefined;
 pub var bool_type: *ast_.AST = undefined;
 pub var byte_type: *ast_.AST = undefined;
 pub var byte_slice_type: *ast_.AST = undefined;
@@ -84,6 +85,7 @@ var prelude: ?*symbol_.Scope = null;
 pub fn get_scope() *symbol_.Scope {
     if (prelude == null) {
         // Create ASTs for primitives
+        anyptr_type = create_anyptr_type();
         bool_type = create_identifier("Bool");
         byte_type = create_identifier("Byte");
         char_type = create_identifier("Char");
@@ -344,6 +346,10 @@ fn create_identifier(name: []const u8) *ast_.AST {
 
 fn create_unit_type() *ast_.AST {
     return ast_.AST.create_unit_type(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
+}
+
+fn create_anyptr_type() *ast_.AST {
+    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), std.heap.page_allocator).assert_valid();
 }
 
 fn create_unit_value() *ast_.AST {

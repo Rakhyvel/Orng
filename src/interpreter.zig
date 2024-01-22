@@ -471,6 +471,7 @@ pub const Context = struct {
                 // jump to symbol addr
                 self.instruction_pointer = symbol.cfg.?.offset.?;
             },
+            .invoke => std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
             .push_stack_trace => { // Pushes a static span/code to the lines array if debug mode is on
                 self.debug_call_stack.append(ir.span) catch unreachable;
             },

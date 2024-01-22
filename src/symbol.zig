@@ -13,7 +13,8 @@ pub const Scope = struct {
     parent: ?*Scope,
     children: std.ArrayList(*Scope),
     symbols: std.StringArrayHashMap(*Symbol),
-    impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope
+    traits: std.ArrayList(*ast_.AST), // List of all `trait`s in this scope. Added to in the `decorate` phase.
+    impls: std.ArrayList(*ast_.AST), // List of all `impl`s in this scope Added to in the `decorate` phase.
     module: ?*module_.Module, // Enclosing module
     name: []const u8,
     uid: usize,
@@ -29,6 +30,7 @@ pub const Scope = struct {
         retval.parent = parent;
         retval.children = std.ArrayList(*Scope).init(allocator);
         retval.symbols = std.StringArrayHashMap(*Symbol).init(allocator);
+        retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.name = name;
         retval.uid = scope_UID;

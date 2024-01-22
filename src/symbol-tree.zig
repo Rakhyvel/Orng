@@ -32,6 +32,7 @@ fn symbol_table_from_AST(
     }
     const ast = maybe_ast.?;
     switch (ast.*) {
+        .anyptr_type,
         .unit_type,
         .unit_value,
         .int,
@@ -491,8 +492,7 @@ fn extract_domain_with_receiver(impl_type: *ast_.AST, receiver: *ast_.AST, param
 
 fn create_receiver_addr(impl_type: *ast_.AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
     return switch (receiver.receiver.kind) {
-        .value => impl_type,
-        .addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, false, allocator),
+        .value, .addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, false, allocator),
         .mut_addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, true, allocator),
     };
 }
@@ -612,10 +612,13 @@ fn create_method_symbol(
     try symbol_table_from_AST(ast.method_decl.ret_type, fn_scope, errors, allocator);
 
     if (ast.method_decl.receiver != null) {
+        // addr-of receiver, prepend receiver to parameters as normal
         const recv_type = create_receiver_addr(receiver_base_type, ast.method_decl.receiver.?, allocator);
+        recv_type.addr_of.anytptr = true;
+        // value receiver, prepend a void* self_ptr parameter
         const receiver_symbol = symbol_.Symbol.init(
             fn_scope,
-            "self",
+            if (ast.method_decl.receiver.?.receiver.kind == .value) "$self_ptr" else "self",
             ast.token().span,
             recv_type,
             ast_.AST.create_default(ast.method_decl.receiver.?.token(), recv_type, allocator),
@@ -625,6 +628,19 @@ fn create_method_symbol(
         );
         try put_symbol(receiver_symbol, fn_scope, errors);
         ast.method_decl.param_symbols.append(receiver_symbol) catch unreachable;
+
+        if (ast.method_decl.receiver.?.receiver.kind == .value) {
+            const self_type = recv_type.expr();
+            const self_init = ast_.AST.create_dereference(ast.token(), ast_.AST.create_identifier(token_.Token.init_simple("$self_ptr"), allocator), allocator);
+            const self_decl = ast_.AST.create_decl(
+                ast.token(),
+                ast_.AST.create_symbol(token_.Token.init_simple("self"), .let, "self", allocator),
+                self_type,
+                self_init,
+                allocator,
+            );
+            ast.method_decl.init.?.children().insert(0, self_decl) catch unreachable;
+        }
     }
 
     // Put the param symbols in the param symbols list

@@ -123,6 +123,12 @@ pub const IR = struct {
         return retval;
     }
 
+    pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, span: span_.Span, allocator: std.mem.Allocator) *IR {
+        var retval = IR.init(.invoke, dest, null, null, span, allocator);
+        retval.data = Data{ .invoke = .{ .method_decl = method_decl, .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) } };
+        return retval;
+    }
+
     pub fn init_load_struct(dest: *lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_struct, dest, null, null, span, allocator);
         retval.data = Data{ .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) };
@@ -457,7 +463,7 @@ pub const Kind = enum {
     jump, // jump to BB{uid} if codegen, ip := {addr} if interpreting
     branch_if_false,
     call, // dest = src1(symbver_list...)
-    invoke, // dest = {vtable}.{method_name}(symbver_list...)
+    invoke, // dest = {impl-vtable}.{method_name}(symbver_list...)
 
     // Errors
     push_stack_trace, // Pushes a static span/code to the lines array if debug mode is on
@@ -609,7 +615,7 @@ pub const Data = union(enum) {
     string: []const u8,
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
-    // lval: *lval_.L_Value,
+    invoke: struct { method_decl: *ast_.AST, lval_list: std.ArrayList(*lval_.L_Value) },
     select: struct { offset: i128, field: i128 },
     ast: *ast_.AST,
     none,

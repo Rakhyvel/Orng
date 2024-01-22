@@ -268,6 +268,12 @@ pub const CFG = struct {
                         version_lvalue(lval, bb, ir, &bb.parameters);
                     }
                 }
+                if (ir.data == .invoke) {
+                    // Do the same as above for each symbver in a symbver list, if there is one
+                    for (ir.data.invoke.lval_list.items) |lval| {
+                        version_lvalue(lval, bb, ir, &bb.parameters);
+                    }
+                }
             }
 
             if (bb.has_branch) {
@@ -433,9 +439,13 @@ pub const CFG = struct {
                 if (ir.src2 != null) {
                     ir.src2.?.calculate_usage();
                 }
-
                 if (ir.data == .lval_list) {
                     for (ir.data.lval_list.items) |lval| {
+                        lval.calculate_usage();
+                    }
+                }
+                if (ir.data == .invoke) {
+                    for (ir.data.invoke.lval_list.items) |lval| {
                         lval.calculate_usage();
                     }
                 }

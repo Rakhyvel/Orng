@@ -78,6 +78,8 @@ const AST_Common = struct {
 pub const AST = union(enum) {
     /// Not generated for correct programs, used to represent incorrect ASTs
     poison: struct { common: AST_Common },
+    // Any pointer type (void*)
+    anyptr_type: struct { common: AST_Common },
     /// Unit type
     unit_type: struct { common: AST_Common },
     /// Unit value
@@ -274,7 +276,12 @@ pub const AST = union(enum) {
     @"union": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
 
     // Fancy operators
-    addr_of: struct { common: AST_Common, _expr: *AST, mut: bool },
+    addr_of: struct {
+        common: AST_Common,
+        _expr: *AST,
+        mut: bool,
+        anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
+    },
     slice_of: struct { common: AST_Common, _expr: *AST, kind: Slice_Kind },
     array_of: struct { common: AST_Common, _expr: *AST, len: *AST },
     sub_slice: struct { common: AST_Common, super: *AST, lower: ?*AST, upper: ?*AST },
@@ -407,7 +414,7 @@ pub const AST = union(enum) {
         ret_type: *AST,
         refinement: ?*AST,
         init: ?*AST,
-        impl: ?*AST = null,
+        impl: ?*AST = null, // The surrounding `impl`. Null for method_decls in traits.
         _symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
     },
@@ -416,6 +423,10 @@ pub const AST = union(enum) {
 
     pub fn create_poison(_token: token_.Token, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .poison = .{ .common = AST_Common{ ._token = _token, ._type = null } } }, allocator);
+    }
+
+    pub fn create_anyptr_type(_token: token_.Token, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .anyptr_type = .{ .common = AST_Common{ ._token = _token, ._type = null } } }, allocator);
     }
 
     pub fn create_unit_type(_token: token_.Token, allocator: std.mem.Allocator) *AST {
@@ -1320,6 +1331,7 @@ pub const AST = union(enum) {
 
     pub fn print_type(self: *AST, out: anytype) !void {
         switch (self.*) {
+            .anyptr_type => try out.print("anyptr_type", .{}),
             .unit_type => try out.print("()", .{}),
             .identifier => try out.print("{s}", .{self.token().data}),
             .addr_of => {
@@ -1475,6 +1487,7 @@ pub const AST = union(enum) {
             .string => return primitives_.string_type,
 
             // Type type
+            .anyptr_type,
             .unit_type,
             .annotation,
             .sum_type,
@@ -1747,6 +1760,9 @@ pub const AST = union(enum) {
         } else if (B.* == .annotation) {
             return types_match(A, B.annotation.type);
         }
+        if (B.* == .anyptr_type and A.* == .addr_of) {
+            return true;
+        }
         if (A.* == .identifier and B.* != .identifier and A != A.expand_identifier()) {
             // If only A is an identifier, and A isn't an atom type, dive
             return types_match(A.expand_identifier(), B);
@@ -1774,6 +1790,7 @@ pub const AST = union(enum) {
                 @intFromEnum(B.slice_of.kind) == @intFromEnum(A.slice_of.kind)) and
                 types_match(A.expr(), B.expr()),
             .array_of => return types_match(A.expr(), B.expr()),
+            .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,
             .product => {
                 if (B.children().items.len != A.children().items.len) {
@@ -1958,6 +1975,7 @@ pub const AST = union(enum) {
 
         switch (self) {
             .poison => try out.writer().print("poison", .{}),
+            .anyptr_type => try out.writer().print("anyptr_type", .{}),
             .unit_type => try out.writer().print("unit_type", .{}),
             .unit_value => try out.writer().print("unit_value", .{}),
             .int => try out.writer().print("int({})", .{self.int.data}),

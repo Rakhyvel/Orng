@@ -55,6 +55,12 @@ pub const Module = struct {
     // Main function. TODO: Temporary
     entry: *cfg_.CFG,
 
+    // List of all traits defined in this module
+    traits: std.ArrayList(*ast_.AST),
+
+    // List of all impls defined in this module
+    impls: std.ArrayList(*ast_.AST),
+
     // Interned strings
     interned_strings: std.StringArrayHashMap(usize),
 
@@ -72,6 +78,8 @@ pub const Module = struct {
         retval.scope = scope;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
+        retval.traits = std.ArrayList(*ast_.AST).init(allocator);
+        retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
         retval.type_set = type_set_.Type_Set.init(allocator);
         return retval;
@@ -151,6 +159,8 @@ pub const Module = struct {
             return error.TypeError;
         }
 
+        module.collect_traits_and_impls(module.scope);
+
         // Add each CFG's instructions to the module's instruction's list
         for (module.scope.symbols.keys()) |key| {
             const symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
@@ -166,9 +176,20 @@ pub const Module = struct {
             }
         }
 
+        for (module.impls.items) |impl| {
+            for (impl.impl.method_defs.items) |def| {
+                const symbol = def.symbol().?;
+                const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
+                module.collect_cfgs(cfg);
+            }
+        }
+
+        // Go through each cfg, collect types
         for (module.cfgs.items) |cfg| {
             // Add parameter types to type set
-            for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
+            const decl = cfg.symbol.decl.?;
+            const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
+            for (param_symbols.items) |param| {
                 _ = module.type_set.add(param.expanded_type.?, allocator);
             }
 
@@ -181,6 +202,7 @@ pub const Module = struct {
                 }
             }
         }
+
         return module;
     }
 
@@ -196,6 +218,17 @@ pub const Module = struct {
 
         for (cfg.children.items) |child| {
             self.collect_cfgs(child);
+        }
+    }
+
+    /// Collects traits and implementations from the specified scope and its children, appending them to the module's traits and impls
+    /// lists.
+    fn collect_traits_and_impls(self: *Module, scope: *symbol_.Scope) void {
+        self.traits.appendSlice(scope.traits.items) catch unreachable;
+        self.impls.appendSlice(scope.impls.items) catch unreachable;
+
+        for (scope.children.items) |child| {
+            self.collect_traits_and_impls(child);
         }
     }
 

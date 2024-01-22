@@ -31,9 +31,10 @@ const Labels = struct {
 
 pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) Lower_Errors!void {
     const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, Labels.null_labels, errors, allocator);
-    if (cfg.symbol.decl.?.* == .fn_decl) {
+    if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
         // `_comptime` symbols don't have parameters anyway
-        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
+        const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
+        for (param_symbols.items) |param| {
             cfg.parameters.append(lval_.Symbol_Version.create_unversioned(param, allocator)) catch unreachable;
         }
     }
@@ -213,13 +214,14 @@ fn lower_AST(
             return temp;
         },
         .invoke => {
-            const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             temp.extract_symbver().symbol.span = ast.token().span;
 
-            var ir = ir_.IR.init_call(temp, lhs, ast.token().span, allocator);
+            _ = try lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, cfg, ast.token().span, errors, allocator);
+
+            var ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, ast.token().span, allocator);
             for (ast.children().items) |term| {
-                ir.data.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
+                ir.data.invoke.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
             }
             cfg.append_instruction(ir_.IR.init_stack_push(ast.token().span, allocator));
             cfg.append_instruction(ir);

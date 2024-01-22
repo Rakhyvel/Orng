@@ -37,7 +37,9 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try output_forward_typedefs(&module.type_set, writer);
     try output_typedefs(&module.type_set, writer);
     try output_interned_strings(&module.interned_strings, writer);
+    try output_traits(&module.traits, writer);
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
+    try output_impls(&module.impls, writer);
     try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
     try output_main_function(module.entry, writer);
 }
@@ -46,7 +48,7 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
 fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
         // Don't generate typedefs header comment if there are no typedefs!
-        try writer.print("/* Forward typedefs */\n", .{});
+        try writer.print("/* Forward struct, union, and function declarations */\n", .{});
     }
 
     // Forward declare all structs/unions
@@ -61,7 +63,7 @@ fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGe
 fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
         // Don't generate typedefs header comment if there are no typedefs!
-        try writer.print("\n/* Typedefs */\n", .{});
+        try writer.print("\n/* Struct, union, and function definitions */\n", .{});
     }
 
     // Output all typedefs
@@ -134,6 +136,43 @@ fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: W
     }
 }
 
+fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
+    if (traits.items.len > 0) {
+        // Do not output header comment if there are no traits!
+        try writer.print("/* Trait vtable type definitions */\n", .{});
+    }
+
+    for (traits.items) |trait| {
+        try writer.print("struct vtable_{s} {{\n", .{trait.symbol().?.name});
+        for (trait.trait.method_decls.items) |decl| {
+            try writer.print("    ", .{});
+            try output_type(decl.method_decl.ret_type, writer);
+            try writer.print("(*{s})(", .{decl.method_decl.name.token().data});
+
+            // Output receiver parameter
+            if (decl.method_decl.receiver != null) {
+                try writer.print("void*", .{});
+                if (decl.children().items.len > 0) {
+                    try writer.print(", ", .{});
+                }
+            }
+
+            // Output regular parameters
+            for (decl.children().items, 0..) |param_decl, i| {
+                if (!param_decl.decl.type.is_c_void_type()) {
+                    // Do not output `void` parameters
+                    try output_type(param_decl.decl.type, writer);
+                    if (i + 1 < decl.children().items.len) {
+                        try writer.print(", ", .{});
+                    }
+                }
+            }
+            try writer.print(");\n", .{});
+        }
+        try writer.print("}};\n\n", .{});
+    }
+}
+
 /// Outputs the interned strings declarations
 fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) CodeGen_Error!void {
     const key_set = interned_strings.keys();
@@ -171,10 +210,11 @@ fn forall_functions(
 
     // apply the function `f` to all CFGs in the `cfgs` list
     for (cfgs.items) |cfg| {
-        if (cfg.symbol.decl.?.* == .fn_decl) { // Don't output for `_comptime` decls
+        if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) { // Don't output for `_comptime` decls
             try f(cfg, writer);
         }
     }
+    try writer.print("\n", .{});
 }
 
 /// Outputs the forward declaration of a function.
@@ -183,12 +223,32 @@ fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     try writer.print(";\n", .{});
 }
 
+fn output_impls(impls: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
+    if (impls.items.len > 0) {
+        // Do not output header comment if there are no impls!
+        try writer.print("/* Trait vtable implementations */\n", .{});
+    }
+
+    for (impls.items) |impl| {
+        const trait = impl.impl.trait.?;
+        try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.impl.scope.?.uid });
+        for (impl.impl.method_defs.items) |decl| {
+            try writer.print("    .{s} = _{}_{s},\n", .{
+                decl.method_decl.name.token().data,
+                decl.symbol().?.scope.uid,
+                decl.symbol().?.name,
+            });
+        }
+        try writer.print("}};\n\n", .{});
+    }
+}
+
 /// Output the definition of a function.
 fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     try output_function_prototype(cfg, writer);
     try writer.print("{{\n", .{});
 
-    // Collect and then declare all local variables
+    // Declare local variables
     for (cfg.symbvers.items) |symbver| {
         if (symbver.symbol.expanded_type.?.is_c_void_type() or // symbol's C type is `void`
             symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$' // non-bookkeeping symbol is not used
@@ -200,7 +260,8 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
     }
 
     // Mark unused parameters as discarded
-    for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param| {
+    const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
+    for (param_symbols.items) |param| {
         // Do this only if they aren't discarded in source
         // Users can discard parameters, however used parameters may also become unused through optimizations
         if (!param.expanded_type.?.is_c_void_type() and // unit-typed parameters aren't emitted
@@ -231,11 +292,19 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void 
     // Output function parameters
     var num_non_unit_params: i64 = 0;
     try writer.print("(", .{});
-    for (cfg.symbol.decl.?.fn_decl.param_symbols.items, 0..) |term, i| {
+    const decl = cfg.symbol.decl.?;
+    const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
+    for (param_symbols.items, 0..) |term, i| {
         if (!term.expanded_type.?.is_c_void_type()) {
-            // Print out parameter declarations
-            try output_var_decl(term, writer, true);
-            if (i + 1 < cfg.symbol.decl.?.fn_decl.param_symbols.items.len) {
+            if (decl.* == .method_decl and decl.method_decl.receiver != null and i == 0) {
+                // Print out method receiver
+                try writer.print("void* ", .{});
+                try output_symbol(term, writer);
+            } else {
+                // Print out parameter declarations
+                try output_var_decl(term, writer, true);
+            }
+            if (i + 1 < param_symbols.items.len) {
                 try writer.print(", ", .{});
             }
             num_non_unit_params += 1;
@@ -536,6 +605,29 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             }
             try writer.print(");\n", .{});
         },
+        .invoke => {
+            const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
+            const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
+            if (!symbol_used) {
+                try writer.print("    (void) ", .{});
+            } else if (!void_fn) {
+                try output_var_assign(ir.dest.?, writer);
+            } else {
+                try writer.print("    ", .{});
+            }
+            try output_vtable_impl(ir.data.invoke.method_decl.method_decl.impl.?, writer);
+            try writer.print(".{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+            for (ir.data.invoke.lval_list.items, 0..) |term, i| {
+                if (!term.get_expanded_type().is_c_void_type()) {
+                    // Do not output `void` arguments
+                    try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
+                    if (i + 1 < ir.data.invoke.lval_list.items.len) {
+                        try writer.print(", ", .{});
+                    }
+                }
+            }
+            try writer.print(");\n", .{});
+        },
         .label,
         .jump,
         .branch_if_false,
@@ -615,6 +707,12 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
     switch (lvalue.*) {
         .dereference => {
             try writer.print("*", .{});
+            if (lvalue.dereference.expr.get_expanded_type().addr_of.anytptr) {
+                // Cast from `void*` to true pointer before dereferencing
+                try writer.print("(", .{});
+                try output_type(lvalue.get_expanded_type(), writer);
+                try writer.print("*)", .{});
+            }
             try output_rvalue(lvalue.dereference.expr, lvalue.precedence(), writer);
         },
         .index => {
@@ -720,4 +818,8 @@ fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
     }
     try writer.print(";\n", .{});
+}
+
+fn output_vtable_impl(impl: *ast_.AST, writer: Writer) CodeGen_Error!void {
+    try writer.print("_{}_$vtable", .{impl.impl.scope.?.uid});
 }

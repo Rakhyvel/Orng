@@ -20,6 +20,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
     }
     const ast = maybe_ast.?;
     switch (ast.*) {
+        .anyptr_type,
         .unit_type,
         .unit_value,
         .int,

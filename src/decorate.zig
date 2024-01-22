@@ -29,6 +29,7 @@ fn decorate_identifiers(
     }
     const ast = maybe_ast.?;
     switch (ast.*) {
+        .anyptr_type,
         .unit_type,
         .unit_value,
         .int,
@@ -192,7 +193,10 @@ fn decorate_identifiers(
             try decorate_identifiers_from_list(ast.children().*, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
         },
-        .trait => try decorate_identifiers_from_list(ast.trait.method_decls, scope, errors, allocator),
+        .trait => {
+            try decorate_identifiers_from_list(ast.trait.method_decls, scope, errors, allocator);
+            scope.traits.append(ast) catch unreachable;
+        },
         .impl => {
             try decorate_identifiers(ast.impl._type, scope, errors, allocator);
             try decorate_identifiers(ast.impl.trait, scope, errors, allocator);

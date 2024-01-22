@@ -597,19 +597,22 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
             const lhs_type = ast.lhs().typeof(allocator);
-            // TODO: Using the scope, lookup methods impl'd for lhs_type with rhs name
-            // There is either one method or zero methods. If zero, error
             var method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
             if (method_decl == null) {
                 // TODO: Add error that type does not impl method
                 unreachable;
             }
             method_decl = validate_AST(method_decl.?, null, errors, allocator);
+            try assert_none_poisoned(method_decl);
             ast.invoke.method_decl = method_decl.?;
             const domain: *ast_.AST = method_decl.?.symbol().?._type.lhs();
-            if (method_decl.?.method_decl.receiver != null) {
+            if (method_decl.?.method_decl.receiver != null and method_decl.?.method_decl.receiver.?.receiver.kind != .value) {
                 // Prepend invoke lhs to args if there is a receiver
                 ast.children().insert(0, ast.lhs()) catch unreachable;
+            } else if (method_decl.?.method_decl.receiver != null and method_decl.?.method_decl.receiver.?.receiver.kind == .value) {
+                // Prepend the address of invoke lhs
+                const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), false, allocator);
+                ast.children().insert(0, addr_of) catch unreachable;
             }
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
             ast.set_children((try validate_args(ast.children(), domain, ast.token().span, errors, allocator)).*);
@@ -1703,6 +1706,7 @@ fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.
 
 fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     switch (_type.*) {
+        .anyptr_type => return _type,
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
