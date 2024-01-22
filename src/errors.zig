@@ -387,8 +387,8 @@ pub const Errors = struct {
             .receiver_mismatch => if (err.receiver_mismatch.trait_receiver != null and err.receiver_mismatch.impl_receiver != null) {
                 try out.print("trait `{s}` specifies receiver `{s}` for method `{s}`, got receiver `{s}`\n", .{
                     err.receiver_mismatch.trait_name,
-                    err.receiver_mismatch.method_name,
                     err.receiver_mismatch.trait_receiver.?.to_string(),
+                    err.receiver_mismatch.method_name,
                     err.receiver_mismatch.impl_receiver.?.to_string(),
                 });
             } else if (err.receiver_mismatch.trait_receiver == null and err.receiver_mismatch.impl_receiver != null) {
@@ -400,8 +400,8 @@ pub const Errors = struct {
             } else if (err.receiver_mismatch.trait_receiver != null and err.receiver_mismatch.impl_receiver == null) {
                 try out.print("trait `{s}` specifies receiver `{s}` for method `{s}`\n", .{
                     err.receiver_mismatch.trait_name,
-                    err.receiver_mismatch.method_name,
                     err.receiver_mismatch.trait_receiver.?.to_string(),
+                    err.receiver_mismatch.method_name,
                 });
             },
             .mismatch_method_param_arity => try out.print("trait `{s}` specifies {} parameter{s} for method `{s}`, got {}\n", .{

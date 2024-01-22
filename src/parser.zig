@@ -120,9 +120,9 @@ pub const Parser = struct {
             decl.decl.top_level = true;
             return decl;
         } else if (self.peek_kind(.trait)) {
-            return self.trait_declaration();
+            return try self.trait_declaration();
         } else if (self.peek_kind(.impl)) {
-            return self.impl_declaration();
+            return try self.impl_declaration();
         } else {
             self.errors.add_error(errs_.Error{ .expected_basic_token = .{
                 .expected = "`fn` or `let` declaration in the top level",

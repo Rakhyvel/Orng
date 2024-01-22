@@ -272,6 +272,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                         errors.print_errors() catch unreachable;
                         return false;
                     } else {
+                        errors.print_errors() catch unreachable;
                         term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                         return true;
                     }

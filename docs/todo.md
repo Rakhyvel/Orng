@@ -361,16 +361,15 @@
         > Each scope has a `Type: AST -> Set(Trait: Trait)` "map". `Trait` types are a list of member function declarations.
         > This should create a global vtable
         - [x] Can leave trait null, static member functions
-        - [ ] Cannot impl an empty trait for primitives!
         - [ ] Cannot impl for an addr-of
-        - [ ] If T isn't null, either T or X must be defined in the same module
-        - [ ] If T is null, X must be defined in the same module
     - [ ] `dyn Tr`, which is two pointers, one to the data, the other to the global vtable
     - [ ] dot prepend `x.>f()`
         > In Scope, given `T = @typeof(x)`, lookup any trait `Tr` impls for the type `T` which match function name, parameter and return type
         > `scope.impl_map.lookup(@typeof(x))` gets you all the traits that the typeof x implements
         - [ ] If x is a `dyn Tr`, still works
     - [ ] `Self` type
+        - [ ] `Self` type in traits means the future type that will implement the type
+        - [ ] `Self` type in impls means the "for" type
     - [ ] `Ty <: Tr` returns if a type implements a trait
     - [ ] Add an optimization such that if the type of an invoke is known, rather than an invoke, change to just a call to the method
 - [ ] build system (built upon compile-time evaluation) 
@@ -408,6 +407,9 @@
             - net: // Socket system?
             - env: // How should environment variables work?
     > How do externs work?
+    - [ ] Cannot impl an empty trait for primitives!
+    - [ ] If T isn't null, either T or X must be defined in the same module
+    - [ ] If T is null, X must be defined in the same module
 - [ ] function stamping
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
     - [ ] first-class types based generics (stamp)

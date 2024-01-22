@@ -24,12 +24,12 @@ zig build
 ## Usage
 Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a "Hello, World" program in Orng:
 ```rs
-fn main(sys: System)->!() {
+fn main(sys: System) -> !() {
     greet("Orng! 🍊", sys.stdout)
 }
 
 fn greet(recipient: String, out: dyn Writer) -> !() {
-    out.>writeln("Hello, {s}", recipient)
+    try out.>println("Hello, {s}", recipient)
 }
 ```
 
@@ -39,19 +39,16 @@ orng run hello.orng
 ```
 
 ## Features
-Orng comes with a wide range of features that make it a powerful and flexible programming language, including: 
-* **Allocator Memory Model:** Allocators are baked into the core of how Orng operates with memory, which rounds-off the sharp corners of manual memory management.
-* **Type-Classes:** Type-classes offer a simple, yet powerful way to express ad-hoc polymorphism.
+Orng comes with a wide range of features that make it a powerful and flexible programming language, including:
 * **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions. This is how generics are done!
-* **Built-In Error Handling:** Orng has built-in support for handling runtime errors in a clean and ergonomic way.
-* **Refinement Types:** Orng has support for refinement types, which can add extra predicate-based safety checks to types. 
+* **Parametric Effect System:** Objects capable of side-effects, such as allocators, file writers, network sockets, etc, must be passed in as parameters to functions. This allows side-effects to be effortlessly tracked by what a function takes in as its parameters.
+* **Traits:** Traits offer a simple, yet powerful way to express ad-hoc polymorphism.
 * **Functional Programming Idioms:** Orng has many functional programming features, which include:
     - Algebraic Data Types
-    - Optional types in place of `null` values
-    - Immutable-By-Default variables
     - Pattern Matching
-    - Generic Type Unification
-    - Type Inference
+    - Optional types, in place of `null` values
+    - Error types, for runtime error handling
+    - Immutable-By-Default variables
 * **Bidirectional C Interop:** Orng compiles to C and can parse C header files, which afford seamless interop with C. Orng code can interact with existing C code, and C code can interact with your Orng code.
 
 <!-- ## Standard Library -->
@@ -75,9 +72,50 @@ fn factorial                      // Define a new function called `factorial`.
                                   //     `1` if `n < 2`,
       else {n * factorial(n - 1)}}// Otherwise is `n * factorial(n-1)`.
 ```
-### Fizzbuzz
+### Traits
+```rs
+import debug from std
+
+// Define a trait `Speak` with a method `speak`, which returns a String
+trait Speak {
+    fn speak(self) -> String
+}
+
+// Define two types, `Dog` and `Cat`
+let const Dog: Type = (name: String, bones_consumed: Int)
+let const Cat: Type = (name: String, lives_left: Int)
+
+// Implement `Speak` for `Dog`
+impl Speak for Dog {
+    fn speak(self) -> String {
+        "bark!"
+    }
+}
+
+// Implement `Speak` for `Cat`
+impl Speak for Cat {
+    fn speak(self) -> String {
+        "meow!"
+    }
+}
+
+fn main(sys: System) -> !() {
+    let my_dog: Dog = ("fido", 34)
+    let my_cat: Cat = ("garfield", 8)
+
+    make_animal_speak(&dyn my_dog)
+    make_animal_speak(&dyn my_cat)
+}
+
+// This function takes in an address of a value of a type which implements Speak
+fn make_animal_speak(animal: &dyn Speak) -> () {
+    debug::println("{s}", animal.>speak())
+}
+```
+### Fizzbuzz - ADTs and Pattern Matching
 ```rs
 // Define an Algebraic Data Type (ADT), similar to tagged unions
+// `FizzBuzzResult` can either hold a String, or an Int
 const FizzBuzzResult = (string: String | integer: Int)
 
 fn fizzbuzz(n: Int) -> FizzBuzzResult {
@@ -88,11 +126,11 @@ fn fizzbuzz(n: Int) -> FizzBuzzResult {
 
         {n % 5}  => .string("buzz") 
         //         ^
-        // ... Or we can let it be inferred, if possible
+        // ... Or we can let it be inferred, if possible.
 
         {n % 3}  => .string("fizz")
 
-        else     => .integer(n)
+        _        => .integer(n)
     }
 }
 

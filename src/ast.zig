@@ -974,7 +974,10 @@ pub const AST = union(enum) {
             .impl => &self.impl.method_defs,
             .method_decl => &self.method_decl._params,
             .invoke => &self.invoke._args,
-            else => unreachable,
+            else => {
+                std.debug.print("{s}\n", .{@tagName(self.*)});
+                unreachable;
+            },
         };
     }
 

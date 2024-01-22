@@ -642,7 +642,13 @@ fn create_method_symbol(
                 self_init,
                 allocator,
             );
-            ast.method_decl.init.?.children().insert(0, self_decl) catch unreachable;
+            if (ast.method_decl.init.?.* != .unit_value) {
+                ast.method_decl.init.?.children().insert(0, self_decl) catch unreachable;
+            } else {
+                var statements = std.ArrayList(*ast_.AST).init(allocator);
+                statements.append(self_decl) catch unreachable;
+                ast.method_decl.init = ast_.AST.create_block(ast.method_decl.init.?.token(), statements, null, allocator);
+            }
         }
     }
 
