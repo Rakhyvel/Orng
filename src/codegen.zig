@@ -489,7 +489,7 @@ fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         }
     }
 
-    if (ir.dest != null and ir.dest.?.get_expanded_type().is_c_void_type() and ir.kind != .call) {
+    if (ir.dest != null and ir.dest.?.get_expanded_type().is_c_void_type() and ir.kind != .call and ir.kind != .invoke) {
         return;
     }
 

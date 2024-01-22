@@ -1,0 +1,20 @@
+// 290
+trait My_Trait {
+    fn b(&self, x: Int) -> Int
+
+    fn c(&mut self, x: Int) -> ()
+}
+
+let const My_Type = (x: Int, y: Int)
+
+impl My_Trait for My_Type {
+    fn b(&self, x: Int) -> Int { self.x + self.y * x }
+
+    fn c(&mut self, x: Int) -> () { self.x *= x }
+}
+
+fn main() -> Int {
+    let mut my_val: My_Type = (100, 45)
+    my_val.>c(2)
+    my_val.>b(2)
+}

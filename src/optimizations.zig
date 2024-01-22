@@ -539,7 +539,8 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
                 if (debug) {
                     std.debug.print("removing: {}", .{ir});
                 }
-                if (ir.kind != .call) {
+                if (ir.kind != .call and ir.kind != .invoke) {
+                    // Calls and invokes may have side-effects, do not remove them!
                     bb.remove_instruction(ir);
                     retval = true;
                 }

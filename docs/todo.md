@@ -372,6 +372,7 @@
         - [ ] If x is a `dyn Tr`, still works
     - [ ] `Self` type
     - [ ] `Ty <: Tr` returns if a type implements a trait
+    - [ ] Add an optimization such that if the type of an invoke is known, rather than an invoke, change to just a call to the method
 - [ ] build system (built upon compile-time evaluation) 
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] compile phase

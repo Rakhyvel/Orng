@@ -376,7 +376,7 @@ pub const Errors = struct {
                 try err.type_not_impl_method._type.print_type(out);
                 try out.print("` does not implement the method `{s}`\n", .{err.type_not_impl_method.method_name});
             },
-            .method_not_in_trait => try out.print("implementation for method `{s}` that is not in trait `{s}`\n", .{
+            .method_not_in_trait => try out.print("method `{s}` is not in trait `{s}`\n", .{
                 err.method_not_in_trait.method_name,
                 err.method_not_in_trait.trait_name,
             }),

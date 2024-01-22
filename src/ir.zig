@@ -339,6 +339,11 @@ pub const IR = struct {
                 try print_lval_list(self.data.lval_list, out.writer());
                 try out.writer().print(")\n", .{});
             },
+            .invoke => {
+                try out.writer().print("    {} := {s}(", .{ self.dest.?, self.data.invoke.method_decl.method_decl.name.token().data });
+                try print_lval_list(self.data.invoke.lval_list, out.writer());
+                try out.writer().print(")\n", .{});
+            },
             .push_stack_trace => {
                 try out.writer().print("    push-stack-trace\n", .{});
             },
