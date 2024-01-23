@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(int64_t);
 
 struct struct2 {
@@ -23,6 +23,7 @@ typedef int64_t(*function1)(function0, int64_t);
 int64_t _930_main(void);
 int64_t _932_$anon93(int64_t _932_x);
 int64_t _934_apply(function0 _934_f, int64_t _934_x);
+
 
 /* Function definitions */
 int64_t _930_main(void){
@@ -56,6 +57,7 @@ int64_t _934_apply(function0 _934_f, int64_t _934_x){
     _934_$retval = _934_t0;
     return _934_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_930_main());

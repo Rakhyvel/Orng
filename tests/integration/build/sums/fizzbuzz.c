@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct2 {
     uint8_t* _0;
     int64_t _1;
@@ -34,6 +34,7 @@ char* string_2 = "\x66\x69\x7A\x7A";
 /* Function forward definitions */
 struct struct2 _1442_main(void);
 struct struct1 _1445_fizzbuzz(int64_t _1445_n);
+
 
 /* Function definitions */
 struct struct2 _1442_main(void){
@@ -115,6 +116,7 @@ BB1713:
     _1445_t0 = (struct struct1) {.tag=1, ._1=_1445_n};
     goto BB1703;
 }
+
 
 int main(void) {
   printf("%s",_1442_main()._0);

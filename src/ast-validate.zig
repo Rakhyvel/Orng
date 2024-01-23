@@ -105,6 +105,14 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
 }
 
 fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+    if (impl.impl._type.* == .addr_of) {
+        errors.add_error(errs_.Error{ .basic = .{
+            .span = impl.impl._type.token().span,
+            .msg = "cannot implement method for address types",
+        } });
+        return error.TypeError;
+    }
+
     const trait_symbol: ?*symbol_.Symbol = if (impl.impl.trait) |trait| trait.symbol() else null;
     if (trait_symbol != null) {
         const trait_ast = trait_symbol.?.decl.?;

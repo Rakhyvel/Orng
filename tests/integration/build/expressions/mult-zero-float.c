@@ -6,14 +6,15 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef uint8_t(*function0)(double);
 
 /* Function forward definitions */
 int64_t _777_main(void);
 uint8_t _782_f(double _782_x);
+
 
 /* Function definitions */
 int64_t _777_main(void){
@@ -49,6 +50,7 @@ uint8_t _782_f(double _782_x){
     _782_$retval = 1;
     return _782_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_777_main());

@@ -6,13 +6,13 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 struct struct2;
 struct struct3;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -37,6 +37,7 @@ struct struct3 {
 
 /* Function forward definitions */
 int64_t _1347_main(void);
+
 
 /* Function definitions */
 int64_t _1347_main(void){
@@ -111,6 +112,7 @@ int64_t _1347_main(void){
     _1347_$retval = *((int64_t*)(*((struct struct1*)_1348_z._0 + _1347_t28))._0 + _1347_t29);
     return _1347_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1347_main());

@@ -9,6 +9,7 @@
 /* Function forward definitions */
 int64_t _490_main(void);
 
+
 /* Function definitions */
 int64_t _490_main(void){
     int64_t _491_x;
@@ -37,6 +38,7 @@ BB582:
     _490_$retval = _491_x;
     return _490_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_490_main());

@@ -6,9 +6,9 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function1)(int64_t);
 
 typedef function1(*function0)(void);
@@ -17,6 +17,7 @@ typedef function1(*function0)(void);
 int64_t _1008_main(void);
 function1 _1010_f(void);
 int64_t _1012_add_four(int64_t _1012_x);
+
 
 /* Function definitions */
 int64_t _1008_main(void){
@@ -50,6 +51,7 @@ int64_t _1012_add_four(int64_t _1012_x){
     _1012_$retval = $add_int64_t(_1012_x, _1012_t0, "tests/integration/functions/returned.orng:8:30:\nfn add_four(x: Int)->Int {x + 4}\n                            ^");
     return _1012_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1008_main());

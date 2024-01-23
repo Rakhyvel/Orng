@@ -9,12 +9,14 @@
 /* Function forward definitions */
 int64_t _425_main(void);
 
+
 /* Function definitions */
 int64_t _425_main(void){
     int64_t _425_$retval;
     _425_$retval = 10;
     return _425_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_425_main());

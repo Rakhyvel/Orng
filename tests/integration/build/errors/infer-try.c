@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct1 {
     uint64_t tag;
     union {
@@ -23,6 +23,7 @@ typedef struct struct1(*function0)(void);
 int64_t _596_main(void);
 struct struct1 _602_f(void);
 struct struct1 _604_g(void);
+
 
 /* Function definitions */
 int64_t _596_main(void){
@@ -95,6 +96,7 @@ struct struct1 _604_g(void){
     _604_$retval = (struct struct1) {.tag=1};
     return _604_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_596_main());

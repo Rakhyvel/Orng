@@ -9,6 +9,7 @@
 /* Function forward definitions */
 int64_t _396_main(void);
 
+
 /* Function definitions */
 int64_t _396_main(void){
     int64_t _397_x;
@@ -55,6 +56,7 @@ BB461:
     _397_x = $add_int64_t(_397_x, _396_t11, "tests/integration/control-flow/continue.orng:8:13:\n        x += 1\n           ^");
     goto BB459;
 }
+
 
 int main(void) {
   printf("%ld",_396_main());

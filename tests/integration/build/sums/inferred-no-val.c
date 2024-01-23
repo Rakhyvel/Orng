@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     uint64_t tag;
     union {
@@ -20,6 +20,7 @@ struct struct0 {
 
 /* Function forward definitions */
 int64_t _1456_main(void);
+
 
 /* Function definitions */
 int64_t _1456_main(void){
@@ -47,6 +48,7 @@ BB1723:
     $lines[$line_idx++] = "tests/integration/sums/inferred-no-val.orng:7:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
+
 
 int main(void) {
   printf("%ld",_1456_main());

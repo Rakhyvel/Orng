@@ -6,16 +6,17 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
 };
 
 /* Function forward definitions */
 int64_t _2_main(void);
+
 
 /* Function definitions */
 int64_t _2_main(void){
@@ -32,6 +33,7 @@ int64_t _2_main(void){
     _2_$retval = *((int64_t*)&_3_x + _2_t2);
     return _2_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_2_main());

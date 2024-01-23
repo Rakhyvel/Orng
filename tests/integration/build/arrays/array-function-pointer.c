@@ -6,12 +6,12 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 struct struct2;
 struct struct4;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct1 {
     int64_t _0;
     int64_t _1;
@@ -41,6 +41,7 @@ int64_t _27_div(int64_t _27_x, int64_t _27_y);
 int64_t _29_double(int64_t _29_x);
 int64_t _31_halve(int64_t _31_x);
 int64_t _25_mult(int64_t _25_x, int64_t _25_y);
+
 
 /* Function definitions */
 int64_t _19_main(void){
@@ -132,6 +133,7 @@ int64_t _25_mult(int64_t _25_x, int64_t _25_y){
     _25_$retval = $mult_int64_t(_25_x, _25_y, "tests/integration/arrays/array-function-pointer.orng:18:8:\n    x * y\n      ^");
     return _25_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_19_main());

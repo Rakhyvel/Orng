@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -28,6 +28,7 @@ typedef int64_t(*function2)(struct struct1);
 /* Function forward definitions */
 int64_t _1318_main(void);
 int64_t _1320_f(struct struct1 _1320_x);
+
 
 /* Function definitions */
 int64_t _1318_main(void){
@@ -73,6 +74,7 @@ int64_t _1320_f(struct struct1 _1320_x){
     _1320_$retval = $add_int64_t(*((int64_t*)_1320_x._0 + _1320_t0), _1320_t1, "tests/integration/slices/fn-pass.orng:8:28:\nfn f(x: []Int)->Int {x[1] + 80}\n                          ^");
     return _1320_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1318_main());

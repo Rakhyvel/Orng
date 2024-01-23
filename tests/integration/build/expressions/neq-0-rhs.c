@@ -6,14 +6,15 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
 int64_t _804_main(void);
 int64_t _806_f(int64_t _806_x);
+
 
 /* Function definitions */
 int64_t _804_main(void){
@@ -52,6 +53,7 @@ BB1007:
     _806_$retval = _806_t0;
     return _806_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_804_main());

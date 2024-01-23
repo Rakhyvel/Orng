@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     uint8_t* _0;
     int64_t _1;
@@ -21,12 +21,14 @@ char* string_0 = "\x48\x65\x6C\x6C\x6F\x2C\x20\x4F\x72\x6E\x67\x21\x20\xF0\x9F\x
 /* Function forward definitions */
 struct struct0 _1420_main(void);
 
+
 /* Function definitions */
 struct struct0 _1420_main(void){
     struct struct0 _1420_$retval;
     _1420_$retval = (struct struct0) {(uint8_t*)string_0, 17};
     return _1420_$retval;
 }
+
 
 int main(void) {
   printf("%s",_1420_main()._0);

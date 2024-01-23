@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -30,6 +30,7 @@ typedef int64_t(*function2)(struct struct1);
 /* Function forward definitions */
 int64_t _1339_main(void);
 int64_t _1341_sum_up(struct struct1 _1341_xs);
+
 
 /* Function definitions */
 int64_t _1339_main(void){
@@ -114,6 +115,7 @@ BB1613:
     _1341_$retval = _1342_sum;
     return _1341_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1339_main());

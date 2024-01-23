@@ -9,12 +9,14 @@
 /* Function forward definitions */
 uint16_t _921_main(void);
 
+
 /* Function definitions */
 uint16_t _921_main(void){
     uint16_t _921_$retval;
     _921_$retval = 204;
     return _921_$retval;
 }
+
 
 int main(void) {
   printf("%u",_921_main());

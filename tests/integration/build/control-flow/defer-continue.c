@@ -9,6 +9,7 @@
 /* Function forward definitions */
 int64_t _412_main(void);
 
+
 /* Function definitions */
 int64_t _412_main(void){
     int64_t _413_x;
@@ -53,6 +54,7 @@ BB490:
     _413_x = $add_int64_t(_413_x, _412_t10, "tests/integration/control-flow/defer-continue.orng:7:13:\n        x += 1\n           ^");
     goto BB486;
 }
+
 
 int main(void) {
   printf("%ld",_412_main());

@@ -6,36 +6,38 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t* _0;
     int64_t* _1;
 };
 
 /* Function forward definitions */
-int64_t _1582_main(void);
+int64_t _1626_main(void);
+
 
 /* Function definitions */
-int64_t _1582_main(void){
-    int64_t _1583_x;
-    int64_t _1583_y;
-    int64_t* _1582_t3;
-    int64_t* _1582_t4;
-    struct struct0 _1583_z;
-    int64_t _1582_$retval;
-    _1583_x = 30;
-    _1583_y = 29;
-    _1582_t3 = &_1583_x;
-    _1582_t4 = &_1583_y;
-    _1583_z = (struct struct0) {_1582_t3, _1582_t4};
-    _1582_$retval = $add_int64_t(*_1583_z._0, *_1583_z._1, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
-    return _1582_$retval;
+int64_t _1626_main(void){
+    int64_t _1627_x;
+    int64_t _1627_y;
+    int64_t* _1626_t3;
+    int64_t* _1626_t4;
+    struct struct0 _1627_z;
+    int64_t _1626_$retval;
+    _1627_x = 30;
+    _1627_y = 29;
+    _1626_t3 = &_1627_x;
+    _1626_t4 = &_1627_y;
+    _1627_z = (struct struct0) {_1626_t3, _1626_t4};
+    _1626_$retval = $add_int64_t(*_1627_z._0, *_1627_z._1, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
+    return _1626_$retval;
 }
 
+
 int main(void) {
-  printf("%ld",_1582_main());
+  printf("%ld",_1626_main());
   return 0;
 }

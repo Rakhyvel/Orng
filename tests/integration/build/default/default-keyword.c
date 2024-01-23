@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct2 {
     int64_t _0;
     int64_t _1;
@@ -26,6 +26,7 @@ typedef int64_t(*function0)(int64_t, struct struct2);
 /* Function forward definitions */
 int64_t _524_main(void);
 int64_t _526_add_fields(int64_t _526_scale, struct struct2 _526_mt);
+
 
 /* Function definitions */
 int64_t _524_main(void){
@@ -55,6 +56,7 @@ int64_t _526_add_fields(int64_t _526_scale, struct struct2 _526_mt){
     _526_$retval = $div_int64_t(_526_t0, _526_scale, "tests/integration/default/default-keyword.orng:14:20:\n    (mt.x + mt.y) / scale\n                  ^");
     return _526_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_524_main());

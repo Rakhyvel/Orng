@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -18,29 +18,31 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1523_main(void);
+int64_t _1567_main(void);
+
 
 /* Function definitions */
-int64_t _1523_main(void){
-    int64_t _1523_t1;
-    int64_t _1523_t2;
-    int64_t _1523_t3;
-    int64_t _1523_t4;
-    struct struct0 _1524_x;
-    int64_t* _1524_y;
-    int64_t _1523_$retval;
-    _1523_t1 = 1;
-    _1523_t2 = 2;
-    _1523_t3 = 3;
-    _1523_t4 = 4;
-    _1524_x = (struct struct0) {_1523_t1, _1523_t2, _1523_t3, _1523_t4};
-    _1524_y = &_1524_x._3;
-    *_1524_y = 66;
-    _1523_$retval = _1524_x._3;
-    return _1523_$retval;
+int64_t _1567_main(void){
+    int64_t _1567_t1;
+    int64_t _1567_t2;
+    int64_t _1567_t3;
+    int64_t _1567_t4;
+    struct struct0 _1568_x;
+    int64_t* _1568_y;
+    int64_t _1567_$retval;
+    _1567_t1 = 1;
+    _1567_t2 = 2;
+    _1567_t3 = 3;
+    _1567_t4 = 4;
+    _1568_x = (struct struct0) {_1567_t1, _1567_t2, _1567_t3, _1567_t4};
+    _1568_y = &_1568_x._3;
+    *_1568_y = 66;
+    _1567_$retval = _1568_x._3;
+    return _1567_$retval;
 }
 
+
 int main(void) {
-  printf("%ld",_1523_main());
+  printf("%ld",_1567_main());
   return 0;
 }

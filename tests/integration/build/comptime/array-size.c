@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -20,6 +20,7 @@ struct struct0 {
 /* Function forward definitions */
 int64_t _90_add(int64_t _90_a, int64_t _90_b);
 int64_t _86_main(void);
+
 
 /* Function definitions */
 int64_t _90_add(int64_t _90_a, int64_t _90_b){
@@ -91,6 +92,7 @@ int64_t _86_main(void){
     _86_$retval = $add_int64_t(_86_t32, *((int64_t*)&_87_x + _86_t33), "tests/integration/comptime/array-size.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
     return _86_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_86_main());

@@ -9,12 +9,14 @@
 /* Function forward definitions */
 int16_t _717_main(void);
 
+
 /* Function definitions */
 int16_t _717_main(void){
     int16_t _717_$retval;
     _717_$retval = 200;
     return _717_$retval;
 }
+
 
 int main(void) {
   printf("%d",_717_main());

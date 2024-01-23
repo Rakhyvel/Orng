@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -24,6 +24,7 @@ struct struct1 {
 
 /* Function forward definitions */
 int64_t _1140_main(void);
+
 
 /* Function definitions */
 int64_t _1140_main(void){
@@ -84,6 +85,7 @@ BB1341:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
+
 
 int main(void) {
   printf("%ld",_1140_main());

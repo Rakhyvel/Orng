@@ -6,14 +6,15 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef uint8_t(*function0)(double);
 
 /* Function forward definitions */
 int64_t _673_main(void);
 uint8_t _678_f(double _678_x);
+
 
 /* Function definitions */
 int64_t _673_main(void){
@@ -63,6 +64,7 @@ BB813:
     _678_$retval = _678_t2;
     return _678_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_673_main());

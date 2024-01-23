@@ -9,6 +9,7 @@
 /* Function forward definitions */
 int64_t _387_main(void);
 
+
 /* Function definitions */
 int64_t _387_main(void){
     int64_t _388_x;
@@ -56,6 +57,7 @@ BB447:
     _389_i = $add_int64_t(_389_i, _387_t13, "tests/integration/control-flow/break.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
     goto BB439;
 }
+
 
 int main(void) {
   printf("%ld",_387_main());

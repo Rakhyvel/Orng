@@ -1,0 +1,7 @@
+impl for &mut Int {
+    fn a (self, x: Int) -> () {self^ += x}
+}
+
+fn main() -> Int {
+    3
+}

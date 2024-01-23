@@ -6,14 +6,15 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
 int64_t _138_main(void);
 int64_t _141_f(void);
+
 
 /* Function definitions */
 int64_t _138_main(void){
@@ -33,6 +34,7 @@ int64_t _141_f(void){
     _141_$retval = 262;
     return _141_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_138_main());

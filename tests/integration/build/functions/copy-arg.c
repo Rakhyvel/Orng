@@ -6,15 +6,16 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
 int64_t _942_main(void);
 int64_t _944_g(int64_t _944_x);
 int64_t _946_f(int64_t _946_x);
+
 
 /* Function definitions */
 int64_t _942_main(void){
@@ -50,6 +51,7 @@ int64_t _946_f(int64_t _946_x){
     _946_$retval = _946_x;
     return _946_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_942_main());

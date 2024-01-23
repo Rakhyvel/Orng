@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -19,6 +19,7 @@ struct struct0 {
 
 /* Function forward definitions */
 int64_t _1030_main(void);
+
 
 /* Function definitions */
 int64_t _1030_main(void){
@@ -60,6 +61,7 @@ int64_t _1030_main(void){
     _1030_$retval = $add_int64_t(_1030_t12, *((int64_t*)&_1031_x + _1030_t13), "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
     return _1030_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1030_main());

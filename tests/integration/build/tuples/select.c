@@ -6,32 +6,34 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
 };
 
 /* Function forward definitions */
-int64_t _1574_main(void);
+int64_t _1618_main(void);
+
 
 /* Function definitions */
-int64_t _1574_main(void){
-    int64_t _1574_t1;
-    int64_t _1574_t2;
-    struct struct0 _1575_x;
-    int64_t _1574_$retval;
-    _1574_t1 = 50;
-    _1574_t2 = 5;
-    _1575_x = (struct struct0) {_1574_t1, _1574_t2};
-    _1574_$retval = $add_int64_t(_1575_x._0, _1575_x._1, "tests/integration/tuples/select.orng:4:10:\n    x.a + x.b\n        ^");
-    return _1574_$retval;
+int64_t _1618_main(void){
+    int64_t _1618_t1;
+    int64_t _1618_t2;
+    struct struct0 _1619_x;
+    int64_t _1618_$retval;
+    _1618_t1 = 50;
+    _1618_t2 = 5;
+    _1619_x = (struct struct0) {_1618_t1, _1618_t2};
+    _1618_$retval = $add_int64_t(_1619_x._0, _1619_x._1, "tests/integration/tuples/select.orng:4:10:\n    x.a + x.b\n        ^");
+    return _1618_$retval;
 }
 
+
 int main(void) {
-  printf("%ld",_1574_main());
+  printf("%ld",_1618_main());
   return 0;
 }

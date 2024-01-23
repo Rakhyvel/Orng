@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -26,6 +26,7 @@ struct struct1 {
 
 /* Function forward definitions */
 int64_t _1361_main(void);
+
 
 /* Function definitions */
 int64_t _1361_main(void){
@@ -61,6 +62,7 @@ int64_t _1361_main(void){
     _1361_$retval = $add_int64_t(*((int64_t*)_1362_y._0 + _1361_t11), _1361_t12, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
     return _1361_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1361_main());

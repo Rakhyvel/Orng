@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -17,6 +17,7 @@ struct struct0 {
 
 /* Function forward definitions */
 int64_t _1179_main(void);
+
 
 /* Function definitions */
 int64_t _1179_main(void){
@@ -34,6 +35,7 @@ int64_t _1179_main(void){
     _1179_$retval = $add_int64_t(_1180_a, _1180_b, "tests/integration/pattern/let-product-infer.orng:4:8:\n    a + b\n      ^");
     return _1179_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1179_main());

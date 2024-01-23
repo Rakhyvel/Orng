@@ -6,14 +6,15 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef void(*function0)(int64_t*);
 
 /* Function forward definitions */
 int64_t _964_main(void);
 void _966_change_x(int64_t* _966_x);
+
 
 /* Function definitions */
 int64_t _964_main(void){
@@ -35,6 +36,7 @@ void _966_change_x(int64_t* _966_x){
     *_966_x = 288;
     return;
 }
+
 
 int main(void) {
   printf("%ld",_964_main());

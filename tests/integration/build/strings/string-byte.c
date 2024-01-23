@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     uint8_t* _0;
     int64_t _1;
@@ -20,6 +20,7 @@ char* string_0 = "\x5B";
 
 /* Function forward definitions */
 uint8_t _1396_main(void);
+
 
 /* Function definitions */
 uint8_t _1396_main(void){
@@ -32,6 +33,7 @@ uint8_t _1396_main(void){
     _1396_$retval = *((uint8_t*)_1397_x._0 + _1396_t1);
     return _1396_$retval;
 }
+
 
 int main(void) {
   printf("%u",_1396_main());

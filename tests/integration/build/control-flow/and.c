@@ -9,12 +9,14 @@
 /* Function forward definitions */
 uint8_t _384_main(void);
 
+
 /* Function definitions */
 uint8_t _384_main(void){
     uint8_t _384_$retval;
     _384_$retval = 1;
     return _384_$retval;
 }
+
 
 int main(void) {
   printf("%d",_384_main());

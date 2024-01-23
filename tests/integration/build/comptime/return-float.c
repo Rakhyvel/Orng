@@ -10,6 +10,7 @@
 double _294_f(void);
 int64_t _288_main(void);
 
+
 /* Function definitions */
 double _294_f(void){
     double _294_$retval;
@@ -22,6 +23,7 @@ int64_t _288_main(void){
     _288_$retval = 263;
     return _288_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_288_main());

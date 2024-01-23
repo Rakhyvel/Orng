@@ -6,14 +6,15 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef void(*function0)(void);
 
 /* Function forward definitions */
 int64_t _1020_main(void);
 void _1022_void(void);
+
 
 /* Function definitions */
 int64_t _1020_main(void){
@@ -30,6 +31,7 @@ int64_t _1020_main(void){
 void _1022_void(void){
     return;
 }
+
 
 int main(void) {
   printf("%ld",_1020_main());

@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct1 {
     int64_t _0;
     int64_t _1;
@@ -20,6 +20,7 @@ typedef int64_t(*function0)(int64_t, int64_t);
 /* Function forward definitions */
 int64_t _959_main(void);
 int64_t _961_add(int64_t _961_x, int64_t _961_y);
+
 
 /* Function definitions */
 int64_t _959_main(void){
@@ -43,6 +44,7 @@ int64_t _961_add(int64_t _961_x, int64_t _961_y){
     _961_$retval = $add_int64_t(_961_x, _961_y, "tests/integration/functions/default-named.orng:6:40:\nfn add(x: Int, y: Int = 50) -> Int {x + y}\n                                      ^");
     return _961_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_959_main());

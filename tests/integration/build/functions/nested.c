@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(int64_t);
 
 struct struct2 {
@@ -23,6 +23,7 @@ typedef int64_t(*function1)(int64_t, int64_t);
 int64_t _997_main(void);
 int64_t _999_fib(int64_t _999_n);
 int64_t _1005_add(int64_t _1005_x, int64_t _1005_y);
+
 
 /* Function definitions */
 int64_t _997_main(void){
@@ -108,6 +109,7 @@ int64_t _1005_add(int64_t _1005_x, int64_t _1005_y){
     _1005_$retval = $add_int64_t(_1005_x, _1005_y, "tests/integration/functions/nested.orng:14:33:\nfn add(x: Int, y: Int)->Int {x + y}\n                               ^");
     return _1005_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_997_main());

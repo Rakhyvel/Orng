@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct1 {
     int64_t* _0;
     uint8_t _1;
@@ -25,6 +25,7 @@ typedef struct struct2(*function0)(int64_t*, uint8_t);
 /* Function forward definitions */
 int64_t _563_main(void);
 struct struct2 _565_f(int64_t* _565_x, uint8_t _565_fail);
+
 
 /* Function definitions */
 int64_t _563_main(void){
@@ -71,6 +72,7 @@ BB668:
     _565_$retval = (struct struct2) {.tag=0};
     return _565_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_563_main());

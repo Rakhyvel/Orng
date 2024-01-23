@@ -10,6 +10,7 @@
 int64_t _103_add(int64_t _103_x, int64_t _103_y);
 int64_t _99_main(void);
 
+
 /* Function definitions */
 int64_t _103_add(int64_t _103_x, int64_t _103_y){
     int64_t _103_$retval;
@@ -22,6 +23,7 @@ int64_t _99_main(void){
     _99_$retval = 235;
     return _99_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_99_main());

@@ -10,6 +10,7 @@
 int64_t _381_f(void);
 int64_t _378_main(void);
 
+
 /* Function definitions */
 int64_t _381_f(void){
     int64_t _381_$retval;
@@ -22,6 +23,7 @@ int64_t _378_main(void){
     _378_$retval = 260;
     return _378_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_378_main());

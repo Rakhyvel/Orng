@@ -9,6 +9,7 @@
 /* Function forward definitions */
 int64_t _404_main(void);
 
+
 /* Function definitions */
 int64_t _404_main(void){
     int64_t _405_x;
@@ -52,6 +53,7 @@ BB476:
     _405_x = $add_int64_t(_405_x, _404_t13, "tests/integration/control-flow/defer-break.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
     goto BB468;
 }
+
 
 int main(void) {
   printf("%ld",_404_main());

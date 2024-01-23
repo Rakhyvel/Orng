@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -23,6 +23,7 @@ struct struct1 {
 
 /* Function forward definitions */
 int64_t _1149_main(void);
+
 
 /* Function definitions */
 int64_t _1149_main(void){
@@ -74,6 +75,7 @@ int64_t _1149_main(void){
     _1149_$retval = $mult_int64_t(_1149_t16, _1149_t17, "tests/integration/pattern/assign-product-product.orng:5:14:\n    (x + y) * (a + b)\n            ^");
     return _1149_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1149_main());

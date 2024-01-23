@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -20,6 +20,7 @@ struct struct0 {
 
 /* Function forward definitions */
 int64_t _64_main(void);
+
 
 /* Function definitions */
 int64_t _64_main(void){
@@ -48,6 +49,7 @@ int64_t _64_main(void){
     _64_$retval = $add_int64_t(*((int64_t*)_65_y + _64_t7), _64_t9, "tests/integration/arrays/implicit-deref.orng:5:11:\n    y[2] + 77\n         ^");
     return _64_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_64_main());

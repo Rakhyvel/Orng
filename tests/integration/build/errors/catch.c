@@ -9,12 +9,14 @@
 /* Function forward definitions */
 int64_t _560_main(void);
 
+
 /* Function definitions */
 int64_t _560_main(void){
     int64_t _560_$retval;
     _560_$retval = 118;
     return _560_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_560_main());

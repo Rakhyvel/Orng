@@ -10,6 +10,7 @@
 int64_t _147_f(float _147_x, double _147_y, float _147_z, double _147_a);
 int64_t _144_main(void);
 
+
 /* Function definitions */
 int64_t _147_f(float _147_x, double _147_y, float _147_z, double _147_a){
     float _147_t1;
@@ -69,6 +70,7 @@ int64_t _144_main(void){
     _144_$retval = 259;
     return _144_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_144_main());

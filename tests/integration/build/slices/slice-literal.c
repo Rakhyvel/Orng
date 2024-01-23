@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct1 {
     int64_t* _0;
     int64_t _1;
@@ -27,6 +27,7 @@ struct struct2 {
 /* Function forward definitions */
 int64_t _1353_main(void);
 int64_t _1355_sum(struct struct1 _1355_xs);
+
 
 /* Function definitions */
 int64_t _1353_main(void){
@@ -110,6 +111,7 @@ BB1631:
     _1355_t0 = $add_int64_t(*((int64_t*)_1355_xs._0 + _1355_t5), _1355_t7, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
     goto BB1628;
 }
+
 
 int main(void) {
   printf("%ld",_1353_main());

@@ -6,12 +6,12 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 struct struct3;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     double _1;
@@ -31,105 +31,107 @@ struct struct3 {
 typedef uint8_t(*function2)(struct struct1, struct struct1);
 
 /* Function forward definitions */
-int64_t _1585_main(void);
-uint8_t _1590_f(struct struct1 _1590_x, struct struct1 _1590_y);
+int64_t _1629_main(void);
+uint8_t _1634_f(struct struct1 _1634_x, struct struct1 _1634_y);
+
 
 /* Function definitions */
-int64_t _1585_main(void){
-    int64_t _1585_t1;
-    int64_t _1585_t3;
-    double _1585_t4;
-    struct struct0 _1585_t2;
-    uint32_t _1585_t5;
-    struct struct1 _1586_x;
-    int64_t _1585_t7;
-    int64_t _1585_t9;
-    double _1585_t10;
-    struct struct0 _1585_t8;
-    uint32_t _1585_t11;
-    struct struct1 _1586_y;
-    function2 _1585_t13;
-    uint8_t _1585_t14;
-    int64_t _1585_t12;
-    int64_t _1585_$retval;
-    _1585_t1 = 1;
-    _1585_t3 = 2;
-    _1585_t4 = 3.4e+00;
-    _1585_t2 = (struct struct0) {_1585_t3, _1585_t4};
-    _1585_t5 = 114;
-    _1586_x = (struct struct1) {_1585_t1, _1585_t2, _1585_t5};
-    _1585_t7 = 1;
-    _1585_t9 = 2;
-    _1585_t10 = 3.4e+00;
-    _1585_t8 = (struct struct0) {_1585_t9, _1585_t10};
-    _1585_t11 = 114;
-    _1586_y = (struct struct1) {_1585_t7, _1585_t8, _1585_t11};
-    _1585_t13 = _1590_f;
+int64_t _1629_main(void){
+    int64_t _1629_t1;
+    int64_t _1629_t3;
+    double _1629_t4;
+    struct struct0 _1629_t2;
+    uint32_t _1629_t5;
+    struct struct1 _1630_x;
+    int64_t _1629_t7;
+    int64_t _1629_t9;
+    double _1629_t10;
+    struct struct0 _1629_t8;
+    uint32_t _1629_t11;
+    struct struct1 _1630_y;
+    function2 _1629_t13;
+    uint8_t _1629_t14;
+    int64_t _1629_t12;
+    int64_t _1629_$retval;
+    _1629_t1 = 1;
+    _1629_t3 = 2;
+    _1629_t4 = 3.4e+00;
+    _1629_t2 = (struct struct0) {_1629_t3, _1629_t4};
+    _1629_t5 = 114;
+    _1630_x = (struct struct1) {_1629_t1, _1629_t2, _1629_t5};
+    _1629_t7 = 1;
+    _1629_t9 = 2;
+    _1629_t10 = 3.4e+00;
+    _1629_t8 = (struct struct0) {_1629_t9, _1629_t10};
+    _1629_t11 = 114;
+    _1630_y = (struct struct1) {_1629_t7, _1629_t8, _1629_t11};
+    _1629_t13 = _1634_f;
     $lines[$line_idx++] = "tests/integration/tuples/tuple-equality.orng:5:10:\n    if f(x, y) {\n        ^";
-    _1585_t14 = _1585_t13(_1586_x, _1586_y);
+    _1629_t14 = _1629_t13(_1630_x, _1630_y);
     $line_idx--;
-    if (_1585_t14) {
-        goto BB1832;
+    if (_1629_t14) {
+        goto BB1872;
     } else {
-        goto BB1836;
+        goto BB1876;
     }
-BB1832:
-    _1585_t12 = 238;
-    goto BB1835;
-BB1836:
-    _1585_t12 = 832;
-    goto BB1835;
-BB1835:
-    _1585_$retval = _1585_t12;
-    return _1585_$retval;
+BB1872:
+    _1629_t12 = 238;
+    goto BB1875;
+BB1876:
+    _1629_t12 = 832;
+    goto BB1875;
+BB1875:
+    _1629_$retval = _1629_t12;
+    return _1629_$retval;
 }
 
-uint8_t _1590_f(struct struct1 _1590_x, struct struct1 _1590_y){
-    uint8_t _1590_t2;
-    uint8_t _1590_t4;
-    uint8_t _1590_t5;
-    uint8_t _1590_t6;
-    uint8_t _1590_t0;
-    uint8_t _1590_$retval;
-    _1590_t2 = _1590_x._0==_1590_y._0;
-    if (_1590_t2) {
-        goto BB1824;
+uint8_t _1634_f(struct struct1 _1634_x, struct struct1 _1634_y){
+    uint8_t _1634_t2;
+    uint8_t _1634_t4;
+    uint8_t _1634_t5;
+    uint8_t _1634_t6;
+    uint8_t _1634_t0;
+    uint8_t _1634_$retval;
+    _1634_t2 = _1634_x._0==_1634_y._0;
+    if (_1634_t2) {
+        goto BB1864;
     } else {
-        goto BB1830;
+        goto BB1870;
     }
-BB1824:
-    _1590_t4 = _1590_x._1._0==_1590_y._1._0;
-    if (_1590_t4) {
-        goto BB1825;
+BB1864:
+    _1634_t4 = _1634_x._1._0==_1634_y._1._0;
+    if (_1634_t4) {
+        goto BB1865;
     } else {
-        goto BB1830;
+        goto BB1870;
     }
-BB1830:
-    _1590_t0 = 0;
-    goto BB1829;
-BB1825:
-    _1590_t5 = _1590_x._1._1==_1590_y._1._1;
-    if (_1590_t5) {
-        goto BB1826;
+BB1870:
+    _1634_t0 = 0;
+    goto BB1869;
+BB1865:
+    _1634_t5 = _1634_x._1._1==_1634_y._1._1;
+    if (_1634_t5) {
+        goto BB1866;
     } else {
-        goto BB1830;
+        goto BB1870;
     }
-BB1829:
-    _1590_$retval = _1590_t0;
-    return _1590_$retval;
-BB1826:
-    _1590_t6 = _1590_x._2==_1590_y._2;
-    if (_1590_t6) {
-        goto BB1827;
+BB1869:
+    _1634_$retval = _1634_t0;
+    return _1634_$retval;
+BB1866:
+    _1634_t6 = _1634_x._2==_1634_y._2;
+    if (_1634_t6) {
+        goto BB1867;
     } else {
-        goto BB1830;
+        goto BB1870;
     }
-BB1827:
-    _1590_t0 = 1;
-    goto BB1829;
+BB1867:
+    _1634_t0 = 1;
+    goto BB1869;
 }
+
 
 int main(void) {
-  printf("%ld",_1585_main());
+  printf("%ld",_1629_main());
   return 0;
 }

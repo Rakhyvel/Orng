@@ -6,15 +6,16 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
 int64_t _468_main(void);
 int64_t _470_f(void);
 int64_t _472_g(void);
+
 
 /* Function definitions */
 int64_t _468_main(void){
@@ -45,6 +46,7 @@ int64_t _472_g(void){
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:6:27:\nfn g() -> Int {unreachable}\n                         ^";
     $panic("reached unreachable code\n");
 }
+
 
 int main(void) {
   printf("%ld",_468_main());

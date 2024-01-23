@@ -6,14 +6,14 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 struct struct2;
 struct struct3;
 struct struct4;
 struct struct6;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct2 {
     int64_t _0;
     int64_t _1;
@@ -51,6 +51,7 @@ typedef struct struct4(*function5)(int64_t, int64_t);
 int64_t _34_main(void);
 struct struct3 _36_safe_div_vec(struct struct2 _36_x, struct struct2 _36_y);
 struct struct4 _38_safe_div(int64_t _38_x, int64_t _38_y);
+
 
 /* Function definitions */
 int64_t _34_main(void){
@@ -196,6 +197,7 @@ BB32:
     _38_$retval = _38_t0;
     return _38_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_34_main());

@@ -6,11 +6,11 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     uint64_t tag;
 };
@@ -26,6 +26,7 @@ typedef int64_t(*function2)(struct struct1);
 /* Function forward definitions */
 int64_t _51_main(void);
 int64_t _53_f(struct struct1 _53_x);
+
 
 /* Function definitions */
 int64_t _51_main(void){
@@ -77,6 +78,7 @@ BB51:
     _53_$retval = _53_t0;
     return _53_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_51_main());

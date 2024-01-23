@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     double _1;
@@ -17,6 +17,7 @@ struct struct0 {
 
 /* Function forward definitions */
 int64_t _540_main(void);
+
 
 /* Function definitions */
 int64_t _540_main(void){
@@ -57,6 +58,7 @@ BB639:
     _540_$retval = _540_t3;
     return _540_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_540_main());

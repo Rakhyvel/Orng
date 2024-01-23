@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -21,6 +21,7 @@ typedef void(*function1)(struct struct0*);
 /* Function forward definitions */
 int64_t _67_main(void);
 void _69_f(struct struct0* _69_x);
+
 
 /* Function definitions */
 int64_t _67_main(void){
@@ -58,6 +59,7 @@ void _69_f(struct struct0* _69_x){
     *((int64_t*)_69_x + _69_t1) = 217;
     return;
 }
+
 
 int main(void) {
   printf("%ld",_67_main());

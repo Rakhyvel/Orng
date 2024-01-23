@@ -9,12 +9,14 @@
 /* Function forward definitions */
 int64_t _873_main(void);
 
+
 /* Function definitions */
 int64_t _873_main(void){
     int64_t _873_$retval;
     _873_$retval = 183;
     return _873_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_873_main());

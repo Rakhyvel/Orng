@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct2;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 typedef int64_t(*function0)(int64_t);
 
 struct struct2 {
@@ -23,6 +23,7 @@ typedef void(*function1)(int64_t*, int64_t);
 int64_t _969_main(void);
 int64_t _971_sum_down(int64_t _971_x);
 void _976_inc(int64_t* _976_x, int64_t _976_i);
+
 
 /* Function definitions */
 int64_t _969_main(void){
@@ -77,6 +78,7 @@ void _976_inc(int64_t* _976_x, int64_t _976_i){
     *_976_x = $add_int64_t(*_976_x, _976_i, "tests/integration/functions/mut-param-addrof.orng:11:42:\nfn inc(x: &mut Int, i: Int) -> () { x^ += i }\n                                        ^");
     return;
 }
+
 
 int main(void) {
   printf("%ld",_969_main());

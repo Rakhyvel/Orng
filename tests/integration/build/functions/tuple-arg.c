@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct1;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct1 {
     int64_t _0;
     int64_t _1;
@@ -21,6 +21,7 @@ typedef int64_t(*function0)(struct struct1);
 /* Function forward definitions */
 int64_t _1015_main(void);
 int64_t _1017_add(struct struct1 _1017_x);
+
 
 /* Function definitions */
 int64_t _1015_main(void){
@@ -65,6 +66,7 @@ int64_t _1017_add(struct struct1 _1017_x){
     _1017_$retval = $add_int64_t(_1017_t4, *((int64_t*)&_1017_x + _1017_t5), "tests/integration/functions/tuple-arg.orng:7:18:\n    x[0] + x[1] + x[2]\n                ^");
     return _1017_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1015_main());

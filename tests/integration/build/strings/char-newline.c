@@ -9,12 +9,14 @@
 /* Function forward definitions */
 uint32_t _1378_main(void);
 
+
 /* Function definitions */
 uint32_t _1378_main(void){
     uint32_t _1378_$retval;
     _1378_$retval = 10;
     return _1378_$retval;
 }
+
 
 int main(void) {
   printf("%u",_1378_main());

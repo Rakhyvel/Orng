@@ -6,10 +6,10 @@
 
 #include "debug.inc"
 
-/* Forward typedefs */
+/* Forward struct, union, and function declarations */
 struct struct0;
 
-/* Typedefs */
+/* Struct, union, and function definitions */
 struct struct0 {
     int64_t _0;
     int64_t _1;
@@ -21,6 +21,7 @@ typedef struct struct0(*function1)(void);
 /* Function forward definitions */
 int64_t _1132_main(void);
 struct struct0 _1134_get_array(void);
+
 
 /* Function definitions */
 int64_t _1132_main(void){
@@ -89,6 +90,7 @@ struct struct0 _1134_get_array(void){
     _1134_$retval = (struct struct0) {_1134_t1, _1134_t2, _1134_t3};
     return _1134_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_1132_main());

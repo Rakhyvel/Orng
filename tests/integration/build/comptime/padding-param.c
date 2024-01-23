@@ -10,6 +10,7 @@
 int64_t _267_f(int8_t _267_x, int16_t _267_y, int8_t _267_z);
 int64_t _264_main(void);
 
+
 /* Function definitions */
 int64_t _267_f(int8_t _267_x, int16_t _267_y, int8_t _267_z){
     int8_t _267_t1;
@@ -55,6 +56,7 @@ int64_t _264_main(void){
     _264_$retval = 255;
     return _264_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_264_main());

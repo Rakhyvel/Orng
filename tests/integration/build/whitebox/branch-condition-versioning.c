@@ -7,72 +7,74 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1596_main(void);
+int64_t _1640_main(void);
+
 
 /* Function definitions */
-int64_t _1596_main(void){
-    uint8_t _1597_found;
-    int64_t _1598_n;
-    int64_t _1596_t3;
-    uint8_t _1596_t4;
-    int64_t _1596_t12;
-    int64_t _1596_t8;
-    uint8_t _1596_t10;
-    int64_t _1596_t14;
-    int64_t _1596_$retval;
-    _1597_found = 0;
-    _1598_n = 0;
-    goto BB1841;
-BB1841:
-    _1596_t3 = 10;
-    _1596_t4 = _1598_n<_1596_t3;
-    if (_1596_t4) {
-        goto BB1842;
+int64_t _1640_main(void){
+    uint8_t _1641_found;
+    int64_t _1642_n;
+    int64_t _1640_t3;
+    uint8_t _1640_t4;
+    int64_t _1640_t12;
+    int64_t _1640_t8;
+    uint8_t _1640_t10;
+    int64_t _1640_t14;
+    int64_t _1640_$retval;
+    _1641_found = 0;
+    _1642_n = 0;
+    goto BB1881;
+BB1881:
+    _1640_t3 = 10;
+    _1640_t4 = _1642_n<_1640_t3;
+    if (_1640_t4) {
+        goto BB1882;
     } else {
-        goto BB1857;
+        goto BB1897;
     }
-BB1842:
-    if (_1597_found) {
-        goto BB1843;
+BB1882:
+    if (_1641_found) {
+        goto BB1883;
     } else {
-        goto BB1845;
+        goto BB1885;
     }
-BB1857:
-    if (_1597_found) {
-        goto BB1858;
+BB1897:
+    if (_1641_found) {
+        goto BB1898;
     } else {
-        goto BB1862;
+        goto BB1902;
     }
-BB1843:
-    _1598_n = 100;
-    goto BB1845;
-BB1845:
-    _1596_t8 = 6;
-    _1596_t10 = _1598_n==_1596_t8;
-    if (_1596_t10) {
-        goto BB1848;
+BB1883:
+    _1642_n = 100;
+    goto BB1885;
+BB1885:
+    _1640_t8 = 6;
+    _1640_t10 = _1642_n==_1640_t8;
+    if (_1640_t10) {
+        goto BB1888;
     } else {
-        goto BB1852;
+        goto BB1892;
     }
-BB1858:
-    _1596_t14 = 15;
-    goto BB1861;
-BB1862:
-    _1596_t14 = 4;
-    goto BB1861;
-BB1848:
-    _1597_found = 1;
-    goto BB1852;
-BB1852:
-    _1596_t12 = 1;
-    _1598_n = $add_int64_t(_1598_n, _1596_t12, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
-    goto BB1841;
-BB1861:
-    _1596_$retval = _1596_t14;
-    return _1596_$retval;
+BB1898:
+    _1640_t14 = 15;
+    goto BB1901;
+BB1902:
+    _1640_t14 = 4;
+    goto BB1901;
+BB1888:
+    _1641_found = 1;
+    goto BB1892;
+BB1892:
+    _1640_t12 = 1;
+    _1642_n = $add_int64_t(_1642_n, _1640_t12, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
+    goto BB1881;
+BB1901:
+    _1640_$retval = _1640_t14;
+    return _1640_$retval;
 }
 
+
 int main(void) {
-  printf("%ld",_1596_main());
+  printf("%ld",_1640_main());
   return 0;
 }

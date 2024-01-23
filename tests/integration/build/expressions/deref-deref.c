@@ -9,6 +9,7 @@
 /* Function forward definitions */
 int64_t _664_main(void);
 
+
 /* Function definitions */
 int64_t _664_main(void){
     int64_t _665_x;
@@ -22,6 +23,7 @@ int64_t _664_main(void){
     _664_$retval = **_665_z;
     return _664_$retval;
 }
+
 
 int main(void) {
   printf("%ld",_664_main());
