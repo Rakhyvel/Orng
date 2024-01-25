@@ -70,6 +70,16 @@ pub const Parser = struct {
             next_kind == .self;
     }
 
+    fn next_is_control_flow(self: *Parser) bool {
+        const next_kind = self.peek().kind;
+        return next_kind == .@"if" or
+            next_kind == .@"while" or
+            next_kind == .match or
+            next_kind == .@"for" or
+            next_kind == .@"comptime" or
+            next_kind == .left_brace;
+    }
+
     fn next_is_statement(self: *Parser) bool {
         const next_kind = self.peek().kind;
         return next_kind == .let or next_kind == .impl or next_kind == .trait or next_kind == .@"defer" or next_kind == .@"errdefer" or self.next_is_expr();
@@ -420,8 +430,6 @@ pub const Parser = struct {
     fn prefix_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.accept(.not)) |token| {
             return ast_.AST.create_not(token, try self.prefix_expr(), self.allocator);
-        } else if (self.accept(.@"comptime")) |token| {
-            return ast_.AST.create_comptime(token, try self.postfix_expr(), self.allocator);
         } else if (self.accept(.at_symbol)) |_| {
             if (self.accept(.typeof)) |token| {
                 _ = try self.expect(.left_parenthesis);
@@ -485,7 +493,7 @@ pub const Parser = struct {
     }
 
     fn postfix_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        var exp = try self.control_flow();
+        var exp = if (self.next_is_control_flow()) try self.control_flow() else try self.factor();
         while (true) {
             if (self.peek_kind(.left_parenthesis)) {
                 exp = ast_.AST.create_call(self.peek(), exp, try self.call_args(), self.allocator);
@@ -561,6 +569,8 @@ pub const Parser = struct {
             return try self.match_expr();
         } else if (self.peek_kind(.@"for")) {
             return try self.for_expr();
+        } else if (self.accept(.@"comptime")) |token| {
+            return ast_.AST.create_comptime(token, try self.block_expr(), self.allocator);
         } else {
             return try self.factor();
         }

@@ -12,61 +12,61 @@
 typedef uint8_t(*function0)(double);
 
 /* Function forward definitions */
-int64_t _673_main(void);
-uint8_t _678_f(double _678_x);
+int64_t _700_main(void);
+uint8_t _705_f(double _705_x);
 
 
 /* Function definitions */
-int64_t _673_main(void){
-    function0 _673_t1;
-    double _673_t3;
-    uint8_t _673_t2;
-    int64_t _673_t0;
-    int64_t _673_$retval;
-    _673_t1 = _678_f;
-    _673_t3 = 4.0e+00;
+int64_t _700_main(void){
+    function0 _700_t1;
+    double _700_t3;
+    uint8_t _700_t2;
+    int64_t _700_t0;
+    int64_t _700_$retval;
+    _700_t1 = _705_f;
+    _700_t3 = 4.0e+00;
     $lines[$line_idx++] = "tests/integration/expressions/div-1.orng:3:10:\n    if f(4.0) {\n        ^";
-    _673_t2 = _673_t1(_673_t3);
+    _700_t2 = _700_t1(_700_t3);
     $line_idx--;
-    if (_673_t2) {
-        goto BB816;
+    if (_700_t2) {
+        goto BB838;
     } else {
-        goto BB820;
+        goto BB842;
     }
-BB816:
-    _673_t0 = 190;
-    goto BB819;
-BB820:
-    _673_t0 = 4;
-    goto BB819;
-BB819:
-    _673_$retval = _673_t0;
-    return _673_$retval;
+BB838:
+    _700_t0 = 190;
+    goto BB841;
+BB842:
+    _700_t0 = 4;
+    goto BB841;
+BB841:
+    _700_$retval = _700_t0;
+    return _700_$retval;
 }
 
-uint8_t _678_f(double _678_x){
-    uint8_t _678_t3;
-    uint8_t _678_t2;
-    uint8_t _678_$retval;
-    _678_t3 = _678_x==_678_x;
-    if (_678_t3) {
-        goto BB811;
+uint8_t _705_f(double _705_x){
+    uint8_t _705_t3;
+    uint8_t _705_t2;
+    uint8_t _705_$retval;
+    _705_t3 = _705_x==_705_x;
+    if (_705_t3) {
+        goto BB833;
     } else {
-        goto BB814;
+        goto BB836;
     }
-BB811:
-    _678_t2 = 1;
-    goto BB813;
-BB814:
-    _678_t2 = 0;
-    goto BB813;
-BB813:
-    _678_$retval = _678_t2;
-    return _678_$retval;
+BB833:
+    _705_t2 = 1;
+    goto BB835;
+BB836:
+    _705_t2 = 0;
+    goto BB835;
+BB835:
+    _705_$retval = _705_t2;
+    return _705_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_673_main());
+  printf("%ld",_700_main());
   return 0;
 }

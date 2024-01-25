@@ -20,45 +20,45 @@ struct struct0 {
 typedef int64_t(*function1)(void);
 
 /* Function forward definitions */
-int64_t _1038_main(void);
-int64_t _1040_f(void);
+int64_t _1065_main(void);
+int64_t _1067_f(void);
 
 
 /* Function definitions */
-int64_t _1038_main(void){
-    int64_t _1038_t1;
-    int64_t _1038_t2;
-    int64_t _1038_t3;
-    int64_t _1038_t4;
-    struct struct0 _1039_x;
-    function1 _1038_t6;
-    int64_t _1038_t7;
-    int64_t _1038_t8;
-    int64_t _1038_$retval;
-    _1038_t1 = 0;
-    _1038_t2 = 0;
-    _1038_t3 = 0;
-    _1038_t4 = 0;
-    _1039_x = (struct struct0) {_1038_t1, _1038_t2, _1038_t3, _1038_t4};
-    _1038_t6 = _1040_f;
+int64_t _1065_main(void){
+    int64_t _1065_t1;
+    int64_t _1065_t2;
+    int64_t _1065_t3;
+    int64_t _1065_t4;
+    struct struct0 _1066_x;
+    function1 _1065_t6;
+    int64_t _1065_t7;
+    int64_t _1065_t8;
+    int64_t _1065_$retval;
+    _1065_t1 = 0;
+    _1065_t2 = 0;
+    _1065_t3 = 0;
+    _1065_t4 = 0;
+    _1066_x = (struct struct0) {_1065_t1, _1065_t2, _1065_t3, _1065_t4};
+    _1065_t6 = _1067_f;
     $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
-    _1038_t7 = _1038_t6();
+    _1065_t7 = _1065_t6();
     $line_idx--;
-    _1038_t8 = 4;
-    $bounds_check(_1038_t7, _1038_t8, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:15:\n    x[f()] = 0\n             ^");
-    *((int64_t*)&_1039_x + _1038_t7) = 0;
-    _1038_$retval = 0;
-    return _1038_$retval;
+    _1065_t8 = 4;
+    $bounds_check(_1065_t7, _1065_t8, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:15:\n    x[f()] = 0\n             ^");
+    *((int64_t*)&_1066_x + _1065_t7) = 0;
+    _1065_$retval = 0;
+    return _1065_$retval;
 }
 
-int64_t _1040_f(void){
-    int64_t _1040_$retval;
-    _1040_$retval = 100;
-    return _1040_$retval;
+int64_t _1067_f(void){
+    int64_t _1067_$retval;
+    _1067_$retval = 100;
+    return _1067_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1038_main());
+  printf("%ld",_1065_main());
   return 0;
 }

@@ -7,25 +7,25 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _381_f(void);
-int64_t _378_main(void);
+int64_t _408_f(void);
+int64_t _404_main(void);
 
 
 /* Function definitions */
-int64_t _381_f(void){
-    int64_t _381_$retval;
-    _381_$retval = 260;
-    return _381_$retval;
+int64_t _408_f(void){
+    int64_t _408_$retval;
+    _408_$retval = 260;
+    return _408_$retval;
 }
 
-int64_t _378_main(void){
-    int64_t _378_$retval;
-    _378_$retval = 260;
-    return _378_$retval;
+int64_t _404_main(void){
+    int64_t _404_$retval;
+    _404_$retval = 260;
+    return _404_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_378_main());
+  printf("%ld",_404_main());
   return 0;
 }

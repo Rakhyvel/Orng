@@ -1,6 +1,6 @@
 // 263
 fn main() -> Int {
-    if comptime f() == 3.14 {
+    if comptime { f() } == 3.14 {
         263
     } else {
         unreachable

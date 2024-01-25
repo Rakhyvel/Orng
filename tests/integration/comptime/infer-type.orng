@@ -1,5 +1,5 @@
 // 242
 fn main() -> Int {
-    let x = comptime (201 + 41)
+    let x = comptime { 201 + 41 }
     x
 }

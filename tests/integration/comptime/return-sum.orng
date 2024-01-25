@@ -1,6 +1,6 @@
 // 265
 fn main() -> Int {
-    match comptime f(53) {
+    match comptime { f(53) } {
         .ok(x) => x
         .err1 => unreachable
         .err2 => unreachable

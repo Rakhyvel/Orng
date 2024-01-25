@@ -7,58 +7,58 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _267_f(int8_t _267_x, int16_t _267_y, int8_t _267_z);
-int64_t _264_main(void);
+int64_t _287_f(int8_t _287_x, int16_t _287_y, int8_t _287_z);
+int64_t _283_main(void);
 
 
 /* Function definitions */
-int64_t _267_f(int8_t _267_x, int16_t _267_y, int8_t _267_z){
-    int8_t _267_t1;
-    uint8_t _267_t3;
-    int64_t _267_$retval;
-    int16_t _267_t4;
-    uint8_t _267_t6;
-    int8_t _267_t7;
-    uint8_t _267_t9;
-    _267_t1 = 20;
-    _267_t3 = _267_x==_267_t1;
-    if (_267_t3) {
-        goto BB284;
+int64_t _287_f(int8_t _287_x, int16_t _287_y, int8_t _287_z){
+    int8_t _287_t1;
+    uint8_t _287_t3;
+    int64_t _287_$retval;
+    int16_t _287_t4;
+    uint8_t _287_t6;
+    int8_t _287_t7;
+    uint8_t _287_t9;
+    _287_t1 = 20;
+    _287_t3 = _287_x==_287_t1;
+    if (_287_t3) {
+        goto BB300;
     } else {
-        goto BB294;
+        goto BB310;
     }
-BB284:
-    _267_t4 = 40;
-    _267_t6 = _267_y==_267_t4;
-    if (_267_t6) {
-        goto BB287;
+BB300:
+    _287_t4 = 40;
+    _287_t6 = _287_y==_287_t4;
+    if (_287_t6) {
+        goto BB303;
     } else {
-        goto BB294;
+        goto BB310;
     }
-BB294:
+BB310:
     $lines[$line_idx++] = "tests/integration/comptime/padding-param.orng:10:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB287:
-    _267_t7 = 60;
-    _267_t9 = _267_z==_267_t7;
-    if (_267_t9) {
-        goto BB290;
+BB303:
+    _287_t7 = 60;
+    _287_t9 = _287_z==_287_t7;
+    if (_287_t9) {
+        goto BB306;
     } else {
-        goto BB294;
+        goto BB310;
     }
-BB290:
-    _267_$retval = 255;
-    return _267_$retval;
+BB306:
+    _287_$retval = 255;
+    return _287_$retval;
 }
 
-int64_t _264_main(void){
-    int64_t _264_$retval;
-    _264_$retval = 255;
-    return _264_$retval;
+int64_t _283_main(void){
+    int64_t _283_$retval;
+    _283_$retval = 255;
+    return _283_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_264_main());
+  printf("%ld",_283_main());
   return 0;
 }

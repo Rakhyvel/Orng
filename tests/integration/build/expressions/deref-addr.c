@@ -7,25 +7,25 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _656_main(void);
+int64_t _683_main(void);
 
 
 /* Function definitions */
-int64_t _656_main(void){
-    int64_t _657_x;
-    int64_t* _656_t2;
-    int64_t* _656_t3;
-    int64_t _656_$retval;
-    _657_x = 5;
-    _656_t2 = &_657_x;
-    *_656_t2 = 74;
-    _656_t3 = &_657_x;
-    _656_$retval = *_656_t3;
-    return _656_$retval;
+int64_t _683_main(void){
+    int64_t _684_x;
+    int64_t* _683_t2;
+    int64_t* _683_t3;
+    int64_t _683_$retval;
+    _684_x = 5;
+    _683_t2 = &_684_x;
+    *_683_t2 = 74;
+    _683_t3 = &_684_x;
+    _683_$retval = *_683_t3;
+    return _683_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_656_main());
+  printf("%ld",_683_main());
   return 0;
 }

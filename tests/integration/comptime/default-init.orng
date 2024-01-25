@@ -1,6 +1,6 @@
 // 245
 fn main() -> Int {
-    let x: (a: Int = comptime add(200, 40), b: Int = 5)
+    let x: (a: Int = comptime { add(200, 40) }, b: Int = 5)
     x.a + x.b
 }
 

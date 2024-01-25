@@ -22,112 +22,112 @@ typedef struct struct1(*function0)(uint8_t);
 typedef struct struct1(*function2)(void);
 
 /* Function forward definitions */
-int64_t _615_main(void);
-struct struct1 _617_f(uint8_t _617_fail);
-struct struct1 _622_g(void);
+int64_t _642_main(void);
+struct struct1 _644_f(uint8_t _644_fail);
+struct struct1 _649_g(void);
 
 
 /* Function definitions */
-int64_t _615_main(void){
-    function0 _615_t1;
-    uint8_t _615_t3;
-    struct struct1 _615_t2;
-    uint64_t _615_t4;
-    int64_t _615_t0;
-    function0 _615_t7;
-    uint8_t _615_t9;
-    struct struct1 _615_t8;
-    uint64_t _615_t10;
-    int64_t _615_t6;
-    int64_t _615_$retval;
-    _615_t1 = _617_f;
-    _615_t3 = 1;
+int64_t _642_main(void){
+    function0 _642_t1;
+    uint8_t _642_t3;
+    struct struct1 _642_t2;
+    uint64_t _642_t4;
+    int64_t _642_t0;
+    function0 _642_t7;
+    uint8_t _642_t9;
+    struct struct1 _642_t8;
+    uint64_t _642_t10;
+    int64_t _642_t6;
+    int64_t _642_$retval;
+    _642_t1 = _644_f;
+    _642_t3 = 1;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n      ^";
-    _615_t2 = _615_t1(_615_t3);
+    _642_t2 = _642_t1(_642_t3);
     $line_idx--;
-    _615_t4 = _615_t2.tag;
-    if (_615_t4) {
-        goto BB751;
+    _642_t4 = _642_t2.tag;
+    if (_642_t4) {
+        goto BB773;
     } else {
-        goto BB757;
+        goto BB779;
     }
-BB751:
-    _615_t0 = 122;
-    goto BB752;
-BB757:
-    _615_t0 = _615_t2._0;
-    goto BB752;
-BB752:
-    _615_t7 = _617_f;
-    _615_t9 = 0;
+BB773:
+    _642_t0 = 122;
+    goto BB774;
+BB779:
+    _642_t0 = _642_t2._0;
+    goto BB774;
+BB774:
+    _642_t7 = _644_f;
+    _642_t9 = 0;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
-    _615_t8 = _615_t7(_615_t9);
+    _642_t8 = _642_t7(_642_t9);
     $line_idx--;
-    _615_t10 = _615_t8.tag;
-    if (_615_t10) {
-        goto BB753;
+    _642_t10 = _642_t8.tag;
+    if (_642_t10) {
+        goto BB775;
     } else {
-        goto BB756;
+        goto BB778;
     }
-BB753:
-    _615_t6 = 122;
-    goto BB754;
-BB756:
-    _615_t6 = _615_t8._0;
-    goto BB754;
-BB754:
-    _615_$retval = $add_int64_t(_615_t0, _615_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
-    return _615_$retval;
+BB775:
+    _642_t6 = 122;
+    goto BB776;
+BB778:
+    _642_t6 = _642_t8._0;
+    goto BB776;
+BB776:
+    _642_$retval = $add_int64_t(_642_t0, _642_t6, "tests/integration/errors/try.orng:3:26:\n    (f(true) catch 122) + (f(false) catch 122)\n                        ^");
+    return _642_$retval;
 }
 
-struct struct1 _617_f(uint8_t _617_fail){
-    function2 _617_t1;
-    struct struct1 _617_t2;
-    uint64_t _617_t3;
-    struct struct1 _617_$retval;
-    int64_t _617_t5;
-    struct struct1 _617_t0;
-    int64_t _620_x;
-    if (_617_fail) {
-        goto BB741;
+struct struct1 _644_f(uint8_t _644_fail){
+    function2 _644_t1;
+    struct struct1 _644_t2;
+    uint64_t _644_t3;
+    struct struct1 _644_$retval;
+    int64_t _644_t5;
+    struct struct1 _644_t0;
+    int64_t _647_x;
+    if (_644_fail) {
+        goto BB763;
     } else {
-        goto BB748;
+        goto BB770;
     }
-BB741:
-    _617_t1 = _622_g;
+BB763:
+    _644_t1 = _649_g;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
-    _617_t2 = _617_t1();
+    _644_t2 = _644_t1();
     $line_idx--;
-    _617_t3 = _617_t2.tag;
-    if (_617_t3) {
-        goto BB742;
+    _644_t3 = _644_t2.tag;
+    if (_644_t3) {
+        goto BB764;
     } else {
-        goto BB744;
+        goto BB766;
     }
-BB748:
-    _617_t5 = 0;
-    _617_t0 = (struct struct1) {.tag=0, ._0=_617_t5};
-    goto BB747;
-BB742:
-    _617_$retval = _617_t2;
-    return _617_$retval;
-BB744:
-    _620_x = _617_t2._0;
-    _617_t0 = (struct struct1) {.tag=0, ._0=_620_x};
-    goto BB747;
-BB747:
-    _617_$retval = _617_t0;
-    return _617_$retval;
+BB770:
+    _644_t5 = 0;
+    _644_t0 = (struct struct1) {.tag=0, ._0=_644_t5};
+    goto BB769;
+BB764:
+    _644_$retval = _644_t2;
+    return _644_$retval;
+BB766:
+    _647_x = _644_t2._0;
+    _644_t0 = (struct struct1) {.tag=0, ._0=_647_x};
+    goto BB769;
+BB769:
+    _644_$retval = _644_t0;
+    return _644_$retval;
 }
 
-struct struct1 _622_g(void){
-    struct struct1 _622_$retval;
-    _622_$retval = (struct struct1) {.tag=1};
-    return _622_$retval;
+struct struct1 _649_g(void){
+    struct struct1 _649_$retval;
+    _649_$retval = (struct struct1) {.tag=1};
+    return _649_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_615_main());
+  printf("%ld",_642_main());
   return 0;
 }

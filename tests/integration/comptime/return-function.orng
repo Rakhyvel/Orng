@@ -1,6 +1,6 @@
 // 264
 fn main() -> Int {
-    let const f = comptime g(2)
+    let const f = comptime { g(2) }
     f(66, 4)
 }
 

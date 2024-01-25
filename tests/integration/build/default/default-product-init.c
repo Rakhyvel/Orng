@@ -16,24 +16,24 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _532_main(void);
+int64_t _559_main(void);
 
 
 /* Function definitions */
-int64_t _532_main(void){
-    int64_t _532_t1;
-    double _532_t2;
-    struct struct0 _533_x;
-    int64_t _532_$retval;
-    _532_t1 = 137;
-    _532_t2 = 0.0e+00;
-    _533_x = (struct struct0) {_532_t1, _532_t2};
-    _532_$retval = _533_x._0;
-    return _532_$retval;
+int64_t _559_main(void){
+    int64_t _559_t1;
+    double _559_t2;
+    struct struct0 _560_x;
+    int64_t _559_$retval;
+    _559_t1 = 137;
+    _559_t2 = 0.0e+00;
+    _560_x = (struct struct0) {_559_t1, _559_t2};
+    _559_$retval = _560_x._0;
+    return _559_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_532_main());
+  printf("%ld",_559_main());
   return 0;
 }

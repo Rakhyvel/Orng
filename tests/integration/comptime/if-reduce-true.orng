@@ -5,7 +5,7 @@ let const constant_64: Int = 270
 let const system: (bits_64 | bits_32) = .bits_64
 
 fn main() -> Int {
-    if comptime (system == .bits_64) {
+    if comptime { system == .bits_64 } {
         return constant_64
     } orelse 0
 }

@@ -19,25 +19,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1462_main(void);
+int64_t _1489_main(void);
 
 
 /* Function definitions */
-int64_t _1462_main(void){
-    int64_t _1462_t0;
-    struct struct0 _1463_x;
-    uint64_t _1462_t2;
-    int64_t _1462_$retval;
-    _1462_t0 = 101;
-    _1463_x = (struct struct0) {.tag=0, ._0=_1462_t0};
-    _1462_t2 = 0;
-    $tag_check(_1462_t2, 0, "tests/integration/sums/inferred.orng:2:3:\nfn main() -> Int {\n ^");
-    _1462_$retval = _1463_x._0;
-    return _1462_$retval;
+int64_t _1489_main(void){
+    int64_t _1489_t0;
+    struct struct0 _1490_x;
+    uint64_t _1489_t2;
+    int64_t _1489_$retval;
+    _1489_t0 = 101;
+    _1490_x = (struct struct0) {.tag=0, ._0=_1489_t0};
+    _1489_t2 = 0;
+    $tag_check(_1489_t2, 0, "tests/integration/sums/inferred.orng:2:3:\nfn main() -> Int {\n ^");
+    _1489_$retval = _1490_x._0;
+    return _1489_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1462_main());
+  printf("%ld",_1489_main());
   return 0;
 }

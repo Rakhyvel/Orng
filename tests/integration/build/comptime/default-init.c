@@ -16,31 +16,31 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _130_add(int64_t _130_a, int64_t _130_b);
-int64_t _122_main(void);
+int64_t _136_add(int64_t _136_a, int64_t _136_b);
+int64_t _126_main(void);
 
 
 /* Function definitions */
-int64_t _130_add(int64_t _130_a, int64_t _130_b){
-    int64_t _130_$retval;
-    _130_$retval = $add_int64_t(_130_a, _130_b, "tests/integration/comptime/default-init.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
-    return _130_$retval;
+int64_t _136_add(int64_t _136_a, int64_t _136_b){
+    int64_t _136_$retval;
+    _136_$retval = $add_int64_t(_136_a, _136_b, "tests/integration/comptime/default-init.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
+    return _136_$retval;
 }
 
-int64_t _122_main(void){
-    int64_t _122_t1;
-    int64_t _122_t2;
-    struct struct0 _123_x;
-    int64_t _122_$retval;
-    _122_t1 = 240;
-    _122_t2 = 5;
-    _123_x = (struct struct0) {_122_t1, _122_t2};
-    _122_$retval = $add_int64_t(_123_x._0, _123_x._1, "tests/integration/comptime/default-init.orng:4:10:\n    x.a + x.b\n        ^");
-    return _122_$retval;
+int64_t _126_main(void){
+    int64_t _126_t1;
+    int64_t _126_t2;
+    struct struct0 _127_x;
+    int64_t _126_$retval;
+    _126_t1 = 240;
+    _126_t2 = 5;
+    _127_x = (struct struct0) {_126_t1, _126_t2};
+    _126_$retval = $add_int64_t(_127_x._0, _127_x._1, "tests/integration/comptime/default-init.orng:4:10:\n    x.a + x.b\n        ^");
+    return _126_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_122_main());
+  printf("%ld",_126_main());
   return 0;
 }

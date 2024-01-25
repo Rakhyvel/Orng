@@ -7,56 +7,56 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _412_main(void);
+int64_t _439_main(void);
 
 
 /* Function definitions */
-int64_t _412_main(void){
-    int64_t _413_x;
-    int64_t _412_t2;
-    uint8_t _412_t3;
-    int64_t _412_t5;
-    int64_t _412_t6;
-    int64_t _412_t7;
-    uint8_t _412_t9;
-    int64_t _412_t10;
-    int64_t _412_$retval;
-    int64_t _412_t12;
-    _413_x = 17;
-    goto BB481;
-BB481:
-    _412_t2 = 36;
-    _412_t3 = _413_x<_412_t2;
-    if (_412_t3) {
-        goto BB482;
+int64_t _439_main(void){
+    int64_t _440_x;
+    int64_t _439_t2;
+    uint8_t _439_t3;
+    int64_t _439_t5;
+    int64_t _439_t6;
+    int64_t _439_t7;
+    uint8_t _439_t9;
+    int64_t _439_t10;
+    int64_t _439_$retval;
+    int64_t _439_t12;
+    _440_x = 17;
+    goto BB503;
+BB503:
+    _439_t2 = 36;
+    _439_t3 = _440_x<_439_t2;
+    if (_439_t3) {
+        goto BB504;
     } else {
-        goto BB494;
+        goto BB516;
     }
-BB482:
-    _412_t5 = 2;
-    _412_t6 = $mod_int64_t(_413_x, _412_t5, "tests/integration/control-flow/defer-continue.orng:6:15:\n        if x % 2 == 0 {continue}\n             ^");
-    _412_t7 = 0;
-    _412_t9 = _412_t6==_412_t7;
-    if (_412_t9) {
-        goto BB486;
+BB504:
+    _439_t5 = 2;
+    _439_t6 = $mod_int64_t(_440_x, _439_t5, "tests/integration/control-flow/defer-continue.orng:6:15:\n        if x % 2 == 0 {continue}\n             ^");
+    _439_t7 = 0;
+    _439_t9 = _439_t6==_439_t7;
+    if (_439_t9) {
+        goto BB508;
     } else {
-        goto BB490;
+        goto BB512;
     }
-BB494:
-    _412_$retval = _413_x;
-    return _412_$retval;
-BB486:
-    _412_t12 = 9;
-    _413_x = $add_int64_t(_413_x, _412_t12, "tests/integration/control-flow/defer-continue.orng:5:19:\n        defer x += 9\n                 ^");
-    goto BB481;
-BB490:
-    _412_t10 = 1;
-    _413_x = $add_int64_t(_413_x, _412_t10, "tests/integration/control-flow/defer-continue.orng:7:13:\n        x += 1\n           ^");
-    goto BB486;
+BB516:
+    _439_$retval = _440_x;
+    return _439_$retval;
+BB508:
+    _439_t12 = 9;
+    _440_x = $add_int64_t(_440_x, _439_t12, "tests/integration/control-flow/defer-continue.orng:5:19:\n        defer x += 9\n                 ^");
+    goto BB503;
+BB512:
+    _439_t10 = 1;
+    _440_x = $add_int64_t(_440_x, _439_t10, "tests/integration/control-flow/defer-continue.orng:7:13:\n        x += 1\n           ^");
+    goto BB508;
 }
 
 
 int main(void) {
-  printf("%ld",_412_main());
+  printf("%ld",_439_main());
   return 0;
 }

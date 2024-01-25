@@ -7,25 +7,25 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-double _294_f(void);
-int64_t _288_main(void);
+double _316_f(void);
+int64_t _309_main(void);
 
 
 /* Function definitions */
-double _294_f(void){
-    double _294_$retval;
-    _294_$retval = 3.14e+00;
-    return _294_$retval;
+double _316_f(void){
+    double _316_$retval;
+    _316_$retval = 3.14e+00;
+    return _316_$retval;
 }
 
-int64_t _288_main(void){
-    int64_t _288_$retval;
-    _288_$retval = 263;
-    return _288_$retval;
+int64_t _309_main(void){
+    int64_t _309_$retval;
+    _309_$retval = 263;
+    return _309_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_288_main());
+  printf("%ld",_309_main());
   return 0;
 }

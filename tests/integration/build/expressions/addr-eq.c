@@ -18,83 +18,83 @@ struct struct1 {
 typedef uint8_t(*function0)(int64_t*, int64_t*);
 
 /* Function forward definitions */
-int64_t _639_main(void);
-uint8_t _644_addr_equal(int64_t* _644_x, int64_t* _644_y);
+int64_t _666_main(void);
+uint8_t _671_addr_equal(int64_t* _671_x, int64_t* _671_y);
 
 
 /* Function definitions */
-int64_t _639_main(void){
-    int64_t _640_x;
-    int64_t _640_y;
-    function0 _639_t3;
-    int64_t* _639_t5;
-    int64_t* _639_t6;
-    uint8_t _639_t4;
-    function0 _639_t7;
-    int64_t* _639_t9;
-    int64_t* _639_t10;
-    uint8_t _639_t8;
-    int64_t _639_t2;
-    int64_t _639_$retval;
-    _640_x = 4;
-    _640_y = 4;
-    _639_t3 = _644_addr_equal;
-    _639_t5 = &_640_x;
-    _639_t6 = &_640_x;
+int64_t _666_main(void){
+    int64_t _667_x;
+    int64_t _667_y;
+    function0 _666_t3;
+    int64_t* _666_t5;
+    int64_t* _666_t6;
+    uint8_t _666_t4;
+    function0 _666_t7;
+    int64_t* _666_t9;
+    int64_t* _666_t10;
+    uint8_t _666_t8;
+    int64_t _666_t2;
+    int64_t _666_$retval;
+    _667_x = 4;
+    _667_y = 4;
+    _666_t3 = _671_addr_equal;
+    _666_t5 = &_667_x;
+    _666_t6 = &_667_x;
     $lines[$line_idx++] = "tests/integration/expressions/addr-eq.orng:5:19:\n    if addr_equal(&x, &x) and not addr_equal(&x, &y) {\n                 ^";
-    _639_t4 = _639_t3(_639_t5, _639_t6);
+    _666_t4 = _666_t3(_666_t5, _666_t6);
     $line_idx--;
-    if (_639_t4) {
-        goto BB786;
+    if (_666_t4) {
+        goto BB808;
     } else {
-        goto BB791;
+        goto BB813;
     }
-BB786:
-    _639_t7 = _644_addr_equal;
-    _639_t9 = &_640_x;
-    _639_t10 = &_640_y;
+BB808:
+    _666_t7 = _671_addr_equal;
+    _666_t9 = &_667_x;
+    _666_t10 = &_667_y;
     $lines[$line_idx++] = "tests/integration/expressions/addr-eq.orng:5:46:\n    if addr_equal(&x, &x) and not addr_equal(&x, &y) {\n                                            ^";
-    _639_t8 = _639_t7(_639_t9, _639_t10);
+    _666_t8 = _666_t7(_666_t9, _666_t10);
     $line_idx--;
-    if (_639_t8) {
-        goto BB791;
+    if (_666_t8) {
+        goto BB813;
     } else {
-        goto BB787;
+        goto BB809;
     }
-BB791:
-    _639_t2 = -3;
-    goto BB790;
-BB787:
-    _639_t2 = 236;
-    goto BB790;
-BB790:
-    _639_$retval = _639_t2;
-    return _639_$retval;
+BB813:
+    _666_t2 = -3;
+    goto BB812;
+BB809:
+    _666_t2 = 236;
+    goto BB812;
+BB812:
+    _666_$retval = _666_t2;
+    return _666_$retval;
 }
 
-uint8_t _644_addr_equal(int64_t* _644_x, int64_t* _644_y){
-    uint8_t _644_t1;
-    uint8_t _644_t0;
-    uint8_t _644_$retval;
-    _644_t1 = _644_x==_644_y;
-    if (_644_t1) {
-        goto BB781;
+uint8_t _671_addr_equal(int64_t* _671_x, int64_t* _671_y){
+    uint8_t _671_t1;
+    uint8_t _671_t0;
+    uint8_t _671_$retval;
+    _671_t1 = _671_x==_671_y;
+    if (_671_t1) {
+        goto BB803;
     } else {
-        goto BB784;
+        goto BB806;
     }
-BB781:
-    _644_t0 = 1;
-    goto BB783;
-BB784:
-    _644_t0 = 0;
-    goto BB783;
-BB783:
-    _644_$retval = _644_t0;
-    return _644_$retval;
+BB803:
+    _671_t0 = 1;
+    goto BB805;
+BB806:
+    _671_t0 = 0;
+    goto BB805;
+BB805:
+    _671_$retval = _671_t0;
+    return _671_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_639_main());
+  printf("%ld",_666_main());
   return 0;
 }

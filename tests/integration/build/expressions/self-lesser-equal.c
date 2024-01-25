@@ -12,47 +12,47 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _849_main(void);
-uint8_t _854_f(int64_t _854_x);
+int64_t _876_main(void);
+uint8_t _881_f(int64_t _881_x);
 
 
 /* Function definitions */
-int64_t _849_main(void){
-    function0 _849_t1;
-    int64_t _849_t3;
-    uint8_t _849_t2;
-    int64_t _849_t0;
-    int64_t _849_$retval;
-    _849_t1 = _854_f;
-    _849_t3 = 4;
+int64_t _876_main(void){
+    function0 _876_t1;
+    int64_t _876_t3;
+    uint8_t _876_t2;
+    int64_t _876_t0;
+    int64_t _876_$retval;
+    _876_t1 = _881_f;
+    _876_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-lesser-equal.orng:3:10:\n    if f(4) {\n        ^";
-    _849_t2 = _849_t1(_849_t3);
+    _876_t2 = _876_t1(_876_t3);
     $line_idx--;
-    if (_849_t2) {
-        goto BB1057;
+    if (_876_t2) {
+        goto BB1079;
     } else {
-        goto BB1061;
+        goto BB1083;
     }
-BB1057:
-    _849_t0 = 228;
-    goto BB1060;
-BB1061:
-    _849_t0 = 0;
-    goto BB1060;
-BB1060:
-    _849_$retval = _849_t0;
-    return _849_$retval;
+BB1079:
+    _876_t0 = 228;
+    goto BB1082;
+BB1083:
+    _876_t0 = 0;
+    goto BB1082;
+BB1082:
+    _876_$retval = _876_t0;
+    return _876_$retval;
 }
 
-uint8_t _854_f(int64_t _854_x){
-    uint8_t _854_$retval;
-    (void)_854_x;
-    _854_$retval = 1;
-    return _854_$retval;
+uint8_t _881_f(int64_t _881_x){
+    uint8_t _881_$retval;
+    (void)_881_x;
+    _881_$retval = 1;
+    return _881_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_849_main());
+  printf("%ld",_876_main());
   return 0;
 }

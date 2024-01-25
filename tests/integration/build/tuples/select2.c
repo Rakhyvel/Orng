@@ -24,41 +24,41 @@ struct struct1 {
 typedef int64_t(*function2)(struct struct1);
 
 /* Function forward definitions */
-int64_t _1621_main(void);
-int64_t _1623_f(struct struct1 _1623_a);
+int64_t _1648_main(void);
+int64_t _1650_f(struct struct1 _1650_a);
 
 
 /* Function definitions */
-int64_t _1621_main(void){
-    int64_t _1621_t2;
-    int64_t _1621_t3;
-    struct struct0 _1621_t1;
-    int64_t _1621_t4;
-    struct struct1 _1622_x;
-    function2 _1621_t5;
-    int64_t _1621_t6;
-    int64_t _1621_$retval;
-    _1621_t2 = 50;
-    _1621_t3 = 150;
-    _1621_t1 = (struct struct0) {_1621_t2, _1621_t3};
-    _1621_t4 = 300;
-    _1622_x = (struct struct1) {_1621_t1, _1621_t4};
-    _1621_t5 = _1623_f;
+int64_t _1648_main(void){
+    int64_t _1648_t2;
+    int64_t _1648_t3;
+    struct struct0 _1648_t1;
+    int64_t _1648_t4;
+    struct struct1 _1649_x;
+    function2 _1648_t5;
+    int64_t _1648_t6;
+    int64_t _1648_$retval;
+    _1648_t2 = 50;
+    _1648_t3 = 150;
+    _1648_t1 = (struct struct0) {_1648_t2, _1648_t3};
+    _1648_t4 = 300;
+    _1649_x = (struct struct1) {_1648_t1, _1648_t4};
+    _1648_t5 = _1650_f;
     $lines[$line_idx++] = "tests/integration/tuples/select2.orng:4:7:\n    f(x)\n     ^";
-    _1621_t6 = _1621_t5(_1622_x);
+    _1648_t6 = _1648_t5(_1649_x);
     $line_idx--;
-    _1621_$retval = _1621_t6;
-    return _1621_$retval;
+    _1648_$retval = _1648_t6;
+    return _1648_$retval;
 }
 
-int64_t _1623_f(struct struct1 _1623_a){
-    int64_t _1623_$retval;
-    _1623_$retval = _1623_a._1;
-    return _1623_$retval;
+int64_t _1650_f(struct struct1 _1650_a){
+    int64_t _1650_$retval;
+    _1650_$retval = _1650_a._1;
+    return _1650_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1621_main());
+  printf("%ld",_1648_main());
   return 0;
 }

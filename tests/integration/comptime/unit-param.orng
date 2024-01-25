@@ -1,6 +1,6 @@
 // 260
 fn main() -> Int {
-    comptime f({})
+    comptime { f({}) }
 }
 
 fn f(x: ()) -> Int {

@@ -20,61 +20,61 @@ struct struct1 {
 typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _587_main(void);
-struct struct1 _593_f(void);
+int64_t _614_main(void);
+struct struct1 _620_f(void);
 
 
 /* Function definitions */
-int64_t _587_main(void){
-    function0 _587_t1;
-    struct struct1 _587_t2;
-    uint64_t _587_t3;
-    uint64_t _587_t4;
-    uint8_t _587_t5;
-    int64_t _587_$retval;
-    uint64_t _587_t6;
-    uint64_t _587_t7;
-    uint8_t _587_t8;
-    _587_t1 = _593_f;
+int64_t _614_main(void){
+    function0 _614_t1;
+    struct struct1 _614_t2;
+    uint64_t _614_t3;
+    uint64_t _614_t4;
+    uint8_t _614_t5;
+    int64_t _614_$retval;
+    uint64_t _614_t6;
+    uint64_t _614_t7;
+    uint8_t _614_t8;
+    _614_t1 = _620_f;
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:3:13:\n    match f() {\n           ^";
-    _587_t2 = _587_t1();
+    _614_t2 = _614_t1();
     $line_idx--;
-    _587_t3 = 0;
-    _587_t4 = _587_t2.tag;
-    _587_t5 = _587_t4==_587_t3;
-    if (_587_t5) {
-        goto BB699;
+    _614_t3 = 0;
+    _614_t4 = _614_t2.tag;
+    _614_t5 = _614_t4==_614_t3;
+    if (_614_t5) {
+        goto BB721;
     } else {
-        goto BB700;
+        goto BB722;
     }
-BB699:
+BB721:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB700:
-    _587_t6 = 1;
-    _587_t7 = _587_t2.tag;
-    _587_t8 = _587_t7==_587_t6;
-    if (_587_t8) {
-        goto BB702;
+BB722:
+    _614_t6 = 1;
+    _614_t7 = _614_t2.tag;
+    _614_t8 = _614_t7==_614_t6;
+    if (_614_t8) {
+        goto BB724;
     } else {
-        goto BB706;
+        goto BB728;
     }
-BB702:
-    _587_$retval = 238;
-    return _587_$retval;
-BB706:
+BB724:
+    _614_$retval = 238;
+    return _614_$retval;
+BB728:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:6:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }
 
-struct struct1 _593_f(void){
-    struct struct1 _593_$retval;
-    _593_$retval = (struct struct1) {.tag=1};
-    return _593_$retval;
+struct struct1 _620_f(void){
+    struct struct1 _620_$retval;
+    _620_$retval = (struct struct1) {.tag=1};
+    return _620_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_587_main());
+  printf("%ld",_614_main());
   return 0;
 }

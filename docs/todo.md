@@ -356,12 +356,12 @@
     - [x] `trait T { ... }` to define it
         > These can be defined in any scope. They belong to their enclosing scope.
         > They are namespaced separately from other symbols. Lookup is similar.
-    - [ ] `impl [T] for X { ... }` to implement it for a type
+    - [x] `impl [T] for X { ... }` to implement it for a type
         > These can be implemented in any scope. They belong to their enclosing scope.
         > Each scope has a `Type: AST -> Set(Trait: Trait)` "map". `Trait` types are a list of member function declarations.
         > This should create a global vtable
         - [x] Can leave trait null, static member functions
-        - [ ] Cannot impl for an addr-of
+        - [x] Cannot impl for an addr-of
     - [ ] `dyn Tr`, which is two pointers, one to the data, the other to the global vtable
     - [ ] dot prepend `x.>f()`
         > In Scope, given `T = @typeof(x)`, lookup any trait `Tr` impls for the type `T` which match function name, parameter and return type

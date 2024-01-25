@@ -7,59 +7,59 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1695_main(void);
+int64_t _1722_main(void);
 
 
 /* Function definitions */
-int64_t _1695_main(void){
-    int64_t _1696_x;
-    int64_t* _1696_y;
-    int64_t _1695_t3;
-    uint8_t _1695_t5;
-    int64_t _1695_t2;
-    int64_t _1695_$retval;
-    int64_t _1695_t7;
-    uint8_t _1695_t8;
-    int64_t _1695_t9;
-    uint8_t _1695_t10;
-    _1696_x = 3;
-    _1696_y = &_1696_x;
-    _1695_t3 = 5;
-    _1695_t5 = *_1696_y==_1695_t3;
-    if (_1695_t5) {
-        goto BB1970;
+int64_t _1722_main(void){
+    int64_t _1723_x;
+    int64_t* _1723_y;
+    int64_t _1722_t3;
+    uint8_t _1722_t5;
+    int64_t _1722_t2;
+    int64_t _1722_$retval;
+    int64_t _1722_t7;
+    uint8_t _1722_t8;
+    int64_t _1722_t9;
+    uint8_t _1722_t10;
+    _1723_x = 3;
+    _1723_y = &_1723_x;
+    _1722_t3 = 5;
+    _1722_t5 = *_1723_y==_1722_t3;
+    if (_1722_t5) {
+        goto BB1992;
     } else {
-        goto BB1972;
+        goto BB1994;
     }
-BB1970:
-    _1695_t7 = 4;
-    _1695_t8 = _1695_t7>*_1696_y;
-    if (_1695_t8) {
-        goto BB1972;
+BB1992:
+    _1722_t7 = 4;
+    _1722_t8 = _1722_t7>*_1723_y;
+    if (_1722_t8) {
+        goto BB1994;
     } else {
-        goto BB1977;
+        goto BB1999;
     }
-BB1972:
-    _1695_t9 = 3;
-    _1695_t10 = *_1696_y>=_1695_t9;
-    if (_1695_t10) {
-        goto BB1973;
+BB1994:
+    _1722_t9 = 3;
+    _1722_t10 = *_1723_y>=_1722_t9;
+    if (_1722_t10) {
+        goto BB1995;
     } else {
-        goto BB1977;
+        goto BB1999;
     }
-BB1977:
-    _1695_t2 = 10;
-    goto BB1976;
-BB1973:
-    _1695_t2 = 33;
-    goto BB1976;
-BB1976:
-    _1695_$retval = _1695_t2;
-    return _1695_$retval;
+BB1999:
+    _1722_t2 = 10;
+    goto BB1998;
+BB1995:
+    _1722_t2 = 33;
+    goto BB1998;
+BB1998:
+    _1722_$retval = _1722_t2;
+    return _1722_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1695_main());
+  printf("%ld",_1722_main());
   return 0;
 }

@@ -18,119 +18,119 @@ struct struct1 {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-function0 _303_g(int64_t _303_x);
-int64_t _311_add(int64_t _311_x, int64_t _311_y);
-int64_t _313_sub(int64_t _313_x, int64_t _313_y);
-int64_t _315_mul(int64_t _315_x, int64_t _315_y);
-int64_t _317_div(int64_t _317_x, int64_t _317_y);
-int64_t _297_main(void);
+function0 _328_g(int64_t _328_x);
+int64_t _336_add(int64_t _336_x, int64_t _336_y);
+int64_t _338_sub(int64_t _338_x, int64_t _338_y);
+int64_t _340_mul(int64_t _340_x, int64_t _340_y);
+int64_t _342_div(int64_t _342_x, int64_t _342_y);
+int64_t _319_main(void);
 
 
 /* Function definitions */
-function0 _303_g(int64_t _303_x){
-    int64_t _303_t1;
-    uint8_t _303_t2;
-    function0 _303_t0;
-    int64_t _303_t7;
-    uint8_t _303_t8;
-    function0 _303_$retval;
-    int64_t _303_t3;
-    uint8_t _303_t4;
-    int64_t _303_t5;
-    uint8_t _303_t6;
-    _303_t1 = 0;
-    _303_t2 = _303_x==_303_t1;
-    if (_303_t2) {
-        goto BB350;
+function0 _328_g(int64_t _328_x){
+    int64_t _328_t1;
+    uint8_t _328_t2;
+    function0 _328_t0;
+    int64_t _328_t7;
+    uint8_t _328_t8;
+    function0 _328_$retval;
+    int64_t _328_t3;
+    uint8_t _328_t4;
+    int64_t _328_t5;
+    uint8_t _328_t6;
+    _328_t1 = 0;
+    _328_t2 = _328_x==_328_t1;
+    if (_328_t2) {
+        goto BB369;
     } else {
-        goto BB353;
+        goto BB372;
     }
-BB350:
-    _303_t0 = _311_add;
-    goto BB352;
-BB353:
-    _303_t3 = 1;
-    _303_t4 = _303_x==_303_t3;
-    if (_303_t4) {
-        goto BB355;
+BB369:
+    _328_t0 = _336_add;
+    goto BB371;
+BB372:
+    _328_t3 = 1;
+    _328_t4 = _328_x==_328_t3;
+    if (_328_t4) {
+        goto BB374;
     } else {
-        goto BB356;
+        goto BB375;
     }
-BB352:
-    _303_$retval = _303_t0;
-    return _303_$retval;
-BB355:
-    _303_t0 = _313_sub;
-    goto BB352;
-BB356:
-    _303_t5 = 2;
-    _303_t6 = _303_x==_303_t5;
-    if (_303_t6) {
-        goto BB358;
+BB371:
+    _328_$retval = _328_t0;
+    return _328_$retval;
+BB374:
+    _328_t0 = _338_sub;
+    goto BB371;
+BB375:
+    _328_t5 = 2;
+    _328_t6 = _328_x==_328_t5;
+    if (_328_t6) {
+        goto BB377;
     } else {
-        goto BB359;
+        goto BB378;
     }
-BB358:
-    _303_t0 = _315_mul;
-    goto BB352;
-BB359:
-    _303_t7 = 3;
-    _303_t8 = _303_x==_303_t7;
-    if (_303_t8) {
-        goto BB361;
+BB377:
+    _328_t0 = _340_mul;
+    goto BB371;
+BB378:
+    _328_t7 = 3;
+    _328_t8 = _328_x==_328_t7;
+    if (_328_t8) {
+        goto BB380;
     } else {
-        goto BB363;
+        goto BB382;
     }
-BB361:
-    _303_t0 = _317_div;
-    goto BB352;
-BB363:
+BB380:
+    _328_t0 = _342_div;
+    goto BB371;
+BB382:
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:13:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }
 
-int64_t _311_add(int64_t _311_x, int64_t _311_y){
-    int64_t _311_$retval;
-    _311_$retval = $add_int64_t(_311_x, _311_y, "tests/integration/comptime/return-function.orng:17:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
-    return _311_$retval;
+int64_t _336_add(int64_t _336_x, int64_t _336_y){
+    int64_t _336_$retval;
+    _336_$retval = $add_int64_t(_336_x, _336_y, "tests/integration/comptime/return-function.orng:17:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
+    return _336_$retval;
 }
 
-int64_t _313_sub(int64_t _313_x, int64_t _313_y){
-    int64_t _313_$retval;
-    _313_$retval = $sub_int64_t(_313_x, _313_y, "tests/integration/comptime/return-function.orng:18:36:\nfn sub(x: Int, y: Int) -> Int { x - y }\n                                  ^");
-    return _313_$retval;
+int64_t _338_sub(int64_t _338_x, int64_t _338_y){
+    int64_t _338_$retval;
+    _338_$retval = $sub_int64_t(_338_x, _338_y, "tests/integration/comptime/return-function.orng:18:36:\nfn sub(x: Int, y: Int) -> Int { x - y }\n                                  ^");
+    return _338_$retval;
 }
 
-int64_t _315_mul(int64_t _315_x, int64_t _315_y){
-    int64_t _315_$retval;
-    _315_$retval = $mult_int64_t(_315_x, _315_y, "tests/integration/comptime/return-function.orng:19:36:\nfn mul(x: Int, y: Int) -> Int { x * y }\n                                  ^");
-    return _315_$retval;
+int64_t _340_mul(int64_t _340_x, int64_t _340_y){
+    int64_t _340_$retval;
+    _340_$retval = $mult_int64_t(_340_x, _340_y, "tests/integration/comptime/return-function.orng:19:36:\nfn mul(x: Int, y: Int) -> Int { x * y }\n                                  ^");
+    return _340_$retval;
 }
 
-int64_t _317_div(int64_t _317_x, int64_t _317_y){
-    int64_t _317_$retval;
-    _317_$retval = $div_int64_t(_317_x, _317_y, "tests/integration/comptime/return-function.orng:20:36:\nfn div(x: Int, y: Int) -> Int { x / y }\n                                  ^");
-    return _317_$retval;
+int64_t _342_div(int64_t _342_x, int64_t _342_y){
+    int64_t _342_$retval;
+    _342_$retval = $div_int64_t(_342_x, _342_y, "tests/integration/comptime/return-function.orng:20:36:\nfn div(x: Int, y: Int) -> Int { x / y }\n                                  ^");
+    return _342_$retval;
 }
 
-int64_t _297_main(void){
-    function0 _297_t1;
-    int64_t _297_t3;
-    int64_t _297_t4;
-    int64_t _297_t2;
-    int64_t _297_$retval;
-    _297_t1 = _315_mul;
-    _297_t3 = 66;
-    _297_t4 = 4;
+int64_t _319_main(void){
+    function0 _319_t1;
+    int64_t _319_t3;
+    int64_t _319_t4;
+    int64_t _319_t2;
+    int64_t _319_$retval;
+    _319_t1 = _340_mul;
+    _319_t3 = 66;
+    _319_t4 = 4;
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:4:7:\n    f(66, 4)\n     ^";
-    _297_t2 = _297_t1(_297_t3, _297_t4);
+    _319_t2 = _319_t1(_319_t3, _319_t4);
     $line_idx--;
-    _297_$retval = _297_t2;
-    return _297_$retval;
+    _319_$retval = _319_t2;
+    return _319_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_297_main());
+  printf("%ld",_319_main());
   return 0;
 }
