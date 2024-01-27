@@ -123,9 +123,19 @@ pub const IR = struct {
         return retval;
     }
 
-    pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, is_dyn: bool, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.invoke, dest, null, null, span, allocator);
-        retval.data = Data{ .invoke = .{ .method_decl = method_decl, .lval_list = std.ArrayList(*lval_.L_Value).init(allocator) } };
+        retval.data = Data{ .invoke = .{
+            .method_decl = method_decl,
+            .lval_list = std.ArrayList(*lval_.L_Value).init(allocator),
+            .is_dyn = is_dyn,
+        } };
+        return retval;
+    }
+
+    pub fn init_dyn(dest: *lval_.L_Value, src1: *lval_.L_Value, mut: bool, impl: *ast_.AST, span: span_.Span, allocator: std.mem.Allocator) *IR {
+        var retval = IR.init(if (mut) .mut_dyn_value else .dyn_value, dest, src1, null, span, allocator);
+        retval.data = Data{ .dyn = .{ .impl = impl } };
         return retval;
     }
 
@@ -439,6 +449,8 @@ pub const Kind = enum {
     size_of, //< For extern types that Orng can't do automatically
     addr_of,
     mut_addr_of, // Separate kind to allow for aliasing analysis
+    dyn_value,
+    mut_dyn_value, // Separate kind to allow for aliasing analysis
 
     // Diadic instructions
     equal,
@@ -568,6 +580,8 @@ pub const Kind = enum {
             .cast,
             .mut_addr_of,
             .addr_of,
+            .mut_dyn_value,
+            .dyn_value,
             => 2,
 
             .mult_int,
@@ -620,7 +634,8 @@ pub const Data = union(enum) {
     string: []const u8,
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
-    invoke: struct { method_decl: *ast_.AST, lval_list: std.ArrayList(*lval_.L_Value) },
+    invoke: struct { method_decl: *ast_.AST, lval_list: std.ArrayList(*lval_.L_Value), is_dyn: bool },
+    dyn: struct { impl: *ast_.AST },
     select: struct { offset: i128, field: i128 },
     ast: *ast_.AST,
     none,

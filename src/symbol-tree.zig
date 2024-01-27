@@ -58,10 +58,16 @@ fn symbol_table_from_AST(
         .not,
         .negate,
         .dereference,
-        .addr_of,
         .slice_of,
         .discard,
+        .dyn_type,
+        .dyn_value,
         => try symbol_table_from_AST(ast.expr(), scope, errors, allocator),
+
+        .addr_of => {
+            try symbol_table_from_AST(ast.expr(), scope, errors, allocator);
+            ast.addr_of.scope = scope;
+        },
 
         .@"try" => {
             ast.set_symbol(try in_function_check(ast, scope, errors));
@@ -213,6 +219,9 @@ fn symbol_table_from_AST(
             const symbol = try create_trait_symbol(ast, scope, allocator);
             try put_symbol(symbol, scope, errors);
             ast.set_symbol(symbol);
+            for (ast.trait.method_decls.items) |method_decl| {
+                _ = create_method_type(method_decl, allocator);
+            }
         },
         .impl => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
@@ -585,15 +594,13 @@ fn create_trait_symbol(
     return retval;
 }
 
-fn create_method_symbol(
-    ast: *ast_.AST,
-    scope: *symbol_.Scope,
-    errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Symbol_Error_Enum!*symbol_.Symbol {
-    const receiver_base_type: *ast_.AST = ast.method_decl.impl.?.impl._type;
+fn create_method_type(ast: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
+    const receiver_base_type: *ast_.AST = if (ast.method_decl.impl != null)
+        ast.method_decl.impl.?.impl._type
+    else
+        ast_.AST.create_anyptr_type(ast.token(), allocator);
     // Calculate the domain type from the function paramter types
-    const domain = if (ast.method_decl.receiver) |receiver|
+    ast.method_decl.domain = if (ast.method_decl.receiver) |receiver|
         extract_domain_with_receiver(receiver_base_type, receiver, ast.children().*, allocator)
     else
         extract_domain(ast.children().*, allocator);
@@ -601,10 +608,23 @@ fn create_method_symbol(
     // Create the function type
     const _type = ast_.AST.create_function(
         ast.method_decl.ret_type.token(),
-        domain,
+        ast.method_decl.domain.?,
         ast.method_decl.ret_type,
         allocator,
     );
+    return _type;
+}
+
+fn create_method_symbol(
+    ast: *ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Symbol_Error_Enum!*symbol_.Symbol {
+    const receiver_base_type: *ast_.AST = ast.method_decl.impl.?.impl._type;
+
+    // Create the function type
+    const _type = create_method_type(ast, allocator);
 
     // Create the function scope
     var fn_scope = symbol_.Scope.init(scope, "", allocator);

@@ -454,7 +454,11 @@ pub const Parser = struct {
             return ast_.AST.create_negate(token, try self.prefix_expr(), self.allocator);
         } else if (self.accept(.ampersand)) |token| {
             const mut = self.accept(.mut);
-            return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, self.allocator);
+            if (self.accept(.dyn)) |token2| {
+                return ast_.AST.create_dyn_type(token2, try self.prefix_expr(), mut != null, self.allocator);
+            } else {
+                return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, self.allocator);
+            }
         } else if (self.accept(.left_square)) |token| {
             var slice_kind: ast_.Slice_Kind = undefined;
             var len: ?*ast_.AST = null;

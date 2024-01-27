@@ -1,0 +1,18 @@
+// 296
+trait My_Trait {
+    fn get_int(self) -> Int
+}
+
+impl My_Trait for Int {
+    fn get_int(self) -> Int { self }
+}
+
+fn main() -> Int {
+    let x = 4
+    let y: &dyn My_Trait = &x
+    if y.>get_int() == x.>get_int() {
+        296
+    } else {
+        unreachable
+    }
+}

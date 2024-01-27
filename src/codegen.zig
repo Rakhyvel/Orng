@@ -55,6 +55,8 @@ fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGe
     for (type_set.types.items) |dag| {
         if (dag.base.* == .product or dag.base.* == .sum_type) {
             try writer.print("struct struct{};\n", .{dag.uid});
+        } else if (dag.base.* == .dyn_type) {
+            try writer.print("struct dyn{};\n", .{dag.uid});
         }
     }
 }
@@ -118,6 +120,9 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
             try writer.print("    }};\n", .{});
         }
         try writer.print("}};\n\n", .{});
+    } else if (dag.base.* == .dyn_type) {
+        try writer.print("struct dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ dag.uid, dag.base.expr().symbol().?.name });
+        try writer.print("* vtable;\n}};\n\n", .{});
     }
 }
 
@@ -383,12 +388,16 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
             try writer.print("*", .{});
         },
         .function => {
-            const i = (cheat_module.type_set.get(_type)).?.uid;
-            try writer.print("function{}", .{i});
+            const type_uid = cheat_module.type_set.get(_type).?.uid;
+            try writer.print("function{}", .{type_uid});
         },
         .sum_type, .product => {
-            const i = (cheat_module.type_set.get(_type)).?.uid;
-            try writer.print("struct struct{}", .{i});
+            const type_uid = cheat_module.type_set.get(_type).?.uid;
+            try writer.print("struct struct{}", .{type_uid});
+        },
+        .dyn_type => {
+            const type_uid = cheat_module.type_set.get(_type).?.uid;
+            try writer.print("struct dyn{}", .{type_uid});
         },
         .unit_type => try writer.print("void", .{}),
         .annotation => try output_type(_type.annotation.type, writer),
@@ -554,6 +563,14 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print(";\n", .{});
         },
+        .mut_dyn_value, .dyn_value => {
+            try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
+            try writer.print("{{", .{});
+            try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try writer.print(", &", .{});
+            try output_vtable_impl(ir.data.dyn.impl, writer);
+            try writer.print("}};\n", .{});
+        },
         .not,
         .negate_int,
         .negate_float,
@@ -615,12 +632,20 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             } else {
                 try writer.print("    ", .{});
             }
-            try output_vtable_impl(ir.data.invoke.method_decl.method_decl.impl.?, writer);
-            try writer.print(".{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+            if (ir.data.invoke.is_dyn) {
+                try output_rvalue(ir.data.invoke.lval_list.items[0], 2, writer);
+                try writer.print("->vtable->{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+            } else {
+                try output_vtable_impl(ir.data.invoke.method_decl.method_decl.impl.?, writer);
+                try writer.print(".{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+            }
             for (ir.data.invoke.lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
+                    if (ir.data.invoke.is_dyn and i == 0) {
+                        try writer.print("->data_ptr", .{});
+                    }
                     if (i + 1 < ir.data.invoke.lval_list.items.len) {
                         try writer.print(", ", .{});
                     }

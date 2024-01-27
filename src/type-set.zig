@@ -36,6 +36,10 @@ pub const Type_Set = struct {
                 }
             }
             return dag;
+        } else if (ast.* == .dyn_type) {
+            const dag = DAG.init(ast, self.types.items.len, allocator);
+            self.types.append(dag) catch unreachable;
+            return dag;
         } else if (ast.* == .annotation) {
             return self.add(ast.annotation.type, allocator);
         } else if (ast.* == .addr_of) {

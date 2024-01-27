@@ -68,6 +68,7 @@ fn lower_AST(
         .unit_type,
         .sum_type,
         .annotation,
+        .dyn_type,
         => return lval_from_ast(ast, cfg, allocator),
         // Literals
         .unit_value => {
@@ -217,15 +218,25 @@ fn lower_AST(
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             temp.extract_symbver().symbol.span = ast.token().span;
 
-            _ = try lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, cfg, ast.token().span, errors, allocator);
+            if (ast.invoke.method_decl.?.symbol() != null) {
+                // Fine if symbol is null, for invokes on trait objects.
+                _ = try lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, cfg, ast.token().span, errors, allocator);
+            }
 
-            var ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, ast.token().span, allocator);
+            const is_dyn = ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type;
+            var ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, is_dyn, ast.token().span, allocator);
             for (ast.children().items) |term| {
                 ir.data.invoke.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
             }
             cfg.append_instruction(ir_.IR.init_stack_push(ast.token().span, allocator));
             cfg.append_instruction(ir);
             cfg.append_instruction(ir_.IR.init_stack_pop(ast.token().span, allocator));
+            return temp;
+        },
+        .dyn_value => {
+            const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator) orelse return null;
+            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
+            cfg.append_instruction(ir_.IR.init_dyn(temp, expr, ast.dyn_value.mut, ast.dyn_value.impl.?, ast.token().span, allocator));
             return temp;
         },
         .index => {

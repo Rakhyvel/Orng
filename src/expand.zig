@@ -51,6 +51,8 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .@"comptime",
         .addr_of,
         .slice_of,
+        .dyn_type,
+        .dyn_value,
         => try expand(ast.expr(), errors, allocator),
 
         .assign,

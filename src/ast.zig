@@ -176,9 +176,9 @@ pub const AST = union(enum) {
         _symbol: ?*symbol_.Symbol = null, // Filled by symbol-tree pass.
         scope: ?*symbol_.Scope = null, // Filled by symbol-tree pass.
 
-        fn find_method(self: @This(), name: []const u8) ?*AST {
+        pub fn find_method(self: @This(), name: []const u8) ?*AST {
             for (self.method_decls.items) |decl| {
-                if (std.mem.eql(u8, decl.decl.symbols.items[0], name)) {
+                if (std.mem.eql(u8, decl.method_decl.name.token().data, name)) {
                     return decl;
                 }
             }
@@ -191,6 +191,15 @@ pub const AST = union(enum) {
         _type: *AST,
         method_defs: std.ArrayList(*AST),
         scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
+
+        pub fn find_method(self: @This(), name: []const u8) ?*AST {
+            for (self.method_decls.items) |decl| {
+                if (std.mem.eql(u8, decl.method_decl.name.token().data, name)) {
+                    return decl;
+                }
+            }
+            return null;
+        }
     },
     invoke: struct {
         common: AST_Common,
@@ -199,6 +208,19 @@ pub const AST = union(enum) {
         _args: std.ArrayList(*AST),
         scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
+    },
+    dyn_type: struct {
+        common: AST_Common,
+        _expr: *AST,
+        mut: bool,
+    },
+    dyn_value: struct {
+        common: AST_Common,
+        dyn_type: *AST, // reference to the type of this value, since it is only created using address-ofs
+        _expr: *AST,
+        mut: bool,
+        impl: ?*AST = null, // The implementation AST, whose vtable should be used
+        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in when addr-of is converted
     },
     sum_type: struct {
         common: AST_Common,
@@ -281,6 +303,7 @@ pub const AST = union(enum) {
         _expr: *AST,
         mut: bool,
         anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
+        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     slice_of: struct { common: AST_Common, _expr: *AST, kind: Slice_Kind },
     array_of: struct { common: AST_Common, _expr: *AST, len: *AST },
@@ -411,6 +434,7 @@ pub const AST = union(enum) {
         receiver: ?*AST,
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
         param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
+        domain: ?*AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *AST,
         refinement: ?*AST,
         init: ?*AST,
@@ -647,6 +671,16 @@ pub const AST = union(enum) {
     pub fn create_invoke(_token: token_.Token, _lhs: *AST, _rhs: *AST, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .invoke = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._args = args } }, allocator);
+    }
+
+    pub fn create_dyn_type(_token: token_.Token, _expr: *AST, mut: bool, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(AST{ .dyn_type = .{ .common = _common, ._expr = _expr, .mut = mut } }, allocator);
+    }
+
+    pub fn create_dyn_value(_token: token_.Token, dyn_type: *AST, _expr: *AST, scope: *symbol_.Scope, mut: bool, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(AST{ .dyn_value = .{ .common = _common, .dyn_type = dyn_type, ._expr = _expr, .scope = scope, .mut = mut } }, allocator);
     }
 
     pub fn create_product(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
@@ -1344,6 +1378,14 @@ pub const AST = union(enum) {
                 }
                 try self.expr().print_type(out);
             },
+            .dyn_type => {
+                try out.print("&", .{});
+                if (self.dyn_type.mut) {
+                    try out.print("mut ", .{});
+                }
+                try out.print("dyn ", .{});
+                try self.expr().print_type(out);
+            },
             .slice_of => {
                 try out.print("[", .{});
                 switch (self.slice_of.kind) {
@@ -1499,6 +1541,7 @@ pub const AST = union(enum) {
             .function,
             .type_of,
             .array_of,
+            .dyn_type,
             => return primitives_.type_type,
 
             // Unit type
@@ -1581,6 +1624,7 @@ pub const AST = union(enum) {
             },
 
             .invoke => return self.invoke.method_decl.?.method_decl.ret_type,
+            .dyn_value => return self.dyn_value.dyn_type,
 
             // Identifier
             .identifier => return self.symbol().?._type,
@@ -1682,7 +1726,7 @@ pub const AST = union(enum) {
                 return offsets_.next_alignment(max_size, 8) + 8;
             },
 
-            .function, .addr_of => return 8,
+            .function, .addr_of, .dyn_type => return 8,
 
             .unit_type => return 0,
 
@@ -1720,6 +1764,7 @@ pub const AST = union(enum) {
             .sum_type, // this pains me :-( but has to be this way for the tag // TODO: This is fixable...
             .function,
             .addr_of,
+            .dyn_type,
             => return 8,
 
             .unit_type => return 1, // fogedda bout it
@@ -1819,6 +1864,7 @@ pub const AST = union(enum) {
             },
             .function => return A.lhs().types_match(B.lhs()) and A.rhs().types_match(B.rhs()),
             .inferred_error => return A == B,
+            .dyn_type => return A.expr().symbol() == B.expr().symbol(),
             else => {
                 std.debug.print("types_match(): Unimplemented for {s}\n", .{@tagName(A.*)});
                 unreachable;
@@ -1950,6 +1996,7 @@ pub const AST = union(enum) {
             .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
             .addr_of => return c_types_match(self.expr(), other.expr()),
             .unit_type => return other.* == .unit_type,
+            .dyn_type => return self.expr().symbol() == other.expr().symbol(),
             .product, .sum_type => {
                 if (other.children().items.len != self.children().items.len) {
                     return false;
@@ -2036,6 +2083,8 @@ pub const AST = union(enum) {
             .trait => try out.writer().print("trait()", .{}),
             .impl => try out.writer().print("impl(.trait={?}, .type={})", .{ self.impl.trait, self.impl._type }),
             .invoke => try out.writer().print("invoke()", .{}),
+            .dyn_type => try out.writer().print("dyn_type()", .{}),
+            .dyn_value => try out.writer().print("dyn_value()", .{}),
             .sum_type => {
                 try out.writer().print("sum(", .{});
                 for (self.sum_type._terms.items, 0..) |item, i| {

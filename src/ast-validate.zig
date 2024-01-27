@@ -295,7 +295,7 @@ fn validate_AST_internal(
     switch (ast.*) {
         .poison => return ast,
         .pattern_symbol => return ast,
-        .unit_type => {
+        .anyptr_type, .unit_type => {
             try type_check(ast, primitives_.type_type, expected, errors);
             return ast;
         },
@@ -605,20 +605,26 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
             const true_lhs_type = ast.lhs().typeof(allocator);
-            const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
-            var method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
+            var method_decl: ?*ast_.AST = undefined;
+            if (true_lhs_type.expand_identifier().* == .dyn_type) {
+                const trait = true_lhs_type.expand_identifier().expr().symbol().?.decl.?;
+                method_decl = trait.trait.find_method(ast.rhs().token().data);
+            } else {
+                const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
+                method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
+            }
             if (method_decl == null) {
                 errors.add_error(errs_.Error{ .type_not_impl_method = .{
                     .span = ast.token().span,
                     .method_name = ast.rhs().token().data,
-                    ._type = lhs_type,
+                    ._type = true_lhs_type,
                 } });
                 return error.TypeError;
             }
             method_decl = validate_AST(method_decl.?, null, errors, allocator);
             try assert_none_poisoned(method_decl);
             ast.invoke.method_decl = method_decl.?;
-            const domain: *ast_.AST = method_decl.?.symbol().?._type.lhs();
+            const domain: *ast_.AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
             const receiver_kind: ?ast_.Receiver_Kind = if (method_decl.?.method_decl.receiver != null) method_decl.?.method_decl.receiver.?.receiver.kind else null;
             if (method_decl.?.method_decl.receiver != null) {
@@ -636,6 +642,40 @@ fn validate_AST_internal(
             _ = ast.assert_valid();
             const ast_type = ast.typeof(allocator);
             try type_check(ast, ast_type, expected, errors);
+            return ast;
+        },
+        .dyn_type => {
+            ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
+            if (ast.expr().* != .identifier) {
+                // Has to refer to a trait symbol
+                unreachable;
+            }
+            const symbol = ast.expr().symbol();
+            if (symbol == null or symbol.?.kind != .trait) {
+                // Has to be a trait symbol
+                unreachable;
+            }
+
+            try type_check(ast, primitives_.type_type, expected, errors);
+            return ast;
+        },
+        .dyn_value => {
+            ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
+            ast.dyn_value.dyn_type = validate_AST(ast.dyn_value.dyn_type, primitives_.type_type, errors, allocator);
+            const expr_type = ast.expr().typeof(allocator);
+
+            const impl = ast.dyn_value.scope.?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
+            if (impl == null) {
+                errors.add_error(errs_.Error{ .type_not_impl_trait = .{
+                    .span = ast.token().span,
+                    .trait_name = ast.dyn_value.dyn_type.expr().symbol().?.name,
+                    ._type = expr_type,
+                } });
+                return error.TypeError;
+            }
+            ast.dyn_value.impl = impl;
+
+            try type_check(ast, ast.dyn_value.dyn_type, expected, errors);
             return ast;
         },
         .function => return try binary_operator_closed(ast, primitives_.type_type, expected, errors, allocator),
@@ -712,7 +752,21 @@ fn validate_AST_internal(
             } else {
                 // Address value, expected must be an address, inner must match with expected's inner
                 const expanded_expected = expected.?.expand_type(allocator);
-                if (expanded_expected.* != .addr_of) {
+                if (expanded_expected.* == .dyn_type) {
+                    return validate_AST(
+                        ast_.AST.create_dyn_value(
+                            ast.token(),
+                            expanded_expected,
+                            ast.expr(),
+                            ast.addr_of.scope.?,
+                            ast.addr_of.mut,
+                            allocator,
+                        ),
+                        expected,
+                        errors,
+                        allocator,
+                    );
+                } else if (expanded_expected.* != .addr_of) {
                     // Didn't expect an address type. Validate expr and report error
                     return throw_unexpected_type(ast.token().span, expected.?, ast_.poisoned, errors);
                 }
@@ -1032,8 +1086,11 @@ fn validate_AST_internal(
             return ast;
         },
         .method_decl => {
-            try validate_symbol(ast.symbol().?, errors, allocator);
-            try assert_none_poisoned(ast.symbol().?._type);
+            if (ast.symbol() != null) {
+                try validate_symbol(ast.symbol().?, errors, allocator);
+                try assert_none_poisoned(ast.symbol().?._type);
+            }
+            ast.method_decl.domain = validate_AST(ast.method_decl.domain.?, primitives_.type_type, errors, allocator);
             if (expected) |_expected| {
                 const expanded_expected = _expected.expand_type(allocator);
                 const ast_type = ast.typeof(allocator);

@@ -89,6 +89,8 @@ fn decorate_identifiers(
         .@"comptime",
         .addr_of,
         .slice_of,
+        .dyn_type,
+        .dyn_value,
         => try decorate_identifiers(ast.expr(), scope, errors, allocator),
 
         .assign,
