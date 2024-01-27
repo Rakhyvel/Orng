@@ -17,61 +17,67 @@ struct dyn0 {
 
 /* Trait vtable type definitions */
 struct vtable_My_Trait {
-    int64_t(*get_int)(void*);
+    int64_t(*get_int)(void*, int64_t);
 };
 
 /* Function forward definitions */
-int64_t _5_main(void);
-int64_t _3_get_int(void* _3_$self_ptr);
+int64_t _62_main(void);
+int64_t _60_get_int(void* _60_$self_ptr, int64_t _60_x);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _2_$vtable = {
-    .get_int = _3_get_int,
+struct vtable_My_Trait _59_$vtable = {
+    .get_int = _60_get_int,
 };
 
 
 /* Function definitions */
-int64_t _5_main(void){
-    int64_t _6_x;
-    struct dyn0 _5_t1;
-    struct dyn0* _5_t4;
-    int64_t _5_t3;
-    int64_t* _5_t7;
-    int64_t _5_t5;
-    uint8_t _5_t9;
-    int64_t _5_$retval;
-    _6_x = 4;
-    _5_t1 = (struct dyn0) {&_6_x, &_2_$vtable};
-    _5_t4 = &_5_t1;
-    $lines[$line_idx++] = "tests/integration/traits/trait-object.orng:13:11:\n    if y.>get_int() == x.>get_int() {\n         ^";
-    _5_t3 = _5_t4->vtable->get_int(_5_t4->data_ptr);
+int64_t _62_main(void){
+    int64_t _63_x;
+    struct dyn0 _62_t1;
+    struct dyn0* _62_t4;
+    int64_t _62_t5;
+    int64_t _62_t3;
+    int64_t* _62_t8;
+    int64_t _62_t9;
+    int64_t _62_t6;
+    uint8_t _62_t11;
+    int64_t _62_$retval;
+    _63_x = 4;
+    _62_t1 = (struct dyn0) {&_63_x, &_59_$vtable};
+    _62_t4 = &_62_t1;
+    _62_t5 = 90;
+    $lines[$line_idx++] = "tests/integration/traits/trait-object.orng:13:11:\n    if y.>get_int(90) == x.>get_int(90) {\n         ^";
+    _62_t3 = _62_t4->vtable->get_int(_62_t4->data_ptr, _62_t5);
     $line_idx--;
-    _5_t7 = &_6_x;
-    $lines[$line_idx++] = "tests/integration/traits/trait-object.orng:13:27:\n    if y.>get_int() == x.>get_int() {\n                         ^";
-    _5_t5 = _2_$vtable.get_int(_5_t7);
+    _62_t8 = &_63_x;
+    _62_t9 = 90;
+    $lines[$line_idx++] = "tests/integration/traits/trait-object.orng:13:29:\n    if y.>get_int(90) == x.>get_int(90) {\n                           ^";
+    _62_t6 = _59_$vtable.get_int(_62_t8, _62_t9);
     $line_idx--;
-    _5_t9 = _5_t3==_5_t5;
-    if (_5_t9) {
-        goto BB5;
+    _62_t11 = _62_t3==_62_t6;
+    if (_62_t11) {
+        goto BB48;
     } else {
-        goto BB9;
+        goto BB52;
     }
-BB5:
-    _5_$retval = 296;
-    return _5_$retval;
-BB9:
+BB48:
+    _62_$retval = 296;
+    return _62_$retval;
+BB52:
     $lines[$line_idx++] = "tests/integration/traits/trait-object.orng:16:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
-int64_t _3_get_int(void* _3_$self_ptr){
-    int64_t _3_$retval;
-    _3_$retval = *(int64_t*)_3_$self_ptr;
-    return _3_$retval;
+int64_t _60_get_int(void* _60_$self_ptr, int64_t _60_x){
+    int64_t _61_self;
+    int64_t _60_$retval;
+    _61_self = *(int64_t*)_60_$self_ptr;
+    _60_$retval = $add_int64_t(_61_self, _60_x, "tests/integration/traits/trait-object.orng:7:45:\n    fn get_int(self, x: Int) -> Int { self + x }\n                                           ^");
+    return _60_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_5_main());
+  printf("%ld",_62_main());
   return 0;
 }

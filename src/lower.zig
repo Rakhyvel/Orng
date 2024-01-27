@@ -223,11 +223,20 @@ fn lower_AST(
                 _ = try lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, cfg, ast.token().span, errors, allocator);
             }
 
-            const is_dyn = ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type;
-            var ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, is_dyn, ast.token().span, allocator);
-            for (ast.children().items) |term| {
-                ir.data.invoke.lval_list.append((try lower_AST(cfg, term, labels, errors, allocator)) orelse continue) catch unreachable;
+            var dyn_value: ?*lval_.L_Value = null;
+            var lval_list = std.ArrayList(*lval_.L_Value).init(allocator);
+            for (ast.children().items, 0..) |term, i| {
+                const lval = (try lower_AST(cfg, term, labels, errors, allocator)) orelse continue;
+                if (ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type and i == 0) {
+                    if (term == ast.lhs()) {
+                        dyn_value = lval;
+                    } else {
+                        dyn_value = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse continue;
+                    }
+                }
+                lval_list.append(lval) catch unreachable;
             }
+            const ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, allocator);
             cfg.append_instruction(ir_.IR.init_stack_push(ast.token().span, allocator));
             cfg.append_instruction(ir);
             cfg.append_instruction(ir_.IR.init_stack_pop(ast.token().span, allocator));

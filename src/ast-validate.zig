@@ -141,7 +141,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 
             // Check that receivers match
             if (!receivers_match(def.method_decl.receiver, trait_decl.?.method_decl.receiver)) {
-                errors.add_error(errs_.Error{ .receiver_mismatch = .{
+                errors.add_error(errs_.Error{ .impl_receiver_mismatch = .{
                     .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.token().span else def.token().span,
                     .method_name = def.method_decl.name.token().data,
                     .trait_name = trait_ast.token().data,
@@ -629,7 +629,16 @@ fn validate_AST_internal(
             const receiver_kind: ?ast_.Receiver_Kind = if (method_decl.?.method_decl.receiver != null) method_decl.?.method_decl.receiver.?.receiver.kind else null;
             if (method_decl.?.method_decl.receiver != null) {
                 // Prepend invoke lhs to args if there is a receiver
-                if (expanded_true_lhs_type.* == .addr_of) {
+                if (expanded_true_lhs_type.* == .dyn_type or expanded_true_lhs_type.* == .addr_of) {
+                    if (!expanded_true_lhs_type.mut() and receiver_kind == .mut_addr_of) {
+                        errors.add_error(errs_.Error{ .invoke_receiver_mismatch = .{
+                            .lhs_type = true_lhs_type,
+                            .method_name = method_decl.?.method_decl.name.token().data,
+                            .method_receiver = receiver_kind.?,
+                            .receiver_span = ast.lhs().token().span,
+                        } });
+                        return error.TypeError;
+                    }
                     ast.children().insert(0, ast.lhs()) catch unreachable;
                 } else {
                     const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, allocator);

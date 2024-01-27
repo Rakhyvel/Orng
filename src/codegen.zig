@@ -632,9 +632,9 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             } else {
                 try writer.print("    ", .{});
             }
-            if (ir.data.invoke.is_dyn) {
-                try output_rvalue(ir.data.invoke.lval_list.items[0], 2, writer);
-                try writer.print("->vtable->{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+            if (ir.data.invoke.dyn_value != null) {
+                try output_rvalue(ir.data.invoke.dyn_value.?, 2, writer);
+                try writer.print(".vtable->{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
             } else {
                 try output_vtable_impl(ir.data.invoke.method_decl.method_decl.impl.?, writer);
                 try writer.print(".{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
@@ -643,8 +643,8 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
-                    if (ir.data.invoke.is_dyn and i == 0) {
-                        try writer.print("->data_ptr", .{});
+                    if (ir.data.invoke.dyn_value != null and ir.data.invoke.dyn_value == term and i == 0) {
+                        try writer.print(".data_ptr", .{});
                     }
                     if (i + 1 < ir.data.invoke.lval_list.items.len) {
                         try writer.print(", ", .{});

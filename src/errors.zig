@@ -102,12 +102,18 @@ pub const Error = union(enum) {
         method_name: []const u8,
         trait_name: []const u8,
     },
-    receiver_mismatch: struct {
+    impl_receiver_mismatch: struct {
         receiver_span: span_.Span,
         impl_receiver: ?ast_.Receiver_Kind,
         trait_receiver: ?ast_.Receiver_Kind,
         method_name: []const u8,
         trait_name: []const u8,
+    },
+    invoke_receiver_mismatch: struct {
+        receiver_span: span_.Span,
+        method_receiver: ast_.Receiver_Kind,
+        method_name: []const u8,
+        lhs_type: *ast_.AST,
     },
     mismatch_method_param_arity: struct {
         span: span_.Span,
@@ -247,7 +253,8 @@ pub const Error = union(enum) {
             .type_not_impl_trait => return self.type_not_impl_trait.span,
             .method_not_in_trait => return self.method_not_in_trait.method_span,
             .method_not_in_impl => return self.method_not_in_impl.impl_span,
-            .receiver_mismatch => return self.receiver_mismatch.receiver_span,
+            .impl_receiver_mismatch => return self.impl_receiver_mismatch.receiver_span,
+            .invoke_receiver_mismatch => return self.invoke_receiver_mismatch.receiver_span,
             .mismatch_method_param_arity => return self.mismatch_method_param_arity.span,
             .mismatch_method_type => return self.mismatch_method_type.span,
 
@@ -395,25 +402,33 @@ pub const Errors = struct {
                 err.method_not_in_impl.method_name,
                 err.method_not_in_impl.trait_name,
             }),
-            .receiver_mismatch => if (err.receiver_mismatch.trait_receiver != null and err.receiver_mismatch.impl_receiver != null) {
+            .impl_receiver_mismatch => if (err.impl_receiver_mismatch.trait_receiver != null and err.impl_receiver_mismatch.impl_receiver != null) {
                 try out.print("trait `{s}` specifies receiver `{s}` for method `{s}`, got receiver `{s}`\n", .{
-                    err.receiver_mismatch.trait_name,
-                    err.receiver_mismatch.trait_receiver.?.to_string(),
-                    err.receiver_mismatch.method_name,
-                    err.receiver_mismatch.impl_receiver.?.to_string(),
+                    err.impl_receiver_mismatch.trait_name,
+                    err.impl_receiver_mismatch.trait_receiver.?.to_string(),
+                    err.impl_receiver_mismatch.method_name,
+                    err.impl_receiver_mismatch.impl_receiver.?.to_string(),
                 });
-            } else if (err.receiver_mismatch.trait_receiver == null and err.receiver_mismatch.impl_receiver != null) {
+            } else if (err.impl_receiver_mismatch.trait_receiver == null and err.impl_receiver_mismatch.impl_receiver != null) {
                 try out.print("trait `{s}` does not specify a receiver for method `{s}`, got receiver `{s}`\n", .{
-                    err.receiver_mismatch.trait_name,
-                    err.receiver_mismatch.method_name,
-                    err.receiver_mismatch.impl_receiver.?.to_string(),
+                    err.impl_receiver_mismatch.trait_name,
+                    err.impl_receiver_mismatch.method_name,
+                    err.impl_receiver_mismatch.impl_receiver.?.to_string(),
                 });
-            } else if (err.receiver_mismatch.trait_receiver != null and err.receiver_mismatch.impl_receiver == null) {
+            } else if (err.impl_receiver_mismatch.trait_receiver != null and err.impl_receiver_mismatch.impl_receiver == null) {
                 try out.print("trait `{s}` specifies receiver `{s}` for method `{s}`\n", .{
-                    err.receiver_mismatch.trait_name,
-                    err.receiver_mismatch.trait_receiver.?.to_string(),
-                    err.receiver_mismatch.method_name,
+                    err.impl_receiver_mismatch.trait_name,
+                    err.impl_receiver_mismatch.trait_receiver.?.to_string(),
+                    err.impl_receiver_mismatch.method_name,
                 });
+            },
+            .invoke_receiver_mismatch => {
+                try out.print("method `{s}` receiver `{s}` incompatible with type`", .{
+                    err.invoke_receiver_mismatch.method_name,
+                    err.invoke_receiver_mismatch.method_receiver.to_string(),
+                });
+                try err.invoke_receiver_mismatch.lhs_type.print_type(out);
+                try out.print("`\n", .{});
             },
             .mismatch_method_param_arity => try out.print("trait `{s}` specifies {} parameter{s} for method `{s}`, got {}\n", .{
                 err.mismatch_method_param_arity.trait_name,

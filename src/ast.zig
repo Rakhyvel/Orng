@@ -673,14 +673,14 @@ pub const AST = union(enum) {
         return AST.box(AST{ .invoke = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._args = args } }, allocator);
     }
 
-    pub fn create_dyn_type(_token: token_.Token, _expr: *AST, mut: bool, allocator: std.mem.Allocator) *AST {
+    pub fn create_dyn_type(_token: token_.Token, _expr: *AST, _mut: bool, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .dyn_type = .{ .common = _common, ._expr = _expr, .mut = mut } }, allocator);
+        return AST.box(AST{ .dyn_type = .{ .common = _common, ._expr = _expr, .mut = _mut } }, allocator);
     }
 
-    pub fn create_dyn_value(_token: token_.Token, dyn_type: *AST, _expr: *AST, scope: *symbol_.Scope, mut: bool, allocator: std.mem.Allocator) *AST {
+    pub fn create_dyn_value(_token: token_.Token, dyn_type: *AST, _expr: *AST, scope: *symbol_.Scope, _mut: bool, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .dyn_value = .{ .common = _common, .dyn_type = dyn_type, ._expr = _expr, .scope = scope, .mut = mut } }, allocator);
+        return AST.box(AST{ .dyn_value = .{ .common = _common, .dyn_type = dyn_type, ._expr = _expr, .scope = scope, .mut = _mut } }, allocator);
     }
 
     pub fn create_product(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
@@ -692,9 +692,9 @@ pub const AST = union(enum) {
         return AST.box(AST{ .@"union" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
-    pub fn create_addr_of(_token: token_.Token, _expr: *AST, mut: bool, allocator: std.mem.Allocator) *AST {
+    pub fn create_addr_of(_token: token_.Token, _expr: *AST, _mut: bool, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .addr_of = .{ .common = _common, ._expr = _expr, .mut = mut } }, allocator);
+        return AST.box(AST{ .addr_of = .{ .common = _common, ._expr = _expr, .mut = _mut } }, allocator);
     }
 
     pub fn create_slice_of(_token: token_.Token, _expr: *AST, kind: Slice_Kind, allocator: std.mem.Allocator) *AST {
@@ -1073,6 +1073,14 @@ pub const AST = union(enum) {
         set_field(self, "_else_block", val);
     }
 
+    pub fn mut(self: AST) bool {
+        return get_field(self, "mut");
+    }
+
+    pub fn set_mut(self: *AST, val: bool) void {
+        set_field(self, "mut", val);
+    }
+
     /// Returns the type of the field with a given name in a Zig union type
     fn Unwrapped(comptime Union: type, comptime field: []const u8) type {
         return inline for (std.meta.fields(Union)) |variant| {
@@ -1121,12 +1129,12 @@ pub const AST = union(enum) {
         return AST.create_product(of.token(), new_terms, allocator);
     }
 
-    pub fn create_slice_type(of: *AST, mut: bool, allocator: std.mem.Allocator) *AST {
+    pub fn create_slice_type(of: *AST, _mut: bool, allocator: std.mem.Allocator) *AST {
         var term_types = std.ArrayList(*AST).init(allocator);
         const data_type = AST.create_addr_of(
             of.token(),
             of,
-            mut,
+            _mut,
             allocator,
         ).assert_valid();
         const annot_type = AST.create_annotation(
@@ -1152,7 +1160,7 @@ pub const AST = union(enum) {
     }
 
     // Expr must be a product value of length `l`. Slice value is `(&expr[0], l)`.
-    pub fn create_slice_value(_expr: *AST, mut: bool, expr_type: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *AST, allocator: std.mem.Allocator) *AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
         const zero = (AST.create_int(_expr.token(), 0, allocator)).assert_valid();
         const index = (AST.create_index(
@@ -1164,7 +1172,7 @@ pub const AST = union(enum) {
         const addr = (AST.create_addr_of(
             _expr.token(),
             index,
-            mut,
+            _mut,
             allocator,
         )).assert_valid();
         new_terms.append(addr) catch unreachable;
