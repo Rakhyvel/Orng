@@ -201,8 +201,8 @@ fn decorate_identifiers(
         },
         .impl => {
             try decorate_identifiers(ast.impl._type, scope, errors, allocator);
-            try decorate_identifiers(ast.impl.trait, scope, errors, allocator);
-            try decorate_identifiers_from_list(ast.impl.method_defs, scope, errors, allocator);
+            try decorate_identifiers(ast.impl.trait, ast.impl.scope.?, errors, allocator);
+            try decorate_identifiers_from_list(ast.impl.method_defs, ast.impl.scope.?, errors, allocator);
 
             // Want to be able to lookup (impl.type, impl.trait) to see if an implementation exists in this scope already
             const trait_symbol: ?*symbol_.Symbol = if (ast.impl.trait) |trait| trait.symbol() else null;

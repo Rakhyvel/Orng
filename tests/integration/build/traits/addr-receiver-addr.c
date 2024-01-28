@@ -22,60 +22,60 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _8_main(void);
-void _6_c(void* _6_self, int64_t _6_x);
-int64_t _4_b(void* _4_self, int64_t _4_x);
+int64_t _1539_main(void);
+void _1537_c(void* _1537_self, int64_t _1537_x);
+int64_t _1535_b(void* _1535_self, int64_t _1535_x);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _3_$vtable = {
-    .b = _4_b,
-    .c = _6_c,
+struct vtable_My_Trait _1533_$vtable = {
+    .b = _1535_b,
+    .c = _1537_c,
 };
 
 
 /* Function definitions */
-int64_t _8_main(void){
-    int64_t _8_t1;
-    int64_t _8_t2;
-    struct struct0 _9_my_val;
-    struct struct0* _9_my_val_ptr;
-    int64_t _8_t6;
-    int64_t _8_t9;
-    int64_t _8_t7;
-    int64_t _8_t10;
-    int64_t _8_$retval;
-    _8_t1 = 100;
-    _8_t2 = 45;
-    _9_my_val = (struct struct0) {_8_t1, _8_t2};
-    _9_my_val_ptr = &_9_my_val;
-    _8_t6 = 2;
+int64_t _1539_main(void){
+    int64_t _1539_t1;
+    int64_t _1539_t2;
+    struct struct0 _1540_my_val;
+    struct struct0* _1540_my_val_ptr;
+    int64_t _1539_t6;
+    int64_t _1539_t9;
+    int64_t _1539_t7;
+    int64_t _1539_t10;
+    int64_t _1539_$retval;
+    _1539_t1 = 100;
+    _1539_t2 = 45;
+    _1540_my_val = (struct struct0) {_1539_t1, _1539_t2};
+    _1540_my_val_ptr = &_1540_my_val;
+    _1539_t6 = 2;
     $lines[$line_idx++] = "tests/integration/traits/addr-receiver-addr.orng:19:17:\n    my_val_ptr.>c(2)\n               ^";
-    (void) _3_$vtable.c(_9_my_val_ptr, _8_t6);
+    (void) _1533_$vtable.c(_1540_my_val_ptr, _1539_t6);
     $line_idx--;
-    _8_t9 = 2;
+    _1539_t9 = 2;
     $lines[$line_idx++] = "tests/integration/traits/addr-receiver-addr.orng:20:17:\n    my_val_ptr.>b(2) + 4\n               ^";
-    _8_t7 = _3_$vtable.b(_9_my_val_ptr, _8_t9);
+    _1539_t7 = _1533_$vtable.b(_1540_my_val_ptr, _1539_t9);
     $line_idx--;
-    _8_t10 = 4;
-    _8_$retval = $add_int64_t(_8_t7, _8_t10, "tests/integration/traits/addr-receiver-addr.orng:20:23:\n    my_val_ptr.>b(2) + 4\n                     ^");
-    return _8_$retval;
+    _1539_t10 = 4;
+    _1539_$retval = $add_int64_t(_1539_t7, _1539_t10, "tests/integration/traits/addr-receiver-addr.orng:20:23:\n    my_val_ptr.>b(2) + 4\n                     ^");
+    return _1539_$retval;
 }
 
-void _6_c(void* _6_self, int64_t _6_x){
-    (*(struct struct0*)_6_self)._0 = $mult_int64_t((*(struct struct0*)_6_self)._0, _6_x, "tests/integration/traits/addr-receiver-addr.orng:13:46:\n    fn c(&mut self, x: Int) -> () { self.x *= x }\n                                            ^");
+void _1537_c(void* _1537_self, int64_t _1537_x){
+    (*(struct struct0*)_1537_self)._0 = $mult_int64_t((*(struct struct0*)_1537_self)._0, _1537_x, "tests/integration/traits/addr-receiver-addr.orng:13:46:\n    fn c(&mut self, x: Int) -> () { self.x *= x }\n                                            ^");
     return;
 }
 
-int64_t _4_b(void* _4_self, int64_t _4_x){
-    int64_t _4_t0;
-    int64_t _4_$retval;
-    _4_t0 = $mult_int64_t((*(struct struct0*)_4_self)._1, _4_x, "tests/integration/traits/addr-receiver-addr.orng:11:51:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                 ^");
-    _4_$retval = $add_int64_t((*(struct struct0*)_4_self)._0, _4_t0, "tests/integration/traits/addr-receiver-addr.orng:11:42:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                        ^");
-    return _4_$retval;
+int64_t _1535_b(void* _1535_self, int64_t _1535_x){
+    int64_t _1535_t0;
+    int64_t _1535_$retval;
+    _1535_t0 = $mult_int64_t((*(struct struct0*)_1535_self)._1, _1535_x, "tests/integration/traits/addr-receiver-addr.orng:11:51:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                 ^");
+    _1535_$retval = $add_int64_t((*(struct struct0*)_1535_self)._0, _1535_t0, "tests/integration/traits/addr-receiver-addr.orng:11:42:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                        ^");
+    return _1535_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_8_main());
+  printf("%ld",_1539_main());
   return 0;
 }

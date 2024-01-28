@@ -12,38 +12,38 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _81_main(void);
-int64_t _79_d(int64_t _79_x, int64_t _79_y);
+int64_t _1621_main(void);
+int64_t _1619_d(int64_t _1619_x, int64_t _1619_y);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _78_$vtable = {
-    .d = _79_d,
+struct vtable_My_Trait _1617_$vtable = {
+    .d = _1619_d,
 };
 
 
 /* Function definitions */
-int64_t _81_main(void){
-    int64_t _81_t6;
-    int64_t _81_t7;
-    int64_t _81_t4;
-    int64_t _81_$retval;
-    _81_t6 = 200;
-    _81_t7 = 91;
+int64_t _1621_main(void){
+    int64_t _1621_t6;
+    int64_t _1621_t7;
+    int64_t _1621_t4;
+    int64_t _1621_$retval;
+    _1621_t6 = 200;
+    _1621_t7 = 91;
     $lines[$line_idx++] = "tests/integration/traits/receiver-none.orng:17:13:\n    my_val.>d(200, 91)\n           ^";
-    _81_t4 = _78_$vtable.d(_81_t6, _81_t7);
+    _1621_t4 = _1617_$vtable.d(_1621_t6, _1621_t7);
     $line_idx--;
-    _81_$retval = _81_t4;
-    return _81_$retval;
+    _1621_$retval = _1621_t4;
+    return _1621_$retval;
 }
 
-int64_t _79_d(int64_t _79_x, int64_t _79_y){
-    int64_t _79_$retval;
-    _79_$retval = $add_int64_t(_79_x, _79_y, "tests/integration/traits/receiver-none.orng:10:12:\n        x + y\n          ^");
-    return _79_$retval;
+int64_t _1619_d(int64_t _1619_x, int64_t _1619_y){
+    int64_t _1619_$retval;
+    _1619_$retval = $add_int64_t(_1619_x, _1619_y, "tests/integration/traits/receiver-none.orng:10:12:\n        x + y\n          ^");
+    return _1619_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_81_main());
+  printf("%ld",_1621_main());
   return 0;
 }

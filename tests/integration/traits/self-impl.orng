@@ -1,0 +1,15 @@
+// 299
+
+impl for (x: Int, y: Int) {
+    fn add(self, other: Self) -> Self {
+        (self.x + other.x, self.y + other.y)
+    }
+
+    fn cab(self) -> Int { self.x + self.y }
+}
+
+fn main() -> Int {
+    let mut a: (x: Int, y: Int) = (100, 90)
+    a = a.>add((100, 9))
+    a.>cab()
+}

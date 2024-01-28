@@ -362,12 +362,13 @@
         > This should create a global vtable
         - [x] Can leave trait null, static member functions
         - [x] Cannot impl for an addr-of
-    - [ ] `dyn Tr`, which is two pointers, one to the data, the other to the global vtable
-    - [ ] dot prepend `x.>f()`
+    - [x] `dyn Tr`, which is two pointers, one to the data, the other to the global vtable
+    - [x] dot prepend `x.>f()`
         > In Scope, given `T = @typeof(x)`, lookup any trait `Tr` impls for the type `T` which match function name, parameter and return type
         > `scope.impl_map.lookup(@typeof(x))` gets you all the traits that the typeof x implements
-        - [ ] If x is a `dyn Tr`, still works
+        - [x] If x is a `dyn Tr`, still works
     - [ ] `Self` type
+        > Not a sized type in traits! Cannot be used bare, has to be used as an addr or something.
         - [ ] `Self` type in traits means the future type that will implement the type
         - [ ] `Self` type in impls means the "for" type
     - [ ] `Ty <: Tr` returns if a type implements a trait

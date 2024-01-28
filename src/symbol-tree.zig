@@ -229,7 +229,15 @@ fn symbol_table_from_AST(
             if (ast.impl.trait == null) {
                 ast.impl.trait = ast_.AST.create_trait(ast.token(), ast.impl.method_defs, allocator);
             }
+            const self_type_decl = ast_.AST.create_decl(
+                ast.token(),
+                ast_.AST.create_symbol(token_.Token.init_simple("Self"), .@"const", "Self", allocator),
+                primitives_.type_type,
+                ast.impl._type,
+                allocator,
+            );
             try symbol_table_from_AST(ast.impl.trait, scope, errors, allocator);
+            try symbol_table_from_AST(self_type_decl, new_scope, errors, allocator);
             try symbol_table_from_AST_list(ast.impl.method_defs, new_scope, errors, allocator);
         },
         .method_decl => {
