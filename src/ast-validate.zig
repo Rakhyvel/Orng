@@ -101,6 +101,10 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
             _ = validate_AST(param.decl.type, primitives_.type_type, errors, allocator);
         }
         _ = validate_AST(decl.method_decl.ret_type, primitives_.type_type, errors, allocator);
+
+        if (decl.method_decl.is_virtual) {
+            trait.decl.?.trait.num_virtual_methods += 1;
+        }
     }
 }
 
@@ -164,9 +168,10 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             }
 
             // Check that parameters match
+            // TODO: Should be able to template type with Self type, with a given for type
             for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
                 const impl_type = impl_param.decl.type;
-                const trait_type = trait_param.decl.type;
+                const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, allocator);
                 if (!impl_type.types_match(trait_type)) {
                     errors.add_error(errs_.Error{ .mismatch_method_type = .{
                         .span = impl_param.decl.type.token().span,
@@ -179,6 +184,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                 }
             }
 
+            // Check that return type matches
             if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
                 if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
                     errors.add_error(errs_.Error{ .mismatch_method_type = .{
@@ -190,6 +196,13 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                     } });
                     return error.TypeError;
                 }
+            }
+
+            // Copy over the c_type from trait method decl
+            def.method_decl.c_type = trait_decl.?.method_decl.c_type;
+
+            if (def.method_decl.is_virtual) {
+                impl.impl.num_virtual_methods += 1;
             }
 
             // Subtract the method from the set

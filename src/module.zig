@@ -176,6 +176,14 @@ pub const Module = struct {
             }
         }
 
+        // Go through traits
+        for (module.traits.items) |trait| {
+            for (trait.trait.method_decls.items) |decl| {
+                _ = module.type_set.add(decl.method_decl.c_type.?, allocator);
+            }
+        }
+
+        // Go through impls
         for (module.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;

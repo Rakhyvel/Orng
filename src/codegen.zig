@@ -148,8 +148,14 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
     }
 
     for (traits.items) |trait| {
+        if (trait.trait.num_virtual_methods == 0) {
+            continue;
+        }
         try writer.print("struct vtable_{s} {{\n", .{trait.symbol().?.name});
         for (trait.trait.method_decls.items) |decl| {
+            if (!decl.method_decl.is_virtual) {
+                continue;
+            }
             try writer.print("    ", .{});
             try output_type(decl.method_decl.ret_type, writer);
             try writer.print("(*{s})(", .{decl.method_decl.name.token().data});
@@ -235,9 +241,15 @@ fn output_impls(impls: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!
     }
 
     for (impls.items) |impl| {
+        if (impl.impl.num_virtual_methods == 0) {
+            continue;
+        }
         const trait = impl.impl.trait.?;
         try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.impl.scope.?.uid });
         for (impl.impl.method_defs.items) |decl| {
+            if (!decl.method_decl.is_virtual) {
+                continue;
+            }
             try writer.print("    .{s} = _{}_{s},\n", .{
                 decl.method_decl.name.token().data,
                 decl.symbol().?.scope.uid,
@@ -387,6 +399,9 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
             try output_type(_type.expr(), writer);
             try writer.print("*", .{});
         },
+        .anyptr_type => {
+            try writer.print("void", .{});
+        },
         .function => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
             try writer.print("function{}", .{type_uid});
@@ -510,7 +525,11 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     switch (ir.kind) {
         .load_unit => {}, // Nop!
         .load_symbol => {
-            try output_var_assign(ir.dest.?, writer);
+            if (ir.dest.?.get_expanded_type().* == .function) {
+                try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
+            } else {
+                try output_var_assign(ir.dest.?, writer);
+            }
             try output_symbol(ir.data.symbol, writer);
             try writer.print(";\n", .{});
         },
@@ -632,7 +651,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             } else {
                 try writer.print("    ", .{});
             }
-            if (ir.data.invoke.dyn_value != null) {
+            if (!ir.data.invoke.method_decl.method_decl.is_virtual) {
+                try output_rvalue(ir.data.invoke.method_decl_lval.?, 2, writer);
+                try writer.print("(", .{});
+            } else if (ir.data.invoke.dyn_value != null) {
                 try output_rvalue(ir.data.invoke.dyn_value.?, 2, writer);
                 try writer.print(".vtable->{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
             } else {

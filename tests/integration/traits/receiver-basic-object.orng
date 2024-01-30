@@ -1,10 +1,10 @@
 // 296
 trait My_Trait {
-    fn get_int(self, x: Int) -> Int
+    virtual fn get_int(self, x: Int) -> Int
 }
 
 impl My_Trait for Int {
-    fn get_int(self, x: Int) -> Int { self + x }
+    virtual fn get_int(self, x: Int) -> Int { self + x }
 }
 
 fn main() -> Int {

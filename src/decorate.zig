@@ -112,11 +112,15 @@ fn decorate_identifiers(
         .index,
         .select,
         .function,
-        .invoke,
         .@"union",
         => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             try decorate_identifiers(ast.rhs(), scope, errors, allocator);
+        },
+        .invoke => {
+            try decorate_identifiers(ast.lhs(), scope, errors, allocator);
+            try decorate_identifiers(ast.rhs(), scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
         },
         .call => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
@@ -196,7 +200,7 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
         },
         .trait => {
-            try decorate_identifiers_from_list(ast.trait.method_decls, scope, errors, allocator);
+            try decorate_identifiers_from_list(ast.trait.method_decls, ast.trait.scope.?, errors, allocator);
             scope.traits.append(ast) catch unreachable;
         },
         .impl => {

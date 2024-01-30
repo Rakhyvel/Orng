@@ -48,6 +48,7 @@ pub const Token_Kind = enum(u32) {
     default,
     self,
     sizeof,
+    virtual,
 
     // Equals
     double_equals,
@@ -173,6 +174,7 @@ pub const Token_Kind = enum(u32) {
             .default => "default",
             .self => "self",
             .sizeof => "sizeof",
+            .virtual => "virtual",
 
             // Equals
             .double_equals => "==",

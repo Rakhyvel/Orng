@@ -125,11 +125,14 @@ pub const IR = struct {
 
     pub fn init_invoke(dest: *lval_.L_Value, method_decl: *ast_.AST, lval_list: std.ArrayList(*lval_.L_Value), dyn_value: ?*lval_.L_Value, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.invoke, dest, null, null, span, allocator);
-        retval.data = Data{ .invoke = .{
-            .method_decl = method_decl,
-            .lval_list = lval_list,
-            .dyn_value = dyn_value,
-        } };
+        retval.data = Data{
+            .invoke = .{
+                .method_decl = method_decl,
+                .lval_list = lval_list,
+                .dyn_value = dyn_value,
+                .method_decl_lval = null, // Filled in later
+            },
+        };
         return retval;
     }
 
@@ -634,7 +637,7 @@ pub const Data = union(enum) {
     string: []const u8,
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
-    invoke: struct { method_decl: *ast_.AST, lval_list: std.ArrayList(*lval_.L_Value), dyn_value: ?*lval_.L_Value },
+    invoke: struct { method_decl: *ast_.AST, method_decl_lval: ?*lval_.L_Value, lval_list: std.ArrayList(*lval_.L_Value), dyn_value: ?*lval_.L_Value },
     dyn: struct { impl: *ast_.AST },
     select: struct { offset: i128, field: i128 },
     ast: *ast_.AST,

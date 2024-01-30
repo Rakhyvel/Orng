@@ -172,6 +172,7 @@ pub const Symbol = struct {
     kind: Symbol_Kind,
     cfg: ?*cfg_.CFG,
     decl: ?*ast_.AST,
+    is_alias: bool, // when this is true, this symbol is a type-alias, and should be expanded before use
 
     // Use-def
     versions: u64 = 0,
@@ -206,6 +207,7 @@ pub const Symbol = struct {
         retval.expanded_type = null;
         retval.init = _init;
         retval.decl = decl;
+        retval.is_alias = if (decl != null and decl.?.* == .decl) decl.?.decl.is_alias else false;
         retval.versions = 0;
         retval.aliases = 0;
         retval.roots = 0;

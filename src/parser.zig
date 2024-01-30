@@ -170,6 +170,7 @@ pub const Parser = struct {
             ident,
             _type orelse ast_.AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
             _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
+            false,
             self.allocator,
         );
     }
@@ -811,6 +812,7 @@ pub const Parser = struct {
             ident,
             _type,
             _init orelse ast_.AST.create_default(_type.token(), _type, self.allocator),
+            false,
             self.allocator,
         );
     }
@@ -823,7 +825,7 @@ pub const Parser = struct {
         errdefer method_decls.deinit();
 
         while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
-        while (self.peek_kind(.@"fn")) {
+        while (self.peek_kind(.@"fn") or self.peek_kind(.virtual)) {
             method_decls.append(try self.method_declaration()) catch unreachable;
             while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         }
@@ -843,7 +845,7 @@ pub const Parser = struct {
         const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, self.allocator);
 
         while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
-        while (self.peek_kind(.@"fn")) {
+        while (self.peek_kind(.@"fn") or self.peek_kind(.virtual)) {
             const method = try self.method_definition();
             method.method_decl.impl = retval;
             method_defs.append(method) catch unreachable;
@@ -855,6 +857,7 @@ pub const Parser = struct {
     }
 
     fn method_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const virtual = self.accept(.virtual);
         const introducer = try self.expect(.@"fn");
         const name: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
 
@@ -873,6 +876,7 @@ pub const Parser = struct {
         return ast_.AST.create_method_decl( // TODO: create `method_decl` ast
             introducer,
             name,
+            virtual != null,
             _receiver,
             params,
             ret_type,
@@ -883,6 +887,7 @@ pub const Parser = struct {
     }
 
     fn method_definition(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const virtual = self.accept(.virtual);
         const introducer = try self.expect(.@"fn");
         const name: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
 
@@ -907,6 +912,7 @@ pub const Parser = struct {
         return ast_.AST.create_method_decl( // TODO: create `method_def` ast
             introducer,
             name,
+            virtual != null,
             _receiver,
             params,
             ret_type,

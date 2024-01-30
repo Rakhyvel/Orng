@@ -185,7 +185,7 @@ fn symbol_table_from_AST(
         },
         .decl => {
             // Both put a Symbol in the current scope, and recurse
-            try create_symbol(&ast.decl.symbols, ast.decl.pattern, ast.decl.type, ast.decl.init, scope, errors, allocator);
+            try create_symbol(&ast.decl.symbols, ast.decl.pattern, ast, ast.decl.type, ast.decl.init, scope, errors, allocator);
             try put_all_symbols(&ast.decl.symbols, scope, errors);
             try symbol_table_from_AST(ast.decl.type, scope, errors, allocator);
             try symbol_table_from_AST(ast.decl.init, scope, errors, allocator);
@@ -216,11 +216,24 @@ fn symbol_table_from_AST(
                 // Do not re-do symboo if already declared
                 return;
             }
+            const new_scope = symbol_.Scope.init(scope, "", allocator);
+            ast.trait.scope = new_scope;
             const symbol = try create_trait_symbol(ast, scope, allocator);
             try put_symbol(symbol, scope, errors);
             ast.set_symbol(symbol);
+
+            const self_type_decl = ast_.AST.create_decl(
+                ast.token(),
+                ast_.AST.create_symbol(token_.Token.init_simple("Self"), .@"const", "Self", allocator),
+                primitives_.type_type,
+                primitives_.unit_type,
+                true,
+                allocator,
+            );
+            try symbol_table_from_AST(self_type_decl, new_scope, errors, allocator);
+
             for (ast.trait.method_decls.items) |method_decl| {
-                _ = create_method_type(method_decl, allocator);
+                method_decl.method_decl.c_type = create_method_type(method_decl, allocator);
             }
         },
         .impl => {
@@ -234,6 +247,7 @@ fn symbol_table_from_AST(
                 ast_.AST.create_symbol(token_.Token.init_simple("Self"), .@"const", "Self", allocator),
                 primitives_.type_type,
                 ast.impl._type,
+                true,
                 allocator,
             );
             try symbol_table_from_AST(ast.impl.trait, scope, errors, allocator);
@@ -308,6 +322,7 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
 fn create_symbol(
     symbols: *std.ArrayList(*symbol_.Symbol),
     pattern: *ast_.AST,
+    decl: ?*ast_.AST,
     _type: *ast_.AST,
     init: *ast_.AST, // The value being matched on
     scope: *symbol_.Scope,
@@ -330,7 +345,7 @@ fn create_symbol(
                     return;
                 }
             }
-            const symbol_init = if (pattern.pattern_symbol.kind != .@"const")
+            const symbol_init = if (pattern.pattern_symbol.kind != .@"const" or decl != null and decl.?.decl.is_alias)
                 init
             else
                 try create_comptime_init(init, _type, scope, errors, allocator);
@@ -340,7 +355,7 @@ fn create_symbol(
                 pattern.token().span,
                 _type,
                 symbol_init,
-                null,
+                decl,
                 pattern.pattern_symbol.kind,
                 allocator,
             );
@@ -352,7 +367,7 @@ fn create_symbol(
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
                 const new_type: *ast_.AST = ast_.AST.create_index(_type.token(), _type, index, allocator);
                 const new_init: *ast_.AST = ast_.AST.create_index(init.token(), init, index, allocator);
-                try create_symbol(symbols, term, new_type, new_init, scope, errors, allocator);
+                try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
             }
         },
         .sum_value => {
@@ -363,7 +378,7 @@ fn create_symbol(
             const phony_init = ast_.AST.create_default(pattern.token(), rhs_type, allocator);
 
             if (pattern.sum_value.init != null) {
-                try create_symbol(symbols, pattern.sum_value.init.?, rhs_type, phony_init, scope, errors, allocator);
+                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, phony_init, scope, errors, allocator);
             }
         },
         else => {},
@@ -377,7 +392,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
         var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
         defer symbols.deinit();
         const _type = ast_.AST.create_type_of(match.expr().token(), match.expr(), allocator);
-        try create_symbol(&symbols, mapping.lhs(), _type, match.expr(), new_scope, errors, allocator);
+        try create_symbol(&symbols, mapping.lhs(), null, _type, match.expr(), new_scope, errors, allocator);
         for (symbols.items) |symbol| {
             symbol.defined = true;
         }
@@ -668,6 +683,7 @@ fn create_method_symbol(
                 ast_.AST.create_symbol(token_.Token.init_simple("self"), .let, "self", allocator),
                 self_type,
                 self_init,
+                false,
                 allocator,
             );
             if (ast.method_decl.init.?.* != .unit_value) {

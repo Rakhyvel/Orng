@@ -108,12 +108,12 @@ paramlist: "(" [["mut" | "const"] param {"," ["mut" | "const"] param}] ")".
 param: ident ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
 
 trait_declaration: "trait" ident "{" {method_declaration} "}". # Traits may be empty, but the braces are necessary to maintain unambiguity
-method_declaration: "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr].
+method_declaration: ["virtual"] "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr].
 method_paramlist: "(" [("const" param | ["mut"](param|receiver)) {"," ["mut" | "const"]param}] ")".
 receiver: ["&" ["mut"]] "self".
 
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
-method_definition: "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
+method_definition: ["virtual"] "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
 
 match_expr: "match" [let_declaration ";"] assignment_expr "{" {match_bar_clause} [match_bar_else] "}".
 match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".

@@ -272,6 +272,9 @@ pub const CFG = struct {
                     if (ir.data.invoke.dyn_value != null) {
                         version_lvalue(ir.data.invoke.dyn_value.?, bb, ir, &bb.parameters);
                     }
+                    if (ir.data.invoke.method_decl_lval != null and !ir.data.invoke.method_decl.method_decl.is_virtual) {
+                        version_lvalue(ir.data.invoke.method_decl_lval.?, bb, ir, &bb.parameters);
+                    }
                     // Do the same as above for each symbver in a symbver list, if there is one
                     for (ir.data.invoke.lval_list.items) |lval| {
                         version_lvalue(lval, bb, ir, &bb.parameters);
@@ -450,6 +453,9 @@ pub const CFG = struct {
                 if (ir.data == .invoke) {
                     if (ir.data.invoke.dyn_value != null) {
                         ir.data.invoke.dyn_value.?.calculate_usage();
+                    }
+                    if (ir.data.invoke.method_decl_lval != null and !ir.data.invoke.method_decl.method_decl.is_virtual) {
+                        ir.data.invoke.method_decl_lval.?.calculate_usage();
                     }
                     for (ir.data.invoke.lval_list.items) |lval| {
                         lval.calculate_usage();

@@ -173,6 +173,7 @@ pub const AST = union(enum) {
     trait: struct {
         common: AST_Common,
         method_decls: std.ArrayList(*AST),
+        num_virtual_methods: i64 = 0,
         _symbol: ?*symbol_.Symbol = null, // Filled by symbol-tree pass.
         scope: ?*symbol_.Scope = null, // Filled by symbol-tree pass.
 
@@ -188,8 +189,9 @@ pub const AST = union(enum) {
     impl: struct {
         common: AST_Common,
         trait: ?*AST,
-        _type: *AST,
+        _type: *AST, // The `for` type for this impl
         method_defs: std.ArrayList(*AST),
+        num_virtual_methods: i64 = 0,
         scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
 
         pub fn find_method(self: @This(), name: []const u8) ?*AST {
@@ -416,6 +418,7 @@ pub const AST = union(enum) {
         type: *AST,
         init: *AST,
         top_level: bool,
+        is_alias: bool,
     },
     fn_decl: struct {
         common: AST_Common,
@@ -431,9 +434,11 @@ pub const AST = union(enum) {
     method_decl: struct {
         common: AST_Common,
         name: *AST,
+        is_virtual: bool,
         receiver: ?*AST,
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
         param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
+        c_type: ?*AST = null,
         domain: ?*AST = null, // Domain type when calling. Filled in at symbol-tree creation for impls and traits.
         ret_type: *AST,
         refinement: ?*AST,
@@ -871,7 +876,7 @@ pub const AST = union(enum) {
         );
     }
 
-    pub fn create_decl(_token: token_.Token, pattern: *AST, _type: *AST, init: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_decl(_token: token_.Token, pattern: *AST, _type: *AST, init: *AST, is_alias: bool, allocator: std.mem.Allocator) *AST {
         return AST.box(
             AST{ .decl = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
@@ -880,6 +885,7 @@ pub const AST = union(enum) {
                 .type = _type,
                 .init = init,
                 .top_level = false,
+                .is_alias = is_alias,
             } },
             allocator,
         );
@@ -909,6 +915,7 @@ pub const AST = union(enum) {
     pub fn create_method_decl(
         _token: token_.Token,
         name: *AST,
+        is_virtual: bool,
         receiver: ?*AST,
         params: std.ArrayList(*AST),
         ret_type: *AST,
@@ -919,6 +926,7 @@ pub const AST = union(enum) {
         return AST.box(AST{ .method_decl = .{
             .common = AST_Common{ ._token = _token, ._type = null },
             .name = name,
+            .is_virtual = is_virtual,
             .receiver = receiver,
             ._params = params,
             .param_symbols = std.ArrayList(*symbol_.Symbol).init(allocator),
@@ -1267,6 +1275,21 @@ pub const AST = union(enum) {
     pub fn get_ok_type(err_union: *AST) *AST {
         std.debug.assert(err_union.sum_type.from == .@"error");
         return err_union.children().items[0];
+    }
+
+    pub fn convert_self_type(trait_type: *AST, for_type: *AST, allocator: std.mem.Allocator) *AST {
+        switch (trait_type.*) {
+            .identifier => if (std.mem.eql(u8, trait_type.token().data, "Self")) {
+                return for_type;
+            } else {
+                return trait_type;
+            },
+            .addr_of => {
+                const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
+                return create_addr_of(trait_type.token(), _expr, trait_type.mut(), allocator);
+            },
+            else => unreachable,
+        }
     }
 
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
@@ -1819,6 +1842,13 @@ pub const AST = union(enum) {
         if (B.* == .anyptr_type and A.* == .addr_of) {
             return true;
         }
+        if (A.* == .identifier and A.symbol().?.is_alias and A != A.expand_identifier()) {
+            // If A is a type alias, expand
+            return types_match(A.expand_identifier(), B);
+        } else if (B.* == .identifier and B.symbol().?.is_alias and B != B.expand_identifier()) {
+            // If B is a type alias, expand
+            return types_match(A, B.expand_identifier());
+        }
         if (A.* == .identifier and B.* != .identifier and A != A.expand_identifier()) {
             // If only A is an identifier, and A isn't an atom type, dive
             return types_match(A.expand_identifier(), B);
@@ -1993,8 +2023,11 @@ pub const AST = union(enum) {
         } else if (other.* == .annotation) {
             return c_types_match(self, other.annotation.type);
         }
-        std.debug.assert(self.common().validation_state == .valid);
-        std.debug.assert(other.common().validation_state == .valid);
+        if (other.* == .anyptr_type and self.* == .addr_of) {
+            return true;
+        }
+        // std.debug.assert(self.common().validation_state == .valid);
+        // std.debug.assert(other.common().validation_state == .valid);
 
         if (@intFromEnum(self.*) != @intFromEnum(other.*)) {
             return false;
@@ -2004,6 +2037,7 @@ pub const AST = union(enum) {
             .identifier => return std.mem.eql(u8, self.token().data, other.token().data),
             .addr_of => return c_types_match(self.expr(), other.expr()),
             .unit_type => return other.* == .unit_type,
+            .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.expr().symbol() == other.expr().symbol(),
             .product, .sum_type => {
                 if (other.children().items.len != self.children().items.len) {

@@ -7,64 +7,74 @@
 #include "debug.inc"
 
 /* Forward struct, union, and function declarations */
-struct struct0;
+struct struct1;
+struct struct2;
+struct struct4;
 
 /* Struct, union, and function definitions */
-struct struct0 {
+struct struct1 {
+    void* _0;
+    int64_t _1;
+};
+
+typedef int64_t(*function0)(void*, int64_t);
+
+struct struct2 {
     int64_t _0;
     int64_t _1;
 };
 
-/* Trait vtable type definitions */
-struct vtable_My_Trait {
-    int64_t(*a)(void*, int64_t);
+struct struct4 {
+    struct struct2* _0;
+    int64_t _1;
 };
 
+typedef int64_t(*function3)(struct struct2*, int64_t);
+
+/* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1547_main(void);
-int64_t _1545_a(void* _1545_$self_ptr, int64_t _1545_x);
+int64_t _17_main(void);
+int64_t _15_a(void* _15_$self_ptr, int64_t _15_x);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1543_$vtable = {
-    .a = _1545_a,
-};
-
 
 /* Function definitions */
-int64_t _1547_main(void){
-    int64_t _1547_t1;
-    int64_t _1547_t2;
-    struct struct0 _1548_my_val;
-    struct struct0* _1548_my_val_ptr;
-    int64_t _1547_t6;
-    int64_t _1547_t4;
-    int64_t _1547_t7;
-    int64_t _1547_$retval;
-    _1547_t1 = 200;
-    _1547_t2 = 45;
-    _1548_my_val = (struct struct0) {_1547_t1, _1547_t2};
-    _1548_my_val_ptr = &_1548_my_val;
-    _1547_t6 = 2;
+int64_t _17_main(void){
+    int64_t _17_t1;
+    int64_t _17_t2;
+    struct struct2 _18_my_val;
+    struct struct2* _18_my_val_ptr;
+    int64_t _17_t5;
+    function3 _17_t6;
+    int64_t _17_t4;
+    int64_t _17_t7;
+    int64_t _17_$retval;
+    _17_t1 = 200;
+    _17_t2 = 45;
+    _18_my_val = (struct struct2) {_17_t1, _17_t2};
+    _18_my_val_ptr = &_18_my_val;
+    _17_t5 = 2;
+    _17_t6 = (function3) _15_a;
     $lines[$line_idx++] = "tests/integration/traits/addr-receiver-basic.orng:15:17:\n    my_val_ptr.>a(2) + 3\n               ^";
-    _1547_t4 = _1543_$vtable.a(_1548_my_val_ptr, _1547_t6);
+    _17_t4 = _17_t6(_18_my_val_ptr, _17_t5);
     $line_idx--;
-    _1547_t7 = 3;
-    _1547_$retval = $add_int64_t(_1547_t4, _1547_t7, "tests/integration/traits/addr-receiver-basic.orng:15:23:\n    my_val_ptr.>a(2) + 3\n                     ^");
-    return _1547_$retval;
+    _17_t7 = 3;
+    _17_$retval = $add_int64_t(_17_t4, _17_t7, "tests/integration/traits/addr-receiver-basic.orng:15:23:\n    my_val_ptr.>a(2) + 3\n                     ^");
+    return _17_$retval;
 }
 
-int64_t _1545_a(void* _1545_$self_ptr, int64_t _1545_x){
-    struct struct0 _1546_self;
-    int64_t _1545_t0;
-    int64_t _1545_$retval;
-    _1546_self = *(struct struct0*)_1545_$self_ptr;
-    _1545_t0 = $mult_int64_t(_1546_self._1, _1545_x, "tests/integration/traits/addr-receiver-basic.orng:9:50:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                                ^");
-    _1545_$retval = $add_int64_t(_1546_self._0, _1545_t0, "tests/integration/traits/addr-receiver-basic.orng:9:41:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                       ^");
-    return _1545_$retval;
+int64_t _15_a(void* _15_$self_ptr, int64_t _15_x){
+    struct struct2 _16_self;
+    int64_t _15_t0;
+    int64_t _15_$retval;
+    _16_self = *(struct struct2*)_15_$self_ptr;
+    _15_t0 = $mult_int64_t(_16_self._1, _15_x, "tests/integration/traits/addr-receiver-basic.orng:9:50:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                                ^");
+    _15_$retval = $add_int64_t(_16_self._0, _15_t0, "tests/integration/traits/addr-receiver-basic.orng:9:41:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                       ^");
+    return _15_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1547_main());
+  printf("%ld",_17_main());
   return 0;
 }

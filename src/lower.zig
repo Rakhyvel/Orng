@@ -218,11 +218,6 @@ fn lower_AST(
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             temp.extract_symbver().symbol.span = ast.token().span;
 
-            if (ast.invoke.method_decl.?.symbol() != null) {
-                // Fine if symbol is null, for invokes on trait objects.
-                _ = try lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, cfg, ast.token().span, errors, allocator);
-            }
-
             var dyn_value: ?*lval_.L_Value = null;
             var lval_list = std.ArrayList(*lval_.L_Value).init(allocator);
             for (ast.children().items, 0..) |term, i| {
@@ -237,6 +232,10 @@ fn lower_AST(
                 lval_list.append(lval) catch unreachable;
             }
             const ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, allocator);
+            if (ast.invoke.method_decl.?.symbol() != null) {
+                // Fine if symbol is null, for invokes on trait objects.
+                ir.data.invoke.method_decl_lval = try lval_from_symbol_cfg(ast.invoke.method_decl.?.symbol().?, cfg, ast.token().span, errors, allocator);
+            }
             cfg.append_instruction(ir_.IR.init_stack_push(ast.token().span, allocator));
             cfg.append_instruction(ir);
             cfg.append_instruction(ir_.IR.init_stack_pop(ast.token().span, allocator));

@@ -367,10 +367,10 @@
         > In Scope, given `T = @typeof(x)`, lookup any trait `Tr` impls for the type `T` which match function name, parameter and return type
         > `scope.impl_map.lookup(@typeof(x))` gets you all the traits that the typeof x implements
         - [x] If x is a `dyn Tr`, still works
+    - [ ] `virtual` keyword
     - [ ] `Self` type
-        > Not a sized type in traits! Cannot be used bare, has to be used as an addr or something.
         - [ ] `Self` type in traits means the future type that will implement the type
-        - [ ] `Self` type in impls means the "for" type
+        - [x] `Self` type in impls means the "for" type
     - [ ] `Ty <: Tr` returns if a type implements a trait
     - [ ] Add an optimization such that if the type of an invoke is known, rather than an invoke, change to just a call to the method
 - [ ] build system (built upon compile-time evaluation) 
