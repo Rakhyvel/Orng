@@ -1292,6 +1292,27 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn refers_to_self(_type: *AST) bool {
+        return switch (_type.*) {
+            .anyptr_type, .unit_type, .dyn_type => false,
+            .identifier => std.mem.eql(u8, _type.token().data, "Self"),
+            .addr_of, .slice_of, .array_of => _type.expr().refers_to_self(),
+            .annotation => _type.annotation.type.refers_to_self(),
+            .function, .@"union" => _type.lhs().refers_to_self() or _type.rhs().refers_to_self(),
+            .product, .sum_type => {
+                for (_type.children().items) |item| {
+                    if (item.refers_to_self()) {
+                        return true;
+                    }
+                }
+                return false;
+            },
+            .inferred_error => _type.inferred_error._terms.items[0].refers_to_self(),
+            // I think everything above covers everything, but just in case, error out
+            else => true,
+        };
+    }
+
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {

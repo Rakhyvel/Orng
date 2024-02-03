@@ -129,6 +129,18 @@ pub const Error = union(enum) {
         method_name: []const u8,
         trait_name: []const u8,
     },
+    mismatch_method_virtuality: struct {
+        span: span_.Span,
+        trait_method_is_virtual: bool,
+        impl_method_is_virtual: bool,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
+    trait_virtual_refers_to_self: struct {
+        span: span_.Span,
+        method_name: []const u8,
+        trait_name: []const u8,
+    },
 
     // Typecheck
     unexpected_type: struct {
@@ -257,6 +269,8 @@ pub const Error = union(enum) {
             .invoke_receiver_mismatch => return self.invoke_receiver_mismatch.receiver_span,
             .mismatch_method_param_arity => return self.mismatch_method_param_arity.span,
             .mismatch_method_type => return self.mismatch_method_type.span,
+            .mismatch_method_virtuality => return self.mismatch_method_virtuality.span,
+            .trait_virtual_refers_to_self => return self.trait_virtual_refers_to_self.span,
 
             .unexpected_type => return self.unexpected_type.span,
             .expected_builtin_typeclass => return self.expected_builtin_typeclass.span,
@@ -443,6 +457,20 @@ pub const Errors = struct {
                 try out.print("` for method `{s}`, got `", .{err.mismatch_method_type.method_name});
                 try err.mismatch_method_type.impl_type.print_type(out);
                 try out.print("`\n", .{});
+            },
+            .mismatch_method_virtuality => {
+                try out.print("trait `{s}` specifies the method `{s}` as {s}, got {s}\n", .{
+                    err.mismatch_method_virtuality.trait_name,
+                    err.mismatch_method_virtuality.method_name,
+                    if (err.mismatch_method_virtuality.trait_method_is_virtual) "virtual" else "non-virtual",
+                    if (err.mismatch_method_virtuality.impl_method_is_virtual) "virtual" else "non-virtual",
+                });
+            },
+            .trait_virtual_refers_to_self => {
+                try out.print("virtual method `{s}` of trait `{s}` refers to `Self` type\n", .{
+                    err.trait_virtual_refers_to_self.method_name,
+                    err.trait_virtual_refers_to_self.trait_name,
+                });
             },
 
             // Typecheck

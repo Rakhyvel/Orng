@@ -103,6 +103,14 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
         _ = validate_AST(decl.method_decl.ret_type, primitives_.type_type, errors, allocator);
 
         if (decl.method_decl.is_virtual) {
+            if (decl.method_decl.c_type.?.refers_to_self()) {
+                errors.add_error(errs_.Error{ .trait_virtual_refers_to_self = .{
+                    .span = decl.token().span,
+                    .method_name = decl.method_decl.name.token().data,
+                    .trait_name = trait.name,
+                } });
+                return error.TypeError;
+            }
             trait.decl.?.trait.num_virtual_methods += 1;
         }
     }
@@ -116,6 +124,8 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
         } });
         return error.TypeError;
     }
+
+    impl.impl._type = validate_AST(impl.impl._type, primitives_.type_type, errors, allocator);
 
     const trait_symbol: ?*symbol_.Symbol = if (impl.impl.trait) |trait| trait.symbol() else null;
     if (trait_symbol != null) {
@@ -168,7 +178,6 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             }
 
             // Check that parameters match
-            // TODO: Should be able to template type with Self type, with a given for type
             for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
                 const impl_type = impl_param.decl.type;
                 const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, allocator);
@@ -200,6 +209,18 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 
             // Copy over the c_type from trait method decl
             def.method_decl.c_type = trait_decl.?.method_decl.c_type;
+
+            // Verify that impl virtuality matches trait virtuality
+            if (def.method_decl.is_virtual != trait_decl.?.method_decl.is_virtual) {
+                errors.add_error(errs_.Error{ .mismatch_method_virtuality = .{
+                    .span = def.token().span,
+                    .method_name = def.method_decl.name.token().data,
+                    .trait_name = trait_ast.token().data,
+                    .trait_method_is_virtual = trait_decl.?.method_decl.is_virtual,
+                    .impl_method_is_virtual = def.method_decl.is_virtual,
+                } });
+                return error.TypeError;
+            }
 
             if (def.method_decl.is_virtual) {
                 impl.impl.num_virtual_methods += 1;
