@@ -156,6 +156,7 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
+            const num_method_params = decl.children().items.len;
             try writer.print("    ", .{});
             try output_type(decl.method_decl.ret_type, writer);
             try writer.print("(*{s})(", .{decl.method_decl.name.token().data});
@@ -163,7 +164,7 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
             // Output receiver parameter
             if (decl.method_decl.receiver != null) {
                 try writer.print("void*", .{});
-                if (decl.children().items.len > 0) {
+                if (num_method_params > 0) {
                     try writer.print(", ", .{});
                 }
             }
@@ -173,10 +174,14 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
                 if (!param_decl.decl.type.is_c_void_type()) {
                     // Do not output `void` parameters
                     try output_type(param_decl.decl.type, writer);
-                    if (i + 1 < decl.children().items.len) {
+                    if (i + 1 < num_method_params) {
                         try writer.print(", ", .{});
                     }
                 }
+            }
+            if (num_method_params == 0) {
+                // If there are no parameters, mark parameter list as void
+                try writer.print("void", .{});
             }
             try writer.print(");\n", .{});
         }
@@ -652,15 +657,22 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 try writer.print("    ", .{});
             }
             if (!ir.data.invoke.method_decl.method_decl.is_virtual) {
+                // method is non-virtual
+                // { method name }({ args })
                 try output_rvalue(ir.data.invoke.method_decl_lval.?, 2, writer);
                 try writer.print("(", .{});
             } else if (ir.data.invoke.dyn_value != null) {
+                // method is virtual, dyn_value (receiver ptr + vtable ptr) isn't null
+                // { dyn value }.vtable->{ method name }({ args })
                 try output_rvalue(ir.data.invoke.dyn_value.?, 2, writer);
                 try writer.print(".vtable->{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
             } else {
+                // method is virtual, dyn_value is null
+                // { vtable impl }.{ method name }({ args })
                 try output_vtable_impl(ir.data.invoke.method_decl.method_decl.impl.?, writer);
                 try writer.print(".{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
             }
+            const num_invoke_args = ir.data.invoke.lval_list.items.len;
             for (ir.data.invoke.lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
@@ -668,7 +680,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                     if (ir.data.invoke.dyn_value != null and ir.data.invoke.dyn_value == term and i == 0) {
                         try writer.print(".data_ptr", .{});
                     }
-                    if (i + 1 < ir.data.invoke.lval_list.items.len) {
+                    if (i + 1 < num_invoke_args) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -867,6 +879,7 @@ fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     try writer.print(";\n", .{});
 }
 
+/// Prints out the vtable name given an impl AST
 fn output_vtable_impl(impl: *ast_.AST, writer: Writer) CodeGen_Error!void {
     try writer.print("_{}_$vtable", .{impl.impl.scope.?.uid});
 }

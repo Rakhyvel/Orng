@@ -29,7 +29,7 @@ int64_t _964_main(void){
     int64_t _964_t3;
     int64_t _964_t1;
     int64_t _964_$retval;
-    _964_t0 = _966_add;
+    _964_t0 = (function0) _966_add;
     _964_t2 = 40;
     _964_t3 = 3;
     $lines[$line_idx++] = "tests/integration/functions/call.orng:2:23:\nfn main() -> Int {add(40, 3)}\n                     ^";

@@ -62,7 +62,7 @@ int64_t _1108_main(void){
     _1108_t8 = ((int64_t*)&_1109_x + _1108_t6);
     _1108_t9 = 4;
     _1109_y = (struct struct1) {_1108_t8, _1108_t9};
-    _1108_t10 = _1110_f;
+    _1108_t10 = (function2) _1110_f;
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";
     _1108_t11 = _1108_t10();
     $line_idx--;

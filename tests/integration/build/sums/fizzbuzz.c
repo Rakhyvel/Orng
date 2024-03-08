@@ -43,7 +43,7 @@ struct struct2 _1469_main(void){
     struct struct1 _1469_t1;
     uint64_t _1469_t3;
     struct struct2 _1469_$retval;
-    _1469_t0 = _1472_fizzbuzz;
+    _1469_t0 = (function0) _1472_fizzbuzz;
     _1469_t2 = 30;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
     _1469_t1 = _1469_t0(_1469_t2);

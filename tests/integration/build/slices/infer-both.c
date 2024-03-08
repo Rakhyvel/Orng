@@ -72,7 +72,7 @@ BB1614:
     _1350_t11 = $sub_int64_t(_1351_y._1, _1350_t9, "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                       ^");
     _1350_t12 = _1351_y._0+_1350_t9;
     _1351_z = (struct struct1) {_1350_t12, _1350_t11};
-    _1350_t14 = _1352_sum_up;
+    _1350_t14 = (function2) _1352_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:6:12:\n    sum_up(z)\n          ^";
     _1350_t15 = _1350_t14(_1351_z);
     $line_idx--;

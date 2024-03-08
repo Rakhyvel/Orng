@@ -23,7 +23,7 @@ int64_t _906_main(void){
     uint8_t _906_t2;
     int64_t _906_t0;
     int64_t _906_$retval;
-    _906_t1 = _911_f;
+    _906_t1 = (function0) _911_f;
     _906_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/sub-zero.orng:3:10:\n    if f(4) {\n        ^";
     _906_t2 = _906_t1(_906_t3);

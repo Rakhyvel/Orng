@@ -23,7 +23,7 @@ int64_t _969_main(void){
     int64_t _969_t2;
     int64_t _969_t1;
     int64_t _969_$retval;
-    _969_t0 = _971_g;
+    _969_t0 = (function0) _971_g;
     _969_t2 = 194;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:3:7:\n    g(194)\n     ^";
     _969_t1 = _969_t0(_969_t2);
@@ -38,7 +38,7 @@ int64_t _971_g(int64_t _971_x){
     int64_t _971_t1;
     int64_t _971_$retval;
     _972_z = _971_x;
-    _971_t0 = _973_f;
+    _971_t0 = (function0) _973_f;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:8:7:\n    f(z)\n     ^";
     _971_t1 = _971_t0(_972_z);
     $line_idx--;

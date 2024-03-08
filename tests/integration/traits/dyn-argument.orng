@@ -1,0 +1,21 @@
+// 302
+
+trait Give_Num {
+    virtual fn give_num() -> Int
+}
+
+impl Give_Num for Int {
+    virtual fn give_num() -> Int {
+        302
+    }
+}
+
+fn main() -> Int {
+    let x = 4
+    call_give_num(&x)
+}
+
+fn call_give_num(x: &dyn Give_Num) -> Int {
+    _ = x
+    x.>give_num()
+}

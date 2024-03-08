@@ -31,7 +31,7 @@ int64_t _1451_main(void){
     struct struct1 _1452_a;
     uint64_t _1451_t2;
     int64_t _1451_$retval;
-    _1451_t0 = _1453_get_the_sum;
+    _1451_t0 = (function0) _1453_get_the_sum;
     $lines[$line_idx++] = "tests/integration/sums/1-sum.orng:5:25:\n    let a = get_the_sum()\n                       ^";
     _1451_t1 = _1451_t0();
     $line_idx--;

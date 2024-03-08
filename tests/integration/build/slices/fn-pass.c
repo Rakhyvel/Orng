@@ -56,7 +56,7 @@ int64_t _1345_main(void){
     _1345_t8 = ((int64_t*)&_1346_x + _1345_t6);
     _1345_t9 = 4;
     _1346_y = (struct struct1) {_1345_t8, _1345_t9};
-    _1345_t10 = _1347_f;
+    _1345_t10 = (function2) _1347_f;
     $lines[$line_idx++] = "tests/integration/slices/fn-pass.orng:5:7:\n    f(y)\n     ^";
     _1345_t11 = _1345_t10(_1346_y);
     $line_idx--;

@@ -22,7 +22,7 @@ int64_t _1014_main(void){
     int64_t _1014_t2;
     int64_t _1014_t1;
     int64_t _1014_$retval;
-    _1014_t0 = _1016_id;
+    _1014_t0 = (function0) _1016_id;
     _1014_t2 = 52;
     $lines[$line_idx++] = "tests/integration/functions/named-1arg.orng:3:8:\n    id(.x = 52)\n      ^";
     _1014_t1 = _1014_t0(_1014_t2);

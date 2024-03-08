@@ -23,7 +23,7 @@ int64_t _876_main(void){
     uint8_t _876_t2;
     int64_t _876_t0;
     int64_t _876_$retval;
-    _876_t1 = _881_f;
+    _876_t1 = (function0) _881_f;
     _876_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-lesser-equal.orng:3:10:\n    if f(4) {\n        ^";
     _876_t2 = _876_t1(_876_t3);

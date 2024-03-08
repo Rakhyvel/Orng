@@ -23,7 +23,7 @@ int64_t _790_main(void){
     uint8_t _790_t2;
     int64_t _790_t0;
     int64_t _790_$retval;
-    _790_t1 = _795_f;
+    _790_t1 = (function0) _795_f;
     _790_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mult-1.orng:3:10:\n    if f(4) {\n        ^";
     _790_t2 = _790_t1(_790_t3);

@@ -29,48 +29,48 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _83_main(void);
-int64_t _81_d(int64_t _81_x, int64_t _81_y);
+int64_t _92_main(void);
+int64_t _90_d(int64_t _90_x, int64_t _90_y);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _80_$vtable = {
-    .d = _81_d,
+struct vtable_My_Trait _89_$vtable = {
+    .d = _90_d,
 };
 
 
 /* Function definitions */
-int64_t _83_main(void){
-    int64_t _83_t1;
-    int64_t _83_t2;
-    struct struct1 _84_my_val;
-    struct dyn2 _83_t3;
-    struct dyn2 _84_my_dyn;
-    int64_t _83_t6;
-    int64_t _83_t7;
-    int64_t _83_t5;
-    int64_t _83_$retval;
-    _83_t1 = 100;
-    _83_t2 = 45;
-    _84_my_val = (struct struct1) {_83_t1, _83_t2};
-    _83_t3 = (struct dyn2) {&_84_my_val, &_80_$vtable};
-    _84_my_dyn = _83_t3;
-    _83_t6 = 200;
-    _83_t7 = 91;
+int64_t _92_main(void){
+    int64_t _92_t1;
+    int64_t _92_t2;
+    struct struct1 _93_my_val;
+    struct dyn2 _92_t3;
+    struct dyn2 _93_my_dyn;
+    int64_t _92_t6;
+    int64_t _92_t7;
+    int64_t _92_t5;
+    int64_t _92_$retval;
+    _92_t1 = 100;
+    _92_t2 = 45;
+    _93_my_val = (struct struct1) {_92_t1, _92_t2};
+    _92_t3 = (struct dyn2) {&_93_my_val, &_89_$vtable};
+    _93_my_dyn = _92_t3;
+    _92_t6 = 200;
+    _92_t7 = 91;
     $lines[$line_idx++] = "tests/integration/traits/receiver-none-object.orng:18:13:\n    my_dyn.>d(200, 91)\n           ^";
-    _83_t5 = _84_my_dyn.vtable->d(_83_t6, _83_t7);
+    _92_t5 = _93_my_dyn.vtable->d(_92_t6, _92_t7);
     $line_idx--;
-    _83_$retval = _83_t5;
-    return _83_$retval;
+    _92_$retval = _92_t5;
+    return _92_$retval;
 }
 
-int64_t _81_d(int64_t _81_x, int64_t _81_y){
-    int64_t _81_$retval;
-    _81_$retval = $add_int64_t(_81_x, _81_y, "tests/integration/traits/receiver-none-object.orng:10:12:\n        x + y\n          ^");
-    return _81_$retval;
+int64_t _90_d(int64_t _90_x, int64_t _90_y){
+    int64_t _90_$retval;
+    _90_$retval = $add_int64_t(_90_x, _90_y, "tests/integration/traits/receiver-none-object.orng:10:12:\n        x + y\n          ^");
+    return _90_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_83_main());
+  printf("%ld",_92_main());
   return 0;
 }

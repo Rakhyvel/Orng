@@ -22,7 +22,7 @@ int64_t _823_main(void){
     int64_t _823_t2;
     int64_t _823_t1;
     int64_t _823_$retval;
-    _823_t0 = _825_f;
+    _823_t0 = (function0) _825_f;
     _823_t2 = 1;
     $lines[$line_idx++] = "tests/integration/expressions/neq-0-lhs.orng:3:7:\n    f(1)\n     ^";
     _823_t1 = _823_t0(_823_t2);

@@ -68,7 +68,7 @@ int64_t _1358_main(void){
     _1358_t15 = 3;
     _1358_t16 = _1359_y._0;
     _1359_z = (struct struct1) {_1358_t16, _1358_t15};
-    _1358_t18 = _1360_sum_up;
+    _1358_t18 = (function2) _1360_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
     _1358_t19 = _1358_t18(_1359_z);
     $line_idx--;

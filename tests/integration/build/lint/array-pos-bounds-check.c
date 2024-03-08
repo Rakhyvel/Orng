@@ -40,7 +40,7 @@ int64_t _1075_main(void){
     _1075_t3 = 0;
     _1075_t4 = 0;
     _1076_x = (struct struct0) {_1075_t1, _1075_t2, _1075_t3, _1075_t4};
-    _1075_t5 = _1077_f;
+    _1075_t5 = (function1) _1077_f;
     $lines[$line_idx++] = "tests/integration/lint/array-pos-bounds-check.orng:4:9:\n    x[f()]\n       ^";
     _1075_t6 = _1075_t5();
     $line_idx--;

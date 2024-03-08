@@ -638,12 +638,16 @@ fn validate_AST_internal(
         .invoke => {
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
+            // true_lhs_type is lhs's type
             const true_lhs_type = ast.lhs().typeof(allocator);
+            // method_decl is the method_decl AST of the method being invoked
             var method_decl: ?*ast_.AST = undefined;
             if (true_lhs_type.expand_identifier().* == .dyn_type) {
+                // The receiver is a dynamic type
                 const trait = true_lhs_type.expand_identifier().expr().symbol().?.decl.?;
                 method_decl = trait.trait.find_method(ast.rhs().token().data);
             } else {
+                // The receiver is a regular type
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
                 method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
             }
@@ -662,9 +666,12 @@ fn validate_AST_internal(
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
             const receiver_kind: ?ast_.Receiver_Kind = if (method_decl.?.method_decl.receiver != null) method_decl.?.method_decl.receiver.?.receiver.kind else null;
             if (method_decl.?.method_decl.receiver != null) {
+                // Trait method takes a receiver...
                 // Prepend invoke lhs to args if there is a receiver
                 if (expanded_true_lhs_type.* == .dyn_type or expanded_true_lhs_type.* == .addr_of) {
+                    // lhs type is dynamic or an address...
                     if (!expanded_true_lhs_type.mut() and receiver_kind == .mut_addr_of) {
+                        // Receiver is immutable when it should be mutable
                         errors.add_error(errs_.Error{ .invoke_receiver_mismatch = .{
                             .lhs_type = true_lhs_type,
                             .method_name = method_decl.?.method_decl.name.token().data,
@@ -673,10 +680,11 @@ fn validate_AST_internal(
                         } });
                         return error.TypeError;
                     }
-                    ast.children().insert(0, ast.lhs()) catch unreachable;
+                    ast.children().insert(0, ast.lhs()) catch unreachable; // prepend lhs to children as a receiver
                 } else {
+                    // lhs type is not dynamic and not an address
                     const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, allocator);
-                    ast.children().insert(0, addr_of) catch unreachable;
+                    ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver
                 }
             }
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
@@ -1837,7 +1845,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
                 return try generate_default(expanded_type, errors, allocator);
             }
         },
-        .addr_of, .function => return ast_.AST.create_int(_type.token(), 0, allocator),
+        .dyn_type, .addr_of, .function => return ast_.AST.create_int(_type.token(), 0, allocator),
         .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator),
         .sum_type => {
             var retval = ast_.AST.create_sum_value(_type.token(), allocator);

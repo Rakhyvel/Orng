@@ -29,7 +29,7 @@ int64_t _1019_main(void){
     int64_t _1019_t3;
     int64_t _1019_t1;
     int64_t _1019_$retval;
-    _1019_t0 = _1021_div;
+    _1019_t0 = (function0) _1021_div;
     _1019_t2 = 510;
     _1019_t3 = 10;
     $lines[$line_idx++] = "tests/integration/functions/named-arg.orng:3:9:\n    div(.x = 510, .y = 10)\n       ^";

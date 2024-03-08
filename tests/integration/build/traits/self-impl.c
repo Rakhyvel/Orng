@@ -35,70 +35,70 @@ typedef struct struct2(*function4)(struct struct2*, struct struct2);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _100_main(void);
-struct struct2 _96_add(void* _96_$self_ptr, struct struct2 _96_other);
-int64_t _98_cab(void* _98_$self_ptr);
+int64_t _109_main(void);
+struct struct2 _105_add(void* _105_$self_ptr, struct struct2 _105_other);
+int64_t _107_cab(void* _107_$self_ptr);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _100_main(void){
-    int64_t _100_t1;
-    int64_t _100_t2;
-    struct struct2 _101_a;
-    struct struct2* _100_t4;
-    int64_t _100_t6;
-    int64_t _100_t7;
-    struct struct2 _100_t5;
-    function4 _100_t8;
-    struct struct2 _100_t3;
-    struct struct2* _100_t10;
-    function3 _100_t11;
-    int64_t _100_t9;
-    int64_t _100_$retval;
-    _100_t1 = 100;
-    _100_t2 = 90;
-    _101_a = (struct struct2) {_100_t1, _100_t2};
-    _100_t4 = &_101_a;
-    _100_t6 = 100;
-    _100_t7 = 9;
-    _100_t5 = (struct struct2) {_100_t6, _100_t7};
-    _100_t8 = (function4) _96_add;
+int64_t _109_main(void){
+    int64_t _109_t1;
+    int64_t _109_t2;
+    struct struct2 _110_a;
+    struct struct2* _109_t4;
+    int64_t _109_t6;
+    int64_t _109_t7;
+    struct struct2 _109_t5;
+    function4 _109_t8;
+    struct struct2 _109_t3;
+    struct struct2* _109_t10;
+    function3 _109_t11;
+    int64_t _109_t9;
+    int64_t _109_$retval;
+    _109_t1 = 100;
+    _109_t2 = 90;
+    _110_a = (struct struct2) {_109_t1, _109_t2};
+    _109_t4 = &_110_a;
+    _109_t6 = 100;
+    _109_t7 = 9;
+    _109_t5 = (struct struct2) {_109_t6, _109_t7};
+    _109_t8 = (function4) _105_add;
     $lines[$line_idx++] = "tests/integration/traits/self-impl.orng:13:12:\n    a = a.>add((100, 9))\n          ^";
-    _100_t3 = _100_t8(_100_t4, _100_t5);
+    _109_t3 = _109_t8(_109_t4, _109_t5);
     $line_idx--;
-    _101_a = _100_t3;
-    _100_t10 = &_100_t3;
-    _100_t11 = (function3) _98_cab;
+    _110_a = _109_t3;
+    _109_t10 = &_109_t3;
+    _109_t11 = (function3) _107_cab;
     $lines[$line_idx++] = "tests/integration/traits/self-impl.orng:14:8:\n    a.>cab()\n      ^";
-    _100_t9 = _100_t11(_100_t10);
+    _109_t9 = _109_t11(_109_t10);
     $line_idx--;
-    _100_$retval = _100_t9;
-    return _100_$retval;
+    _109_$retval = _109_t9;
+    return _109_$retval;
 }
 
-struct struct2 _96_add(void* _96_$self_ptr, struct struct2 _96_other){
-    struct struct2 _97_self;
-    int64_t _96_t1;
-    int64_t _96_t2;
-    struct struct2 _96_$retval;
-    _97_self = *(struct struct2*)_96_$self_ptr;
-    _96_t1 = $add_int64_t(_97_self._0, _96_other._0, "tests/integration/traits/self-impl.orng:5:18:\n        (self.x + other.x, self.y + other.y)\n                ^");
-    _96_t2 = $add_int64_t(_97_self._1, _96_other._1, "tests/integration/traits/self-impl.orng:5:36:\n        (self.x + other.x, self.y + other.y)\n                                  ^");
-    _96_$retval = (struct struct2) {_96_t1, _96_t2};
-    return _96_$retval;
+struct struct2 _105_add(void* _105_$self_ptr, struct struct2 _105_other){
+    struct struct2 _106_self;
+    int64_t _105_t1;
+    int64_t _105_t2;
+    struct struct2 _105_$retval;
+    _106_self = *(struct struct2*)_105_$self_ptr;
+    _105_t1 = $add_int64_t(_106_self._0, _105_other._0, "tests/integration/traits/self-impl.orng:5:18:\n        (self.x + other.x, self.y + other.y)\n                ^");
+    _105_t2 = $add_int64_t(_106_self._1, _105_other._1, "tests/integration/traits/self-impl.orng:5:36:\n        (self.x + other.x, self.y + other.y)\n                                  ^");
+    _105_$retval = (struct struct2) {_105_t1, _105_t2};
+    return _105_$retval;
 }
 
-int64_t _98_cab(void* _98_$self_ptr){
-    struct struct2 _99_self;
-    int64_t _98_$retval;
-    _99_self = *(struct struct2*)_98_$self_ptr;
-    _98_$retval = $add_int64_t(_99_self._0, _99_self._1, "tests/integration/traits/self-impl.orng:8:35:\n    fn cab(self) -> Int { self.x + self.y }\n                                 ^");
-    return _98_$retval;
+int64_t _107_cab(void* _107_$self_ptr){
+    struct struct2 _108_self;
+    int64_t _107_$retval;
+    _108_self = *(struct struct2*)_107_$self_ptr;
+    _107_$retval = $add_int64_t(_108_self._0, _108_self._1, "tests/integration/traits/self-impl.orng:8:35:\n    fn cab(self) -> Int { self.x + self.y }\n                                 ^");
+    return _107_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_100_main());
+  printf("%ld",_109_main());
   return 0;
 }

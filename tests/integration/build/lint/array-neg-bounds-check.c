@@ -40,7 +40,7 @@ int64_t _1070_main(void){
     _1070_t3 = 0;
     _1070_t4 = 0;
     _1071_x = (struct struct0) {_1070_t1, _1070_t2, _1070_t3, _1070_t4};
-    _1070_t5 = _1072_f;
+    _1070_t5 = (function1) _1072_f;
     $lines[$line_idx++] = "tests/integration/lint/array-neg-bounds-check.orng:4:9:\n    x[f()]\n       ^";
     _1070_t6 = _1070_t5();
     $line_idx--;

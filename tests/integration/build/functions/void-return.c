@@ -20,7 +20,7 @@ void _1049_void(void);
 int64_t _1047_main(void){
     function0 _1047_t0;
     int64_t _1047_$retval;
-    _1047_t0 = _1049_void;
+    _1047_t0 = (function0) _1049_void;
     $lines[$line_idx++] = "tests/integration/functions/void-return.orng:3:10:\n    void()\n        ^";
     (void) _1047_t0();
     $line_idx--;

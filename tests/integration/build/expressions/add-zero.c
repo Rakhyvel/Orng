@@ -23,7 +23,7 @@ int64_t _658_main(void){
     uint8_t _658_t2;
     int64_t _658_t0;
     int64_t _658_$retval;
-    _658_t1 = _663_f;
+    _658_t1 = (function0) _663_f;
     _658_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/add-zero.orng:3:10:\n    if f(4) {\n        ^";
     _658_t2 = _658_t1(_658_t3);

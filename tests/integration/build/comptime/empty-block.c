@@ -21,7 +21,7 @@ int64_t _144_main(void){
     function0 _144_t0;
     int64_t _144_t1;
     int64_t _144_$retval;
-    _144_t0 = _147_f;
+    _144_t0 = (function0) _147_f;
     $lines[$line_idx++] = "tests/integration/comptime/empty-block.orng:3:7:\n    f(comptime {})\n     ^";
     _144_t1 = _144_t0();
     $line_idx--;

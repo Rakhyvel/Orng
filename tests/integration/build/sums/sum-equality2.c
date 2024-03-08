@@ -35,11 +35,11 @@ int64_t _1512_main(void){
     uint8_t _1512_t6;
     int64_t _1512_t0;
     int64_t _1512_$retval;
-    _1512_t1 = _1517_f;
+    _1512_t1 = (function0) _1517_f;
     $lines[$line_idx++] = "tests/integration/sums/sum-equality2.orng:3:10:\n    if f() == f() {\n        ^";
     _1512_t2 = _1512_t1();
     $line_idx--;
-    _1512_t3 = _1517_f;
+    _1512_t3 = (function0) _1517_f;
     $lines[$line_idx++] = "tests/integration/sums/sum-equality2.orng:3:17:\n    if f() == f() {\n               ^";
     _1512_t4 = _1512_t3();
     $line_idx--;

@@ -46,7 +46,7 @@ function0 _328_g(int64_t _328_x){
         goto BB372;
     }
 BB369:
-    _328_t0 = _336_add;
+    _328_t0 = (function0) _336_add;
     goto BB371;
 BB372:
     _328_t3 = 1;
@@ -60,7 +60,7 @@ BB371:
     _328_$retval = _328_t0;
     return _328_$retval;
 BB374:
-    _328_t0 = _338_sub;
+    _328_t0 = (function0) _338_sub;
     goto BB371;
 BB375:
     _328_t5 = 2;
@@ -71,7 +71,7 @@ BB375:
         goto BB378;
     }
 BB377:
-    _328_t0 = _340_mul;
+    _328_t0 = (function0) _340_mul;
     goto BB371;
 BB378:
     _328_t7 = 3;
@@ -82,7 +82,7 @@ BB378:
         goto BB382;
     }
 BB380:
-    _328_t0 = _342_div;
+    _328_t0 = (function0) _342_div;
     goto BB371;
 BB382:
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:13:25:\n        _ => unreachable\n                       ^";
@@ -119,7 +119,7 @@ int64_t _319_main(void){
     int64_t _319_t4;
     int64_t _319_t2;
     int64_t _319_$retval;
-    _319_t1 = _340_mul;
+    _319_t1 = (function0) _340_mul;
     _319_t3 = 66;
     _319_t4 = 4;
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:4:7:\n    f(66, 4)\n     ^";

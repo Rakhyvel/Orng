@@ -26,7 +26,7 @@ int64_t _1035_main(void){
     int64_t _1035_t3;
     int64_t _1035_t2;
     int64_t _1035_$retval;
-    _1035_t0 = _1037_f;
+    _1035_t0 = (function0) _1037_f;
     $lines[$line_idx++] = "tests/integration/functions/returned.orng:3:7:\n    f()(45)\n     ^";
     _1035_t1 = _1035_t0();
     $line_idx--;
@@ -40,7 +40,7 @@ int64_t _1035_main(void){
 
 function1 _1037_f(void){
     function1 _1037_$retval;
-    _1037_$retval = _1039_add_four;
+    _1037_$retval = (function1) _1039_add_four;
     return _1037_$retval;
 }
 

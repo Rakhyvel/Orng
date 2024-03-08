@@ -40,13 +40,13 @@ int64_t _634_main(void){
     int64_t _634_$retval;
     _635_z = 10;
     _635_y = 10;
-    _634_t2 = _636_f;
+    _634_t2 = (function0) _636_f;
     _634_t4 = &_635_z;
     _634_t5 = 1;
     $lines[$line_idx++] = "tests/integration/errors/passive-errdefer.orng:5:11:\n    _ = f(&mut z, true)\n         ^";
     (void) _634_t2(_634_t4, _634_t5);
     $line_idx--;
-    _634_t7 = _636_f;
+    _634_t7 = (function0) _636_f;
     _634_t9 = &_635_y;
     _634_t10 = 0;
     $lines[$line_idx++] = "tests/integration/errors/passive-errdefer.orng:6:11:\n    _ = f(&mut y, false)\n         ^";

@@ -35,14 +35,14 @@ int64_t _981_main(void){
     int64_t _981_t7;
     int64_t _981_t1;
     int64_t _981_$retval;
-    _981_t0 = _983_add;
-    _981_t2 = _983_add;
+    _981_t0 = (function0) _983_add;
+    _981_t2 = (function0) _983_add;
     _981_t4 = 47;
     _981_t5 = 1;
     $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:27:\nfn main() -> Int {add(add(47), add())}\n                         ^";
     _981_t3 = _981_t2(_981_t4, _981_t5);
     $line_idx--;
-    _981_t6 = _983_add;
+    _981_t6 = (function0) _983_add;
     _981_t8 = 1;
     _981_t9 = 1;
     $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:36:\nfn main() -> Int {add(add(47), add())}\n                                  ^";

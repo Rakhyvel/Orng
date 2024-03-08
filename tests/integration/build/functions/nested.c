@@ -32,7 +32,7 @@ int64_t _1024_main(void){
     int64_t _1024_t1;
     int64_t _1024_t3;
     int64_t _1024_$retval;
-    _1024_t0 = _1026_fib;
+    _1024_t0 = (function0) _1026_fib;
     _1024_t2 = 10;
     $lines[$line_idx++] = "tests/integration/functions/nested.orng:3:17:\n    let n = fib(10) - 10\n               ^";
     _1024_t1 = _1024_t0(_1024_t2);
@@ -84,14 +84,14 @@ BB1232:
     _1026_t0 = 1;
     goto BB1229;
 BB1234:
-    _1026_t7 = _1032_add;
-    _1026_t9 = _1026_fib;
+    _1026_t7 = (function1) _1032_add;
+    _1026_t9 = (function0) _1026_fib;
     _1026_t11 = 1;
     _1026_t12 = $sub_int64_t(_1026_n, _1026_t11, "tests/integration/functions/nested.orng:8:29:\n            _ => add(fib(n - 1), fib(n - 2))\n                           ^");
     $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:26:\n            _ => add(fib(n - 1), fib(n - 2))\n                        ^";
     _1026_t10 = _1026_t9(_1026_t12);
     $line_idx--;
-    _1026_t13 = _1026_fib;
+    _1026_t13 = (function0) _1026_fib;
     _1026_t15 = 2;
     _1026_t16 = $sub_int64_t(_1026_n, _1026_t15, "tests/integration/functions/nested.orng:8:41:\n            _ => add(fib(n - 1), fib(n - 2))\n                                       ^");
     $lines[$line_idx++] = "tests/integration/functions/nested.orng:8:38:\n            _ => add(fib(n - 1), fib(n - 2))\n                                    ^";

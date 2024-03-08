@@ -49,7 +49,7 @@ int64_t _1159_main(void){
     _1159_t2 = 0;
     _1159_t3 = 0;
     _1160_x = (struct struct0) {_1159_t1, _1159_t2, _1159_t3};
-    _1159_t4 = _1161_get_array;
+    _1159_t4 = (function1) _1161_get_array;
     $lines[$line_idx++] = "tests/integration/pattern/assign-array.orng:4:36:\n    (x[0], x[1], x[2]) = get_array()\n                                  ^";
     _1159_t5 = _1159_t4();
     $line_idx--;

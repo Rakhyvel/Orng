@@ -40,7 +40,7 @@ int64_t _1060_main(void){
     _1060_t3 = 0;
     _1060_t4 = 0;
     _1061_x = (struct struct0) {_1060_t1, _1060_t2, _1060_t3, _1060_t4};
-    _1060_t6 = _1062_f;
+    _1060_t6 = (function1) _1062_f;
     $lines[$line_idx++] = "tests/integration/lint/array-copy-neg-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
     _1060_t7 = _1060_t6();
     $line_idx--;

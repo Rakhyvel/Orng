@@ -41,7 +41,7 @@ int64_t _51_main(void){
     _51_t2 = (struct struct0) {.tag=1};
     _51_t3 = (struct struct0) {.tag=2};
     _52_x = (struct struct1) {_51_t1, _51_t2, _51_t3};
-    _51_t4 = _53_f;
+    _51_t4 = (function2) _53_f;
     $lines[$line_idx++] = "tests/integration/arrays/array-sum.orng:6:7:\n    f(x)\n     ^";
     _51_t5 = _51_t4(_52_x);
     $line_idx--;

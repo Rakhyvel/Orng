@@ -74,7 +74,7 @@ int64_t _1391_main(void){
     _1391_t19 = 2;
     $bounds_check(_1391_t19, _1392_z._1, "tests/integration/slices/subslice.orng:6:14:\n    z[2] = 10\n            ^");
     *((int64_t*)_1392_z._0 + _1391_t19) = 10;
-    _1391_t20 = _1393_sum_up;
+    _1391_t20 = (function2) _1393_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/subslice.orng:7:12:\n    sum_up(z)\n          ^";
     _1391_t21 = _1391_t20(_1392_z);
     $line_idx--;

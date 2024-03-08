@@ -23,7 +23,7 @@ int64_t _812_main(void){
     uint8_t _812_t2;
     int64_t _812_t0;
     int64_t _812_$retval;
-    _812_t1 = _817_f;
+    _812_t1 = (function0) _817_f;
     _812_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mult-zero-int.orng:3:10:\n    if f(4) {\n        ^";
     _812_t2 = _812_t1(_812_t3);

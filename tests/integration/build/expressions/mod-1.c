@@ -23,7 +23,7 @@ int64_t _782_main(void){
     uint8_t _782_t2;
     int64_t _782_t0;
     int64_t _782_$retval;
-    _782_t1 = _787_f;
+    _782_t1 = (function0) _787_f;
     _782_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mod-1.orng:3:10:\n    if f(4) {\n        ^";
     _782_t2 = _782_t1(_782_t3);

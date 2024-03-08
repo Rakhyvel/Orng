@@ -32,7 +32,7 @@ int64_t _996_main(void){
     int64_t _996_t1;
     int64_t _996_t3;
     int64_t _996_$retval;
-    _996_t0 = _998_sum_down;
+    _996_t0 = (function0) _998_sum_down;
     _996_t2 = 8;
     $lines[$line_idx++] = "tests/integration/functions/mut-param-addrof.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
     _996_t1 = _996_t0(_996_t2);
@@ -61,7 +61,7 @@ BB1195:
         goto BB1201;
     }
 BB1196:
-    _998_t3 = _1003_inc;
+    _998_t3 = (function1) _1003_inc;
     _998_t5 = &_998_x;
     $lines[$line_idx++] = "tests/integration/functions/mut-param-addrof.orng:6:13:\n        inc(&mut x, i)\n           ^";
     (void) _998_t3(_998_t5, _1000_i);

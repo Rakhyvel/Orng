@@ -23,7 +23,7 @@ int64_t _884_main(void){
     uint8_t _884_t2;
     int64_t _884_t0;
     int64_t _884_$retval;
-    _884_t1 = _889_f;
+    _884_t1 = (function0) _889_f;
     _884_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-lesser.orng:3:10:\n    if f(4) {\n        ^";
     _884_t2 = _884_t1(_884_t3);

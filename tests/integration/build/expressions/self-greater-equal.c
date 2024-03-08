@@ -23,7 +23,7 @@ int64_t _860_main(void){
     uint8_t _860_t2;
     int64_t _860_t0;
     int64_t _860_$retval;
-    _860_t1 = _865_f;
+    _860_t1 = (function0) _865_f;
     _860_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-greater-equal.orng:3:10:\n    if f(4) {\n        ^";
     _860_t2 = _860_t1(_860_t3);

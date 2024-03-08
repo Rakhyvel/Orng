@@ -56,7 +56,7 @@ int64_t _1103_main(void){
     _1103_t8 = ((int64_t*)&_1104_x + _1103_t6);
     _1103_t9 = 4;
     _1104_y = (struct struct1) {_1103_t8, _1103_t9};
-    _1103_t10 = _1105_f;
+    _1103_t10 = (function2) _1105_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-pos-bounds-check.orng:5:9:\n    y[f()]\n       ^";
     _1103_t11 = _1103_t10();
     $line_idx--;

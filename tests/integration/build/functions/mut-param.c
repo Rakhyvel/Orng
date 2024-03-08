@@ -23,7 +23,7 @@ int64_t _1006_main(void){
     int64_t _1006_t1;
     int64_t _1006_t3;
     int64_t _1006_$retval;
-    _1006_t0 = _1008_sum_down;
+    _1006_t0 = (function0) _1008_sum_down;
     _1006_t2 = 8;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
     _1006_t1 = _1006_t0(_1006_t2);

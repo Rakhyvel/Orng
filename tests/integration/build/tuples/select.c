@@ -16,24 +16,24 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1689_main(void);
+int64_t _1713_main(void);
 
 
 /* Function definitions */
-int64_t _1689_main(void){
-    int64_t _1689_t1;
-    int64_t _1689_t2;
-    struct struct0 _1690_x;
-    int64_t _1689_$retval;
-    _1689_t1 = 50;
-    _1689_t2 = 5;
-    _1690_x = (struct struct0) {_1689_t1, _1689_t2};
-    _1689_$retval = $add_int64_t(_1690_x._0, _1690_x._1, "tests/integration/tuples/select.orng:4:10:\n    x.a + x.b\n        ^");
-    return _1689_$retval;
+int64_t _1713_main(void){
+    int64_t _1713_t1;
+    int64_t _1713_t2;
+    struct struct0 _1714_x;
+    int64_t _1713_$retval;
+    _1713_t1 = 50;
+    _1713_t2 = 5;
+    _1714_x = (struct struct0) {_1713_t1, _1713_t2};
+    _1713_$retval = $add_int64_t(_1714_x._0, _1714_x._1, "tests/integration/tuples/select.orng:4:10:\n    x.a + x.b\n        ^");
+    return _1713_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1689_main());
+  printf("%ld",_1713_main());
   return 0;
 }

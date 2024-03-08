@@ -42,7 +42,7 @@ int64_t _59_main(void){
     _59_t3 = 3;
     _59_t4 = 4;
     _60_x = (struct struct0) {_59_t1, _59_t2, _59_t3, _59_t4};
-    _59_t5 = _61_f;
+    _59_t5 = (function1) _61_f;
     _59_t7 = &_60_x;
     $lines[$line_idx++] = "tests/integration/arrays/call-index.orng:4:7:\n    f(&mut x)^[3]\n     ^";
     _59_t6 = _59_t5(_59_t7);

@@ -23,7 +23,7 @@ int64_t _700_main(void){
     uint8_t _700_t2;
     int64_t _700_t0;
     int64_t _700_$retval;
-    _700_t1 = _705_f;
+    _700_t1 = (function0) _705_f;
     _700_t3 = 4.0e+00;
     $lines[$line_idx++] = "tests/integration/expressions/div-1.orng:3:10:\n    if f(4.0) {\n        ^";
     _700_t2 = _700_t1(_700_t3);

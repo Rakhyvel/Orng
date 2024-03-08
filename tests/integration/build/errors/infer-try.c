@@ -36,7 +36,7 @@ int64_t _623_main(void){
     uint64_t _623_t6;
     uint64_t _623_t7;
     uint8_t _623_t8;
-    _623_t1 = _629_f;
+    _623_t1 = (function0) _629_f;
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:3:13:\n    match f() {\n           ^";
     _623_t2 = _623_t1();
     $line_idx--;
@@ -73,7 +73,7 @@ struct struct1 _629_f(void){
     struct struct1 _629_t1;
     uint64_t _629_t2;
     struct struct1 _629_$retval;
-    _629_t0 = _631_g;
+    _629_t0 = (function0) _631_g;
     $lines[$line_idx++] = "tests/integration/errors/infer-try.orng:11:15:\n    .ok(try g())\n             ^";
     _629_t1 = _629_t0();
     $line_idx--;

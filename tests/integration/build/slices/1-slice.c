@@ -39,7 +39,7 @@ int64_t _1340_main(void){
     struct struct1 _1340_t2;
     int64_t _1340_t1;
     int64_t _1340_$retval;
-    _1340_t0 = _1342_first;
+    _1340_t0 = (function0) _1342_first;
     _1340_t4 = 233;
     _1340_t3 = (struct struct2) {_1340_t4};
     _1340_t5 = 0;

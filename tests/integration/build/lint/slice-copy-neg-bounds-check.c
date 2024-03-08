@@ -56,7 +56,7 @@ int64_t _1088_main(void){
     _1088_t8 = ((int64_t*)&_1089_x + _1088_t6);
     _1088_t9 = 4;
     _1089_y = (struct struct1) {_1088_t8, _1088_t9};
-    _1088_t11 = _1090_f;
+    _1088_t11 = (function2) _1090_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-neg-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
     _1088_t12 = _1088_t11();
     $line_idx--;

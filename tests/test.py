@@ -29,6 +29,10 @@ import os
 import subprocess
 
 
+TEST_DIR = os.path.dirname(os.path.realpath(__file__))
+SRC_DIR = os.path.normpath(os.path.join(TEST_DIR, "..", "src"))
+
+
 def main():
     args = parse_args()
 
@@ -62,6 +66,10 @@ def parse_args():
     create.add_argument("-t", "--test", nargs="*", help="list of one or more files/directories of negative tests to run")
     create.add_argument("-n", "--no-coverage", action='store_const', default=False, const=True, help="does not perform coverage after negative testing, even if tests pass")
     create.add_argument("-c", "--count", nargs="*", help="recursively counts the number of negative test files in the directories specified")
+
+    create = subparsers.add_parser("all", help="run integration and negative tests, merge code coverage")
+    create.add_argument("-t", "--test", nargs="*", help="list of one or more files/directories of negative tests to run")
+    create.add_argument("-c", "--count", nargs="*", help="recursively counts the number of negative test files in the directories specified")
     
     create = subparsers.add_parser("fuzz", help="create fuzz and run fuzz tests")
 
@@ -80,7 +88,7 @@ def integration(args):
     if args.no_coverage:
         return
     elif res == 0:
-        subprocess.run(["kcov", "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+        subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
         print("kcov ouput written to kcov-out/index.html")
     else:
         print("coverage not done due to failed tests")
@@ -98,10 +106,21 @@ def negative(args):
     if args.no_coverage:
         return
     elif res == 0:
-        subprocess.run(["kcov", "kcov-out", "./zig-out/bin/orng-test", "negative-coverage"] + files)
+        subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative-coverage"] + files)
         print("kcov ouput written to kcov-out/index.html")
     else:
         print("coverage not done due to failed tests")
+
+
+def all(args):
+    files = collect_files(args, "tests/integration")
+    res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
+    if res != 0:
+        return
+    subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+        
+    files = collect_files(args, "tests/negative")
+    subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
 
     
 def fuzz():

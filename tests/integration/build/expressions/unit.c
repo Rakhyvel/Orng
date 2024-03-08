@@ -20,7 +20,7 @@ void _946_f(void);
 int64_t _944_main(void){
     function0 _944_t0;
     int64_t _944_$retval;
-    _944_t0 = _946_f;
+    _944_t0 = (function0) _946_f;
     $lines[$line_idx++] = "tests/integration/expressions/unit.orng:3:7:\n    f()\n     ^";
     (void) _944_t0();
     $line_idx--;

@@ -1,0 +1,8 @@
+fn main() -> Int {
+    let const My_Type: Type = (x: Int = get_four())
+    let y: My_Type
+    _ = y
+    34
+}
+
+fn get_four() -> Int { 4 }

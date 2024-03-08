@@ -34,7 +34,7 @@ int64_t _275_main(void){
     _276_x = 50;
     _276_y = 200;
     _276_z = 6;
-    _275_t3 = _277_f;
+    _275_t3 = (function0) _277_f;
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:6:7:\n    f(x, y, z)\n     ^";
     _275_t4 = _275_t3(_276_x, _276_y, _276_z);
     $line_idx--;

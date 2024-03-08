@@ -40,7 +40,7 @@ int64_t _601_main(void){
     uint64_t _601_t8;
     uint8_t _601_t9;
     int64_t _601_$retval;
-    _601_t1 = _608_f;
+    _601_t1 = (function0) _608_f;
     _601_t3 = 1;
     $lines[$line_idx++] = "tests/integration/errors/infer-inject.orng:3:13:\n    match f(true) {\n           ^";
     _601_t2 = _601_t1(_601_t3);

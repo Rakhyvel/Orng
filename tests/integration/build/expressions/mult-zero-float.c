@@ -23,7 +23,7 @@ int64_t _804_main(void){
     uint8_t _804_t2;
     int64_t _804_t0;
     int64_t _804_$retval;
-    _804_t1 = _809_f;
+    _804_t1 = (function0) _809_f;
     _804_t3 = 4.0e+00;
     $lines[$line_idx++] = "tests/integration/expressions/mult-zero-float.orng:3:10:\n    if f(4.0) {\n        ^";
     _804_t2 = _804_t1(_804_t3);

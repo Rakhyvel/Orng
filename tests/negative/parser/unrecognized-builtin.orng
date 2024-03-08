@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let x = @lmao(4)
+    x
+}

@@ -22,7 +22,7 @@ int64_t _976_main(void){
     int64_t _976_t2;
     int64_t _976_t1;
     int64_t _976_$retval;
-    _976_t0 = _978_return53;
+    _976_t0 = (function0) _978_return53;
     _976_t2 = 53;
     $lines[$line_idx++] = "tests/integration/functions/default-1arg.orng:3:14:\n    return53()\n            ^";
     _976_t1 = _976_t0(_976_t2);

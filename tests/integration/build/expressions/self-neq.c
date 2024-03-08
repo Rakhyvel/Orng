@@ -23,7 +23,7 @@ int64_t _892_main(void){
     uint8_t _892_t2;
     int64_t _892_t0;
     int64_t _892_$retval;
-    _892_t1 = _897_f;
+    _892_t1 = (function0) _897_f;
     _892_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-neq.orng:3:10:\n    if f(4) {\n        ^";
     _892_t2 = _892_t1(_892_t3);

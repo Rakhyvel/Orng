@@ -38,7 +38,7 @@ int64_t _67_main(void){
     _67_t2 = 2;
     _67_t3 = 3;
     _68_x = (struct struct0) {_67_t1, _67_t2, _67_t3};
-    _67_t4 = _69_f;
+    _67_t4 = (function1) _69_f;
     _67_t6 = &_68_x;
     $lines[$line_idx++] = "tests/integration/arrays/in-out.orng:4:7:\n    f(&mut x)\n     ^";
     (void) _67_t4(_67_t6);

@@ -218,18 +218,31 @@ fn lower_AST(
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             temp.extract_symbver().symbol.span = ast.token().span;
 
+            // dyn_value is the method receiver that will be passed in
             var dyn_value: ?*lval_.L_Value = null;
             var lval_list = std.ArrayList(*lval_.L_Value).init(allocator);
-            for (ast.children().items, 0..) |term, i| {
-                const lval = (try lower_AST(cfg, term, labels, errors, allocator)) orelse continue;
-                if (ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type and i == 0) {
-                    if (term == ast.lhs()) {
-                        dyn_value = lval;
-                    } else {
-                        dyn_value = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse continue;
+            if (ast.children().items.len == 0) {
+                // dyn_value should be the receiver
+                if (ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type) {
+                    dyn_value = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
+                }
+            } else {
+                for (ast.children().items, 0..) |term, i| {
+                    // Lower each child
+                    const lval = (try lower_AST(cfg, term, labels, errors, allocator)) orelse continue;
+                    lval_list.append(lval) catch unreachable;
+
+                    // Try to find the first child, it's possibly the receiver
+                    if (ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type and i == 0) {
+                        if (term == ast.lhs()) {
+                            // UFCS-like, receiver is prepended to the children list
+                            dyn_value = lval;
+                        } else {
+                            // Other wise, lower the lhs
+                            dyn_value = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse continue;
+                        }
                     }
                 }
-                lval_list.append(lval) catch unreachable;
             }
             const ir = ir_.IR.init_invoke(temp, ast.invoke.method_decl.?, lval_list, dyn_value, ast.token().span, allocator);
             if (ast.invoke.method_decl.?.symbol() != null) {

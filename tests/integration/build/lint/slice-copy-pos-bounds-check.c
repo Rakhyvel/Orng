@@ -56,7 +56,7 @@ int64_t _1093_main(void){
     _1093_t8 = ((int64_t*)&_1094_x + _1093_t6);
     _1093_t9 = 4;
     _1094_y = (struct struct1) {_1093_t8, _1093_t9};
-    _1093_t11 = _1095_f;
+    _1093_t11 = (function2) _1095_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-copy-pos-bounds-check.orng:5:9:\n    y[f()] = 0\n       ^";
     _1093_t12 = _1093_t11();
     $line_idx--;

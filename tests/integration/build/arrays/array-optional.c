@@ -70,7 +70,7 @@ int64_t _34_main(void){
     int64_t _34_t11;
     uint64_t _34_t12;
     int64_t _34_$retval;
-    _34_t0 = _36_safe_div_vec;
+    _34_t0 = (function0) _36_safe_div_vec;
     _34_t3 = 216;
     _34_t4 = 432;
     _34_t5 = 648;
@@ -127,7 +127,7 @@ struct struct3 _36_safe_div_vec(struct struct2 _36_x, struct struct2 _36_y){
     _36_t2 = (struct struct4) {.tag=1};
     _36_t3 = (struct struct4) {.tag=1};
     _37_retval = (struct struct3) {_36_t1, _36_t2, _36_t3};
-    _36_t4 = _38_safe_div;
+    _36_t4 = (function5) _38_safe_div;
     _36_t6 = 0;
     _36_t7 = 3;
     _36_t8 = 0;
@@ -141,7 +141,7 @@ struct struct3 _36_safe_div_vec(struct struct2 _36_x, struct struct2 _36_y){
     _36_t11 = 3;
     $bounds_check(_36_t10, _36_t11, "tests/integration/arrays/array-optional.orng:9:12:\n    retval[0] = safe_div(x[0], y[0])\n          ^");
     *((struct struct4*)&_37_retval + _36_t10) = _36_t5;
-    _36_t12 = _38_safe_div;
+    _36_t12 = (function5) _38_safe_div;
     _36_t14 = 1;
     _36_t15 = 3;
     _36_t16 = 1;
@@ -155,7 +155,7 @@ struct struct3 _36_safe_div_vec(struct struct2 _36_x, struct struct2 _36_y){
     _36_t19 = 3;
     $bounds_check(_36_t18, _36_t19, "tests/integration/arrays/array-optional.orng:10:12:\n    retval[1] = safe_div(x[1], y[1])\n          ^");
     *((struct struct4*)&_37_retval + _36_t18) = _36_t13;
-    _36_t20 = _38_safe_div;
+    _36_t20 = (function5) _38_safe_div;
     _36_t22 = 2;
     _36_t23 = 3;
     _36_t24 = 2;

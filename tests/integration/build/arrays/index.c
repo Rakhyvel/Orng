@@ -48,7 +48,7 @@ int64_t _75_main(void){
     int64_t _75_t12;
     int64_t _75_t13;
     int64_t _75_$retval;
-    _75_t0 = _77_get_array;
+    _75_t0 = (function0) _77_get_array;
     _75_t2 = 15;
     _75_t3 = 16;
     $lines[$line_idx++] = "tests/integration/arrays/index.orng:3:32:\n    let x: [4]Int  = get_array(15, 16)\n                              ^";

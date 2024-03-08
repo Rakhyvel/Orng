@@ -37,7 +37,7 @@ int64_t _551_main(void){
     struct struct2 _551_t3;
     int64_t _551_t1;
     int64_t _551_$retval;
-    _551_t0 = _553_add_fields;
+    _551_t0 = (function0) _553_add_fields;
     _551_t2 = 2;
     _551_t4 = 450;
     _551_t5 = 50;

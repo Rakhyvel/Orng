@@ -33,7 +33,7 @@ int64_t _11_main(void){
     struct struct1* _11_t6;
     int64_t _11_t1;
     int64_t _11_$retval;
-    _11_t0 = _13_sum;
+    _11_t0 = (function0) _13_sum;
     _11_t3 = 200;
     _11_t4 = 0;
     _11_t5 = 9;

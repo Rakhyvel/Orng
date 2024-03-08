@@ -29,7 +29,7 @@ int64_t _388_main(void){
     int64_t _388_t3;
     int64_t _388_t1;
     int64_t _388_$retval;
-    _389_f = _390_add;
+    _389_f = (function0) _390_add;
     _388_t2 = 200;
     _388_t3 = 43;
     $lines[$line_idx++] = "tests/integration/comptime/type-alias-function.orng:6:7:\n    f(200, 43)\n     ^";

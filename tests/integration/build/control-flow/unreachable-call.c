@@ -22,7 +22,7 @@ int64_t _495_main(void){
     function0 _495_t0;
     int64_t _495_t1;
     int64_t _495_$retval;
-    _495_t0 = _497_f;
+    _495_t0 = (function0) _497_f;
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:2:21:\nfn main() -> Int {f()}\n                   ^";
     _495_t1 = _495_t0();
     $line_idx--;
@@ -34,7 +34,7 @@ int64_t _497_f(void){
     function0 _497_t0;
     int64_t _497_t1;
     int64_t _497_$retval;
-    _497_t0 = _499_g;
+    _497_t0 = (function0) _499_g;
     $lines[$line_idx++] = "tests/integration/control-flow/unreachable-call.orng:4:18:\nfn f() -> Int {g()}\n                ^";
     _497_t1 = _497_t0();
     $line_idx--;

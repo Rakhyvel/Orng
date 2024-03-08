@@ -32,7 +32,7 @@ int64_t _1083_main(void){
     struct struct1 _1084_x;
     uint64_t _1083_t2;
     int64_t _1083_$retval;
-    _1083_t0 = _1085_f;
+    _1083_t0 = (function0) _1085_f;
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
     _1083_t1 = _1083_t0();
     $line_idx--;

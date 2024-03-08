@@ -40,7 +40,7 @@ int64_t _642_main(void){
     uint64_t _642_t10;
     int64_t _642_t6;
     int64_t _642_$retval;
-    _642_t1 = _644_f;
+    _642_t1 = (function0) _644_f;
     _642_t3 = 1;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:8:\n    (f(true) catch 122) + (f(false) catch 122)\n      ^";
     _642_t2 = _642_t1(_642_t3);
@@ -58,7 +58,7 @@ BB779:
     _642_t0 = _642_t2._0;
     goto BB774;
 BB774:
-    _642_t7 = _644_f;
+    _642_t7 = (function0) _644_f;
     _642_t9 = 0;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:3:30:\n    (f(true) catch 122) + (f(false) catch 122)\n                            ^";
     _642_t8 = _642_t7(_642_t9);
@@ -94,7 +94,7 @@ struct struct1 _644_f(uint8_t _644_fail){
         goto BB770;
     }
 BB763:
-    _644_t1 = _649_g;
+    _644_t1 = (function2) _649_g;
     $lines[$line_idx++] = "tests/integration/errors/try.orng:8:23:\n        let x = try g()\n                     ^";
     _644_t2 = _644_t1();
     $line_idx--;

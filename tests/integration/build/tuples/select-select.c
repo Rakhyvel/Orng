@@ -22,33 +22,33 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1686_main(void);
+int64_t _1710_main(void);
 
 
 /* Function definitions */
-int64_t _1686_main(void){
-    int64_t _1686_t2;
-    int64_t _1686_t3;
-    struct struct0 _1686_t1;
-    int64_t _1686_t5;
-    int64_t _1686_t6;
-    struct struct0 _1686_t4;
-    struct struct1 _1687_x;
-    int64_t _1686_$retval;
-    _1686_t2 = 1;
-    _1686_t3 = 2;
-    _1686_t1 = (struct struct0) {_1686_t2, _1686_t3};
-    _1686_t5 = 3;
-    _1686_t6 = 4;
-    _1686_t4 = (struct struct0) {_1686_t5, _1686_t6};
-    _1687_x = (struct struct1) {_1686_t1, _1686_t4};
-    _1687_x._0._0 = 77;
-    _1686_$retval = _1687_x._0._0;
-    return _1686_$retval;
+int64_t _1710_main(void){
+    int64_t _1710_t2;
+    int64_t _1710_t3;
+    struct struct0 _1710_t1;
+    int64_t _1710_t5;
+    int64_t _1710_t6;
+    struct struct0 _1710_t4;
+    struct struct1 _1711_x;
+    int64_t _1710_$retval;
+    _1710_t2 = 1;
+    _1710_t3 = 2;
+    _1710_t1 = (struct struct0) {_1710_t2, _1710_t3};
+    _1710_t5 = 3;
+    _1710_t6 = 4;
+    _1710_t4 = (struct struct0) {_1710_t5, _1710_t6};
+    _1711_x = (struct struct1) {_1710_t1, _1710_t4};
+    _1711_x._0._0 = 77;
+    _1710_$retval = _1711_x._0._0;
+    return _1710_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1686_main());
+  printf("%ld",_1710_main());
   return 0;
 }

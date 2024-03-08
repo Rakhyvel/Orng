@@ -35,7 +35,7 @@ int64_t _614_main(void){
     uint64_t _614_t6;
     uint64_t _614_t7;
     uint8_t _614_t8;
-    _614_t1 = _620_f;
+    _614_t1 = (function0) _620_f;
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:3:13:\n    match f() {\n           ^";
     _614_t2 = _614_t1();
     $line_idx--;

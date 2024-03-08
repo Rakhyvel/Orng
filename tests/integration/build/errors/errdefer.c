@@ -40,13 +40,13 @@ int64_t _590_main(void){
     int64_t _590_$retval;
     _591_x = 10;
     _591_y = 10;
-    _590_t2 = _592_f;
+    _590_t2 = (function0) _592_f;
     _590_t4 = &_591_x;
     _590_t5 = 1;
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:11:\n    _ = f(&mut x, true)\n         ^";
     (void) _590_t2(_590_t4, _590_t5);
     $line_idx--;
-    _590_t7 = _592_f;
+    _590_t7 = (function0) _592_f;
     _590_t9 = &_591_y;
     _590_t10 = 0;
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:11:\n    _ = f(&mut y, false)\n         ^";

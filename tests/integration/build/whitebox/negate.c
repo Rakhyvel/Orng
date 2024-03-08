@@ -7,41 +7,41 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1760_main(void);
+int64_t _1784_main(void);
 
 
 /* Function definitions */
-int64_t _1760_main(void){
-    int64_t _1761_x;
-    int64_t* _1761_y;
-    int64_t _1760_t3;
-    int64_t _1760_t5;
-    uint8_t _1760_t7;
-    int64_t _1760_t2;
-    int64_t _1760_$retval;
-    _1761_x = 1;
-    _1761_y = &_1761_x;
-    _1760_t3 = $negate_int64_t(*_1761_y, "tests/integration/whitebox/negate.orng:5:9:\n    if -y^ == -1 {\n       ^");
-    _1760_t5 = -1;
-    _1760_t7 = _1760_t3==_1760_t5;
-    if (_1760_t7) {
-        goto BB2022;
+int64_t _1784_main(void){
+    int64_t _1785_x;
+    int64_t* _1785_y;
+    int64_t _1784_t3;
+    int64_t _1784_t5;
+    uint8_t _1784_t7;
+    int64_t _1784_t2;
+    int64_t _1784_$retval;
+    _1785_x = 1;
+    _1785_y = &_1785_x;
+    _1784_t3 = $negate_int64_t(*_1785_y, "tests/integration/whitebox/negate.orng:5:9:\n    if -y^ == -1 {\n       ^");
+    _1784_t5 = -1;
+    _1784_t7 = _1784_t3==_1784_t5;
+    if (_1784_t7) {
+        goto BB2034;
     } else {
-        goto BB2026;
+        goto BB2038;
     }
-BB2022:
-    _1760_t2 = 32;
-    goto BB2025;
-BB2026:
-    _1760_t2 = 10;
-    goto BB2025;
-BB2025:
-    _1760_$retval = _1760_t2;
-    return _1760_$retval;
+BB2034:
+    _1784_t2 = 32;
+    goto BB2037;
+BB2038:
+    _1784_t2 = 10;
+    goto BB2037;
+BB2037:
+    _1784_$retval = _1784_t2;
+    return _1784_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1760_main());
+  printf("%ld",_1784_main());
   return 0;
 }

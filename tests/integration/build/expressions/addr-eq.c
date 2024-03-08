@@ -38,7 +38,7 @@ int64_t _666_main(void){
     int64_t _666_$retval;
     _667_x = 4;
     _667_y = 4;
-    _666_t3 = _671_addr_equal;
+    _666_t3 = (function0) _671_addr_equal;
     _666_t5 = &_667_x;
     _666_t6 = &_667_x;
     $lines[$line_idx++] = "tests/integration/expressions/addr-eq.orng:5:19:\n    if addr_equal(&x, &x) and not addr_equal(&x, &y) {\n                 ^";
@@ -50,7 +50,7 @@ int64_t _666_main(void){
         goto BB813;
     }
 BB808:
-    _666_t7 = _671_addr_equal;
+    _666_t7 = (function0) _671_addr_equal;
     _666_t9 = &_667_x;
     _666_t10 = &_667_y;
     $lines[$line_idx++] = "tests/integration/expressions/addr-eq.orng:5:46:\n    if addr_equal(&x, &x) and not addr_equal(&x, &y) {\n                                            ^";

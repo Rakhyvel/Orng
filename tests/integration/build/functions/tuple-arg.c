@@ -32,7 +32,7 @@ int64_t _1042_main(void){
     struct struct1 _1042_t2;
     int64_t _1042_t1;
     int64_t _1042_$retval;
-    _1042_t0 = _1044_add;
+    _1042_t0 = (function0) _1044_add;
     _1042_t3 = 100;
     _1042_t4 = 90;
     _1042_t5 = 7;
