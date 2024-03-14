@@ -25,30 +25,30 @@ int64_t _578_main(void);
 int64_t _578_main(void){
     int64_t _578_t0;
     struct struct0 _579_x;
-    uint64_t _578_t3;
-    int64_t _578_t4;
-    uint8_t _578_t6;
-    int64_t _578_t2;
+    uint64_t _578_t4;
+    int64_t _578_t5;
+    uint8_t _578_t7;
+    int64_t _578_t3;
     int64_t _578_$retval;
     _578_t0 = 0;
     _579_x = (struct struct0) {.tag=0, ._0=_578_t0};
-    _578_t3 = 0;
     _578_t4 = 0;
-    $tag_check(_578_t3, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
-    _578_t6 = _579_x._0==_578_t4;
-    if (_578_t6) {
-        goto BB672;
+    _578_t5 = 0;
+    $tag_check(_578_t4, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
+    _578_t7 = _579_x._0==_578_t5;
+    if (_578_t7) {
+        goto BB665;
     } else {
-        goto BB676;
+        goto BB669;
     }
-BB672:
-    _578_t2 = 133;
-    goto BB675;
-BB676:
-    _578_t2 = 0;
-    goto BB675;
-BB675:
-    _578_$retval = _578_t2;
+BB665:
+    _578_t3 = 133;
+    goto BB668;
+BB669:
+    _578_t3 = 0;
+    goto BB668;
+BB668:
+    _578_$retval = _578_t3;
     return _578_$retval;
 }
 

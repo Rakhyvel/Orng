@@ -26,12 +26,12 @@ int64_t _529_main(void);
 int64_t _529_main(void){
     int64_t _529_t0;
     struct struct0 _530_x;
-    uint64_t _529_t2;
+    uint64_t _529_t3;
     int64_t _529_$retval;
     _529_t0 = 139;
     _530_x = (struct struct0) {.tag=0, ._0=_529_t0};
-    _529_t2 = 0;
-    $tag_check(_529_t2, 0, "tests/integration/default/default-error.orng:2:3:\nfn main() -> Int {\n ^");
+    _529_t3 = 0;
+    $tag_check(_529_t3, 0, "tests/integration/default/default-error.orng:2:3:\nfn main() -> Int {\n ^");
     _529_$retval = _530_x._0;
     return _529_$retval;
 }

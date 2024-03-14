@@ -1,0 +1,5 @@
+fn main() -> Bool {
+    let x = true
+    let y = false
+    x < y
+}

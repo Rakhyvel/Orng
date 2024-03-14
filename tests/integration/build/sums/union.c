@@ -31,34 +31,34 @@ char* string_0 = "\x4C\x6D\x61\x6F\x21";
 char* string_1 = "\x6C\x6F\x6C";
 
 /* Function forward definitions */
-int64_t _1529_main(void);
+int64_t _1537_main(void);
 
 
 /* Function definitions */
-int64_t _1529_main(void){
-    int64_t _1529_t0;
-    struct struct0 _1530_x;
-    struct struct1 _1529_t2;
-    struct struct1 _1529_t4;
-    int64_t _1529_t6;
-    uint64_t _1529_t8;
-    int64_t _1529_$retval;
-    _1529_t0 = 3;
-    _1530_x = (struct struct0) {.tag=0, ._0=_1529_t0};
-    _1529_t2 = (struct struct1) {(uint8_t*)string_0, 5};
-    _1530_x = (struct struct0) {.tag=1, ._1=_1529_t2};
-    _1529_t4 = (struct struct1) {(uint8_t*)string_1, 3};
-    _1530_x = (struct struct0) {.tag=3, ._3=_1529_t4};
-    _1529_t6 = 108;
-    _1530_x = (struct struct0) {.tag=2, ._2=_1529_t6};
-    _1529_t8 = 2;
-    $tag_check(_1529_t8, 2, "tests/integration/sums/union.orng:6:3:\nfn main()->Int {\n ^");
-    _1529_$retval = _1530_x._2;
-    return _1529_$retval;
+int64_t _1537_main(void){
+    int64_t _1537_t0;
+    struct struct0 _1538_x;
+    struct struct1 _1537_t3;
+    struct struct1 _1537_t5;
+    int64_t _1537_t7;
+    uint64_t _1537_t9;
+    int64_t _1537_$retval;
+    _1537_t0 = 3;
+    _1538_x = (struct struct0) {.tag=0, ._0=_1537_t0};
+    _1537_t3 = (struct struct1) {(uint8_t*)string_0, 5};
+    _1538_x = (struct struct0) {.tag=1, ._1=_1537_t3};
+    _1537_t5 = (struct struct1) {(uint8_t*)string_1, 3};
+    _1538_x = (struct struct0) {.tag=3, ._3=_1537_t5};
+    _1537_t7 = 108;
+    _1538_x = (struct struct0) {.tag=2, ._2=_1537_t7};
+    _1537_t9 = 2;
+    $tag_check(_1537_t9, 2, "tests/integration/sums/union.orng:6:3:\nfn main()->Int {\n ^");
+    _1537_$retval = _1538_x._2;
+    return _1537_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1529_main());
+  printf("%ld",_1537_main());
   return 0;
 }

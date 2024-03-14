@@ -44,32 +44,32 @@ int64_t _996_main(void){
 
 int64_t _998_sum_down(int64_t _998_x){
     int64_t _1000_i;
-    int64_t _998_t1;
-    uint8_t _998_t2;
-    function1 _998_t3;
-    int64_t* _998_t5;
-    int64_t _998_t6;
+    int64_t _998_t2;
+    uint8_t _998_t3;
+    function1 _998_t4;
+    int64_t* _998_t6;
+    int64_t _998_t7;
     int64_t _998_$retval;
     _1000_i = _998_x;
-    goto BB1195;
-BB1195:
-    _998_t1 = 0;
-    _998_t2 = _1000_i>=_998_t1;
-    if (_998_t2) {
-        goto BB1196;
+    goto BB1188;
+BB1188:
+    _998_t2 = 0;
+    _998_t3 = _1000_i>=_998_t2;
+    if (_998_t3) {
+        goto BB1189;
     } else {
-        goto BB1201;
+        goto BB1194;
     }
-BB1196:
-    _998_t3 = (function1) _1003_inc;
-    _998_t5 = &_998_x;
+BB1189:
+    _998_t4 = (function1) _1003_inc;
+    _998_t6 = &_998_x;
     $lines[$line_idx++] = "tests/integration/functions/mut-param-addrof.orng:6:13:\n        inc(&mut x, i)\n           ^";
-    (void) _998_t3(_998_t5, _1000_i);
+    (void) _998_t4(_998_t6, _1000_i);
     $line_idx--;
-    _998_t6 = 1;
-    _1000_i = $sub_int64_t(_1000_i, _998_t6, "tests/integration/functions/mut-param-addrof.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
-    goto BB1195;
-BB1201:
+    _998_t7 = 1;
+    _1000_i = $sub_int64_t(_1000_i, _998_t7, "tests/integration/functions/mut-param-addrof.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
+    goto BB1188;
+BB1194:
     _998_$retval = _998_x;
     return _998_$retval;
 }

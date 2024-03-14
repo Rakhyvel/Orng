@@ -41,50 +41,50 @@ function0 _328_g(int64_t _328_x){
     _328_t1 = 0;
     _328_t2 = _328_x==_328_t1;
     if (_328_t2) {
-        goto BB369;
+        goto BB362;
     } else {
-        goto BB372;
+        goto BB365;
     }
-BB369:
+BB362:
     _328_t0 = (function0) _336_add;
-    goto BB371;
-BB372:
+    goto BB364;
+BB365:
     _328_t3 = 1;
     _328_t4 = _328_x==_328_t3;
     if (_328_t4) {
-        goto BB374;
+        goto BB367;
     } else {
-        goto BB375;
+        goto BB368;
     }
-BB371:
+BB364:
     _328_$retval = _328_t0;
     return _328_$retval;
-BB374:
+BB367:
     _328_t0 = (function0) _338_sub;
-    goto BB371;
-BB375:
+    goto BB364;
+BB368:
     _328_t5 = 2;
     _328_t6 = _328_x==_328_t5;
     if (_328_t6) {
-        goto BB377;
+        goto BB370;
     } else {
-        goto BB378;
+        goto BB371;
     }
-BB377:
+BB370:
     _328_t0 = (function0) _340_mul;
-    goto BB371;
-BB378:
+    goto BB364;
+BB371:
     _328_t7 = 3;
     _328_t8 = _328_x==_328_t7;
     if (_328_t8) {
-        goto BB380;
+        goto BB373;
     } else {
-        goto BB382;
+        goto BB375;
     }
-BB380:
+BB373:
     _328_t0 = (function0) _342_div;
-    goto BB371;
-BB382:
+    goto BB364;
+BB375:
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:13:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }
@@ -114,18 +114,18 @@ int64_t _342_div(int64_t _342_x, int64_t _342_y){
 }
 
 int64_t _319_main(void){
-    function0 _319_t1;
-    int64_t _319_t3;
+    function0 _319_t2;
     int64_t _319_t4;
-    int64_t _319_t2;
+    int64_t _319_t5;
+    int64_t _319_t3;
     int64_t _319_$retval;
-    _319_t1 = (function0) _340_mul;
-    _319_t3 = 66;
-    _319_t4 = 4;
+    _319_t2 = (function0) _340_mul;
+    _319_t4 = 66;
+    _319_t5 = 4;
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:4:7:\n    f(66, 4)\n     ^";
-    _319_t2 = _319_t1(_319_t3, _319_t4);
+    _319_t3 = _319_t2(_319_t4, _319_t5);
     $line_idx--;
-    _319_$retval = _319_t2;
+    _319_$retval = _319_t3;
     return _319_$retval;
 }
 

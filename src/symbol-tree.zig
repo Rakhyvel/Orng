@@ -59,7 +59,6 @@ fn symbol_table_from_AST(
         .negate,
         .dereference,
         .slice_of,
-        .discard,
         .dyn_type,
         .dyn_value,
         => try symbol_table_from_AST(ast.expr(), scope, errors, allocator),
@@ -240,7 +239,11 @@ fn symbol_table_from_AST(
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.impl.scope = new_scope;
             if (ast.impl.trait == null) {
-                ast.impl.trait = ast_.AST.create_trait(ast.token(), ast.impl.method_defs, allocator);
+                var token = ast.token();
+                token.kind = .identifier;
+                token.data = next_anon_name("trait", allocator);
+                ast.impl.trait = ast_.AST.create_trait(token, ast.impl.method_defs, allocator);
+                ast.impl.impls_anon_trait = true;
             }
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
@@ -420,7 +423,7 @@ fn create_function_symbol(
 
     // Create the function scope
     var fn_scope = symbol_.Scope.init(scope, "", allocator);
-    fn_scope.in_function = scope.in_function + 1;
+    fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
     try symbol_table_from_AST_list(ast.children().*, fn_scope, errors, allocator);
@@ -574,7 +577,7 @@ fn create_temp_comptime_symbol(
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
     var comptime_scope = symbol_.Scope.init(scope, "", allocator);
-    comptime_scope.in_function = scope.in_function;
+    comptime_scope.function_depth = scope.function_depth + 1;
 
     // Choose name
     var buf: []const u8 = undefined;
@@ -651,7 +654,7 @@ fn create_method_symbol(
 
     // Create the function scope
     var fn_scope = symbol_.Scope.init(scope, "", allocator);
-    fn_scope.in_function = scope.in_function + 1;
+    fn_scope.function_depth = scope.function_depth + 1;
 
     // Recurse parameters and init
     try symbol_table_from_AST_list(ast.children().*, fn_scope, errors, allocator);

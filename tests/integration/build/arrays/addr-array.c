@@ -29,10 +29,10 @@ int64_t _5_main(void){
     int64_t _5_t4;
     struct struct0 _6_x;
     struct struct0* _6_y;
-    int64_t _5_t7;
-    int64_t _5_t8;
     int64_t _5_t9;
     int64_t _5_t10;
+    int64_t _5_t11;
+    int64_t _5_t12;
     int64_t _5_$retval;
     _5_t1 = 1;
     _5_t2 = 2;
@@ -40,14 +40,14 @@ int64_t _5_main(void){
     _5_t4 = 4;
     _6_x = (struct struct0) {_5_t1, _5_t2, _5_t3, _5_t4};
     _6_y = &_6_x;
-    _5_t7 = 2;
-    _5_t8 = 4;
-    $bounds_check(_5_t7, _5_t8, "tests/integration/arrays/addr-array.orng:5:15:\n    y^[2] = 70\n             ^");
-    *((int64_t*)_6_y + _5_t7) = 70;
     _5_t9 = 2;
     _5_t10 = 4;
-    $bounds_check(_5_t9, _5_t10, "tests/integration/arrays/addr-array.orng:2:3:\nfn main() -> Int {\n ^");
-    _5_$retval = *((int64_t*)_6_y + _5_t9);
+    $bounds_check(_5_t9, _5_t10, "tests/integration/arrays/addr-array.orng:5:15:\n    y^[2] = 70\n             ^");
+    *((int64_t*)_6_y + _5_t9) = 70;
+    _5_t11 = 2;
+    _5_t12 = 4;
+    $bounds_check(_5_t11, _5_t12, "tests/integration/arrays/addr-array.orng:2:3:\nfn main() -> Int {\n ^");
+    _5_$retval = *((int64_t*)_6_y + _5_t11);
     return _5_$retval;
 }
 

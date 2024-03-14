@@ -34,18 +34,18 @@ int64_t _51_main(void){
     struct struct0 _51_t2;
     struct struct0 _51_t3;
     struct struct1 _52_x;
-    function2 _51_t4;
-    int64_t _51_t5;
+    function2 _51_t5;
+    int64_t _51_t6;
     int64_t _51_$retval;
     _51_t1 = (struct struct0) {.tag=0};
     _51_t2 = (struct struct0) {.tag=1};
     _51_t3 = (struct struct0) {.tag=2};
     _52_x = (struct struct1) {_51_t1, _51_t2, _51_t3};
-    _51_t4 = (function2) _53_f;
+    _51_t5 = (function2) _53_f;
     $lines[$line_idx++] = "tests/integration/arrays/array-sum.orng:6:7:\n    f(x)\n     ^";
-    _51_t5 = _51_t4(_52_x);
+    _51_t6 = _51_t5(_52_x);
     $line_idx--;
-    _51_$retval = _51_t5;
+    _51_$retval = _51_t6;
     return _51_$retval;
 }
 

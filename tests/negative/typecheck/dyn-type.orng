@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let x: &dyn Int = 4
+    5
+}

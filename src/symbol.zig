@@ -19,7 +19,7 @@ pub const Scope = struct {
     name: []const u8,
     uid: usize,
 
-    in_function: usize = 0,
+    function_depth: usize = 0,
     in_loop: bool = false,
     defers: std.ArrayList(*ast_.AST),
     errdefers: std.ArrayList(*ast_.AST),
@@ -40,12 +40,12 @@ pub const Scope = struct {
         if (parent) |_parent| {
             _parent.children.append(retval) catch unreachable;
             retval.in_loop = _parent.in_loop;
-            retval.in_function = _parent.in_function;
+            retval.function_depth = _parent.function_depth;
             retval.inner_function = _parent.inner_function;
             retval.module = _parent.module;
         } else {
             retval.in_loop = false;
-            retval.in_function = 0;
+            retval.function_depth = 0;
             retval.inner_function = null;
             retval.module = null;
         }
@@ -62,8 +62,8 @@ pub const Scope = struct {
                 return Lookup_Result{ .found = symbol };
             }
         } else if (self.parent) |parent| {
-            const res = parent.lookup(name, parent.in_function < self.in_function or crossed_boundary);
-            if (false and res == .found_but_fn and self.inner_function.?.kind == ._comptime) {
+            const res = parent.lookup(name, parent.function_depth < self.function_depth or crossed_boundary);
+            if (res == .found_but_fn and self.inner_function.?.kind == .@"comptime") {
                 // If have to cross a `comptime` boundary, change fn error to rt error
                 return .found_but_rt;
             } else {
@@ -80,7 +80,7 @@ pub const Scope = struct {
     ///
     /// `for_type` doesn't necessarily need to be a valid type to match. It is not expanded.
     pub fn impl_trait_lookup(self: *Scope, for_type: *ast_.AST, trait: ?*Symbol) ?*ast_.AST {
-        // Go through the list of implementations, check to see if the types and traits match
+        // Go through the scope's list of implementations, check to see if the types and traits match
         for (self.impls.items) |impl| {
             if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
                 // Types do not match
@@ -91,6 +91,9 @@ pub const Scope = struct {
             } else if (impl.impl.trait != null and impl.impl.trait.?.symbol() == trait.?) {
                 // non-null trait, types match => found impl
                 return impl;
+            } else if (impl.impl.trait != null and impl.impl.trait.?.symbol() != trait.? and !impl.impl.impls_anon_trait) {
+                // non-null, non-anon trait, types match, wrong impl!
+                continue;
             } else {
                 // null trait, types match => found impl
                 return impl;

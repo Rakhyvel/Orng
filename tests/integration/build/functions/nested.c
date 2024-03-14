@@ -62,28 +62,28 @@ int64_t _1026_fib(int64_t _1026_n){
     _1026_t1 = 0;
     _1026_t2 = _1026_n==_1026_t1;
     if (_1026_t2) {
-        goto BB1227;
+        goto BB1220;
     } else {
-        goto BB1230;
+        goto BB1223;
     }
-BB1227:
+BB1220:
     _1026_t0 = 0;
-    goto BB1229;
-BB1230:
+    goto BB1222;
+BB1223:
     _1026_t3 = 1;
     _1026_t4 = _1026_n==_1026_t3;
     if (_1026_t4) {
-        goto BB1232;
+        goto BB1225;
     } else {
-        goto BB1234;
+        goto BB1227;
     }
-BB1229:
+BB1222:
     _1026_$retval = _1026_t0;
     return _1026_$retval;
-BB1232:
+BB1225:
     _1026_t0 = 1;
-    goto BB1229;
-BB1234:
+    goto BB1222;
+BB1227:
     _1026_t7 = (function1) _1032_add;
     _1026_t9 = (function0) _1026_fib;
     _1026_t11 = 1;
@@ -101,7 +101,7 @@ BB1234:
     _1026_t8 = _1026_t7(_1026_t10, _1026_t14);
     $line_idx--;
     _1026_t0 = _1026_t8;
-    goto BB1229;
+    goto BB1222;
 }
 
 int64_t _1032_add(int64_t _1032_x, int64_t _1032_y){

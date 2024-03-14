@@ -31,22 +31,22 @@ int64_t _1070_main(void){
     int64_t _1070_t3;
     int64_t _1070_t4;
     struct struct0 _1071_x;
-    function1 _1070_t5;
-    int64_t _1070_t6;
+    function1 _1070_t6;
     int64_t _1070_t7;
+    int64_t _1070_t8;
     int64_t _1070_$retval;
     _1070_t1 = 0;
     _1070_t2 = 0;
     _1070_t3 = 0;
     _1070_t4 = 0;
     _1071_x = (struct struct0) {_1070_t1, _1070_t2, _1070_t3, _1070_t4};
-    _1070_t5 = (function1) _1072_f;
+    _1070_t6 = (function1) _1072_f;
     $lines[$line_idx++] = "tests/integration/lint/array-neg-bounds-check.orng:4:9:\n    x[f()]\n       ^";
-    _1070_t6 = _1070_t5();
+    _1070_t7 = _1070_t6();
     $line_idx--;
-    _1070_t7 = 4;
-    $bounds_check(_1070_t6, _1070_t7, "tests/integration/lint/array-neg-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
-    _1070_$retval = *((int64_t*)&_1071_x + _1070_t6);
+    _1070_t8 = 4;
+    $bounds_check(_1070_t7, _1070_t8, "tests/integration/lint/array-neg-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
+    _1070_$retval = *((int64_t*)&_1071_x + _1070_t7);
     return _1070_$retval;
 }
 

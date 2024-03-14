@@ -14,27 +14,27 @@ int64_t _517_main(void);
 int64_t _517_main(void){
     int64_t _518_x;
     int64_t _519_i;
-    int64_t _517_t3;
-    uint8_t _517_t4;
-    int64_t _517_t6;
+    int64_t _517_t5;
+    uint8_t _517_t6;
+    int64_t _517_t8;
     int64_t _517_$retval;
     _518_x = 0;
     _519_i = 0;
-    goto BB598;
-BB598:
-    _517_t3 = 10;
-    _517_t4 = _519_i<=_517_t3;
-    if (_517_t4) {
-        goto BB599;
+    goto BB591;
+BB591:
+    _517_t5 = 10;
+    _517_t6 = _519_i<=_517_t5;
+    if (_517_t6) {
+        goto BB592;
     } else {
-        goto BB604;
+        goto BB597;
     }
-BB599:
+BB592:
     _518_x = $add_int64_t(_518_x, _519_i, "tests/integration/control-flow/while.orng:5:16:\n        x = x + i\n              ^");
-    _517_t6 = 1;
-    _519_i = $add_int64_t(_519_i, _517_t6, "tests/integration/control-flow/while.orng:4:47:\n    while let mut i: Int = 0; i <= 10; i = i + 1 {\n                                             ^");
-    goto BB598;
-BB604:
+    _517_t8 = 1;
+    _519_i = $add_int64_t(_519_i, _517_t8, "tests/integration/control-flow/while.orng:4:47:\n    while let mut i: Int = 0; i <= 10; i = i + 1 {\n                                             ^");
+    goto BB591;
+BB597:
     _517_$retval = _518_x;
     return _517_$retval;
 }

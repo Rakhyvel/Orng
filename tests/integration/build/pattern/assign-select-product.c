@@ -17,39 +17,39 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1179_main(void);
+int64_t _1182_main(void);
 
 
 /* Function definitions */
-int64_t _1179_main(void){
-    int64_t _1179_t1;
-    int64_t _1179_t2;
-    int64_t _1179_t3;
-    struct struct0 _1180_x;
-    int64_t _1179_t5;
-    int64_t _1179_t6;
-    int64_t _1179_t7;
-    struct struct0 _1179_t4;
-    int64_t _1179_t8;
-    int64_t _1179_$retval;
-    _1179_t1 = 1;
-    _1179_t2 = 2;
-    _1179_t3 = 3;
-    _1180_x = (struct struct0) {_1179_t1, _1179_t2, _1179_t3};
-    _1179_t5 = 60;
-    _1179_t6 = 23;
-    _1179_t7 = 200;
-    _1179_t4 = (struct struct0) {_1179_t5, _1179_t6, _1179_t7};
-    _1180_x._1 = _1179_t4._0;
-    _1180_x._2 = _1179_t4._1;
-    _1180_x._0 = _1179_t4._2;
-    _1179_t8 = $sub_int64_t(_1180_x._0, _1180_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^");
-    _1179_$retval = $add_int64_t(_1179_t8, _1180_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
-    return _1179_$retval;
+int64_t _1182_main(void){
+    int64_t _1182_t1;
+    int64_t _1182_t2;
+    int64_t _1182_t3;
+    struct struct0 _1183_x;
+    int64_t _1182_t6;
+    int64_t _1182_t7;
+    int64_t _1182_t8;
+    struct struct0 _1182_t5;
+    int64_t _1182_t9;
+    int64_t _1182_$retval;
+    _1182_t1 = 1;
+    _1182_t2 = 2;
+    _1182_t3 = 3;
+    _1183_x = (struct struct0) {_1182_t1, _1182_t2, _1182_t3};
+    _1182_t6 = 60;
+    _1182_t7 = 23;
+    _1182_t8 = 200;
+    _1182_t5 = (struct struct0) {_1182_t6, _1182_t7, _1182_t8};
+    _1183_x._1 = _1182_t5._0;
+    _1183_x._2 = _1182_t5._1;
+    _1183_x._0 = _1182_t5._2;
+    _1182_t9 = $sub_int64_t(_1183_x._0, _1183_x._1, "tests/integration/pattern/assign-select-product.orng:5:10:\n    x.a - x.b + x.c\n        ^");
+    _1182_$retval = $add_int64_t(_1182_t9, _1183_x._2, "tests/integration/pattern/assign-select-product.orng:5:16:\n    x.a - x.b + x.c\n              ^");
+    return _1182_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1179_main());
+  printf("%ld",_1182_main());
   return 0;
 }

@@ -29,17 +29,17 @@ int64_t _906_main(void){
     _906_t2 = _906_t1(_906_t3);
     $line_idx--;
     if (_906_t2) {
-        goto BB1129;
+        goto BB1122;
     } else {
-        goto BB1133;
+        goto BB1126;
     }
-BB1129:
+BB1122:
     _906_t0 = 184;
-    goto BB1132;
-BB1133:
+    goto BB1125;
+BB1126:
     _906_t0 = 4;
-    goto BB1132;
-BB1132:
+    goto BB1125;
+BB1125:
     _906_$retval = _906_t0;
     return _906_$retval;
 }
@@ -54,17 +54,17 @@ uint8_t _911_f(int64_t _911_x){
     _911_t7 = $negate_int64_t(_911_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
     _911_t9 = _911_t6==_911_t7;
     if (_911_t9) {
-        goto BB1122;
+        goto BB1115;
     } else {
-        goto BB1125;
+        goto BB1118;
     }
-BB1122:
+BB1115:
     _911_t0 = 1;
-    goto BB1124;
-BB1125:
+    goto BB1117;
+BB1118:
     _911_t0 = 0;
-    goto BB1124;
-BB1124:
+    goto BB1117;
+BB1117:
     _911_$retval = _911_t0;
     return _911_$retval;
 }

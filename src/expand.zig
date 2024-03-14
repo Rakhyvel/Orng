@@ -6,7 +6,7 @@ const errs_ = @import("errors.zig");
 const primitives_ = @import("primitives.zig");
 const token_ = @import("token.zig");
 
-const Expand_Error = error{ParseError};
+const Expand_Error = error{TypeError};
 
 pub fn expand_from_list(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!void {
     for (asts.items) |ast| {
@@ -47,7 +47,6 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .negate,
         .dereference,
         .@"try",
-        .discard,
         .@"comptime",
         .addr_of,
         .slice_of,
@@ -102,7 +101,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                     errors.add_error(errs_.Error{
                         .duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
                     });
-                    return error.ParseError;
+                    return error.TypeError;
                 }
             }
 
@@ -218,6 +217,6 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             .span = ast.token().span,
             .msg = "invalid sum expression, must be annotation or identifier",
         } });
-        return error.ParseError;
+        return error.TypeError;
     }
 }

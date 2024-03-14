@@ -25,17 +25,17 @@ int64_t _390_add(int64_t _390_x, int64_t _390_y);
 /* Function definitions */
 int64_t _388_main(void){
     function0 _389_f;
-    int64_t _388_t2;
     int64_t _388_t3;
-    int64_t _388_t1;
+    int64_t _388_t4;
+    int64_t _388_t2;
     int64_t _388_$retval;
     _389_f = (function0) _390_add;
-    _388_t2 = 200;
-    _388_t3 = 43;
+    _388_t3 = 200;
+    _388_t4 = 43;
     $lines[$line_idx++] = "tests/integration/comptime/type-alias-function.orng:6:7:\n    f(200, 43)\n     ^";
-    _388_t1 = _389_f(_388_t2, _388_t3);
+    _388_t2 = _389_f(_388_t3, _388_t4);
     $line_idx--;
-    _388_$retval = _388_t1;
+    _388_$retval = _388_t2;
     return _388_$retval;
 }
 

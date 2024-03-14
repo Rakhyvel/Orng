@@ -29,17 +29,17 @@ int64_t _774_main(void){
     _774_t2 = _774_t1(_774_t3);
     $line_idx--;
     if (_774_t2) {
-        goto BB924;
+        goto BB917;
     } else {
-        goto BB928;
+        goto BB921;
     }
-BB924:
+BB917:
     _774_t0 = 191;
-    goto BB927;
-BB928:
+    goto BB920;
+BB921:
     _774_t0 = 4;
-    goto BB927;
-BB927:
+    goto BB920;
+BB920:
     _774_$retval = _774_t0;
     return _774_$retval;
 }

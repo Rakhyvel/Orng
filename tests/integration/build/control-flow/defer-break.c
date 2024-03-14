@@ -13,45 +13,45 @@ int64_t _431_main(void);
 /* Function definitions */
 int64_t _431_main(void){
     int64_t _432_x;
-    int64_t _431_t2;
-    uint8_t _431_t3;
-    int64_t _431_t5;
-    uint8_t _431_t6;
-    int64_t _431_$retval;
-    int64_t _431_t9;
+    int64_t _431_t3;
+    uint8_t _431_t4;
     int64_t _431_t7;
-    int64_t _431_t13;
+    uint8_t _431_t8;
+    int64_t _431_$retval;
+    int64_t _431_t11;
+    int64_t _431_t9;
+    int64_t _431_t15;
     _432_x = 0;
-    goto BB490;
-BB490:
-    _431_t2 = 100;
-    _431_t3 = _432_x<_431_t2;
-    if (_431_t3) {
+    goto BB483;
+BB483:
+    _431_t3 = 100;
+    _431_t4 = _432_x<_431_t3;
+    if (_431_t4) {
+        goto BB484;
+    } else {
+        goto BB488;
+    }
+BB484:
+    _431_t7 = 36;
+    _431_t8 = _432_x>=_431_t7;
+    if (_431_t8) {
+        goto BB486;
+    } else {
         goto BB491;
-    } else {
-        goto BB495;
     }
-BB491:
-    _431_t5 = 36;
-    _431_t6 = _432_x>=_431_t5;
-    if (_431_t6) {
-        goto BB493;
-    } else {
-        goto BB498;
-    }
-BB495:
+BB488:
     _431_$retval = _432_x;
     return _431_$retval;
-BB493:
+BB486:
+    _431_t11 = 2;
+    _432_x = $add_int64_t(_432_x, _431_t11, "tests/integration/control-flow/defer-break.orng:5:19:\n        defer x += 2\n                 ^");
+    goto BB488;
+BB491:
     _431_t9 = 2;
     _432_x = $add_int64_t(_432_x, _431_t9, "tests/integration/control-flow/defer-break.orng:5:19:\n        defer x += 2\n                 ^");
-    goto BB495;
-BB498:
-    _431_t7 = 2;
-    _432_x = $add_int64_t(_432_x, _431_t7, "tests/integration/control-flow/defer-break.orng:5:19:\n        defer x += 2\n                 ^");
-    _431_t13 = 1;
-    _432_x = $add_int64_t(_432_x, _431_t13, "tests/integration/control-flow/defer-break.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
-    goto BB490;
+    _431_t15 = 1;
+    _432_x = $add_int64_t(_432_x, _431_t15, "tests/integration/control-flow/defer-break.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
+    goto BB483;
 }
 
 

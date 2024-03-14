@@ -156,13 +156,15 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
+            const method_decl_has_receiver = decl.method_decl.receiver != null;
             const num_method_params = decl.children().items.len;
+
             try writer.print("    ", .{});
             try output_type(decl.method_decl.ret_type, writer);
             try writer.print("(*{s})(", .{decl.method_decl.name.token().data});
 
             // Output receiver parameter
-            if (decl.method_decl.receiver != null) {
+            if (method_decl_has_receiver) {
                 try writer.print("void*", .{});
                 if (num_method_params > 0) {
                     try writer.print(", ", .{});
@@ -179,8 +181,8 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
                     }
                 }
             }
-            if (num_method_params == 0) {
-                // If there are no parameters, mark parameter list as void
+            if (num_method_params + @intFromBool(method_decl_has_receiver) == 0) {
+                // If there are no parameters and no receiver, mark parameter list as void
                 try writer.print("void", .{});
             }
             try writer.print(");\n", .{});
@@ -528,7 +530,9 @@ fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
 /// Outputs the C code for an IR instruction after runtime checks have run.
 fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
     switch (ir.kind) {
-        .load_unit => {}, // Nop!
+        .load_unit => {
+            // Do nothing!
+        },
         .load_symbol => {
             if (ir.dest.?.get_expanded_type().* == .function) {
                 try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);

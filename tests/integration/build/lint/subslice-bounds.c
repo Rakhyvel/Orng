@@ -37,52 +37,52 @@ int64_t _1108_main(void){
     int64_t _1108_t3;
     int64_t _1108_t4;
     struct struct0 _1109_x;
-    int64_t _1108_t6;
     int64_t _1108_t7;
-    int64_t* _1108_t8;
-    int64_t _1108_t9;
+    int64_t _1108_t8;
+    int64_t* _1108_t9;
+    int64_t _1108_t10;
     struct struct1 _1109_y;
-    function2 _1108_t10;
-    int64_t _1108_t11;
-    int64_t _1108_t12;
-    uint8_t _1108_t13;
+    function2 _1108_t12;
+    int64_t _1108_t13;
     int64_t _1108_t14;
-    int64_t* _1108_t15;
+    uint8_t _1108_t15;
+    int64_t _1108_t16;
+    int64_t* _1108_t17;
     struct struct1 _1109_z;
-    int64_t _1108_t17;
+    int64_t _1108_t20;
     int64_t _1108_$retval;
     _1108_t1 = 0;
     _1108_t2 = 0;
     _1108_t3 = 0;
     _1108_t4 = 0;
     _1109_x = (struct struct0) {_1108_t1, _1108_t2, _1108_t3, _1108_t4};
-    _1108_t6 = 0;
-    _1108_t7 = 4;
-    $bounds_check(_1108_t6, _1108_t7, "tests/integration/lint/subslice-bounds.orng:4:16:\n    let y = []x\n              ^");
-    _1108_t8 = ((int64_t*)&_1109_x + _1108_t6);
-    _1108_t9 = 4;
-    _1109_y = (struct struct1) {_1108_t8, _1108_t9};
-    _1108_t10 = (function2) _1110_f;
+    _1108_t7 = 0;
+    _1108_t8 = 4;
+    $bounds_check(_1108_t7, _1108_t8, "tests/integration/lint/subslice-bounds.orng:4:16:\n    let y = []x\n              ^");
+    _1108_t9 = ((int64_t*)&_1109_x + _1108_t7);
+    _1108_t10 = 4;
+    _1109_y = (struct struct1) {_1108_t9, _1108_t10};
+    _1108_t12 = (function2) _1110_f;
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:17:\n    let z = y[f()..1]\n               ^";
-    _1108_t11 = _1108_t10();
+    _1108_t13 = _1108_t12();
     $line_idx--;
-    _1108_t12 = 1;
-    _1108_t13 = _1108_t11>_1108_t12;
-    if (_1108_t13) {
-        goto BB1297;
+    _1108_t14 = 1;
+    _1108_t15 = _1108_t13>_1108_t14;
+    if (_1108_t15) {
+        goto BB1290;
     } else {
-        goto BB1298;
+        goto BB1291;
     }
-BB1297:
+BB1290:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
     $panic("subslice lower bound is greater than upper bound\n");
-BB1298:
-    _1108_t14 = $sub_int64_t(_1108_t12, _1108_t11, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^");
-    _1108_t15 = _1109_y._0+_1108_t11;
-    _1109_z = (struct struct1) {_1108_t15, _1108_t14};
-    _1108_t17 = 0;
-    $bounds_check(_1108_t17, _1109_z._1, "tests/integration/lint/subslice-bounds.orng:2:3:\nfn main() -> Int {\n ^");
-    _1108_$retval = *((int64_t*)_1109_z._0 + _1108_t17);
+BB1291:
+    _1108_t16 = $sub_int64_t(_1108_t14, _1108_t13, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^");
+    _1108_t17 = _1109_y._0+_1108_t13;
+    _1109_z = (struct struct1) {_1108_t17, _1108_t16};
+    _1108_t20 = 0;
+    $bounds_check(_1108_t20, _1109_z._1, "tests/integration/lint/subslice-bounds.orng:2:3:\nfn main() -> Int {\n ^");
+    _1108_$retval = *((int64_t*)_1109_z._0 + _1108_t20);
     return _1108_$retval;
 }
 

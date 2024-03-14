@@ -29,17 +29,17 @@ int64_t _804_main(void){
     _804_t2 = _804_t1(_804_t3);
     $line_idx--;
     if (_804_t2) {
-        goto BB984;
+        goto BB977;
     } else {
-        goto BB988;
+        goto BB981;
     }
-BB984:
+BB977:
     _804_t0 = 188;
-    goto BB987;
-BB988:
+    goto BB980;
+BB981:
     _804_t0 = 4;
-    goto BB987;
-BB987:
+    goto BB980;
+BB980:
     _804_$retval = _804_t0;
     return _804_$retval;
 }

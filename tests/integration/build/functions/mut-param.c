@@ -35,26 +35,26 @@ int64_t _1006_main(void){
 
 int64_t _1008_sum_down(int64_t _1008_x){
     int64_t _1010_i;
-    int64_t _1008_t1;
-    uint8_t _1008_t2;
-    int64_t _1008_t4;
+    int64_t _1008_t2;
+    uint8_t _1008_t3;
+    int64_t _1008_t5;
     int64_t _1008_$retval;
     _1010_i = _1008_x;
-    goto BB1205;
-BB1205:
-    _1008_t1 = 0;
-    _1008_t2 = _1010_i>=_1008_t1;
-    if (_1008_t2) {
-        goto BB1206;
+    goto BB1198;
+BB1198:
+    _1008_t2 = 0;
+    _1008_t3 = _1010_i>=_1008_t2;
+    if (_1008_t3) {
+        goto BB1199;
     } else {
-        goto BB1211;
+        goto BB1204;
     }
-BB1206:
+BB1199:
     _1008_x = $add_int64_t(_1008_x, _1010_i, "tests/integration/functions/mut-param.orng:6:13:\n        x += i\n           ^");
-    _1008_t4 = 1;
-    _1010_i = $sub_int64_t(_1010_i, _1008_t4, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
-    goto BB1205;
-BB1211:
+    _1008_t5 = 1;
+    _1010_i = $sub_int64_t(_1010_i, _1008_t5, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
+    goto BB1198;
+BB1204:
     _1008_$retval = _1008_x;
     return _1008_$retval;
 }

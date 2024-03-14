@@ -28,17 +28,17 @@ int64_t _961_apply(function0 _961_f, int64_t _961_x);
 /* Function definitions */
 int64_t _957_main(void){
     function0 _958_id;
-    function1 _957_t1;
+    function1 _957_t2;
+    int64_t _957_t4;
     int64_t _957_t3;
-    int64_t _957_t2;
     int64_t _957_$retval;
     _958_id = (function0) _959_$anon93;
-    _957_t1 = (function1) _961_apply;
-    _957_t3 = 43;
+    _957_t2 = (function1) _961_apply;
+    _957_t4 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _957_t2 = _957_t1(_958_id, _957_t3);
+    _957_t3 = _957_t2(_958_id, _957_t4);
     $line_idx--;
-    _957_$retval = _957_t2;
+    _957_$retval = _957_t3;
     return _957_$retval;
 }
 

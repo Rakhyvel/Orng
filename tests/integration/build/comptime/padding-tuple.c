@@ -34,35 +34,35 @@ int64_t _303_f(struct struct0 _303_m){
     _303_t1 = 100;
     _303_t3 = _303_m._0==_303_t1;
     if (_303_t3) {
-        goto BB326;
+        goto BB319;
     } else {
-        goto BB336;
+        goto BB329;
     }
-BB326:
+BB319:
     _303_t4 = 50;
     _303_t6 = _303_m._1==_303_t4;
     if (_303_t6) {
-        goto BB329;
+        goto BB322;
     } else {
-        goto BB336;
+        goto BB329;
     }
-BB336:
-    _303_t0 = 0;
-    goto BB335;
 BB329:
+    _303_t0 = 0;
+    goto BB328;
+BB322:
     _303_t7 = 7;
     _303_t9 = _303_m._2==_303_t7;
     if (_303_t9) {
-        goto BB332;
+        goto BB325;
     } else {
-        goto BB336;
+        goto BB329;
     }
-BB335:
+BB328:
     _303_$retval = _303_t0;
     return _303_$retval;
-BB332:
+BB325:
     _303_t0 = 248;
-    goto BB335;
+    goto BB328;
 }
 
 int64_t _298_main(void){

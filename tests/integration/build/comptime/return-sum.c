@@ -36,35 +36,35 @@ struct struct0 _354_f(int64_t _354_x){
     _354_t1 = 53;
     _354_t3 = _354_x==_354_t1;
     if (_354_t3) {
-        goto BB391;
+        goto BB384;
     } else {
-        goto BB395;
+        goto BB388;
     }
-BB391:
+BB384:
     _354_t4 = 5;
     _354_t5 = $mult_int64_t(_354_x, _354_t4, "tests/integration/comptime/return-sum.orng:13:16:\n        .ok(x * 5)\n              ^");
     _354_t0 = (struct struct0) {.tag=0, ._0=_354_t5};
-    goto BB394;
-BB395:
+    goto BB387;
+BB388:
     _354_t8 = 4;
     _354_t10 = _354_x==_354_t8;
     if (_354_t10) {
-        goto BB398;
+        goto BB391;
     } else {
-        goto BB401;
+        goto BB394;
     }
-BB394:
+BB387:
     _354_$retval = _354_t0;
     return _354_$retval;
-BB398:
+BB391:
     _354_t7 = (struct struct0) {.tag=1};
-    goto BB400;
-BB401:
+    goto BB393;
+BB394:
     _354_t7 = (struct struct0) {.tag=2};
-    goto BB400;
-BB400:
+    goto BB393;
+BB393:
     _354_t0 = _354_t7;
-    goto BB394;
+    goto BB387;
 }
 
 int64_t _345_main(void){

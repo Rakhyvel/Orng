@@ -26,12 +26,12 @@ int64_t _598_main(void);
 int64_t _598_main(void){
     int64_t _598_t0;
     struct struct0 _599_x;
-    uint64_t _598_t2;
+    uint64_t _598_t3;
     int64_t _598_$retval;
     _598_t0 = 117;
     _599_x = (struct struct0) {.tag=1, ._1=_598_t0};
-    _598_t2 = 1;
-    $tag_check(_598_t2, 1, "tests/integration/errors/error.orng:2:3:\nfn main() -> Int {\n ^");
+    _598_t3 = 1;
+    $tag_check(_598_t3, 1, "tests/integration/errors/error.orng:2:3:\nfn main() -> Int {\n ^");
     _598_$retval = _599_x._1;
     return _598_$retval;
 }

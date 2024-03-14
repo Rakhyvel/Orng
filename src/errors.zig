@@ -184,15 +184,13 @@ pub const Error = union(enum) {
         span: span_.Span,
         forgotten: std.ArrayList(*ast_.AST),
     },
-    mismatch_call_arity: struct {
+    mismatch_arity: struct {
         span: span_.Span,
         takes: usize,
         given: usize,
-    },
-    mismatch_tuple_arity: struct {
-        span: span_.Span,
-        takes: usize,
-        given: usize,
+        thing_name: []const u8,
+        takes_name: []const u8,
+        given_name: []const u8,
     },
     no_default: struct {
         span: span_.Span,
@@ -208,33 +206,6 @@ pub const Error = union(enum) {
         span: span_.Span,
         expected: *ast_.AST,
         value: i128,
-    },
-
-    // Optimizer
-    out_of_bounds: struct {
-        span: span_.Span,
-        index: i128,
-        length: usize,
-    },
-    negative_index: struct {
-        span: span_.Span,
-        index: i128,
-    },
-    slice_lower_upper: struct {
-        span: span_.Span,
-        lower: i128,
-        upper: i128,
-    },
-    sum_select_inactive: struct {
-        span: span_.Span,
-        active: []const u8,
-        inactive: []const u8,
-    },
-    integer_overflow: struct {
-        span: span_.Span,
-        lhs: i128,
-        rhs: i128,
-        name: []const u8,
     },
 
     fn get_span(self: *const Error) ?span_.Span {
@@ -278,17 +249,10 @@ pub const Error = union(enum) {
             .modify_immutable => return self.modify_immutable.identifier.span,
             .not_indexable => return self.not_indexable.span,
             .non_exhaustive_sum => return self.non_exhaustive_sum.span,
-            .mismatch_call_arity => return self.mismatch_call_arity.span,
-            .mismatch_tuple_arity => return self.mismatch_tuple_arity.span,
+            .mismatch_arity => return self.mismatch_arity.span,
             .no_default => return self.no_default.span,
             .wrong_from => return self.wrong_from.span,
             .integer_out_of_bounds => return self.integer_out_of_bounds.span,
-
-            .out_of_bounds => return self.out_of_bounds.span,
-            .negative_index => return self.negative_index.span,
-            .slice_lower_upper => return self.slice_lower_upper.span,
-            .sum_select_inactive => return self.sum_select_inactive.span,
-            .integer_overflow => return self.integer_overflow.span,
         }
     }
 };
@@ -431,9 +395,9 @@ pub const Errors = struct {
                 });
             },
             .invoke_receiver_mismatch => {
-                try out.print("method `{s}` receiver `{s}` incompatible with type`", .{
-                    err.invoke_receiver_mismatch.method_name,
+                try out.print("receiver `{s}` of method `{s}` incompatible with type`", .{
                     err.invoke_receiver_mismatch.method_receiver.to_string(),
+                    err.invoke_receiver_mismatch.method_name,
                 });
                 try err.invoke_receiver_mismatch.lhs_type.print_type(out);
                 try out.print("`\n", .{});
@@ -510,20 +474,15 @@ pub const Errors = struct {
                 try out.print("` is not indexable\n", .{});
             },
             .non_exhaustive_sum => try out.print("match over sum type is not exhaustive\n", .{}),
-            .mismatch_call_arity => {
-                try out.print("function takes {} parameter{s}, {} argument{s} given\n", .{
-                    err.mismatch_call_arity.takes,
-                    if (err.mismatch_call_arity.takes == 1) "" else "s",
-                    err.mismatch_call_arity.given,
-                    if (err.mismatch_call_arity.given == 1) "" else "s",
-                });
-            },
-            .mismatch_tuple_arity => {
-                try out.print("expected tuple of {} term{s}, got tuple of {} term{s}\n", .{
-                    err.mismatch_tuple_arity.takes,
-                    if (err.mismatch_tuple_arity.takes == 1) "" else "s",
-                    err.mismatch_tuple_arity.given,
-                    if (err.mismatch_tuple_arity.given == 1) "" else "s",
+            .mismatch_arity => {
+                try out.print("{s} takes {} {s}{s}, {} {s}{s} given\n", .{
+                    err.mismatch_arity.thing_name,
+                    err.mismatch_arity.takes,
+                    err.mismatch_arity.takes_name,
+                    if (err.mismatch_arity.takes == 1) "" else "s",
+                    err.mismatch_arity.given,
+                    err.mismatch_arity.given_name,
+                    if (err.mismatch_arity.given == 1) "" else "s",
                 });
             },
             .no_default => {
@@ -543,32 +502,6 @@ pub const Errors = struct {
                 try out.print("error: integer is out of bounds for type `", .{});
                 try err.integer_out_of_bounds.expected.print_type(out);
                 try out.print("`; value={}\n", .{err.integer_out_of_bounds.value});
-            },
-
-            // Optimizer
-            .out_of_bounds => try out.print("index out of bounds; index {}, length {}\n", .{
-                err.out_of_bounds.index,
-                err.out_of_bounds.length,
-            }),
-            .negative_index => try out.print("index is negative; index {}\n", .{err.negative_index.index}),
-            .slice_lower_upper => {
-                try out.print("subslice lower bounds is greater than upper bound; lower {}, upper {}\n", .{
-                    err.slice_lower_upper.lower,
-                    err.slice_lower_upper.upper,
-                });
-            },
-            .sum_select_inactive => {
-                try out.print("access of sum field '{s}' while field '{s}' is active\n", .{
-                    err.sum_select_inactive.inactive,
-                    err.sum_select_inactive.active,
-                });
-            },
-            .integer_overflow => {
-                try out.print("integer {s} overflow with arguments: {}, {}\n", .{
-                    err.integer_overflow.name,
-                    err.integer_overflow.lhs,
-                    err.integer_overflow.rhs,
-                });
             },
         }
     }

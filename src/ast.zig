@@ -121,7 +121,6 @@ pub const AST = union(enum) {
         _expr: *AST,
         _symbol: ?*symbol_.Symbol, // `try`'s must be in functions. This is the function's symbol.
     },
-    discard: struct { common: AST_Common, _expr: *AST },
     @"comptime": struct {
         common: AST_Common,
         _expr: *AST,
@@ -193,6 +192,7 @@ pub const AST = union(enum) {
         method_defs: std.ArrayList(*AST),
         num_virtual_methods: i64 = 0,
         scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
+        impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
 
         pub fn find_method(self: @This(), name: []const u8) ?*AST {
             for (self.method_decls.items) |decl| {
@@ -211,11 +211,13 @@ pub const AST = union(enum) {
         scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
     },
+    /// A product-type of pointers to the vtable, and to the receiver
     dyn_type: struct {
         common: AST_Common,
         _expr: *AST,
         mut: bool,
     },
+    /// A product-value of pointers to the vtable, and to the receiver
     dyn_value: struct {
         common: AST_Common,
         dyn_type: *AST, // reference to the type of this value, since it is only created using address-ofs
@@ -526,10 +528,6 @@ pub const AST = union(enum) {
     pub fn create_try(_token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .@"try" = .{ .common = _common, ._expr = _expr, ._symbol = null } }, allocator);
-    }
-
-    pub fn create_discard(_token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
-        return AST.box(AST{ .discard = .{ .common = AST_Common{ ._token = _token, ._type = null }, ._expr = _expr } }, allocator);
     }
 
     pub fn create_comptime(_token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
@@ -1602,7 +1600,6 @@ pub const AST = union(enum) {
             .assign,
             .@"defer",
             .@"errdefer",
-            .discard,
             => return primitives_.unit_type,
 
             // Void type
@@ -2105,7 +2102,6 @@ pub const AST = union(enum) {
             .negate => try out.writer().print("negate({})", .{self.expr()}),
             .dereference => try out.writer().print("dereference()", .{}),
             .@"try" => try out.writer().print("try()", .{}),
-            .discard => try out.writer().print("discard()", .{}),
             .type_of => try out.writer().print("typeof({})", .{self.expr()}),
             .default => try out.writer().print("default({})", .{self.expr()}),
             .size_of => try out.writer().print("sizeOf({})", .{self.expr()}),

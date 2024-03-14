@@ -1,0 +1,4 @@
+trait My_Trait {
+    fn lol() -> ()
+    fn lol() -> ()
+}

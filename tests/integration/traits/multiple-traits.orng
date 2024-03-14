@@ -1,0 +1,29 @@
+// 303
+
+trait Trait_A {
+    virtual fn a(self) -> Int
+}
+
+trait Trait_B {
+    virtual fn b(self) -> Int
+}
+
+impl Trait_A for Int {
+    virtual fn a(self) -> Int { self }
+}
+
+impl Trait_B for Int {
+    virtual fn b(self) -> Int { self * 2 }
+}
+
+fn main() -> Int {
+    let x: Int = 3
+    let y: Int = 150
+    let x_d: &dyn Trait_A = &x
+    let y_d: &dyn Trait_B = &y
+    do_things((x_d, y_d))
+}
+
+fn do_things(t: (a: &dyn Trait_A, b: &dyn Trait_B)) -> Int {
+    t.a.>a() + t.b.>b()
+}

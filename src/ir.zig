@@ -637,7 +637,13 @@ pub const Data = union(enum) {
     string: []const u8,
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
-    invoke: struct { method_decl: *ast_.AST, method_decl_lval: ?*lval_.L_Value, lval_list: std.ArrayList(*lval_.L_Value), dyn_value: ?*lval_.L_Value },
+    invoke: struct {
+        method_decl: *ast_.AST,
+        method_decl_lval: ?*lval_.L_Value,
+        lval_list: std.ArrayList(*lval_.L_Value),
+        // Non-null when the call is through a vtable, regardless of if the method uses the receiver
+        dyn_value: ?*lval_.L_Value,
+    },
     dyn: struct { impl: *ast_.AST },
     select: struct { offset: i128, field: i128 },
     ast: *ast_.AST,
@@ -704,45 +710,21 @@ pub const Data = union(enum) {
         }
     }
 
-    pub fn add_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) error{Overflow}!Data {
+    pub fn add_int_overflow(self: Data, other: Data) error{Overflow}!Data {
         return Data{
-            .int = if (std.math.add(i128, self.int, other.int)) |res| res else |_| {
-                errors.add_error(errs_.Error{ .integer_overflow = .{
-                    .span = span,
-                    .name = "addition",
-                    .lhs = self.int,
-                    .rhs = other.int,
-                } });
-                return error.Overflow;
-            },
+            .int = std.math.add(i128, self.int, other.int) catch unreachable,
         };
     }
 
-    pub fn sub_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) error{Overflow}!Data {
+    pub fn sub_int_overflow(self: Data, other: Data) error{Overflow}!Data {
         return Data{
-            .int = if (std.math.sub(i128, self.int, other.int)) |res| res else |_| {
-                errors.add_error(errs_.Error{ .integer_overflow = .{
-                    .span = span,
-                    .name = "subtraction",
-                    .lhs = self.int,
-                    .rhs = other.int,
-                } });
-                return error.Overflow;
-            },
+            .int = std.math.sub(i128, self.int, other.int) catch unreachable,
         };
     }
 
-    pub fn mult_int_overflow(self: Data, other: Data, span: span_.Span, errors: *errs_.Errors) error{Overflow}!Data {
+    pub fn mult_int_overflow(self: Data, other: Data) error{Overflow}!Data {
         return Data{
-            .int = if (std.math.mul(i128, self.int, other.int)) |res| res else |_| {
-                errors.add_error(errs_.Error{ .integer_overflow = .{
-                    .span = span,
-                    .name = "multiplication",
-                    .lhs = self.int,
-                    .rhs = other.int,
-                } });
-                return error.Overflow;
-            },
+            .int = std.math.mul(i128, self.int, other.int) catch unreachable,
         };
     }
 };

@@ -39,17 +39,17 @@ int64_t _825_f(int64_t _825_x){
     _825_t1 = 0;
     _825_t3 = _825_t1==_825_x;
     if (_825_t3) {
-        goto BB1018;
+        goto BB1011;
     } else {
-        goto BB1014;
+        goto BB1007;
     }
-BB1018:
+BB1011:
     _825_t0 = 3;
-    goto BB1017;
-BB1014:
+    goto BB1010;
+BB1007:
     _825_t0 = 174;
-    goto BB1017;
-BB1017:
+    goto BB1010;
+BB1010:
     _825_$retval = _825_t0;
     return _825_$retval;
 }

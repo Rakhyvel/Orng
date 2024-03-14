@@ -619,7 +619,9 @@ pub const Parser = struct {
         } else if (self.accept(.period)) |_| {
             const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
             if (self.accept(.left_parenthesis) != null) {
-                sum_val.sum_value.init = try self.assignment_expr();
+                if (!self.peek_kind(.right_parenthesis)) {
+                    sum_val.sum_value.init = try self.assignment_expr();
+                }
                 _ = try self.expect(.right_parenthesis);
             }
             return sum_val;
@@ -1056,7 +1058,9 @@ pub const Parser = struct {
         } else if (self.accept(.period)) |_| {
             const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
             if (self.accept(.left_parenthesis) != null) {
-                sum_val.sum_value.init = try self.match_pattern_product();
+                if (!self.peek_kind(.right_parenthesis)) {
+                    sum_val.sum_value.init = try self.match_pattern_product();
+                }
                 _ = try self.expect(.right_parenthesis);
             }
             return sum_val;

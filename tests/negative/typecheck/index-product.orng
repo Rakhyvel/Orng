@@ -1,0 +1,6 @@
+fn main() -> Int {
+    let x: (a: Int, b: Char, c: Bool, d: Int)
+    x[f()]
+}
+
+fn f() -> Int { 3 }

@@ -13,6 +13,30 @@ const token_ = @import("token.zig");
 
 const Validate_Error_Enum = error{TypeError};
 
+const Validate_Args_Thing = enum {
+    function,
+    method,
+    product,
+
+    fn name(self: @This()) []const u8 {
+        return @tagName(self);
+    }
+
+    fn takes_name(self: @This()) []const u8 {
+        return switch (self) {
+            .function, .method => "parameter",
+            .product => "field",
+        };
+    }
+
+    fn given_name(self: @This()) []const u8 {
+        return switch (self) {
+            .function, .method => "argument",
+            .product => "value",
+        };
+    }
+};
+
 pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     try validate_scope(module.scope, errors, allocator);
 }
@@ -429,12 +453,6 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        .discard => {
-            ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
-            try assert_none_poisoned(ast.expr());
-            try type_check(ast, primitives_.unit_type, expected, errors);
-            return ast;
-        },
         .domain_of => {
             ast.domain_of.sum_type = validate_AST(ast.domain_of.sum_type, primitives_.type_type, errors, allocator);
             try assert_none_poisoned(ast.domain_of.sum_type);
@@ -453,7 +471,7 @@ fn validate_AST_internal(
             try assert_none_poisoned(ast.expr());
             const ast_type = ast.typeof(allocator);
             try type_check(ast, ast_type, expected, errors);
-            return generate_default(ast_type, errors, allocator);
+            return generate_default(ast_type, ast.expr().token().span, errors, allocator);
         },
         .size_of => {
             ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, errors, allocator));
@@ -547,23 +565,19 @@ fn validate_AST_internal(
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
                 return throw_wrong_from("function", "call", expanded_lhs_type, lhs_span, errors);
             }
-            if (ast.lhs().* == .sum_value and expanded_lhs_type.* != .sum_type) {
-                return throw_wrong_from("sum", "sum value", expanded_lhs_type, lhs_span, errors);
-            }
+
+            // since sum_values are always compiler constructed, and their type is always a sum-type, this should always hold
+            std.debug.assert(ast.lhs().* != .sum_value or expanded_lhs_type.* == .sum_type); // an `implies` operator would be cool btw...
+
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children((try validate_args(ast.children(), domain, ast.token().span, errors, allocator)).*);
+            ast.set_children((try validate_args(.function, ast.children(), domain, ast.token().span, errors, allocator)).*);
             try type_check(ast, codomain, expected, errors);
             if (ast.lhs().* == .sum_value) {
                 // lhs is a sum value, usurp its init with ast's rhs
-                if (ast.children().items.len == 0) {
-                    ast.lhs().sum_value.init = ast_.AST.create_unit_value(ast.token(), allocator);
-                } else if (ast.children().items.len == 1) {
-                    ast.lhs().sum_value.init = ast.children().items[0];
-                } else {
-                    ast.lhs().sum_value.init = ast_.AST.create_product(ast.token(), ast.children().*, allocator);
-                }
+                std.debug.assert(ast.children().items.len == 1);
+                ast.lhs().sum_value.init = ast.children().items[0];
                 return ast.lhs();
             }
             return ast;
@@ -688,7 +702,7 @@ fn validate_AST_internal(
                 }
             }
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children((try validate_args(ast.children(), domain, ast.token().span, errors, allocator)).*);
+            ast.set_children((try validate_args(.method, ast.children(), domain, ast.token().span, errors, allocator)).*);
 
             _ = ast.assert_valid();
             const ast_type = ast.typeof(allocator);
@@ -698,13 +712,11 @@ fn validate_AST_internal(
         .dyn_type => {
             ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
             if (ast.expr().* != .identifier) {
-                // Has to refer to a trait symbol
-                unreachable;
+                return throw_wrong_from("dyn", "trait", ast, ast.token().span, errors);
             }
             const symbol = ast.expr().symbol();
             if (symbol == null or symbol.?.kind != .trait) {
-                // Has to be a trait symbol
-                unreachable;
+                return throw_wrong_from("trait", "dyn", ast.expr(), ast.expr().token().span, errors);
             }
 
             try type_check(ast, primitives_.type_type, expected, errors);
@@ -759,7 +771,7 @@ fn validate_AST_internal(
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, errors, allocator));
-                ast.set_children((try validate_args(ast.children(), expanded_expected.?, ast.token().span, errors, allocator)).*);
+                ast.set_children((try validate_args(.product, ast.children(), expanded_expected.?, ast.token().span, errors, allocator)).*);
             } else if (expanded_expected == null or !primitives_.unit_type.types_match(expanded_expected.?)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
@@ -948,7 +960,7 @@ fn validate_AST_internal(
             if (ast.sum_value.init == null) {
                 // This may be usurped by a .call node
                 ast.sum_value.init = ast.sum_value.domain.?.annotation.init orelse
-                    try generate_default(ast.sum_value.domain.?.annotation.type, errors, allocator);
+                    try generate_default(ast.sum_value.domain.?.annotation.type, ast.token().span, errors, allocator);
             } else {
                 ast.sum_value.init = validate_AST(ast.sum_value.init.?, ast.sum_value.domain.?.annotation.type, errors, allocator);
             }
@@ -1137,16 +1149,12 @@ fn validate_AST_internal(
             return ast;
         },
         .method_decl => {
+            std.debug.assert(expected == null); // Why wouldn't it be?
             if (ast.symbol() != null) {
                 try validate_symbol(ast.symbol().?, errors, allocator);
                 try assert_none_poisoned(ast.symbol().?._type);
             }
             ast.method_decl.domain = validate_AST(ast.method_decl.domain.?, primitives_.type_type, errors, allocator);
-            if (expected) |_expected| {
-                const expanded_expected = _expected.expand_type(allocator);
-                const ast_type = ast.typeof(allocator);
-                try type_check(ast, ast_type, expanded_expected, errors);
-            }
             return ast;
         },
         .decl => {
@@ -1485,26 +1493,25 @@ fn named_args(
     // Construct positional args in the order specified by `expected`
     var filled_args = std.ArrayList(*ast_.AST).init(allocator);
     errdefer filled_args.deinit();
-    var new_expected = expected;
-    if (expected.* == .annotation and (expected.annotation.type.expand_type(allocator)).* == .product) {
-        new_expected = expected.annotation.type.expand_type(allocator);
-    }
-    switch (new_expected.*) {
+    switch (expected.*) {
         .annotation => {
-            if (arg_name_to_val_map.keys().len != 1) { // Cannot be 0, since that is technically a positional arglist
-                errors.add_error(errs_.Error{ .basic = .{
+            if (arg_name_to_val_map.keys().len > 1) { // Cannot be 0, since that is technically a positional arglist
+                errors.add_error(errs_.Error{ .mismatch_arity = .{
                     .span = asts.items[0].token().span,
-                    .msg = "too many arguments/fields specifed",
+                    .takes = 1,
+                    .given = arg_name_to_val_map.keys().len,
+                    .thing_name = "function",
+                    .takes_name = "parameter",
+                    .given_name = "argument",
                 } });
-                // return error.NoDefault;
-                unreachable;
+                return error.NoDefault;
             } else {
                 filled_args.append(arg_name_to_val_map.values()[0]) catch unreachable;
             }
         },
 
         .product => {
-            for (new_expected.children().items) |term| {
+            for (expected.children().items) |term| {
                 if (term.* != .annotation) {
                     errors.add_error(errs_.Error{ .basic = .{
                         .span = asts.items[0].token().span,
@@ -1517,9 +1524,13 @@ fn named_args(
                     if (term.annotation.init != null) {
                         filled_args.append(term.annotation.init.?) catch unreachable;
                     } else {
-                        errors.add_error(errs_.Error{ .basic = .{
+                        errors.add_error(errs_.Error{ .mismatch_arity = .{
                             .span = asts.items[0].token().span,
-                            .msg = "not all arguments are specified",
+                            .takes = expected.children().items.len,
+                            .given = arg_name_to_val_map.keys().len,
+                            .thing_name = "type",
+                            .takes_name = "value",
+                            .given_name = "value",
                         } });
                         return error.NoDefault;
                     }
@@ -1535,6 +1546,7 @@ fn named_args(
 }
 
 fn validate_args(
+    thing: Validate_Args_Thing,
     args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     span: span_.Span,
@@ -1543,7 +1555,14 @@ fn validate_args(
 ) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
     if (args.items.len != expected_length) {
-        errors.add_error(errs_.Error{ .mismatch_call_arity = .{ .span = span, .takes = expected_length, .given = args.items.len } });
+        errors.add_error(errs_.Error{ .mismatch_arity = .{
+            .span = span,
+            .takes = expected_length,
+            .given = args.items.len,
+            .thing_name = thing.name(),
+            .takes_name = thing.takes_name(),
+            .given_name = thing.given_name(),
+        } });
         return error.TypeError;
     }
     for (0..expected_length) |i| {
@@ -1755,6 +1774,10 @@ fn assert_pattern_matches(
     _ = pattern.assert_valid();
 }
 
+/// Checks that a match's mappings cover all possible cases
+///
+/// Currently only checks that all sums are covered.
+/// HUGE TODO: Figure out how to do this fr for products
 fn exhaustive_check(
     _type: *ast_.AST,
     mappings: *std.ArrayList(*ast_.AST),
@@ -1824,11 +1847,11 @@ fn add_term(ast: *ast_.AST, addend: *ast_.AST, errors: *errs_.Errors) Validate_E
     ast.children().append(addend) catch unreachable;
 }
 
-fn generate_default(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
-    return (try generate_default_unvalidated(_type, errors, allocator)).assert_valid();
+fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+    return (try generate_default_unvalidated(_type, span, errors, allocator)).assert_valid();
 }
 
-fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
     switch (_type.*) {
         .anyptr_type => return _type,
         .identifier => {
@@ -1838,11 +1861,11 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
                 if (primitive_info.default_value != null) {
                     return primitive_info.default_value.?;
                 } else {
-                    errors.add_error(errs_.Error{ .no_default = .{ .span = _type.token().span, ._type = _type } });
+                    errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
                     return error.TypeError;
                 }
             } else {
-                return try generate_default(expanded_type, errors, allocator);
+                return try generate_default(expanded_type, span, errors, allocator);
             }
         },
         .dyn_type, .addr_of, .function => return ast_.AST.create_int(_type.token(), 0, allocator),
@@ -1856,14 +1879,14 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
             }
             retval.sum_value.base = _type;
             const proper_term: *ast_.AST = _type.children().items[0];
-            retval.sum_value.init = try generate_default(proper_term, errors, allocator);
+            retval.sum_value.init = try generate_default(proper_term, span, errors, allocator);
             return retval;
         },
         .product => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);
             errdefer value_terms.deinit();
             for (_type.children().items) |term| {
-                const default_term = try generate_default(term, errors, allocator);
+                const default_term = try generate_default(term, span, errors, allocator);
                 value_terms.append(default_term) catch unreachable;
             }
             return ast_.AST.create_product(_type.token(), value_terms, allocator);
@@ -1871,7 +1894,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, errors: *errs_.Errors, allocat
         .annotation => if (_type.annotation.init != null) {
             return _type.annotation.init.?;
         } else {
-            return generate_default(_type.annotation.type, errors, allocator);
+            return generate_default(_type.annotation.type, span, errors, allocator);
         },
         else => {
             std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});

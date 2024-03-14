@@ -43,26 +43,26 @@ int64_t _614_main(void){
     _614_t4 = _614_t2.tag;
     _614_t5 = _614_t4==_614_t3;
     if (_614_t5) {
-        goto BB721;
+        goto BB714;
     } else {
-        goto BB722;
+        goto BB715;
     }
-BB721:
+BB714:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:4:27:\n        .ok => unreachable\n                         ^";
     $panic("reached unreachable code\n");
-BB722:
+BB715:
     _614_t6 = 1;
     _614_t7 = _614_t2.tag;
     _614_t8 = _614_t7==_614_t6;
     if (_614_t8) {
-        goto BB724;
+        goto BB717;
     } else {
-        goto BB728;
+        goto BB721;
     }
-BB724:
+BB717:
     _614_$retval = 238;
     return _614_$retval;
-BB728:
+BB721:
     $lines[$line_idx++] = "tests/integration/errors/infer-return.orng:6:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }

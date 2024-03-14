@@ -1,0 +1,19 @@
+// 304
+
+trait Trait_A {
+    virtual fn a(self) -> Int
+}
+
+impl Trait_A for Int {
+    virtual fn a(self) -> Int { self }
+}
+
+impl for Int {
+    virtual fn b(self) -> Int { self * 2 }
+}
+
+fn main() -> Int {
+    let x: Int = 300
+    let y: Int = 2
+    x.>a() + y.>b()
+}

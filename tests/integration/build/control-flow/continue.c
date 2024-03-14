@@ -14,47 +14,47 @@ int64_t _423_main(void);
 int64_t _423_main(void){
     int64_t _424_x;
     int64_t _425_i;
-    int64_t _423_t3;
-    uint8_t _423_t4;
-    int64_t _423_t6;
-    int64_t _423_t7;
+    int64_t _423_t5;
+    uint8_t _423_t6;
     int64_t _423_t8;
-    uint8_t _423_t10;
+    int64_t _423_t9;
+    int64_t _423_t10;
+    uint8_t _423_t12;
     int64_t _423_$retval;
-    int64_t _423_t11;
     int64_t _423_t13;
+    int64_t _423_t15;
     _424_x = 0;
     _425_i = 0;
-    goto BB476;
-BB476:
-    _423_t3 = 70;
-    _423_t4 = _425_i<_423_t3;
-    if (_423_t4) {
-        goto BB477;
+    goto BB469;
+BB469:
+    _423_t5 = 70;
+    _423_t6 = _425_i<_423_t5;
+    if (_423_t6) {
+        goto BB470;
     } else {
-        goto BB488;
-    }
-BB477:
-    _423_t6 = 2;
-    _423_t7 = $mod_int64_t(_425_i, _423_t6, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^");
-    _423_t8 = 0;
-    _423_t10 = _423_t7==_423_t8;
-    if (_423_t10) {
         goto BB481;
-    } else {
-        goto BB483;
     }
-BB488:
+BB470:
+    _423_t8 = 2;
+    _423_t9 = $mod_int64_t(_425_i, _423_t8, "tests/integration/control-flow/continue.orng:5:15:\n        if i % 2 == 0 {\n             ^");
+    _423_t10 = 0;
+    _423_t12 = _423_t9==_423_t10;
+    if (_423_t12) {
+        goto BB474;
+    } else {
+        goto BB476;
+    }
+BB481:
     _423_$retval = _424_x;
     return _423_$retval;
-BB481:
+BB474:
+    _423_t15 = 1;
+    _425_i = $add_int64_t(_425_i, _423_t15, "tests/integration/control-flow/continue.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
+    goto BB469;
+BB476:
     _423_t13 = 1;
-    _425_i = $add_int64_t(_425_i, _423_t13, "tests/integration/control-flow/continue.orng:4:38:\n    while let mut i = 0; i < 70; i += 1 {\n                                    ^");
-    goto BB476;
-BB483:
-    _423_t11 = 1;
-    _424_x = $add_int64_t(_424_x, _423_t11, "tests/integration/control-flow/continue.orng:8:13:\n        x += 1\n           ^");
-    goto BB481;
+    _424_x = $add_int64_t(_424_x, _423_t13, "tests/integration/control-flow/continue.orng:8:13:\n        x += 1\n           ^");
+    goto BB474;
 }
 
 

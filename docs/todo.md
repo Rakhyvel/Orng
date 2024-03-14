@@ -88,6 +88,8 @@
 - [x] `count` command which just counts the number of .orng files
 - [x] Enable coverage for subdirectories of integration
 - [ ] Give a list of the tests that failed after a run
+- [ ] Print integration test results after the tests are run, so it takes less time
+- [ ] Negative tests should be in folders according to the kind of error, fail if other error than the expected
 
 ### In-House rdgen
 - [ ] Written in Zig
@@ -433,7 +435,10 @@
     > This feature may not be needed, or good
     - [ ] `where` which checks at runtime if a condition is true, panics if it's not
     - [ ] `==>` implies boolean operator might be handy
-        > `ast^ == .match ==> mappings_have_rhs(ast)`
+        > `a ==> b` == `(not a) or b`
+        > this is just sorta useful in general, even without refinements, which might not be as useful actually
+        > `debug::assert(ast^ == .sum_value ==> ast_type^ == .sum_type)` <- very concise, readable, useful!
+        > `ast^ == .match ==> mappings_have_rhs(ast)` <- short-circuits exactly like `(not a) or b`, (which isn't actually all that useful because rhs has to eval to a bool...)
     - [ ] `where comptime` checks a condition at compiletime. If a condition is false at compile-time, error
 
 ### Standard Library

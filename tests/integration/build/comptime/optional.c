@@ -36,29 +36,29 @@ int64_t _268_f(struct struct0 _268_x){
     _268_t2 = _268_x.tag;
     _268_t3 = _268_t2==_268_t1;
     if (_268_t3) {
-        goto BB266;
+        goto BB259;
     } else {
-        goto BB269;
+        goto BB262;
     }
-BB266:
+BB259:
     _268_t0 = 250;
-    goto BB268;
-BB269:
+    goto BB261;
+BB262:
     _268_t4 = 1;
     _268_t5 = _268_x.tag;
     _268_t6 = _268_t5==_268_t4;
     if (_268_t6) {
-        goto BB271;
+        goto BB264;
     } else {
-        goto BB273;
+        goto BB266;
     }
-BB268:
+BB261:
     _268_$retval = _268_t0;
     return _268_$retval;
-BB271:
+BB264:
     _268_t0 = 11;
-    goto BB268;
-BB273:
+    goto BB261;
+BB266:
     $lines[$line_idx++] = "tests/integration/comptime/optional.orng:10:25:\n        _ => unreachable\n                       ^";
     $panic("reached unreachable code\n");
 }

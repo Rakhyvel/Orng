@@ -1,0 +1,7 @@
+fn main() -> Int {
+    let mut y: [2]Int
+    f(y[2] = 5)
+    0
+}
+
+fn f(x: Int) -> Int { 4 }

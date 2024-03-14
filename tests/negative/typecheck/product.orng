@@ -1,1 +1,1 @@
-fn main() -> Int{1,2}
+fn main() -> Int{(1,2)}

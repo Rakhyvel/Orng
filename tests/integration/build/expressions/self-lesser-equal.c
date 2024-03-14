@@ -29,17 +29,17 @@ int64_t _876_main(void){
     _876_t2 = _876_t1(_876_t3);
     $line_idx--;
     if (_876_t2) {
-        goto BB1079;
+        goto BB1072;
     } else {
-        goto BB1083;
+        goto BB1076;
     }
-BB1079:
+BB1072:
     _876_t0 = 228;
-    goto BB1082;
-BB1083:
+    goto BB1075;
+BB1076:
     _876_t0 = 0;
-    goto BB1082;
-BB1082:
+    goto BB1075;
+BB1075:
     _876_$retval = _876_t0;
     return _876_$retval;
 }

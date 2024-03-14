@@ -29,17 +29,17 @@ int64_t _700_main(void){
     _700_t2 = _700_t1(_700_t3);
     $line_idx--;
     if (_700_t2) {
-        goto BB838;
+        goto BB831;
     } else {
-        goto BB842;
+        goto BB835;
     }
-BB838:
+BB831:
     _700_t0 = 190;
-    goto BB841;
-BB842:
+    goto BB834;
+BB835:
     _700_t0 = 4;
-    goto BB841;
-BB841:
+    goto BB834;
+BB834:
     _700_$retval = _700_t0;
     return _700_$retval;
 }
@@ -50,17 +50,17 @@ uint8_t _705_f(double _705_x){
     uint8_t _705_$retval;
     _705_t3 = _705_x==_705_x;
     if (_705_t3) {
-        goto BB833;
+        goto BB826;
     } else {
-        goto BB836;
+        goto BB829;
     }
-BB833:
+BB826:
     _705_t2 = 1;
-    goto BB835;
-BB836:
+    goto BB828;
+BB829:
     _705_t2 = 0;
-    goto BB835;
-BB835:
+    goto BB828;
+BB828:
     _705_$retval = _705_t2;
     return _705_$retval;
 }

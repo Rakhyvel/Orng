@@ -271,7 +271,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .add_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("add_int; known int,int value");
-                try convert_to_load(ir, .load_int, try src1_def.?.data.add_int_overflow(src2_def.?.data, ir.span, errors), errors);
+                try convert_to_load(ir, .load_int, try src1_def.?.data.add_int_overflow(src2_def.?.data), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) {
                 log("add_int; add 0 lhs");
@@ -303,7 +303,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .sub_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("sub; known int,int value");
-                try convert_to_load(ir, .load_int, try src1_def.?.data.sub_int_overflow(src2_def.?.data, ir.span, errors), errors);
+                try convert_to_load(ir, .load_int, try src1_def.?.data.sub_int_overflow(src2_def.?.data), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 0) {
                 log("sub; sub 0 lhs");
@@ -335,7 +335,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
         .mult_int => {
             if (src1_def != null and src2_def != null and src1_def.?.kind == .load_int and src2_def.?.kind == .load_int) {
                 log("mult_int; known int,int value");
-                try convert_to_load(ir, .load_int, try src1_def.?.data.mult_int_overflow(src2_def.?.data, ir.span, errors), errors);
+                try convert_to_load(ir, .load_int, try src1_def.?.data.mult_int_overflow(src2_def.?.data), errors);
                 retval = true;
             } else if (src1_def != null and src1_def.?.kind == .load_int and src1_def.?.data.int == 1) {
                 log("mult; mult 1 lhs");

@@ -71,11 +71,7 @@ fn lower_AST(
         .dyn_type,
         => return lval_from_ast(ast, cfg, allocator),
         // Literals
-        .unit_value => {
-            const lval = create_temp_lvalue(cfg, primitives_.unit_type, allocator);
-            cfg.append_instruction(ir_.IR.init(.load_unit, lval, null, null, ast.token().span, allocator));
-            return lval;
-        },
+        .unit_value => return lval_from_unit_value(ast, cfg, allocator),
         .int => return lval_from_int(ast.int.data, ast.typeof(allocator), ast.token().span, cfg, allocator),
         .char => {
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
@@ -93,10 +89,7 @@ fn lower_AST(
                 },
                 else => {
                     const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.TypeError;
-                    codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch {
-                        errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "invalid character" } });
-                        return error.TypeError;
-                    };
+                    codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch unreachable; // Checked by lexer
                 },
             }
             cfg.append_instruction(ir_.IR.init_int(temp, codepoint, ast.token().span, allocator));
@@ -445,7 +438,7 @@ fn lower_AST(
         },
         .block => { // TODO: TOO LONG
             if (ast.children().items.len == 0 and ast.block.final == null) {
-                return null;
+                return lval_from_unit_value(ast, cfg, allocator);
             }
 
             var continue_labels = std.ArrayList(*ir_.IR).init(allocator);
@@ -516,10 +509,10 @@ fn lower_AST(
                 return null;
             }
             try generate_pattern(cfg, ast.decl.pattern, ast.decl.type.expand_type(allocator), def.?, errors, allocator);
-            return null;
+            return lval_from_unit_value(ast, cfg, allocator);
         },
         .fn_decl => return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator),
-        .@"errdefer", .@"defer" => return null,
+        .@"errdefer", .@"defer" => return lval_from_unit_value(ast, cfg, allocator),
         .@"continue" => {
             cfg.append_instruction(ir_.IR.init_jump(labels.continue_label, ast.token().span, allocator));
             return null;
@@ -559,6 +552,16 @@ fn lval_from_ast(
 ) *lval_.L_Value {
     const lval = create_temp_lvalue(cfg, ast, allocator);
     cfg.append_instruction(ir_.IR.init_ast(lval, ast, ast.token().span, allocator));
+    return lval;
+}
+
+fn lval_from_unit_value(
+    ast: *ast_.AST,
+    cfg: *cfg_.CFG,
+    allocator: std.mem.Allocator,
+) *lval_.L_Value {
+    const lval = create_temp_lvalue(cfg, primitives_.unit_type, allocator);
+    cfg.append_instruction(ir_.IR.init(.load_unit, lval, null, null, ast.token().span, allocator));
     return lval;
 }
 
@@ -990,12 +993,10 @@ fn generate_match_pattern_check(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!void {
-    if (pattern == null) {
-        // Implies `else` branch, infallible.
-        return;
-    }
     switch (pattern.?.*) {
-        .pattern_symbol => {}, // Infallible check, do not branch to next pattern
+        .pattern_symbol => {
+            // Infallible check, do not branch to next pattern
+        },
         .int,
         .float,
         .true,

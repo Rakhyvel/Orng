@@ -30,15 +30,15 @@ int64_t _1083_main(void){
     function0 _1083_t0;
     struct struct1 _1083_t1;
     struct struct1 _1084_x;
-    uint64_t _1083_t2;
+    uint64_t _1083_t3;
     int64_t _1083_$retval;
     _1083_t0 = (function0) _1085_f;
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
     _1083_t1 = _1083_t0();
     $line_idx--;
     _1084_x = _1083_t1;
-    _1083_t2 = _1083_t1.tag;
-    $tag_check(_1083_t2, 1, "tests/integration/lint/inactive-select.orng:2:3:\nfn main() -> Int {\n ^");
+    _1083_t3 = _1083_t1.tag;
+    $tag_check(_1083_t3, 1, "tests/integration/lint/inactive-select.orng:2:3:\nfn main() -> Int {\n ^");
     _1083_$retval = _1084_x._1;
     return _1083_$retval;
 }

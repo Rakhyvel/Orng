@@ -39,17 +39,17 @@ int64_t _833_f(int64_t _833_x){
     _833_t1 = 0;
     _833_t3 = _833_x==_833_t1;
     if (_833_t3) {
-        goto BB1030;
+        goto BB1023;
     } else {
-        goto BB1026;
+        goto BB1019;
     }
-BB1030:
+BB1023:
     _833_t0 = 3;
-    goto BB1029;
-BB1026:
+    goto BB1022;
+BB1019:
     _833_t0 = 173;
-    goto BB1029;
-BB1029:
+    goto BB1022;
+BB1022:
     _833_$retval = _833_t0;
     return _833_$retval;
 }

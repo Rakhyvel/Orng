@@ -22,62 +22,62 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1176_main(void);
+int64_t _1179_main(void);
 
 
 /* Function definitions */
-int64_t _1176_main(void){
-    int64_t _1176_t2;
-    int64_t _1176_t3;
-    struct struct0 _1176_t1;
-    int64_t _1176_t5;
-    int64_t _1176_t6;
-    struct struct0 _1176_t4;
-    struct struct1 _1176_t0;
-    int64_t _1177_x;
-    int64_t _1177_y;
-    int64_t _1177_a;
-    int64_t _1177_b;
-    int64_t _1176_t9;
-    int64_t _1176_t10;
-    struct struct0 _1176_t8;
-    int64_t _1176_t12;
-    int64_t _1176_t13;
-    struct struct0 _1176_t11;
-    struct struct1 _1176_t7;
-    int64_t _1176_t16;
-    int64_t _1176_t17;
-    int64_t _1176_$retval;
-    _1176_t2 = 0;
-    _1176_t3 = 0;
-    _1176_t1 = (struct struct0) {_1176_t2, _1176_t3};
-    _1176_t5 = 0;
-    _1176_t6 = 0;
-    _1176_t4 = (struct struct0) {_1176_t5, _1176_t6};
-    _1176_t0 = (struct struct1) {_1176_t1, _1176_t4};
-    _1177_x = _1176_t0._0._0;
-    _1177_y = _1176_t0._0._1;
-    _1177_a = _1176_t0._1._0;
-    _1177_b = _1176_t0._1._1;
-    _1176_t9 = 1;
-    _1176_t10 = 40;
-    _1176_t8 = (struct struct0) {_1176_t9, _1176_t10};
-    _1176_t12 = 2;
-    _1176_t13 = 2;
-    _1176_t11 = (struct struct0) {_1176_t12, _1176_t13};
-    _1176_t7 = (struct struct1) {_1176_t8, _1176_t11};
-    _1177_x = _1176_t7._0._0;
-    _1177_y = _1176_t7._0._1;
-    _1177_a = _1176_t7._1._0;
-    _1177_b = _1176_t7._1._1;
-    _1176_t16 = $add_int64_t(_1177_x, _1177_y, "tests/integration/pattern/assign-product-product.orng:5:9:\n    (x + y) * (a + b)\n       ^");
-    _1176_t17 = $add_int64_t(_1177_a, _1177_b, "tests/integration/pattern/assign-product-product.orng:5:19:\n    (x + y) * (a + b)\n                 ^");
-    _1176_$retval = $mult_int64_t(_1176_t16, _1176_t17, "tests/integration/pattern/assign-product-product.orng:5:14:\n    (x + y) * (a + b)\n            ^");
-    return _1176_$retval;
+int64_t _1179_main(void){
+    int64_t _1179_t2;
+    int64_t _1179_t3;
+    struct struct0 _1179_t1;
+    int64_t _1179_t5;
+    int64_t _1179_t6;
+    struct struct0 _1179_t4;
+    struct struct1 _1179_t0;
+    int64_t _1180_x;
+    int64_t _1180_y;
+    int64_t _1180_a;
+    int64_t _1180_b;
+    int64_t _1179_t10;
+    int64_t _1179_t11;
+    struct struct0 _1179_t9;
+    int64_t _1179_t13;
+    int64_t _1179_t14;
+    struct struct0 _1179_t12;
+    struct struct1 _1179_t8;
+    int64_t _1179_t17;
+    int64_t _1179_t18;
+    int64_t _1179_$retval;
+    _1179_t2 = 0;
+    _1179_t3 = 0;
+    _1179_t1 = (struct struct0) {_1179_t2, _1179_t3};
+    _1179_t5 = 0;
+    _1179_t6 = 0;
+    _1179_t4 = (struct struct0) {_1179_t5, _1179_t6};
+    _1179_t0 = (struct struct1) {_1179_t1, _1179_t4};
+    _1180_x = _1179_t0._0._0;
+    _1180_y = _1179_t0._0._1;
+    _1180_a = _1179_t0._1._0;
+    _1180_b = _1179_t0._1._1;
+    _1179_t10 = 1;
+    _1179_t11 = 40;
+    _1179_t9 = (struct struct0) {_1179_t10, _1179_t11};
+    _1179_t13 = 2;
+    _1179_t14 = 2;
+    _1179_t12 = (struct struct0) {_1179_t13, _1179_t14};
+    _1179_t8 = (struct struct1) {_1179_t9, _1179_t12};
+    _1180_x = _1179_t8._0._0;
+    _1180_y = _1179_t8._0._1;
+    _1180_a = _1179_t8._1._0;
+    _1180_b = _1179_t8._1._1;
+    _1179_t17 = $add_int64_t(_1180_x, _1180_y, "tests/integration/pattern/assign-product-product.orng:5:9:\n    (x + y) * (a + b)\n       ^");
+    _1179_t18 = $add_int64_t(_1180_a, _1180_b, "tests/integration/pattern/assign-product-product.orng:5:19:\n    (x + y) * (a + b)\n                 ^");
+    _1179_$retval = $mult_int64_t(_1179_t17, _1179_t18, "tests/integration/pattern/assign-product-product.orng:5:14:\n    (x + y) * (a + b)\n            ^");
+    return _1179_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1176_main());
+  printf("%ld",_1179_main());
   return 0;
 }

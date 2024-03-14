@@ -16,25 +16,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1706_main(void);
+int64_t _1762_main(void);
 
 
 /* Function definitions */
-int64_t _1706_main(void){
-    int64_t _1706_t1;
-    int64_t _1706_t2;
-    struct struct0 _1707_x;
-    int64_t _1706_$retval;
-    _1706_t1 = 50;
-    _1706_t2 = 5;
-    _1707_x = (struct struct0) {_1706_t1, _1706_t2};
-    _1707_x._1 = 6;
-    _1706_$retval = $add_int64_t(_1707_x._0, _1707_x._1, "tests/integration/tuples/select-copy.orng:5:10:\n    x.a + x.b\n        ^");
-    return _1706_$retval;
+int64_t _1762_main(void){
+    int64_t _1762_t1;
+    int64_t _1762_t2;
+    struct struct0 _1763_x;
+    int64_t _1762_$retval;
+    _1762_t1 = 50;
+    _1762_t2 = 5;
+    _1763_x = (struct struct0) {_1762_t1, _1762_t2};
+    _1763_x._1 = 6;
+    _1762_$retval = $add_int64_t(_1763_x._0, _1763_x._1, "tests/integration/tuples/select-copy.orng:5:10:\n    x.a + x.b\n        ^");
+    return _1762_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1706_main());
+  printf("%ld",_1762_main());
   return 0;
 }

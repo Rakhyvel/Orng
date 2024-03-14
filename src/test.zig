@@ -114,7 +114,11 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
     defer contents_arraylist.deinit();
     in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
     var contents = contents_arraylist.toOwnedSlice() catch unreachable;
-    const expected_out = contents[3..until_newline(contents)];
+    const new_line_idx = until_newline(contents);
+    if (new_line_idx < 3) {
+        std.debug.print("hey dumby, make it `// ` at least", .{});
+    }
+    const expected_out = contents[3..new_line_idx];
 
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
@@ -257,6 +261,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                 error.InterpreterPanic,
                 error.IRError,
                 error.DivideByZero,
+                error.Overflow,
                 => {
                     errors.print_errors() catch unreachable;
                     term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
@@ -265,16 +270,16 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                 error.ParseError => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    if (str.find("regression") != null) {
-                        std.debug.print("{}\n", .{err});
-                        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-                        out.print("Regression tests should parse!\n", .{}) catch unreachable;
-                        errors.print_errors() catch unreachable;
-                        return false;
-                    } else {
-                        errors.print_errors() catch unreachable;
+                    errors.print_errors() catch unreachable;
+                    if (str.find("parser") != null) {
                         term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                         return true;
+                    } else {
+                        std.debug.print("{}\n", .{err});
+                        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+                        out.print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
+                        errors.print_errors() catch unreachable;
+                        return false;
                     }
                 },
                 else => {

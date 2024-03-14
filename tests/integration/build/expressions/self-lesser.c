@@ -29,17 +29,17 @@ int64_t _884_main(void){
     _884_t2 = _884_t1(_884_t3);
     $line_idx--;
     if (_884_t2) {
-        goto BB1088;
+        goto BB1081;
     } else {
-        goto BB1092;
+        goto BB1085;
     }
-BB1088:
+BB1081:
     _884_t0 = 0;
-    goto BB1091;
-BB1092:
+    goto BB1084;
+BB1085:
     _884_t0 = 226;
-    goto BB1091;
-BB1091:
+    goto BB1084;
+BB1084:
     _884_$retval = _884_t0;
     return _884_$retval;
 }

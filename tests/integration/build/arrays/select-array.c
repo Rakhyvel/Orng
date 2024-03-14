@@ -37,10 +37,10 @@ int64_t _83_main(void){
     int64_t _83_t8;
     struct struct0 _83_t5;
     struct struct1 _84_x;
-    int64_t _83_t10;
     int64_t _83_t11;
     int64_t _83_t12;
     int64_t _83_t13;
+    int64_t _83_t14;
     int64_t _83_$retval;
     _83_t2 = 1;
     _83_t3 = 2;
@@ -51,14 +51,14 @@ int64_t _83_main(void){
     _83_t8 = 6;
     _83_t5 = (struct struct0) {_83_t6, _83_t7, _83_t8};
     _84_x = (struct struct1) {_83_t1, _83_t5};
-    _83_t10 = 1;
-    _83_t11 = 3;
-    $bounds_check(_83_t10, _83_t11, "tests/integration/arrays/select-array.orng:4:16:\n    x.a[1] = 72\n              ^");
-    *((int64_t*)&_84_x._0 + _83_t10) = 72;
-    _83_t12 = 1;
-    _83_t13 = 3;
-    $bounds_check(_83_t12, _83_t13, "tests/integration/arrays/select-array.orng:2:3:\nfn main() -> Int {\n ^");
-    _83_$retval = *((int64_t*)&_84_x._0 + _83_t12);
+    _83_t11 = 1;
+    _83_t12 = 3;
+    $bounds_check(_83_t11, _83_t12, "tests/integration/arrays/select-array.orng:4:16:\n    x.a[1] = 72\n              ^");
+    *((int64_t*)&_84_x._0 + _83_t11) = 72;
+    _83_t13 = 1;
+    _83_t14 = 3;
+    $bounds_check(_83_t13, _83_t14, "tests/integration/arrays/select-array.orng:2:3:\nfn main() -> Int {\n ^");
+    _83_$retval = *((int64_t*)&_84_x._0 + _83_t13);
     return _83_$retval;
 }
 

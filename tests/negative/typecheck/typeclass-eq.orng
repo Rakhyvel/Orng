@@ -1,0 +1,5 @@
+fn main() -> Bool {
+    let x: Void = unreachable
+    let y: Void = unreachable
+    x == y // the ONLY type that isn't equalable
+}

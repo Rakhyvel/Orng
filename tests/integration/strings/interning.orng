@@ -1,0 +1,10 @@
+// 306
+fn main() -> Int {
+    let x = "Hello"
+    let y = "Hello"
+    get_length(x) + get_length(y) + 296
+}
+
+fn get_length(s: String) -> Int {
+    s.length
+}

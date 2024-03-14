@@ -19,14 +19,14 @@ void _993_change_x(int64_t* _993_x);
 /* Function definitions */
 int64_t _991_main(void){
     int64_t _992_x;
-    function0 _991_t1;
-    int64_t* _991_t3;
+    function0 _991_t2;
+    int64_t* _991_t4;
     int64_t _991_$retval;
     _992_x = 40;
-    _991_t1 = (function0) _993_change_x;
-    _991_t3 = &_992_x;
+    _991_t2 = (function0) _993_change_x;
+    _991_t4 = &_992_x;
     $lines[$line_idx++] = "tests/integration/functions/immutable-param-mut-addr.orng:4:14:\n    change_x(&mut x)\n            ^";
-    (void) _991_t1(_991_t3);
+    (void) _991_t2(_991_t4);
     $line_idx--;
     _991_$retval = _992_x;
     return _991_$retval;
