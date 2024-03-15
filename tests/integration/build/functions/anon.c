@@ -20,46 +20,46 @@ struct struct2 {
 typedef int64_t(*function1)(function0, int64_t);
 
 /* Function forward definitions */
-int64_t _957_main(void);
-int64_t _959_$anon93(int64_t _959_x);
-int64_t _961_apply(function0 _961_f, int64_t _961_x);
+int64_t _923_main(void);
+int64_t _925_$anon93(int64_t _925_x);
+int64_t _927_apply(function0 _927_f, int64_t _927_x);
 
 
 /* Function definitions */
-int64_t _957_main(void){
-    function0 _958_id;
-    function1 _957_t2;
-    int64_t _957_t4;
-    int64_t _957_t3;
-    int64_t _957_$retval;
-    _958_id = (function0) _959_$anon93;
-    _957_t2 = (function1) _961_apply;
-    _957_t4 = 43;
+int64_t _923_main(void){
+    function0 _924_id;
+    function1 _923_t2;
+    int64_t _923_t4;
+    int64_t _923_t3;
+    int64_t _923_$retval;
+    _924_id = (function0) _925_$anon93;
+    _923_t2 = (function1) _927_apply;
+    _923_t4 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _957_t3 = _957_t2(_958_id, _957_t4);
+    _923_t3 = _923_t2(_924_id, _923_t4);
     $line_idx--;
-    _957_$retval = _957_t3;
-    return _957_$retval;
+    _923_$retval = _923_t3;
+    return _923_$retval;
 }
 
-int64_t _959_$anon93(int64_t _959_x){
-    int64_t _959_$retval;
-    _959_$retval = _959_x;
-    return _959_$retval;
+int64_t _925_$anon93(int64_t _925_x){
+    int64_t _925_$retval;
+    _925_$retval = _925_x;
+    return _925_$retval;
 }
 
-int64_t _961_apply(function0 _961_f, int64_t _961_x){
-    int64_t _961_t0;
-    int64_t _961_$retval;
+int64_t _927_apply(function0 _927_f, int64_t _927_x){
+    int64_t _927_t0;
+    int64_t _927_$retval;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
-    _961_t0 = _961_f(_961_x);
+    _927_t0 = _927_f(_927_x);
     $line_idx--;
-    _961_$retval = _961_t0;
-    return _961_$retval;
+    _927_$retval = _927_t0;
+    return _927_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_957_main());
+  printf("%ld",_923_main());
   return 0;
 }

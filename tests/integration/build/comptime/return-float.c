@@ -14,7 +14,7 @@ int64_t _309_main(void);
 /* Function definitions */
 double _316_f(void){
     double _316_$retval;
-    _316_$retval = 3.14e+00;
+    _316_$retval = 3.14e0;
     return _316_$retval;
 }
 

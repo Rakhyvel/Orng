@@ -16,24 +16,24 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _394_main(void);
+int64_t _393_main(void);
 
 
 /* Function definitions */
-int64_t _394_main(void){
-    int64_t _394_t1;
-    int64_t _394_t2;
-    struct struct0 _395_x;
-    int64_t _394_$retval;
-    _394_t1 = 200;
-    _394_t2 = 40;
-    _395_x = (struct struct0) {_394_t1, _394_t2};
-    _394_$retval = $add_int64_t(_395_x._0, _395_x._1, "tests/integration/comptime/type-alias-product.orng:6:10:\n    x.a + x.b\n        ^");
-    return _394_$retval;
+int64_t _393_main(void){
+    int64_t _393_t1;
+    int64_t _393_t2;
+    struct struct0 _394_x;
+    int64_t _393_$retval;
+    _393_t1 = 200;
+    _393_t2 = 40;
+    _394_x = (struct struct0) {_393_t1, _393_t2};
+    _393_$retval = $add_int64_t(_394_x._0, _394_x._1, "tests/integration/comptime/type-alias-product.orng:6:10:\n    x.a + x.b\n        ^");
+    return _393_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_394_main());
+  printf("%ld",_393_main());
   return 0;
 }

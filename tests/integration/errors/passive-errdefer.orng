@@ -7,13 +7,13 @@ fn main() -> Int {
     z + y
 }
 
-fn f(x: &mut Int, fail: Bool)->(err|)!() {
+fn f(x: &mut Int, fail: Bool)->()!() {
     errdefer x^ += 9
     x^ = 6
     if fail {
         errdefer x^ += 100
-        (.err)
+        .err
     } else {
-        (.ok)
+        .ok
     }
 }

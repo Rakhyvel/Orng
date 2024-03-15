@@ -19,23 +19,23 @@ struct struct0 {
 char* string_0 = "\x0A\x0D\x09\x27\x22";
 
 /* Function forward definitions */
-uint8_t _1452_main(void);
+uint8_t _1418_main(void);
 
 
 /* Function definitions */
-uint8_t _1452_main(void){
-    struct struct0 _1453_x;
-    int64_t _1452_t2;
-    uint8_t _1452_$retval;
-    _1453_x = (struct struct0) {(uint8_t*)string_0, 5};
-    _1452_t2 = 2;
-    $bounds_check(_1452_t2, _1453_x._1, "tests/integration/strings/string-tab.orng:2:3:\nfn main() -> Byte {\n ^");
-    _1452_$retval = *((uint8_t*)_1453_x._0 + _1452_t2);
-    return _1452_$retval;
+uint8_t _1418_main(void){
+    struct struct0 _1419_x;
+    int64_t _1418_t2;
+    uint8_t _1418_$retval;
+    _1419_x = (struct struct0) {(uint8_t*)string_0, 5};
+    _1418_t2 = 2;
+    $bounds_check(_1418_t2, _1419_x._1, "tests/integration/strings/string-tab.orng:2:3:\nfn main() -> Byte {\n ^");
+    _1418_$retval = *((uint8_t*)_1419_x._0 + _1418_t2);
+    return _1418_$retval;
 }
 
 
 int main(void) {
-  printf("%u",_1452_main());
+  printf("%u",_1418_main());
   return 0;
 }

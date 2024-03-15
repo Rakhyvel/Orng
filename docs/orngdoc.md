@@ -11,7 +11,7 @@ readable, and maintainable code.
 
 ## Key Features
 1. First-class-types, Generic Type Unification
-2. Abstract Data Types, pattern matching,
+2. Abstract Data Types, pattern matching
 3. Traits
 4. Lightweight build system
 

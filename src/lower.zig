@@ -30,7 +30,7 @@ const Labels = struct {
 };
 
 pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) Lower_Errors!void {
-    const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init, Labels.null_labels, errors, allocator);
+    const eval: ?*lval_.L_Value = try lower_AST(cfg, cfg.symbol.init.?, Labels.null_labels, errors, allocator);
     if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
         // `_comptime` symbols don't have parameters anyway
         const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
@@ -46,11 +46,6 @@ pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.
 
     cfg.block_graph_head = cfg.basic_block_from_IR(cfg.ir_head, allocator);
     cfg.remove_last_instruction();
-
-    // for (retval.basic_blocks.items) |bb| {
-    //     bb.pprint();
-    // }
-    // retval.clearVisitedBBs();
 
     cfg.calculate_phi_params_and_args(allocator);
 }
@@ -120,7 +115,7 @@ fn lower_AST(
             } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
                 return lval_from_ast(ast, cfg, allocator);
             } else if (symbol.kind == .@"const") {
-                return try lower_AST(cfg, symbol.init, labels, errors, allocator);
+                return try lower_AST(cfg, symbol.init.?, labels, errors, allocator);
             } else {
                 const src = lval_.L_Value.create_unversioned_symbver(symbol, allocator);
                 return src;
@@ -504,11 +499,13 @@ fn lower_AST(
 
         // Control-flow statements
         .decl => {
-            const def: ?*lval_.L_Value = try lower_AST(cfg, ast.decl.init, labels, errors, allocator);
-            if (def == null) {
-                return null;
+            if (ast.decl.init) |init| {
+                const def: ?*lval_.L_Value = try lower_AST(cfg, init, labels, errors, allocator);
+                if (def == null) {
+                    return null;
+                }
+                try generate_pattern(cfg, ast.decl.pattern, ast.decl.type.expand_type(allocator), def.?, errors, allocator);
             }
-            try generate_pattern(cfg, ast.decl.pattern, ast.decl.type.expand_type(allocator), def.?, errors, allocator);
             return lval_from_unit_value(ast, cfg, allocator);
         },
         .fn_decl => return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator),
@@ -757,9 +754,9 @@ fn tuple_equality_flow(
 }
 
 fn coalesce_op(
-    ast: *ast_.AST,
-    cfg: *cfg_.CFG,
-    labels: Labels,
+    ast: *ast_.AST, // The coalesce operator to lower
+    cfg: *cfg_.CFG, // The CFG to lower the coalesce operator into
+    labels: Labels, // The current labels to use
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!?*lval_.L_Value {
@@ -770,12 +767,12 @@ fn coalesce_op(
 
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
+    const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
     const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
     cfg.append_instruction(ir_.IR.init_get_tag(condition, lhs, ast.token().span, allocator));
     cfg.append_instruction(ir_.IR.init_branch(condition, zero_label, ast.token().span, allocator));
 
     // tag was an error/none, store rhs in temp
-    const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
     const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
     cfg.append_instruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
     cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
@@ -790,6 +787,7 @@ fn coalesce_op(
     cfg.append_instruction(end_label);
     return lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
 }
+
 fn generate_assign(
     cfg: *cfg_.CFG, // Current control-flow-graph
     lhs: *ast_.AST, // AST node for the LHS of the `=`

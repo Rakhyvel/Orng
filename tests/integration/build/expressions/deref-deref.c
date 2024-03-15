@@ -7,25 +7,25 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _691_main(void);
+int64_t _657_main(void);
 
 
 /* Function definitions */
-int64_t _691_main(void){
-    int64_t _692_x;
-    int64_t* _692_y;
-    int64_t** _692_z;
-    int64_t _691_$retval;
-    _692_x = 75;
-    _692_y = &_692_x;
-    _692_z = &_692_y;
-    **_692_z = 75;
-    _691_$retval = **_692_z;
-    return _691_$retval;
+int64_t _657_main(void){
+    int64_t _658_x;
+    int64_t* _658_y;
+    int64_t** _658_z;
+    int64_t _657_$retval;
+    _658_x = 75;
+    _658_y = &_658_x;
+    _658_z = &_658_y;
+    **_658_z = 75;
+    _657_$retval = **_658_z;
+    return _657_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_691_main());
+  printf("%ld",_657_main());
   return 0;
 }

@@ -484,7 +484,7 @@ fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, retur
                     }
                     try writer.print(" else {{\n        goto BB{};\n    }}\n", .{branch.uid});
                 } else {
-                    try writer.print("    ", .{});
+                    try writer.print(" else {{\n    ", .{});
                     try output_return(return_symbol, writer);
                     try writer.print("    }}\n", .{});
                 }

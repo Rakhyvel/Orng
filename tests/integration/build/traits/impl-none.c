@@ -27,67 +27,67 @@ struct struct3 {
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1591_main(void);
-int64_t _1585_a(void* _1585_$self_ptr, int64_t _1585_x);
-int64_t _1587_c(void* _1587_self, int64_t _1587_x);
-int64_t _1589_d(int64_t _1589_x);
+int64_t _1557_main(void);
+int64_t _1551_a(void* _1551_$self_ptr, int64_t _1551_x);
+int64_t _1553_c(void* _1553_self, int64_t _1553_x);
+int64_t _1555_d(int64_t _1555_x);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1591_main(void){
-    int64_t _1591_t1;
-    int64_t _1591_t2;
-    struct struct3 _1592_my_val;
-    struct struct3* _1591_t5;
-    int64_t _1591_t6;
-    function0 _1591_t7;
-    int64_t _1591_t4;
-    int64_t _1591_t8;
-    int64_t _1591_$retval;
-    _1591_t1 = 200;
-    _1591_t2 = 45;
-    _1592_my_val = (struct struct3) {_1591_t1, _1591_t2};
-    _1591_t5 = &_1592_my_val;
-    _1591_t6 = 2;
-    _1591_t7 = (function0) _1585_a;
+int64_t _1557_main(void){
+    int64_t _1557_t1;
+    int64_t _1557_t2;
+    struct struct3 _1558_my_val;
+    struct struct3* _1557_t5;
+    int64_t _1557_t6;
+    function0 _1557_t7;
+    int64_t _1557_t4;
+    int64_t _1557_t8;
+    int64_t _1557_$retval;
+    _1557_t1 = 200;
+    _1557_t2 = 45;
+    _1558_my_val = (struct struct3) {_1557_t1, _1557_t2};
+    _1557_t5 = &_1558_my_val;
+    _1557_t6 = 2;
+    _1557_t7 = (function0) _1551_a;
     $lines[$line_idx++] = "tests/integration/traits/impl-none.orng:14:13:\n    my_val.>a(2) + 2\n           ^";
-    _1591_t4 = _1591_t7(_1591_t5, _1591_t6);
+    _1557_t4 = _1557_t7(_1557_t5, _1557_t6);
     $line_idx--;
-    _1591_t8 = 2;
-    _1591_$retval = $add_int64_t(_1591_t4, _1591_t8, "tests/integration/traits/impl-none.orng:14:19:\n    my_val.>a(2) + 2\n                 ^");
-    return _1591_$retval;
+    _1557_t8 = 2;
+    _1557_$retval = $add_int64_t(_1557_t4, _1557_t8, "tests/integration/traits/impl-none.orng:14:19:\n    my_val.>a(2) + 2\n                 ^");
+    return _1557_$retval;
 }
 
-int64_t _1585_a(void* _1585_$self_ptr, int64_t _1585_x){
-    struct struct3 _1586_self;
-    int64_t _1585_t1;
-    int64_t _1585_$retval;
-    _1586_self = *(struct struct3*)_1585_$self_ptr;
-    _1585_t1 = $mult_int64_t(_1586_self._1, _1585_x, "tests/integration/traits/impl-none.orng:5:50:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                                ^");
-    _1585_$retval = $add_int64_t(_1586_self._0, _1585_t1, "tests/integration/traits/impl-none.orng:5:41:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                       ^");
-    return _1585_$retval;
+int64_t _1551_a(void* _1551_$self_ptr, int64_t _1551_x){
+    struct struct3 _1552_self;
+    int64_t _1551_t1;
+    int64_t _1551_$retval;
+    _1552_self = *(struct struct3*)_1551_$self_ptr;
+    _1551_t1 = $mult_int64_t(_1552_self._1, _1551_x, "tests/integration/traits/impl-none.orng:5:50:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                                ^");
+    _1551_$retval = $add_int64_t(_1552_self._0, _1551_t1, "tests/integration/traits/impl-none.orng:5:41:\n    fn a(self, x: Int) -> Int { self.x + self.y * x }\n                                       ^");
+    return _1551_$retval;
 }
 
-int64_t _1587_c(void* _1587_self, int64_t _1587_x){
-    int64_t _1587_t0;
-    int64_t _1587_$retval;
-    (*(struct struct3*)_1587_self)._0 = _1587_x;
-    _1587_t0 = $mult_int64_t((*(struct struct3*)_1587_self)._1, _1587_x, "tests/integration/traits/impl-none.orng:7:67:\n    fn c(&mut self, x: Int) -> Int { self.x = x; self.x + self.y * x }\n                                                                 ^");
-    _1587_$retval = $add_int64_t((*(struct struct3*)_1587_self)._0, _1587_t0, "tests/integration/traits/impl-none.orng:7:58:\n    fn c(&mut self, x: Int) -> Int { self.x = x; self.x + self.y * x }\n                                                        ^");
-    return _1587_$retval;
+int64_t _1553_c(void* _1553_self, int64_t _1553_x){
+    int64_t _1553_t0;
+    int64_t _1553_$retval;
+    (*(struct struct3*)_1553_self)._0 = _1553_x;
+    _1553_t0 = $mult_int64_t((*(struct struct3*)_1553_self)._1, _1553_x, "tests/integration/traits/impl-none.orng:7:67:\n    fn c(&mut self, x: Int) -> Int { self.x = x; self.x + self.y * x }\n                                                                 ^");
+    _1553_$retval = $add_int64_t((*(struct struct3*)_1553_self)._0, _1553_t0, "tests/integration/traits/impl-none.orng:7:58:\n    fn c(&mut self, x: Int) -> Int { self.x = x; self.x + self.y * x }\n                                                        ^");
+    return _1553_$retval;
 }
 
-int64_t _1589_d(int64_t _1589_x){
-    int64_t _1589_t0;
-    int64_t _1589_$retval;
-    _1589_t0 = 4;
-    _1589_$retval = $add_int64_t(_1589_x, _1589_t0, "tests/integration/traits/impl-none.orng:9:30:\n    fn d(x: Int) -> Int { x + 4 }\n                            ^");
-    return _1589_$retval;
+int64_t _1555_d(int64_t _1555_x){
+    int64_t _1555_t0;
+    int64_t _1555_$retval;
+    _1555_t0 = 4;
+    _1555_$retval = $add_int64_t(_1555_x, _1555_t0, "tests/integration/traits/impl-none.orng:9:30:\n    fn d(x: Int) -> Int { x + 4 }\n                            ^");
+    return _1555_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1591_main());
+  printf("%ld",_1557_main());
   return 0;
 }

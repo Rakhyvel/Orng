@@ -256,10 +256,6 @@ pub const AST = union(enum) {
             return self.common._token.data;
         }
     },
-    inferred_error: struct {
-        common: AST_Common,
-        _terms: std.ArrayList(*AST),
-    },
     product: struct {
         common: AST_Common,
         _terms: std.ArrayList(*AST),
@@ -418,7 +414,7 @@ pub const AST = union(enum) {
         symbols: std.ArrayList(*symbol_.Symbol), // List of symbols that are defined with this statement
         pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
         type: *AST,
-        init: *AST,
+        init: ?*AST,
         top_level: bool,
         is_alias: bool,
     },
@@ -645,16 +641,6 @@ pub const AST = union(enum) {
         return AST.box(AST{ .sum_value = .{ .common = _common } }, allocator);
     }
 
-    pub fn create_inferred_error(_token: token_.Token, ok: *AST, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        var retval: AST = AST{ .inferred_error = .{ .common = _common, ._terms = std.ArrayList(*AST).init(allocator) } };
-        const ok_ident = AST.create_identifier(token_.Token.init_simple("ok"), allocator);
-        const ok_annot = create_annotation(_token, ok_ident, ok, null, null, allocator);
-        retval.children().append(ok_annot) catch unreachable;
-
-        return AST.box(retval, allocator);
-    }
-
     pub fn create_function(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .function = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
@@ -874,7 +860,7 @@ pub const AST = union(enum) {
         );
     }
 
-    pub fn create_decl(_token: token_.Token, pattern: *AST, _type: *AST, init: *AST, is_alias: bool, allocator: std.mem.Allocator) *AST {
+    pub fn create_decl(_token: token_.Token, pattern: *AST, _type: *AST, init: ?*AST, is_alias: bool, allocator: std.mem.Allocator) *AST {
         return AST.box(
             AST{ .decl = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
@@ -1005,7 +991,6 @@ pub const AST = union(enum) {
         return switch (self.*) {
             .call => &self.call._args,
             .sum_type => &self.sum_type._terms,
-            .inferred_error => &self.inferred_error._terms,
             .product => &self.product._terms,
             .match => &self.match._mappings,
             .block => &self.block._statements,
@@ -1025,7 +1010,6 @@ pub const AST = union(enum) {
         switch (self.*) {
             .call => self.call._args = val,
             .sum_type => self.sum_type._terms = val,
-            .inferred_error => self.inferred_error._terms = val,
             .product => self.product._terms = val,
             .match => self.match._mappings = val,
             .block => self.block._statements = val,
@@ -1234,23 +1218,34 @@ pub const AST = union(enum) {
         return member.assert_valid();
     }
 
+    // Err!Ok => (ok:Ok | err:Err)
+    // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
     pub fn create_error_type(err_type: *AST, ok_type: *AST, allocator: std.mem.Allocator) *AST {
+        var retval_sum_terms = std.ArrayList(*AST).init(allocator);
+
         const ok_annot = AST.create_annotation(
             ok_type.token(),
-            AST.create_identifier(token_.Token.init("ok", null, "", "", 0, 0), allocator),
+            AST.create_identifier(token_.Token.init_simple("ok"), allocator),
             ok_type,
             null,
             null,
             allocator,
         );
-        var ok_sum_terms = std.ArrayList(*AST).init(allocator);
-        ok_sum_terms.append(ok_annot) catch unreachable;
-        var ok_sum = AST.create_sum_type(ok_type.token(), ok_sum_terms, allocator);
-        ok_sum.sum_type.from = .@"error";
+        retval_sum_terms.append(ok_annot) catch unreachable;
 
-        // Err!Ok => (ok:Ok|) || Err
-        // This is done so that `ok` has an invariant tag of `0`, and errors have a non-zero tag.
-        const retval = AST.create_union(err_type.token(), ok_sum, err_type, allocator);
+        const err_annot = AST.create_annotation(
+            err_type.token(),
+            AST.create_identifier(token_.Token.init_simple("err"), allocator),
+            err_type,
+            null,
+            null,
+            allocator,
+        );
+        retval_sum_terms.append(err_annot) catch unreachable;
+
+        var retval = AST.create_sum_type(ok_type.token(), retval_sum_terms, allocator);
+        retval.sum_type.from = .@"error";
+
         return retval;
     }
 
@@ -1305,7 +1300,6 @@ pub const AST = union(enum) {
                 }
                 return false;
             },
-            .inferred_error => _type.inferred_error._terms.items[0].refers_to_self(),
             // I think everything above covers everything, but just in case, error out
             else => true,
         };
@@ -1329,7 +1323,7 @@ pub const AST = union(enum) {
                 if (_symbol.init == self) {
                     return self;
                 } else {
-                    return _symbol.init.expand_type(allocator);
+                    return _symbol.init.?.expand_type(allocator);
                 }
             },
             .product => {
@@ -1395,8 +1389,8 @@ pub const AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
-        if (self.* == .identifier) {
-            return self.symbol().?.init;
+        if (self.* == .identifier and self.symbol().?.init != null) {
+            return self.symbol().?.init.?;
         } else {
             return self;
         }
@@ -1496,10 +1490,6 @@ pub const AST = union(enum) {
                 try self.select._rhs.print_type(out);
             },
             .field => try out.print("{s}", .{self.field.common._token.data}),
-            .inferred_error => {
-                try out.print("!", .{});
-                try self.inferred_error._terms.items[0].annotation.type.print_type(out);
-            },
             .@"union" => {
                 try self.lhs().print_type(out);
                 try out.print("||", .{});
@@ -1586,7 +1576,6 @@ pub const AST = union(enum) {
             .unit_type,
             .annotation,
             .sum_type,
-            .inferred_error,
             .@"union",
             .function,
             .type_of,
@@ -1919,7 +1908,6 @@ pub const AST = union(enum) {
                 return retval;
             },
             .function => return A.lhs().types_match(B.lhs()) and A.rhs().types_match(B.rhs()),
-            .inferred_error => return A == B,
             .dyn_type => return A.expr().symbol() == B.expr().symbol(),
             else => {
                 std.debug.print("types_match(): Unimplemented for {s}\n", .{@tagName(A.*)});
@@ -2154,7 +2142,6 @@ pub const AST = union(enum) {
                 }
                 try out.writer().print(", .from={s})", .{@tagName(self.sum_type.from)});
             },
-            .inferred_error => try out.writer().print("inferred_error()", .{}),
             .sum_value => try out.writer().print("sum_value()", .{}),
             .product => {
                 try out.writer().print("product(", .{});

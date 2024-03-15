@@ -17,76 +17,76 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1266_main(void);
+int64_t _1232_main(void);
 
 
 /* Function definitions */
-int64_t _1266_main(void){
-    int64_t _1266_t2;
-    int64_t _1266_t3;
-    int64_t _1266_t4;
-    struct struct0 _1267_x;
-    int64_t _1266_t6;
-    int64_t _1266_t7;
-    int64_t _1266_t8;
-    uint8_t _1266_t9;
-    int64_t _1266_t0;
-    int64_t _1266_t12;
-    uint8_t _1266_t13;
-    int64_t _1266_$retval;
-    int64_t _1266_t10;
-    uint8_t _1266_t11;
-    _1266_t2 = 1;
-    _1266_t3 = 2;
-    _1266_t4 = 3;
-    _1267_x = (struct struct0) {_1266_t2, _1266_t3, _1266_t4};
-    _1266_t6 = 2;
-    _1266_t7 = 3;
-    _1266_t8 = 1;
-    $bounds_check(_1266_t6, _1266_t7, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
-    _1266_t9 = *((int64_t*)&_1267_x + _1266_t6)==_1266_t8;
-    if (_1266_t9) {
-        goto BB1472;
+int64_t _1232_main(void){
+    int64_t _1232_t2;
+    int64_t _1232_t3;
+    int64_t _1232_t4;
+    struct struct0 _1233_x;
+    int64_t _1232_t6;
+    int64_t _1232_t7;
+    int64_t _1232_t8;
+    uint8_t _1232_t9;
+    int64_t _1232_t0;
+    int64_t _1232_t12;
+    uint8_t _1232_t13;
+    int64_t _1232_$retval;
+    int64_t _1232_t10;
+    uint8_t _1232_t11;
+    _1232_t2 = 1;
+    _1232_t3 = 2;
+    _1232_t4 = 3;
+    _1233_x = (struct struct0) {_1232_t2, _1232_t3, _1232_t4};
+    _1232_t6 = 2;
+    _1232_t7 = 3;
+    _1232_t8 = 1;
+    $bounds_check(_1232_t6, _1232_t7, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
+    _1232_t9 = *((int64_t*)&_1233_x + _1232_t6)==_1232_t8;
+    if (_1232_t9) {
+        goto BB1419;
     } else {
-        goto BB1475;
+        goto BB1422;
     }
-BB1472:
-    _1266_t0 = 2;
-    goto BB1474;
-BB1475:
-    _1266_t10 = 2;
-    $bounds_check(_1266_t6, _1266_t7, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
-    _1266_t11 = *((int64_t*)&_1267_x + _1266_t6)==_1266_t10;
-    if (_1266_t11) {
-        goto BB1477;
+BB1419:
+    _1232_t0 = 2;
+    goto BB1421;
+BB1422:
+    _1232_t10 = 2;
+    $bounds_check(_1232_t6, _1232_t7, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
+    _1232_t11 = *((int64_t*)&_1233_x + _1232_t6)==_1232_t10;
+    if (_1232_t11) {
+        goto BB1424;
     } else {
-        goto BB1478;
+        goto BB1425;
     }
-BB1474:
-    _1266_$retval = _1266_t0;
-    return _1266_$retval;
-BB1477:
-    _1266_t0 = 22;
-    goto BB1474;
-BB1478:
-    _1266_t12 = 3;
-    $bounds_check(_1266_t6, _1266_t7, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
-    _1266_t13 = *((int64_t*)&_1267_x + _1266_t6)==_1266_t12;
-    if (_1266_t13) {
-        goto BB1480;
+BB1421:
+    _1232_$retval = _1232_t0;
+    return _1232_$retval;
+BB1424:
+    _1232_t0 = 22;
+    goto BB1421;
+BB1425:
+    _1232_t12 = 3;
+    $bounds_check(_1232_t6, _1232_t7, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
+    _1232_t13 = *((int64_t*)&_1233_x + _1232_t6)==_1232_t12;
+    if (_1232_t13) {
+        goto BB1427;
     } else {
-        goto BB1482;
+        goto BB1429;
     }
-BB1480:
-    _1266_t0 = 222;
-    goto BB1474;
-BB1482:
-    _1266_t0 = 0;
-    goto BB1474;
+BB1427:
+    _1232_t0 = 222;
+    goto BB1421;
+BB1429:
+    _1232_t0 = 0;
+    goto BB1421;
 }
 
 
 int main(void) {
-  printf("%ld",_1266_main());
+  printf("%ld",_1232_main());
   return 0;
 }

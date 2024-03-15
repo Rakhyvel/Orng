@@ -111,7 +111,7 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
             try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator);
         },
-        .sum_type, .inferred_error, .product => try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator),
+        .sum_type, .product => try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator),
         .sum_value => {
             try symbol_table_from_AST(ast.sum_value.init, scope, errors, allocator);
             try symbol_table_from_AST(ast.sum_value.base, scope, errors, allocator);
@@ -199,6 +199,11 @@ fn symbol_table_from_AST(
                         return error.SymbolError;
                     }
                 }
+            }
+
+            if (!scope.is_param_scope and ast.decl.init == null) {
+                // If this isn't a parameter, and the init is null, set the init to the default value of the type
+                ast.decl.init = ast_.AST.create_default(ast.token(), ast.decl.type, allocator);
             }
         },
         .fn_decl => {
@@ -327,7 +332,7 @@ fn create_symbol(
     pattern: *ast_.AST,
     decl: ?*ast_.AST,
     _type: *ast_.AST,
-    init: *ast_.AST, // The value being matched on
+    init: ?*ast_.AST, // The value being matched on
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -350,8 +355,10 @@ fn create_symbol(
             }
             const symbol_init = if (pattern.pattern_symbol.kind != .@"const" or decl != null and decl.?.decl.is_alias)
                 init
+            else if (init != null)
+                try create_comptime_init(init.?, _type, scope, errors, allocator)
             else
-                try create_comptime_init(init, _type, scope, errors, allocator);
+                null;
             const symbol = symbol_.Symbol.init(
                 scope,
                 pattern.pattern_symbol.name,
@@ -369,19 +376,17 @@ fn create_symbol(
             for (pattern.children().items, 0..) |term, i| {
                 const index = ast_.AST.create_int(pattern.token(), i, allocator);
                 const new_type: *ast_.AST = ast_.AST.create_index(_type.token(), _type, index, allocator);
-                const new_init: *ast_.AST = ast_.AST.create_index(init.token(), init, index, allocator);
+                const new_init: *ast_.AST = ast_.AST.create_index(init.?.token(), init.?, index, allocator);
                 try create_symbol(symbols, term, decl, new_type, new_init, scope, errors, allocator);
             }
         },
         .sum_value => {
-            const lhs_type = ast_.AST.create_type_of(pattern.token(), init, allocator);
+            const lhs_type = ast_.AST.create_type_of(pattern.token(), init.?, allocator);
             const rhs_type = ast_.AST.create_domain_of(pattern.token(), lhs_type, pattern, allocator);
-            // All symbols need inits, this is just a phony init since these symbols are more like parameters.
-            // (We do the same for parameters, btw!)
-            const phony_init = ast_.AST.create_default(pattern.token(), rhs_type, allocator);
 
             if (pattern.sum_value.init != null) {
-                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, phony_init, scope, errors, allocator);
+                // Here init is null!
+                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, null, scope, errors, allocator);
             }
         },
         else => {},
@@ -424,6 +429,7 @@ fn create_function_symbol(
     // Create the function scope
     var fn_scope = symbol_.Scope.init(scope, "", allocator);
     fn_scope.function_depth = scope.function_depth + 1;
+    fn_scope.is_param_scope = true;
 
     // Recurse parameters and init
     try symbol_table_from_AST_list(ast.children().*, fn_scope, errors, allocator);
@@ -670,7 +676,7 @@ fn create_method_symbol(
             if (ast.method_decl.receiver.?.receiver.kind == .value) "$self_ptr" else "self",
             ast.token().span,
             recv_type,
-            ast_.AST.create_default(ast.method_decl.receiver.?.token(), recv_type, allocator),
+            null,
             ast.method_decl.receiver,
             .let,
             allocator,

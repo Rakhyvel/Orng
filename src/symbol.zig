@@ -24,6 +24,7 @@ pub const Scope = struct {
     defers: std.ArrayList(*ast_.AST),
     errdefers: std.ArrayList(*ast_.AST),
     inner_function: ?*Symbol = null,
+    is_param_scope: bool = false, // true when this scope encompases function parameters
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) *Scope {
         var retval = allocator.create(Scope) catch unreachable;
@@ -171,7 +172,7 @@ pub const Symbol = struct {
     span: span_.Span,
     _type: *ast_.AST,
     expanded_type: ?*ast_.AST,
-    init: *ast_.AST,
+    init: ?*ast_.AST,
     kind: Symbol_Kind,
     cfg: ?*cfg_.CFG,
     decl: ?*ast_.AST,
@@ -197,7 +198,7 @@ pub const Symbol = struct {
         name: []const u8,
         span: span_.Span,
         _type: *ast_.AST,
-        _init: *ast_.AST,
+        _init: ?*ast_.AST,
         decl: ?*ast_.AST,
         kind: Symbol_Kind,
         allocator: std.mem.Allocator,

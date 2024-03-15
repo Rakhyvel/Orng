@@ -117,7 +117,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand(ast.sum_value.init, errors, allocator);
             try expand(ast.sum_value.base, errors, allocator);
         },
-        .inferred_error, .product => try expand_from_list(ast.children().*, errors, allocator),
+        .product => try expand_from_list(ast.children().*, errors, allocator),
         .array_of => {
             try expand(ast.expr(), errors, allocator);
             try expand(ast.array_of.len, errors, allocator);

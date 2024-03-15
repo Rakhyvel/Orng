@@ -61,7 +61,7 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
     }
     symbol.validation_state = .validating;
 
-    std.debug.assert(symbol.init.* != .poison);
+    // std.debug.assert(symbol.init.* != .poison);
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
     symbol._type = validate_AST(symbol._type, primitives_.type_type, errors, allocator);
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
@@ -70,18 +70,17 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
         symbol.expanded_type = symbol._type.expand_type(allocator);
         const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
-        symbol.init = validate_AST(symbol.init, expected, errors, allocator);
+        if (symbol.init) |init| {
+            // might be null for parameters
+            symbol.init = validate_AST(init, expected, errors, allocator);
+        }
         // std.debug.print("init for: {s}: {}\n", .{ symbol.name, symbol.init });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, errors, allocator);
-        } else if (symbol.init.* == .poison) {
+        } else if (symbol.init != null and symbol.init.?.* == .poison) {
             symbol.validation_state = .invalid;
             return error.TypeError;
             // unreachable;
-        } else if ((symbol.kind == .@"fn" or symbol.kind == .@"comptime") and symbol._type.rhs().* == .inferred_error) {
-            const terms = symbol._type.rhs().children().*;
-            symbol._type.rhs().* = ast_.AST{ .sum_type = .{ .common = symbol._type.rhs().common().*, ._terms = terms, .from = .@"error" } };
-            // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
         }
     } else {
         symbol.validation_state = .invalid;
@@ -430,12 +429,7 @@ fn validate_AST_internal(
             }
             try type_check(ast, expanded_expr_type.get_ok_type().annotation.type, expected, errors);
             const expanded_function_codomain = ast.symbol().?._type.rhs().expand_type(allocator);
-            if (expanded_function_codomain.* == .inferred_error) {
-                // This checks that the `ok` fields match, for free!
-                for (expanded_expr_type.children().items) |term| {
-                    try add_term(expanded_function_codomain, term, errors);
-                }
-            } else if (expanded_function_codomain.* != .sum_type or expanded_function_codomain.sum_type.from != .@"error") {
+            if (expanded_function_codomain.* != .sum_type or expanded_function_codomain.sum_type.from != .@"error") {
                 errors.add_error(errs_.Error{ .basic = .{
                     .span = ast.token().span,
                     .msg = "enclosing function around try expression does not return an error",
@@ -751,14 +745,6 @@ fn validate_AST_internal(
             try type_check(ast, primitives_.type_type, expected, errors);
             return ast;
         },
-        .inferred_error => {
-            // Inferred errors are expanded after the node is validated. They should only have one term, the `ok` term
-            std.debug.assert(ast.children().items.len == 1);
-            ast.children().items[0] = validate_AST(ast.children().items[0], primitives_.type_type, errors, allocator);
-            try assert_none_poisoned(ast.children().items[0]);
-            try type_check(ast, primitives_.type_type, expected, errors);
-            return ast;
-        },
         .product => {
             const expanded_expected: ?*ast_.AST = if (expected == null) null else expected.?.expand_type(allocator);
             if (expanded_expected == null or expanded_expected.?.types_match(primitives_.type_type)) {
@@ -920,6 +906,10 @@ fn validate_AST_internal(
             return ast;
         },
         .annotation => {
+            if (ast.annotation.pattern.* != .pattern_symbol and ast.annotation.pattern.* != .identifier) {
+                std.debug.print("{s}\n", .{ast.annotation.pattern});
+                unreachable; // TODO: Produce an error about this
+            }
             ast.annotation.type = validate_AST(ast.annotation.type, primitives_.type_type, errors, allocator);
             try assert_none_poisoned(.{ast.annotation.type});
             if (ast.annotation.init != null) {
@@ -938,19 +928,12 @@ fn validate_AST_internal(
             }
 
             const expanded_base: *ast_.AST = ast.sum_value.base.?.expand_type(allocator);
-            if (expanded_base.* != .sum_type and expanded_base.* != .inferred_error) {
+            if (expanded_base.* != .sum_type) {
                 return throw_wrong_from("sum", "sum value", expanded_base, ast.token().span, errors);
             }
 
-            var pos = expanded_base.get_pos(ast.token().data);
-            if (pos == null and expanded_base.* == .inferred_error) {
-                // Wasn't in inferred error set, put in inferred error set
-                const init_type = if (ast.sum_value.init == null) primitives_.unit_type else ast.sum_value.init.?.typeof(allocator);
-                const identifier = ast_.AST.create_identifier(ast.token(), allocator);
-                const annotation = ast_.AST.create_annotation(ast.token(), identifier, init_type, null, null, allocator);
-                expanded_base.children().append(annotation) catch unreachable;
-                pos = expanded_base.children().items.len - 1;
-            } else if (pos == null and expanded_base.* == .sum_type) {
+            const pos = expanded_base.get_pos(ast.token().data);
+            if (pos == null and expanded_base.* == .sum_type) {
                 errors.add_error(errs_.Error{ .member_not_in = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .group = expanded_base } });
                 return error.TypeError;
             }
@@ -1160,7 +1143,9 @@ fn validate_AST_internal(
         .decl => {
             ast.decl.type = validate_AST(ast.decl.type, primitives_.type_type, errors, allocator);
             try assert_none_poisoned(ast.decl.type);
-            ast.decl.init = validate_AST(ast.decl.init, ast.decl.type, errors, allocator);
+            if (ast.decl.init) |init| {
+                ast.decl.init = validate_AST(init, ast.decl.type, errors, allocator);
+            }
             try assert_none_poisoned(ast.decl.init);
             for (ast.decl.symbols.items) |symbol| {
                 try validate_symbol(symbol, errors, allocator);
@@ -1524,6 +1509,7 @@ fn named_args(
                     if (term.annotation.init != null) {
                         filled_args.append(term.annotation.init.?) catch unreachable;
                     } else {
+                        // Value is not provided, and there is no default init, ERROR!
                         errors.add_error(errs_.Error{ .mismatch_arity = .{
                             .span = asts.items[0].token().span,
                             .takes = expected.children().items.len,
@@ -1715,7 +1701,7 @@ fn implicit_dereference(
 }
 
 fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
-    if (_type.* != .product and _type.* != .sum_type and _type.* != .inferred_error) {
+    if (_type.* != .product and _type.* != .sum_type) {
         return throw_not_selectable(span, errors);
     }
     for (_type.children().items, 0..) |term, i| {

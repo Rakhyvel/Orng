@@ -742,12 +742,7 @@ pub const Parser = struct {
         }
         const params = try self.paramlist();
         _ = try self.expect(.skinny_arrow);
-        const inferred_error_token = self.accept(.exclamation_mark);
-        var ret_type = try self.bool_expr();
-        if (inferred_error_token != null) {
-            ret_type = ast_.AST.create_inferred_error(inferred_error_token.?, ret_type, self.allocator);
-        }
-
+        const ret_type = try self.bool_expr();
         const refinement: ?*ast_.AST = null;
         if (self.accept(.where)) |_| {
             _ = try self.arrow_expr();
@@ -813,7 +808,7 @@ pub const Parser = struct {
             ident.token(),
             ident,
             _type,
-            _init orelse ast_.AST.create_default(_type.token(), _type, self.allocator),
+            _init,
             false,
             self.allocator,
         );
@@ -898,12 +893,7 @@ pub const Parser = struct {
         const _receiver = params_and_receiver.receiver;
 
         _ = try self.expect(.skinny_arrow);
-        const inferred_error_token = self.accept(.exclamation_mark);
-        var ret_type = try self.bool_expr();
-        if (inferred_error_token != null) {
-            ret_type = ast_.AST.create_inferred_error(inferred_error_token.?, ret_type, self.allocator);
-        }
-
+        const ret_type = try self.bool_expr();
         const refinement: ?*ast_.AST = null;
         if (self.accept(.where)) |_| {
             _ = try self.arrow_expr();

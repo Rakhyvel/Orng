@@ -2,18 +2,17 @@
 fn main() -> Int {
     match comptime { f(53) } {
         .ok(x) => x
-        .err1 => unreachable
-        .err2 => unreachable
+        .err => unreachable
         _ => unreachable
     }
 }
 
-fn f(x: Int) -> !Int {
+fn f(x: Int) -> ()!Int {
     if x == 53 {
         .ok(x * 5)
     } else if x == 4 {
-        .err1
+        .err
     } else {
-        .err2
+        .err
     }
 }

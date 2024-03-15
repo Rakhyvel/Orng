@@ -12,47 +12,47 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _790_main(void);
-uint8_t _795_f(int64_t _795_x);
+int64_t _756_main(void);
+uint8_t _761_f(int64_t _761_x);
 
 
 /* Function definitions */
-int64_t _790_main(void){
-    function0 _790_t1;
-    int64_t _790_t3;
-    uint8_t _790_t2;
-    int64_t _790_t0;
-    int64_t _790_$retval;
-    _790_t1 = (function0) _795_f;
-    _790_t3 = 4;
+int64_t _756_main(void){
+    function0 _756_t1;
+    int64_t _756_t3;
+    uint8_t _756_t2;
+    int64_t _756_t0;
+    int64_t _756_$retval;
+    _756_t1 = (function0) _761_f;
+    _756_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/mult-1.orng:3:10:\n    if f(4) {\n        ^";
-    _790_t2 = _790_t1(_790_t3);
+    _756_t2 = _756_t1(_756_t3);
     $line_idx--;
-    if (_790_t2) {
-        goto BB948;
+    if (_756_t2) {
+        goto BB895;
     } else {
-        goto BB952;
+        goto BB899;
     }
-BB948:
-    _790_t0 = 186;
-    goto BB951;
-BB952:
-    _790_t0 = 4;
-    goto BB951;
-BB951:
-    _790_$retval = _790_t0;
-    return _790_$retval;
+BB895:
+    _756_t0 = 186;
+    goto BB898;
+BB899:
+    _756_t0 = 4;
+    goto BB898;
+BB898:
+    _756_$retval = _756_t0;
+    return _756_$retval;
 }
 
-uint8_t _795_f(int64_t _795_x){
-    uint8_t _795_$retval;
-    (void)_795_x;
-    _795_$retval = 1;
-    return _795_$retval;
+uint8_t _761_f(int64_t _761_x){
+    uint8_t _761_$retval;
+    (void)_761_x;
+    _761_$retval = 1;
+    return _761_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_790_main());
+  printf("%ld",_756_main());
   return 0;
 }

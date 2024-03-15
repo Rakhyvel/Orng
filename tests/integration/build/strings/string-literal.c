@@ -19,23 +19,23 @@ struct struct0 {
 char* string_0 = "\x4E\x4F\x57\x20\x59\x55\x4F\x20\x43\x45\x45\x2E\x2E\x2E";
 
 /* Function forward definitions */
-uint8_t _1437_main(void);
+uint8_t _1403_main(void);
 
 
 /* Function definitions */
-uint8_t _1437_main(void){
-    struct struct0 _1438_x;
-    int64_t _1437_t2;
-    uint8_t _1437_$retval;
-    _1438_x = (struct struct0) {(uint8_t*)string_0, 14};
-    _1437_t2 = 5;
-    $bounds_check(_1437_t2, _1438_x._1, "tests/integration/strings/string-literal.orng:2:3:\nfn main() -> Byte {\n ^");
-    _1437_$retval = *((uint8_t*)_1438_x._0 + _1437_t2);
-    return _1437_$retval;
+uint8_t _1403_main(void){
+    struct struct0 _1404_x;
+    int64_t _1403_t2;
+    uint8_t _1403_$retval;
+    _1404_x = (struct struct0) {(uint8_t*)string_0, 14};
+    _1403_t2 = 5;
+    $bounds_check(_1403_t2, _1404_x._1, "tests/integration/strings/string-literal.orng:2:3:\nfn main() -> Byte {\n ^");
+    _1403_$retval = *((uint8_t*)_1404_x._0 + _1403_t2);
+    return _1403_$retval;
 }
 
 
 int main(void) {
-  printf("%u",_1437_main());
+  printf("%u",_1403_main());
   return 0;
 }

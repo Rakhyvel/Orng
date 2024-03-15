@@ -125,7 +125,7 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
         },
-        .sum_type, .inferred_error, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
+        .sum_type, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
 
         .sum_value => {
             try decorate_identifiers(ast.sum_value.init, scope, errors, allocator);

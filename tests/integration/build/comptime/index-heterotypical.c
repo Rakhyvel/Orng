@@ -36,7 +36,7 @@ int64_t _245_main(void){
     int64_t _245_$retval;
     _245_t1 = 960;
     _245_t2 = 248;
-    _245_t3 = 3.14e+00;
+    _245_t3 = 3.14e0;
     _246_x = (struct struct0) {_245_t1, _245_t2, _245_t3};
     _245_$retval = _246_x._1;
     return _245_$retval;
