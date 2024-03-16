@@ -199,13 +199,13 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
         },
         .trait => {
-            try decorate_identifiers_from_list(ast.trait.method_decls, ast.trait.scope.?, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, ast.trait.scope.?, errors, allocator);
             scope.traits.append(ast) catch unreachable;
         },
         .impl => {
             try decorate_identifiers(ast.impl._type, scope, errors, allocator);
             try decorate_identifiers(ast.impl.trait, ast.impl.scope.?, errors, allocator);
-            try decorate_identifiers_from_list(ast.impl.method_defs, ast.impl.scope.?, errors, allocator);
+            try decorate_identifiers_from_list(ast.children().*, ast.impl.scope.?, errors, allocator);
 
             // Determine the impl's trait's symbol, if it exists
             const trait_symbol: *symbol_.Symbol = ast.impl.trait.?.symbol().?;

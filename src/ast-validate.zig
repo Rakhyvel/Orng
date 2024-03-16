@@ -108,7 +108,7 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
 fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
     defer names.deinit();
-    for (trait.decl.?.trait.method_decls.items) |decl| {
+    for (trait.decl.?.children().items) |decl| {
         if (names.get(decl.method_decl.name.token().data)) |other| {
             errors.add_error(errs_.Error{ .duplicate = .{
                 .span = decl.token().span,
@@ -157,12 +157,12 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
         // Construct a map of all trait decls
         var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
         defer trait_decls.deinit();
-        for (trait_ast.trait.method_decls.items) |decl| {
+        for (trait_ast.children().items) |decl| {
             trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
         }
 
         // Subtract trait defs - impl decls
-        for (impl.impl.method_defs.items) |def| {
+        for (impl.children().items) |def| {
             const def_key = def.method_decl.name.token().data;
             const trait_decl = trait_decls.get(def_key);
 
@@ -269,8 +269,8 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
         }
     }
 
-    for (impl.impl.method_defs.items, 0..) |def, i| {
-        impl.impl.method_defs.items[i] = validate_AST(def, null, errors, allocator);
+    for (impl.children().items, 0..) |def, i| {
+        impl.children().items[i] = validate_AST(def, null, errors, allocator);
     }
 }
 

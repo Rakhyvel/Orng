@@ -1,0 +1,12 @@
+trait My_Trait { }
+
+impl My_Trait for Int { }
+
+fn main() -> Int {
+    let x: Int = 4
+    f(&x)
+}
+
+fn f(x: &dyn My_Trait) -> Int {
+    x.>get_int()
+}

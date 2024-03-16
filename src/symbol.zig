@@ -118,7 +118,7 @@ pub const Scope = struct {
                 // Types do not match
                 continue;
             }
-            for (impl.impl.method_defs.items) |method_def| {
+            for (impl.children().items) |method_def| {
                 if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
                     return method_def;
                 }
@@ -136,6 +136,7 @@ pub const Scope = struct {
 
     /// Given a scope and a type, fills in a map of methods defined for that type in that scope.
     pub fn fill_method_map(self: *Scope, for_type: *ast_.AST, method_map: *std.StringArrayHashMap(*ast_.AST)) void {
+        // TODO: Is this even called?
         if (self.parent != null) {
             self.parent.?.fill_method_map(for_type, method_map);
         }
@@ -144,7 +145,7 @@ pub const Scope = struct {
                 // Types do not match
                 continue;
             }
-            for (impl.impl.method_defs) |def| {
+            for (impl.children().items) |def| {
                 if (method_map.get(def.decl.symbols.items[0].name)) {
                     unreachable; // TODO: Give an error about redefining a method for a given type
                 }

@@ -152,7 +152,7 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
             continue;
         }
         try writer.print("struct vtable_{s} {{\n", .{trait.symbol().?.name});
-        for (trait.trait.method_decls.items) |decl| {
+        for (trait.children().items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
@@ -253,7 +253,7 @@ fn output_impls(impls: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!
         }
         const trait = impl.impl.trait.?;
         try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.impl.scope.?.uid });
-        for (impl.impl.method_defs.items) |decl| {
+        for (impl.children().items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
@@ -389,12 +389,12 @@ fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) 
     }
 }
 
-/// Outputs a symbol with it's unique identifier to a file
+/// Outputs a symbol with it's file's unique identifier
 fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
 }
 
-/// Outputs the C type corresponding to an AST type.
+/// Outputs the C type which corresponds to an AST type.
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {

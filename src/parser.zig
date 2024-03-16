@@ -849,7 +849,7 @@ pub const Parser = struct {
             while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         }
         _ = try self.expect(.right_brace);
-        retval.impl.method_defs = method_defs;
+        retval.set_children(method_defs);
         return retval;
     }
 

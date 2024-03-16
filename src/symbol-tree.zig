@@ -236,7 +236,7 @@ fn symbol_table_from_AST(
             );
             try symbol_table_from_AST(self_type_decl, new_scope, errors, allocator);
 
-            for (ast.trait.method_decls.items) |method_decl| {
+            for (ast.children().items) |method_decl| {
                 method_decl.method_decl.c_type = create_method_type(method_decl, allocator);
             }
         },
@@ -247,7 +247,7 @@ fn symbol_table_from_AST(
                 var token = ast.token();
                 token.kind = .identifier;
                 token.data = next_anon_name("trait", allocator);
-                ast.impl.trait = ast_.AST.create_trait(token, ast.impl.method_defs, allocator);
+                ast.impl.trait = ast_.AST.create_trait(token, ast.children().*, allocator);
                 ast.impl.impls_anon_trait = true;
             }
             const self_type_decl = ast_.AST.create_decl(
@@ -260,7 +260,7 @@ fn symbol_table_from_AST(
             );
             try symbol_table_from_AST(ast.impl.trait, scope, errors, allocator);
             try symbol_table_from_AST(self_type_decl, new_scope, errors, allocator);
-            try symbol_table_from_AST_list(ast.impl.method_defs, new_scope, errors, allocator);
+            try symbol_table_from_AST_list(ast.children().*, new_scope, errors, allocator);
         },
         .method_decl => {
             if (ast.symbol() != null or ast.method_decl.init == null) {
