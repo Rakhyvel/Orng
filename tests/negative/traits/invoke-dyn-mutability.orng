@@ -1,0 +1,18 @@
+trait Lol {
+    fn lmao(&mut self) -> ()
+}
+
+impl Lol for Int {
+    fn lmao(&mut self) -> () {
+        self^ = 30
+    }
+}
+
+fn main() -> Int {
+    let x = 5
+    f(&x)
+}
+
+fn f(x: &dyn Lol) -> () {
+    x.>lmao()
+}

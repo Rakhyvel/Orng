@@ -1,0 +1,5 @@
+fn main() -> Int {
+    let x = 4
+    let y = &x
+    y.>add(56)
+}

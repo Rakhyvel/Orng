@@ -5,23 +5,29 @@ import re
 
 
 data = """
-    "expr isnt sum type" -> "-" [label=true];
-    "expr isnt sum type" -> "expr sum isnt error" [label=false];
+"lhs is dyn0" -> "method not found" [label=true];
+"lhs is dyn0" -> "lhs is addr" [label=false];
 
-    "expr sum isnt error" -> "-" [label=true];
-    "expr sum isnt error" -> "function doesnt return sum" [label=false];
+"lhs is addr" -> "method not found" [label=true];
+"lhs is addr" -> "method not found" [label=false];
 
-    "function doesnt return sum" -> "-" [label=true];
-    "function doesnt return sum" -> "function doesnt return error" [label=false];
+"method not found" -> "-" [label=true];
+"method not found" -> "has receiver" [label=false];
 
-    "function doesnt return error" -> "-" [label=true];
-    "function doesnt return error" -> "error terms" [label=false];
+"has receiver" -> "lhs is dyn1" [label=true];
+"has receiver" -> "+" [label=false];
 
-    "error terms" -> "+" [label=0];
-    "error terms" -> "terms dont match function" [label=n];
+"lhs is dyn1" -> "lhs is mut" [label=true];
+"lhs is dyn1" -> "expanded_lhs is addr" [label=false];
 
-    "terms dont match function" -> "-" [label=true];
-    "terms dont match function" -> "+" [label=false];
+"expanded_lhs is addr" -> "lhs is mut" [label=true];
+"expanded_lhs is addr" -> "+" [label=false];
+
+"lhs is mut" -> "receiver is mut" [label=true];
+"lhs is mut" -> "+" [label=false];
+
+"receiver is mut" -> "-" [label=true];
+"receiver is mut" -> "+" [label=false];
 """
 
 

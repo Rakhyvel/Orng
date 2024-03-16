@@ -395,7 +395,7 @@ pub const Errors = struct {
                 });
             },
             .invoke_receiver_mismatch => {
-                try out.print("receiver `{s}` of method `{s}` incompatible with type`", .{
+                try out.print("receiver `{s}` of method `{s}` incompatible with type `", .{
                     err.invoke_receiver_mismatch.method_receiver.to_string(),
                     err.invoke_receiver_mismatch.method_name,
                 });

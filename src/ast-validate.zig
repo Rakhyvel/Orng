@@ -637,6 +637,7 @@ fn validate_AST_internal(
             try type_check(ast, ast_type, expected, errors);
             return ast;
         },
+
         .invoke => {
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
@@ -654,11 +655,13 @@ fn validate_AST_internal(
                 method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
             }
             if (method_decl == null) {
-                errors.add_error(errs_.Error{ .type_not_impl_method = .{
-                    .span = ast.token().span,
-                    .method_name = ast.rhs().token().data,
-                    ._type = true_lhs_type,
-                } });
+                errors.add_error(errs_.Error{
+                    .type_not_impl_method = .{
+                        .span = ast.token().span,
+                        .method_name = ast.rhs().token().data,
+                        ._type = true_lhs_type, // TODO: Strip away addr_of's
+                    },
+                });
                 return error.TypeError;
             }
             method_decl = validate_AST(method_decl.?, null, errors, allocator);
@@ -666,8 +669,8 @@ fn validate_AST_internal(
             ast.invoke.method_decl = method_decl.?;
             const domain: *ast_.AST = method_decl.?.method_decl.domain.?;
             const expanded_true_lhs_type = true_lhs_type.expand_identifier();
-            const receiver_kind: ?ast_.Receiver_Kind = if (method_decl.?.method_decl.receiver != null) method_decl.?.method_decl.receiver.?.receiver.kind else null;
             if (method_decl.?.method_decl.receiver != null) {
+                const receiver_kind: ?ast_.Receiver_Kind = method_decl.?.method_decl.receiver.?.receiver.kind;
                 // Trait method takes a receiver...
                 // Prepend invoke lhs to args if there is a receiver
                 if (expanded_true_lhs_type.* == .dyn_type or expanded_true_lhs_type.* == .addr_of) {
