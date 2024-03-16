@@ -1,0 +1,8 @@
+// 310
+trait Empty {}
+
+impl Empty for Int {}
+
+fn main() -> Int {
+    310
+}

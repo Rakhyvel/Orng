@@ -1,5 +1,6 @@
-fn main() -> Int {
+fn main() -> (ok: Int | err: Char) {
     try f()
+    .ok(4)
 }
 
 fn f() -> Char!Int {

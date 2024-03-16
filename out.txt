@@ -1,0 +1,7 @@
+("expr isnt sum type": true),  "-"
+("expr isnt sum type": false),  ("expr sum isnt error": true),  "-"
+("expr isnt sum type": false),  ("expr sum isnt error": false),  ("function doesnt return sum": true),  "-"
+("expr isnt sum type": false),  ("expr sum isnt error": false),  ("function doesnt return sum": false),  ("function doesnt return error": true),  "-"
+("expr isnt sum type": false),  ("expr sum isnt error": false),  ("function doesnt return sum": false),  ("function doesnt return error": false),  ("error terms": 0),  "+"
+("expr isnt sum type": false),  ("expr sum isnt error": false),  ("function doesnt return sum": false),  ("function doesnt return error": false),  ("error terms": n),  ("terms dont match function": true),  "-"
+("expr isnt sum type": false),  ("expr sum isnt error": false),  ("function doesnt return sum": false),  ("function doesnt return error": false),  ("error terms": n),  ("terms dont match function": false),  "+"

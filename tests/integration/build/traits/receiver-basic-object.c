@@ -29,63 +29,63 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _1608_main(void);
-int64_t _1606_get_int(void* _1606_$self_ptr, int64_t _1606_x);
+int64_t _109_main(void);
+int64_t _107_get_int(void* _107_$self_ptr, int64_t _107_x);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1605_$vtable = {
-    .get_int = _1606_get_int,
+struct vtable_My_Trait _106_$vtable = {
+    .get_int = _107_get_int,
 };
 
 
 /* Function definitions */
-int64_t _1608_main(void){
-    int64_t _1609_x;
-    struct dyn2 _1608_t2;
-    struct dyn2 _1609_y;
-    int64_t _1608_t6;
-    int64_t _1608_t5;
-    int64_t* _1608_t8;
-    int64_t _1608_t9;
-    int64_t _1608_t7;
-    uint8_t _1608_t12;
-    int64_t _1608_$retval;
-    _1609_x = 4;
-    _1608_t2 = (struct dyn2) {&_1609_x, &_1605_$vtable};
-    _1609_y = _1608_t2;
-    _1608_t6 = 90;
+int64_t _109_main(void){
+    int64_t _110_x;
+    struct dyn2 _109_t2;
+    struct dyn2 _110_y;
+    int64_t _109_t6;
+    int64_t _109_t5;
+    int64_t* _109_t8;
+    int64_t _109_t9;
+    int64_t _109_t7;
+    uint8_t _109_t12;
+    int64_t _109_$retval;
+    _110_x = 4;
+    _109_t2 = (struct dyn2) {&_110_x, &_106_$vtable};
+    _110_y = _109_t2;
+    _109_t6 = 90;
     $lines[$line_idx++] = "tests/integration/traits/receiver-basic-object.orng:13:11:\n    if y.>get_int(90) == x.>get_int(90) {\n         ^";
-    _1608_t5 = _1609_y.vtable->get_int(_1609_y.data_ptr, _1608_t6);
+    _109_t5 = _110_y.vtable->get_int(_110_y.data_ptr, _109_t6);
     $line_idx--;
-    _1608_t8 = &_1609_x;
-    _1608_t9 = 90;
+    _109_t8 = &_110_x;
+    _109_t9 = 90;
     $lines[$line_idx++] = "tests/integration/traits/receiver-basic-object.orng:13:29:\n    if y.>get_int(90) == x.>get_int(90) {\n                           ^";
-    _1608_t7 = _1605_$vtable.get_int(_1608_t8, _1608_t9);
+    _109_t7 = _106_$vtable.get_int(_109_t8, _109_t9);
     $line_idx--;
-    _1608_t12 = _1608_t5==_1608_t7;
-    if (_1608_t12) {
-        goto BB1813;
+    _109_t12 = _109_t5==_109_t7;
+    if (_109_t12) {
+        goto BB71;
     } else {
-        goto BB1817;
+        goto BB75;
     }
-BB1813:
-    _1608_$retval = 296;
-    return _1608_$retval;
-BB1817:
+BB71:
+    _109_$retval = 296;
+    return _109_$retval;
+BB75:
     $lines[$line_idx++] = "tests/integration/traits/receiver-basic-object.orng:16:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
-int64_t _1606_get_int(void* _1606_$self_ptr, int64_t _1606_x){
-    int64_t _1607_self;
-    int64_t _1606_$retval;
-    _1607_self = *(int64_t*)_1606_$self_ptr;
-    _1606_$retval = $add_int64_t(_1607_self, _1606_x, "tests/integration/traits/receiver-basic-object.orng:7:53:\n    virtual fn get_int(self, x: Int) -> Int { self + x }\n                                                   ^");
-    return _1606_$retval;
+int64_t _107_get_int(void* _107_$self_ptr, int64_t _107_x){
+    int64_t _108_self;
+    int64_t _107_$retval;
+    _108_self = *(int64_t*)_107_$self_ptr;
+    _107_$retval = $add_int64_t(_108_self, _107_x, "tests/integration/traits/receiver-basic-object.orng:7:53:\n    virtual fn get_int(self, x: Int) -> Int { self + x }\n                                                   ^");
+    return _107_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1608_main());
+  printf("%ld",_109_main());
   return 0;
 }

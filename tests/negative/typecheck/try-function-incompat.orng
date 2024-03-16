@@ -2,11 +2,11 @@ fn main() -> Int {
     f() catch 0
 }
 
-fn f() -> (err:Char|)!Int {
+fn f() -> Char!Int {
     let x = try g()
     .ok(x)
 }
 
-fn g() -> (err|)!Int {
+fn g() -> ()!Int {
     return .err
 }

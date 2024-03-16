@@ -2,6 +2,6 @@ fn main() -> Int {
     try f()
 }
 
-fn f() -> Char!Int {
+fn f() -> (ok: Int | err: Char) {
     return .err('d')
 }

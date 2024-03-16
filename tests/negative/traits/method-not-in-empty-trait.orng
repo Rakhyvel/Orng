@@ -1,6 +1,4 @@
-trait My_Trait { 
-    fn g() -> ()
-}
+trait My_Trait { }
 
 impl My_Trait for Int {
     fn f() -> () { }

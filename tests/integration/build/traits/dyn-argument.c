@@ -25,51 +25,51 @@ struct vtable_Give_Num {
 };
 
 /* Function forward definitions */
-int64_t _1543_main(void);
-int64_t _1545_call_give_num(struct dyn2 _1545_x);
-int64_t _1541_give_num(void);
+int64_t _32_main(void);
+int64_t _34_call_give_num(struct dyn2 _34_x);
+int64_t _30_give_num(void);
 
 /* Trait vtable implementations */
-struct vtable_Give_Num _1540_$vtable = {
-    .give_num = _1541_give_num,
+struct vtable_Give_Num _29_$vtable = {
+    .give_num = _30_give_num,
 };
 
 
 /* Function definitions */
-int64_t _1543_main(void){
-    int64_t _1544_x;
-    function1 _1543_t2;
-    struct dyn2 _1543_t4;
-    int64_t _1543_t3;
-    int64_t _1543_$retval;
-    _1544_x = 4;
-    _1543_t2 = (function1) _1545_call_give_num;
-    _1543_t4 = (struct dyn2) {&_1544_x, &_1540_$vtable};
+int64_t _32_main(void){
+    int64_t _33_x;
+    function1 _32_t2;
+    struct dyn2 _32_t4;
+    int64_t _32_t3;
+    int64_t _32_$retval;
+    _33_x = 4;
+    _32_t2 = (function1) _34_call_give_num;
+    _32_t4 = (struct dyn2) {&_33_x, &_29_$vtable};
     $lines[$line_idx++] = "tests/integration/traits/dyn-argument.orng:15:19:\n    call_give_num(&x)\n                 ^";
-    _1543_t3 = _1543_t2(_1543_t4);
+    _32_t3 = _32_t2(_32_t4);
     $line_idx--;
-    _1543_$retval = _1543_t3;
-    return _1543_$retval;
+    _32_$retval = _32_t3;
+    return _32_$retval;
 }
 
-int64_t _1545_call_give_num(struct dyn2 _1545_x){
-    int64_t _1545_t1;
-    int64_t _1545_$retval;
+int64_t _34_call_give_num(struct dyn2 _34_x){
+    int64_t _34_t1;
+    int64_t _34_$retval;
     $lines[$line_idx++] = "tests/integration/traits/dyn-argument.orng:20:8:\n    x.>give_num()\n      ^";
-    _1545_t1 = _1545_x.vtable->give_num();
+    _34_t1 = _34_x.vtable->give_num();
     $line_idx--;
-    _1545_$retval = _1545_t1;
-    return _1545_$retval;
+    _34_$retval = _34_t1;
+    return _34_$retval;
 }
 
-int64_t _1541_give_num(void){
-    int64_t _1541_$retval;
-    _1541_$retval = 302;
-    return _1541_$retval;
+int64_t _30_give_num(void){
+    int64_t _30_$retval;
+    _30_$retval = 302;
+    return _30_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1543_main());
+  printf("%ld",_32_main());
   return 0;
 }

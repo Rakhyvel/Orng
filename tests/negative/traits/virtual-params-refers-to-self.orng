@@ -1,0 +1,3 @@
+trait Lol {
+    virtual fn lol(x: Self, y: Self) -> ()
+}

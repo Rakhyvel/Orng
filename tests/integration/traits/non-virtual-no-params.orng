@@ -1,0 +1,15 @@
+// 311
+
+trait Trait {
+    fn f() -> Int
+}
+
+impl Trait for Int {
+    fn f() -> Int { 311 }
+}
+
+fn main() -> Int {
+    let x = 45
+    _ = x
+    x.>f()
+}

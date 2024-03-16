@@ -1,0 +1,9 @@
+trait My_Trait {
+    fn f() -> ()
+}
+
+impl My_Trait for Int {}
+
+fn main() -> Int {
+    4
+}

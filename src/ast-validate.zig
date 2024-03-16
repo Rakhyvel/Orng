@@ -150,123 +150,119 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 
     impl.impl._type = validate_AST(impl.impl._type, primitives_.type_type, errors, allocator);
 
-    const trait_symbol: ?*symbol_.Symbol = if (impl.impl.trait) |trait| trait.symbol() else null;
-    if (trait_symbol != null) {
-        const trait_ast = trait_symbol.?.decl.?;
+    const trait_symbol: *symbol_.Symbol = impl.impl.trait.?.symbol().?;
+    const trait_ast = trait_symbol.decl.?;
 
-        // Construct a map of all trait decls
-        var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
-        defer trait_decls.deinit();
-        for (trait_ast.children().items) |decl| {
-            trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
-        }
+    // Construct a map of all trait decls
+    var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
+    defer trait_decls.deinit();
+    for (trait_ast.children().items) |decl| {
+        trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
+    }
 
-        // Subtract trait defs - impl decls
-        for (impl.children().items) |def| {
-            const def_key = def.method_decl.name.token().data;
-            const trait_decl = trait_decls.get(def_key);
+    // Subtract trait defs - impl decls
+    for (impl.children().items) |def| {
+        const def_key = def.method_decl.name.token().data;
+        const trait_decl = trait_decls.get(def_key);
 
-            // Check that the trait defines the method
-            if (trait_decl == null) {
-                errors.add_error(errs_.Error{ .method_not_in_trait = .{
-                    .method_span = def.token().span,
-                    .method_name = def.method_decl.name.token().data,
-                    .trait_name = trait_ast.token().data,
-                } });
-                return error.TypeError;
-            }
-
-            // Check that receivers match
-            if (!receivers_match(def.method_decl.receiver, trait_decl.?.method_decl.receiver)) {
-                errors.add_error(errs_.Error{ .impl_receiver_mismatch = .{
-                    .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.token().span else def.token().span,
-                    .method_name = def.method_decl.name.token().data,
-                    .trait_name = trait_ast.token().data,
-                    .trait_receiver = if (trait_decl.?.method_decl.receiver != null) trait_decl.?.method_decl.receiver.?.receiver.kind else null,
-                    .impl_receiver = if (def.method_decl.receiver != null) def.method_decl.receiver.?.receiver.kind else null,
-                } });
-                return error.TypeError;
-            }
-
-            // Check that paramter arity matches
-            if (def.children().items.len != trait_decl.?.children().items.len) {
-                errors.add_error(errs_.Error{ .mismatch_method_param_arity = .{
-                    .span = def.token().span,
-                    .method_name = def.method_decl.name.token().data,
-                    .trait_name = trait_ast.token().data,
-                    .trait_arity = trait_decl.?.children().items.len + @intFromBool(trait_decl.?.method_decl.receiver != null),
-                    .impl_arity = def.children().items.len + @intFromBool(def.method_decl.receiver != null),
-                } });
-                return error.TypeError;
-            }
-
-            // Check that parameters match
-            for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
-                const impl_type = impl_param.decl.type;
-                const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, allocator);
-                if (!impl_type.types_match(trait_type)) {
-                    errors.add_error(errs_.Error{ .mismatch_method_type = .{
-                        .span = impl_param.decl.type.token().span,
-                        .method_name = def.method_decl.name.token().data,
-                        .trait_name = trait_ast.token().data,
-                        .trait_type = trait_type,
-                        .impl_type = impl_type,
-                    } });
-                    return error.TypeError;
-                }
-            }
-
-            // Check that return type matches
-            if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
-                if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
-                    errors.add_error(errs_.Error{ .mismatch_method_type = .{
-                        .span = def.method_decl.ret_type.token().span,
-                        .method_name = def.method_decl.name.token().data,
-                        .trait_name = trait_ast.token().data,
-                        .trait_type = trait_decl.?.method_decl.ret_type,
-                        .impl_type = def.method_decl.ret_type,
-                    } });
-                    return error.TypeError;
-                }
-            }
-
-            // Copy over the c_type from trait method decl
-            def.method_decl.c_type = trait_decl.?.method_decl.c_type;
-
-            // Verify that impl virtuality matches trait virtuality
-            if (def.method_decl.is_virtual != trait_decl.?.method_decl.is_virtual) {
-                errors.add_error(errs_.Error{ .mismatch_method_virtuality = .{
-                    .span = def.token().span,
-                    .method_name = def.method_decl.name.token().data,
-                    .trait_name = trait_ast.token().data,
-                    .trait_method_is_virtual = trait_decl.?.method_decl.is_virtual,
-                    .impl_method_is_virtual = def.method_decl.is_virtual,
-                } });
-                return error.TypeError;
-            }
-
-            if (def.method_decl.is_virtual) {
-                impl.impl.num_virtual_methods += 1;
-            }
-
-            // Subtract the method from the set
-            _ = trait_decls.swapRemove(def_key);
-        }
-
-        var errant = false;
-        for (trait_decls.keys()) |trait_key| {
-            const trait_decl = trait_decls.get(trait_key).?;
-            errors.add_error(errs_.Error{ .method_not_in_impl = .{
-                .impl_span = impl.token().span,
-                .method_span = trait_decl.token().span,
-                .method_name = trait_decl.method_decl.name.token().data,
+        // Check that the trait defines the method
+        if (trait_decl == null) {
+            errors.add_error(errs_.Error{ .method_not_in_trait = .{
+                .method_span = def.token().span,
+                .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
             } });
-            errant = true;
-        }
-        if (errant) {
             return error.TypeError;
         }
+
+        // Check that receivers match
+        if (!receivers_match(def.method_decl.receiver, trait_decl.?.method_decl.receiver)) {
+            errors.add_error(errs_.Error{ .impl_receiver_mismatch = .{
+                .receiver_span = if (def.method_decl.receiver != null) def.method_decl.receiver.?.token().span else def.token().span,
+                .method_name = def.method_decl.name.token().data,
+                .trait_name = trait_ast.token().data,
+                .trait_receiver = if (trait_decl.?.method_decl.receiver != null) trait_decl.?.method_decl.receiver.?.receiver.kind else null,
+                .impl_receiver = if (def.method_decl.receiver != null) def.method_decl.receiver.?.receiver.kind else null,
+            } });
+            return error.TypeError;
+        }
+
+        // Check that paramter arity matches
+        if (def.children().items.len != trait_decl.?.children().items.len) {
+            errors.add_error(errs_.Error{ .mismatch_method_param_arity = .{
+                .span = def.token().span,
+                .method_name = def.method_decl.name.token().data,
+                .trait_name = trait_ast.token().data,
+                .trait_arity = trait_decl.?.children().items.len + @intFromBool(trait_decl.?.method_decl.receiver != null),
+                .impl_arity = def.children().items.len + @intFromBool(def.method_decl.receiver != null),
+            } });
+            return error.TypeError;
+        }
+
+        // Check that parameters match
+        for (def.children().items, trait_decl.?.children().items) |impl_param, trait_param| {
+            const impl_type = impl_param.decl.type;
+            const trait_type = ast_.AST.convert_self_type(trait_param.decl.type, impl.impl._type, allocator);
+            if (!impl_type.types_match(trait_type)) {
+                errors.add_error(errs_.Error{ .mismatch_method_type = .{
+                    .span = impl_param.decl.type.token().span,
+                    .method_name = def.method_decl.name.token().data,
+                    .trait_name = trait_ast.token().data,
+                    .trait_type = trait_type,
+                    .impl_type = impl_type,
+                } });
+                return error.TypeError;
+            }
+        }
+
+        // Check that return type matches
+        if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
+            errors.add_error(errs_.Error{ .mismatch_method_type = .{
+                .span = def.method_decl.ret_type.token().span,
+                .method_name = def.method_decl.name.token().data,
+                .trait_name = trait_ast.token().data,
+                .trait_type = trait_decl.?.method_decl.ret_type,
+                .impl_type = def.method_decl.ret_type,
+            } });
+            return error.TypeError;
+        }
+
+        // Copy over the c_type from trait method decl
+        def.method_decl.c_type = trait_decl.?.method_decl.c_type;
+
+        // Verify that impl virtuality matches trait virtuality
+        if (def.method_decl.is_virtual != trait_decl.?.method_decl.is_virtual) {
+            errors.add_error(errs_.Error{ .mismatch_method_virtuality = .{
+                .span = def.token().span,
+                .method_name = def.method_decl.name.token().data,
+                .trait_name = trait_ast.token().data,
+                .trait_method_is_virtual = trait_decl.?.method_decl.is_virtual,
+                .impl_method_is_virtual = def.method_decl.is_virtual,
+            } });
+            return error.TypeError;
+        }
+
+        if (def.method_decl.is_virtual) {
+            impl.impl.num_virtual_methods += 1;
+        }
+
+        // Subtract the method from the set
+        _ = trait_decls.swapRemove(def_key);
+    }
+
+    var errant = false;
+    for (trait_decls.keys()) |trait_key| {
+        const trait_decl = trait_decls.get(trait_key).?;
+        errors.add_error(errs_.Error{ .method_not_in_impl = .{
+            .impl_span = impl.token().span,
+            .method_span = trait_decl.token().span,
+            .method_name = trait_decl.method_decl.name.token().data,
+            .trait_name = trait_ast.token().data,
+        } });
+        errant = true;
+    }
+    if (errant) {
+        return error.TypeError;
     }
 
     for (impl.children().items, 0..) |def, i| {
@@ -436,13 +432,11 @@ fn validate_AST_internal(
                 } });
                 return ast.enpoison();
             } else {
-                for (1..expanded_expr_type.children().items.len) |i| {
-                    const expr_error_type = expanded_expr_type.children().items[i].annotation.type;
-                    const function_error_type = expanded_function_codomain.children().items[i].annotation.type;
-                    if (!expr_error_type.types_match(function_error_type)) {
-                        // expr error union's `.err` member is not a compatible type with the function's error type
-                        return throw_unexpected_type(expr_span, expanded_expr_type, expanded_function_codomain, errors);
-                    }
+                // err must match
+                const expr_error_type = expanded_expr_type.get_err_type().annotation.type;
+                const function_error_type = expanded_function_codomain.get_err_type().annotation.type;
+                if (!expr_error_type.types_match(function_error_type)) {
+                    return throw_unexpected_type(expr_span, expanded_expr_type, expanded_function_codomain, errors);
                 }
             }
             return ast;

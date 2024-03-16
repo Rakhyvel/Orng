@@ -1,8 +1,12 @@
 trait My_Trait {
     fn f() -> ()
+
+    fn g() -> ()
 }
 
-impl My_Trait for Int {}
+impl My_Trait for Int {
+    fn g() -> () { }
+}
 
 fn main() -> Int {
     4

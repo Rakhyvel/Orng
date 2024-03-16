@@ -2,10 +2,10 @@ fn main() -> Int {
     f() catch 0
 }
 
-fn f() -> (err: Char|)!Int {
+fn f() -> Char!Int {
     try g()
 }
 
-fn g() -> (err |)!Int {
+fn g() -> ()!Int {
     return .err
 }

@@ -1270,6 +1270,11 @@ pub const AST = union(enum) {
         return err_union.children().items[0];
     }
 
+    pub fn get_err_type(err_union: *AST) *AST {
+        std.debug.assert(err_union.sum_type.from == .@"error");
+        return err_union.children().items[1];
+    }
+
     pub fn convert_self_type(trait_type: *AST, for_type: *AST, allocator: std.mem.Allocator) *AST {
         switch (trait_type.*) {
             .identifier => if (std.mem.eql(u8, trait_type.token().data, "Self")) {
