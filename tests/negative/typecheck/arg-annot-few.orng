@@ -1,5 +1,0 @@
-fn main() -> Int {
-    f(.a = 4, .b = 4)
-}
-
-fn f(x: Int) -> Int { x }

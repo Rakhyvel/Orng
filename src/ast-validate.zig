@@ -904,8 +904,8 @@ fn validate_AST_internal(
         },
         .annotation => {
             if (ast.annotation.pattern.* != .pattern_symbol and ast.annotation.pattern.* != .identifier) {
-                std.debug.print("{s}\n", .{ast.annotation.pattern});
-                unreachable; // TODO: Produce an error about this
+                errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "identifier", .got = ast.annotation.pattern.token() } });
+                return error.TypeError;
             }
             ast.annotation.type = validate_AST(ast.annotation.type, primitives_.type_type, errors, allocator);
             try assert_none_poisoned(.{ast.annotation.type});
@@ -921,6 +921,7 @@ fn validate_AST_internal(
                 errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer the sum type" } });
                 return error.TypeError;
             } else if (ast.sum_value.base == null) {
+                // Infer that the base type is `expected`
                 ast.sum_value.base = expected;
             }
 
@@ -1131,6 +1132,7 @@ fn validate_AST_internal(
         .method_decl => {
             std.debug.assert(expected == null); // Why wouldn't it be?
             if (ast.symbol() != null) {
+                // Not a trait-method
                 try validate_symbol(ast.symbol().?, errors, allocator);
                 try assert_none_poisoned(ast.symbol().?._type);
             }
@@ -1458,18 +1460,11 @@ fn named_args(
     defer arg_name_to_val_map.deinit();
 
     // Associate argument names with their values
-    if (asts.items.len == 1) {
-        put_assign(asts.items[0], &arg_name_to_val_map, errors) catch |err| switch (err) {
+    for (asts.items) |term| {
+        put_assign(term, &arg_name_to_val_map, errors) catch |err| switch (err) {
             error.TypeError => return error.NoDefault,
             else => return err,
         };
-    } else {
-        for (asts.items) |term| {
-            put_assign(term, &arg_name_to_val_map, errors) catch |err| switch (err) {
-                error.TypeError => return error.NoDefault,
-                else => return err,
-            };
-        }
     }
 
     // Construct positional args in the order specified by `expected`
@@ -1482,7 +1477,7 @@ fn named_args(
                     .span = asts.items[0].token().span,
                     .takes = 1,
                     .given = arg_name_to_val_map.keys().len,
-                    .thing_name = "function",
+                    .thing_name = "functionlol",
                     .takes_name = "parameter",
                     .given_name = "argument",
                 } });

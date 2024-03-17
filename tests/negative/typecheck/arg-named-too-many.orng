@@ -1,0 +1,7 @@
+fn main() -> Int {
+    f(.x = 4, .y = 4)
+}
+
+fn f(x: Int) -> Int {
+    x
+}

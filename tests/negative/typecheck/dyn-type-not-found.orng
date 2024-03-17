@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let x: &dyn Mystery_Trait = (4, 5)
+    5
+}

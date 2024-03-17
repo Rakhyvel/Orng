@@ -5,29 +5,29 @@ import re
 
 
 data = """
-"lhs is dyn0" -> "method not found" [label=true];
-"lhs is dyn0" -> "lhs is addr" [label=false];
+"asts len is 1" -> "expected is..." [label=true];
+"asts len is 1" -> "asts" [label=false];
 
-"lhs is addr" -> "method not found" [label=true];
-"lhs is addr" -> "method not found" [label=false];
+"asts" -> "expected is..." [label=n];
+"asts" -> "expected is..." [label=0];
 
-"method not found" -> "-" [label=true];
-"method not found" -> "has receiver" [label=false];
+"expected is..." -> "mismatch arity" [label=".annotation"];
+"expected is..." -> "expected terms" [label=".product"];
 
-"has receiver" -> "lhs is dyn1" [label=true];
-"has receiver" -> "+" [label=false];
+"mismatch arity" -> "-" [label=true];
+"mismatch arity" -> "+" [label=false];
 
-"lhs is dyn1" -> "lhs is mut" [label=true];
-"lhs is dyn1" -> "expanded_lhs is addr" [label=false];
+"expected terms" -> "term not annot" [label=n];
+"expected terms" -> "+" [label=0];
 
-"expanded_lhs is addr" -> "lhs is mut" [label=true];
-"expanded_lhs is addr" -> "+" [label=false];
+"term not annot" -> "-" [label=true];
+"term not annot" -> "null arg" [label=false];
 
-"lhs is mut" -> "receiver is mut" [label=true];
-"lhs is mut" -> "+" [label=false];
+"null arg" -> "init not null" [label=true];
+"null arg" -> "+" [label=false];
 
-"receiver is mut" -> "-" [label=true];
-"receiver is mut" -> "+" [label=false];
+"init not null" -> "+" [label=true];
+"init not null" -> "-" [label=false];
 """
 
 

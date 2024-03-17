@@ -12,73 +12,73 @@
 typedef int64_t(*function0)(uint8_t);
 
 /* Function forward definitions */
-int64_t _1818_main(void);
-int64_t _1820_f(uint8_t _1820_b);
+int64_t _1830_main(void);
+int64_t _1832_f(uint8_t _1832_b);
 
 
 /* Function definitions */
-int64_t _1818_main(void){
-    int64_t _1819_x;
-    int64_t* _1819_y;
-    function0 _1818_t4;
-    int64_t _1818_t6;
-    uint8_t _1818_t8;
-    uint8_t _1818_t7;
-    uint8_t _1818_t9;
-    int64_t _1818_t5;
-    int64_t _1818_$retval;
-    _1819_x = 0;
-    _1819_y = &_1819_x;
-    _1818_t4 = (function0) _1820_f;
-    _1818_t6 = 1;
-    _1818_t8 = *_1819_y==_1818_t6;
-    if (_1818_t8) {
-        goto BB2061;
+int64_t _1830_main(void){
+    int64_t _1831_x;
+    int64_t* _1831_y;
+    function0 _1830_t4;
+    int64_t _1830_t6;
+    uint8_t _1830_t8;
+    uint8_t _1830_t7;
+    uint8_t _1830_t9;
+    int64_t _1830_t5;
+    int64_t _1830_$retval;
+    _1831_x = 0;
+    _1831_y = &_1831_x;
+    _1830_t4 = (function0) _1832_f;
+    _1830_t6 = 1;
+    _1830_t8 = *_1831_y==_1830_t6;
+    if (_1830_t8) {
+        goto BB2067;
     } else {
-        goto BB2064;
+        goto BB2070;
     }
-BB2061:
-    _1818_t7 = 1;
-    goto BB2062;
-BB2064:
-    _1818_t7 = 0;
-    goto BB2062;
-BB2062:
-    _1818_t9 = !_1818_t7;
+BB2067:
+    _1830_t7 = 1;
+    goto BB2068;
+BB2070:
+    _1830_t7 = 0;
+    goto BB2068;
+BB2068:
+    _1830_t9 = !_1830_t7;
     $lines[$line_idx++] = "tests/integration/whitebox/not.orng:5:7:\n    f(not (y^ == 1))\n     ^";
-    _1818_t5 = _1818_t4(_1818_t9);
+    _1830_t5 = _1830_t4(_1830_t9);
     $line_idx--;
-    _1818_$retval = _1818_t5;
-    return _1818_$retval;
+    _1830_$retval = _1830_t5;
+    return _1830_$retval;
 }
 
-int64_t _1820_f(uint8_t _1820_b){
-    uint8_t _1820_t0;
-    uint8_t _1820_t1;
-    int64_t _1820_t2;
-    int64_t _1820_$retval;
-    _1820_t0 = !_1820_b;
-    _1820_b = _1820_t0;
-    _1820_t1 = !_1820_t0;
-    _1820_b = _1820_t1;
-    if (_1820_t0) {
-        goto BB2058;
+int64_t _1832_f(uint8_t _1832_b){
+    uint8_t _1832_t0;
+    uint8_t _1832_t1;
+    int64_t _1832_t2;
+    int64_t _1832_$retval;
+    _1832_t0 = !_1832_b;
+    _1832_b = _1832_t0;
+    _1832_t1 = !_1832_t0;
+    _1832_b = _1832_t1;
+    if (_1832_t0) {
+        goto BB2064;
     } else {
-        goto BB2054;
+        goto BB2060;
     }
-BB2058:
-    _1820_t2 = 10;
-    goto BB2057;
-BB2054:
-    _1820_t2 = 31;
-    goto BB2057;
-BB2057:
-    _1820_$retval = _1820_t2;
-    return _1820_$retval;
+BB2064:
+    _1832_t2 = 10;
+    goto BB2063;
+BB2060:
+    _1832_t2 = 31;
+    goto BB2063;
+BB2063:
+    _1832_$retval = _1832_t2;
+    return _1832_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1818_main());
+  printf("%ld",_1830_main());
   return 0;
 }
