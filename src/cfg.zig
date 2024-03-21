@@ -408,8 +408,9 @@ pub const CFG = struct {
     }
 
     pub fn calculate_usage(cfg: *CFG) void {
-        if (cfg.symbol.decl.?.* == .fn_decl) {
-            for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
+        if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
+            const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
+            for (param_symbols.items) |param_symbol| {
                 param_symbol.uses = 0;
             }
         }

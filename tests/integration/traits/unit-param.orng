@@ -1,0 +1,19 @@
+// 311
+trait My_Trait {
+    fn a(self, x: Int, y: ()) -> Int
+
+    virtual fn b(self, y: ()) -> Int
+}
+
+let const My_Type = (x: Int, y: Int)
+
+impl My_Trait for My_Type {
+    fn a(self, x: Int, y: ()) -> Int { _ = y; self.x + self.y * x }
+
+    virtual fn b(self, y: ()) -> Int { _ = (self, y); 4 }
+}
+
+fn main() -> Int {
+    let my_val: My_Type = (211, 50)
+    my_val.>a(2, {})
+}

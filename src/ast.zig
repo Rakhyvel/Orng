@@ -78,7 +78,7 @@ const AST_Common = struct {
 pub const AST = union(enum) {
     /// Not generated for correct programs, used to represent incorrect ASTs
     poison: struct { common: AST_Common },
-    // Any pointer type (void*)
+    // Any pointer type (void*), used for receiver's type in trait-method definitions
     anyptr_type: struct { common: AST_Common },
     /// Unit type
     unit_type: struct { common: AST_Common },
@@ -1275,7 +1275,12 @@ pub const AST = union(enum) {
         return err_union.children().items[1];
     }
 
-    pub fn convert_self_type(trait_type: *AST, for_type: *AST, allocator: std.mem.Allocator) *AST {
+    /// Recursively goes through types that contain `Self`, and replaces them with the impl-for type
+    pub fn convert_self_type(
+        trait_type: *AST, // the type specified by the trait, potentially `Self`
+        for_type: *AST, // the type the trait is being implemented for
+        allocator: std.mem.Allocator,
+    ) *AST {
         switch (trait_type.*) {
             .identifier => if (std.mem.eql(u8, trait_type.token().data, "Self")) {
                 return for_type;
@@ -1286,6 +1291,8 @@ pub const AST = union(enum) {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
                 return create_addr_of(trait_type.token(), _expr, trait_type.mut(), allocator);
             },
+            .unit_type => return trait_type,
+            // TODO: Shouldn't this be full?
             else => unreachable,
         }
     }
@@ -1883,7 +1890,7 @@ pub const AST = union(enum) {
 
         switch (A.*) {
             .identifier => return std.mem.eql(u8, A.token().data, B.token().data),
-            .addr_of => return (B.addr_of.mut == false or B.addr_of.mut == A.addr_of.mut) and types_match(A.expr(), B.expr()),
+            .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and types_match(A.expr(), B.expr()),
             .slice_of => return (B.slice_of.kind != .mut or
                 @intFromEnum(B.slice_of.kind) == @intFromEnum(A.slice_of.kind)) and
                 types_match(A.expr(), B.expr()),

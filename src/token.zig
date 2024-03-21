@@ -292,6 +292,7 @@ pub const Token_Kind = enum(u32) {
 
     const end_tokens = [_]Token_Kind{
         .identifier,
+        .self,
         .dec_int,
         .hex_int,
         .oct_int,

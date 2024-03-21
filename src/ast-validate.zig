@@ -216,12 +216,13 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
         }
 
         // Check that return type matches
-        if (!def.method_decl.ret_type.types_match(trait_decl.?.method_decl.ret_type)) {
+        const trait_method_ret_type = ast_.AST.convert_self_type(trait_decl.?.method_decl.ret_type, impl.impl._type, allocator);
+        if (!def.method_decl.ret_type.types_match(trait_method_ret_type)) {
             errors.add_error(errs_.Error{ .mismatch_method_type = .{
                 .span = def.method_decl.ret_type.token().span,
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
-                .trait_type = trait_decl.?.method_decl.ret_type,
+                .trait_type = trait_method_ret_type,
                 .impl_type = def.method_decl.ret_type,
             } });
             return error.TypeError;

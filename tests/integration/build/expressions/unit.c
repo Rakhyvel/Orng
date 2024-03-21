@@ -29,7 +29,6 @@ int64_t _910_main(void){
 }
 
 void _912_f(void){
-    return;
 }
 
 

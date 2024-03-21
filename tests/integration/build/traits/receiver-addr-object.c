@@ -38,60 +38,60 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _1603_main(void);
-int64_t _1599_b(void* _1599_self, int64_t _1599_x);
-void _1601_c(void* _1601_self, int64_t _1601_x);
+int64_t _1617_main(void);
+int64_t _1613_b(void* _1613_self, int64_t _1613_x);
+void _1615_c(void* _1615_self, int64_t _1615_x);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1598_$vtable = {
-    .b = _1599_b,
-    .c = _1601_c,
+struct vtable_My_Trait _1612_$vtable = {
+    .b = _1613_b,
+    .c = _1615_c,
 };
 
 
 /* Function definitions */
-int64_t _1603_main(void){
-    int64_t _1603_t1;
-    int64_t _1603_t2;
-    struct struct3 _1604_my_val;
-    struct dyn4 _1603_t4;
-    struct dyn4 _1604_my_dyn;
-    int64_t _1603_t7;
-    int64_t _1603_t9;
-    int64_t _1603_t8;
-    int64_t _1603_$retval;
-    _1603_t1 = 100;
-    _1603_t2 = 45;
-    _1604_my_val = (struct struct3) {_1603_t1, _1603_t2};
-    _1603_t4 = (struct dyn4) {&_1604_my_val, &_1598_$vtable};
-    _1604_my_dyn = _1603_t4;
-    _1603_t7 = 2;
+int64_t _1617_main(void){
+    int64_t _1617_t1;
+    int64_t _1617_t2;
+    struct struct3 _1618_my_val;
+    struct dyn4 _1617_t4;
+    struct dyn4 _1618_my_dyn;
+    int64_t _1617_t7;
+    int64_t _1617_t9;
+    int64_t _1617_t8;
+    int64_t _1617_$retval;
+    _1617_t1 = 100;
+    _1617_t2 = 45;
+    _1618_my_val = (struct struct3) {_1617_t1, _1617_t2};
+    _1617_t4 = (struct dyn4) {&_1618_my_val, &_1612_$vtable};
+    _1618_my_dyn = _1617_t4;
+    _1617_t7 = 2;
     $lines[$line_idx++] = "tests/integration/traits/receiver-addr-object.orng:19:13:\n    my_dyn.>c(2)\n           ^";
-    (void) _1604_my_dyn.vtable->c(_1604_my_dyn.data_ptr, _1603_t7);
+    (void) _1618_my_dyn.vtable->c(_1618_my_dyn.data_ptr, _1617_t7);
     $line_idx--;
-    _1603_t9 = 2;
+    _1617_t9 = 2;
     $lines[$line_idx++] = "tests/integration/traits/receiver-addr-object.orng:20:13:\n    my_dyn.>b(2)\n           ^";
-    _1603_t8 = _1604_my_dyn.vtable->b(_1604_my_dyn.data_ptr, _1603_t9);
+    _1617_t8 = _1618_my_dyn.vtable->b(_1618_my_dyn.data_ptr, _1617_t9);
     $line_idx--;
-    _1603_$retval = _1603_t8;
-    return _1603_$retval;
+    _1617_$retval = _1617_t8;
+    return _1617_$retval;
 }
 
-int64_t _1599_b(void* _1599_self, int64_t _1599_x){
-    int64_t _1599_t0;
-    int64_t _1599_$retval;
-    _1599_t0 = $mult_int64_t((*(struct struct3*)_1599_self)._1, _1599_x, "tests/integration/traits/receiver-addr-object.orng:11:59:\n    virtual fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                         ^");
-    _1599_$retval = $add_int64_t((*(struct struct3*)_1599_self)._0, _1599_t0, "tests/integration/traits/receiver-addr-object.orng:11:50:\n    virtual fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                ^");
-    return _1599_$retval;
+int64_t _1613_b(void* _1613_self, int64_t _1613_x){
+    int64_t _1613_t0;
+    int64_t _1613_$retval;
+    _1613_t0 = $mult_int64_t((*(struct struct3*)_1613_self)._1, _1613_x, "tests/integration/traits/receiver-addr-object.orng:11:59:\n    virtual fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                         ^");
+    _1613_$retval = $add_int64_t((*(struct struct3*)_1613_self)._0, _1613_t0, "tests/integration/traits/receiver-addr-object.orng:11:50:\n    virtual fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                ^");
+    return _1613_$retval;
 }
 
-void _1601_c(void* _1601_self, int64_t _1601_x){
-    (*(struct struct3*)_1601_self)._0 = $mult_int64_t((*(struct struct3*)_1601_self)._0, _1601_x, "tests/integration/traits/receiver-addr-object.orng:13:54:\n    virtual fn c(&mut self, x: Int) -> () { self.x *= x }\n                                                    ^");
+void _1615_c(void* _1615_self, int64_t _1615_x){
+    (*(struct struct3*)_1615_self)._0 = $mult_int64_t((*(struct struct3*)_1615_self)._0, _1615_x, "tests/integration/traits/receiver-addr-object.orng:13:54:\n    virtual fn c(&mut self, x: Int) -> () { self.x *= x }\n                                                    ^");
     return;
 }
 
 
 int main(void) {
-  printf("%ld",_1603_main());
+  printf("%ld",_1617_main());
   return 0;
 }

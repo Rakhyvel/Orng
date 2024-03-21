@@ -2,6 +2,12 @@
 Orng is a general purpose, medium-level programming language with a minimal runtime that enables the programmer to write efficient, 
 readable, and maintainable code.
 
+<!-- 
+## should be used for "chapters"
+### should be used for "pages"
+#### should be used for headings within a page
+-->
+
 ## General Design Philosphy
 1. Programs are a collection of types, and functions that act on values of those types.
 2. Explicit over implicit. Readability over writability
@@ -59,4 +65,4 @@ readable, and maintainable code.
 
 ## Compile-Time Execution
 
-## Type-Classes
+## Traits

@@ -217,14 +217,14 @@ fn lower_AST(
             } else {
                 for (ast.children().items, 0..) |term, i| {
                     // Lower each child
-                    const lval = (try lower_AST(cfg, term, labels, errors, allocator)) orelse continue;
-                    lval_list.append(lval) catch unreachable;
+                    const term_lval = (try lower_AST(cfg, term, labels, errors, allocator)) orelse continue;
+                    lval_list.append(term_lval) catch unreachable;
 
                     // Try to find the first child, it's possibly the receiver
                     if (ast.lhs().typeof(allocator).expand_identifier().* == .dyn_type and i == 0) {
                         if (term == ast.lhs()) {
-                            // UFCS-like, receiver is prepended to the children list
-                            dyn_value = lval;
+                            // UFCS-like, receiver was prepended to the children list
+                            dyn_value = term_lval;
                         } else {
                             // Other wise, lower the lhs
                             dyn_value = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse continue;

@@ -638,11 +638,10 @@ pub const Data = union(enum) {
     symbol: *symbol_.Symbol,
     lval_list: std.ArrayList(*lval_.L_Value),
     invoke: struct {
-        method_decl: *ast_.AST,
-        method_decl_lval: ?*lval_.L_Value,
-        lval_list: std.ArrayList(*lval_.L_Value),
-        // Non-null when the call is through a vtable, regardless of if the method uses the receiver
-        dyn_value: ?*lval_.L_Value,
+        method_decl: *ast_.AST, // AST of method decl. Either trait's definition if dyn, or impl's declaration if static
+        method_decl_lval: ?*lval_.L_Value, // L-value of the method; non-null when statically known (ie not dyn)
+        lval_list: std.ArrayList(*lval_.L_Value), // List of args. Receiver will always be prepended
+        dyn_value: ?*lval_.L_Value, // L-value of the vtable-data-ptr pair; non-null when the call is through a vtable, regardless of if the method uses the receiver
     },
     dyn: struct { impl: *ast_.AST },
     select: struct { offset: i128, field: i128 },

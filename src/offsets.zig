@@ -60,12 +60,15 @@ pub fn calculate_offsets(
 
     // Calculate parameters offsets, descending from retval address offset
     var phony_sp: i64 = 0;
-    if (symbol.decl.?.* == .fn_decl) {
-        const items = symbol.decl.?.fn_decl.param_symbols.items;
+    if (symbol.decl.?.* == .fn_decl or symbol.decl.?.* == .method_decl) {
+        const param_symbols = if (symbol.decl.?.* == .fn_decl)
+            symbol.decl.?.fn_decl.param_symbols.items
+        else
+            symbol.decl.?.method_decl.param_symbols.items;
         // Go through params, as if we were pushing them
-        var i: i64 = @as(i64, @intCast(items.len)) - 1;
+        var i: i64 = @as(i64, @intCast(param_symbols.len)) - 1;
         while (i >= 0) : (i -= 1) {
-            var param: *symbol_.Symbol = items[@as(usize, @intCast(i))];
+            var param: *symbol_.Symbol = param_symbols[@as(usize, @intCast(i))];
             const size = param.expanded_type.?.sizeof();
             const alignof = param.expanded_type.?.alignof();
             phony_sp = next_alignment(phony_sp, alignof);
@@ -78,7 +81,7 @@ pub fn calculate_offsets(
         const header = next_alignment(phony_sp, 8);
         // Have to do this stupid round-a-bout way because we don't know how much padding to include after the
         // parameters until we get the offsets of each parameter.
-        for (items) |param| {
+        for (param_symbols) |param| {
             param.offset.? -= header - retval_offset;
         }
     }

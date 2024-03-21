@@ -16,27 +16,27 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1714_main(void);
+int64_t _1738_main(void);
 
 
 /* Function definitions */
-int64_t _1714_main(void){
-    int64_t _1714_t1;
-    int64_t _1714_t2;
-    struct struct0 _1715_x;
-    struct struct0* _1715_y;
-    int64_t _1714_$retval;
-    _1714_t1 = 11;
-    _1714_t2 = 11;
-    _1715_x = (struct struct0) {_1714_t1, _1714_t2};
-    _1715_y = &_1715_x;
-    (*_1715_y)._0 = 50;
-    _1714_$retval = $add_int64_t((*_1715_y)._0, (*_1715_y)._1, "tests/integration/tuples/implicit-deref.orng:6:10:\n    y.a + y.b\n        ^");
-    return _1714_$retval;
+int64_t _1738_main(void){
+    int64_t _1738_t1;
+    int64_t _1738_t2;
+    struct struct0 _1739_x;
+    struct struct0* _1739_y;
+    int64_t _1738_$retval;
+    _1738_t1 = 11;
+    _1738_t2 = 11;
+    _1739_x = (struct struct0) {_1738_t1, _1738_t2};
+    _1739_y = &_1739_x;
+    (*_1739_y)._0 = 50;
+    _1738_$retval = $add_int64_t((*_1739_y)._0, (*_1739_y)._1, "tests/integration/tuples/implicit-deref.orng:6:10:\n    y.a + y.b\n        ^");
+    return _1738_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1714_main());
+  printf("%ld",_1738_main());
   return 0;
 }

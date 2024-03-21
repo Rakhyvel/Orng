@@ -5,29 +5,32 @@ import re
 
 
 data = """
-"asts len is 1" -> "expected is..." [label=true];
-"asts len is 1" -> "asts" [label=false];
+"no virtual methods" -> "+" [label=true];
+"no virtual methods" -> "trait methods" [label=false];
 
-"asts" -> "expected is..." [label=n];
-"asts" -> "expected is..." [label=0];
+"trait methods" -> "method not virtual" [label=n];
+"trait methods" -> "+" [label=0];
 
-"expected is..." -> "mismatch arity" [label=".annotation"];
-"expected is..." -> "expected terms" [label=".product"];
+"method not virtual" -> "+" [label=true];
+"method not virtual" -> "method has receiver" [label=false];
 
-"mismatch arity" -> "-" [label=true];
-"mismatch arity" -> "+" [label=false];
+"method has receiver" -> "has params" [label=true];
+"method has receiver" -> "params" [label=false];
 
-"expected terms" -> "term not annot" [label=n];
-"expected terms" -> "+" [label=0];
+"has params" -> "params" [label=true];
+"has params" -> "params" [label=false];
 
-"term not annot" -> "-" [label=true];
-"term not annot" -> "null arg" [label=false];
+"params" -> "unit param" [label=n];
+"params" -> "has params or receiver" [label=0];
 
-"null arg" -> "init not null" [label=true];
-"null arg" -> "+" [label=false];
+"unit param" -> "last param" [label=true];
+"unit param" -> "has params or receiver" [label=false];
 
-"init not null" -> "+" [label=true];
-"init not null" -> "-" [label=false];
+"last param" -> "has params or receiver" [label=true];
+"last param" -> "has params or receiver" [label=false];
+
+"has params or receiver" -> "+" [label=true];
+"has params or receiver" -> "+" [label=false];
 """
 
 

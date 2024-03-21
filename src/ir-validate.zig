@@ -10,8 +10,9 @@ const symbol_ = @import("symbol.zig");
 pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{IRError}!void {
     cfg.calculate_usage();
     cfg.calculate_versions();
-    if (cfg.symbol.decl.?.* == .fn_decl) {
-        for (cfg.symbol.decl.?.fn_decl.param_symbols.items) |param_symbol| {
+    if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
+        const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
+        for (param_symbols.items) |param_symbol| {
             try err_if_unused(param_symbol, errors);
             try err_if_var_not_mutated(param_symbol, errors);
         }

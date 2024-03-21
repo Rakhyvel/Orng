@@ -1,0 +1,40 @@
+// 312
+
+trait Some_Trait {
+    fn a(self, x: Int) -> Int
+
+    fn b(&mut self, x: Int) -> Int
+}
+
+impl Some_Trait for () {
+    fn a(self, x: Int) -> Int {
+        _ = self
+        x
+    }
+
+    fn b(&mut self, x: Int) -> Int {
+        _ = self
+        x
+    }
+}
+
+impl Some_Trait for Int {
+    fn a(self, x: Int) -> Int {
+        self + x
+    }
+
+    fn b(&mut self, x: Int) -> Int {
+        self^ = x
+        x
+    }
+}
+
+fn main() -> Int {
+    let mut x: () = {}
+    
+    let xa: &mut() = &mut x
+    xa^ = {}
+
+    let mut y: Int = 0
+    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)
+}

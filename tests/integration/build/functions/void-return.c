@@ -29,7 +29,6 @@ int64_t _1013_main(void){
 }
 
 void _1015_void(void){
-    return;
 }
 
 

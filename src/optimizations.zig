@@ -76,7 +76,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
 
     switch (ir.kind) {
         .copy => {
-            if (ir.src1 == null) {
+            if (ir.src1 == null or ir.src1.?.sizeof() == 0) {
                 log("unit-copy elimination");
                 ir.in_block.?.remove_instruction(ir);
             } else if (ir.dest.?.* == .symbver and

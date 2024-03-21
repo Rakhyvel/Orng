@@ -98,7 +98,7 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
                 if (!term.is_c_void_type()) {
                     // Do not output `void` parameters
                     try output_type(term, writer);
-                    if (i + 1 < product.children().items.len) {
+                    if (i + 1 < product.children().items.len and !product.children().items[i + 1].is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -166,7 +166,7 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
             // Output receiver parameter
             if (method_decl_has_receiver) {
                 try writer.print("void*", .{});
-                if (num_method_params > 0) {
+                if (decl.children().items.len > 0 and !decl.children().items[0].decl.type.is_c_void_type()) {
                     try writer.print(", ", .{});
                 }
             }
@@ -176,7 +176,7 @@ fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Erro
                 if (!param_decl.decl.type.is_c_void_type()) {
                     // Do not output `void` parameters
                     try output_type(param_decl.decl.type, writer);
-                    if (i + 1 < num_method_params) {
+                    if (i + 1 < num_method_params and !decl.children().items[i + 1].decl.type.is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -243,6 +243,7 @@ fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
 
 fn output_impls(impls: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
     if (impls.items.len > 0) {
+        // TODO: Count impls that have virtual methods
         // Do not output header comment if there are no impls!
         try writer.print("/* Trait vtable implementations */\n", .{});
     }
@@ -328,7 +329,7 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void 
                 // Print out parameter declarations
                 try output_var_decl(term, writer, true);
             }
-            if (i + 1 < param_symbols.items.len) {
+            if (i + 1 < param_symbols.items.len and !param_symbols.items[i + 1].expanded_type.?.is_c_void_type()) {
                 try writer.print(", ", .{});
             }
             num_non_unit_params += 1;
@@ -406,9 +407,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
             try output_type(_type.expr(), writer);
             try writer.print("*", .{});
         },
-        .anyptr_type => {
-            try writer.print("void", .{});
-        },
+        .anyptr_type => try writer.print("void", .{}),
         .function => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
             try writer.print("function{}", .{type_uid});
@@ -643,7 +642,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
-                    if (i + 1 < ir.data.lval_list.items.len) {
+                    if (i + 1 < ir.data.lval_list.items.len and !ir.data.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -684,7 +683,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                     if (ir.data.invoke.dyn_value != null and ir.data.invoke.dyn_value == term and i == 0) {
                         try writer.print(".data_ptr", .{});
                     }
-                    if (i + 1 < num_invoke_args) {
+                    if (i + 1 < num_invoke_args and !ir.data.invoke.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -796,6 +795,10 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
 
 /// Outputs the C code for an lvalue expression.
 fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
+    if (lvalue.sizeof() == 0) {
+        try writer.print("(void*) 0xAAAAAAAA", .{});
+        return;
+    }
     switch (lvalue.*) {
         .dereference => {
             // lvalue of a dereference is just the rvalue of it's expression
