@@ -17,17 +17,10 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _249_add(int64_t _249_a, int64_t _249_b);
 int64_t _245_main(void);
 
 
 /* Function definitions */
-int64_t _249_add(int64_t _249_a, int64_t _249_b){
-    int64_t _249_$retval;
-    _249_$retval = $add_int64_t(_249_a, _249_b, "tests/integration/comptime/index-heterotypical.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
-    return _249_$retval;
-}
-
 int64_t _245_main(void){
     uint32_t _245_t1;
     int64_t _245_t2;

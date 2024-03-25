@@ -41,6 +41,10 @@ pub const CFG = struct {
     /// Whether or not this CFG is visited
     visited: bool,
 
+    /// When true, CFG is called from a runtime-context at least once, and should be generated
+    /// Set in the lowering stage when runtime access is needed
+    needed_at_runtime: bool,
+
     /// Address in the first instruction of this CFG
     /// Used for IR interpretation
     offset: ?i64,
@@ -81,6 +85,7 @@ pub const CFG = struct {
         );
         retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
+        retval.needed_at_runtime = false;
         retval.interned_strings = interned_strings;
         retval.offset = null;
         retval.locals_size = null;

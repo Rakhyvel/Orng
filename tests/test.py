@@ -36,7 +36,8 @@ SRC_DIR = os.path.normpath(os.path.join(TEST_DIR, "..", "src"))
 def main():
     args = parse_args()
 
-    res = subprocess.run(["zig", "build", "orng-test", "-freference-trace"]).returncode
+    subprocess.run(["rm", "-rf", "zig-cache", "zig-out"])
+    res = subprocess.run(["zig", "build", "orng-test"]).returncode
     if res != 0:
         return
 

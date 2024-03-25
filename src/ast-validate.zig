@@ -88,7 +88,7 @@ fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: st
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait) {
+    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.name[0] != '$') {
         if (type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
             errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type `Type` must start with an uppercase letter",
@@ -284,11 +284,26 @@ fn receivers_match(a: ?*ast_.AST, b: ?*ast_.AST) bool {
 }
 
 fn type_is_type_type(ast: *ast_.AST) bool {
+    if (ast.* == .function) {
+        return type_is_type_type_atom(ast.rhs());
+    } else {
+        return type_is_type_type_atom(ast);
+    }
+}
+
+fn type_is_type_type_atom(ast: *ast_.AST) bool {
     return ast.* == .identifier and std.mem.eql(u8, ast.token().data, "Type");
 }
 
 fn is_capitalized(name: []const u8) bool {
-    return std.ascii.isUpper(name[0]);
+    var should_be_upper = true;
+    for (name) |c| {
+        if (should_be_upper and !std.ascii.isUpper(c) and c != '$') {
+            return false;
+        }
+        should_be_upper = c == '_';
+    }
+    return true;
 }
 
 /// Errors out if `ast` is not the expected type

@@ -20,56 +20,56 @@ struct struct1 {
 typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1486_main(void);
-struct struct1 _1491_f(void);
+int64_t _1495_main(void);
+struct struct1 _1500_f(void);
 
 
 /* Function definitions */
-int64_t _1486_main(void){
-    function0 _1486_t1;
-    struct struct1 _1486_t2;
-    function0 _1486_t3;
-    struct struct1 _1486_t4;
-    uint64_t _1486_t7;
-    uint64_t _1486_t8;
-    uint8_t _1486_t6;
-    int64_t _1486_t0;
-    int64_t _1486_$retval;
-    _1486_t1 = (function0) _1491_f;
+int64_t _1495_main(void){
+    function0 _1495_t1;
+    struct struct1 _1495_t2;
+    function0 _1495_t3;
+    struct struct1 _1495_t4;
+    uint64_t _1495_t7;
+    uint64_t _1495_t8;
+    uint8_t _1495_t6;
+    int64_t _1495_t0;
+    int64_t _1495_$retval;
+    _1495_t1 = (function0) _1500_f;
     $lines[$line_idx++] = "tests/integration/sums/sum-equality2.orng:3:10:\n    if f() == f() {\n        ^";
-    _1486_t2 = _1486_t1();
+    _1495_t2 = _1495_t1();
     $line_idx--;
-    _1486_t3 = (function0) _1491_f;
+    _1495_t3 = (function0) _1500_f;
     $lines[$line_idx++] = "tests/integration/sums/sum-equality2.orng:3:17:\n    if f() == f() {\n               ^";
-    _1486_t4 = _1486_t3();
+    _1495_t4 = _1495_t3();
     $line_idx--;
-    _1486_t7 = _1486_t2.tag;
-    _1486_t8 = _1486_t4.tag;
-    _1486_t6 = _1486_t7==_1486_t8;
-    if (_1486_t6) {
-        goto BB1717;
+    _1495_t7 = _1495_t2.tag;
+    _1495_t8 = _1495_t4.tag;
+    _1495_t6 = _1495_t7==_1495_t8;
+    if (_1495_t6) {
+        goto BB1723;
     } else {
-        goto BB1721;
+        goto BB1727;
     }
-BB1717:
-    _1486_t0 = 212;
-    goto BB1720;
-BB1721:
-    _1486_t0 = -1;
-    goto BB1720;
-BB1720:
-    _1486_$retval = _1486_t0;
-    return _1486_$retval;
+BB1723:
+    _1495_t0 = 212;
+    goto BB1726;
+BB1727:
+    _1495_t0 = -1;
+    goto BB1726;
+BB1726:
+    _1495_$retval = _1495_t0;
+    return _1495_$retval;
 }
 
-struct struct1 _1491_f(void){
-    struct struct1 _1491_$retval;
-    _1491_$retval = (struct struct1) {.tag=1};
-    return _1491_$retval;
+struct struct1 _1500_f(void){
+    struct struct1 _1500_$retval;
+    _1500_$retval = (struct struct1) {.tag=1};
+    return _1500_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1486_main());
+  printf("%ld",_1495_main());
   return 0;
 }

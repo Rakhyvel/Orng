@@ -173,6 +173,7 @@ pub const Module = struct {
 
             if (std.mem.eql(u8, key, "main")) {
                 module.entry = cfg;
+                module.entry.needed_at_runtime = true;
             }
         }
 
@@ -189,6 +190,7 @@ pub const Module = struct {
                 const symbol = def.symbol().?;
                 const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
                 module.collect_cfgs(cfg);
+                cfg.needed_at_runtime = true;
             }
         }
 

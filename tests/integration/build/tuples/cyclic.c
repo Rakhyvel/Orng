@@ -38,36 +38,36 @@ struct struct3 {
 };
 
 /* Function forward definitions */
-int64_t _1728_main(void);
+int64_t _1737_main(void);
 
 
 /* Function definitions */
-int64_t _1728_main(void){
-    struct struct0 _1728_t1;
-    int64_t _1728_t2;
-    struct struct1 _1729_a;
-    struct struct2 _1728_t5;
-    int64_t _1728_t6;
-    struct struct3 _1729_b;
-    struct struct3* _1728_t8;
-    uint64_t _1728_t10;
-    int64_t _1728_$retval;
-    _1728_t1 = (struct struct0) {.tag=1};
-    _1728_t2 = 200;
-    _1729_a = (struct struct1) {_1728_t1, _1728_t2};
-    _1728_t5 = (struct struct2) {.tag=1};
-    _1728_t6 = 86;
-    _1729_b = (struct struct3) {_1728_t5, _1728_t6};
-    _1728_t8 = &_1729_b;
-    _1729_a._0 = (struct struct0) {.tag=0, ._0=_1728_t8};
-    _1728_t10 = _1729_a._0.tag;
-    $tag_check(_1728_t10, 0, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
-    _1728_$retval = $add_int64_t(_1729_a._1, (*_1729_a._0._0)._1, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
-    return _1728_$retval;
+int64_t _1737_main(void){
+    struct struct0 _1737_t1;
+    int64_t _1737_t2;
+    struct struct1 _1738_a;
+    struct struct2 _1737_t5;
+    int64_t _1737_t6;
+    struct struct3 _1738_b;
+    struct struct3* _1737_t8;
+    uint64_t _1737_t10;
+    int64_t _1737_$retval;
+    _1737_t1 = (struct struct0) {.tag=1};
+    _1737_t2 = 200;
+    _1738_a = (struct struct1) {_1737_t1, _1737_t2};
+    _1737_t5 = (struct struct2) {.tag=1};
+    _1737_t6 = 86;
+    _1738_b = (struct struct3) {_1737_t5, _1737_t6};
+    _1737_t8 = &_1738_b;
+    _1738_a._0 = (struct struct0) {.tag=0, ._0=_1737_t8};
+    _1737_t10 = _1738_a._0.tag;
+    $tag_check(_1737_t10, 0, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
+    _1737_$retval = $add_int64_t(_1738_a._1, (*_1738_a._0._0)._1, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
+    return _1737_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1728_main());
+  printf("%ld",_1737_main());
   return 0;
 }

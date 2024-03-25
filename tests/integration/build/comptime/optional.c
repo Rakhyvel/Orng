@@ -18,51 +18,10 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _268_f(struct struct0 _268_x);
 int64_t _264_main(void);
 
 
 /* Function definitions */
-int64_t _268_f(struct struct0 _268_x){
-    uint64_t _268_t1;
-    uint64_t _268_t2;
-    uint8_t _268_t3;
-    int64_t _268_t0;
-    uint64_t _268_t4;
-    uint64_t _268_t5;
-    uint8_t _268_t6;
-    int64_t _268_$retval;
-    _268_t1 = 0;
-    _268_t2 = _268_x.tag;
-    _268_t3 = _268_t2==_268_t1;
-    if (_268_t3) {
-        goto BB259;
-    } else {
-        goto BB262;
-    }
-BB259:
-    _268_t0 = 250;
-    goto BB261;
-BB262:
-    _268_t4 = 1;
-    _268_t5 = _268_x.tag;
-    _268_t6 = _268_t5==_268_t4;
-    if (_268_t6) {
-        goto BB264;
-    } else {
-        goto BB266;
-    }
-BB261:
-    _268_$retval = _268_t0;
-    return _268_$retval;
-BB264:
-    _268_t0 = 11;
-    goto BB261;
-BB266:
-    $lines[$line_idx++] = "tests/integration/comptime/optional.orng:10:25:\n        _ => unreachable\n                       ^";
-    $panic("reached unreachable code\n");
-}
-
 int64_t _264_main(void){
     int64_t _264_$retval;
     _264_$retval = 261;

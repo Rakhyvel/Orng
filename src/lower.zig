@@ -576,16 +576,18 @@ fn lval_from_int(
 
 fn lval_from_symbol_cfg(
     symbol: *symbol_.Symbol,
-    cfg: *cfg_.CFG,
+    caller: *cfg_.CFG,
     span: span_.Span,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!*lval_.L_Value {
-    _ = try module_.get_cfg(symbol, cfg, cfg.interned_strings, errors, allocator);
-    const lval = create_temp_lvalue(cfg, symbol._type, allocator);
+    const callee_cfg = try module_.get_cfg(symbol, caller, caller.interned_strings, errors, allocator);
+    callee_cfg.needed_at_runtime = callee_cfg.needed_at_runtime or (caller.symbol.scope.inner_function.?.kind == .@"fn" or
+        caller.symbol.scope.inner_function.?.kind == .trait);
+    const lval = create_temp_lvalue(caller, symbol._type, allocator);
     var ir = ir_.IR.init(.load_symbol, lval, null, null, span, allocator);
     ir.data = ir_.Data{ .symbol = symbol };
-    cfg.append_instruction(ir);
+    caller.append_instruction(ir);
     return lval;
 }
 

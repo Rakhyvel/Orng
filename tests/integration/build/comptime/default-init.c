@@ -16,17 +16,10 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _136_add(int64_t _136_a, int64_t _136_b);
 int64_t _126_main(void);
 
 
 /* Function definitions */
-int64_t _136_add(int64_t _136_a, int64_t _136_b){
-    int64_t _136_$retval;
-    _136_$retval = $add_int64_t(_136_a, _136_b, "tests/integration/comptime/default-init.orng:7:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
-    return _136_$retval;
-}
-
 int64_t _126_main(void){
     int64_t _126_t1;
     int64_t _126_t2;

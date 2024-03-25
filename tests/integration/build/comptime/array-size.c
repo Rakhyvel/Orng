@@ -18,17 +18,10 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _92_add(int64_t _92_a, int64_t _92_b);
 int64_t _86_main(void);
 
 
 /* Function definitions */
-int64_t _92_add(int64_t _92_a, int64_t _92_b){
-    int64_t _92_$retval;
-    _92_$retval = $add_int64_t(_92_a, _92_b, "tests/integration/comptime/array-size.orng:12:36:\nfn add(a: Int, b: Int) -> Int { a + b }\n                                  ^");
-    return _92_$retval;
-}
-
 int64_t _86_main(void){
     int64_t _86_t1;
     int64_t _86_t2;

@@ -26,53 +26,53 @@ struct struct1 {
 typedef int64_t(*function2)(void);
 
 /* Function forward definitions */
-int64_t _1069_main(void);
-int64_t _1071_f(void);
+int64_t _1078_main(void);
+int64_t _1080_f(void);
 
 
 /* Function definitions */
-int64_t _1069_main(void){
-    int64_t _1069_t1;
-    int64_t _1069_t2;
-    int64_t _1069_t3;
-    int64_t _1069_t4;
-    struct struct0 _1070_x;
-    int64_t _1069_t7;
-    int64_t _1069_t8;
-    int64_t* _1069_t9;
-    int64_t _1069_t10;
-    struct struct1 _1070_y;
-    function2 _1069_t12;
-    int64_t _1069_t13;
-    int64_t _1069_$retval;
-    _1069_t1 = 0;
-    _1069_t2 = 0;
-    _1069_t3 = 0;
-    _1069_t4 = 0;
-    _1070_x = (struct struct0) {_1069_t1, _1069_t2, _1069_t3, _1069_t4};
-    _1069_t7 = 0;
-    _1069_t8 = 4;
-    $bounds_check(_1069_t7, _1069_t8, "tests/integration/lint/slice-pos-bounds-check.orng:4:16:\n    let y = []x\n              ^");
-    _1069_t9 = ((int64_t*)&_1070_x + _1069_t7);
-    _1069_t10 = 4;
-    _1070_y = (struct struct1) {_1069_t9, _1069_t10};
-    _1069_t12 = (function2) _1071_f;
+int64_t _1078_main(void){
+    int64_t _1078_t1;
+    int64_t _1078_t2;
+    int64_t _1078_t3;
+    int64_t _1078_t4;
+    struct struct0 _1079_x;
+    int64_t _1078_t7;
+    int64_t _1078_t8;
+    int64_t* _1078_t9;
+    int64_t _1078_t10;
+    struct struct1 _1079_y;
+    function2 _1078_t12;
+    int64_t _1078_t13;
+    int64_t _1078_$retval;
+    _1078_t1 = 0;
+    _1078_t2 = 0;
+    _1078_t3 = 0;
+    _1078_t4 = 0;
+    _1079_x = (struct struct0) {_1078_t1, _1078_t2, _1078_t3, _1078_t4};
+    _1078_t7 = 0;
+    _1078_t8 = 4;
+    $bounds_check(_1078_t7, _1078_t8, "tests/integration/lint/slice-pos-bounds-check.orng:4:16:\n    let y = []x\n              ^");
+    _1078_t9 = ((int64_t*)&_1079_x + _1078_t7);
+    _1078_t10 = 4;
+    _1079_y = (struct struct1) {_1078_t9, _1078_t10};
+    _1078_t12 = (function2) _1080_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-pos-bounds-check.orng:5:9:\n    y[f()]\n       ^";
-    _1069_t13 = _1069_t12();
+    _1078_t13 = _1078_t12();
     $line_idx--;
-    $bounds_check(_1069_t13, _1070_y._1, "tests/integration/lint/slice-pos-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
-    _1069_$retval = *((int64_t*)_1070_y._0 + _1069_t13);
-    return _1069_$retval;
+    $bounds_check(_1078_t13, _1079_y._1, "tests/integration/lint/slice-pos-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
+    _1078_$retval = *((int64_t*)_1079_y._0 + _1078_t13);
+    return _1078_$retval;
 }
 
-int64_t _1071_f(void){
-    int64_t _1071_$retval;
-    _1071_$retval = 100;
-    return _1071_$retval;
+int64_t _1080_f(void){
+    int64_t _1080_$retval;
+    _1080_$retval = 100;
+    return _1080_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1069_main());
+  printf("%ld",_1078_main());
   return 0;
 }

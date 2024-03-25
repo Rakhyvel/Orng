@@ -7,17 +7,10 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-double _316_f(void);
 int64_t _309_main(void);
 
 
 /* Function definitions */
-double _316_f(void){
-    double _316_$retval;
-    _316_$retval = 3.14e0;
-    return _316_$retval;
-}
-
 int64_t _309_main(void){
     int64_t _309_$retval;
     _309_$retval = 263;

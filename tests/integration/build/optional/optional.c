@@ -18,29 +18,29 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1122_main(void);
+int64_t _1131_main(void);
 
 
 /* Function definitions */
-int64_t _1122_main(void){
-    int64_t _1122_t0;
-    struct struct0 _1123_x;
-    int64_t _1122_t4;
-    uint64_t _1122_t6;
-    int64_t _1122_$retval;
-    _1122_t0 = 4;
-    _1123_x = (struct struct0) {.tag=0, ._0=_1122_t0};
-    _1123_x = (struct struct0) {.tag=1};
-    _1122_t4 = 113;
-    _1123_x = (struct struct0) {.tag=0, ._0=_1122_t4};
-    _1122_t6 = 0;
-    $tag_check(_1122_t6, 0, "tests/integration/optional/optional.orng:2:3:\nfn main() -> Int {\n ^");
-    _1122_$retval = _1123_x._0;
-    return _1122_$retval;
+int64_t _1131_main(void){
+    int64_t _1131_t0;
+    struct struct0 _1132_x;
+    int64_t _1131_t4;
+    uint64_t _1131_t6;
+    int64_t _1131_$retval;
+    _1131_t0 = 4;
+    _1132_x = (struct struct0) {.tag=0, ._0=_1131_t0};
+    _1132_x = (struct struct0) {.tag=1};
+    _1131_t4 = 113;
+    _1132_x = (struct struct0) {.tag=0, ._0=_1131_t4};
+    _1131_t6 = 0;
+    $tag_check(_1131_t6, 0, "tests/integration/optional/optional.orng:2:3:\nfn main() -> Int {\n ^");
+    _1131_$retval = _1132_x._0;
+    return _1131_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1122_main());
+  printf("%ld",_1131_main());
   return 0;
 }

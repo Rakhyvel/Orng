@@ -375,6 +375,26 @@
         - [x] `Self` type in impls means the "for" type
     - [ ] `Ty <: Tr` returns if a type implements a trait
     - [ ] Add an optimization such that if the type of an invoke is known, rather than an invoke, change to just a call to the method
+- [ ] function stamping
+    - [ ] functions returning `Type` should be capitalized
+        - [x] capitalized should be all of them not just the first first first
+    > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
+    - [ ] first-class types based generics (stamp)
+        - [ ] generic traits
+    - [ ] generic type unification
+        > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
+        - [ ] error if an identifier is `$` twice
+        - [ ] error if `$` appears anywhere else but a type annotation
+    - [ ] `impl Tr` stamps out a new monomorphised function for every new impl of `Tr`
+        > Even though the type is stamped out, you can only treat it using its trait methods
+    - [ ] iterators & for loops
+        - [ ] multi-loops, ranges like zig
+    - [ ] allocators
+    - [ ] Eq, Ord, Num, Bits, Convertible in std
+    - [ ] derive
+    - [ ] `as` method which can do reinterpret casting (maybe different name?)
+        > trait Convertible(const Other: Type) { fn as(self) -> Other }
+    - [ ] `id` function in standard
 - [ ] build system (built upon compile-time evaluation) 
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] compile phase
@@ -413,24 +433,6 @@
     - [ ] Cannot impl an empty trait for primitives!
     - [ ] If T isn't null, either T or X must be defined in the same module
     - [ ] If T is null, X must be defined in the same module
-- [ ] function stamping
-    > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
-    - [ ] first-class types based generics (stamp)
-        - [ ] generic traits
-    - [ ] generic type unification
-        > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
-        - [ ] error if an identifier is `$` twice
-        - [ ] error if `$` appears anywhere else but a type annotation
-    - [ ] `impl Tr` stamps out a new monomorphised function for every new impl of `Tr`
-        > Even though the type is stamped out, you can only treat it using its trait methods
-    - [ ] iterators & for loops
-        - [ ] multi-loops, ranges like zig
-    - [ ] allocators
-    - [ ] Eq, Ord, Num, Bits, Convertible in std
-    - [ ] derive
-    - [ ] `as` method which can do reinterpret casting (maybe different name?)
-        > trait Convertible(const Other: Type) { fn as(self) -> Other }
-    - [ ] `id` function in standard
 - [ ] refinement types
     > This feature may not be needed, or good
     - [ ] `where` which checks at runtime if a condition is true, panics if it's not

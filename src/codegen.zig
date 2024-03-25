@@ -228,6 +228,9 @@ fn forall_functions(
 
     // apply the function `f` to all CFGs in the `cfgs` list
     for (cfgs.items) |cfg| {
+        if (!cfg.needed_at_runtime) {
+            continue;
+        }
         if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) { // Don't output for `_comptime` decls
             try f(cfg, writer);
         }

@@ -17,60 +17,60 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1133_main(void);
+int64_t _1142_main(void);
 
 
 /* Function definitions */
-int64_t _1133_main(void){
-    int64_t _1133_t1;
-    int64_t _1133_t2;
-    int64_t _1133_t3;
-    struct struct0 _1134_x;
-    int64_t _1133_t5;
-    int64_t _1133_t6;
-    int64_t* _1134_a;
-    int64_t _1133_t9;
-    int64_t _1133_t10;
-    int64_t* _1134_b;
-    int64_t _1133_t13;
-    int64_t _1133_t14;
-    int64_t* _1134_c;
-    int64_t _1133_t18;
-    int64_t _1133_t19;
-    int64_t _1133_t20;
-    struct struct0 _1133_t17;
-    int64_t _1133_t21;
-    int64_t _1133_$retval;
-    _1133_t1 = 0;
-    _1133_t2 = 0;
-    _1133_t3 = 0;
-    _1134_x = (struct struct0) {_1133_t1, _1133_t2, _1133_t3};
-    _1133_t5 = 0;
-    _1133_t6 = 3;
-    $bounds_check(_1133_t5, _1133_t6, "tests/integration/pattern/assign-deref-product.orng:4:14:\n    let a = &mut x[0]\n            ^");
-    _1134_a = ((int64_t*)&_1134_x + _1133_t5);
-    _1133_t9 = 1;
-    _1133_t10 = 3;
-    $bounds_check(_1133_t9, _1133_t10, "tests/integration/pattern/assign-deref-product.orng:5:14:\n    let b = &mut x[1]\n            ^");
-    _1134_b = ((int64_t*)&_1134_x + _1133_t9);
-    _1133_t13 = 2;
-    _1133_t14 = 3;
-    $bounds_check(_1133_t13, _1133_t14, "tests/integration/pattern/assign-deref-product.orng:6:14:\n    let c = &mut x[2]\n            ^");
-    _1134_c = ((int64_t*)&_1134_x + _1133_t13);
-    _1133_t18 = 100;
-    _1133_t19 = 30;
-    _1133_t20 = 30;
-    _1133_t17 = (struct struct0) {_1133_t18, _1133_t19, _1133_t20};
-    *_1134_a = _1133_t17._0;
-    *_1134_b = _1133_t17._1;
-    *_1134_c = _1133_t17._2;
-    _1133_t21 = $add_int64_t(*_1134_a, *_1134_b, "tests/integration/pattern/assign-deref-product.orng:8:9:\n    a^ + b^ + c^\n       ^");
-    _1133_$retval = $add_int64_t(_1133_t21, *_1134_c, "tests/integration/pattern/assign-deref-product.orng:8:14:\n    a^ + b^ + c^\n            ^");
-    return _1133_$retval;
+int64_t _1142_main(void){
+    int64_t _1142_t1;
+    int64_t _1142_t2;
+    int64_t _1142_t3;
+    struct struct0 _1143_x;
+    int64_t _1142_t5;
+    int64_t _1142_t6;
+    int64_t* _1143_a;
+    int64_t _1142_t9;
+    int64_t _1142_t10;
+    int64_t* _1143_b;
+    int64_t _1142_t13;
+    int64_t _1142_t14;
+    int64_t* _1143_c;
+    int64_t _1142_t18;
+    int64_t _1142_t19;
+    int64_t _1142_t20;
+    struct struct0 _1142_t17;
+    int64_t _1142_t21;
+    int64_t _1142_$retval;
+    _1142_t1 = 0;
+    _1142_t2 = 0;
+    _1142_t3 = 0;
+    _1143_x = (struct struct0) {_1142_t1, _1142_t2, _1142_t3};
+    _1142_t5 = 0;
+    _1142_t6 = 3;
+    $bounds_check(_1142_t5, _1142_t6, "tests/integration/pattern/assign-deref-product.orng:4:14:\n    let a = &mut x[0]\n            ^");
+    _1143_a = ((int64_t*)&_1143_x + _1142_t5);
+    _1142_t9 = 1;
+    _1142_t10 = 3;
+    $bounds_check(_1142_t9, _1142_t10, "tests/integration/pattern/assign-deref-product.orng:5:14:\n    let b = &mut x[1]\n            ^");
+    _1143_b = ((int64_t*)&_1143_x + _1142_t9);
+    _1142_t13 = 2;
+    _1142_t14 = 3;
+    $bounds_check(_1142_t13, _1142_t14, "tests/integration/pattern/assign-deref-product.orng:6:14:\n    let c = &mut x[2]\n            ^");
+    _1143_c = ((int64_t*)&_1143_x + _1142_t13);
+    _1142_t18 = 100;
+    _1142_t19 = 30;
+    _1142_t20 = 30;
+    _1142_t17 = (struct struct0) {_1142_t18, _1142_t19, _1142_t20};
+    *_1143_a = _1142_t17._0;
+    *_1143_b = _1142_t17._1;
+    *_1143_c = _1142_t17._2;
+    _1142_t21 = $add_int64_t(*_1143_a, *_1143_b, "tests/integration/pattern/assign-deref-product.orng:8:9:\n    a^ + b^ + c^\n       ^");
+    _1142_$retval = $add_int64_t(_1142_t21, *_1143_c, "tests/integration/pattern/assign-deref-product.orng:8:14:\n    a^ + b^ + c^\n            ^");
+    return _1142_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1133_main());
+  printf("%ld",_1142_main());
   return 0;
 }

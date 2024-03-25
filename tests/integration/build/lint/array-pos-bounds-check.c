@@ -20,44 +20,44 @@ struct struct0 {
 typedef int64_t(*function1)(void);
 
 /* Function forward definitions */
-int64_t _1041_main(void);
-int64_t _1043_f(void);
+int64_t _1050_main(void);
+int64_t _1052_f(void);
 
 
 /* Function definitions */
-int64_t _1041_main(void){
-    int64_t _1041_t1;
-    int64_t _1041_t2;
-    int64_t _1041_t3;
-    int64_t _1041_t4;
-    struct struct0 _1042_x;
-    function1 _1041_t6;
-    int64_t _1041_t7;
-    int64_t _1041_t8;
-    int64_t _1041_$retval;
-    _1041_t1 = 0;
-    _1041_t2 = 0;
-    _1041_t3 = 0;
-    _1041_t4 = 0;
-    _1042_x = (struct struct0) {_1041_t1, _1041_t2, _1041_t3, _1041_t4};
-    _1041_t6 = (function1) _1043_f;
+int64_t _1050_main(void){
+    int64_t _1050_t1;
+    int64_t _1050_t2;
+    int64_t _1050_t3;
+    int64_t _1050_t4;
+    struct struct0 _1051_x;
+    function1 _1050_t6;
+    int64_t _1050_t7;
+    int64_t _1050_t8;
+    int64_t _1050_$retval;
+    _1050_t1 = 0;
+    _1050_t2 = 0;
+    _1050_t3 = 0;
+    _1050_t4 = 0;
+    _1051_x = (struct struct0) {_1050_t1, _1050_t2, _1050_t3, _1050_t4};
+    _1050_t6 = (function1) _1052_f;
     $lines[$line_idx++] = "tests/integration/lint/array-pos-bounds-check.orng:4:9:\n    x[f()]\n       ^";
-    _1041_t7 = _1041_t6();
+    _1050_t7 = _1050_t6();
     $line_idx--;
-    _1041_t8 = 4;
-    $bounds_check(_1041_t7, _1041_t8, "tests/integration/lint/array-pos-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
-    _1041_$retval = *((int64_t*)&_1042_x + _1041_t7);
-    return _1041_$retval;
+    _1050_t8 = 4;
+    $bounds_check(_1050_t7, _1050_t8, "tests/integration/lint/array-pos-bounds-check.orng:2:3:\nfn main() -> Int {\n ^");
+    _1050_$retval = *((int64_t*)&_1051_x + _1050_t7);
+    return _1050_$retval;
 }
 
-int64_t _1043_f(void){
-    int64_t _1043_$retval;
-    _1043_$retval = 100;
-    return _1043_$retval;
+int64_t _1052_f(void){
+    int64_t _1052_$retval;
+    _1052_$retval = 100;
+    return _1052_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1041_main());
+  printf("%ld",_1050_main());
   return 0;
 }

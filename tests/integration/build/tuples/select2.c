@@ -24,41 +24,41 @@ struct struct1 {
 typedef int64_t(*function2)(struct struct1);
 
 /* Function forward definitions */
-int64_t _1774_main(void);
-int64_t _1776_f(struct struct1 _1776_a);
+int64_t _1783_main(void);
+int64_t _1785_f(struct struct1 _1785_a);
 
 
 /* Function definitions */
-int64_t _1774_main(void){
-    int64_t _1774_t2;
-    int64_t _1774_t3;
-    struct struct0 _1774_t1;
-    int64_t _1774_t4;
-    struct struct1 _1775_x;
-    function2 _1774_t6;
-    int64_t _1774_t7;
-    int64_t _1774_$retval;
-    _1774_t2 = 50;
-    _1774_t3 = 150;
-    _1774_t1 = (struct struct0) {_1774_t2, _1774_t3};
-    _1774_t4 = 300;
-    _1775_x = (struct struct1) {_1774_t1, _1774_t4};
-    _1774_t6 = (function2) _1776_f;
+int64_t _1783_main(void){
+    int64_t _1783_t2;
+    int64_t _1783_t3;
+    struct struct0 _1783_t1;
+    int64_t _1783_t4;
+    struct struct1 _1784_x;
+    function2 _1783_t6;
+    int64_t _1783_t7;
+    int64_t _1783_$retval;
+    _1783_t2 = 50;
+    _1783_t3 = 150;
+    _1783_t1 = (struct struct0) {_1783_t2, _1783_t3};
+    _1783_t4 = 300;
+    _1784_x = (struct struct1) {_1783_t1, _1783_t4};
+    _1783_t6 = (function2) _1785_f;
     $lines[$line_idx++] = "tests/integration/tuples/select2.orng:4:7:\n    f(x)\n     ^";
-    _1774_t7 = _1774_t6(_1775_x);
+    _1783_t7 = _1783_t6(_1784_x);
     $line_idx--;
-    _1774_$retval = _1774_t7;
-    return _1774_$retval;
+    _1783_$retval = _1783_t7;
+    return _1783_$retval;
 }
 
-int64_t _1776_f(struct struct1 _1776_a){
-    int64_t _1776_$retval;
-    _1776_$retval = _1776_a._1;
-    return _1776_$retval;
+int64_t _1785_f(struct struct1 _1785_a){
+    int64_t _1785_$retval;
+    _1785_$retval = _1785_a._1;
+    return _1785_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1774_main());
+  printf("%ld",_1783_main());
   return 0;
 }

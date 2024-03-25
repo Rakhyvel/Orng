@@ -1,0 +1,8 @@
+// 310
+fn Get_Type() -> Type { Int }
+
+fn main() -> Int {
+    let mut x: comptime { Get_Type() }
+    x = 310
+    x
+}
