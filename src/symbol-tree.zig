@@ -51,6 +51,8 @@ fn symbol_table_from_AST(
         .receiver,
         => {},
 
+        .template => unreachable,
+
         .@"break", .@"continue" => try in_loop_check(ast, scope, errors),
 
         .type_of,
@@ -210,6 +212,15 @@ fn symbol_table_from_AST(
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return;
+            } else if (ast.fn_decl.is_templated()) {
+                std.debug.print("template detected\n", .{});
+                // Transform into template
+                const template_pattern_fn_decl = ast.clone(allocator);
+                const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
+                ast.* = ast_.AST{ .template = .{
+                    .common = common,
+                    .decl = template_pattern_fn_decl,
+                } };
             }
             const symbol = try create_function_symbol(ast, scope, errors, allocator);
             try put_symbol(symbol, scope, errors);

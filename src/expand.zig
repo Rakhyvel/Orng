@@ -54,6 +54,8 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .dyn_value,
         => try expand(ast.expr(), errors, allocator),
 
+        .template => unreachable,
+
         .assign,
         .@"or",
         .@"and",

@@ -565,6 +565,9 @@ fn validate_AST_internal(
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
             var lhs_type = ast.lhs().typeof(allocator);
+            if (lhs_type.* == .function) {
+                std.debug.print("here!\n", .{});
+            }
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
                 return throw_wrong_from("function", "call", expanded_lhs_type, lhs_span, errors);

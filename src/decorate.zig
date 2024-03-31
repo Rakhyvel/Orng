@@ -48,6 +48,8 @@ fn decorate_identifiers(
         .receiver,
         => {},
 
+        .template => unreachable,
+
         .identifier => {
             const res = scope.lookup(ast.token().data, false);
             switch (res) {

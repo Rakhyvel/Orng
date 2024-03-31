@@ -50,7 +50,7 @@ pub const Sum_From = enum {
 };
 
 /// Contains common properties of all AST nodes
-const AST_Common = struct {
+pub const AST_Common = struct {
     /// Token that defined the AST node in text.
     _token: token_.Token,
 
@@ -428,6 +428,15 @@ pub const AST = union(enum) {
         init: *AST,
         _symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
+
+        pub fn is_templated(self: *@This()) bool {
+            for (self._params.items) |param| {
+                if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+                    return true;
+                }
+            }
+            return false;
+        }
     },
     method_decl: struct {
         common: AST_Common,
@@ -444,6 +453,11 @@ pub const AST = union(enum) {
         impl: ?*AST = null, // The surrounding `impl`. Null for method_decls in traits.
         _symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
+    },
+    template: struct {
+        common: AST_Common,
+        decl: *AST, // The decl of the symbol(s) that is being templated
+        // memo // Map of const arg values to their stamped out versions
     },
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
@@ -948,6 +962,8 @@ pub const AST = union(enum) {
             .true => return create_true(self.token(), allocator),
             .false => return create_false(self.token(), allocator),
 
+            .template => unreachable,
+
             .not => return create_not(self.token(), self.expr().clone(allocator), allocator),
             .negate => return create_negate(self.token(), self.expr().clone(allocator), allocator),
             .dereference => return create_dereference(
@@ -961,7 +977,7 @@ pub const AST = union(enum) {
             .size_of => return create_size_of(self.token(), self.expr().clone(allocator), allocator),
             .domain_of => return create_domain_of(
                 self.token(),
-                self.domain_of.sum_type.clone(),
+                self.domain_of.sum_type.clone(allocator),
                 self.expr().clone(allocator),
                 allocator,
             ),
@@ -1064,8 +1080,8 @@ pub const AST = union(enum) {
                 allocator,
             ),
             .call => {
-                const cloned_args = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_args.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_call(self.token(), self.lhs().clone(allocator), cloned_args, allocator);
@@ -1089,28 +1105,28 @@ pub const AST = union(enum) {
                 allocator,
             ),
             .trait => {
-                const cloned_decls = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_decls = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_decls.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_trait(self.token(), cloned_decls, allocator);
             },
             .impl => {
-                const cloned_defs = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_defs = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_defs.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_impl(
                     self.token(),
-                    if (self.impl._trait) |_trait| _trait.clone(allocator) else null,
+                    if (self.impl.trait) |_trait| _trait.clone(allocator) else null,
                     self.impl._type.clone(allocator),
                     cloned_defs,
                     allocator,
                 );
             },
             .invoke => {
-                const cloned_args = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_args.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_invoke(
@@ -1129,8 +1145,8 @@ pub const AST = union(enum) {
             ),
             .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
             .sum_type => {
-                const cloned_terms = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_terms = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_sum_type(
@@ -1141,8 +1157,8 @@ pub const AST = union(enum) {
             },
             .sum_value => return create_sum_value(self.token(), allocator),
             .product => {
-                const cloned_terms = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_terms = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_product(
@@ -1170,7 +1186,7 @@ pub const AST = union(enum) {
                 self.slice_of.kind,
                 allocator,
             ),
-            .array_of => return create_slice_of(
+            .array_of => return create_array_of(
                 self.token(),
                 self.expr().clone(allocator),
                 self.array_of.len.clone(allocator),
@@ -1186,8 +1202,8 @@ pub const AST = union(enum) {
             .annotation => return create_annotation(
                 self.token(),
                 self.annotation.pattern.clone(allocator),
-                self._type.pattern.clone(allocator),
-                if (self.annotation._type) |_type| _type.clone(allocator) else null,
+                self.annotation.type.clone(allocator),
+                if (self.annotation.predicate) |predicate| predicate.clone(allocator) else null,
                 if (self.annotation.init) |init| init.clone(allocator) else null,
                 allocator,
             ),
@@ -1206,8 +1222,8 @@ pub const AST = union(enum) {
                 allocator,
             ),
             .match => {
-                const cloned_mappings = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_mappings = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_mappings.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_match(
@@ -1235,8 +1251,8 @@ pub const AST = union(enum) {
             ),
             .@"for" => unreachable, // TODO
             .block => {
-                const cloned_statements = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_statements = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_statements.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_block(
@@ -1268,8 +1284,8 @@ pub const AST = union(enum) {
                 allocator,
             ),
             .fn_decl => {
-                const cloned_params = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_params = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_params.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_fn_decl(
@@ -1283,19 +1299,19 @@ pub const AST = union(enum) {
                 );
             },
             .method_decl => {
-                const cloned_params = std.ArrayList(*AST).init(allocator);
-                for (self.children()) |child| {
+                var cloned_params = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
                     cloned_params.append(child.clone(allocator)) catch unreachable;
                 }
                 return create_method_decl(
                     self.token(),
-                    if (self.method_decl.name) |name| name.clone(allocator) else null,
+                    self.method_decl.name.clone(allocator),
                     self.method_decl.is_virtual,
                     if (self.method_decl.receiver) |receiver| receiver.clone(allocator) else null,
                     cloned_params,
                     self.method_decl.ret_type.clone(allocator),
                     if (self.method_decl.refinement) |refinement| refinement.clone(allocator) else null,
-                    self.method_decl.init.clone(allocator),
+                    if (self.method_decl.init) |init| init.clone(allocator) else null,
                     allocator,
                 );
             },
@@ -2578,6 +2594,7 @@ pub const AST = union(enum) {
                 try out.writer().print(")", .{});
             },
             .fn_decl => try out.writer().print("fn_decl()", .{}),
+            .template => try out.writer().print("template()", .{}),
             .method_decl => {
                 try out.writer().print("method_decl(.name={s}, .receiver={?}, .params=[", .{
                     self.method_decl.name,
