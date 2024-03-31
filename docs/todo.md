@@ -376,7 +376,7 @@
     - [ ] `Ty <: Tr` returns if a type implements a trait
     - [ ] Add an optimization such that if the type of an invoke is known, rather than an invoke, change to just a call to the method
 - [ ] function stamping
-    - [ ] functions returning `Type` should be capitalized
+    - [x] functions returning `Type` should be capitalized
         - [x] capitalized should be all of them not just the first first first
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
     - [ ] first-class types based generics (stamp)

@@ -932,6 +932,378 @@ pub const AST = union(enum) {
         );
     }
 
+    pub fn clone(self: *AST, allocator: std.mem.Allocator) *AST {
+        switch (self.*) {
+            .poison => unreachable,
+            .anyptr_type => return create_anyptr_type(self.token(), allocator),
+            .unit_type => return create_unit_type(self.token(), allocator),
+            .unit_value => return create_unit_value(self.token(), allocator),
+            .int => return create_int(self.token(), self.int.data, allocator),
+            .char => return create_char(self.token(), allocator),
+            .float => return create_float(self.token(), self.float.data, allocator),
+            .string => return create_string(self.token(), self.string.data, allocator),
+            .field => return create_field(self.token(), allocator),
+            .identifier => return create_identifier(self.token(), allocator),
+            .@"unreachable" => return create_unreachable(self.token(), allocator),
+            .true => return create_true(self.token(), allocator),
+            .false => return create_false(self.token(), allocator),
+
+            .not => return create_not(self.token(), self.expr().clone(allocator), allocator),
+            .negate => return create_negate(self.token(), self.expr().clone(allocator), allocator),
+            .dereference => return create_dereference(
+                self.token(),
+                self.expr().clone(allocator),
+                allocator,
+            ),
+            .@"try" => return create_try(self.token(), self.expr().clone(allocator), allocator),
+            .type_of => return create_type_of(self.token(), self.expr().clone(allocator), allocator),
+            .default => return create_default(self.token(), self.expr().clone(allocator), allocator),
+            .size_of => return create_size_of(self.token(), self.expr().clone(allocator), allocator),
+            .domain_of => return create_domain_of(
+                self.token(),
+                self.domain_of.sum_type.clone(),
+                self.expr().clone(allocator),
+                allocator,
+            ),
+            .@"comptime" => return create_comptime(self.token(), self.expr().clone(allocator), allocator),
+
+            .assign => return create_assign(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .@"or" => return create_or(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .@"and" => return create_and(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .add => return create_add(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .sub => return create_sub(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .mult => return create_mult(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .div => return create_div(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .mod => return create_mod(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .equal => return create_equal(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .not_equal => return create_not_equal(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .greater => return create_greater(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .lesser => return create_lesser(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .greater_equal => return create_greater_equal(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .lesser_equal => return create_lesser_equal(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .@"catch" => return create_catch(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .@"orelse" => return create_orelse(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .call => {
+                const cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_args.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_call(self.token(), self.lhs().clone(allocator), cloned_args, allocator);
+            },
+            .index => return create_index(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .select => return create_select(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .function => return create_function(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .trait => {
+                const cloned_decls = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_decls.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_trait(self.token(), cloned_decls, allocator);
+            },
+            .impl => {
+                const cloned_defs = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_defs.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_impl(
+                    self.token(),
+                    if (self.impl._trait) |_trait| _trait.clone(allocator) else null,
+                    self.impl._type.clone(allocator),
+                    cloned_defs,
+                    allocator,
+                );
+            },
+            .invoke => {
+                const cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_args.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_invoke(
+                    self.token(),
+                    self.lhs().clone(allocator),
+                    self.rhs().clone(allocator),
+                    cloned_args,
+                    allocator,
+                );
+            },
+            .dyn_type => return create_dyn_type(
+                self.token(),
+                self.expr().clone(allocator),
+                self.mut(),
+                allocator,
+            ),
+            .dyn_value => unreachable, // Shouldn't exist yet... have to clone scope?
+            .sum_type => {
+                const cloned_terms = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_terms.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_sum_type(
+                    self.token(),
+                    cloned_terms,
+                    allocator,
+                );
+            },
+            .sum_value => return create_sum_value(self.token(), allocator),
+            .product => {
+                const cloned_terms = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_terms.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_product(
+                    self.token(),
+                    cloned_terms,
+                    allocator,
+                );
+            },
+            .@"union" => return create_union(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+
+            .addr_of => return create_addr_of(
+                self.token(),
+                self.expr().clone(allocator),
+                self.mut(),
+                allocator,
+            ),
+            .slice_of => return create_slice_of(
+                self.token(),
+                self.expr().clone(allocator),
+                self.slice_of.kind,
+                allocator,
+            ),
+            .array_of => return create_slice_of(
+                self.token(),
+                self.expr().clone(allocator),
+                self.array_of.len.clone(allocator),
+                allocator,
+            ),
+            .sub_slice => return create_sub_slice(
+                self.token(),
+                self.sub_slice.super.clone(allocator),
+                if (self.sub_slice.lower) |lower| lower.clone(allocator) else null,
+                if (self.sub_slice.upper) |upper| upper.clone(allocator) else null,
+                allocator,
+            ),
+            .annotation => return create_annotation(
+                self.token(),
+                self.annotation.pattern.clone(allocator),
+                self._type.pattern.clone(allocator),
+                if (self.annotation._type) |_type| _type.clone(allocator) else null,
+                if (self.annotation.init) |init| init.clone(allocator) else null,
+                allocator,
+            ),
+            .receiver => return create_receiver(
+                self.token(),
+                self.receiver.kind,
+                allocator,
+            ),
+
+            .@"if" => return create_if(
+                self.token(),
+                if (self.@"if".let) |let| let.clone(allocator) else null,
+                self.@"if".condition.clone(allocator),
+                self.body_block().clone(allocator),
+                if (self.else_block()) |_else| _else.clone(allocator) else null,
+                allocator,
+            ),
+            .match => {
+                const cloned_mappings = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_mappings.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_match(
+                    self.token(),
+                    if (self.match.let) |let| let.clone(allocator) else null,
+                    self.expr().clone(allocator),
+                    cloned_mappings,
+                    allocator,
+                );
+            },
+            .mapping => return create_mapping(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .@"while" => return create_while(
+                self.token(),
+                if (self.@"while".let) |let| let.clone(allocator) else null,
+                self.@"while".condition.clone(allocator),
+                if (self.@"while".post) |post| post.clone(allocator) else null,
+                self.body_block().clone(allocator),
+                if (self.else_block()) |_else| _else.clone(allocator) else null,
+                allocator,
+            ),
+            .@"for" => unreachable, // TODO
+            .block => {
+                const cloned_statements = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_statements.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_block(
+                    self.token(),
+                    cloned_statements,
+                    if (self.block.final) |final| final.clone(allocator) else null,
+                    allocator,
+                );
+            },
+            .@"break" => return create_break(self.token(), allocator),
+            .@"continue" => return create_continue(self.token(), allocator),
+            .@"return" => return create_return(
+                self.token(),
+                if (self.@"return"._ret_expr) |ret_expr| ret_expr.clone(allocator) else null,
+                allocator,
+            ),
+            .pattern_symbol => return create_symbol(
+                self.token(),
+                self.pattern_symbol.kind,
+                self.pattern_symbol.name,
+                allocator,
+            ),
+            .decl => return create_decl(
+                self.token(),
+                self.decl.pattern.clone(allocator),
+                self.decl.type.clone(allocator),
+                if (self.decl.init) |init| init.clone(allocator) else null,
+                self.decl.is_alias,
+                allocator,
+            ),
+            .fn_decl => {
+                const cloned_params = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_params.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_fn_decl(
+                    self.token(),
+                    if (self.fn_decl.name) |name| name.clone(allocator) else null,
+                    cloned_params,
+                    self.fn_decl.ret_type.clone(allocator),
+                    if (self.fn_decl.refinement) |refinement| refinement.clone(allocator) else null,
+                    self.fn_decl.init.clone(allocator),
+                    allocator,
+                );
+            },
+            .method_decl => {
+                const cloned_params = std.ArrayList(*AST).init(allocator);
+                for (self.children()) |child| {
+                    cloned_params.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_method_decl(
+                    self.token(),
+                    if (self.method_decl.name) |name| name.clone(allocator) else null,
+                    self.method_decl.is_virtual,
+                    if (self.method_decl.receiver) |receiver| receiver.clone(allocator) else null,
+                    cloned_params,
+                    self.method_decl.ret_type.clone(allocator),
+                    if (self.method_decl.refinement) |refinement| refinement.clone(allocator) else null,
+                    self.method_decl.init.clone(allocator),
+                    allocator,
+                );
+            },
+            .@"defer" => return create_defer(self.token(), self.statement().clone(allocator), allocator),
+            .@"errdefer" => return create_errdefer(self.token(), self.statement().clone(allocator), allocator),
+        }
+    }
+
     /// Boxes an AST value into an allocator.
     fn box(ast: AST, alloc: std.mem.Allocator) *AST {
         const retval = alloc.create(AST) catch unreachable;
@@ -1881,8 +2253,8 @@ pub const AST = union(enum) {
         if (A.* == .identifier and std.mem.eql(u8, "Void", A.token().data)) {
             return true; // Bottom type - vacuously true
         }
-        // std.debug.assert(A.common().validation_state == .valid);
-        // std.debug.assert(B.common().validation_state == .valid);
+        std.debug.assert(A.common().validation_state == .valid);
+        std.debug.assert(B.common().validation_state == .valid);
 
         if (@intFromEnum(A.*) != @intFromEnum(B.*)) {
             return false;
@@ -1921,6 +2293,7 @@ pub const AST = union(enum) {
             },
             .function => return A.lhs().types_match(B.lhs()) and A.rhs().types_match(B.rhs()),
             .dyn_type => return A.expr().symbol() == B.expr().symbol(),
+            .call => return std.mem.eql(u8, A.lhs().token().data, B.lhs().token().data),
             else => {
                 std.debug.print("types_match(): Unimplemented for {s}\n", .{@tagName(A.*)});
                 unreachable;

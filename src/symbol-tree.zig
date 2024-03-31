@@ -75,7 +75,7 @@ fn symbol_table_from_AST(
 
         .@"comptime" => {
             const symbol = try create_temp_comptime_symbol(ast, null, scope, errors, allocator);
-            try put_symbol(symbol, scope, errors);
+            try put_symbol(symbol, scope, errors); // Why? No one refers to it...
             ast.set_symbol(symbol);
         },
 

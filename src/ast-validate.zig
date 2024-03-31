@@ -1876,6 +1876,9 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
             retval.sum_value.init = try generate_default(proper_term, span, errors, allocator);
             return retval;
         },
+        .call => {
+            return try generate_default(_type.expand_type(allocator), span, errors, allocator);
+        },
         .product => {
             var value_terms = std.ArrayList(*ast_.AST).init(allocator);
             errdefer value_terms.deinit();
