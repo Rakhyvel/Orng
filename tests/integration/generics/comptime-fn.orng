@@ -8,5 +8,5 @@ fn add(const T: Type) -> Int {
 }
 
 fn main() -> Int {
-    add(Int)(300, 11)
+    add(Int)
 }
