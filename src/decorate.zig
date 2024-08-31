@@ -7,6 +7,16 @@ const symbol_ = @import("symbol.zig");
 
 const Decorate_Error = error{SymbolError};
 
+/// Recursively decorates the identifiers in the given ASTs with the symbols they refer to.
+///
+/// ## Parameters:
+/// - `asts`: List of ASTs to recursively decorate
+/// - `scope`: Shared scope of all the ASTs
+/// - `errors`: Error manager
+/// - `allocator`: Allocator to use
+///
+/// ## Errors:
+/// Errors out if symbols cannot be looked up. Error messages are added to the error manager.
 pub fn decorate_identifiers_from_list(
     asts: std.ArrayList(*ast_.AST),
     scope: *symbol_.Scope,
@@ -18,7 +28,17 @@ pub fn decorate_identifiers_from_list(
     }
 }
 
-fn decorate_identifiers(
+/// Recursively decorates the identifiers in the given AST with the symbols they refer to.
+///
+/// ## Parameters:
+/// - `ast`: AST to recursively decorate with symbols
+/// - `scope`: Scope of the AST
+/// - `errors`: Error manager
+/// - `allocator`: Allocator to use
+///
+/// ## Errors:
+/// Errors out if symbols cannot be looked up. Error messages are added to the error manager.
+pub fn decorate_identifiers(
     maybe_ast: ?*ast_.AST,
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
@@ -47,8 +67,6 @@ fn decorate_identifiers(
         .domain_of,
         .receiver,
         => {},
-
-        .template => unreachable,
 
         .identifier => {
             const res = scope.lookup(ast.token().data, false);
@@ -199,6 +217,9 @@ fn decorate_identifiers(
             try decorate_identifiers(ast.fn_decl.init, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
+        },
+        .template => {
+            // try decorate_identifiers(ast.template.decl, ast.symbol().?.scope, errors, allocator);
         },
         .trait => {
             try decorate_identifiers_from_list(ast.children().*, ast.trait.scope.?, errors, allocator);

@@ -13,32 +13,32 @@ typedef int64_t(*function0)(void);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1616_main(void);
-int64_t _1614_f(void);
+int64_t _1621_main(void);
+int64_t _1619_f(void);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1616_main(void){
-    function0 _1616_t4;
-    int64_t _1616_t3;
-    int64_t _1616_$retval;
-    _1616_t4 = (function0) _1614_f;
+int64_t _1621_main(void){
+    function0 _1621_t4;
+    int64_t _1621_t3;
+    int64_t _1621_$retval;
+    _1621_t4 = (function0) _1619_f;
     $lines[$line_idx++] = "tests/integration/traits/non-virtual-no-params.orng:14:8:\n    x.>f()\n      ^";
-    _1616_t3 = _1616_t4();
+    _1621_t3 = _1621_t4();
     $line_idx--;
-    _1616_$retval = _1616_t3;
-    return _1616_$retval;
+    _1621_$retval = _1621_t3;
+    return _1621_$retval;
 }
 
-int64_t _1614_f(void){
-    int64_t _1614_$retval;
-    _1614_$retval = 311;
-    return _1614_$retval;
+int64_t _1619_f(void){
+    int64_t _1619_$retval;
+    _1619_$retval = 311;
+    return _1619_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1616_main());
+  printf("%ld",_1621_main());
   return 0;
 }

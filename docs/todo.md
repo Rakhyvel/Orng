@@ -380,7 +380,12 @@
         - [x] capitalized should be all of them not just the first first first
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
     - [ ] first-class types based generics (stamp)
-        - [ ] generic traits
+        - [ ] templated templates
+        - [ ] default parameters
+        - [ ] default const parameters
+        - [ ] template-call in template function
+    - [ ] generic traits
+    - [ ] generic methods
     - [ ] generic type unification
         > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
         - [ ] error if an identifier is `$` twice
@@ -396,7 +401,7 @@
         > trait Convertible(const Other: Type) { fn as(self) -> Other }
     - [ ] `id` function in standard
 - [ ] build system (built upon compile-time evaluation) 
-    > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run gcc on modified files and the files that depend* on modified files, to produce .o files which should be linked.
+    > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run CC on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     - [ ] compile phase
         - [ ] locate `build.orng`
         - [ ] compile `build.orng` file into a module
@@ -406,12 +411,15 @@
         - [ ] `build()` fleshes out the DAG
             - [ ] executables have build modes like (debug | release), (executable | static library | dynamic library)
                 - [ ] **IMPORTANT** indexes need to make their lhs lvalues in IR iff debug mode is off
-            - [ ] be able to include C source files, and header directories
-            - [ ] be able to link static and dynamic libraries
+            - [ ] be able to include C source files
+            - [ ] be able to specify C header directories
+            - [ ] be able to link static libraries
+            - [ ] be able to link dynamic libraries
+            - [ ] freestanding programs
     - [ ] make phase
         - [ ] Directed by the Builder object, and by the target specified by the cmd line args, execute the steps
     - [ ] `pub` keyword
-    - [ ] import syntax before any definitions `["from" package {"." package}] "import" module ["as" ident]`
+    - [ ] import syntax before any definitions `["from" package {"::" package}] "import" module ["as" ident]`
         > Packages are directories, mapped in the build file
         > This allows dependencies to be simple
         > Also makes canonical names the norm
@@ -430,9 +438,10 @@
             - net: // Socket system?
             - env: // How should environment variables work?
     > How do externs work?
-    - [ ] Cannot impl an empty trait for primitives!
-    - [ ] If T isn't null, either T or X must be defined in the same module
-    - [ ] If T is null, X must be defined in the same module
+    - [ ] random trait stuff now
+        - [ ] Cannot impl an empty trait for primitives!
+        - [ ] If T isn't null, either T or X must be defined in the same module
+        - [ ] If T is null, X must be defined in the same module
 - [ ] refinement types
     > This feature may not be needed, or good
     - [ ] `where` which checks at runtime if a condition is true, panics if it's not

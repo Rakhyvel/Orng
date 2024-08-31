@@ -15,7 +15,7 @@ Orng is a versatile general purpose programming language that gives developers c
 
 ## Installation
 ```sh
-# Orng compiler requires Zig 0.11.0 at the moment
+# Orng compiler requires Zig 0.13.0 at the moment
 git clone https://github.com/Rakhyvel/Orng.git
 cd Orng
 zig build

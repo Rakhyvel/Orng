@@ -19,23 +19,23 @@ struct struct0 {
 char* string_0 = "\x0A\x0D\x09\x27\x22";
 
 /* Function forward definitions */
-uint8_t _1409_main(void);
+uint8_t _1414_main(void);
 
 
 /* Function definitions */
-uint8_t _1409_main(void){
-    struct struct0 _1410_x;
-    int64_t _1409_t2;
-    uint8_t _1409_$retval;
-    _1410_x = (struct struct0) {(uint8_t*)string_0, 5};
-    _1409_t2 = 4;
-    $bounds_check(_1409_t2, _1410_x._1, "tests/integration/strings/string-dquote.orng:2:3:\nfn main() -> Byte {\n ^");
-    _1409_$retval = *((uint8_t*)_1410_x._0 + _1409_t2);
-    return _1409_$retval;
+uint8_t _1414_main(void){
+    struct struct0 _1415_x;
+    int64_t _1414_t2;
+    uint8_t _1414_$retval;
+    _1415_x = (struct struct0) {(uint8_t*)string_0, 5};
+    _1414_t2 = 4;
+    $bounds_check(_1414_t2, _1415_x._1, "tests/integration/strings/string-dquote.orng:2:3:\nfn main() -> Byte {\n ^");
+    _1414_$retval = *((uint8_t*)_1415_x._0 + _1414_t2);
+    return _1414_$retval;
 }
 
 
 int main(void) {
-  printf("%u",_1409_main());
+  printf("%u",_1414_main());
   return 0;
 }

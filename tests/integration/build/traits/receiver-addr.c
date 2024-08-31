@@ -37,59 +37,59 @@ typedef int64_t(*function6)(struct struct3*, int64_t);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1636_main(void);
-void _1634_c(void* _1634_self, int64_t _1634_x);
-int64_t _1632_b(void* _1632_self, int64_t _1632_x);
+int64_t _1641_main(void);
+void _1639_c(void* _1639_self, int64_t _1639_x);
+int64_t _1637_b(void* _1637_self, int64_t _1637_x);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1636_main(void){
-    int64_t _1636_t1;
-    int64_t _1636_t2;
-    struct struct3 _1637_my_val;
-    struct struct3* _1636_t5;
-    int64_t _1636_t6;
-    function4 _1636_t7;
-    struct struct3* _1636_t9;
-    int64_t _1636_t10;
-    function6 _1636_t11;
-    int64_t _1636_t8;
-    int64_t _1636_$retval;
-    _1636_t1 = 100;
-    _1636_t2 = 45;
-    _1637_my_val = (struct struct3) {_1636_t1, _1636_t2};
-    _1636_t5 = &_1637_my_val;
-    _1636_t6 = 2;
-    _1636_t7 = (function4) _1634_c;
+int64_t _1641_main(void){
+    int64_t _1641_t1;
+    int64_t _1641_t2;
+    struct struct3 _1642_my_val;
+    struct struct3* _1641_t5;
+    int64_t _1641_t6;
+    function4 _1641_t7;
+    struct struct3* _1641_t9;
+    int64_t _1641_t10;
+    function6 _1641_t11;
+    int64_t _1641_t8;
+    int64_t _1641_$retval;
+    _1641_t1 = 100;
+    _1641_t2 = 45;
+    _1642_my_val = (struct struct3) {_1641_t1, _1641_t2};
+    _1641_t5 = &_1642_my_val;
+    _1641_t6 = 2;
+    _1641_t7 = (function4) _1639_c;
     $lines[$line_idx++] = "tests/integration/traits/receiver-addr.orng:18:13:\n    my_val.>c(2)\n           ^";
-    (void) _1636_t7(_1636_t5, _1636_t6);
+    (void) _1641_t7(_1641_t5, _1641_t6);
     $line_idx--;
-    _1636_t9 = &_1637_my_val;
-    _1636_t10 = 2;
-    _1636_t11 = (function6) _1632_b;
+    _1641_t9 = &_1642_my_val;
+    _1641_t10 = 2;
+    _1641_t11 = (function6) _1637_b;
     $lines[$line_idx++] = "tests/integration/traits/receiver-addr.orng:19:13:\n    my_val.>b(2)\n           ^";
-    _1636_t8 = _1636_t11(_1636_t9, _1636_t10);
+    _1641_t8 = _1641_t11(_1641_t9, _1641_t10);
     $line_idx--;
-    _1636_$retval = _1636_t8;
-    return _1636_$retval;
+    _1641_$retval = _1641_t8;
+    return _1641_$retval;
 }
 
-void _1634_c(void* _1634_self, int64_t _1634_x){
-    (*(struct struct3*)_1634_self)._0 = $mult_int64_t((*(struct struct3*)_1634_self)._0, _1634_x, "tests/integration/traits/receiver-addr.orng:13:46:\n    fn c(&mut self, x: Int) -> () { self.x *= x }\n                                            ^");
+void _1639_c(void* _1639_self, int64_t _1639_x){
+    (*(struct struct3*)_1639_self)._0 = $mult_int64_t((*(struct struct3*)_1639_self)._0, _1639_x, "tests/integration/traits/receiver-addr.orng:13:46:\n    fn c(&mut self, x: Int) -> () { self.x *= x }\n                                            ^");
     return;
 }
 
-int64_t _1632_b(void* _1632_self, int64_t _1632_x){
-    int64_t _1632_t0;
-    int64_t _1632_$retval;
-    _1632_t0 = $mult_int64_t((*(struct struct3*)_1632_self)._1, _1632_x, "tests/integration/traits/receiver-addr.orng:11:51:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                 ^");
-    _1632_$retval = $add_int64_t((*(struct struct3*)_1632_self)._0, _1632_t0, "tests/integration/traits/receiver-addr.orng:11:42:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                        ^");
-    return _1632_$retval;
+int64_t _1637_b(void* _1637_self, int64_t _1637_x){
+    int64_t _1637_t0;
+    int64_t _1637_$retval;
+    _1637_t0 = $mult_int64_t((*(struct struct3*)_1637_self)._1, _1637_x, "tests/integration/traits/receiver-addr.orng:11:51:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                 ^");
+    _1637_$retval = $add_int64_t((*(struct struct3*)_1637_self)._0, _1637_t0, "tests/integration/traits/receiver-addr.orng:11:42:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                        ^");
+    return _1637_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1636_main());
+  printf("%ld",_1641_main());
   return 0;
 }

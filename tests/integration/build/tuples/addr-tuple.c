@@ -16,26 +16,26 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1732_main(void);
+int64_t _1737_main(void);
 
 
 /* Function definitions */
-int64_t _1732_main(void){
-    int64_t _1732_t1;
-    int64_t _1732_t4;
-    struct struct0 _1733_x;
-    struct struct0* _1733_y;
-    int64_t _1732_$retval;
-    _1732_t1 = 19;
-    _1732_t4 = 39;
-    _1733_x = (struct struct0) {_1732_t1, _1732_t4};
-    _1733_y = &_1733_x;
-    _1732_$retval = $add_int64_t((*_1733_y)._0, (*_1733_y)._1, "tests/integration/tuples/addr-tuple.orng:5:11:\n    y^.a + y^.b\n         ^");
-    return _1732_$retval;
+int64_t _1737_main(void){
+    int64_t _1737_t1;
+    int64_t _1737_t4;
+    struct struct0 _1738_x;
+    struct struct0* _1738_y;
+    int64_t _1737_$retval;
+    _1737_t1 = 19;
+    _1737_t4 = 39;
+    _1738_x = (struct struct0) {_1737_t1, _1737_t4};
+    _1738_y = &_1738_x;
+    _1737_$retval = $add_int64_t((*_1738_y)._0, (*_1738_y)._1, "tests/integration/tuples/addr-tuple.orng:5:11:\n    y^.a + y^.b\n         ^");
+    return _1737_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1732_main());
+  printf("%ld",_1737_main());
   return 0;
 }

@@ -111,7 +111,14 @@ pub const AST = union(enum) {
     /// This tag is used for the right-hand-side of selects. They do not refer to symbols.
     field: struct { common: AST_Common },
     /// Identifier
-    identifier: struct { common: AST_Common, _symbol: ?*symbol_.Symbol = null },
+    identifier: struct {
+        common: AST_Common,
+        _symbol: ?*symbol_.Symbol = null,
+
+        pub inline fn refers_to_template(self: @This()) bool {
+            return self._symbol.?.kind == .template;
+        }
+    },
 
     not: struct { common: AST_Common, _expr: *AST },
     negate: struct { common: AST_Common, _expr: *AST },
@@ -420,7 +427,7 @@ pub const AST = union(enum) {
     },
     fn_decl: struct {
         common: AST_Common,
-        name: ?*AST,
+        name: ?*AST, //
         _params: std.ArrayList(*AST), // Parameters' decl ASTs
         param_symbols: std.ArrayList(*symbol_.Symbol), // Parameters' symbols
         ret_type: *AST,
@@ -436,6 +443,17 @@ pub const AST = union(enum) {
                 }
             }
             return false;
+        }
+
+        pub fn remove_const_params(self: *@This()) void {
+            var i: usize = 0;
+            while (i < self._params.items.len) : (i +%= 1) {
+                const param = self._params.items[i];
+                if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+                    _ = self._params.orderedRemove(i);
+                    i -%= 1;
+                }
+            }
         }
     },
     method_decl: struct {
@@ -457,7 +475,8 @@ pub const AST = union(enum) {
     template: struct {
         common: AST_Common,
         decl: *AST, // The decl of the symbol(s) that is being templated
-        // memo // Map of const arg values to their stamped out versions
+        memo: ?*symbol_.Symbol, // TODO: This should be some sort of map that maps const parameters to stamped-out anonymous function symbols
+        _symbol: ?*symbol_.Symbol = null, // The symbol for this template
     },
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
@@ -962,7 +981,7 @@ pub const AST = union(enum) {
             .true => return create_true(self.token(), allocator),
             .false => return create_false(self.token(), allocator),
 
-            .template => unreachable,
+            .template => unreachable, // TODO: You probably want this...
 
             .not => return create_not(self.token(), self.expr().clone(allocator), allocator),
             .negate => return create_negate(self.token(), self.expr().clone(allocator), allocator),
@@ -2216,11 +2235,10 @@ pub const AST = union(enum) {
         }
     }
 
-    /// For two types `A` and `B`, we say `A <: B` iff for every value `a` belonging to the type `A`, then
-    /// `a` belongs to the type `B`.
+    /// For two types `A` and `B`, we say `A <: B` iff for every value `a` belonging to the type `A`, `a` belongs to the
+    /// type `B`.
     ///
-    /// Another way to view this is if `(a: A) <: (b: B)`, then the assignment `b = a` is permissible, since
-    /// `a: B`.
+    /// Another way to view this is if `(a: A) <: (b: B)`, then the assignment `b = a` is permissible, since `a: B`.
     ///
     /// Since the type `Void` has no values, the following are always true for any type T:
     /// - `Void <: T`
@@ -2269,8 +2287,8 @@ pub const AST = union(enum) {
         if (A.* == .identifier and std.mem.eql(u8, "Void", A.token().data)) {
             return true; // Bottom type - vacuously true
         }
-        std.debug.assert(A.common().validation_state == .valid);
-        std.debug.assert(B.common().validation_state == .valid);
+        // std.debug.assert(A.common().validation_state == .valid);
+        // std.debug.assert(B.common().validation_state == .valid);
 
         if (@intFromEnum(A.*) != @intFromEnum(B.*)) {
             return false;
@@ -2468,6 +2486,7 @@ pub const AST = union(enum) {
         return primitives_.unit_type.c_types_match(self);
     }
 
+    // TODO: Use Tree Writer, don't call writer print, recursively call pprint
     pub fn pprint(self: AST, allocator: std.mem.Allocator) ![]const u8 {
         var out = String.init(allocator);
         defer out.deinit();
@@ -2593,7 +2612,32 @@ pub const AST = union(enum) {
                 try out.writer().print("    .init = {?},\n", .{self.decl.init});
                 try out.writer().print(")", .{});
             },
-            .fn_decl => try out.writer().print("fn_decl()", .{}),
+            .fn_decl => {
+                try out.writer().print("fn_decl(\n", .{});
+                try out.writer().print("    .name = {?},\n", .{self.fn_decl.name});
+                try out.writer().print("    ._params = [", .{});
+                for (self.fn_decl._params.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.fn_decl._params.items.len) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print("],\n", .{});
+                try out.writer().print("    .param_symbols = [", .{});
+                for (self.fn_decl.param_symbols.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.fn_decl.param_symbols.items.len) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print("],\n", .{});
+                try out.writer().print("    .ret_type = {},\n", .{self.fn_decl.ret_type});
+                try out.writer().print("    .refinement = {?},\n", .{self.fn_decl.refinement});
+                // try out.writer().print("    .init = {},\n", .{self.fn_decl.init});
+                try out.writer().print("    ._symbol = {?},\n", .{self.fn_decl._symbol});
+                try out.writer().print("    .infer_error = {},\n", .{self.fn_decl.infer_error});
+                try out.writer().print(")", .{});
+            },
             .template => try out.writer().print("template()", .{}),
             .method_decl => {
                 try out.writer().print("method_decl(.name={s}, .receiver={?}, .params=[", .{

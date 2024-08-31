@@ -414,7 +414,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
 
 fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TODO: Uninfer error
     const max_output_size = 100 * 1024 * 1024;
-    var child_process = std.ChildProcess.init(argv, allocator);
+    var child_process = std.process.Child.init(argv, allocator);
     defer _ = child_process.kill() catch unreachable;
 
     child_process.stdout_behavior = .Pipe;

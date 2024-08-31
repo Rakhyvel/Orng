@@ -162,6 +162,7 @@ pub const Symbol_Kind = enum {
     mut,
     @"comptime",
     trait,
+    template,
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);

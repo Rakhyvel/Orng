@@ -16,31 +16,31 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1172_main(void);
+int64_t _1177_main(void);
 
 
 /* Function definitions */
-int64_t _1172_main(void){
-    int64_t _1172_t1;
-    int64_t _1172_t2;
-    struct struct0 _1172_t0;
-    int64_t _1173_x;
-    int64_t _1173_y;
-    int64_t _1172_t4;
-    int64_t _1172_$retval;
-    _1172_t1 = 3;
-    _1172_t2 = 40;
-    _1172_t0 = (struct struct0) {_1172_t1, _1172_t2};
-    _1173_x = _1172_t0._0;
-    _1173_y = _1172_t0._1;
-    _1172_t4 = 100;
-    _1173_y = $add_int64_t(_1173_y, _1172_t4, "tests/integration/pattern/let-mut-product.orng:4:9:\n    y += 100\n       ^");
-    _1172_$retval = $add_int64_t(_1173_x, _1173_y, "tests/integration/pattern/let-mut-product.orng:5:8:\n    x + y\n      ^");
-    return _1172_$retval;
+int64_t _1177_main(void){
+    int64_t _1177_t1;
+    int64_t _1177_t2;
+    struct struct0 _1177_t0;
+    int64_t _1178_x;
+    int64_t _1178_y;
+    int64_t _1177_t4;
+    int64_t _1177_$retval;
+    _1177_t1 = 3;
+    _1177_t2 = 40;
+    _1177_t0 = (struct struct0) {_1177_t1, _1177_t2};
+    _1178_x = _1177_t0._0;
+    _1178_y = _1177_t0._1;
+    _1177_t4 = 100;
+    _1178_y = $add_int64_t(_1178_y, _1177_t4, "tests/integration/pattern/let-mut-product.orng:4:9:\n    y += 100\n       ^");
+    _1177_$retval = $add_int64_t(_1178_x, _1178_y, "tests/integration/pattern/let-mut-product.orng:5:8:\n    x + y\n      ^");
+    return _1177_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1172_main());
+  printf("%ld",_1177_main());
   return 0;
 }

@@ -12,7 +12,7 @@ pub fn build(b: *std.Build) void {
 fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Build.ResolvedTarget, name: []const u8, path: []const u8, run: []const u8, run_desc: []const u8) void {
     const exe = b.addExecutable(.{
         .name = name,
-        .root_source_file = .{ .path = path },
+        .root_source_file = b.path(path),
         .target = target,
         .optimize = optimize,
     });

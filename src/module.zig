@@ -19,6 +19,7 @@ const parser_ = @import("parser.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 const symbol_tree_ = @import("symbol-tree.zig");
+const token_ = @import("token.zig");
 const type_set_ = @import("type-set.zig");
 
 const Module_Errors = error{
@@ -387,4 +388,73 @@ pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8))
     }
     // sanitized_str must not be in set, add it
     set.append(str) catch unreachable;
+}
+
+/// Stamps out a new function declaration along with a fully built and validated symbol tree, and decorated identifiers.
+///
+/// ## Returns:
+/// An identifier AST, decorated with the stamped out anonymous function.
+pub fn stamp(
+    template_ast: *ast_.AST,
+    args: *std.ArrayList(*ast_.AST),
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) !*ast_.AST {
+    if (template_ast.template.memo == null) {
+        // Go through each comptime arg, evaluate it, and store it in a list along with it's position
+        // Combines the arg value and the position in the args/params list
+        var const_decls = std.ArrayList(*ast_.AST).init(allocator);
+        var param_indicies = std.ArrayList(usize).init(allocator);
+        defer const_decls.deinit();
+        for (template_ast.template.decl.fn_decl._params.items, args.items, 0..) |param, arg, i| {
+            if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+                const decl = ast_.AST.create_decl(
+                    param.token(),
+                    param.decl.pattern,
+                    param.decl.type,
+                    arg, // TODO: Comptime eval this
+                    true,
+                    allocator,
+                );
+                const_decls.append(decl) catch unreachable;
+                param_indicies.append(i) catch unreachable;
+            }
+        }
+        for (param_indicies.items) |i| {
+            _ = args.orderedRemove(i); // remove const args from call
+        }
+
+        // Clone out a new fn decl AST, with a new name
+        const fn_decl = template_ast.template.decl.clone(allocator);
+        fn_decl.fn_decl.remove_const_params();
+        fn_decl.fn_decl.name = null; // make function anonymous
+
+        // Create a new symbol and scope for the new fn decl
+        const fn_symbol = try symbol_tree_.create_function_symbol(
+            fn_decl,
+            scope,
+            errors,
+            allocator,
+        );
+        try symbol_tree_.put_symbol(fn_symbol, fn_symbol.scope, errors);
+        fn_decl.set_symbol(fn_symbol);
+
+        // Define each constant parameter in the fn decl's scope
+        try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, errors, allocator);
+
+        // Decorate identifiers, validate
+        for (const_decls.items) |decl| {
+            try decorate_.decorate_identifiers(decl, scope, errors, allocator);
+        }
+        try decorate_.decorate_identifiers(fn_decl, scope, errors, allocator);
+        try ast_validate_.validate_scope(fn_symbol.scope, errors, allocator);
+
+        // Memoize symbol
+        template_ast.template.memo = fn_symbol;
+    }
+
+    const identifier = ast_.AST.create_identifier(token_.Token.init_simple(template_ast.template.memo.?.name), allocator);
+    identifier.set_symbol(template_ast.template.memo);
+    return identifier;
 }

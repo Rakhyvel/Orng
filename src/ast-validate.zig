@@ -41,7 +41,7 @@ pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator
     try validate_scope(module.scope, errors, allocator);
 }
 
-fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+pub fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
         try validate_symbol(symbol, errors, allocator);
@@ -50,12 +50,11 @@ fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.m
         try validate_scope(child, errors, allocator);
     }
     for (scope.impls.items) |impl| {
-        // Validate that each each
         try validate_impl(impl, errors, allocator);
     }
 }
 
-fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -307,7 +306,7 @@ fn is_capitalized(name: []const u8) bool {
 }
 
 /// Errors out if `ast` is not the expected type
-/// @param expected Should be null if `ast` can be any type
+/// - `old_expected_type`: Should be null if `ast` can be any type
 fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) *ast_.AST {
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
@@ -359,7 +358,7 @@ fn validate_AST_internal(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError }!*ast_.AST {
+) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError, SymbolError }!*ast_.AST {
     // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .poison => return ast,
@@ -564,10 +563,21 @@ fn validate_AST_internal(
             const lhs_span = ast.lhs().token().span;
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
             try assert_none_poisoned(ast.lhs());
-            var lhs_type = ast.lhs().typeof(allocator);
-            if (lhs_type.* == .function) {
-                std.debug.print("here!\n", .{});
+            if (ast.lhs().* == .identifier and ast.lhs().identifier.refers_to_template()) {
+                const template_symbol = ast.lhs().symbol().?;
+                const template_decl = template_symbol.decl.?;
+                // ast should remain a call, but the lhs and rhs should change
+                // use the const parameters from the rhs to choose which lhs to use, or if a new lhs needs to be stamped out
+                const stamped_fn_identifier = try module_.stamp(
+                    template_decl,
+                    ast.children(),
+                    template_symbol.scope,
+                    errors,
+                    allocator,
+                );
+                ast.set_lhs(stamped_fn_identifier);
             }
+            var lhs_type = ast.lhs().typeof(allocator);
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
                 return throw_wrong_from("function", "call", expanded_lhs_type, lhs_span, errors);

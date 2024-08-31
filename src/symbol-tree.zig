@@ -19,8 +19,20 @@ pub fn symbol_table_from_AST_list(
     }
 }
 
-// Takes in an ast, returns the scope constructed from that AST node
-// Most AST nodes don't do anything, except blocks and decls, which can be buried deep in an AST
+/// Takes in an ast, returns the scope constructed from that AST node
+/// Most AST nodes don't do anything, except blocks and decls, which can be buried deep in an AST
+///
+/// ### Parameters
+/// - `maybe_ast`: Possible AST node to construct symbol table from
+/// - `scope`: Working scope, to place symbols and child scopes in
+/// - `errors`: Error handler
+/// - `allocator`: Allocator
+///
+/// ### Returns
+/// Nothing.
+///
+/// ### Errors
+/// Errors out for various semantic checks.
 fn symbol_table_from_AST(
     maybe_ast: ?*ast_.AST,
     scope: *symbol_.Scope,
@@ -213,18 +225,24 @@ fn symbol_table_from_AST(
                 // Do not re-do symbol if already declared
                 return;
             } else if (ast.fn_decl.is_templated()) {
-                std.debug.print("template detected\n", .{});
-                // Transform into template
+                // Template declaration, transform function into template
+                // Clone the fn declaration and keep it to be templated out when stamping
                 const template_pattern_fn_decl = ast.clone(allocator);
                 const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
                 ast.* = ast_.AST{ .template = .{
                     .common = common,
                     .decl = template_pattern_fn_decl,
+                    .memo = null,
                 } };
+                const symbol = try create_template_symbol(ast, scope, allocator);
+                try put_symbol(symbol, scope, errors);
+                ast.set_symbol(symbol);
+            } else {
+                // Normal function declaration
+                const symbol = try create_function_symbol(ast, scope, errors, allocator);
+                try put_symbol(symbol, scope, errors);
+                ast.set_symbol(symbol);
             }
-            const symbol = try create_function_symbol(ast, scope, errors, allocator);
-            try put_symbol(symbol, scope, errors);
-            ast.set_symbol(symbol);
         },
         .trait => {
             if (ast.symbol() != null) {
@@ -316,7 +334,7 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
     }
 }
 
-fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Symbol_Error_Enum!void {
+pub fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Symbol_Error_Enum!void {
     const res = scope.lookup(symbol.name, false);
     switch (res) {
         .found => {
@@ -420,7 +438,7 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
     }
 }
 
-fn create_function_symbol(
+pub fn create_function_symbol(
     ast: *ast_.AST,
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
@@ -746,5 +764,30 @@ fn create_method_symbol(
     fn_scope.inner_function = retval;
 
     try symbol_table_from_AST(ast.method_decl.init, fn_scope, errors, allocator);
+    return retval;
+}
+
+fn create_template_symbol(
+    ast: *ast_.AST,
+    scope: *symbol_.Scope,
+    allocator: std.mem.Allocator,
+) Symbol_Error_Enum!*symbol_.Symbol {
+    var buf: []const u8 = undefined;
+    if (ast.template.decl.fn_decl.name) |name| {
+        buf = name.token().data;
+    } else {
+        buf = next_anon_name("", allocator);
+    }
+    const retval = symbol_.Symbol.init(
+        scope,
+        buf,
+        ast.token().span,
+        primitives_.unit_type,
+        primitives_.unit_value,
+        ast,
+        .template,
+        allocator,
+    );
+    retval.defined = true;
     return retval;
 }
