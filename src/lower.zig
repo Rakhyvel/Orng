@@ -66,7 +66,7 @@ fn lower_AST(
         .dyn_type,
         => return lval_from_ast(ast, cfg, allocator),
         // Literals
-        .unit_value => return lval_from_unit_value(ast, cfg, allocator),
+        .unit_value, .template => return lval_from_unit_value(ast, cfg, allocator),
         .int => return lval_from_int(ast.int.data, ast.typeof(allocator), ast.token().span, cfg, allocator),
         .char => {
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);

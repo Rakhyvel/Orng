@@ -2008,6 +2008,7 @@ pub const AST = union(enum) {
             .assign,
             .@"defer",
             .@"errdefer",
+            .template,
             => return primitives_.unit_type,
 
             // Void type

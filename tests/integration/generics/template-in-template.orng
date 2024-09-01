@@ -1,0 +1,11 @@
+// 319
+fn tempa(const n: Int) -> Int {
+    fn tempb(const m: Int) -> Int {
+        m * 2
+    }
+    tempb(n + 1) + 19
+}
+
+fn main() -> Int {
+    tempa(149)
+}

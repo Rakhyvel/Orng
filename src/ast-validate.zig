@@ -1175,6 +1175,20 @@ fn validate_AST_internal(
             ast.method_decl.domain = validate_AST(ast.method_decl.domain.?, primitives_.type_type, errors, allocator);
             return ast;
         },
+        .template => {
+            if (expected != null and !primitives_.unit_type.types_match(expected.?)) {
+                errors.add_error(
+                    errs_.Error{
+                        .basic = .{
+                            .span = ast.token().span,
+                            .msg = "cannot assign template",
+                        },
+                    },
+                );
+                return error.TypeError;
+            }
+            return ast;
+        },
         .decl => {
             ast.decl.type = validate_AST(ast.decl.type, primitives_.type_type, errors, allocator);
             try assert_none_poisoned(ast.decl.type);
