@@ -576,11 +576,7 @@ fn validate_AST_internal(
                     allocator,
                 );
                 ast.set_lhs(stamped_fn_identifier);
-                remove_const_args(
-                    template_decl.template.decl.fn_decl._params,
-                    ast.children(),
-                    allocator,
-                );
+                remove_const_args(template_decl.template.decl.fn_decl._params, ast.children());
             }
             var lhs_type = ast.lhs().typeof(allocator);
             const expanded_lhs_type = lhs_type.expand_identifier();
@@ -597,25 +593,10 @@ fn validate_AST_internal(
             // since sum_values are always compiler constructed, and their type is always a sum-type, this should always hold
             std.debug.assert(ast.lhs().* != .sum_value or expanded_lhs_type.* == .sum_type); // an `implies` operator would be cool btw...
 
-            const domain = if (expanded_lhs_type.* == .function)
-                expanded_lhs_type.lhs()
-            else
-                ast.lhs().sum_value.domain.?;
-            const codomain = if (expanded_lhs_type.* == .function)
-                expanded_lhs_type.rhs()
-            else
-                ast.lhs().sum_value.base.?;
+            const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
+            const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children(
-                (try validate_args(
-                    .function,
-                    ast.children(),
-                    domain,
-                    ast.token().span,
-                    errors,
-                    allocator,
-                )).*,
-            );
+            ast.set_children((try validate_args(.function, ast.children(), domain, ast.token().span, errors, allocator)).*);
             try type_check(ast, codomain, expected, errors);
             if (ast.lhs().* == .sum_value) {
                 // lhs is a sum value, usurp its init with ast's rhs
@@ -1397,7 +1378,9 @@ fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.S
     }
 }
 
-fn default_args(
+// This has to be public for stamps to use it when fleshing out the default args
+// This has to be ok to do twice for the same args, because stamps have to do it internally.
+pub fn default_args(
     asts: std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     errors: *errs_.Errors,
@@ -1606,15 +1589,17 @@ fn validate_args(
     return args;
 }
 
-fn remove_const_args(params: std.ArrayList(*ast_.AST), args: *std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) void {
-    var param_indicies = std.ArrayList(usize).init(allocator);
-    for (params.items, 0..) |param, i| {
+fn remove_const_args(params: std.ArrayList(*ast_.AST), args: *std.ArrayList(*ast_.AST)) void {
+    var param_idx: usize = 0;
+    var arg_idx: usize = 0;
+    while (param_idx < params.items.len and arg_idx < args.items.len) {
+        const param = params.items[param_idx];
         if (param.decl.pattern.pattern_symbol.kind == .@"const") {
-            param_indicies.append(i) catch unreachable;
+            _ = args.orderedRemove(arg_idx);
+            arg_idx -%= 1;
         }
-    }
-    for (param_indicies.items) |i| {
-        _ = args.orderedRemove(i);
+        param_idx += 1;
+        arg_idx +%= 1;
     }
 }
 

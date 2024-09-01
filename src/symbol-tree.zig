@@ -511,7 +511,7 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     return (out.toOwned() catch unreachable).?;
 }
 
-fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
+pub fn extract_domain(params: std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) *ast_.AST {
     if (params.items.len == 0) {
         return primitives_.unit_type;
     } else if (params.items.len <= 1) {

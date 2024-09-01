@@ -275,7 +275,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
+        // peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
     }
 
     fn peek_error(err: Error) !void {

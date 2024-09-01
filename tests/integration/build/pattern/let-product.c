@@ -16,32 +16,32 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1195_main(void);
+int64_t _1234_main(void);
 
 
 /* Function definitions */
-int64_t _1195_main(void){
-    int64_t _1195_t1;
-    int64_t _1195_t2;
-    struct struct0 _1195_t0;
-    int64_t _1196_x;
-    int64_t _1196_y;
-    int64_t _1195_t4;
-    int64_t _1195_t5;
-    int64_t _1195_$retval;
-    _1195_t1 = 5;
-    _1195_t2 = 30;
-    _1195_t0 = (struct struct0) {_1195_t1, _1195_t2};
-    _1196_x = _1195_t0._0;
-    _1196_y = _1195_t0._1;
-    _1195_t4 = $mult_int64_t(_1196_x, _1196_y, "tests/integration/pattern/let-product.orng:4:8:\n    x * y + 1\n      ^");
-    _1195_t5 = 1;
-    _1195_$retval = $add_int64_t(_1195_t4, _1195_t5, "tests/integration/pattern/let-product.orng:4:12:\n    x * y + 1\n          ^");
-    return _1195_$retval;
+int64_t _1234_main(void){
+    int64_t _1234_t1;
+    int64_t _1234_t2;
+    struct struct0 _1234_t0;
+    int64_t _1235_x;
+    int64_t _1235_y;
+    int64_t _1234_t4;
+    int64_t _1234_t5;
+    int64_t _1234_$retval;
+    _1234_t1 = 5;
+    _1234_t2 = 30;
+    _1234_t0 = (struct struct0) {_1234_t1, _1234_t2};
+    _1235_x = _1234_t0._0;
+    _1235_y = _1234_t0._1;
+    _1234_t4 = $mult_int64_t(_1235_x, _1235_y, "tests/integration/pattern/let-product.orng:4:8:\n    x * y + 1\n      ^");
+    _1234_t5 = 1;
+    _1234_$retval = $add_int64_t(_1234_t4, _1234_t5, "tests/integration/pattern/let-product.orng:4:12:\n    x * y + 1\n          ^");
+    return _1234_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1195_main());
+  printf("%ld",_1234_main());
   return 0;
 }

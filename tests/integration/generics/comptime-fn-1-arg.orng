@@ -1,0 +1,7 @@
+// 313
+
+fn getval(const T: Type) -> T { let x: T = 313; x }
+
+fn main() -> Int {
+    getval(Int)
+}

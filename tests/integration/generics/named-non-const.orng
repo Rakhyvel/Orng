@@ -1,0 +1,13 @@
+// 318
+
+fn getval(const n: Int = 5, m: Int) -> Int { 
+    if n == 300 {
+        n + m
+    } else {
+        -1000
+    }
+}
+
+fn main() -> Int {
+    getval(.m = 18, .n = 300)
+}

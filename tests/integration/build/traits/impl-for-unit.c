@@ -35,98 +35,98 @@ typedef int64_t(*function4)(int64_t*, int64_t);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1578_main(void);
-int64_t _1569_a(void* _1569_$self_ptr, int64_t _1569_x);
-int64_t _1571_b(void* _1571_self, int64_t _1571_x);
-int64_t _1574_a(void* _1574_$self_ptr, int64_t _1574_x);
-int64_t _1576_b(void* _1576_self, int64_t _1576_x);
+int64_t _1617_main(void);
+int64_t _1608_a(void* _1608_$self_ptr, int64_t _1608_x);
+int64_t _1610_b(void* _1610_self, int64_t _1610_x);
+int64_t _1613_a(void* _1613_$self_ptr, int64_t _1613_x);
+int64_t _1615_b(void* _1615_self, int64_t _1615_x);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1578_main(void){
-    int64_t _1579_y;
-    void* _1578_t8;
-    int64_t _1578_t9;
-    function2 _1578_t10;
-    int64_t _1578_t7;
-    void* _1578_t12;
-    int64_t _1578_t13;
-    function2 _1578_t14;
-    int64_t _1578_t11;
-    int64_t _1578_t15;
-    int64_t* _1578_t17;
-    int64_t _1578_t18;
-    function4 _1578_t19;
-    int64_t _1578_t16;
-    int64_t _1578_t20;
-    int64_t* _1578_t22;
-    int64_t _1578_t23;
-    function4 _1578_t24;
-    int64_t _1578_t21;
-    int64_t _1578_$retval;
-    _1579_y = 0;
-    _1578_t8 = (void*) 0xAAAAAAAA;
-    _1578_t9 = 100;
-    _1578_t10 = (function2) _1569_a;
+int64_t _1617_main(void){
+    int64_t _1618_y;
+    void* _1617_t8;
+    int64_t _1617_t9;
+    function2 _1617_t10;
+    int64_t _1617_t7;
+    void* _1617_t12;
+    int64_t _1617_t13;
+    function2 _1617_t14;
+    int64_t _1617_t11;
+    int64_t _1617_t15;
+    int64_t* _1617_t17;
+    int64_t _1617_t18;
+    function4 _1617_t19;
+    int64_t _1617_t16;
+    int64_t _1617_t20;
+    int64_t* _1617_t22;
+    int64_t _1617_t23;
+    function4 _1617_t24;
+    int64_t _1617_t21;
+    int64_t _1617_$retval;
+    _1618_y = 0;
+    _1617_t8 = (void*) 0xAAAAAAAA;
+    _1617_t9 = 100;
+    _1617_t10 = (function2) _1608_a;
     $lines[$line_idx++] = "tests/integration/traits/impl-for-unit.orng:39:8:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n      ^";
-    _1578_t7 = _1578_t10(_1578_t8, _1578_t9);
+    _1617_t7 = _1617_t10(_1617_t8, _1617_t9);
     $line_idx--;
-    _1578_t12 = (void*) 0xAAAAAAAA;
-    _1578_t13 = 100;
-    _1578_t14 = (function2) _1571_b;
+    _1617_t12 = (void*) 0xAAAAAAAA;
+    _1617_t13 = 100;
+    _1617_t14 = (function2) _1610_b;
     $lines[$line_idx++] = "tests/integration/traits/impl-for-unit.orng:39:20:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                  ^";
-    _1578_t11 = _1578_t14(_1578_t12, _1578_t13);
+    _1617_t11 = _1617_t14(_1617_t12, _1617_t13);
     $line_idx--;
-    _1578_t15 = $add_int64_t(_1578_t7, _1578_t11, "tests/integration/traits/impl-for-unit.orng:39:16:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n              ^");
-    _1578_t17 = &_1579_y;
-    _1578_t18 = 12;
-    _1578_t19 = (function4) _1574_a;
+    _1617_t15 = $add_int64_t(_1617_t7, _1617_t11, "tests/integration/traits/impl-for-unit.orng:39:16:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n              ^");
+    _1617_t17 = &_1618_y;
+    _1617_t18 = 12;
+    _1617_t19 = (function4) _1613_a;
     $lines[$line_idx++] = "tests/integration/traits/impl-for-unit.orng:39:32:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                              ^";
-    _1578_t16 = _1578_t19(_1578_t17, _1578_t18);
+    _1617_t16 = _1617_t19(_1617_t17, _1617_t18);
     $line_idx--;
-    _1578_t20 = $add_int64_t(_1578_t15, _1578_t16, "tests/integration/traits/impl-for-unit.orng:39:28:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                          ^");
-    _1578_t22 = &_1579_y;
-    _1578_t23 = 100;
-    _1578_t24 = (function4) _1576_b;
+    _1617_t20 = $add_int64_t(_1617_t15, _1617_t16, "tests/integration/traits/impl-for-unit.orng:39:28:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                          ^");
+    _1617_t22 = &_1618_y;
+    _1617_t23 = 100;
+    _1617_t24 = (function4) _1615_b;
     $lines[$line_idx++] = "tests/integration/traits/impl-for-unit.orng:39:43:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                                         ^";
-    _1578_t21 = _1578_t24(_1578_t22, _1578_t23);
+    _1617_t21 = _1617_t24(_1617_t22, _1617_t23);
     $line_idx--;
-    _1578_$retval = $add_int64_t(_1578_t20, _1578_t21, "tests/integration/traits/impl-for-unit.orng:39:39:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                                     ^");
-    return _1578_$retval;
+    _1617_$retval = $add_int64_t(_1617_t20, _1617_t21, "tests/integration/traits/impl-for-unit.orng:39:39:\n    x.>a(100) + x.>b(100) + y.>a(12) + y.>b(100)\n                                     ^");
+    return _1617_$retval;
 }
 
-int64_t _1569_a(void* _1569_$self_ptr, int64_t _1569_x){
-    int64_t _1569_$retval;
-    (void)_1569_$self_ptr;
-    _1569_$retval = _1569_x;
-    return _1569_$retval;
+int64_t _1608_a(void* _1608_$self_ptr, int64_t _1608_x){
+    int64_t _1608_$retval;
+    (void)_1608_$self_ptr;
+    _1608_$retval = _1608_x;
+    return _1608_$retval;
 }
 
-int64_t _1571_b(void* _1571_self, int64_t _1571_x){
-    int64_t _1571_$retval;
-    (void)_1571_self;
-    _1571_$retval = _1571_x;
-    return _1571_$retval;
+int64_t _1610_b(void* _1610_self, int64_t _1610_x){
+    int64_t _1610_$retval;
+    (void)_1610_self;
+    _1610_$retval = _1610_x;
+    return _1610_$retval;
 }
 
-int64_t _1574_a(void* _1574_$self_ptr, int64_t _1574_x){
-    int64_t _1575_self;
-    int64_t _1574_$retval;
-    _1575_self = *(int64_t*)_1574_$self_ptr;
-    _1574_$retval = $add_int64_t(_1575_self, _1574_x, "tests/integration/traits/impl-for-unit.orng:23:15:\n        self + x\n             ^");
-    return _1574_$retval;
+int64_t _1613_a(void* _1613_$self_ptr, int64_t _1613_x){
+    int64_t _1614_self;
+    int64_t _1613_$retval;
+    _1614_self = *(int64_t*)_1613_$self_ptr;
+    _1613_$retval = $add_int64_t(_1614_self, _1613_x, "tests/integration/traits/impl-for-unit.orng:23:15:\n        self + x\n             ^");
+    return _1613_$retval;
 }
 
-int64_t _1576_b(void* _1576_self, int64_t _1576_x){
-    int64_t _1576_$retval;
-    *(int64_t*)_1576_self = _1576_x;
-    _1576_$retval = _1576_x;
-    return _1576_$retval;
+int64_t _1615_b(void* _1615_self, int64_t _1615_x){
+    int64_t _1615_$retval;
+    *(int64_t*)_1615_self = _1615_x;
+    _1615_$retval = _1615_x;
+    return _1615_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1578_main());
+  printf("%ld",_1617_main());
   return 0;
 }

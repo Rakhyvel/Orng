@@ -18,25 +18,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1494_main(void);
+int64_t _1533_main(void);
 
 
 /* Function definitions */
-int64_t _1494_main(void){
-    int64_t _1494_t0;
-    struct struct0 _1495_x;
-    uint64_t _1494_t11;
-    int64_t _1494_$retval;
-    _1494_t0 = 210;
-    _1495_x = (struct struct0) {.tag=0, ._0=_1494_t0};
-    _1494_t11 = 0;
-    $tag_check(_1494_t11, 0, "tests/integration/sums/sum-equality.orng:4:7:\n    if x == .none {\n     ^");
-    _1494_$retval = _1495_x._0;
-    return _1494_$retval;
+int64_t _1533_main(void){
+    int64_t _1533_t0;
+    struct struct0 _1534_x;
+    uint64_t _1533_t11;
+    int64_t _1533_$retval;
+    _1533_t0 = 210;
+    _1534_x = (struct struct0) {.tag=0, ._0=_1533_t0};
+    _1533_t11 = 0;
+    $tag_check(_1533_t11, 0, "tests/integration/sums/sum-equality.orng:4:7:\n    if x == .none {\n     ^");
+    _1533_$retval = _1534_x._0;
+    return _1533_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1494_main());
+  printf("%ld",_1533_main());
   return 0;
 }

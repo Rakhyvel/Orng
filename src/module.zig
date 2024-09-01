@@ -402,6 +402,24 @@ pub fn stamp(
     allocator: std.mem.Allocator,
 ) !*ast_.AST {
     if (template_ast.template.memo == null) {
+        // Clone out a new fn decl AST, with a new name
+        const fn_decl = template_ast.template.decl.clone(allocator);
+        fn_decl.fn_decl.remove_const_params();
+        fn_decl.fn_decl.name = null; // make function anonymous
+
+        // Create a new symbol and scope for the new fn decl
+        const fn_symbol = try symbol_tree_.create_function_symbol(
+            fn_decl,
+            scope,
+            errors,
+            allocator,
+        );
+        try symbol_tree_.put_symbol(fn_symbol, fn_symbol.scope, errors);
+        fn_decl.set_symbol(fn_symbol);
+
+        const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, allocator);
+        args.* = try ast_validate_.default_args(args.*, domain, errors, allocator);
+
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position
         // Combines the arg value and the position in the args/params list
         var const_decls = std.ArrayList(*ast_.AST).init(allocator);
@@ -419,21 +437,6 @@ pub fn stamp(
                 const_decls.append(decl) catch unreachable;
             }
         }
-
-        // Clone out a new fn decl AST, with a new name
-        const fn_decl = template_ast.template.decl.clone(allocator);
-        fn_decl.fn_decl.remove_const_params();
-        fn_decl.fn_decl.name = null; // make function anonymous
-
-        // Create a new symbol and scope for the new fn decl
-        const fn_symbol = try symbol_tree_.create_function_symbol(
-            fn_decl,
-            scope,
-            errors,
-            allocator,
-        );
-        try symbol_tree_.put_symbol(fn_symbol, fn_symbol.scope, errors);
-        fn_decl.set_symbol(fn_symbol);
 
         // Define each constant parameter in the fn decl's scope
         try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, errors, allocator);

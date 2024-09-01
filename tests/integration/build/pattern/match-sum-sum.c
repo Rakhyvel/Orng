@@ -28,60 +28,60 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1292_main(void);
+int64_t _1331_main(void);
 
 
 /* Function definitions */
-int64_t _1292_main(void){
-    int64_t _1292_t2;
-    struct struct0 _1292_t3;
-    struct struct1 _1293_x;
-    struct struct0 _1301_y;
-    uint64_t _1292_t21;
-    uint64_t _1292_t22;
-    uint8_t _1292_t23;
-    uint64_t _1292_t24;
-    uint64_t _1292_t25;
-    uint8_t _1292_t26;
-    int64_t _1292_$retval;
-    int64_t _1292_t20;
-    _1292_t2 = 173;
-    _1292_t3 = (struct struct0) {.tag=0, ._0=_1292_t2};
-    _1293_x = (struct struct1) {.tag=1, ._1=_1292_t3};
-    _1301_y = _1293_x._1;
-    _1292_t21 = 0;
-    _1292_t22 = _1301_y.tag;
-    _1292_t23 = _1292_t22==_1292_t21;
-    if (_1292_t23) {
-        goto BB1515;
+int64_t _1331_main(void){
+    int64_t _1331_t2;
+    struct struct0 _1331_t3;
+    struct struct1 _1332_x;
+    struct struct0 _1340_y;
+    uint64_t _1331_t21;
+    uint64_t _1331_t22;
+    uint8_t _1331_t23;
+    uint64_t _1331_t24;
+    uint64_t _1331_t25;
+    uint8_t _1331_t26;
+    int64_t _1331_$retval;
+    int64_t _1331_t20;
+    _1331_t2 = 173;
+    _1331_t3 = (struct struct0) {.tag=0, ._0=_1331_t2};
+    _1332_x = (struct struct1) {.tag=1, ._1=_1331_t3};
+    _1340_y = _1332_x._1;
+    _1331_t21 = 0;
+    _1331_t22 = _1340_y.tag;
+    _1331_t23 = _1331_t22==_1331_t21;
+    if (_1331_t23) {
+        goto BB1563;
     } else {
-        goto BB1517;
+        goto BB1565;
     }
-BB1515:
-    _1292_t20 = _1301_y._0;
-    goto BB1516;
-BB1517:
-    _1292_t24 = 1;
-    _1292_t25 = _1301_y.tag;
-    _1292_t26 = _1292_t25==_1292_t24;
-    if (_1292_t26) {
-        goto BB1519;
+BB1563:
+    _1331_t20 = _1340_y._0;
+    goto BB1564;
+BB1565:
+    _1331_t24 = 1;
+    _1331_t25 = _1340_y.tag;
+    _1331_t26 = _1331_t25==_1331_t24;
+    if (_1331_t26) {
+        goto BB1567;
     } else {
-        goto BB1521;
+        goto BB1569;
     }
-BB1516:
-    _1292_$retval = _1292_t20;
-    return _1292_$retval;
-BB1519:
-    _1292_t20 = _1301_y._1;
-    goto BB1516;
-BB1521:
+BB1564:
+    _1331_$retval = _1331_t20;
+    return _1331_$retval;
+BB1567:
+    _1331_t20 = _1340_y._1;
+    goto BB1564;
+BB1569:
     $lines[$line_idx++] = "tests/integration/pattern/match-sum-sum.orng:15:36:\n            _        => unreachable\n                                  ^";
     $panic("reached unreachable code\n");
 }
 
 
 int main(void) {
-  printf("%ld",_1292_main());
+  printf("%ld",_1331_main());
   return 0;
 }

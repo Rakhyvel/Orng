@@ -1,0 +1,9 @@
+// 316
+
+fn getval(const n: Int, m: Int = 300) -> Int { 
+    n + m
+}
+
+fn main() -> Int {
+    getval(16)
+}

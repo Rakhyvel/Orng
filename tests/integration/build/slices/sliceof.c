@@ -25,46 +25,46 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1371_main(void);
+int64_t _1410_main(void);
 
 
 /* Function definitions */
-int64_t _1371_main(void){
-    int64_t _1371_t1;
-    int64_t _1371_t2;
-    int64_t _1371_t3;
-    int64_t _1371_t4;
-    int64_t _1371_t5;
-    struct struct0 _1372_x;
-    int64_t _1371_t8;
-    int64_t _1371_t9;
-    int64_t* _1371_t10;
-    int64_t _1371_t11;
-    struct struct1 _1372_y;
-    int64_t _1371_t13;
-    int64_t _1371_t14;
-    int64_t _1371_$retval;
-    _1371_t1 = 1;
-    _1371_t2 = 2;
-    _1371_t3 = 3;
-    _1371_t4 = 4;
-    _1371_t5 = 5;
-    _1372_x = (struct struct0) {_1371_t1, _1371_t2, _1371_t3, _1371_t4, _1371_t5};
-    _1371_t8 = 0;
-    _1371_t9 = 5;
-    $bounds_check(_1371_t8, _1371_t9, "tests/integration/slices/sliceof.orng:4:23:\n    let y: []Int = []x\n                     ^");
-    _1371_t10 = ((int64_t*)&_1372_x + _1371_t8);
-    _1371_t11 = 5;
-    _1372_y = (struct struct1) {_1371_t10, _1371_t11};
-    _1371_t13 = 2;
-    _1371_t14 = 77;
-    $bounds_check(_1371_t13, _1372_y._1, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
-    _1371_$retval = $add_int64_t(*((int64_t*)_1372_y._0 + _1371_t13), _1371_t14, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
-    return _1371_$retval;
+int64_t _1410_main(void){
+    int64_t _1410_t1;
+    int64_t _1410_t2;
+    int64_t _1410_t3;
+    int64_t _1410_t4;
+    int64_t _1410_t5;
+    struct struct0 _1411_x;
+    int64_t _1410_t8;
+    int64_t _1410_t9;
+    int64_t* _1410_t10;
+    int64_t _1410_t11;
+    struct struct1 _1411_y;
+    int64_t _1410_t13;
+    int64_t _1410_t14;
+    int64_t _1410_$retval;
+    _1410_t1 = 1;
+    _1410_t2 = 2;
+    _1410_t3 = 3;
+    _1410_t4 = 4;
+    _1410_t5 = 5;
+    _1411_x = (struct struct0) {_1410_t1, _1410_t2, _1410_t3, _1410_t4, _1410_t5};
+    _1410_t8 = 0;
+    _1410_t9 = 5;
+    $bounds_check(_1410_t8, _1410_t9, "tests/integration/slices/sliceof.orng:4:23:\n    let y: []Int = []x\n                     ^");
+    _1410_t10 = ((int64_t*)&_1411_x + _1410_t8);
+    _1410_t11 = 5;
+    _1411_y = (struct struct1) {_1410_t10, _1410_t11};
+    _1410_t13 = 2;
+    _1410_t14 = 77;
+    $bounds_check(_1410_t13, _1411_y._1, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
+    _1410_$retval = $add_int64_t(*((int64_t*)_1411_y._0 + _1410_t13), _1410_t14, "tests/integration/slices/sliceof.orng:5:11:\n    y[2] + 77\n         ^");
+    return _1410_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1371_main());
+  printf("%ld",_1410_main());
   return 0;
 }
