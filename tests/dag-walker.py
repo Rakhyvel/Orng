@@ -1,36 +1,41 @@
+#! /bin/python3.10
+# chmod +x tests/dag-walker.py
+
 import re
 
-
 # den som går på DAGarna
-
-
+#
+# This script is used for whitebox path coverage testing, to generate all possible non-trivial paths through the code. 
+# The `data` string describes the code under test as a DAG of nodes, and walks over the DAG emitting each possible path 
+# from the begining of the program to each possible end (hence, DAG-walker).
+#
+# Use the regex: ` if | for | try | and | or | orelse | catch ` to search for all control 
+# flow keywords. Then, use those to construct nodes. Use "+" to indicate successful termination of the code, and "-" to
+# represent errant termination.
+#
+# Then, run the script. It'll spit out a text file of every possible path through the program. Some paths will be
+# impossible in ways that the script couldn't possible know about from just reading a DAG, so you'll need to cull those.
+#
+# node format:
+# "name of from-node" -> "name of to-node" [label=whatever];
 data = """
-"no virtual methods" -> "+" [label=true];
-"no virtual methods" -> "trait methods" [label=false];
+"template is memoized for this pass-through" -> "+" [label=true];
+"template is memoized for this pass-through" -> "arity" [label=false];
 
-"trait methods" -> "method not virtual" [label=n];
-"trait methods" -> "+" [label=0];
+"arity" -> "const arity1" [label=0];
+"arity" -> "has const parameter" [label=1];
+"arity" -> "has const parameter" [label=n];
 
-"method not virtual" -> "+" [label=true];
-"method not virtual" -> "method has receiver" [label=false];
+"const arity1" -> "const arity2" [label=0];
+"const arity1" -> "const arity2" [label=1];
+"const arity1" -> "const arity2" [label=n];
 
-"method has receiver" -> "has params" [label=true];
-"method has receiver" -> "params" [label=false];
+"has const parameter" -> "const arity1" [label=true];
+"has const parameter" -> "const arity1" [label=false];
 
-"has params" -> "params" [label=true];
-"has params" -> "params" [label=false];
-
-"params" -> "unit param" [label=n];
-"params" -> "has params or receiver" [label=0];
-
-"unit param" -> "last param" [label=true];
-"unit param" -> "has params or receiver" [label=false];
-
-"last param" -> "has params or receiver" [label=true];
-"last param" -> "has params or receiver" [label=false];
-
-"has params or receiver" -> "+" [label=true];
-"has params or receiver" -> "+" [label=false];
+"const arity2" -> "+" [label=0];
+"const arity2" -> "+" [label=1];
+"const arity2" -> "+" [label=n];
 """
 
 

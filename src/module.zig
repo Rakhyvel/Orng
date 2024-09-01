@@ -405,9 +405,8 @@ pub fn stamp(
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position
         // Combines the arg value and the position in the args/params list
         var const_decls = std.ArrayList(*ast_.AST).init(allocator);
-        var param_indicies = std.ArrayList(usize).init(allocator);
         defer const_decls.deinit();
-        for (template_ast.template.decl.fn_decl._params.items, args.items, 0..) |param, arg, i| {
+        for (template_ast.template.decl.fn_decl._params.items, args.items) |param, arg| {
             if (param.decl.pattern.pattern_symbol.kind == .@"const") {
                 const decl = ast_.AST.create_decl(
                     param.token(),
@@ -418,11 +417,7 @@ pub fn stamp(
                     allocator,
                 );
                 const_decls.append(decl) catch unreachable;
-                param_indicies.append(i) catch unreachable;
             }
-        }
-        for (param_indicies.items) |i| {
-            _ = args.orderedRemove(i); // remove const args from call
         }
 
         // Clone out a new fn decl AST, with a new name

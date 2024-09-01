@@ -576,20 +576,46 @@ fn validate_AST_internal(
                     allocator,
                 );
                 ast.set_lhs(stamped_fn_identifier);
+                remove_const_args(
+                    template_decl.template.decl.fn_decl._params,
+                    ast.children(),
+                    allocator,
+                );
             }
             var lhs_type = ast.lhs().typeof(allocator);
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
-                return throw_wrong_from("function", "call", expanded_lhs_type, lhs_span, errors);
+                return throw_wrong_from(
+                    "function",
+                    "call",
+                    expanded_lhs_type,
+                    lhs_span,
+                    errors,
+                );
             }
 
             // since sum_values are always compiler constructed, and their type is always a sum-type, this should always hold
             std.debug.assert(ast.lhs().* != .sum_value or expanded_lhs_type.* == .sum_type); // an `implies` operator would be cool btw...
 
-            const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
-            const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
+            const domain = if (expanded_lhs_type.* == .function)
+                expanded_lhs_type.lhs()
+            else
+                ast.lhs().sum_value.domain.?;
+            const codomain = if (expanded_lhs_type.* == .function)
+                expanded_lhs_type.rhs()
+            else
+                ast.lhs().sum_value.base.?;
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children((try validate_args(.function, ast.children(), domain, ast.token().span, errors, allocator)).*);
+            ast.set_children(
+                (try validate_args(
+                    .function,
+                    ast.children(),
+                    domain,
+                    ast.token().span,
+                    errors,
+                    allocator,
+                )).*,
+            );
             try type_check(ast, codomain, expected, errors);
             if (ast.lhs().* == .sum_value) {
                 // lhs is a sum value, usurp its init with ast's rhs
@@ -1578,6 +1604,18 @@ fn validate_args(
     }
     try assert_none_poisoned(args);
     return args;
+}
+
+fn remove_const_args(params: std.ArrayList(*ast_.AST), args: *std.ArrayList(*ast_.AST), allocator: std.mem.Allocator) void {
+    var param_indicies = std.ArrayList(usize).init(allocator);
+    for (params.items, 0..) |param, i| {
+        if (param.decl.pattern.pattern_symbol.kind == .@"const") {
+            param_indicies.append(i) catch unreachable;
+        }
+    }
+    for (param_indicies.items) |i| {
+        _ = args.orderedRemove(i);
+    }
 }
 
 fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!void {

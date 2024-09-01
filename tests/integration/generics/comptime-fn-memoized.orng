@@ -1,0 +1,7 @@
+// 312
+
+fn add(const T: Type, x: T, y: T) -> T { x + y }
+
+fn main() -> Int {
+    add(Int, 200, 100) + add(Int, 8, 4)
+}

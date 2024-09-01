@@ -1,12 +1,11 @@
 // 311
 
-// The below "fn decl" looks like an fn decl, but it's not
-// It's a template, that creates new fn decls when called
-fn add(const T: Type) -> Int {
-    let x: T = 311
-    x
-}
+// The below "fn decl" looks like an fn decl, but it's not.
+// It's a template, that creates new fn decls when called.
+fn add(const T: Type, x: T, y: T) -> T { x + y }
 
 fn main() -> Int {
-    add(Int)
+    // This looks like a call to `add`, but it's not.
+    // It's a call to whichever anonymous function is spit out when you give `add` an Int for the first parameter
+    add(Int, 300, 11)
 }

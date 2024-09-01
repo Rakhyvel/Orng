@@ -3,4 +3,4 @@
 	url = https://github.com/JakubSzark/zig-string.git
 [submodule "src/rdgen"]
 	path = src/rdgen
-	url = https://github.com/JakubSzark/zig-string.git
+	url = https://github.com/proebsting/rdgen

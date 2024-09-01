@@ -7,36 +7,46 @@
 #include "debug.inc"
 
 /* Forward struct, union, and function declarations */
+struct struct1;
 
 /* Struct, union, and function definitions */
-typedef int64_t(*function0)(void);
+struct struct1 {
+    int64_t _0;
+    int64_t _1;
+};
+
+typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _1017_main(void);
-int64_t _1019_$anon94(void);
+int64_t _7_main(void);
+int64_t _9_$anon1(int64_t _9_x, int64_t _9_y);
 
 
 /* Function definitions */
-int64_t _1017_main(void){
-    function0 _1017_t0;
-    int64_t _1017_t1;
-    int64_t _1017_$retval;
-    _1017_t0 = (function0) _1019_$anon94;
-    $lines[$line_idx++] = "tests/integration/generics/comptime-fn.orng:11:9:\n    add(Int)\n       ^";
-    _1017_t1 = _1017_t0();
+int64_t _7_main(void){
+    function0 _7_t0;
+    int64_t _7_t2;
+    int64_t _7_t3;
+    int64_t _7_t1;
+    int64_t _7_$retval;
+    _7_t0 = (function0) _9_$anon1;
+    _7_t2 = 300;
+    _7_t3 = 11;
+    $lines[$line_idx++] = "tests/integration/generics/comptime-fn.orng:10:9:\n    add(Int, 300, 11)\n       ^";
+    _7_t1 = _7_t0(_7_t2, _7_t3);
     $line_idx--;
-    _1017_$retval = _1017_t1;
-    return _1017_$retval;
+    _7_$retval = _7_t1;
+    return _7_$retval;
 }
 
-int64_t _1019_$anon94(void){
-    int64_t _1019_$retval;
-    _1019_$retval = 311;
-    return _1019_$retval;
+int64_t _9_$anon1(int64_t _9_x, int64_t _9_y){
+    int64_t _9_$retval;
+    _9_$retval = $add_int64_t(_9_x, _9_y, "tests/integration/generics/comptime-fn.orng:5:45:\nfn add(const T: Type, x: T, y: T) -> T { x + y }\n                                           ^");
+    return _9_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1017_main());
+  printf("%ld",_7_main());
   return 0;
 }

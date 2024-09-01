@@ -26,6 +26,7 @@ commands:
 import argparse
 import datetime
 import os
+import shutil
 import subprocess
 
 
@@ -89,6 +90,7 @@ def integration(args):
     if args.no_coverage:
         return
     elif res == 0:
+        shutil.rmtree("kcov-out")
         subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
         print("kcov ouput written to kcov-out/index.html")
     else:

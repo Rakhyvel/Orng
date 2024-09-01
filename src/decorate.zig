@@ -66,6 +66,7 @@ pub fn decorate_identifiers(
         .pattern_symbol,
         .domain_of,
         .receiver,
+        .template,
         => {},
 
         .identifier => {
@@ -217,9 +218,6 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.fn_decl.init, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.symbol().?.scope, errors, allocator);
             try decorate_identifiers(ast.fn_decl.ret_type, ast.symbol().?.scope, errors, allocator);
-        },
-        .template => {
-            // try decorate_identifiers(ast.template.decl, ast.symbol().?.scope, errors, allocator);
         },
         .trait => {
             try decorate_identifiers_from_list(ast.children().*, ast.trait.scope.?, errors, allocator);
