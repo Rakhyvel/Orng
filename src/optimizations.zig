@@ -627,14 +627,28 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             }
         }
 
-        // Remove jump chains
-        if (bb.next) |next| {
-            if (next.ir_head == null and !next.has_branch) {
+        // Remove jump chains.
+        // Replace:
+        //   BB1():
+        //       ...
+        //       jump BB2()
+        //   BB2():
+        //       jump BB3()
+        // with:
+        //   BB1():
+        //       jump BB3()
+        if (bb.next) |next_bb| {
+            if (next_bb.ir_head == null and
+                !next_bb.has_branch and
+                next_bb != bb and
+                next_bb.next != bb and
+                next_bb.next.?.next != next_bb)
+            {
                 var s = String.init(allocator);
-                s.writer().print("remove jump chain BB{}", .{next.uid}) catch unreachable;
+                s.writer().print("remove jump chain BB{}, BB{} -> BB{}", .{ next_bb.uid, bb.uid, next_bb.next.?.uid }) catch unreachable;
                 defer s.deinit();
                 defer log_optimization_pass(s.str(), cfg);
-                bb.next = next.next;
+                bb.next = next_bb.next;
                 retval = true;
             }
         }
@@ -687,7 +701,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
 
     // Rebase block graph if jump chain
     if (cfg.block_graph_head) |head| {
-        if (head.ir_head == null and !head.has_branch) {
+        if (head.ir_head == null and !head.has_branch and head != cfg.block_graph_head) {
             defer log_optimization_pass("rebase block", cfg);
             cfg.block_graph_head = head.next;
             retval = true;

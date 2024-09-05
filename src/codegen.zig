@@ -45,7 +45,10 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
-fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
+fn output_forward_typedefs(
+    type_set: *type_set_.Type_Set, // TODO: Accept types slice
+    writer: Writer,
+) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
         // Don't generate typedefs header comment if there are no typedefs!
         try writer.print("/* Forward struct, union, and function declarations */\n", .{});
@@ -62,7 +65,10 @@ fn output_forward_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGe
 }
 
 /// Outputs typedefs based on the provided `Type_Set`.
-fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!void {
+fn output_typedefs(
+    type_set: *type_set_.Type_Set, // TODO: Accept type slice
+    writer: Writer,
+) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
         // Don't generate typedefs header comment if there are no typedefs!
         try writer.print("\n/* Struct, union, and function definitions */\n", .{});
@@ -75,7 +81,10 @@ fn output_typedefs(type_set: *type_set_.Type_Set, writer: Writer) CodeGen_Error!
 }
 
 /// Outputs a typedef declaration based on the provided `DAG`.
-fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
+fn output_typedef(
+    dag: *type_set_.DAG,
+    writer: Writer,
+) CodeGen_Error!void {
     if (dag.visited) {
         // only visit a DAG node once
         return;
@@ -127,7 +136,11 @@ fn output_typedef(dag: *type_set_.DAG, writer: Writer) CodeGen_Error!void {
 }
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
-fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: Writer) CodeGen_Error!void {
+fn output_field_list(
+    fields: *std.ArrayList(*ast_.AST), // TODO: Accept slice
+    spaces: usize,
+    writer: Writer,
+) CodeGen_Error!void {
     // output each field in the list
     for (fields.items, 0..) |term, i| {
         if (!term.is_c_void_type()) {
@@ -141,7 +154,10 @@ fn output_field_list(fields: *std.ArrayList(*ast_.AST), spaces: usize, writer: W
     }
 }
 
-fn output_traits(traits: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
+fn output_traits(
+    traits: *std.ArrayList(*ast_.AST), // TODO: Accept slice
+    writer: Writer,
+) CodeGen_Error!void {
     if (traits.items.len > 0) {
         // Do not output header comment if there are no traits!
         try writer.print("/* Trait vtable type definitions */\n", .{});
@@ -219,7 +235,7 @@ fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), wri
 
 /// Applies a function to all CFGs in a list of CFGs.
 fn forall_functions(
-    cfgs: *std.ArrayList(*cfg_.CFG),
+    cfgs: *std.ArrayList(*cfg_.CFG), // TODO: Accept slice
     header_comment: []const u8,
     writer: Writer,
     comptime f: fn (*cfg_.CFG, Writer) CodeGen_Error!void,
@@ -244,7 +260,10 @@ fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
     try writer.print(";\n", .{});
 }
 
-fn output_impls(impls: *std.ArrayList(*ast_.AST), writer: Writer) CodeGen_Error!void {
+fn output_impls(
+    impls: *std.ArrayList(*ast_.AST), // TODO: Accept slice
+    writer: Writer,
+) CodeGen_Error!void {
     if (impls.items.len > 0) {
         // TODO: Count impls that have virtual methods
         // Do not output header comment if there are no impls!
@@ -311,7 +330,10 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
 }
 
 /// Outputs the prototype of a function
-fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
+fn output_function_prototype(
+    cfg: *cfg_.CFG, // TODO: Accept cfg symbol
+    writer: Writer,
+) CodeGen_Error!void {
     // Output function return type and name
     try output_type(cfg.symbol.expanded_type.?.rhs(), writer);
     try writer.print(" ", .{});
@@ -346,7 +368,10 @@ fn output_function_prototype(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void 
     try writer.print(")", .{});
 }
 
-fn output_main_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
+fn output_main_function(
+    cfg: *cfg_.CFG, // TODO: Accept symbol
+    writer: Writer,
+) CodeGen_Error!void {
     const codomain = cfg.symbol.expanded_type.?.rhs();
     var string_access: []const u8 = "";
     var specifier: []const u8 = undefined;
@@ -381,7 +406,11 @@ fn output_main_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
 
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
 /// semicolon nor newline.
-fn output_var_decl(symbol: *symbol_.Symbol, writer: Writer, is_parameter: bool) CodeGen_Error!void {
+fn output_var_decl(
+    symbol: *symbol_.Symbol,
+    writer: Writer,
+    is_parameter: bool, // TODO: New function, that surrounds output_var_decl
+) CodeGen_Error!void {
     if (!is_parameter) {
         try writer.print("    ", .{});
     }
@@ -433,7 +462,12 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
 }
 
 /// Outputs the C code for a basic-block in the given control flow graph.
-fn output_basic_block(cfg: *cfg_.CFG, start_bb: *basic_block_.Basic_Block, return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
+fn output_basic_block(
+    cfg: *cfg_.CFG, // TODO: Accept cfg block graph head
+    start_bb: *basic_block_.Basic_Block,
+    return_symbol: *symbol_.Symbol,
+    writer: Writer,
+) CodeGen_Error!void {
     var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator);
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
@@ -830,7 +864,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             }
             try writer.print("&", .{});
             try output_rvalue(lvalue, 2, writer);
-            if (outer_precedence < 2) {
+            if (outer_precedence < 2) { // TODO: De-magic number these
                 try writer.print(")", .{});
             }
         },
@@ -890,6 +924,9 @@ fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
 }
 
 /// Prints out the vtable name given an impl AST
-fn output_vtable_impl(impl: *ast_.AST, writer: Writer) CodeGen_Error!void {
+fn output_vtable_impl(
+    impl: *ast_.AST, // TODO: Accept uid
+    writer: Writer,
+) CodeGen_Error!void {
     try writer.print("_{}_$vtable", .{impl.impl.scope.?.uid});
 }

@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _80_main(void);
+int64_t _1932_main(void);
 
 
 /* Function definitions */
-int64_t _80_main(void){
-    int64_t _80_$retval;
-    _80_$retval = 40;
-    return _80_$retval;
+int64_t _1932_main(void){
+    int64_t _1932_$retval;
+    _1932_$retval = 40;
+    return _1932_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_80_main());
+  printf("%ld",_1932_main());
   return 0;
 }

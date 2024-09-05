@@ -1,1 +1,282 @@
-fn main() -> Int { ? if - while let const ident = ( ) ; - while if & & ? oct { } { } { } { } newline } 
+fn main() -> Int { [ ] ? if let const ident = while [ ] [ ] ? ( ) { } ; while - if not while if not false { } { } { } { } { } newline } 
+fn main() -> Int { not while if let const ident = while true { } ; oct { } { } newline } 
+fn main() -> Int { while let const ident = { return } ; ? while - while [ ] not while [ ] not while if - hex { } { } { } { } { } { } newline } 
+fn main() -> Int { oct / [ ] [ ] ( ) newline } 
+fn main() -> Int { [ mut ] not while let const ident = while [ ] ident { } ; & if [ ] & - while ? false { } { } { } newline } 
+fn main() -> Int { while [ ] - if let ( ( ( ident ) ) ) = int ; true { } { } newline } 
+fn main() -> Int { while let const ident = { return } ; - while not while & & & ? while & [ ] [ ] true { } { } { } { } newline } 
+fn main() -> Int { - if let const ident = while [ ] ident { } ; - while - int { } { } newline } 
+fn main() -> Int { not if let const ident = while [ ] ( ) { } ; - true { } newline } 
+fn main() -> Int { return [ * ] [ ] [ ] ? ( ) } 
+fn main() -> Int { return [ ] [ * ] [ ] [ ] ( ) } 
+fn main() -> Int { - while let const ident = while not false { } ; - while [ ] not while fn ( ) -> [ ] & - if while & - if ? while ? if - fn ( ) -> bin { } { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return [ * ] [ ] [ ] [ ] ( ) } 
+fn main() -> Int { return ( [ ] ? ( ) ) } 
+fn main() -> Int { return [ * ] [ ] [ ] ( ) } 
+fn main() -> Int { [ * ] - if let ident = unreachable ; true { } newline } 
+fn main() -> Int { - if let mut ident : { ? ( ) newline } ; bin { } newline } 
+fn main() -> Int { [ * ] ? if let const ident = while not false { } ; & - if unreachable { } { } newline } 
+fn main() -> Int { [ * ] ? while let const ident = while not false { } ; not if ( ) { } { } newline } 
+fn main() -> Int { if let const ident = while [ ] ? ident { } ; & ? if [ ] while & - . ident { } { } { } newline } 
+fn main() -> Int { ? while [ ] - if let ident : ? ( ) ; true { } { } newline } 
+fn main() -> Int { - while let ident : { ? ( ) newline } ; ? ident { } newline } 
+fn main() -> Int { not while let const ident : { ( ) newline } ; not hex { } newline } 
+fn main() -> Int { return while let const ident = while true { } ; [ ] - while & ? int { } { } } 
+fn main() -> Int { while let const ident = while true { } ; not oct { } newline } 
+fn main() -> Int { not while let const ident = while true { } ; - if & ? if bin { } { } { } newline } 
+fn main() -> Int { return [ ] { [ * ] ( ) newline } } 
+fn main() -> Int { while let const ident : { ? ( ) newline } ; [ ] - . ident { } newline } 
+fn main() -> Int { while while let const ident = while not false { } ; not if - while not false { } { } { } { } newline } 
+fn main() -> Int { while let const ident = { return } ; not if not while if & not while - if ? int { } { } { } { } { } { } newline } 
+fn main() -> Int { [ ] & mut [ ] - if let ident = char ; true { } newline } 
+fn main() -> Int { ? while let ident : { ident newline } ; - fn ( ) -> unreachable { } { } newline } 
+fn main() -> Int { return [ ] - while let const ident = while not false { } ; ? while not int { } { } } 
+fn main() -> Int { [ ] - if let ident = ident ; true { } newline } 
+fn main() -> Int { [ ] ? if let const ident = while [ ] ? ident { } ; ? while not int { } { } newline } 
+fn main() -> Int { [ ] [ * ] if let const ident = bin ; true { } newline } 
+fn main() -> Int { return [ ] [ ] [ * ] ? ( ) } 
+fn main() -> Int { - while let const ident : { & ident newline } ; not if - while . ident { } { } { } newline } 
+fn main() -> Int { return ? while let const ident = while not false { } ; not while [ ] - while & ? while - while while & - bin { } { } { } { } { } { } } 
+fn main() -> Int { ? if not while let const ident = while not false { } ; & if if ? ident { } { } { } { } newline } 
+fn main() -> Int { while let const ident = ? { ? ( ) newline } ; ? if ? if - ident { } { } { } newline } 
+fn main() -> Int { - if let ident : ? { ? ident newline } ; & - false { } newline } 
+fn main() -> Int { [ mut ] not while let const ident = while true { } ; not if int { } { } newline } 
+fn main() -> Int { - if ? if let const ident = while [ ] [ ] ? ( ) { } ; - while . ident { } { } { } newline } 
+fn main() -> Int { while let const ident = { return } ; while not int { } { } newline } 
+fn main() -> Int { ? if let ident : ? { ? ( ) newline } ; while [ ] not ident { } { } newline } 
+fn main() -> Int { not if let ident : { ( ) newline } ; ? int { } newline } 
+fn main() -> Int { return ? while let const ident = while [ ] [ ] [ ] ? ident { } ; & false { } } 
+fn main() -> Int { while if let ( const ident ) = while [ ] ident { } ; - if - if & - . ident { } { } { } { } newline } 
+fn main() -> Int { while let const ident = { return } ; not if ? while & & not ident { } { } { } newline } 
+fn main() -> Int { while let const ident = { return } ; ? false { } newline } 
+fn main() -> Int { [ mut ] ? while let const ident = while not false { } ; [ ] if while not if [ ] if [ ] if ? if not { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return [ ] { ( ) newline } } 
+fn main() -> Int { while let ident : ? { [ ] ident newline } ; if & [ ] - if [ ] & ? int { } { } { } newline } 
+fn main() -> Int { return ( [ * ] [ ] ? ( ) ) } 
+fn main() -> Int { return [ ] - if let ident = unreachable ; true { } } 
+fn main() -> Int { return [ mut ] [ mut ] [ ] ( ) } 
+fn main() -> Int { while let const ident = while [ ] ? ( ) { } ; ? if fn ( ) -> not if [ ] ? if not if while ? int { } { } { } { } { } { } { } newline } 
+fn main() -> Int { - if let const ident : { [ ] ident newline } ; ? while not while - while not if not if if not while [ ] - if not while & if - if ident { } { } { } { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { if ? while let const ident = while true { } ; ? if [ ] & - oct { } { } { } newline } 
+fn main() -> Int { ? while if let const ident = while true { } ; . ident { } { } newline } 
+fn main() -> Int { [ ] if let ident = hex ; true { } newline } 
+fn main() -> Int { return [ ] ? { [ ] [ ] ? ( ) newline } } 
+fn main() -> Int { return [ mut ] [ ] ? { ? ( ) newline } } 
+fn main() -> Int { return [ * ] ? ( ? ( ) ) } 
+fn main() -> Int { while let const ident = { return } ; ? if false { } { } newline } 
+fn main() -> Int { return [ ] [ mut ] [ ] ( ) } 
+fn main() -> Int { ? while let ident : { ident newline } ; while - while [ ] ? while & not while [ ] & while & [ ] unreachable { } { } { } { } { } { } newline } 
+fn main() -> Int { - if let ident : { & ? ident newline } ; & [ ] ? while & if [ ] [ ] ? while if & & - if [ ] [ ] not while true { } { } { } { } { } { } { } newline } 
+fn main() -> Int { not if let ident : { ( ) newline } ; ? if [ ] & - while not while [ ] not if ? false { } { } { } { } { } newline } 
+fn main() -> Int { [ ] ? while let const ident = while true { } ; unreachable { } newline } 
+fn main() -> Int { return if let const ident = while not false { } ; & [ ] not while if bin { } { } { } } 
+fn main() -> Int { return [ * ] [ ] [ ] ( ) } 
+fn main() -> Int { not while let const ident = while not false { } ; - bin { } newline } 
+fn main() -> Int { while let const ident = while true { } ; & & not true { } newline } 
+fn main() -> Int { not while let ident : ? { [ ] ident newline } ; not while if [ ] not while ? int { } { } { } { } newline } 
+fn main() -> Int { if let ident : { ? ident newline } ; if - if if not if ? if ? while ? if ? while - oct { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { if let ident : { ident newline } ; & - { } { } newline } 
+fn main() -> Int { return [ ] [ * ] [ ] ? ( ) } 
+fn main() -> Int { [ ] & while let const ident = while [ ] ( ) { } ; ident { } newline } 
+fn main() -> Int { not if while let const ident = while [ ] ident { } ; . ident { } { } newline } 
+fn main() -> Int { return ( [ ] ( ) ) } 
+fn main() -> Int { [ * ] - if let const ident = while not false { } ; - . ident { } newline } 
+fn main() -> Int { ? while let ident : ? { & ? ( ) newline } ; if [ ] - if - if not oct { } { } { } { } newline } 
+fn main() -> Int { not while let mut ident : { & ? ident newline } ; - while not while ? if ? while [ ] [ ] - false { } { } { } { } { } newline } 
+fn main() -> Int { if let mut ident : ? { ? ( ) newline } ; - true { } newline } 
+fn main() -> Int { return - while let const ident = while not false { } ; - if & & ( ) { } { } } 
+fn main() -> Int { ? if let const ident = while true { } ; { } { } newline } 
+fn main() -> Int { while [ ] if let ident : ? ident ; true { } { } newline } 
+fn main() -> Int { [ ] - if let mut ident : ( ) ; true { } newline } 
+fn main() -> Int { [ ] while let const ident = while [ ] ? ( ) { } ; [ ] ? while ( ) { } { } newline } 
+fn main() -> Int { ? if let const ident = while [ ] [ ] ? ( ) { } ; & if - if ? while - while [ ] & [ ] ? while - if ? if false { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { [ ] - if let const ident = ? ident ; true { } newline } 
+fn main() -> Int { if let mut ident : ? { ? ( ) newline } ; & ? if - char { } { } newline } 
+fn main() -> Int { [ * ] [ ] if let const ident = int ; true { } newline } 
+fn main() -> Int { return [ ] ? { ( ) newline } } 
+fn main() -> Int { while let const ident = { return } ; not if ? if not while - while [ ] while - if [ ] ? unreachable { } { } { } { } { } { } { } newline } 
+fn main() -> Int { not if [ ] if let ident = not true ; true { } { } newline } 
+fn main() -> Int { not while let ident : { ? ident newline } ; ? if ? oct { } { } newline } 
+fn main() -> Int { return [ mut ] [ ] [ ] [ * ] ( ) } 
+fn main() -> Int { - while not while let const ident = while true { } ; & ? if ? if not fn ( ) -> ? unreachable { } { } { } { } { } newline } 
+fn main() -> Int { if let const ident : { ( ) newline } ; & char { } newline } 
+fn main() -> Int { if let ident : ? { ? ( ) newline } ; & not if ? bin { } { } newline } 
+fn main() -> Int { return if let const ident = while true { } ; ? ( ) { } } 
+fn main() -> Int { while let const ident = { return } ; & ? if & - if & & ? if not if not fn ( ) -> [ ] & [ ] - while & ? unreachable { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return [ mut ] [ ] [ mut ] ( ) } 
+fn main() -> Int { [ ] while let const ident = while true { } ; [ ] [ ] not while { } { } { } newline } 
+fn main() -> Int { not while let ident : { [ ] ident newline } ; int { } newline } 
+fn main() -> Int { return [ ] ? { return - hex } } 
+fn main() -> Int { return [ ] [ ] [ mut ] ( ) } 
+fn main() -> Int { ? while let const ident = while true { } ; ( ) { } newline } 
+fn main() -> Int { [ ] if let mut ident = not true ; true { } newline } 
+fn main() -> Int { [ ] & & mut - while let const ident = while not false { } ; - fn ( ) -> - while ? while not bin { } { } { } { } newline } 
+fn main() -> Int { [ mut ] [ ] if let const ident = while true { } ; [ ] & not while - . ident { } { } newline } 
+fn main() -> Int { return [ ] ? { ( ) newline } } 
+fn main() -> Int { return [ ] & mut - if let ( ident ) = true ; true { } } 
+fn main() -> Int { [ ] if let ident = - hex ; true { } newline } 
+fn main() -> Int { if ? while let const ident = while [ ] ident { } ; not while [ ] - while [ ] if & [ ] - if ? if ? if while not ident { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { - while let ident : ? { ? ( ) newline } ; oct { } newline } 
+fn main() -> Int { [ ] - if let ident = - bin ; true { } newline } 
+fn main() -> Int { return [ ] ? { ? ( ) newline } } 
+fn main() -> Int { not while let const ident = while true { } ; [ ] - while ? while while ? char { } { } { } { } newline } 
+fn main() -> Int { [ ] ? while let const ident = while [ ] ? ident { } ; & while - if & & - while & not if ? if ? hex { } { } { } { } { } { } newline } 
+fn main() -> Int { if let const ident = while not false { } ; ? if & - if & - . ident { } { } { } newline } 
+fn main() -> Int { if let const ident = while not false { } ; ? if while - while not while ? if & [ ] - fn ( ) -> [ ] while not while not int { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return ? while let const ident = while [ ] ( ) { } ; not while if not int { } { } { } } 
+fn main() -> Int { while let const ident = while not false { } ; - while ? if ? unreachable { } { } { } newline } 
+fn main() -> Int { [ ] [ ] if let const ident = while not false { } ; not char { } newline } 
+fn main() -> Int { return [ ] ? { [ ] ( ) newline } } 
+fn main() -> Int { return ? while let const ident = while true { } ; & & [ ] ? { } { } } 
+fn main() -> Int { - if not while let const ident = while not false { } ; if ? while ? if & [ ] not bin { } { } { } { } { } newline } 
+fn main() -> Int { not while let ident : ? { ? ident newline } ; not true { } newline } 
+fn main() -> Int { if let const ident = { return } ; ? while ? { } { } { } newline } 
+fn main() -> Int { while if let const ident = while true { } ; if while & - while & & & char { } { } { } { } { } newline } 
+fn main() -> Int { - if let const ident = while not false { } ; while ? while not if [ ] ? fn ( ) -> - fn ( ) -> & ? true { } { } { } { } { } { } newline } 
+fn main() -> Int { ? if let const ident = while [ ] ? ( ) { } ; ? if ? if if & [ ] - while - ( ) { } { } { } { } { } newline } 
+fn main() -> Int { not while let ident : ? { [ ] ( ) newline } ; - false { } newline } 
+fn main() -> Int { while let const ident = { return } ; not while & not while while & & not if not if - if & - true { } { } { } { } { } { } { } newline } 
+fn main() -> Int { [ mut ] [ ] if let const ident = while not false { } ; & oct { } newline } 
+fn main() -> Int { [ ] if let ident = oct ; true { } newline } 
+fn main() -> Int { if let const ident = { return } ; [ ] & hex { } newline } 
+fn main() -> Int { [ ] & mut - if let ( ( ( ( ( ident ) ) ) ) ) : ident ; true { } newline } 
+fn main() -> Int { [ ] - while let const ident = while [ ] ident { } ; not { } { } newline } 
+fn main() -> Int { - while let const ident = while [ ] ( ) { } ; not if ? while while [ ] ? { } { } { } { } { } newline } 
+fn main() -> Int { - while let const ident = while not false { } ; - while [ ] ? char { } { } newline } 
+fn main() -> Int { not while ? while let const ident = while not false { } ; [ ] & [ ] [ ] not if not if while if ? ident { } { } { } { } { } { } newline } 
+fn main() -> Int { [ ] if let const ident : ident ; true { } newline } 
+fn main() -> Int { [ ] - if let ident = bin ; true { } newline } 
+fn main() -> Int { not while [ ] if let ident = true ; true { } { } newline } 
+fn main() -> Int { ? while let ident : { ( ) newline } ; & ? while [ ] not if & - while - if - while & - while if [ ] not char { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { - if ? while let const ident = while true { } ; if [ ] & not ident { } { } { } newline } 
+fn main() -> Int { not if let const ident = while [ ] [ ] ? ( ) { } ; if not if char { } { } { } newline } 
+fn main() -> Int { - if let ident : { ? ident newline } ; [ ] & & ? if & - while - while & ? while ? while not char { } { } { } { } { } { } newline } 
+fn main() -> Int { return [ * ] [ ] [ ] ( ) } 
+fn main() -> Int { int / [ ] [ ] ? ( ) newline } 
+fn main() -> Int { if - if let const ident = while [ ] [ ] [ ] ( ) { } ; [ ] - if not if - while . ident { } { } { } { } { } newline } 
+fn main() -> Int { not if let const ident = while not false { } ; & - . ident { } newline } 
+fn main() -> Int { ? if ? if let const ident = while not false { } ; [ ] ? if [ ] [ ] not if ? while & not int { } { } { } { } { } newline } 
+fn main() -> Int { while let ident : { ( ) newline } ; & ? if ? ident { } { } newline } 
+fn main() -> Int { ? while if let const ident = while [ ] ( ) { } ; not while not fn ( ) -> while & [ ] - while while ? if & & & ? . ident { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { if let ident : ? { ? ident newline } ; [ ] - false { } newline } 
+fn main() -> Int { not while let ident : { & ? ident newline } ; & - while - while not if & & & ? if not while - if ? while - { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { ? if let const ident = while not false { } ; not while bin { } { } newline } 
+fn main() -> Int { if let const ident = { return } ; ? while & not while ? while & [ ] & & if - oct { } { } { } { } { } newline } 
+fn main() -> Int { not while if let const ident = while true { } ; - { } { } { } newline } 
+fn main() -> Int { ? while let const ident = while true { } ; - . ident { } newline } 
+fn main() -> Int { ? if let ident : { & ? ( ) newline } ; ? bin { } newline } 
+fn main() -> Int { [ * ] if let const ident = while not false { } ; - false { } newline } 
+fn main() -> Int { not while let const ident = while [ ] ( ) { } ; ? if not while - while while ? oct { } { } { } { } { } newline } 
+fn main() -> Int { if let const ident = { return } ; int { } newline } 
+fn main() -> Int { - while [ ] if let ident = [ ] ? ident ; true { } { } newline } 
+fn main() -> Int { not while let ident : ? { ident newline } ; ? if [ ] ? fn ( ) -> ? while not while & ? while [ ] & not hex { } { } { } { } { } { } newline } 
+fn main() -> Int { - while let const ident = while not false { } ; & [ ] if while ? while [ ] & [ ] not false { } { } { } { } newline } 
+fn main() -> Int { not while not if let const ident = while true { } ; ? oct { } { } newline } 
+fn main() -> Int { while - while let const ident = while not false { } ; ? bin { } { } newline } 
+fn main() -> Int { [ mut ] ? while let const ident = while [ ] ident { } ; & [ ] & & & if - ( ) { } { } newline } 
+fn main() -> Int { ? if let const ident = while true { } ; & [ ] [ ] unreachable { } newline } 
+fn main() -> Int { [ * ] - if let mut ident = ? ident ; true { } newline } 
+fn main() -> Int { [ ] ? while let const ident = while not false { } ; & ? false { } newline } 
+fn main() -> Int { return if let const ident = while true { } ; ? oct { } } 
+fn main() -> Int { return [ ] ( ? ( ) ) } 
+fn main() -> Int { not if not while let const ident = while true { } ; if unreachable { } { } { } newline } 
+fn main() -> Int { ? if let const ident = while [ ] ? ident { } ; - { } { } newline } 
+fn main() -> Int { ? while let const ident = while not false { } ; while [ ] & [ ] - ( ) { } { } newline } 
+fn main() -> Int { - if let const ident = while not false { } ; [ ] ? if [ ] not while - oct { } { } { } newline } 
+fn main() -> Int { return - while let const ident = while [ ] ident { } ; & [ ] not ( ) { } } 
+fn main() -> Int { not while let const ident : { ? ( ) newline } ; - while & [ ] not while not fn ( ) -> [ ] not if - while [ ] & & ? if - hex { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return [ mut ] [ ] [ ] ( ) } 
+fn main() -> Int { return [ ] [ mut ] [ ] ? ( ) } 
+fn main() -> Int { [ ] - if let ident = not true ; true { } newline } 
+fn main() -> Int { ? if let const ident = while true { } ; - while while - while char { } { } { } { } newline } 
+fn main() -> Int { ? if let ident : { [ ] ? ( ) newline } ; & & char { } newline } 
+fn main() -> Int { not if let ident : { ident newline } ; - while [ ] not if ? char { } { } { } newline } 
+fn main() -> Int { return [ ] ( [ ] [ ] ? ( ) ) } 
+fn main() -> Int { not while let ident : { ident newline } ; & [ ] ? char { } newline } 
+fn main() -> Int { if let const ident = { return } ; not int { } newline } 
+fn main() -> Int { [ ] - if let ident = bin ; true { } newline } 
+fn main() -> Int { ? if let const ident = while true { } ; - unreachable { } newline } 
+fn main() -> Int { while let ident : ? { ? ( ) newline } ; [ ] ? while [ ] oct { } { } newline } 
+fn main() -> Int { ? if let const ident = while true { } ; & while & [ ] if - while not while - if ? ident { } { } { } { } { } { } newline } 
+fn main() -> Int { [ ] not if let const ident = while true { } ; - if - if ? while if - if ? false { } { } { } { } { } { } newline } 
+fn main() -> Int { [ ] ? if let const ident = while not false { } ; - while not if not if & [ ] ? while - while ( ) { } { } { } { } { } { } newline } 
+fn main() -> Int { not if let const ident = while true { } ; - if not while ? if [ ] ? bin { } { } { } { } newline } 
+fn main() -> Int { while let const ident = ? { [ ] ? ( ) newline } ; not if ? bin { } { } newline } 
+fn main() -> Int { not while - while let const ident = while [ ] ( ) { } ; not int { } { } newline } 
+fn main() -> Int { - while while let const ident = while [ ] ident { } ; if - while while not ident { } { } { } { } { } newline } 
+fn main() -> Int { [ ] [ * ] - if let ident = oct ; true { } newline } 
+fn main() -> Int { not while ? while let const ident = while true { } ; not false { } { } newline } 
+fn main() -> Int { - while ? if let const ident = while [ ] ? ident { } ; not if not char { } { } { } newline } 
+fn main() -> Int { return ( [ ] ? ( ) ) } 
+fn main() -> Int { if let const ident = while true { } ; ? if not while not while fn ( ) -> & not unreachable { } { } { } { } { } newline } 
+fn main() -> Int { return ( [ ] ? ( ) ) } 
+fn main() -> Int { not if let ident : ? { ident newline } ; not hex { } newline } 
+fn main() -> Int { return while let const ident = while true { } ; not while if [ ] ? if while [ ] ? char { } { } { } { } { } } 
+fn main() -> Int { ? while let const ident = while true { } ; & if not ( ) { } { } newline } 
+fn main() -> Int { not if let ident : ? { & ( ) newline } ; while & & - if [ ] not if - if ? while [ ] not unreachable { } { } { } { } { } { } newline } 
+fn main() -> Int { ? while let ident : { & ? ident newline } ; ? . ident { } newline } 
+fn main() -> Int { ? while not while let const ident = while true { } ; [ ] - if if false { } { } { } { } newline } 
+fn main() -> Int { - if let const ident = while not false { } ; not true { } newline } 
+fn main() -> Int { ? if while let const ident = while [ ] ? ident { } ; & ? while - while [ ] not if & ? if not while - while if not false { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { [ mut ] - while let const ident = while true { } ; & & [ ] not if if while [ ] if [ ] oct { } { } { } { } { } newline } 
+fn main() -> Int { return [ * ] [ ] [ ] ( ) } 
+fn main() -> Int { return [ * ] [ ] ( ? ( ) ) } 
+fn main() -> Int { while let const ident = { return } ; [ ] not char { } newline } 
+fn main() -> Int { [ * ] - if let const ident : & ? ( ) ; true { } newline } 
+fn main() -> Int { ? while - if let const ident = while not false { } ; [ ] while if ( ) { } { } { } { } newline } 
+fn main() -> Int { not if let const ident = while [ ] [ ] ident { } ; [ ] ? while not ident { } { } newline } 
+fn main() -> Int { [ ] - if let ident = { } ; true { } newline } 
+fn main() -> Int { ? if let ident : ? { ident newline } ; - while ? ( ) { } { } newline } 
+fn main() -> Int { [ mut ] & mut not while let const ident = while not false { } ; & - oct { } newline } 
+fn main() -> Int { ? if - if let const ident = while [ ] [ ] ? ident { } ; & - hex { } { } newline } 
+fn main() -> Int { - fn ( ) -> if let const ident = while not false { } ; - ( ) { } { } newline } 
+fn main() -> Int { ? if let mut ident : { & & ? ident newline } ; [ ] ? while ? if & ? if & ? if not while if [ ] while not while & [ ] & { } { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return [ * ] [ mut ] [ ] ( ) } 
+fn main() -> Int { return - if let const ident = while not false { } ; & ? ident { } } 
+fn main() -> Int { - if let const ident = while [ ] ( ) { } ; ? if while - while not if - while [ ] - while not if ? bin { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { - while - while let const ident = while true { } ; & - if not while not { } { } { } { } { } newline } 
+fn main() -> Int { return [ mut ] ( ? ( ) ) } 
+fn main() -> Int { ? if let ident : ? { ( ) newline } ; - . ident { } newline } 
+fn main() -> Int { if let const ident = ? { ( ) newline } ; not if [ ] [ ] ? false { } { } newline } 
+fn main() -> Int { return while let const ident = while true { } ; ? if not while [ ] - while ? char { } { } { } { } } 
+fn main() -> Int { while let ident : ? { ? ( ) newline } ; & - while - if [ ] ? hex { } { } { } newline } 
+fn main() -> Int { ? if [ ] - if let ident = ( ) ; true { } { } newline } 
+fn main() -> Int { return [ ] [ ] if let ident = { } ; true { } } 
+fn main() -> Int { if let const ident = { return } ; ? while & & not hex { } { } newline } 
+fn main() -> Int { return [ ] [ ] [ mut ] ( ) } 
+fn main() -> Int { not while while let const ident = while [ ] ? ( ) { } ; & [ ] not while not if - while while & [ ] while { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { - if - while let const ident = while true { } ; [ ] [ ] while [ ] - if not false { } { } { } { } newline } 
+fn main() -> Int { - while if let const ident = while true { } ; not oct { } { } newline } 
+fn main() -> Int { return ? if let const ident = while true { } ; ? if - ( ) { } { } } 
+fn main() -> Int { ? if let const ident = while [ ] ? ( ) { } ; ? while - while - if ? while [ ] - oct { } { } { } { } { } newline } 
+fn main() -> Int { return [ ] [ ] [ mut ] ( ) } 
+fn main() -> Int { - while let const ident = while true { } ; bin { } newline } 
+fn main() -> Int { return [ ] ( [ ] ? ( ) ) } 
+fn main() -> Int { not if let ident : { ? ident newline } ; hex { } newline } 
+fn main() -> Int { while [ * ] if let ident = int ; true { } { } newline } 
+fn main() -> Int { - if let const ident = while true { } ; not . ident { } newline } 
+fn main() -> Int { while let const ident = { return } ; not if [ ] [ ] not if - unreachable { } { } { } newline } 
+fn main() -> Int { - while let ident : { & ? ident newline } ; - hex { } newline } 
+fn main() -> Int { [ ] [ ] not if let const ident = while true { } ; - while & [ ] ? if not if ? while not while [ ] while [ ] [ ] & if [ ] if [ ] while ? while - while not if [ ] not if ? while [ ] - while ? while not if [ ] not if - while & - while - int { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { return ( [ ] [ ] ? ( ) ) } 
+fn main() -> Int { ? { while let const ident = while [ ] [ ] ? ident { } ; not while false { } { } newline } newline } 
+fn main() -> Int { not while let ident : ? { [ ] ( ) newline } ; & ? bin { } newline } 
+fn main() -> Int { [ ] ? if let const ident = while [ ] ident { } ; [ ] - if - false { } { } newline } 
+fn main() -> Int { - while let ident : { & ( ) newline } ; . ident { } newline } 
+fn main() -> Int { [ * ] - if let ident = { } ; true { } newline } 
+fn main() -> Int { if not if let const ident = while not false { } ; [ ] while - while & - if & [ ] - unreachable { } { } { } { } { } newline } 
+fn main() -> Int { ? if not if let const ident = while true { } ; & - hex { } { } newline } 
+fn main() -> Int { [ ] - if let ident = char ; true { } newline } 
+fn main() -> Int { not if let const ident = while not false { } ; not fn ( ) -> not if & ? if & ? oct { } { } { } { } newline } 
+fn main() -> Int { if let ident : { [ ] ident newline } ; & not if not if [ ] - char { } { } { } newline } 
+fn main() -> Int { if let const ident = { return } ; [ ] ? if . ident { } { } newline } 
+fn main() -> Int { - if let const ident = while [ ] ident { } ; - if while [ ] [ ] [ ] & false { } { } { } newline } 
+fn main() -> Int { ? if let const ident = while true { } ; not while ? while while ? if & & - if [ ] ? while - ( ) { } { } { } { } { } { } { } newline } 
+fn main() -> Int { - while [ ] - if let ( ident ) = bin ; true { } { } newline } 
+fn main() -> Int { [ ] & - if let const ident = while not false { } ; & not if ? while not while & [ ] while & if [ ] [ ] - if & ? while ? if ? if - false { } { } { } { } { } { } { } { } { } { } newline } 
+fn main() -> Int { ? while let const ident = while true { } ; ? while - while not ident { } { } { } newline } 
+fn main() -> Int { [ ] if let const ident = while [ ] ( ) { } ; while [ ] [ ] [ ] - if not if [ ] not if & - unreachable { } { } { } { } { } newline } 
+fn main() -> Int { [ ] [ mut ] ? while let const ident = while [ ] ? ident { } ; - false { } newline } 
+fn main() -> Int { return [ ] [ * ] [ ] ( ) } 
+fn main() -> Int { if let const ident = while [ ] ? ( ) { } ; not while oct { } { } newline } 
+fn main() -> Int { not if let const ident = while [ ] [ ] ? ( ) { } ; - ident { } newline } 

@@ -1,0 +1,4 @@
+fn main() -> Int { 
+    let const x = while true { } // This should trip the timeout for the interpreter
+    4
+} 

@@ -148,7 +148,10 @@ def fuzz():
                 trimmed = line[3:eof_index]
                 with open("tests/fuzz/fuzz.orng", "w") as w:
                     w.write(trimmed)
-                res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "--fuzz"]).returncode
+                try:
+                    res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "--fuzz"], timeout=1).returncode
+                except subprocess.TimeoutExpired:
+                    res = 1
                 if res != 0:
                     print("[ FAILED ]\n", trimmed)
                     problem_file.write(trimmed + "\n")

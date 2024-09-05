@@ -131,7 +131,9 @@ pub const Basic_Block = struct {
         }
     }
 
-    pub fn print_symbver_list(list: *std.ArrayList(*lval_.Symbol_Version)) void {
+    pub fn print_symbver_list(
+        list: *std.ArrayList(*lval_.Symbol_Version), // TODO: Just accept slice of Symbol Versions
+    ) void {
         std.debug.print("(", .{});
         var i: usize = 0;
         while (i < list.items.len) : (i += 1) {
@@ -164,7 +166,11 @@ pub const Basic_Block = struct {
     /// the stop-at IR is `null`, will check entire block's instructions.
     ///
     /// This functions is O(n) where n is the number of instructions in the block.
-    pub fn get_latest_def(bb: *Basic_Block, lval: *lval_.L_Value, stop_at_ir: ?*ir_.IR) ?*ir_.IR {
+    pub fn get_latest_def(
+        bb: *Basic_Block, // TODO: Accept just `bb_ir_head: ?*ir_.IR`
+        lval: *lval_.L_Value,
+        stop_at_ir: ?*ir_.IR,
+    ) ?*ir_.IR {
         if (lval.* != .symbver) {
             return null;
         }
@@ -191,7 +197,9 @@ pub const Basic_Block = struct {
         }
     }
 
-    pub fn mark_irs_as_removed(bb: *Basic_Block) void {
+    pub fn mark_irs_as_removed(
+        bb: *Basic_Block, // TODO: Accept just `bb_ir_head: ?*ir_.IR`
+    ) void {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
             ir.removed = true;

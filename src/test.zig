@@ -252,7 +252,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
-    _ = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.LexerError,
@@ -294,6 +294,25 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
             return false;
         }
     };
+
+    // Test that codegen doesn't crash
+    const negative_out_name = "a.out"; // this is gitignored
+    var output_file = std.fs.cwd().createFile(
+        negative_out_name,
+        .{ .read = false },
+    ) catch |e| switch (e) {
+        error.FileNotFound => {
+            std.debug.print("Cannot create file: {s}\n", .{negative_out_name});
+            return false;
+        },
+        else => return false,
+    };
+    defer output_file.close();
+    module.output(output_file.writer()) catch unreachable;
+    if (coverage) {
+        return false;
+    }
+
     term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
     out.print("Negative test compiled without error.\n", .{}) catch unreachable;
     return false;

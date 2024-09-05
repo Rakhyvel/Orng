@@ -1504,7 +1504,11 @@ pub const AST = union(enum) {
         }
     }
 
-    pub fn create_array_type(len: *AST, of: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn create_array_type(
+        len: *AST, // TODO: Just pass the i128
+        of: *AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
         // Inflate an array-of to a product with `len` `of`'s
         var new_terms = std.ArrayList(*AST).init(allocator);
         std.debug.assert(len.int.data >= 0);
@@ -1713,12 +1717,7 @@ pub const AST = union(enum) {
     }
 
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
-    pub fn expand_type(
-        self: *AST,
-        // scope: *symbol_.Scope,
-        // errors: *errs_.Errors,
-        allocator: std.mem.Allocator,
-    ) *AST {
+    pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
@@ -1728,12 +1727,7 @@ pub const AST = union(enum) {
     }
 
     /// Non-memoized slow path for expanding the type of an AST value.
-    fn expand_type_internal(
-        self: *AST,
-        // scope: *symbol_.Scope,
-        // errors: *errs_.Errors,
-        allocator: std.mem.Allocator,
-    ) *AST {
+    fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         switch (self.*) {
             .identifier => {
                 const _symbol = self.symbol().?;
@@ -1788,7 +1782,10 @@ pub const AST = union(enum) {
     }
 
     /// Expand the types of each AST in a list
-    fn expand_type_list(asts: *std.ArrayList(*AST), allocator: std.mem.Allocator) ?std.ArrayList(*AST) {
+    fn expand_type_list(
+        asts: *std.ArrayList(*AST), // TODO: Just take in a slice of ASTs
+        allocator: std.mem.Allocator,
+    ) ?std.ArrayList(*AST) {
         var terms = std.ArrayList(*AST).init(allocator);
         var change = false;
         for (asts.items) |term| {
@@ -2525,7 +2522,7 @@ pub const AST = union(enum) {
             .@"try" => try out.writer().print("try()", .{}),
             .type_of => try out.writer().print("typeof({})", .{self.expr()}),
             .default => try out.writer().print("default({})", .{self.expr()}),
-            .size_of => try out.writer().print("sizeOf({})", .{self.expr()}),
+            .size_of => try out.writer().print("size_of({})", .{self.expr()}),
             .domain_of => try out.writer().print("domainof()", .{}),
             .@"comptime" => try out.writer().print("comptime({})", .{self.expr()}),
 
@@ -2588,10 +2585,10 @@ pub const AST = union(enum) {
             },
             .@"union" => try out.writer().print("union()", .{}),
 
-            .addr_of => try out.writer().print("addrOf({})", .{self.expr()}),
-            .slice_of => try out.writer().print("sliceOf()", .{}),
-            .array_of => try out.writer().print("arrayOf()", .{}),
-            .sub_slice => try out.writer().print("subSlice()", .{}),
+            .addr_of => try out.writer().print("addr_of({})", .{self.expr()}),
+            .slice_of => try out.writer().print("slice_of()", .{}),
+            .array_of => try out.writer().print("array_of()", .{}),
+            .sub_slice => try out.writer().print("sub_slice()", .{}),
             .annotation => try out.writer().print("annotation(.field={}, .type={}, .init={?})", .{
                 self.annotation.pattern,
                 self.annotation.type,

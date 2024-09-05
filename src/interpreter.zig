@@ -12,6 +12,7 @@ const symbol_ = @import("symbol.zig");
 const stack_limit = 0x4000; // 16 KiB
 const uninit_byte: u8 = 0x58; // It is, in general, not a good idea to memset to 0x00!
 const halt_trap: i64 = 0xFFFF_FFFF_FFF0;
+const timeout_ms = 1000;
 
 // TODO: Could you make a debugger, that lets you step to the next instruction etc?
 pub const Context = struct {
@@ -24,6 +25,8 @@ pub const Context = struct {
 
     debug_call_mem: [stack_limit]u8,
     debug_call_stack: std.ArrayList(span_.Span),
+
+    start_time: i64,
 
     /// Initializes a new interpreter context.
     pub fn init(
@@ -43,10 +46,14 @@ pub const Context = struct {
             .instruction_pointer = entry_point,
             .debug_call_mem = [_]u8{uninit_byte} ** stack_limit,
             .debug_call_stack = undefined,
+
+            .start_time = std.time.milliTimestamp(),
         };
 
         var fba = std.heap.FixedBufferAllocator.init(&retval.debug_call_mem);
         retval.debug_call_stack = std.ArrayList(span_.Span).init(fba.allocator());
+
+        retval.debug_call_stack.append(cfg.symbol.span) catch unreachable;
 
         // First `ret_type.sizeof()` bytes are reserved for the return value
         // Initial stack frame is setup immediately after
@@ -269,6 +276,10 @@ pub const Context = struct {
             // self.print_registers();
             // self.print_stack();
             // std.debug.print("\n\n\n\n{}=>\n", .{ir});
+            const time_now = std.time.milliTimestamp();
+            if (time_now - self.start_time > timeout_ms) {
+                return self.panic(null, "error: compile-time interpreter timeout\n", .{});
+            }
             try self.execute_instruction(ir);
         }
     }
@@ -484,9 +495,11 @@ pub const Context = struct {
     }
 
     /// Signals an interpreter panic, printing an error message and call stack information.
-    fn panic(self: *Context, span: span_.Span, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
+    fn panic(self: *Context, span: ?span_.Span, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
         std.io.getStdErr().writer().print(msg, args) catch return error.InterpreterPanic;
-        self.debug_call_stack.append(span) catch unreachable;
+        if (span != null) {
+            self.debug_call_stack.append(span.?) catch unreachable;
+        }
 
         var i = self.debug_call_stack.items.len - 1;
         while (true) {

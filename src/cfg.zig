@@ -120,7 +120,9 @@ pub const CFG = struct {
     ///
     /// BBs aren't trees, so `defer self.visited = false` won't work
     /// Use this function instead
-    pub fn clear_visited_BBs(self: *CFG) void {
+    pub fn clear_visited_BBs(
+        self: *CFG, // TODO: Just accept slice of Basic_Blocks
+    ) void {
         for (self.basic_blocks.items) |bb| {
             bb.visited = false;
         }
@@ -226,7 +228,9 @@ pub const CFG = struct {
     }
 
     /// Removes the last instruction from each basic-block of a CFG.
-    pub fn remove_last_instruction(cfg: *CFG) void {
+    pub fn remove_last_instruction(
+        cfg: *CFG, // TODO: Accept slice of basic blocks
+    ) void {
         for (cfg.basic_blocks.items) |bb| {
             if (bb.ir_head == null) {
                 continue;
@@ -367,7 +371,7 @@ pub const CFG = struct {
     /// Checks each parameter symbver of the child basic-block. If the symbver is not defined in the parent
     /// basic-block, requests symbver as a parameter for the parent basic-block.
     fn request_undefined_args(
-        child_bb: *basic_block_.Basic_Block,
+        child_bb: *basic_block_.Basic_Block, // TODO: Accept slice of Symbol Versions
         parent_bb: *basic_block_.Basic_Block,
         allocator: std.mem.Allocator,
     ) bool {
@@ -397,8 +401,8 @@ pub const CFG = struct {
 
     /// Fills the parent basic-block's argument set based on the child-block's parameters
     fn fill_parent_args(
-        child_bb: *basic_block_.Basic_Block,
-        parent_bb: *basic_block_.Basic_Block,
+        child_bb: *basic_block_.Basic_Block, // TODO: Accept slice of Symbol Versions
+        parent_bb: *basic_block_.Basic_Block, // TODO: Accept parent ir head
         parent_args: *std.ArrayList(*lval_.Symbol_Version), // This is separate from parent_bb because it could either be `branch` or `child` args
     ) bool {
         var retval = false;
@@ -535,7 +539,10 @@ pub const CFG = struct {
         bb.removed = true;
     }
 
-    fn index_of_basic_block(cfg: *CFG, bb: *basic_block_.Basic_Block) usize {
+    fn index_of_basic_block(
+        cfg: *CFG, // TODO: Accept slice of basic blocks
+        bb: *basic_block_.Basic_Block,
+    ) usize {
         for (0..cfg.basic_blocks.items.len) |i| {
             if (bb == cfg.basic_blocks.items[i]) {
                 return i;
