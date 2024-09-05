@@ -490,7 +490,12 @@ fn validate_AST_internal(
             // Validate symbol
             try validate_symbol(ast.symbol().?, errors, allocator); // ast.@"comptime".symbol.? is created during symbol tree expansion
             try assert_none_poisoned(ast.symbol().?._type);
-            try type_check(ast.token().span, ast.symbol().?._type.rhs(), expected, errors);
+            const ast_type = ast.symbol().?._type.rhs();
+            const ret_type = ast_type.expand_type(allocator);
+            if (ret_type.types_match(primitives_.void_type)) {
+                return throw_unexpected_void_type(ast.expr().token().span, errors);
+            }
+            try type_check(ast.token().span, ast_type, expected, errors);
 
             // Get the cfg from the symbol, and embed into the module
             const cfg = try module_.get_cfg(ast.symbol().?, null, &ast.symbol().?.scope.module.?.interned_strings, errors, allocator);
@@ -500,7 +505,6 @@ fn validate_AST_internal(
             defer ast.symbol().?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            const ret_type = ast.symbol().?._type.rhs().expand_type(allocator);
             var context = interpreter_.Context.init(cfg, &ast.symbol().?.scope.module.?.instructions, ret_type, cfg.offset.?);
             try context.interpret();
 
@@ -1322,6 +1326,11 @@ fn type_check_integral(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) 
 
 fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
+    return error.TypeError;
+}
+
+fn throw_unexpected_void_type(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
+    errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "comptime cannot be type `Void`" } });
     return error.TypeError;
 }
 
