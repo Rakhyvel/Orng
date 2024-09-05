@@ -1,0 +1,9 @@
+fn template(const n: Int, x: Int) -> Type {
+    _ = x
+    [n]Char
+}
+
+fn main() -> Char {
+    let x: template(4.0, 4.0) = ('1', '2', '3', '4')
+    x[3]
+}

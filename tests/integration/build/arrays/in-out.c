@@ -45,7 +45,7 @@ int64_t _67_main(void){
     $line_idx--;
     _67_t8 = 1;
     _67_t9 = 3;
-    $bounds_check(_67_t8, _67_t9, "tests/integration/arrays/in-out.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_67_t8, _67_t9, "tests/integration/arrays/in-out.orng:2:8:\nfn main() -> Int {\n      ^");
     _67_$retval = *((int64_t*)&_68_x + _67_t8);
     return _67_$retval;
 }

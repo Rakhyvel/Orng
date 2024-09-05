@@ -33,102 +33,102 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _1762_main(void);
-int64_t _1755_cmp(void* _1755_$self_ptr, int64_t* _1755_other);
-int64_t _1753_id(void);
+int64_t _1773_main(void);
+int64_t _1766_cmp(void* _1766_$self_ptr, int64_t* _1766_other);
+int64_t _1764_id(void);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1752_$vtable = {
-    .id = _1753_id,
+struct vtable_My_Trait _1763_$vtable = {
+    .id = _1764_id,
 };
 
 
 /* Function definitions */
-int64_t _1762_main(void){
-    int64_t _1763_x;
-    int64_t _1763_y;
-    int64_t* _1762_t6;
-    int64_t* _1762_t7;
-    function3 _1762_t8;
-    int64_t _1762_t5;
-    int64_t _1762_t9;
-    uint8_t _1762_t11;
-    int64_t _1762_t12;
-    int64_t _1762_t13;
-    int64_t _1762_$retval;
-    _1763_x = 5;
-    _1763_y = 6;
-    _1762_t6 = &_1763_x;
-    _1762_t7 = &_1763_y;
-    _1762_t8 = (function3) _1755_cmp;
+int64_t _1773_main(void){
+    int64_t _1774_x;
+    int64_t _1774_y;
+    int64_t* _1773_t6;
+    int64_t* _1773_t7;
+    function3 _1773_t8;
+    int64_t _1773_t5;
+    int64_t _1773_t9;
+    uint8_t _1773_t11;
+    int64_t _1773_t12;
+    int64_t _1773_t13;
+    int64_t _1773_$retval;
+    _1774_x = 5;
+    _1774_y = 6;
+    _1773_t6 = &_1774_x;
+    _1773_t7 = &_1774_y;
+    _1773_t8 = (function3) _1766_cmp;
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:25:11:\n    if x.>cmp(&y) == 1 {\n         ^";
-    _1762_t5 = _1762_t8(_1762_t6, _1762_t7);
+    _1773_t5 = _1773_t8(_1773_t6, _1773_t7);
     $line_idx--;
-    _1762_t9 = 1;
-    _1762_t11 = _1762_t5==_1762_t9;
-    if (_1762_t11) {
-        goto BB1963;
+    _1773_t9 = 1;
+    _1773_t11 = _1773_t5==_1773_t9;
+    if (_1773_t11) {
+        goto BB1973;
     } else {
-        goto BB1967;
+        goto BB1977;
     }
-BB1963:
-    _1762_t12 = 301;
+BB1973:
+    _1773_t12 = 301;
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:26:18:\n        301 + x.>id()\n                ^";
-    _1762_t13 = _1752_$vtable.id();
+    _1773_t13 = _1763_$vtable.id();
     $line_idx--;
-    _1762_$retval = $add_int64_t(_1762_t12, _1762_t13, "tests/integration/traits/virtual-non-virtual-mix.orng:26:14:\n        301 + x.>id()\n            ^");
-    return _1762_$retval;
-BB1967:
+    _1773_$retval = $add_int64_t(_1773_t12, _1773_t13, "tests/integration/traits/virtual-non-virtual-mix.orng:26:14:\n        301 + x.>id()\n            ^");
+    return _1773_$retval;
+BB1977:
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:28:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
-int64_t _1755_cmp(void* _1755_$self_ptr, int64_t* _1755_other){
-    int64_t _1756_self;
-    uint8_t _1755_t2;
-    int64_t _1755_t1;
-    int64_t _1755_t5;
-    int64_t _1755_$retval;
-    uint8_t _1755_t7;
-    _1756_self = *(int64_t*)_1755_$self_ptr;
-    _1755_t2 = _1756_self>*_1755_other;
-    if (_1755_t2) {
-        goto BB1945;
-    } else {
-        goto BB1949;
-    }
-BB1945:
-    _1755_t1 = -1;
-    goto BB1948;
-BB1949:
-    _1755_t7 = _1756_self==*_1755_other;
-    if (_1755_t7) {
-        goto BB1952;
-    } else {
+int64_t _1766_cmp(void* _1766_$self_ptr, int64_t* _1766_other){
+    int64_t _1767_self;
+    uint8_t _1766_t2;
+    int64_t _1766_t1;
+    int64_t _1766_t5;
+    int64_t _1766_$retval;
+    uint8_t _1766_t7;
+    _1767_self = *(int64_t*)_1766_$self_ptr;
+    _1766_t2 = _1767_self>*_1766_other;
+    if (_1766_t2) {
         goto BB1955;
+    } else {
+        goto BB1959;
     }
-BB1948:
-    _1755_$retval = _1755_t1;
-    return _1755_$retval;
-BB1952:
-    _1755_t5 = 0;
-    goto BB1954;
 BB1955:
-    _1755_t5 = 1;
-    goto BB1954;
-BB1954:
-    _1755_t1 = _1755_t5;
-    goto BB1948;
+    _1766_t1 = -1;
+    goto BB1958;
+BB1959:
+    _1766_t7 = _1767_self==*_1766_other;
+    if (_1766_t7) {
+        goto BB1962;
+    } else {
+        goto BB1965;
+    }
+BB1958:
+    _1766_$retval = _1766_t1;
+    return _1766_$retval;
+BB1962:
+    _1766_t5 = 0;
+    goto BB1964;
+BB1965:
+    _1766_t5 = 1;
+    goto BB1964;
+BB1964:
+    _1766_t1 = _1766_t5;
+    goto BB1958;
 }
 
-int64_t _1753_id(void){
-    int64_t _1753_$retval;
-    _1753_$retval = 4;
-    return _1753_$retval;
+int64_t _1764_id(void){
+    int64_t _1764_$retval;
+    _1764_$retval = 4;
+    return _1764_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1762_main());
+  printf("%ld",_1773_main());
   return 0;
 }

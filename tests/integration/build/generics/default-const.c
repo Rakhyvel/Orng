@@ -12,31 +12,31 @@
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
-int64_t _26_main(void);
-int64_t _28_$anon5(void);
+int64_t _1039_main(void);
+int64_t _1041_$anon99(void);
 
 
 /* Function definitions */
-int64_t _26_main(void){
-    function0 _26_t0;
-    int64_t _26_t1;
-    int64_t _26_$retval;
-    _26_t0 = (function0) _28_$anon5;
+int64_t _1039_main(void){
+    function0 _1039_t0;
+    int64_t _1039_t1;
+    int64_t _1039_$retval;
+    _1039_t0 = (function0) _1041_$anon99;
     $lines[$line_idx++] = "tests/integration/generics/default-const.orng:12:12:\n    getval()\n          ^";
-    _26_t1 = _26_t0();
+    _1039_t1 = _1039_t0();
     $line_idx--;
-    _26_$retval = _26_t1;
-    return _26_$retval;
+    _1039_$retval = _1039_t1;
+    return _1039_$retval;
 }
 
-int64_t _28_$anon5(void){
-    int64_t _28_$retval;
-    _28_$retval = 315;
-    return _28_$retval;
+int64_t _1041_$anon99(void){
+    int64_t _1041_$retval;
+    _1041_$retval = 315;
+    return _1041_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_26_main());
+  printf("%ld",_1039_main());
   return 0;
 }

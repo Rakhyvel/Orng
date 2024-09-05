@@ -1,0 +1,7 @@
+fn (const n: Int) -> Int {
+    n + 4
+}
+
+fn main() -> Char {
+    'd'
+}

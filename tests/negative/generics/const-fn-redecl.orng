@@ -1,0 +1,11 @@
+fn template(const n: Int) -> Int {
+    n + 4
+}
+
+fn template(const n: Int) -> Int {
+    n + 4
+}
+
+fn main() -> Int {
+    template(4)
+}

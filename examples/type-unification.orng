@@ -19,7 +19,7 @@ fn main: (sys: System)->!() {
     debug::assert(contains([]y, (-3, 6)))
 }
 
-fn contains: (haystack: []($T\Eq), needle: T)->Bool {
+fn contains: (haystack: []($T impl Eq), needle: T)->Bool {
     if haystack.len == 0 {
         false
     } else if haystack[0].>equals(needle) {

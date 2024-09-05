@@ -44,7 +44,7 @@ int64_t _72_main(void){
     *((int64_t*)&_73_x + _72_t7) = 62;
     _72_t9 = 2;
     _72_t10 = 4;
-    $bounds_check(_72_t9, _72_t10, "tests/integration/arrays/index-copy.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_72_t9, _72_t10, "tests/integration/arrays/index-copy.orng:2:8:\nfn main() -> Int {\n      ^");
     _72_$retval = *((int64_t*)&_73_x + _72_t9);
     return _72_$retval;
 }

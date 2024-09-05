@@ -225,6 +225,17 @@ fn symbol_table_from_AST(
                 // Do not re-do symbol if already declared
                 return;
             } else if (ast.fn_decl.is_templated()) {
+                if (ast.fn_decl.name == null) {
+                    errors.add_error(
+                        errs_.Error{
+                            .basic = .{
+                                .msg = "anonymous functions specified with const parameters", // TODOL Could use some better wording
+                                .span = ast.token().span,
+                            },
+                        },
+                    );
+                    return error.SymbolError;
+                }
                 // Template declaration, transform function into template
                 // Clone the fn declaration and keep it to be templated out when stamping
                 const template_pattern_fn_decl = ast.clone(allocator);
@@ -489,7 +500,7 @@ pub fn create_function_symbol(
     const retval = symbol_.Symbol.init(
         fn_scope,
         buf,
-        ast.token().span,
+        if (ast.fn_decl.name) |name| name.token().span else ast.token().span,
         _type,
         ast.fn_decl.init,
         ast,
@@ -754,7 +765,7 @@ fn create_method_symbol(
     const retval = symbol_.Symbol.init(
         fn_scope,
         ast.method_decl.name.token().data,
-        ast.token().span,
+        ast.method_decl.name.token().span,
         _type,
         ast.method_decl.init.?,
         ast,
@@ -781,7 +792,7 @@ fn create_template_symbol(
     const retval = symbol_.Symbol.init(
         scope,
         buf,
-        ast.token().span,
+        ast.template.decl.fn_decl.name.?.token().span,
         primitives_.unit_type,
         primitives_.unit_value,
         ast,

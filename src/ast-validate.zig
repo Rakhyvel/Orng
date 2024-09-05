@@ -571,6 +571,7 @@ fn validate_AST_internal(
                 const stamped_fn_identifier = try module_.stamp(
                     template_decl,
                     ast.children(),
+                    ast.token().span,
                     template_symbol.scope,
                     errors,
                     allocator,
@@ -596,7 +597,8 @@ fn validate_AST_internal(
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children((try validate_args(.function, ast.children(), domain, ast.token().span, errors, allocator)).*);
+            try validate_args_arity(.function, ast.children(), domain, ast.token().span, errors);
+            ast.set_children((try validate_args_type(ast.children(), domain, errors, allocator)).*);
             try type_check(ast, codomain, expected, errors);
             if (ast.lhs().* == .sum_value) {
                 // lhs is a sum value, usurp its init with ast's rhs
@@ -729,7 +731,8 @@ fn validate_AST_internal(
                 }
             }
             ast.set_children(try default_args(ast.children().*, domain, errors, allocator));
-            ast.set_children((try validate_args(.method, ast.children(), domain, ast.token().span, errors, allocator)).*);
+            try validate_args_arity(.method, ast.children(), domain, ast.token().span, errors);
+            ast.set_children((try validate_args_type(ast.children(), domain, errors, allocator)).*);
 
             _ = ast.assert_valid();
             const ast_type = ast.typeof(allocator);
@@ -790,7 +793,8 @@ fn validate_AST_internal(
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, errors, allocator));
-                ast.set_children((try validate_args(.product, ast.children(), expanded_expected.?, ast.token().span, errors, allocator)).*);
+                try validate_args_arity(.product, ast.children(), expanded_expected.?, ast.token().span, errors);
+                ast.set_children((try validate_args_type(ast.children(), expanded_expected.?, errors, allocator)).*);
             } else if (expanded_expected == null or !primitives_.unit_type.types_match(expanded_expected.?)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
@@ -913,15 +917,20 @@ fn validate_AST_internal(
             // Array-of type, type of this ast must be a type, inner must be a type
             ast.array_of.len = validate_AST(ast.array_of.len, primitives_.int_type, errors, allocator);
             try assert_none_poisoned(ast.array_of.len);
-            if (ast.array_of.len.* != .int) {
+            var array_length: *ast_.AST = undefined;
+            if (ast.array_of.len.* == .int) {
+                array_length = ast.array_of.len;
+            } else if (ast.array_of.len.* == .identifier and ast.array_of.len.symbol().?.kind == .@"const" and ast.array_of.len.symbol().?.decl.?.decl.init.?.* == .int) {
+                array_length = ast.array_of.len.symbol().?.decl.?.decl.init.?;
+            } else {
                 errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not integer literal" } });
                 return ast.enpoison();
             }
-            if (ast.array_of.len.int.data <= 0) {
+            if (array_length.int.data <= 0) {
                 errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is not positive" } });
                 return ast.enpoison();
             }
-            return ast_.AST.create_array_type(ast.array_of.len, ast.expr(), allocator);
+            return ast_.AST.create_array_type(array_length, ast.expr(), allocator);
         },
         .sub_slice => {
             ast.sub_slice.super = validate_AST(ast.sub_slice.super, null, errors, allocator);
@@ -1575,14 +1584,14 @@ fn named_args(
     return filled_args;
 }
 
-fn validate_args(
+/// Validates that the number of arguments matches the number of parameters
+pub fn validate_args_arity(
     thing: Validate_Args_Thing,
     args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     span: span_.Span,
     errors: *errs_.Errors,
-    allocator: std.mem.Allocator,
-) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
+) Validate_Error_Enum!void {
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
     if (args.items.len != expected_length) {
         errors.add_error(errs_.Error{ .mismatch_arity = .{
@@ -1595,6 +1604,17 @@ fn validate_args(
         } });
         return error.TypeError;
     }
+}
+
+/// Validates just that each argument's type matches its corresponding parameter's type. Assumes arity is valid.
+pub fn validate_args_type(
+    args: *std.ArrayList(*ast_.AST),
+    expected: *ast_.AST,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Validate_Error_Enum!*std.ArrayList(*ast_.AST) {
+    const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
+
     for (0..expected_length) |i| {
         const param_type = if (expected.* == .product) expected.children().items[i] else expected;
         args.items[i] = validate_AST(args.items[i], param_type, errors, allocator);

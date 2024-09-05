@@ -30,7 +30,7 @@ int64_t _572_main(void){
     _572_t0 = 134;
     _573_x = (struct struct0) {.tag=0, ._0=_572_t0};
     _572_t3 = 0;
-    $tag_check(_572_t3, 0, "tests/integration/default/default-sum-init.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_572_t3, 0, "tests/integration/default/default-sum-init.orng:2:8:\nfn main() -> Int {\n      ^");
     _572_$retval = _573_x._0;
     return _572_$retval;
 }

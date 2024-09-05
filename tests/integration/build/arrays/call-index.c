@@ -49,7 +49,7 @@ int64_t _59_main(void){
     $line_idx--;
     _59_t9 = 3;
     _59_t10 = 4;
-    $bounds_check(_59_t9, _59_t10, "tests/integration/arrays/call-index.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_59_t9, _59_t10, "tests/integration/arrays/call-index.orng:2:8:\nfn main() -> Int {\n      ^");
     _59_$retval = *((int64_t*)_59_t7 + _59_t9);
     return _59_$retval;
 }

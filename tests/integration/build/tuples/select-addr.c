@@ -16,29 +16,29 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1814_main(void);
+int64_t _1825_main(void);
 
 
 /* Function definitions */
-int64_t _1814_main(void){
-    int64_t _1814_t1;
-    int64_t _1814_t2;
-    struct struct0 _1815_x;
-    struct struct0* _1814_t5;
-    struct struct0* _1814_t6;
-    int64_t _1814_$retval;
-    _1814_t1 = 1;
-    _1814_t2 = 2;
-    _1815_x = (struct struct0) {_1814_t1, _1814_t2};
-    _1814_t5 = &_1815_x;
-    (*_1814_t5)._0 = 76;
-    _1814_t6 = &_1815_x;
-    _1814_$retval = (*_1814_t6)._0;
-    return _1814_$retval;
+int64_t _1825_main(void){
+    int64_t _1825_t1;
+    int64_t _1825_t2;
+    struct struct0 _1826_x;
+    struct struct0* _1825_t5;
+    struct struct0* _1825_t6;
+    int64_t _1825_$retval;
+    _1825_t1 = 1;
+    _1825_t2 = 2;
+    _1826_x = (struct struct0) {_1825_t1, _1825_t2};
+    _1825_t5 = &_1826_x;
+    (*_1825_t5)._0 = 76;
+    _1825_t6 = &_1826_x;
+    _1825_$retval = (*_1825_t6)._0;
+    return _1825_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1814_main());
+  printf("%ld",_1825_main());
   return 0;
 }

@@ -52,7 +52,7 @@ int64_t _16_main(void){
     **((int64_t**)&_17_x + _16_t15) = 71;
     _16_t17 = 2;
     _16_t18 = 4;
-    $bounds_check(_16_t17, _16_t18, "tests/integration/arrays/array-addr.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_16_t17, _16_t18, "tests/integration/arrays/array-addr.orng:2:8:\nfn main() -> Int {\n      ^");
     _16_$retval = **((int64_t**)&_17_x + _16_t17);
     return _16_$retval;
 }

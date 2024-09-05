@@ -87,8 +87,8 @@ int64_t _80_main(void){
     _80_t25 = 3;
     _80_t26 = 2;
     _80_t27 = 3;
-    $bounds_check(_80_t24, _80_t25, "tests/integration/arrays/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
-    $bounds_check(_80_t26, _80_t27, "tests/integration/arrays/multi-dim.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_80_t24, _80_t25, "tests/integration/arrays/multi-dim.orng:2:8:\nfn main() -> Int {\n      ^");
+    $bounds_check(_80_t26, _80_t27, "tests/integration/arrays/multi-dim.orng:2:8:\nfn main() -> Int {\n      ^");
     _80_$retval = *((int64_t*)((struct struct0*)&_81_x + _80_t24) + _80_t26);
     return _80_$retval;
 }

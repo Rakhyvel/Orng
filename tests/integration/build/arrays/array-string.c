@@ -46,7 +46,7 @@ struct struct0 _47_main(void){
     _48_x = (struct struct1) {_47_t1, _47_t2, _47_t3};
     _47_t5 = 1;
     _47_t6 = 3;
-    $bounds_check(_47_t5, _47_t6, "tests/integration/arrays/array-string.orng:2:3:\nfn main() -> String {\n ^");
+    $bounds_check(_47_t5, _47_t6, "tests/integration/arrays/array-string.orng:2:8:\nfn main() -> String {\n      ^");
     _47_$retval = *((struct struct0*)&_48_x + _47_t5);
     return _47_$retval;
 }

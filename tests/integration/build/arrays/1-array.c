@@ -29,7 +29,7 @@ int64_t _2_main(void){
     _3_x = (struct struct0) {_2_t1};
     _2_t3 = 0;
     _2_t4 = 1;
-    $bounds_check(_2_t3, _2_t4, "tests/integration/arrays/1-array.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_2_t3, _2_t4, "tests/integration/arrays/1-array.orng:2:8:\nfn main() -> Int {\n      ^");
     _2_$retval = *((int64_t*)&_3_x + _2_t3);
     return _2_$retval;
 }

@@ -57,7 +57,7 @@ int64_t _83_main(void){
     *((int64_t*)&_84_x._0 + _83_t11) = 72;
     _83_t13 = 1;
     _83_t14 = 3;
-    $bounds_check(_83_t13, _83_t14, "tests/integration/arrays/select-array.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_83_t13, _83_t14, "tests/integration/arrays/select-array.orng:2:8:\nfn main() -> Int {\n      ^");
     _83_$retval = *((int64_t*)&_84_x._0 + _83_t13);
     return _83_$retval;
 }

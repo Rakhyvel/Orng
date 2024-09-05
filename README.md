@@ -144,6 +144,7 @@ fn main(sys: System) -> !() {
     }
 }
 ```
+<!--
 ### Generic Type Unification
 Parameter types identifiers that begin with `$` are considered free. This method of ad-hoc polymorphism is more readable than other methods, such as overloaded functions, as each function name has one unique definition.
 ```rs
@@ -169,6 +170,7 @@ fn get(list: List($T), index: Int) -> T {
     list.items[index]
 }
 ```
+-->
 
 
 ## Contributing

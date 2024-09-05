@@ -59,7 +59,7 @@ int64_t _44_main(void){
     (*((struct struct0*)&_45_x + _44_t12))._0 = 73;
     _44_t14 = 1;
     _44_t15 = 3;
-    $bounds_check(_44_t14, _44_t15, "tests/integration/arrays/array-select.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_44_t14, _44_t15, "tests/integration/arrays/array-select.orng:2:8:\nfn main() -> Int {\n      ^");
     _44_$retval = (*((struct struct0*)&_45_x + _44_t14))._0;
     return _44_$retval;
 }

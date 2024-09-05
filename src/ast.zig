@@ -1867,9 +1867,8 @@ pub const AST = union(enum) {
                 try self.expr().print_type(out);
             },
             .function => {
-                try out.print("(", .{});
                 try self.lhs().print_type(out);
-                try out.print(")->", .{});
+                try out.print("->", .{});
                 try self.rhs().print_type(out);
             },
             .product => if (self.product.homotypical != null and self.product.homotypical.?) {
@@ -1880,6 +1879,10 @@ pub const AST = union(enum) {
                 try self.children().items[0].print_type(out);
             } else if (self.children().items.len == 0) {
                 try out.print("()", .{});
+            } else if (self.children().items.len == 1) {
+                try out.print("(", .{});
+                try self.children().items[0].print_type(out);
+                try out.print(",)", .{});
             } else {
                 try out.print("(", .{});
                 for (self.children().items, 0..) |term, i| {
@@ -1942,6 +1945,17 @@ pub const AST = union(enum) {
             },
             .@"unreachable" => try out.print("unreachable", .{}),
             .poison => try out.print("<error>", .{}),
+            .call => {
+                try self.lhs().print_type(out);
+                try out.print("(", .{});
+                for (self.children().items, 0..) |arg, i| {
+                    try arg.print_type(out);
+                    if (i > self.children().items.len - 1) {
+                        try out.print("; ", .{});
+                    }
+                }
+                try out.print(")", .{});
+            },
             else => {
                 try out.print("\nprint_types(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});
                 unreachable;

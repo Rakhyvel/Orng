@@ -80,6 +80,7 @@
 - [x] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [x] Figure out how to do lints before GCC does
 - [ ] Go through MISRA when writing reqs
+- [ ] Omitting a `->` in a function defaults to return type to be unit
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -380,13 +381,15 @@
         - [x] capitalized should be all of them not just the first first first
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
     - [ ] first-class types based generics (stamp)
-        - [ ] templated templates
-        - [ ] default parameters
-        - [ ] default const parameters
-        - [ ] template-call in template function
+        - [x] templated templates
+        - [x] default parameters
+        - [x] default const parameters
+        - [x] template-call in template function
+        - [ ] generic types without `comptime` keyword
     - [ ] generic traits
     - [ ] generic methods
     - [ ] generic type unification
+        > I seriously don't think this can be done with calls. It will still be useful, better than Zig's `anytype`.
         > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
         - [ ] error if an identifier is `$` twice
         - [ ] error if `$` appears anywhere else but a type annotation

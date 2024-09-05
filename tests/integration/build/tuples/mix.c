@@ -32,40 +32,40 @@ struct struct3 {
 };
 
 /* Function forward definitions */
-int64_t _1797_main(void);
-struct struct2 _1799_get_array(int64_t _1799_a, int64_t _1799_b);
+int64_t _1808_main(void);
+struct struct2 _1810_get_array(int64_t _1810_a, int64_t _1810_b);
 
 
 /* Function definitions */
-int64_t _1797_main(void){
-    function0 _1797_t0;
-    int64_t _1797_t2;
-    int64_t _1797_t3;
-    int64_t _1798_z;
-    int64_t* _1797_t9;
-    struct struct3 _1798_y;
-    int64_t _1797_$retval;
-    _1797_t0 = (function0) _1799_get_array;
-    _1797_t2 = 15;
-    _1797_t3 = 16;
+int64_t _1808_main(void){
+    function0 _1808_t0;
+    int64_t _1808_t2;
+    int64_t _1808_t3;
+    int64_t _1809_z;
+    int64_t* _1808_t9;
+    struct struct3 _1809_y;
+    int64_t _1808_$retval;
+    _1808_t0 = (function0) _1810_get_array;
+    _1808_t2 = 15;
+    _1808_t3 = 16;
     $lines[$line_idx++] = "tests/integration/tuples/mix.orng:3:31:\n    let x: [4]Int = get_array(15, 16)\n                             ^";
-    (void) _1797_t0(_1797_t2, _1797_t3);
+    (void) _1808_t0(_1808_t2, _1808_t3);
     $line_idx--;
-    _1798_z = 64;
-    _1797_t9 = &_1798_z;
-    _1798_y = (struct struct3) {_1798_z, _1797_t9};
-    _1797_$retval = _1798_y._0;
-    return _1797_$retval;
+    _1809_z = 64;
+    _1808_t9 = &_1809_z;
+    _1809_y = (struct struct3) {_1809_z, _1808_t9};
+    _1808_$retval = _1809_y._0;
+    return _1808_$retval;
 }
 
-struct struct2 _1799_get_array(int64_t _1799_a, int64_t _1799_b){
-    struct struct2 _1799_$retval;
-    _1799_$retval = (struct struct2) {_1799_a, _1799_b, _1799_a, _1799_b};
-    return _1799_$retval;
+struct struct2 _1810_get_array(int64_t _1810_a, int64_t _1810_b){
+    struct struct2 _1810_$retval;
+    _1810_$retval = (struct struct2) {_1810_a, _1810_b, _1810_a, _1810_b};
+    return _1810_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1797_main());
+  printf("%ld",_1808_main());
   return 0;
 }

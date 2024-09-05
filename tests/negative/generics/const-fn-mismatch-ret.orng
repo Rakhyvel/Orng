@@ -1,0 +1,7 @@
+fn template(const n: Int) -> Int {
+    n + 4
+}
+
+fn main() -> Char {
+    template(4)
+}

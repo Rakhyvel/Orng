@@ -2,7 +2,7 @@
 fn Get_Type() -> Type { Int }
 
 fn main() -> Int {
-    let mut x: comptime { Get_Type() }
+    let mut x: Get_Type()
     x = 310
     x
 }

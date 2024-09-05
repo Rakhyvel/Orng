@@ -39,7 +39,7 @@ int64_t _528_main(void){
     _528_t0 = 139;
     _529_x = (struct struct0) {.tag=0, ._0=_528_t0};
     _528_t3 = 0;
-    $tag_check(_528_t3, 0, "tests/integration/default/default-error.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_528_t3, 0, "tests/integration/default/default-error.orng:2:8:\nfn main() -> Int {\n      ^");
     _528_$retval = _529_x._0;
     return _528_$retval;
 }

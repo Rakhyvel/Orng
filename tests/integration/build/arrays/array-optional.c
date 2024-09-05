@@ -87,8 +87,8 @@ int64_t _34_main(void){
     _34_t12 = 3;
     $bounds_check(_34_t11, _34_t12, "tests/integration/arrays/array-optional.orng:4:12:\n    res[1].some\n          ^");
     _34_t13 = (*((struct struct4*)&_35_res + _34_t11)).tag;
-    $bounds_check(_34_t11, _34_t12, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
-    $tag_check(_34_t13, 0, "tests/integration/arrays/array-optional.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_34_t11, _34_t12, "tests/integration/arrays/array-optional.orng:2:8:\nfn main() -> Int {\n      ^");
+    $tag_check(_34_t13, 0, "tests/integration/arrays/array-optional.orng:2:8:\nfn main() -> Int {\n      ^");
     _34_$retval = (*((struct struct4*)&_35_res + _34_t11))._0;
     return _34_$retval;
 }

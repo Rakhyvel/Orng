@@ -7,52 +7,52 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1872_main(void);
+int64_t _1883_main(void);
 
 
 /* Function definitions */
-int64_t _1872_main(void){
-    int64_t _1873_x;
-    int64_t _1872_t3;
-    uint8_t _1872_t4;
-    int64_t _1872_t6;
-    uint8_t _1872_t8;
-    int64_t _1872_t11;
-    int64_t _1872_$retval;
-    int64_t _1872_t9;
-    _1873_x = 0;
-    goto BB2080;
-BB2080:
-    _1872_t3 = 100;
-    _1872_t4 = _1873_x<_1872_t3;
-    if (_1872_t4) {
-        goto BB2081;
-    } else {
-        goto BB2086;
-    }
-BB2081:
-    _1872_t6 = 40;
-    _1872_t8 = _1873_x==_1872_t6;
-    if (_1872_t8) {
-        goto BB2084;
-    } else {
-        goto BB2090;
-    }
-BB2086:
-    _1872_$retval = _1873_x;
-    return _1872_$retval;
-BB2084:
-    _1872_t9 = 1;
-    _1873_x = $add_int64_t(_1873_x, _1872_t9, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
-    goto BB2086;
+int64_t _1883_main(void){
+    int64_t _1884_x;
+    int64_t _1883_t3;
+    uint8_t _1883_t4;
+    int64_t _1883_t6;
+    uint8_t _1883_t8;
+    int64_t _1883_t11;
+    int64_t _1883_$retval;
+    int64_t _1883_t9;
+    _1884_x = 0;
+    goto BB2090;
 BB2090:
-    _1872_t11 = 1;
-    _1873_x = $add_int64_t(_1873_x, _1872_t11, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
-    goto BB2080;
+    _1883_t3 = 100;
+    _1883_t4 = _1884_x<_1883_t3;
+    if (_1883_t4) {
+        goto BB2091;
+    } else {
+        goto BB2096;
+    }
+BB2091:
+    _1883_t6 = 40;
+    _1883_t8 = _1884_x==_1883_t6;
+    if (_1883_t8) {
+        goto BB2094;
+    } else {
+        goto BB2100;
+    }
+BB2096:
+    _1883_$retval = _1884_x;
+    return _1883_$retval;
+BB2094:
+    _1883_t9 = 1;
+    _1884_x = $add_int64_t(_1884_x, _1883_t9, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
+    goto BB2096;
+BB2100:
+    _1883_t11 = 1;
+    _1884_x = $add_int64_t(_1884_x, _1883_t11, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
+    goto BB2090;
 }
 
 
 int main(void) {
-  printf("%ld",_1872_main());
+  printf("%ld",_1883_main());
   return 0;
 }

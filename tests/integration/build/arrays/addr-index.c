@@ -46,7 +46,7 @@ int64_t _8_main(void){
     *_9_y = 63;
     _8_t11 = 0;
     _8_t12 = 4;
-    $bounds_check(_8_t11, _8_t12, "tests/integration/arrays/addr-index.orng:2:3:\nfn main() -> Int {\n ^");
+    $bounds_check(_8_t11, _8_t12, "tests/integration/arrays/addr-index.orng:2:8:\nfn main() -> Int {\n      ^");
     _8_$retval = *((int64_t*)&_9_x + _8_t11);
     return _8_$retval;
 }

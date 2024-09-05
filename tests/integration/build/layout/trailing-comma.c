@@ -18,52 +18,52 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1076_main(void);
+int64_t _1087_main(void);
 
 
 /* Function definitions */
-int64_t _1076_main(void){
-    int64_t _1076_t1;
-    int64_t _1076_t2;
-    int64_t _1076_t3;
-    int64_t _1076_t4;
-    struct struct0 _1077_x;
-    int64_t _1076_t6;
-    int64_t _1076_t7;
-    int64_t _1076_t8;
-    int64_t _1076_t9;
-    int64_t _1076_t10;
-    int64_t _1076_t11;
-    int64_t _1076_t12;
-    int64_t _1076_t13;
-    int64_t _1076_t14;
-    int64_t _1076_t15;
-    int64_t _1076_$retval;
-    _1076_t1 = 100;
-    _1076_t2 = 100;
-    _1076_t3 = 3;
-    _1076_t4 = 4;
-    _1077_x = (struct struct0) {_1076_t1, _1076_t2, _1076_t3, _1076_t4};
-    _1076_t6 = 0;
-    _1076_t7 = 4;
-    _1076_t8 = 1;
-    _1076_t9 = 4;
-    $bounds_check(_1076_t6, _1076_t7, "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
-    $bounds_check(_1076_t8, _1076_t9, "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
-    _1076_t10 = $add_int64_t(*((int64_t*)&_1077_x + _1076_t6), *((int64_t*)&_1077_x + _1076_t8), "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
-    _1076_t11 = 2;
-    _1076_t12 = 4;
-    $bounds_check(_1076_t11, _1076_t12, "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
-    _1076_t13 = $add_int64_t(_1076_t10, *((int64_t*)&_1077_x + _1076_t11), "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
-    _1076_t14 = 3;
-    _1076_t15 = 4;
-    $bounds_check(_1076_t14, _1076_t15, "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
-    _1076_$retval = $add_int64_t(_1076_t13, *((int64_t*)&_1077_x + _1076_t14), "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
-    return _1076_$retval;
+int64_t _1087_main(void){
+    int64_t _1087_t1;
+    int64_t _1087_t2;
+    int64_t _1087_t3;
+    int64_t _1087_t4;
+    struct struct0 _1088_x;
+    int64_t _1087_t6;
+    int64_t _1087_t7;
+    int64_t _1087_t8;
+    int64_t _1087_t9;
+    int64_t _1087_t10;
+    int64_t _1087_t11;
+    int64_t _1087_t12;
+    int64_t _1087_t13;
+    int64_t _1087_t14;
+    int64_t _1087_t15;
+    int64_t _1087_$retval;
+    _1087_t1 = 100;
+    _1087_t2 = 100;
+    _1087_t3 = 3;
+    _1087_t4 = 4;
+    _1088_x = (struct struct0) {_1087_t1, _1087_t2, _1087_t3, _1087_t4};
+    _1087_t6 = 0;
+    _1087_t7 = 4;
+    _1087_t8 = 1;
+    _1087_t9 = 4;
+    $bounds_check(_1087_t6, _1087_t7, "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    $bounds_check(_1087_t8, _1087_t9, "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    _1087_t10 = $add_int64_t(*((int64_t*)&_1088_x + _1087_t6), *((int64_t*)&_1088_x + _1087_t8), "tests/integration/layout/trailing-comma.orng:9:11:\n    x[0] + x[1] + x[2] + x[3]\n         ^");
+    _1087_t11 = 2;
+    _1087_t12 = 4;
+    $bounds_check(_1087_t11, _1087_t12, "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
+    _1087_t13 = $add_int64_t(_1087_t10, *((int64_t*)&_1088_x + _1087_t11), "tests/integration/layout/trailing-comma.orng:9:18:\n    x[0] + x[1] + x[2] + x[3]\n                ^");
+    _1087_t14 = 3;
+    _1087_t15 = 4;
+    $bounds_check(_1087_t14, _1087_t15, "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
+    _1087_$retval = $add_int64_t(_1087_t13, *((int64_t*)&_1088_x + _1087_t14), "tests/integration/layout/trailing-comma.orng:9:25:\n    x[0] + x[1] + x[2] + x[3]\n                       ^");
+    return _1087_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1076_main());
+  printf("%ld",_1087_main());
   return 0;
 }

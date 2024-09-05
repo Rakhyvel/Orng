@@ -1,0 +1,9 @@
+fn template(const n: Int) -> Int {
+    n + 4
+}
+
+fn main() -> Char {
+    let x: Int -> Int = template
+    _ = x
+    'd'
+}

@@ -31,7 +31,7 @@ int64_t _597_main(void){
     _597_t0 = 117;
     _598_x = (struct struct0) {.tag=1, ._1=_597_t0};
     _597_t3 = 1;
-    $tag_check(_597_t3, 1, "tests/integration/errors/error.orng:2:3:\nfn main() -> Int {\n ^");
+    $tag_check(_597_t3, 1, "tests/integration/errors/error.orng:2:8:\nfn main() -> Int {\n      ^");
     _597_$retval = _598_x._1;
     return _597_$retval;
 }
