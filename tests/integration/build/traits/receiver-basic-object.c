@@ -64,14 +64,14 @@ int64_t _1698_main(void){
     $line_idx--;
     _1698_t12 = _1698_t5==_1698_t7;
     if (_1698_t12) {
-        goto BB1897;
+        goto BB1898;
     } else {
-        goto BB1901;
+        goto BB1902;
     }
-BB1897:
+BB1898:
     _1698_$retval = 296;
     return _1698_$retval;
-BB1901:
+BB1902:
     $lines[$line_idx++] = "tests/integration/traits/receiver-basic-object.orng:16:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }

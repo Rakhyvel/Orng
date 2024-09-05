@@ -27,33 +27,33 @@ int64_t _1912_main(void){
     _1912_t5 = 5;
     _1912_t7 = *_1913_y==_1912_t5;
     if (_1912_t7) {
-        goto BB2134;
+        goto BB2135;
     } else {
-        goto BB2136;
+        goto BB2137;
     }
-BB2134:
+BB2135:
     _1912_t9 = 4;
     _1912_t10 = _1912_t9>*_1913_y;
     if (_1912_t10) {
-        goto BB2136;
+        goto BB2137;
     } else {
-        goto BB2141;
+        goto BB2142;
     }
-BB2136:
+BB2137:
     _1912_t11 = 3;
     _1912_t12 = *_1913_y>=_1912_t11;
     if (_1912_t12) {
-        goto BB2137;
+        goto BB2138;
     } else {
-        goto BB2141;
+        goto BB2142;
     }
-BB2141:
+BB2142:
     _1912_t4 = 10;
-    goto BB2140;
-BB2137:
+    goto BB2141;
+BB2138:
     _1912_t4 = 33;
-    goto BB2140;
-BB2140:
+    goto BB2141;
+BB2141:
     _1912_$retval = _1912_t4;
     return _1912_$retval;
 }

@@ -67,18 +67,18 @@ int64_t _1773_main(void){
     _1773_t9 = 1;
     _1773_t11 = _1773_t5==_1773_t9;
     if (_1773_t11) {
-        goto BB1973;
+        goto BB1974;
     } else {
-        goto BB1977;
+        goto BB1978;
     }
-BB1973:
+BB1974:
     _1773_t12 = 301;
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:26:18:\n        301 + x.>id()\n                ^";
     _1773_t13 = _1763_$vtable.id();
     $line_idx--;
     _1773_$retval = $add_int64_t(_1773_t12, _1773_t13, "tests/integration/traits/virtual-non-virtual-mix.orng:26:14:\n        301 + x.>id()\n            ^");
     return _1773_$retval;
-BB1977:
+BB1978:
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:28:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
@@ -93,32 +93,32 @@ int64_t _1766_cmp(void* _1766_$self_ptr, int64_t* _1766_other){
     _1767_self = *(int64_t*)_1766_$self_ptr;
     _1766_t2 = _1767_self>*_1766_other;
     if (_1766_t2) {
-        goto BB1955;
+        goto BB1956;
     } else {
-        goto BB1959;
+        goto BB1960;
     }
-BB1955:
+BB1956:
     _1766_t1 = -1;
-    goto BB1958;
-BB1959:
+    goto BB1959;
+BB1960:
     _1766_t7 = _1767_self==*_1766_other;
     if (_1766_t7) {
-        goto BB1962;
+        goto BB1963;
     } else {
-        goto BB1965;
+        goto BB1966;
     }
-BB1958:
+BB1959:
     _1766_$retval = _1766_t1;
     return _1766_$retval;
-BB1962:
+BB1963:
     _1766_t5 = 0;
-    goto BB1964;
-BB1965:
+    goto BB1965;
+BB1966:
     _1766_t5 = 1;
-    goto BB1964;
-BB1964:
+    goto BB1965;
+BB1965:
     _1766_t1 = _1766_t5;
-    goto BB1958;
+    goto BB1959;
 }
 
 int64_t _1764_id(void){

@@ -54,14 +54,14 @@ int64_t _1746_main(void){
     _1746_t9 = 1;
     _1746_t11 = _1746_t5==_1746_t9;
     if (_1746_t11) {
-        goto BB1941;
+        goto BB1942;
     } else {
-        goto BB1945;
+        goto BB1946;
     }
-BB1941:
+BB1942:
     _1746_$retval = 301;
     return _1746_$retval;
-BB1945:
+BB1946:
     $lines[$line_idx++] = "tests/integration/traits/self-trait.orng:24:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
@@ -76,32 +76,32 @@ int64_t _1739_cmp(void* _1739_$self_ptr, int64_t* _1739_other){
     _1740_self = *(int64_t*)_1739_$self_ptr;
     _1739_t2 = _1740_self>*_1739_other;
     if (_1739_t2) {
-        goto BB1925;
+        goto BB1926;
     } else {
-        goto BB1929;
+        goto BB1930;
     }
-BB1925:
+BB1926:
     _1739_t1 = -1;
-    goto BB1928;
-BB1929:
+    goto BB1929;
+BB1930:
     _1739_t7 = _1740_self==*_1739_other;
     if (_1739_t7) {
-        goto BB1932;
+        goto BB1933;
     } else {
-        goto BB1935;
+        goto BB1936;
     }
-BB1928:
+BB1929:
     _1739_$retval = _1739_t1;
     return _1739_$retval;
-BB1932:
+BB1933:
     _1739_t5 = 0;
-    goto BB1934;
-BB1935:
+    goto BB1935;
+BB1936:
     _1739_t5 = 1;
-    goto BB1934;
-BB1934:
+    goto BB1935;
+BB1935:
     _1739_t1 = _1739_t5;
-    goto BB1928;
+    goto BB1929;
 }
 
 

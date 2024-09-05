@@ -7,6 +7,7 @@ const codegen_ = @import("codegen.zig");
 const decorate_ = @import("decorate.zig");
 const errs_ = @import("errors.zig");
 const expand_ = @import("expand.zig");
+const interpreter_ = @import("interpreter.zig");
 const ir_validate_ = @import("ir-validate.zig");
 const ir_ = @import("ir.zig");
 const layout_ = @import("layout.zig");
@@ -457,4 +458,43 @@ pub fn stamp(
     const identifier = ast_.AST.create_identifier(token_.Token.init_simple(template_ast.template.memo.?.name), allocator);
     identifier.set_symbol(template_ast.template.memo);
     return identifier;
+}
+
+/// Relatively light-weight way to interpret an AST.
+///
+/// - `ast`: AST to interpret
+/// - `ret_type`: Expected return type of the AST after interpretation
+/// - `scope`: Scope context to interpret the AST within
+/// - `errors`: Error managing context, to output errors to
+/// - `allocator`: Allocator to use for interpretation
+///
+/// Errors out either during AST-IR lowering, or interpretation.
+pub fn interpret(
+    ast: *ast_.AST,
+    ret_type: *ast_.AST,
+    scope: *symbol_.Scope,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) !*ast_.AST {
+    const symbol: *symbol_.Symbol = (try symbol_tree_.create_temp_comptime_symbol(
+        ast,
+        ret_type,
+        scope,
+        errors,
+        allocator,
+    )).assert_valid();
+
+    // Get the cfg from the symbol, and embed into the module
+    const cfg = try get_cfg(symbol, null, &symbol.scope.module.?.interned_strings, errors, allocator);
+    defer cfg.deinit(); // Remove the cfg so that it isn't output
+
+    const idx = symbol.scope.module.?.emplace_cfg(cfg);
+    defer symbol.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
+
+    // Create a context and interpret
+    var context = interpreter_.Context.init(cfg, &symbol.scope.module.?.instructions, ret_type, cfg.offset.?);
+    try context.interpret();
+
+    // Extract the retval
+    return context.extract_ast(0, ret_type, allocator);
 }

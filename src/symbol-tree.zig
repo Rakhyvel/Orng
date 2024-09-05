@@ -88,7 +88,7 @@ fn symbol_table_from_AST(
         },
 
         .@"comptime" => {
-            const symbol = try create_temp_comptime_symbol(ast, null, scope, errors, allocator);
+            const symbol = try create_temp_comptime_symbol(ast.expr(), null, scope, errors, allocator);
             try put_symbol(symbol, scope, errors); // Why? No one refers to it...
             ast.set_symbol(symbol);
         },
@@ -592,7 +592,7 @@ fn create_receiver_annot(receiver_addr: *ast_.AST, receiver: *ast_.AST, allocato
     );
 }
 
-// `const` symbol, surround with comptime
+/// Creates the comptime context symbol for `const` initializers
 fn create_comptime_init(
     old_init: *ast_.AST,
     _type: *ast_.AST,
@@ -601,14 +601,14 @@ fn create_comptime_init(
     allocator: std.mem.Allocator,
 ) Symbol_Error_Enum!*ast_.AST {
     const retval = ast_.AST.create_comptime(old_init.token(), old_init, allocator);
-    const comptime_symbol = try create_temp_comptime_symbol(retval, _type, scope, errors, allocator);
+    const comptime_symbol = try create_temp_comptime_symbol(old_init, _type, scope, errors, allocator);
     try put_symbol(comptime_symbol, scope, errors);
     retval.set_symbol(comptime_symbol);
     return retval;
 }
 
-// ast is a `comptime` ast
-fn create_temp_comptime_symbol(
+/// Creates a symbol which represents the comptime function to be ran.
+pub fn create_temp_comptime_symbol(
     ast: *ast_.AST,
     rhs_type_hint: ?*ast_.AST,
     scope: *symbol_.Scope,
@@ -617,8 +617,8 @@ fn create_temp_comptime_symbol(
 ) Symbol_Error_Enum!*symbol_.Symbol {
     // Create the function type. The rhs is a typeof node, since type expansion is done in a later time
     const lhs = primitives_.unit_type;
-    const rhs = ast_.AST.create_type_of(ast.expr().token(), ast.expr(), allocator);
-    const _type = ast_.AST.create_function(ast.expr().token(), lhs, rhs_type_hint orelse rhs, allocator);
+    const rhs = ast_.AST.create_type_of(ast.token(), ast, allocator);
+    const _type = ast_.AST.create_function(ast.token(), lhs, rhs_type_hint orelse rhs, allocator);
 
     // Create the comptime scope
     // This is to prevent `comptime` expressions from using runtime variables
@@ -635,14 +635,14 @@ fn create_temp_comptime_symbol(
         buf,
         ast.token().span,
         _type,
-        ast.expr(),
+        ast,
         ast,
         .@"comptime",
         allocator,
     );
     comptime_scope.inner_function = retval;
 
-    try symbol_table_from_AST(ast.expr(), comptime_scope, errors, allocator);
+    try symbol_table_from_AST(ast, comptime_scope, errors, allocator);
     return retval;
 }
 

@@ -69,14 +69,14 @@ int64_t _1138_main(void){
     _1138_t14 = 1;
     _1138_t15 = _1138_t13>_1138_t14;
     if (_1138_t15) {
-        goto BB1305;
-    } else {
         goto BB1306;
+    } else {
+        goto BB1307;
     }
-BB1305:
+BB1306:
     $lines[$line_idx++] = "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^";
     $panic("subslice lower bound is greater than upper bound\n");
-BB1306:
+BB1307:
     _1138_t16 = $sub_int64_t(_1138_t14, _1138_t13, "tests/integration/lint/subslice-bounds.orng:5:15:\n    let z = y[f()..1]\n             ^");
     _1138_t17 = _1139_y._0+_1138_t13;
     _1139_z = (struct struct1) {_1138_t17, _1138_t16};

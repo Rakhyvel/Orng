@@ -70,17 +70,17 @@ int64_t _1846_main(void){
     _1846_t16 = _1846_t15(_1847_x, _1847_y);
     $line_idx--;
     if (_1846_t16) {
-        goto BB2036;
+        goto BB2037;
     } else {
-        goto BB2040;
+        goto BB2041;
     }
-BB2036:
+BB2037:
     _1846_t14 = 238;
-    goto BB2039;
-BB2040:
+    goto BB2040;
+BB2041:
     _1846_t14 = 832;
-    goto BB2039;
-BB2039:
+    goto BB2040;
+BB2040:
     _1846_$retval = _1846_t14;
     return _1846_$retval;
 }
@@ -94,40 +94,40 @@ uint8_t _1851_f(struct struct1 _1851_x, struct struct1 _1851_y){
     uint8_t _1851_$retval;
     _1851_t2 = _1851_x._0==_1851_y._0;
     if (_1851_t2) {
-        goto BB2028;
-    } else {
-        goto BB2034;
-    }
-BB2028:
-    _1851_t4 = _1851_x._1._0==_1851_y._1._0;
-    if (_1851_t4) {
         goto BB2029;
     } else {
-        goto BB2034;
+        goto BB2035;
     }
-BB2034:
-    _1851_t0 = 0;
-    goto BB2033;
 BB2029:
-    _1851_t5 = _1851_x._1._1==_1851_y._1._1;
-    if (_1851_t5) {
+    _1851_t4 = _1851_x._1._0==_1851_y._1._0;
+    if (_1851_t4) {
         goto BB2030;
     } else {
-        goto BB2034;
+        goto BB2035;
     }
-BB2033:
-    _1851_$retval = _1851_t0;
-    return _1851_$retval;
+BB2035:
+    _1851_t0 = 0;
+    goto BB2034;
 BB2030:
-    _1851_t6 = _1851_x._2==_1851_y._2;
-    if (_1851_t6) {
+    _1851_t5 = _1851_x._1._1==_1851_y._1._1;
+    if (_1851_t5) {
         goto BB2031;
     } else {
-        goto BB2034;
+        goto BB2035;
     }
+BB2034:
+    _1851_$retval = _1851_t0;
+    return _1851_$retval;
 BB2031:
+    _1851_t6 = _1851_x._2==_1851_y._2;
+    if (_1851_t6) {
+        goto BB2032;
+    } else {
+        goto BB2035;
+    }
+BB2032:
     _1851_t0 = 1;
-    goto BB2033;
+    goto BB2034;
 }
 
 

@@ -151,9 +151,9 @@ pub const Parser = struct {
 
         if (self.accept(.colon)) |_| {
             _type = try self.arrow_expr();
-            if (_type.?.* == .call) {
-                _type = ast_.AST.create_comptime(_type.?.token(), _type.?, self.allocator);
-            }
+            // if (_type.?.* == .call) {
+            //     _type = ast_.AST.create_comptime(_type.?.token(), _type.?, self.allocator);
+            // }
             if (self.peek_kind(.single_equals)) {
                 _ = try self.expect(.single_equals);
                 _init = try self.arrow_expr();
@@ -802,9 +802,9 @@ pub const Parser = struct {
 
         _ = try self.expect(.colon);
         _type = try self.arrow_expr();
-        if (_type.* == .call) {
-            _type = ast_.AST.create_comptime(_type.token(), _type, self.allocator);
-        }
+        // if (_type.* == .call) {
+        //     _type = ast_.AST.create_comptime(_type.token(), _type, self.allocator);
+        // }
         if (self.peek_kind(.single_equals)) {
             _ = try self.expect(.single_equals);
             _init = try self.arrow_expr();

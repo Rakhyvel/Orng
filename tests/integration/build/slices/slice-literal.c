@@ -77,30 +77,30 @@ int64_t _1415_sum(struct struct1 _1415_xs){
     _1415_t1 = 0;
     _1415_t3 = _1415_xs._1==_1415_t1;
     if (_1415_t3) {
-        goto BB1656;
+        goto BB1657;
     } else {
-        goto BB1660;
+        goto BB1661;
     }
-BB1656:
+BB1657:
     _1415_t0 = 0;
-    goto BB1659;
-BB1660:
+    goto BB1660;
+BB1661:
     _1415_t5 = 0;
     _1415_t6 = (function0) _1415_sum;
     _1415_t8 = 1;
     _1415_t9 = _1415_t8>_1415_xs._1;
     if (_1415_t9) {
-        goto BB1661;
-    } else {
         goto BB1662;
+    } else {
+        goto BB1663;
     }
-BB1659:
+BB1660:
     _1415_$retval = _1415_t0;
     return _1415_$retval;
-BB1661:
+BB1662:
     $lines[$line_idx++] = "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^";
     $panic("subslice lower bound is greater than upper bound\n");
-BB1662:
+BB1663:
     _1415_t10 = $sub_int64_t(_1415_xs._1, _1415_t8, "tests/integration/slices/slice-literal.orng:10:24:\n        xs[0] + sum(xs[1..])\n                      ^");
     _1415_t11 = _1415_xs._0+_1415_t8;
     _1415_t12 = (struct struct1) {_1415_t11, _1415_t10};
@@ -109,7 +109,7 @@ BB1662:
     $line_idx--;
     $bounds_check(_1415_t5, _1415_xs._1, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
     _1415_t0 = $add_int64_t(*((int64_t*)_1415_xs._0 + _1415_t5), _1415_t7, "tests/integration/slices/slice-literal.orng:10:16:\n        xs[0] + sum(xs[1..])\n              ^");
-    goto BB1659;
+    goto BB1660;
 }
 
 

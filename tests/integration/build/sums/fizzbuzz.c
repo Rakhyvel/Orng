@@ -75,46 +75,46 @@ struct struct1 _1510_fizzbuzz(int64_t _1510_n){
     _1510_t3 = $mod_int64_t(_1510_n, _1510_t2, "tests/integration/sums/fizzbuzz.orng:12:13:\n        {n % 15} => .string(\"fizzbuzz\")\n           ^");
     _1510_t4 = _1510_t1==_1510_t3;
     if (_1510_t4) {
-        goto BB1736;
+        goto BB1737;
     } else {
-        goto BB1739;
+        goto BB1740;
     }
-BB1736:
+BB1737:
     _1510_t11 = (struct struct2) {(uint8_t*)string_0, 8};
     _1510_t0 = (struct struct1) {.tag=0, ._0=_1510_t11};
-    goto BB1738;
-BB1739:
+    goto BB1739;
+BB1740:
     _1510_t5 = 5;
     _1510_t6 = $mod_int64_t(_1510_n, _1510_t5, "tests/integration/sums/fizzbuzz.orng:13:13:\n        {n % 5}  => .string(\"buzz\")\n           ^");
     _1510_t7 = _1510_t1==_1510_t6;
     if (_1510_t7) {
-        goto BB1742;
-    } else {
         goto BB1743;
+    } else {
+        goto BB1744;
     }
-BB1738:
+BB1739:
     _1510_$retval = _1510_t0;
     return _1510_$retval;
-BB1742:
+BB1743:
     _1510_t13 = (struct struct2) {(uint8_t*)string_1, 4};
     _1510_t0 = (struct struct1) {.tag=0, ._0=_1510_t13};
-    goto BB1738;
-BB1743:
+    goto BB1739;
+BB1744:
     _1510_t8 = 3;
     _1510_t9 = $mod_int64_t(_1510_n, _1510_t8, "tests/integration/sums/fizzbuzz.orng:14:13:\n        {n % 3}  => .string(\"fizz\")\n           ^");
     _1510_t10 = _1510_t1==_1510_t9;
     if (_1510_t10) {
-        goto BB1746;
+        goto BB1747;
     } else {
-        goto BB1748;
+        goto BB1749;
     }
-BB1746:
+BB1747:
     _1510_t15 = (struct struct2) {(uint8_t*)string_2, 4};
     _1510_t0 = (struct struct1) {.tag=0, ._0=_1510_t15};
-    goto BB1738;
-BB1748:
+    goto BB1739;
+BB1749:
     _1510_t0 = (struct struct1) {.tag=1, ._1=_1510_n};
-    goto BB1738;
+    goto BB1739;
 }
 
 

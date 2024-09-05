@@ -1,4 +1,6 @@
 const std = @import("std");
+const errs_ = @import("errors.zig");
+const module_ = @import("module.zig");
 const offsets_ = @import("offsets.zig");
 const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
@@ -160,20 +162,6 @@ pub const AST = union(enum) {
         _lhs: *AST,
         _rhs: *AST,
         _pos: ?usize,
-
-        /// Calculates offsets for the select expression given it's underlying product type and selection
-        /// position
-        pub fn offsets_at(self: *@This(), allocator: std.mem.Allocator) i64 {
-            var lhs_expanded_type = self.lhs.typeof(allocator).expand_type(allocator);
-            if (lhs_expanded_type.* == .product) {
-                return lhs_expanded_type.product.get_offset(self.pos.?, allocator);
-            } else if (lhs_expanded_type.* == .sum_type) {
-                return lhs_expanded_type.sum_type.get_offset(self.pos.?, allocator);
-            } else {
-                std.debug.print("{s}\n", .{@tagName(lhs_expanded_type.*)});
-                unreachable;
-            }
-        }
     },
     function: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     trait: struct {
@@ -1725,7 +1713,12 @@ pub const AST = union(enum) {
     }
 
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
-    pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
+    pub fn expand_type(
+        self: *AST,
+        // scope: *symbol_.Scope,
+        // errors: *errs_.Errors,
+        allocator: std.mem.Allocator,
+    ) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
@@ -1735,7 +1728,12 @@ pub const AST = union(enum) {
     }
 
     /// Non-memoized slow path for expanding the type of an AST value.
-    fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
+    fn expand_type_internal(
+        self: *AST,
+        // scope: *symbol_.Scope,
+        // errors: *errs_.Errors,
+        allocator: std.mem.Allocator,
+    ) *AST {
         switch (self.*) {
             .identifier => {
                 const _symbol = self.symbol().?;

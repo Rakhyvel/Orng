@@ -30,11 +30,11 @@ int64_t _1926_main(void){
     _1926_t5 = 0;
     _1926_t7 = *_1927_y==_1926_t5;
     if (_1926_t7) {
-        goto BB2159;
+        goto BB2160;
     } else {
-        goto BB2163;
+        goto BB2164;
     }
-BB2159:
+BB2160:
     _1929_z = *_1927_y;
     _1926_t10 = &_1929_z;
     *_1926_t10 = $add_int64_t(_1929_z, _1929_z, "tests/integration/whitebox/pemdas.orng:7:24:\n        (&mut z)^ = z + z \n                      ^");
@@ -49,11 +49,11 @@ BB2159:
     _1926_t20 = -1;
     _1929_z = $mult_int64_t(_1929_z, _1926_t20, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
     _1926_t4 = $mult_int64_t(_1929_z, _1926_t20, "tests/integration/whitebox/pemdas.orng:12:16:\n        z = z * (-1)\n              ^");
-    goto BB2162;
-BB2163:
+    goto BB2163;
+BB2164:
     _1926_t4 = 1000;
-    goto BB2162;
-BB2162:
+    goto BB2163;
+BB2163:
     _1926_$retval = _1926_t4;
     return _1926_$retval;
 }

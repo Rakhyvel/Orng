@@ -380,12 +380,12 @@
     - [x] functions returning `Type` should be capitalized
         - [x] capitalized should be all of them not just the first first first
     > When a function has any constant parameters, stamp out a new version of the function for each unique combination of arguments
-    - [ ] first-class types based generics (stamp)
+    - [x] first-class types based generics (stamp)
         - [x] templated templates
         - [x] default parameters
         - [x] default const parameters
         - [x] template-call in template function
-        - [ ] generic types without `comptime` keyword
+        - [x] generic types without `comptime` keyword
     - [ ] generic traits
     - [ ] generic methods
     - [ ] generic type unification
@@ -531,7 +531,7 @@
 - [ ] Linter
     - [ ] Warn if line is too long (140, after being whitespace stripped, not including comments, is excessive)
     - [ ] Warn about code such as `y, x = x, y` which is parsed as `y, (x = x), y`
-        > Warn when non-unit expressions are in the middle of a block?
+        > Error when non-unit expressions are in the middle of a block?
     - [ ] Warn if identifier is not in the right style
     - [ ] Warn if identifier begins with `0` (not an octal, a decimal! use `0o` for octal)
 - [ ] Documentation generator

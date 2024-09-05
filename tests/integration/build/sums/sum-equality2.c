@@ -47,17 +47,17 @@ int64_t _1550_main(void){
     _1550_t8 = _1550_t4.tag;
     _1550_t6 = _1550_t7==_1550_t8;
     if (_1550_t6) {
-        goto BB1785;
+        goto BB1786;
     } else {
-        goto BB1789;
+        goto BB1790;
     }
-BB1785:
+BB1786:
     _1550_t0 = 212;
-    goto BB1788;
-BB1789:
+    goto BB1789;
+BB1790:
     _1550_t0 = -1;
-    goto BB1788;
-BB1788:
+    goto BB1789;
+BB1789:
     _1550_$retval = _1550_t0;
     return _1550_$retval;
 }

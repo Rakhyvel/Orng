@@ -25,17 +25,17 @@ int64_t _1906_main(void){
     _1906_t7 = -1;
     _1906_t9 = _1906_t5==_1906_t7;
     if (_1906_t9) {
-        goto BB2124;
+        goto BB2125;
     } else {
-        goto BB2128;
+        goto BB2129;
     }
-BB2124:
+BB2125:
     _1906_t4 = 32;
-    goto BB2127;
-BB2128:
+    goto BB2128;
+BB2129:
     _1906_t4 = 10;
-    goto BB2127;
-BB2127:
+    goto BB2128;
+BB2128:
     _1906_$retval = _1906_t4;
     return _1906_$retval;
 }

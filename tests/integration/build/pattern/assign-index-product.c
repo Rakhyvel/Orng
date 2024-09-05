@@ -74,14 +74,14 @@ int64_t _1200_main(void){
     $bounds_check(_1200_t21, _1200_t22, "tests/integration/pattern/assign-index-product.orng:5:14:\n    if x[0] > x[1] {\n            ^");
     _1200_t23 = *((int64_t*)&_1201_x + _1200_t19)>*((int64_t*)&_1201_x + _1200_t21);
     if (_1200_t23) {
-        goto BB1368;
+        goto BB1369;
     } else {
-        goto BB1372;
+        goto BB1373;
     }
-BB1368:
+BB1369:
     _1200_$retval = 162;
     return _1200_$retval;
-BB1372:
+BB1373:
     $lines[$line_idx++] = "tests/integration/pattern/assign-index-product.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }

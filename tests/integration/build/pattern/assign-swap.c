@@ -43,22 +43,22 @@ int64_t _1215_main(void){
     _1215_t6 = 1;
     _1215_t8 = _1216_y==_1215_t6;
     if (_1215_t8) {
-        goto BB1382;
+        goto BB1383;
     } else {
-        goto BB1389;
+        goto BB1390;
     }
-BB1382:
+BB1383:
     _1215_t9 = 2;
     _1215_t11 = _1216_x==_1215_t9;
     if (_1215_t11) {
-        goto BB1385;
+        goto BB1386;
     } else {
-        goto BB1389;
+        goto BB1390;
     }
-BB1389:
+BB1390:
     $lines[$line_idx++] = "tests/integration/pattern/assign-swap.orng:8:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB1385:
+BB1386:
     _1215_$retval = 159;
     return _1215_$retval;
 }

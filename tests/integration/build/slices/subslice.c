@@ -90,21 +90,21 @@ int64_t _1426_sum_up(struct struct1 _1426_xs){
     int64_t _1426_$retval;
     _1427_sum = 0;
     _1428_i = 0;
-    goto BB1670;
-BB1670:
+    goto BB1671;
+BB1671:
     _1426_t5 = _1428_i<_1426_xs._1;
     if (_1426_t5) {
-        goto BB1671;
+        goto BB1672;
     } else {
-        goto BB1676;
+        goto BB1677;
     }
-BB1671:
+BB1672:
     $bounds_check(_1428_i, _1426_xs._1, "tests/integration/slices/subslice.orng:13:15:\n        sum += xs[i]\n             ^");
     _1427_sum = $add_int64_t(_1427_sum, *((int64_t*)_1426_xs._0 + _1428_i), "tests/integration/slices/subslice.orng:13:15:\n        sum += xs[i]\n             ^");
     _1426_t7 = 1;
     _1428_i = $add_int64_t(_1428_i, _1426_t7, "tests/integration/slices/subslice.orng:12:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
-    goto BB1670;
-BB1676:
+    goto BB1671;
+BB1677:
     _1426_$retval = _1427_sum;
     return _1426_$retval;
 }

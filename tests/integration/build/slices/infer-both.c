@@ -61,14 +61,14 @@ int64_t _1383_main(void){
     _1383_t11 = 0;
     _1383_t12 = _1383_t11>_1384_y._1;
     if (_1383_t12) {
-        goto BB1622;
-    } else {
         goto BB1623;
+    } else {
+        goto BB1624;
     }
-BB1622:
+BB1623:
     $lines[$line_idx++] = "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                       ^";
     $panic("subslice lower bound is greater than upper bound\n");
-BB1623:
+BB1624:
     _1383_t13 = $sub_int64_t(_1384_y._1, _1383_t11, "tests/integration/slices/infer-both.orng:5:25:\n    let z: [mut]Int = y[..]\n                       ^");
     _1383_t14 = _1384_y._0+_1383_t11;
     _1384_z = (struct struct1) {_1383_t14, _1383_t13};
@@ -88,21 +88,21 @@ int64_t _1385_sum_up(struct struct1 _1385_xs){
     int64_t _1385_$retval;
     _1386_sum = 0;
     _1387_i = 0;
-    goto BB1614;
-BB1614:
+    goto BB1615;
+BB1615:
     _1385_t5 = _1387_i<_1385_xs._1;
     if (_1385_t5) {
-        goto BB1615;
+        goto BB1616;
     } else {
-        goto BB1620;
+        goto BB1621;
     }
-BB1615:
+BB1616:
     $bounds_check(_1387_i, _1385_xs._1, "tests/integration/slices/infer-both.orng:12:15:\n        sum += xs[i]\n             ^");
     _1386_sum = $add_int64_t(_1386_sum, *((int64_t*)_1385_xs._0 + _1387_i), "tests/integration/slices/infer-both.orng:12:15:\n        sum += xs[i]\n             ^");
     _1385_t7 = 1;
     _1387_i = $add_int64_t(_1387_i, _1385_t7, "tests/integration/slices/infer-both.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
-    goto BB1614;
-BB1620:
+    goto BB1615;
+BB1621:
     _1385_$retval = _1386_sum;
     return _1385_$retval;
 }

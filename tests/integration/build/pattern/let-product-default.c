@@ -40,17 +40,17 @@ int64_t _1233_main(void){
     _1233_t6 = 0;
     _1233_t8 = _1233_t5==_1233_t6;
     if (_1233_t8) {
-        goto BB1403;
+        goto BB1404;
     } else {
-        goto BB1407;
+        goto BB1408;
     }
-BB1403:
+BB1404:
     _1233_t4 = 160;
-    goto BB1406;
-BB1407:
+    goto BB1407;
+BB1408:
     _1233_t4 = 61;
-    goto BB1406;
-BB1406:
+    goto BB1407;
+BB1407:
     _1233_$retval = _1233_t4;
     return _1233_$retval;
 }

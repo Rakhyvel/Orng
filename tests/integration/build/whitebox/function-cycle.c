@@ -67,21 +67,21 @@ int64_t _1897_c(int64_t _1897_n){
     _1897_t1 = 47;
     _1897_t3 = _1897_n==_1897_t1;
     if (_1897_t3) {
-        goto BB2106;
+        goto BB2107;
     } else {
-        goto BB2110;
+        goto BB2111;
     }
-BB2106:
+BB2107:
     _1897_t0 = 47;
-    goto BB2109;
-BB2110:
+    goto BB2110;
+BB2111:
     _1897_t5 = (function0) _1893_a;
     $lines[$line_idx++] = "tests/integration/whitebox/function-cycle.orng:12:11:\n        a(n)\n         ^";
     _1897_t6 = _1897_t5(_1897_n);
     $line_idx--;
     _1897_t0 = _1897_t6;
-    goto BB2109;
-BB2109:
+    goto BB2110;
+BB2110:
     _1897_$retval = _1897_t0;
     return _1897_$retval;
 }

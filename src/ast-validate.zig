@@ -359,7 +359,7 @@ fn validate_AST_internal(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError, SymbolError }!*ast_.AST {
-    // std.debug.print("{}\n", .{ast});
+    // std.debug.print("{}: {?}\n", .{ ast, expected });
     switch (ast.*) {
         .poison => return ast,
         .pattern_symbol => return ast,
@@ -474,7 +474,8 @@ fn validate_AST_internal(
             try assert_none_poisoned(ast.expr());
             const ast_type = ast.typeof(allocator);
             try type_check(ast, ast_type, expected, errors);
-            return generate_default(ast_type, ast.expr().token().span, errors, allocator);
+            const retval = generate_default(ast_type, ast.expr().token().span, errors, allocator);
+            return retval;
         },
         .size_of => {
             ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, errors, allocator));
@@ -605,6 +606,14 @@ fn validate_AST_internal(
                 std.debug.assert(ast.children().items.len == 1);
                 ast.lhs().sum_value.init = ast.children().items[0];
                 return ast.lhs();
+            }
+            if (expanded_lhs_type.* == .function and
+                ast.call.common._expanded_type == null and
+                expected != null and
+                expected.?.types_match(primitives_.type_type))
+            {
+                const scope = ast.lhs().symbol().?.scope;
+                ast.call.common._expanded_type = try module_.interpret(ast, primitives_.type_type, scope, errors, allocator);
             }
             return ast;
         },
