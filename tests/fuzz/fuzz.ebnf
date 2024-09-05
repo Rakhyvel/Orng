@@ -6,6 +6,10 @@ program: top_level_declaration "eof".
 
 top_level_declaration: "fn main() -> Int" block_expr.
 
+###                                                            ###
+### Put `let_declaration` and everything following after here: ###
+###                                                            ###
+
 let_declaration: "let" let_pattern_atom (":" inject_expr ["=" inject_expr] | "=" inject_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
 let_pattern_atom: ["mut" | "const"] ident
@@ -63,7 +67,6 @@ call_expr: "(" [annotation_expr {"," annotation_expr}] ")".
 
 control_flow: if_expr
             | while_expr
-            | match_expr
             | factor
             .
 
@@ -90,9 +93,9 @@ if_expr: "if" [let_declaration ";"] expr block_expr ["else" control_flow].
 
 while_expr: "while" [let_declaration ";"] expr [";" statement ] block_expr ["else" control_flow].
 
-fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" inject_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" bool_expr block_expr.
 paramlist: "(" [param {"," param}] ")".
-param: let_pattern_atom ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
+param: ["const"] ident ":" inject_expr ["=" inject_expr]. # must not be product_expr, or ambiguous with ,
 
 match_expr: "match" [let_declaration ";"] expr "{" {match_bar_clause} [match_bar_else] "}".
 match_bar_clause: match_pattern_inject "=>" expr "newline".

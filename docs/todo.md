@@ -386,7 +386,9 @@
         - [x] default const parameters
         - [x] template-call in template function
         - [x] generic types without `comptime` keyword
+    - [x] memoize expanded call types
     - [ ] generic traits
+        > simply stamps out a trait instead, yeah?
     - [ ] generic methods
     - [ ] generic type unification
         > I seriously don't think this can be done with calls. It will still be useful, better than Zig's `anytype`.

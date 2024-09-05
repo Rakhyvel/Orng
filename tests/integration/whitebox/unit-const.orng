@@ -1,0 +1,7 @@
+// 320
+fn main() -> Int {
+    let const Ident = ()
+    let const x: Ident = {}
+    _ = x
+    320
+} 

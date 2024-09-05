@@ -115,9 +115,8 @@ receiver: ["&" ["mut"]] "self".
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
 method_definition: ["virtual"] "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
 
-match_expr: "match" [let_declaration ";"] assignment_expr "{" {match_bar_clause} [match_bar_else] "}".
+match_expr: "match" [let_declaration ";"] assignment_expr "{" match_bar_clause {match_bar_clause}"}".
 match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".
-match_bar_else: "else" "=>" assignment_expr "newline".
 
 match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
 match_pattern_inject: match_pattern_atom ["<-" match_pattern_atom].

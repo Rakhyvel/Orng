@@ -292,7 +292,7 @@ pub const Context = struct {
             .load_float => self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
             .load_string => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
             .load_symbol => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
-            .load_AST => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.ast)),
+            .load_AST => self.store_int(try self.effective_address(ir.dest.?), 8, @intFromPtr(ir.data.ast)),
             .load_struct => try self.move_lval_list(try self.effective_address(ir.dest.?), &ir.data.lval_list),
             .load_union => {
                 if (ir.src1 != null) {
@@ -518,7 +518,14 @@ pub const Context = struct {
             .identifier => {
                 const info = primitives_.info_from_name(_type.token().data);
                 switch (info.type_kind) {
-                    .type => return @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8)))),
+                    .type => {
+                        const addr_int = @as(usize, @intCast(self.load_int(address, 8)));
+                        if (addr_int == 0x5858585858585858) { // This works only if the interpreter never has uninitialized memory
+                            return primitives_.unit_type;
+                        } else {
+                            return @ptrFromInt(addr_int);
+                        }
+                    },
                     .none => unreachable,
                     .boolean => {
                         const val = self.load_int(address, info.size);

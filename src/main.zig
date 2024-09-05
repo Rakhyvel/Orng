@@ -56,7 +56,7 @@ fn compile(
     prelude: *symbol_.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) error{}!void {
+) !void {
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -78,13 +78,13 @@ fn compile(
             error.LexerError,
             error.ParseError,
             => {
-                try errors.printErrors();
+                try errors.print_errors();
                 return err;
             },
             error.SymbolError,
             error.TypeError,
             => if (!fuzz_tokens) {
-                try errors.printErrors();
+                try errors.print_errors();
                 return err;
             } else {
                 return err;
@@ -92,5 +92,10 @@ fn compile(
             else => return err,
         }
     };
-    try module.output(out_name, errors, allocator);
+    var output_file = try std.fs.cwd().createFile(
+        out_name,
+        .{ .read = false },
+    );
+    defer output_file.close();
+    module.output(output_file.writer()) catch unreachable;
 }

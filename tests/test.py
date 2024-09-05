@@ -127,10 +127,12 @@ def all(args):
 
     
 def fuzz():
-    res = subprocess.run(["zig", "build", "orng", "-target x86_64-linux-gnu "]).returncode
+    res = subprocess.run(["zig", "build", "orng"]).returncode
     if res != 0:
         return
     subprocess.run(["rm", "tests/fuzz/problems.txt"]).returncode
+
+    print("Running fuzz tests... crash inputs will be placed in tests/fuzz/problems.txt")
 
     for i in range(0, 90_000_000): # 90,000,000 should be about 20 hours, enough for a 4HL fella
         now = datetime.datetime.now()
@@ -148,6 +150,7 @@ def fuzz():
                     w.write(trimmed)
                 res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "--fuzz"]).returncode
                 if res != 0:
+                    print("[ FAILED ]\n", trimmed)
                     problem_file.write(trimmed + "\n")
 
 
