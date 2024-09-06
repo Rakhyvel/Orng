@@ -7,20 +7,20 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1885_main(void);
+int64_t _1877_main(void);
 
 
 /* Function definitions */
-int64_t _1885_main(void){
-    int64_t _1885_$retval;
-    goto BB2089;
-BB2089:
-    _1885_$retval = 42;
-    return _1885_$retval;
+int64_t _1877_main(void){
+    int64_t _1877_$retval;
+    goto BB2083;
+BB2083:
+    _1877_$retval = 42;
+    return _1877_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1885_main());
+  printf("%ld",_1877_main());
   return 0;
 }

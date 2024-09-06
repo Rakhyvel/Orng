@@ -32,8 +32,9 @@ pub const Span = struct {
     pub fn pprint(self: Span, allocator: std.mem.Allocator) ![]const u8 {
         var out = String.init(allocator);
         defer out.deinit();
+        const writer = out.writer();
 
-        try out.writer().print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
+        try writer.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
 
         return (try out.toOwned()).?;
     }

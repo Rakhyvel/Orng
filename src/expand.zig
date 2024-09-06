@@ -8,7 +8,11 @@ const token_ = @import("token.zig");
 
 const Expand_Error = error{TypeError};
 
-pub fn expand_from_list(asts: std.ArrayList(*ast_.AST), errors: *errs_.Errors, allocator: std.mem.Allocator) Expand_Error!void {
+pub fn expand_from_list(
+    asts: std.ArrayList(*ast_.AST), // TODO: Accept just slice
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Expand_Error!void {
     for (asts.items) |ast| {
         try expand(ast, errors, allocator);
     }

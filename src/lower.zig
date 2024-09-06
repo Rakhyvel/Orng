@@ -557,7 +557,7 @@ fn lval_from_ast(
 }
 
 fn lval_from_unit_value(
-    ast: *ast_.AST,
+    ast: *ast_.AST, // TODO: Just accept span
     cfg: *cfg_.CFG,
     allocator: std.mem.Allocator,
 ) *lval_.L_Value {

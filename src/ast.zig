@@ -1716,6 +1716,34 @@ pub const AST = union(enum) {
         };
     }
 
+    /// Determines if a given AST node type or its components refer to a block, returning true if it does or false
+    /// otherwise.
+    pub fn refers_to_block(_type: *AST) bool {
+        return switch (_type.*) {
+            // Block - true
+            .block => true,
+
+            // Cannot refer to block - false
+            .anyptr_type, .unit_type, .dyn_type, .identifier, .@"comptime", .call => false,
+
+            // Recursive
+            .addr_of, .slice_of, .array_of => _type.expr().refers_to_block(),
+            .annotation => _type.annotation.type.refers_to_block(),
+            .function, .@"union" => _type.lhs().refers_to_block() or _type.rhs().refers_to_block(),
+            .product, .sum_type => {
+                for (_type.children().items) |item| {
+                    if (item.refers_to_block()) {
+                        return true;
+                    }
+                }
+                return false;
+            },
+            else => {
+                std.debug.panic("unimplemented `refers_to_block` for {s}\n", .{@tagName(_type.*)});
+            },
+        };
+    }
+
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {

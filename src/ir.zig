@@ -206,6 +206,8 @@ pub const IR = struct {
         return mut_self;
     }
 
+    /// Snips the IR linked list in two, with this IR being the end of the list, and the next IR (if any) being the head
+    /// of the new linked list.
     pub fn snip(self: *IR) void {
         if (self.next) |_| {
             self.next.?.prev = null;
@@ -385,7 +387,10 @@ pub const IR = struct {
         try writer.print("{s}", .{out});
     }
 
-    fn print_lval_list(lval_list: std.ArrayList(*lval_.L_Value), writer: anytype) !void {
+    fn print_lval_list(
+        lval_list: std.ArrayList(*lval_.L_Value), // TODO: Slice
+        writer: anytype,
+    ) !void {
         for (lval_list.items, 0..) |lval, i| {
             try writer.print("{}", .{lval});
             if (i < lval_list.items.len - 1) {
@@ -708,6 +713,8 @@ pub const Data = union(enum) {
             return false; // tags are mismatched
         }
     }
+
+    // TODO: The following are pretty useless
 
     pub fn add_int_overflow(self: Data, other: Data) error{Overflow}!Data {
         return Data{

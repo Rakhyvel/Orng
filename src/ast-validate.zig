@@ -795,7 +795,7 @@ fn validate_AST_internal(
         .function => return try binary_operator_closed(ast, primitives_.type_type, expected, errors, allocator),
         .sum_type => {
             for (0..ast.children().items.len) |i| {
-                std.debug.assert(ast.children().items[i].* == .annotation); // sums are expanded in sum-expand.zig
+                std.debug.assert(ast.children().items[i].* == .annotation); // sums are expanded in expand.zig
                 ast.children().items[i] = validate_AST(ast.children().items[i], primitives_.type_type, errors, allocator);
             }
             try assert_none_poisoned(ast.children());
@@ -1275,7 +1275,7 @@ fn validate_AST_internal(
 }
 
 fn type_check(span: span_.Span, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
-    if (got.* == .block) {
+    if (got.refers_to_block()) {
         // TODO: This seems too simplistic
         errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "type cannot be non-const block, consider adding `comptime`" } });
         return error.TypeError;
@@ -1959,32 +1959,6 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
         .pattern_symbol => ids.clearRetainingCapacity(),
         else => {},
     }
-}
-
-/// Adds a term to an inferred error
-fn add_term(
-    ast: *ast_.AST, // TODO: Just pass in the children, along with the span
-    addend: *ast_.AST,
-    errors: *errs_.Errors,
-) Validate_Error_Enum!void {
-    std.debug.assert(addend.* == .annotation);
-    for (ast.children().items) |term| {
-        if (std.mem.eql(u8, term.annotation.pattern.token().data, addend.annotation.pattern.token().data)) {
-            if (!term.annotation.type.types_match(term)) {
-                errors.add_error(errs_.Error{ .duplicate = .{
-                    .span = ast.token().span,
-                    .identifier = term.annotation.pattern.token().data,
-                    .first = term.token().span,
-                } });
-                return error.TypeError;
-            } else {
-                // Duplicate found, types match. OK!
-                return;
-            }
-        }
-    }
-    // No duplicate found, add to inferred error set
-    ast.children().append(addend) catch unreachable;
 }
 
 fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {

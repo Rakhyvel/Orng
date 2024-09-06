@@ -8,19 +8,19 @@
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1622_main(void);
+int64_t _1614_main(void);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1622_main(void){
-    int64_t _1622_$retval;
-    _1622_$retval = 310;
-    return _1622_$retval;
+int64_t _1614_main(void){
+    int64_t _1614_$retval;
+    _1614_$retval = 310;
+    return _1614_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1622_main());
+  printf("%ld",_1614_main());
   return 0;
 }

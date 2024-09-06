@@ -121,7 +121,7 @@ pub const CFG = struct {
     /// BBs aren't trees, so `defer self.visited = false` won't work
     /// Use this function instead
     pub fn clear_visited_BBs(
-        self: *CFG, // TODO: Just accept slice of Basic_Blocks
+        self: *CFG, // TODO: Move to internal function, just accept slice of Basic_Blocks
     ) void {
         for (self.basic_blocks.items) |bb| {
             bb.visited = false;
@@ -229,7 +229,7 @@ pub const CFG = struct {
 
     /// Removes the last instruction from each basic-block of a CFG.
     pub fn remove_last_instruction(
-        cfg: *CFG, // TODO: Accept slice of basic blocks
+        cfg: *CFG, // TODO: Move to internal function, accept slice of basic blocks
     ) void {
         for (cfg.basic_blocks.items) |bb| {
             if (bb.ir_head == null) {

@@ -280,7 +280,11 @@ pub const Module = struct {
 
     /// Appends the instructions in a BasicBlock to the module's instructions.
     /// Returns the offset of the basic block
-    fn append_basic_block(self: *Module, first_bb: *basic_block_.Basic_Block, cfg: *cfg_.CFG) i64 {
+    fn append_basic_block(
+        self: *Module, // TODO: Accept instructions list and allocator
+        first_bb: *basic_block_.Basic_Block,
+        cfg: *cfg_.CFG,
+    ) i64 {
         var work_queue = std.ArrayList(*basic_block_.Basic_Block).init(self.allocator);
         defer work_queue.deinit();
         work_queue.append(first_bb) catch unreachable;
@@ -333,7 +337,10 @@ pub const Module = struct {
     /// This function inserts a label and a return instruction. It is needed for functions which do not have
     /// instructions. The label is needed so that codegen_ can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
-    fn append_phony_block(self: *Module, cfg: *cfg_.CFG) i64 {
+    fn append_phony_block(
+        self: *Module, // TODO: Accept instructions and allocator
+        cfg: *cfg_.CFG,
+    ) i64 {
         const offset = @as(i64, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
         self.instructions.append(ir_.IR.init_label(
@@ -403,6 +410,7 @@ pub fn stamp(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) !*ast_.AST {
+    // TODO: Assert template_ast is template
     if (template_ast.template.memo == null) {
         // Clone out a new fn decl AST, with a new name
         const fn_decl = template_ast.template.decl.clone(allocator);

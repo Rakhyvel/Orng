@@ -325,7 +325,10 @@ pub const Symbol_Version = struct {
     /// Finds a Symbol Version in a Symbol Version set, or null if not found.
     ///
     /// Two Symbol Versions are considered equivalent if they refer to the same Symbol.
-    pub fn find_symbol_version_set(self: *Symbol_Version, set: *std.ArrayList(*Symbol_Version)) ?*Symbol_Version {
+    pub fn find_symbol_version_set(
+        self: *Symbol_Version,
+        set: *std.ArrayList(*Symbol_Version), // TODO: Slice it
+    ) ?*Symbol_Version {
         // Go through the set's symbvers
         for (set.items) |symbver| {
             if (symbver.symbol == self.symbol) {

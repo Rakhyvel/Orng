@@ -18,51 +18,51 @@ struct struct1 {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _955_main(void);
-int64_t _957_add(int64_t _957_x, int64_t _957_y);
+int64_t _947_main(void);
+int64_t _949_add(int64_t _949_x, int64_t _949_y);
 
 
 /* Function definitions */
-int64_t _955_main(void){
-    function0 _955_t0;
-    function0 _955_t2;
-    int64_t _955_t4;
-    int64_t _955_t5;
-    int64_t _955_t3;
-    function0 _955_t6;
-    int64_t _955_t8;
-    int64_t _955_t9;
-    int64_t _955_t7;
-    int64_t _955_t1;
-    int64_t _955_$retval;
-    _955_t0 = (function0) _957_add;
-    _955_t2 = (function0) _957_add;
-    _955_t4 = 47;
-    _955_t5 = 1;
+int64_t _947_main(void){
+    function0 _947_t0;
+    function0 _947_t2;
+    int64_t _947_t4;
+    int64_t _947_t5;
+    int64_t _947_t3;
+    function0 _947_t6;
+    int64_t _947_t8;
+    int64_t _947_t9;
+    int64_t _947_t7;
+    int64_t _947_t1;
+    int64_t _947_$retval;
+    _947_t0 = (function0) _949_add;
+    _947_t2 = (function0) _949_add;
+    _947_t4 = 47;
+    _947_t5 = 1;
     $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:27:\nfn main() -> Int {add(add(47), add())}\n                         ^";
-    _955_t3 = _955_t2(_955_t4, _955_t5);
+    _947_t3 = _947_t2(_947_t4, _947_t5);
     $line_idx--;
-    _955_t6 = (function0) _957_add;
-    _955_t8 = 1;
-    _955_t9 = 1;
+    _947_t6 = (function0) _949_add;
+    _947_t8 = 1;
+    _947_t9 = 1;
     $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:36:\nfn main() -> Int {add(add(47), add())}\n                                  ^";
-    _955_t7 = _955_t6(_955_t8, _955_t9);
+    _947_t7 = _947_t6(_947_t8, _947_t9);
     $line_idx--;
     $lines[$line_idx++] = "tests/integration/functions/default-args.orng:2:23:\nfn main() -> Int {add(add(47), add())}\n                     ^";
-    _955_t1 = _955_t0(_955_t3, _955_t7);
+    _947_t1 = _947_t0(_947_t3, _947_t7);
     $line_idx--;
-    _955_$retval = _955_t1;
-    return _955_$retval;
+    _947_$retval = _947_t1;
+    return _947_$retval;
 }
 
-int64_t _957_add(int64_t _957_x, int64_t _957_y){
-    int64_t _957_$retval;
-    _957_$retval = $add_int64_t(_957_x, _957_y, "tests/integration/functions/default-args.orng:4:43:\nfn add(x: Int = 1, y: Int = 1) -> Int {x + y}\n                                         ^");
-    return _957_$retval;
+int64_t _949_add(int64_t _949_x, int64_t _949_y){
+    int64_t _949_$retval;
+    _949_$retval = $add_int64_t(_949_x, _949_y, "tests/integration/functions/default-args.orng:4:43:\nfn add(x: Int = 1, y: Int = 1) -> Int {x + y}\n                                         ^");
+    return _949_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_955_main());
+  printf("%ld",_947_main());
   return 0;
 }

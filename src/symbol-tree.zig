@@ -439,8 +439,10 @@ fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: 
         mapping.mapping.scope = new_scope;
         var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
         defer symbols.deinit();
-        const _type = ast_.AST.create_type_of(match.expr().token(), match.expr(), allocator);
-        try create_symbol(&symbols, mapping.lhs(), null, _type, match.expr(), new_scope, errors, allocator);
+        const match_expr = match.expr();
+        const match_expr_token = match_expr.token();
+        const _type = ast_.AST.create_type_of(match_expr_token, match_expr, allocator);
+        try create_symbol(&symbols, mapping.lhs(), null, _type, match_expr, new_scope, errors, allocator);
         for (symbols.items) |symbol| {
             symbol.defined = true;
         }
@@ -518,7 +520,8 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
     defer num_anons += 1;
     var out = String.init(allocator);
     defer out.deinit();
-    out.writer().print("${s}{}", .{ class, num_anons }) catch unreachable;
+    const writer = out.writer();
+    writer.print("${s}{}", .{ class, num_anons }) catch unreachable;
     return (out.toOwned() catch unreachable).?;
 }
 
@@ -737,7 +740,8 @@ fn create_method_symbol(
                 allocator,
             );
             if (ast.method_decl.init.?.* != .unit_value) {
-                ast.method_decl.init.?.children().insert(0, self_decl) catch unreachable;
+                const method_block_statements = ast.method_decl.init.?.children();
+                method_block_statements.insert(0, self_decl) catch unreachable;
             } else {
                 // Technically, init COULD be `{ }`, and it would cause a not-used error later on, but we need to handle this properly here before then
                 var statements = std.ArrayList(*ast_.AST).init(allocator);

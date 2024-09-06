@@ -450,6 +450,8 @@ fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Err
     }
 }
 
+/// Determines if a source value can be safely replaced by its definition in the IR and updates the source if possible,
+/// modifying src when propagation is performed.
 fn copy_of_prop(ir: *ir_.IR, src: *?*lval_.L_Value, src_def: ?*ir_.IR) bool {
     if (src_def != null and // src has a definition
         src_def.?.kind == .copy and // src's definition is a copy of something
@@ -473,6 +475,8 @@ fn copy_of_prop(ir: *ir_.IR, src: *?*lval_.L_Value, src_def: ?*ir_.IR) bool {
     }
 }
 
+/// Checks if a value fits within the bounds of a given type and reports an overflow error if it does not, modifying the
+/// error list.
 fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Errors) error{Overflow}!void {
     const bounds = primitives_.bounds_from_ast(_type);
     if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
@@ -485,6 +489,7 @@ fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Err
     }
 }
 
+/// Converts a non-load IR to a load IR, with data. Performs bounds checking for load_int destination IR Kinds.
 fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data, errors: *errs_.Errors) error{Overflow}!void {
     if (kind == .load_int) {
         try assert_fits(data.int, ir.dest.?.get_expanded_type(), ir.span, errors);
@@ -495,6 +500,7 @@ fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data, errors: *errs_.E
     ir.src2 = null;
 }
 
+/// Converts a non-unop IR to an unop IR.
 fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
     ir.kind = kind;
     ir.data = .none;
@@ -502,6 +508,7 @@ fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
     ir.src2 = null;
 }
 
+/// Checks if a div_int, div_float, or mod IR divides by zero
 fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{DivideByZero}!void {
     if (ir != null) {
         if (ir.?.kind == .load_int and ir.?.data.int == 0) {
@@ -520,6 +527,8 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{DivideByZero}
     }
 }
 
+/// Removes unused definitions from the CFG, skipping calls and invokes (to avoid removing instructions with side
+/// effects). Returns true if any instructions were removed.
 fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     var retval = false;
 
@@ -551,6 +560,8 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     return retval;
 }
 
+/// Performs various Basic Block optimizations in a CFG. Returns true if any optimizations are made.
+/// TODO: Split up optimization checks into their own functions
 fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 

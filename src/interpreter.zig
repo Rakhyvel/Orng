@@ -32,7 +32,7 @@ pub const Context = struct {
     pub fn init(
         cfg: *cfg_.CFG,
         instructions: *std.ArrayList(*ir_.IR), // Flat list of instructions to interpret
-        ret_type: *ast_.AST,
+        ret_type: *ast_.AST, // TODO: Just accept ret_type size
         entry_point: i64, // Address of the intruction to start execution at
     ) Context {
         std.debug.assert(entry_point >= 0);
@@ -186,7 +186,11 @@ pub const Context = struct {
 
     /// Copies memory blocks referenced by a list of L_Values to the specified destination address in the
     /// interpreter's memory.
-    fn move_lval_list(self: *Context, dest: i64, list: *std.ArrayList(*lval_.L_Value)) !void {
+    fn move_lval_list(
+        self: *Context,
+        dest: i64,
+        list: *std.ArrayList(*lval_.L_Value), // TODO: Slice only
+    ) !void {
         std.debug.assert(dest >= 0);
         var cursor = dest;
         for (list.items) |lval| {

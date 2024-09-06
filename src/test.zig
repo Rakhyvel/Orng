@@ -9,7 +9,8 @@ const term_ = @import("term.zig");
 
 const allocator = std.heap.page_allocator;
 const revert = term_.Attr{};
-const out = std.io.getStdOut().writer();
+const stdout = std.io.getStdOut();
+const out = stdout.writer();
 const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
@@ -441,9 +442,10 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TO
         return err;
     };
 
-    const stdout = try child_process.stdout.?.reader().readAllAlloc(allocator, max_output_size);
+    const child_stdout_reader = child_process.stdout.?.reader();
+    const child_stdout = try child_stdout_reader.readAllAlloc(allocator, max_output_size);
     var retcode: i64 = 0;
-    errdefer allocator.free(stdout);
+    errdefer allocator.free(child_stdout);
 
     const child = try child_process.wait();
     switch (child) {
@@ -456,7 +458,7 @@ fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TO
         },
         else => return error.CommandFailed,
     }
-    return .{ .stdout = stdout, .retcode = retcode };
+    return .{ .stdout = child_stdout, .retcode = retcode };
 }
 
 // Great std lib function candidate! Holy hell...

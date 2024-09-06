@@ -7,52 +7,52 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1891_main(void);
+int64_t _1883_main(void);
 
 
 /* Function definitions */
-int64_t _1891_main(void){
-    int64_t _1892_x;
-    int64_t _1891_t3;
-    uint8_t _1891_t4;
-    int64_t _1891_t6;
-    uint8_t _1891_t8;
-    int64_t _1891_t11;
-    int64_t _1891_$retval;
-    int64_t _1891_t9;
-    _1892_x = 0;
-    goto BB2097;
-BB2097:
-    _1891_t3 = 100;
-    _1891_t4 = _1892_x<_1891_t3;
-    if (_1891_t4) {
-        goto BB2098;
+int64_t _1883_main(void){
+    int64_t _1884_x;
+    int64_t _1883_t3;
+    uint8_t _1883_t4;
+    int64_t _1883_t6;
+    uint8_t _1883_t8;
+    int64_t _1883_t11;
+    int64_t _1883_$retval;
+    int64_t _1883_t9;
+    _1884_x = 0;
+    goto BB2091;
+BB2091:
+    _1883_t3 = 100;
+    _1883_t4 = _1884_x<_1883_t3;
+    if (_1883_t4) {
+        goto BB2092;
     } else {
-        goto BB2103;
+        goto BB2097;
     }
-BB2098:
-    _1891_t6 = 40;
-    _1891_t8 = _1892_x==_1891_t6;
-    if (_1891_t8) {
+BB2092:
+    _1883_t6 = 40;
+    _1883_t8 = _1884_x==_1883_t6;
+    if (_1883_t8) {
+        goto BB2095;
+    } else {
         goto BB2101;
-    } else {
-        goto BB2107;
     }
-BB2103:
-    _1891_$retval = _1892_x;
-    return _1891_$retval;
-BB2101:
-    _1891_t9 = 1;
-    _1892_x = $add_int64_t(_1892_x, _1891_t9, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
-    goto BB2103;
-BB2107:
-    _1891_t11 = 1;
-    _1892_x = $add_int64_t(_1892_x, _1891_t11, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
+BB2097:
+    _1883_$retval = _1884_x;
+    return _1883_$retval;
+BB2095:
+    _1883_t9 = 1;
+    _1884_x = $add_int64_t(_1884_x, _1883_t9, "tests/integration/whitebox/final-pos.orng:6:17:\n            x += 1\n               ^");
     goto BB2097;
+BB2101:
+    _1883_t11 = 1;
+    _1884_x = $add_int64_t(_1884_x, _1883_t11, "tests/integration/whitebox/final-pos.orng:4:24:\n    while x < 100; x += 1 {\n                      ^");
+    goto BB2091;
 }
 
 
 int main(void) {
-  printf("%ld",_1891_main());
+  printf("%ld",_1883_main());
   return 0;
 }

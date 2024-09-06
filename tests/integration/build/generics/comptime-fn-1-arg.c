@@ -12,31 +12,31 @@
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1025_main(void);
-int64_t _1027_$anon94(void);
+int64_t _1017_main(void);
+int64_t _1019_$anon94(void);
 
 
 /* Function definitions */
-int64_t _1025_main(void){
-    function0 _1025_t0;
-    int64_t _1025_t1;
-    int64_t _1025_$retval;
-    _1025_t0 = (function0) _1027_$anon94;
+int64_t _1017_main(void){
+    function0 _1017_t0;
+    int64_t _1017_t1;
+    int64_t _1017_$retval;
+    _1017_t0 = (function0) _1019_$anon94;
     $lines[$line_idx++] = "tests/integration/generics/comptime-fn-1-arg.orng:6:12:\n    getval(Int)\n          ^";
-    _1025_t1 = _1025_t0();
+    _1017_t1 = _1017_t0();
     $line_idx--;
-    _1025_$retval = _1025_t1;
-    return _1025_$retval;
+    _1017_$retval = _1017_t1;
+    return _1017_$retval;
 }
 
-int64_t _1027_$anon94(void){
-    int64_t _1027_$retval;
-    _1027_$retval = 313;
-    return _1027_$retval;
+int64_t _1019_$anon94(void){
+    int64_t _1019_$retval;
+    _1019_$retval = 313;
+    return _1019_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1025_main());
+  printf("%ld",_1017_main());
   return 0;
 }

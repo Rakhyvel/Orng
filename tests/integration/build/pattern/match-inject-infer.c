@@ -20,22 +20,22 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1278_main(void);
+int64_t _1270_main(void);
 
 
 /* Function definitions */
-int64_t _1278_main(void){
-    int64_t _1278_t2;
-    struct struct0 _1279_x;
-    int64_t _1278_$retval;
-    _1278_t2 = 172;
-    _1279_x = (struct struct0) {.tag=0, ._0=_1278_t2};
-    _1278_$retval = _1279_x._0;
-    return _1278_$retval;
+int64_t _1270_main(void){
+    int64_t _1270_t2;
+    struct struct0 _1271_x;
+    int64_t _1270_$retval;
+    _1270_t2 = 172;
+    _1271_x = (struct struct0) {.tag=0, ._0=_1270_t2};
+    _1270_$retval = _1271_x._0;
+    return _1270_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1278_main());
+  printf("%ld",_1270_main());
   return 0;
 }

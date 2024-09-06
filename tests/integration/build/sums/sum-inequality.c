@@ -18,25 +18,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1566_main(void);
+int64_t _1558_main(void);
 
 
 /* Function definitions */
-int64_t _1566_main(void){
-    int64_t _1566_t0;
-    struct struct0 _1567_x;
-    uint64_t _1566_t10;
-    int64_t _1566_$retval;
-    _1566_t0 = 211;
-    _1567_x = (struct struct0) {.tag=0, ._0=_1566_t0};
-    _1566_t10 = 0;
-    $tag_check(_1566_t10, 0, "tests/integration/sums/sum-inequality.orng:4:20:\n    if x != .none {\n                  ^");
-    _1566_$retval = _1567_x._0;
-    return _1566_$retval;
+int64_t _1558_main(void){
+    int64_t _1558_t0;
+    struct struct0 _1559_x;
+    uint64_t _1558_t10;
+    int64_t _1558_$retval;
+    _1558_t0 = 211;
+    _1559_x = (struct struct0) {.tag=0, ._0=_1558_t0};
+    _1558_t10 = 0;
+    $tag_check(_1558_t10, 0, "tests/integration/sums/sum-inequality.orng:4:20:\n    if x != .none {\n                  ^");
+    _1558_$retval = _1559_x._0;
+    return _1558_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1566_main());
+  printf("%ld",_1558_main());
   return 0;
 }

@@ -12,50 +12,50 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _943_main(void);
-int64_t _945_g(int64_t _945_x);
-int64_t _947_f(int64_t _947_x);
+int64_t _935_main(void);
+int64_t _937_g(int64_t _937_x);
+int64_t _939_f(int64_t _939_x);
 
 
 /* Function definitions */
-int64_t _943_main(void){
-    function0 _943_t0;
-    int64_t _943_t2;
-    int64_t _943_t1;
-    int64_t _943_$retval;
-    _943_t0 = (function0) _945_g;
-    _943_t2 = 194;
+int64_t _935_main(void){
+    function0 _935_t0;
+    int64_t _935_t2;
+    int64_t _935_t1;
+    int64_t _935_$retval;
+    _935_t0 = (function0) _937_g;
+    _935_t2 = 194;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:3:7:\n    g(194)\n     ^";
-    _943_t1 = _943_t0(_943_t2);
+    _935_t1 = _935_t0(_935_t2);
     $line_idx--;
-    _943_$retval = _943_t1;
-    return _943_$retval;
+    _935_$retval = _935_t1;
+    return _935_$retval;
 }
 
-int64_t _945_g(int64_t _945_x){
-    int64_t _946_z;
-    function0 _945_t1;
-    int64_t _945_t2;
-    int64_t _945_$retval;
-    _946_z = _945_x;
-    _945_t1 = (function0) _947_f;
+int64_t _937_g(int64_t _937_x){
+    int64_t _938_z;
+    function0 _937_t1;
+    int64_t _937_t2;
+    int64_t _937_$retval;
+    _938_z = _937_x;
+    _937_t1 = (function0) _939_f;
     $lines[$line_idx++] = "tests/integration/functions/copy-arg.orng:8:7:\n    f(z)\n     ^";
-    _945_t2 = _945_t1(_946_z);
+    _937_t2 = _937_t1(_938_z);
     $line_idx--;
-    _945_$retval = _945_t2;
-    return _945_$retval;
+    _937_$retval = _937_t2;
+    return _937_$retval;
 }
 
-int64_t _947_f(int64_t _947_x){
-    int64_t _947_$retval;
-    goto BB1117;
-BB1117:
-    _947_$retval = _947_x;
-    return _947_$retval;
+int64_t _939_f(int64_t _939_x){
+    int64_t _939_$retval;
+    goto BB1111;
+BB1111:
+    _939_$retval = _939_x;
+    return _939_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_943_main());
+  printf("%ld",_935_main());
   return 0;
 }
