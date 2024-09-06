@@ -1716,30 +1716,26 @@ pub const AST = union(enum) {
         };
     }
 
-    /// Determines if a given AST node type or its components refer to a block, returning true if it does or false
-    /// otherwise.
-    pub fn refers_to_block(_type: *AST) bool {
+    /// Determines if an AST can refer to a type structurally.
+    pub fn valid_type(_type: *AST) bool {
         return switch (_type.*) {
-            // Blocks - true
-            .block, .match, .@"if", .@"while" => true,
+            // Anything else probably isn't a type
+            else => false,
 
-            // Cannot refer to block - false
-            .anyptr_type, .unit_type, .dyn_type, .identifier, .@"comptime", .call, .invoke => false,
+            // Always types
+            .anyptr_type, .unit_type, .dyn_type, .identifier, .@"comptime", .call, .invoke => true,
 
             // Recursive
-            .addr_of, .slice_of, .array_of => _type.expr().refers_to_block(),
-            .annotation => _type.annotation.type.refers_to_block(),
-            .function, .@"union" => _type.lhs().refers_to_block() or _type.rhs().refers_to_block(),
+            .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
+            .annotation => _type.annotation.type.valid_type(),
+            .function, .@"union" => _type.lhs().valid_type() or _type.rhs().valid_type(),
             .product, .sum_type => {
                 for (_type.children().items) |item| {
-                    if (item.refers_to_block()) {
-                        return true;
+                    if (!item.valid_type()) {
+                        return false;
                     }
                 }
-                return false;
-            },
-            else => {
-                std.debug.panic("unimplemented `refers_to_block` for {s}\n", .{@tagName(_type.*)});
+                return true;
             },
         };
     }

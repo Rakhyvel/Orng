@@ -207,6 +207,9 @@ pub const Error = union(enum) {
         expected: *ast_.AST,
         value: i128,
     },
+    invalid_type: struct {
+        span: span_.Span,
+    },
 
     fn get_span(self: *const Error) ?span_.Span {
         switch (self.*) {
@@ -253,6 +256,7 @@ pub const Error = union(enum) {
             .no_default => return self.no_default.span,
             .wrong_from => return self.wrong_from.span,
             .integer_out_of_bounds => return self.integer_out_of_bounds.span,
+            .invalid_type => return self.invalid_type.span,
         }
     }
 };
@@ -502,6 +506,9 @@ pub const Errors = struct {
                 try out.print("error: integer is out of bounds for type `", .{});
                 try err.integer_out_of_bounds.expected.print_type(out);
                 try out.print("`; value={}\n", .{err.integer_out_of_bounds.value});
+            },
+            .invalid_type => {
+                try out.print("error: expected a compile-time constant type", .{});
             },
         }
     }

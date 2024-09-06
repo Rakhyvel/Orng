@@ -81,8 +81,14 @@ pub const Scope = struct {
     ///
     /// `for_type` doesn't necessarily need to be a valid type to match. It is not expanded.
     pub fn impl_trait_lookup(self: *Scope, for_type: *ast_.AST, trait: ?*Symbol) ?*ast_.AST {
+        if (!for_type.valid_type()) {
+            return null;
+        }
         // Go through the scope's list of implementations, check to see if the types and traits match
         for (self.impls.items) |impl| {
+            if (!impl.impl._type.valid_type()) {
+                return null;
+            }
             if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
                 // Types do not match
                 continue;
