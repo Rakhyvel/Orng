@@ -1716,14 +1716,16 @@ pub const AST = union(enum) {
         };
     }
 
-    /// Determines if an AST can refer to a type structurally.
+    /// Determines if an AST can structurally refer to a type. This is looser than if an AST value is Type typed, as
+    /// some ASTs that pass this check might fail `types_match(primitives_.type_type)`. types_match() assumes it's
+    /// arguments pass this test.
     pub fn valid_type(_type: *AST) bool {
         return switch (_type.*) {
-            // Anything else probably isn't a type
+            // Anything else probably isn't a valid type
             else => false,
 
             // Always types
-            .anyptr_type, .unit_type, .dyn_type, .identifier, .@"comptime", .call, .invoke => true,
+            .anyptr_type, .unit_type, .dyn_type, .identifier, .call, .invoke => true,
 
             // Recursive
             .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
@@ -2293,6 +2295,8 @@ pub const AST = union(enum) {
     /// always type-sound.
     ///
     /// Also, (x: T,) == T == (x: T,)
+    ///
+    /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *AST, B: *AST) bool {
         // std.debug.print("{} == {}\n", .{ A, B });
         if (A.* == .annotation) {

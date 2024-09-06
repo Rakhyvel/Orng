@@ -118,8 +118,14 @@ pub const Scope = struct {
 
     /// Looks up the impl method_decl ast implemented for a given type, with a given name
     pub fn method_lookup(self: *Scope, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
+        if (!for_type.valid_type()) {
+            return null;
+        }
         // Go through the list of implementations, check to see if the types and traits match
         for (self.impls.items) |impl| {
+            if (!impl.impl._type.valid_type()) {
+                return null;
+            }
             if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
                 // Types do not match
                 continue;

@@ -1,1 +1,1 @@
-fn main() -> Int { & not - . ident ( - ? if [ not ? fn ident ( ) -> not [ ] ( ) { } ] & not . ident { } ) newline } fn ( ) -> [ ] ? fn ( ) -> & [ ] ? ( ) { } { } 
+fn main() -> Int { ? . ident .> ident ( not ident .> ident ( ) -= . ident ) newline } fn ( ) -> - & self { } 

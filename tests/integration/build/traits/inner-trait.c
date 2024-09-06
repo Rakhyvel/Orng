@@ -20,14 +20,14 @@ int64_t _1666_get(void);
 
 /* Function definitions */
 int64_t _1662_main(void){
-    function0 _1662_t4;
-    int64_t _1662_t3;
+    function0 _1662_t6;
+    int64_t _1662_t5;
     int64_t _1662_$retval;
-    _1662_t4 = (function0) _1666_get;
+    _1662_t6 = (function0) _1666_get;
     $lines[$line_idx++] = "tests/integration/traits/inner-trait.orng:13:8:\n    x.>get()\n      ^";
-    _1662_t3 = _1662_t4();
+    _1662_t5 = _1662_t6();
     $line_idx--;
-    _1662_$retval = _1662_t3;
+    _1662_$retval = _1662_t5;
     return _1662_$retval;
 }
 
