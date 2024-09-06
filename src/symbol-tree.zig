@@ -341,6 +341,12 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
             .name = @tagName(ast.*),
         } });
         return error.SymbolError;
+    } else if (scope.inner_function.?.kind == .@"comptime") {
+        errors.add_error(errs_.Error{ .basic = .{
+            .span = ast.token().span,
+            .msg = "`return` cannot be within comptime",
+        } });
+        return error.SymbolError;
     } else {
         return scope.inner_function.?;
     }
@@ -370,7 +376,7 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
 
 /// Creates symbols from a given pattern, declaration, type, and initializer within the given scope.
 fn create_symbol(
-    symbols: *std.ArrayList(*symbol_.Symbol), // Mutable list that accumulates all the created symbols for a given scope.
+    symbols: *std.ArrayList(*symbol_.Symbol), // Mutable list that accumulates all the created symbols for a given scope, to be put() later.
     pattern: *ast_.AST, // Represents the pattern being matched; processed recursively to create symbols.
     decl: ?*ast_.AST, // Potential decl AST to be given to symbols.
     _type: *ast_.AST, // Type of the current pattern.

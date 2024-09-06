@@ -1,0 +1,3 @@
+fn main() -> Int { 
+    comptime { return 3 } 
+}

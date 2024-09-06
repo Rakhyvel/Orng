@@ -67,7 +67,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
         symbol.expanded_type = symbol._type.expand_type(allocator);
-        if (type_is_type_type(symbol.expanded_type.?) and symbol.kind == .let) {
+        if (type_is_type_type(symbol.expanded_type.?) and (symbol.kind == .let or symbol.kind == .mut)) {
             errors.add_error(errs_.Error{ .basic = .{
                 .span = symbol.span,
                 .msg = "non-constant variable with `Type` type",
