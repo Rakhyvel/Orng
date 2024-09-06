@@ -99,6 +99,7 @@
 - [ ] Parses an LL(1) grammar
 - [ ] Rejects if grammar is not LL(1) ("ambiguity" but not exactly)
 - [ ] Generates JSON files of example programs, with identifiers, numbers, etc replaced with random values
+- [ ] Supports including other ebnf files
 
 ### Language Features
 - [x] addresses

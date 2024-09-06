@@ -16,6 +16,8 @@ let_pattern_atom: ["mut" | "const"] ident
                 | "(" let_pattern_product ")"
                 .
 
+let_pre: [let_declaration ";"]
+
 statement: let_declaration
          | trait_declaration
          | impl
@@ -61,42 +63,47 @@ prefix_expr: "not" prefix_expr                                    # boolean not
            .
 
 postfix_expr: (control_flow | factor) 
-      { "(" [bool_expr {"," bool_expr}] ")"           # call expression 
+      { call_args
       | "[" ((".."[bool_expr]) | (bool_expr[".." [bool_expr]])) "]"
       | "." ident
-      | ".>" ident
+      | ".>" ident call_args
       | "^"
       }.
+
+call_args: "(" [assignment_expr {"," assignment_expr}] ")".
 
 control_flow: if_expr
             | while_expr
             | match_expr
             | for_expr
             | "comptime" block_expr
-            | block_expr
+            | factor
             .
 
 factor: ident
-      | "true"
-      | "false"
-      | int
-      | hex
-      | oct
-      | bin
-      | float
-      | char
-      | string
+      | "self"
       | fn_declaration
-      | "unreachable"
-      | "." ident
-      | parens
       .
 
-block_expr: "{" [ statement { "newline" statement } ] [("return" [bool_expr]) | ("continue") | ("break")] "}".
+literal: "true"
+       | "false"
+       | int
+       | hex
+       | oct
+       | bin
+       | float
+       | char
+       | string
+       | block_expr
+       | "." ident ["(" assignment_expr ")"]
+       | "unreachable"
+       | parens
 
-if_expr: "if" [let_declaration ";"] bool_expr block_expr ["else" control_flow].
+block_expr: "{" [ assignment_expr "newline" { "newline" statement "newline" } ] [( "return" [assignment_expr]) | ("continue") | ("break")] "}".
 
-while_expr: "while" [let_declaration ";"] bool_expr [";" statement ] block_expr ["else" control_flow].
+if_expr: "if" let_pre bool_expr block_expr ["else" control_flow].
+
+while_expr: "while" let_pre bool_expr [";" statement ] block_expr ["else" control_flow].
 
 for_expr: "for" ["mut"] ident "in" bool_expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
 
@@ -112,25 +119,15 @@ receiver: ["&" ["mut"]] "self".
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
 method_definition: ["virtual"] "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr] block_expr.
 
-match_expr: "match" [let_declaration ";"] bool_expr "{" match_bar_clause {match_bar_clause}"}".
-match_bar_clause: match_pattern_inject "=>" bool_expr "newline".
-
-match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
-match_pattern_inject: match_pattern_atom.
+match_expr: "match" let_pre assignment_expr "{" match_mapping {match_mapping}"}".
+match_mapping: match_pattern_sum_value "=>" assignment_expr "newline".
+match_pattern_sum_value: match_pattern_atom ["(" match_pattern_atom ")"].
 match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol otherwise
-                  | "true"
-                  | "false"
-                  | int
-                  | hex
-                  | octal
-                  | bin
-                  | float
-                  | char
-                  | string
-                  | block_expr
-                  | "." ident
+                  | "." ident ["(" match_pattern_atom ")"]
                   | "(" match_pattern_product ")"
+                  | literal
                   .
+match_pattern_product: match_pattern_sum_value {"," match_pattern_sum_value}.
 
 parens: "(" [expr] ")". # ABSOLUTELY needs to be `"(" expr ")"` so that you can put all exprs in parens
                         # This also makes it so that tuples, sums, and annotations are always parenthized, which helps with landmarking

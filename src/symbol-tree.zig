@@ -368,12 +368,13 @@ fn put_all_symbols(symbols: *std.ArrayList(*symbol_.Symbol), scope: *symbol_.Sco
     }
 }
 
+/// Creates symbols from a given pattern, declaration, type, and initializer within the given scope.
 fn create_symbol(
-    symbols: *std.ArrayList(*symbol_.Symbol),
-    pattern: *ast_.AST,
-    decl: ?*ast_.AST,
-    _type: *ast_.AST,
-    init: ?*ast_.AST, // The value being matched on
+    symbols: *std.ArrayList(*symbol_.Symbol), // Mutable list that accumulates all the created symbols for a given scope.
+    pattern: *ast_.AST, // Represents the pattern being matched; processed recursively to create symbols.
+    decl: ?*ast_.AST, // Potential decl AST to be given to symbols.
+    _type: *ast_.AST, // Type of the current pattern.
+    init: ?*ast_.AST, // The value being matched on. Null for function parameter symbols.
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -397,6 +398,7 @@ fn create_symbol(
             const symbol_init = if (pattern.pattern_symbol.kind != .@"const" or decl != null and decl.?.decl.is_alias)
                 init
             else if (init != null)
+                // Wrap init in comptime if symbol is const and non-alias
                 try create_comptime_init(init.?, _type, scope, errors, allocator)
             else
                 null;
@@ -427,13 +429,15 @@ fn create_symbol(
 
             if (pattern.sum_value.init != null) {
                 // Here init is null!
-                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, null, scope, errors, allocator);
+                try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
             }
         },
         else => {},
     }
 }
 
+/// Creates and initializes pattern symbols for each mapping in a match expression, defining the symbols within the
+/// mapping's scope.
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Symbol_Error_Enum!void {
     for (match.children().items) |mapping| {
         const new_scope = symbol_.Scope.init(scope, "", allocator);

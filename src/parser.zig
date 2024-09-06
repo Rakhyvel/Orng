@@ -969,7 +969,7 @@ pub const Parser = struct {
         while (self.accept(.newline)) |_| {}
 
         while (!self.peek_kind(.right_brace)) {
-            if (self.next_is_expr()) {
+            if (self.next_is_expr() or self.peek().kind == .mut) {
                 mappings.append(try self.match_mapping()) catch unreachable;
             } else {
                 self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "match mapping", .got = self.peek() } });
@@ -995,25 +995,6 @@ pub const Parser = struct {
         }
 
         return ast_.AST.create_mapping(lhs.token(), lhs, rhs, self.allocator);
-    }
-
-    fn match_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const exp = try self.match_pattern_sum_value();
-        var terms: ?std.ArrayList(*ast_.AST) = null;
-        var firsttoken_: ?token_.Token = null;
-        while (self.accept(.comma)) |token| {
-            if (terms == null) {
-                terms = std.ArrayList(*ast_.AST).init(self.allocator);
-                firsttoken_ = token;
-                terms.?.append(exp) catch unreachable;
-            }
-            terms.?.append(try self.match_pattern_sum_value()) catch unreachable;
-        }
-        if (terms) |terms_list| {
-            return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
-        } else {
-            return exp;
-        }
     }
 
     fn match_pattern_sum_value(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -1066,6 +1047,25 @@ pub const Parser = struct {
             return pattern;
         } else {
             return self.literal();
+        }
+    }
+
+    fn match_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const exp = try self.match_pattern_sum_value();
+        var terms: ?std.ArrayList(*ast_.AST) = null;
+        var firsttoken_: ?token_.Token = null;
+        while (self.accept(.comma)) |token| {
+            if (terms == null) {
+                terms = std.ArrayList(*ast_.AST).init(self.allocator);
+                firsttoken_ = token;
+                terms.?.append(exp) catch unreachable;
+            }
+            terms.?.append(try self.match_pattern_sum_value()) catch unreachable;
+        }
+        if (terms) |terms_list| {
+            return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
+        } else {
+            return exp;
         }
     }
 

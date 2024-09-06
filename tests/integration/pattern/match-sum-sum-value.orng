@@ -1,0 +1,11 @@
+// 323
+fn main() -> Int { 
+    let const Sum_AB = (a | b)
+    let const Sum_XY = (x: Sum_AB | y: Sum_AB)
+
+    let g = Sum_XY.x(.a)
+    match g {
+        .x(.a) => 323
+        _ => 1
+    }
+}
