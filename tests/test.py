@@ -132,7 +132,7 @@ def fuzz():
         return
     subprocess.run(["rm", "tests/fuzz/problems.txt"]).returncode
 
-    print("Running fuzz tests... crash inputs will be placed in tests/fuzz/problems.txt")
+    print("Running fuzz tests... inputs that cause compiler crashes will be placed in tests/fuzz/problems.txt")
 
     for i in range(0, 90_000_000): # 90,000,000 should be about 20 hours, enough for a 4HL fella
         now = datetime.datetime.now()
@@ -149,7 +149,7 @@ def fuzz():
                 with open("tests/fuzz/fuzz.orng", "w") as w:
                     w.write(trimmed)
                 try:
-                    res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "--fuzz"], timeout=1).returncode
+                    res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "--fuzz"], timeout=2).returncode
                 except subprocess.TimeoutExpired:
                     res = 1
                 if res != 0:

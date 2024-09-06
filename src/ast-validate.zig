@@ -67,6 +67,14 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
         symbol.expanded_type = symbol._type.expand_type(allocator);
+        if (type_is_type_type(symbol.expanded_type.?) and symbol.kind == .let) {
+            errors.add_error(errs_.Error{ .basic = .{
+                .span = symbol.span,
+                .msg = "non-constant variable with `Type` type",
+            } });
+            symbol.validation_state = .invalid;
+            return error.TypeError;
+        }
         const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
         if (symbol.init) |init| {
@@ -1267,6 +1275,11 @@ fn validate_AST_internal(
 }
 
 fn type_check(span: span_.Span, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+    if (got.* == .block) {
+        // TODO: This seems too simplistic
+        errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "type cannot be non-const block, consider adding `comptime`" } });
+        return error.TypeError;
+    }
     if (expected != null and !got.types_match(expected.?)) {
         return throw_unexpected_type(span, expected.?, got, errors);
     }
