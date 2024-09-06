@@ -1276,7 +1276,7 @@ fn validate_AST_internal(
 
 fn type_check(span: span_.Span, got: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (got.refers_to_block()) {
-        errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "type cannot be non-const block, consider adding `comptime`" } });
+        errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "type cannot be non-const, consider adding `comptime`" } });
         return error.TypeError;
     }
     if (expected != null and !got.types_match(expected.?)) {

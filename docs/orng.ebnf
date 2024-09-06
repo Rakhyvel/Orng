@@ -53,19 +53,16 @@ int_expr: term_expr {("+" | "-" | "!") term_expr}.
 term_expr: prefix_expr ({("*" | "/" | "||" | "%") prefix_expr}).
 
 prefix_expr: "not" prefix_expr                                    # boolean not
-           | "typeof" prefix_expr                                 # type of an expression
-           | "default" postfix_expr                               # default value for a given type
-           | "sizeof" prefix_expr                                 # size (in bytes) of an epxression's C representation
            | "-" prefix_expr                                      # negation
            | "&" ["mut"] ["dyn"] prefix_expr                      # address-of/trait object
-           | "[" ["mut" | assignment_expr | "*"] "]" prefix_expr  # slice-of/tuple-of/multi-pointer
+           | "[" ["mut" | bool_expr | "*"] "]" prefix_expr  # slice-of/tuple-of/multi-pointer
            | "?" postfix_expr                                     # optional
            | postfix_expr
            .
 
 postfix_expr: (control_flow | factor) 
-      { "(" [assignment_expr {"," assignment_expr}] ")"           # call expression 
-      | "[" ((".."[assignment_expr]) | (assignment_expr[".." [assignment_expr]])) "]"
+      { "(" [bool_expr {"," bool_expr}] ")"           # call expression 
+      | "[" ((".."[bool_expr]) | (bool_expr[".." [bool_expr]])) "]"
       | "." ident
       | ".>" ident
       | "^"
@@ -95,15 +92,15 @@ factor: ident
       | parens
       .
 
-block_expr: "{" [ statement { "newline" statement } ] [("return" [assignment_expr]) | ("continue") | ("break")] "}".
+block_expr: "{" [ statement { "newline" statement } ] [("return" [bool_expr]) | ("continue") | ("break")] "}".
 
-if_expr: "if" [let_declaration ";"] assignment_expr block_expr ["else" control_flow].
+if_expr: "if" [let_declaration ";"] bool_expr block_expr ["else" control_flow].
 
-while_expr: "while" [let_declaration ";"] assignment_expr [";" statement ] block_expr ["else" control_flow].
+while_expr: "while" [let_declaration ";"] bool_expr [";" statement ] block_expr ["else" control_flow].
 
-for_expr: "for" ["mut"] ident "in" assignment_expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
+for_expr: "for" ["mut"] ident "in" bool_expr block_expr ["else" control_flow]. # TODO: Perhaps specify type of element?
 
-fn_declaration: "fn" [ident] paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
+fn_declaration: "fn" [ident] paramlist "->" bool_expr ["where" arrow_expr] block_expr.
 paramlist: "(" [["mut" | "const"] param {"," ["mut" | "const"] param}] ")".
 param: ident ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
 
@@ -113,13 +110,13 @@ method_paramlist: "(" [("const" param | ["mut"](param|receiver)) {"," ["mut" | "
 receiver: ["&" ["mut"]] "self".
 
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
-method_definition: ["virtual"] "fn" ident method_paramlist "->" ["!"] bool_expr ["where" arrow_expr] block_expr.
+method_definition: ["virtual"] "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr] block_expr.
 
-match_expr: "match" [let_declaration ";"] assignment_expr "{" match_bar_clause {match_bar_clause}"}".
-match_bar_clause: match_pattern_inject "=>" assignment_expr "newline".
+match_expr: "match" [let_declaration ";"] bool_expr "{" match_bar_clause {match_bar_clause}"}".
+match_bar_clause: match_pattern_inject "=>" bool_expr "newline".
 
 match_pattern_product: match_pattern_inject {"," match_pattern_inject}.
-match_pattern_inject: match_pattern_atom ["<-" match_pattern_atom].
+match_pattern_inject: match_pattern_atom.
 match_pattern_atom: ["mut"] ident {"." ident} # ident if part of a dot, symbol otherwise
                   | "true"
                   | "false"

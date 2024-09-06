@@ -1720,11 +1720,11 @@ pub const AST = union(enum) {
     /// otherwise.
     pub fn refers_to_block(_type: *AST) bool {
         return switch (_type.*) {
-            // Block - true
-            .block => true,
+            // Blocks - true
+            .block, .match, .@"if", .@"while" => true,
 
             // Cannot refer to block - false
-            .anyptr_type, .unit_type, .dyn_type, .identifier, .@"comptime", .call => false,
+            .anyptr_type, .unit_type, .dyn_type, .identifier, .@"comptime", .call, .invoke => false,
 
             // Recursive
             .addr_of, .slice_of, .array_of => _type.expr().refers_to_block(),

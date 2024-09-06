@@ -1,1 +1,396 @@
-fn main() -> Int { } fn ( ident : ? . ident ( ) . ident . ident ) -> ? fn ( ) -> & & ? if - if & not if while - while not while & ? if - if ? fn ( ) -> - while & not ident { } { } { } { } { } { } { } { } { } { } { } { } 
+fn main() -> Int { [ ] unreachable ( ) .> ident ( [ ] [ ] & { - - & ? comptime { [ * ] & ? true newline } newline } ) newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { - . ident .> ident ( ? comptime { - char newline } ) newline } fn ( ) -> hex { } 
+fn main() -> Int { } fn ( ) -> not & dyn ? char .> ident ( ) ( ) .> ident ( & dyn not not ? if not not [ while comptime { } { } ] & hex { } ) { } 
+fn main() -> Int { return comptime { } ^ .> ident ( - & mut dyn [ * ] fn ( ident : ? while [ ] ? comptime { } { } ) -> - [ ] not [ ] & { } { } ) } fn ( ) -> - float { } 
+fn main() -> Int { - ? hex ( ) .> ident ( - while let ident = - char ; ident { } ) newline } fn ( ) -> [ ] ? if fn ( ) -> [ ] - while [ ] - & if - not - not & ? ident { } { } { } { } { } 
+fn main() -> Int { not { [ mut ] not ? comptime { return & mut dyn not unreachable } newline } newline } fn ( ) -> false { } 
+fn main() -> Int { } fn ( ) -> not ? . ident . ident .> ident ( & mut dyn not ? comptime { break } ) { } 
+fn main() -> Int { & dyn true .> ident ( ) .> ident ( [ ] ? { not & mut not oct %= - ? while - oct { } newline } ) newline } fn ( ) -> [ ] ? if ? string { } { } 
+fn main() -> Int { } fn ident ( ) -> not ( ) .> ident ( not not fn ( ) -> not - ? match let ( mut ident ) : not & & ? string ; not & & ? match not - ? true { false => ? true newline } { hex => [ ] ? comptime { } newline } { } ) { } 
+fn main() -> Int { } fn ( ) -> . ident ^ .> ident ( ) ( ) ^ .> ident ( [ ] [ ] & - [ ] not & mut dyn [ mut ] [ ? if ? comptime { } { } ] bin ) { } 
+fn main() -> Int { return } fn ident ( ) -> & not oct .> ident ( & dyn match let ident = not [ ] int ; & [ ] & not [ ] if not not & ? { } { } { octal => [ ] comptime { } newline } ) { } 
+fn main() -> Int { ( ) .> ident ( [ * ] - not not [ mut ] [ ] ? fn ( ident : not - not . ident ) -> - { } { } ) newline } fn ( ) -> unreachable { } 
+fn main() -> Int { [ ] while & mut false ( . ident ) ; impl for not - ? unreachable { } { } newline } fn ( ) -> [ ] [ ] [ ] true { } 
+fn main() -> Int { [ mut ] not [ ] & ? int [ .. ] .> ident ( - - comptime { ? false newline } ) newline } fn ( ) -> [ ] - [ ] [ ] match ? match ? true { char => - not [ ] string newline } { float => - - & [ ] & not & ident newline } { } 
+fn main() -> Int { - ? . ident .> ident ( ? if - . ident -= - not not char { } ) newline } fn ( ) -> - not [ ] ? while & if ? hex { } { } { } 
+fn main() -> Int { return ? . ident ( ) ^ ^ . ident . ident . ident . ident .> ident ( { continue } ) } fn ( ) -> ? { } { } 
+fn main() -> Int { hex .> ident ( & mut dyn ? match match let ( ( ( ( ( ( ( ( ( ( ident ) ) ) ) ) ) ) ) ) ) = ? char ; ? . ident { false => not [ ] [ ] - - not - [ ] not ident newline } { ( true ) => not & - ? bin newline } ) newline } fn ( ) -> & comptime { } { } 
+fn main() -> Int { ? bin ^ ^ [ .. ] ^ .> ident ( [ ] - not not match let ( ( ( ( const ident ) ) ) ) : hex ; & float { bin => [ ] [ ] ident newline } ) newline } fn ( ) -> not - & while & - & & [ ] - string { } { } 
+fn main() -> Int { & dyn & mut int .> ident ( ) .> ident ( [ ] ? fn ident ( const ident : & dyn - ? match let ident = ? comptime { } ; ? ident { false => & while . ident { } newline } ) -> - [ ] [ ] & [ ] not - not & false { } ) newline } fn ( ) -> ? { } { } 
+fn main() -> Int { ? . ident .> ident ( - & dyn not [ ] - - [ ] if false *= & & [ ] & & hex { } ) newline } fn ( ) -> not & not ? { } { } 
+fn main() -> Int { ? { } .> ident ( [ - not - ? { ? comptime { } -= { } newline } ] [ ] - - ? int ) newline } fn ( ) -> [ ] not ? ident { } 
+fn main() -> Int { comptime { } .> ident ( & dyn ? { if false { continue } newline } ) newline } fn ( ) -> - fn ( ) -> true { } { } 
+fn main() -> Int { not not oct .> ident ( [ * ] & dyn ? while let mut ident = match & dyn ? fn ( ) -> [ ] & [ ] bin { } { octal => while ? false { } newline } ; [ ] ? comptime { } { } ) newline } fn ( ) -> not & unreachable { } 
+fn main() -> Int { } fn ident ( ) -> ? bin . ident . ident . ident .> ident ( & dyn ? if ? int { return } ) { } 
+fn main() -> Int { & dyn ? ( ) . ident . ident ^ .> ident ( [ [ * ] [ mut ] oct ] not ? while not not ? match not [ ] & { } { string => ? float newline } { } ) newline } fn ( ) -> not & float { } 
+fn main() -> Int { not - [ & [ ] ? char .> ident ( [ mut ] not - ( ? match let ( ident ) : if not & comptime { } { } ; & - [ ] [ ] & ? oct { false => - not - ? comptime { } newline } ) ) ] bin newline } fn ( ) -> [ ] & - not [ ] [ ] [ ] ? int { } 
+fn main() -> Int { not & dyn ? false . ident .> ident ( - match ? match true { char => - not ? { } newline } { { } => ident newline } ) newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { return ? char ( ) .> ident ( ? while let ( mut ident ) : not not not ? comptime { [ - & ? comptime { } ] [ ] - not ? while - not comptime { } { } newline } ; [ ] true { } ) } fn ( ) -> if & & not - & & - ? hex { } { } 
+fn main() -> Int { not ? char [ not ? false ^ .> ident ( if let ident = not ? while [ ] [ ] [ ] ? ( ) { } ; ? unreachable { } ) ] newline } fn ( ) -> - ? false { } 
+fn main() -> Int { - - bin .> ident ( ? comptime { ? int newline return } ) newline } fn ( ) -> [ ] ? if - ? fn ( ) -> [ ] & not not { } { } { } { } 
+fn main() -> Int { false .> ident ( & & mut [ ] ? comptime { - & dyn ? ident newline } ) newline } fn ( ) -> not ? while true { } { } 
+fn main() -> Int { } fn ident ( ) -> - - - [ * ] ? unreachable .> ident ( not while let ( const ident ) : not ? comptime { } ; & & comptime { } { } ) { } 
+fn main() -> Int { not [ ? while int .> ident ( comptime { return not not - if let const ident = ? ( ) ; ? comptime { } { } } ) { } ] ? match not ? char { char => not - & ? { } newline } newline } fn ( ) -> & [ ] [ ] not char { } 
+fn main() -> Int { not ? oct ( ) .> ident ( - not while & dyn [ * ] - [ ] not while - not while - [ ] not - - ? comptime { } { } { } { } ) newline } fn ( ) -> [ ] - not char { } 
+fn main() -> Int { } fn ( ) -> unreachable . ident ( ) ^ . ident ^ .> ident ( [ ] [ & mut ? fn ident ( ) -> - [ ] [ ] - [ ] not float { } ] & not - ? oct ) { } 
+fn main() -> Int { - ? char ( ) .> ident ( ) ( ) .> ident ( ) ( ) .> ident ( ? if not not string { } ) newline } fn ( ) -> ? int { } 
+fn main() -> Int { not & mut dyn & mut ? false .> ident ( ? if let ( ( ( const ident ) ) ) = . ident ; [ ] not ? oct { } ) newline } fn ( ) -> & not [ ] float { } 
+fn main() -> Int { true .> ident ( ? if ? oct { return ? fn ( mut ident : [ ] [ ] & - if - ( ) { } ) -> - - comptime { } { } } ) newline } fn ( ) -> ? bin { } 
+fn main() -> Int { not comptime { return if not not - - [ ] & mut dyn . ident { } } newline } fn ( ) -> - & . ident { } 
+fn main() -> Int { } fn ( ident : - [ mut ] false .> ident ( ) .> ident ( & fn ( ) -> if oct { } { } ) ) -> [ ] [ ] not & - [ ] - false { } 
+fn main() -> Int { not & & mut int ^ .> ident ( - ? if & mut dyn not not - [ * ] not & mut not & ? hex { } ) newline } fn ( ) -> & - not { } { } 
+fn main() -> Int { ? true .> ident ( not - { { } newline } ) newline } fn ( ) -> not not - [ ] string { } 
+fn main() -> Int { } fn ident ( ) -> & dyn - unreachable .> ident ( ? while while not & mut - - & ? if ? char { } { } { } ) { } 
+fn main() -> Int { } fn ( ) -> - [ mut ] ? false . ident .> ident ( not - - not ( [ - - & mut & & not & if - not - - not [ ] ? { } { } ] [ ] not - - unreachable ) ) { } 
+fn main() -> Int { - & mut not & oct . ident .> ident ( [ & dyn - ? { ? while let ident : not not & - ? while if ? while { } { } { } { } ; . ident { } newline } ] [ ] ? if [ ] & & not comptime { } { } ) newline } fn ( ) -> ? if [ ] [ ] while not & ? { } { } { } { } 
+fn main() -> Int { & dyn ? false . ident .> ident ( int ( { not - & mut ? while - ? bin { } newline } ) ) newline } fn ( ) -> & & & [ ] - not { } { } 
+fn main() -> Int { comptime { ? false . ident .> ident ( - not & dyn - - [ mut ] while let const ident : ? hex ; [ ] - not - - not [ ] ? if - - & [ ] not not ? true { } { } ) newline } newline } fn ( ) -> [ ] ? while [ ] not not ( ) { } { } 
+fn main() -> Int { } fn ident ( ) -> ? unreachable . ident .> ident ( & mut [ comptime { not ? char newline } ] true ) { } 
+fn main() -> Int { [ ] comptime { } .> ident ( ) .> ident ( match let const ident = fn ( ident : not ? if ? . ident { } ) -> int { } ; & [ ] ? oct { int => not - - & - - not ? false newline } ) newline } fn ( ) -> - ? comptime { } { } 
+fn main() -> Int { true .> ident ( ) .> ident ( - [ ] - not ? comptime { continue } ) -= not ? comptime { } newline } fn ( ) -> - ? string { } 
+fn main() -> Int { ( ) .> ident ( not match & - match & not oct { int => not fn ( ) -> not & - & [ ] ? false { } newline } { . ident => ? comptime { } newline } ) newline } fn ( ) -> [ ] not ? ident { } 
+fn main() -> Int { } fn ( ) -> ? unreachable .> ident ( int .> ident ( - { & mut dyn [ ] - - & ? oct newline } ) ) { } 
+fn main() -> Int { ? . ident ^ .> ident ( ? if let ident : ? int = - [ ] - if - float { } ; ? ( ) { } ) newline } fn ( ) -> - if not not - [ ] ? int { } { } 
+fn main() -> Int { ? . ident ^ . ident ^ .> ident ( ) . ident ( ) ^ ^ .> ident ( if char { return } ) newline } fn ( ) -> - ident { } 
+fn main() -> Int { } fn ident ( ) -> [ mut ] hex ^ .> ident ( match comptime { break } /= ? if - comptime { } { } { hex => not - - ? ident newline } ) { } 
+fn main() -> Int { & mut ? . ident .> ident ( ) .> ident ( ? if & mut dyn ? hex { - & hex newline } ) newline } fn ( ) -> not ? int { } 
+fn main() -> Int { - ? hex ^ .> ident ( ) .> ident ( ? if let ident : [ mut ] [ mut ] ? match let ( ident ) = [ ] [ ] [ ] match not not not not [ ] - not ? char { { } => not & & - not not [ ] not while oct { } newline } ; [ ] - & not ? float { octal => not & not ? while [ ] ? while char { } { } newline } ; match & not [ ] hex { string => [ ] [ ] not comptime { } newline } { } ) newline } fn ( ) -> - [ ] comptime { } { } 
+fn main() -> Int { [ * ] - - [ * ] [ ] ? int ( ) .> ident ( comptime { not - - not - ? while not ? if ? char { } { } newline } ) newline } fn ( ) -> not [ ] ? fn ( ) -> not [ ] & & - - { } { } { } 
+fn main() -> Int { - ( ) ( ) .> ident ( - not & ? if & mut dyn ? float { } ) newline } fn ( ) -> - - not - [ ] . ident { } 
+fn main() -> Int { } fn ( ) -> ? hex .> ident ( not & ? while not ? float { - [ ] & ? ( ) newline } ) { } 
+fn main() -> Int { [ * ] & mut ? unreachable ^ ^ .> ident ( - - ? comptime { break } ) *= { } newline } fn ( ) -> - [ ] ? hex { } 
+fn main() -> Int { & mut dyn [ ] ? . ident ^ . ident .> ident ( [ ] not if ? ident -= [ ] [ ] not [ ] - ? oct { } ) newline } fn ( ) -> while not [ ] not not - - ? ident { } { } 
+fn main() -> Int { return bin .> ident ( [ ident ] not if & mut int { } ) } fn ( ) -> ? string { } 
+fn main() -> Int { - oct .> ident ( ) .> ident ( & & dyn & mut & dyn ? if ? while ? int { } { } ) newline } fn ( ) -> not hex { } 
+fn main() -> Int { not [ ] [ . ident ( ) .> ident ( while - not & dyn [ ] - not [ ] not & not not ? if ? float { } { } ) ] [ ] [ ] - & ? comptime { } newline } fn ( ) -> & [ ] [ ] ? { } { } 
+fn main() -> Int { & dyn [ * ] unreachable . ident . ident .> ident ( & while - - ? oct ; trait ident { } { } ) newline } fn ( ) -> not while { } { } { } 
+fn main() -> Int { return ? oct . ident .> ident ( while - ? . ident ; impl for string { } { } ) } fn ( ) -> not & not - [ ] - & & hex { } 
+fn main() -> Int { ? hex ^ . ident ^ .> ident ( ) [ comptime { return ? comptime { not - not not not ? true newline } } ] newline } fn ( ) -> [ ] comptime { } { } 
+fn main() -> Int { } fn ( ) -> not not ? true . ident . ident ( ) .> ident ( while not & dyn [ ] ? unreachable { } ) { } 
+fn main() -> Int { - & mut dyn unreachable .> ident ( - not ? match let ident : not & dyn not - bin ; not - while & not not & & - true { } { float => - - & - not not [ ] string newline } ) newline } fn ( ) -> if comptime { } { } { } 
+fn main() -> Int { [ ] - - bin .> ident ( [ ] & mut not while not ? match not & mut dyn & & not [ ] not char { float => & ? ( ) newline } { } ) newline } fn ( ) -> & - - - not & ? bin { } 
+fn main() -> Int { - bin .> ident ( ) . ident .> ident ( ) . ident .> ident ( ) .> ident ( not - not [ ] & mut dyn not - - ? while & & - . ident { } ) newline } fn ( ) -> [ ] [ ] not { } { } 
+fn main() -> Int { - - int .> ident ( ? while [ ] float { } else { } ) newline } fn ( ) -> ? char { } 
+fn main() -> Int { ? . ident .> ident ( ) .> ident ( [ ] not - ? fn ( const ident : while char { } ) -> not bin { } ) newline } fn ( ) -> ? true { } 
+fn main() -> Int { return ? hex ( ) . ident .> ident ( - - - ? match let ( ( ident ) ) = & dyn [ mut ] not [ ] - [ ] [ ] - not ( ) ; - not ? match match ? if if [ ] not [ ] ? bin { } { } { hex => not [ ] [ ] - & ? bin newline } { float => [ ] & ? if & not not - [ ] ? match ? { } { hex => [ ] [ ] - ? fn ( ) -> [ ] ident { } newline } { } newline } { hex => - & float newline } ) } fn ( ) -> ? match & not ? if - ? char { } { ( . ident ) => while [ ] [ ] not hex { } newline } { } 
+fn main() -> Int { char . ident . ident .> ident ( { return ? while let ident : [ [ ] not - not [ ] not not [ ] not match - - ? false { hex => - [ ] while [ ] ? while & ? . ident { } { } newline } ] ? char ; ? if - ? { } { } { } } ) newline } fn ( ) -> not hex { } 
+fn main() -> Int { if ? oct .> ident ( [ ] & - [ * ] [ ] while ? . ident { } ) { } newline } fn ( ) -> if ? true { } { } 
+fn main() -> Int { ? unreachable .> ident ( ) .> ident ( & mut not [ ] not if let ident : & mut dyn not - ? if let ( ( ident ) ) : ? false ; not not while [ ] not not ? ident { } { } ; [ ] & & & & not - ? { } { } ) newline } fn ( ) -> [ ] match ? float { ( false ) => ? char newline } { } 
+fn main() -> Int { [ ] - & dyn int .> ident ( [ ] not not ( - - - if let mut ident = not not - not not not while ? float { } ; - ? comptime { } { } ) ) newline } fn ( ) -> [ ] not not not - & - - { } { } 
+fn main() -> Int { - ? hex .> ident ( not ? { not oct newline } ) newline } fn ( ) -> & ? { } { } 
+fn main() -> Int { & mut ? hex . ident .> ident ( - not [ * ] & mut not { return ? oct } ) newline } fn ( ) -> not - ? { } { } 
+fn main() -> Int { ? true ( ) .> ident ( not { not ? fn ( const ident : not not [ - - & & . ident ] - [ ] [ ] [ ] ? bin ) -> [ ] if not ? ident { } { } newline } ) newline } fn ( ) -> oct { } 
+fn main() -> Int { not [ [ ] ? oct .> ident ( ) ( ) .> ident ( - - [ ] ? while . ident { } ) ] - not . ident newline } fn ( ) -> - ? while ident { } { } 
+fn main() -> Int { } fn ident ( ) -> [ ] not ? . ident .> ident ( [ ] { [ ] - false = not & & not [ ] [ ] - - not ? { } newline } ) { } 
+fn main() -> Int { [ ] unreachable .> ident ( not not not not ? match ( [ * ] [ ] [ [ ] hex ] { } ) { bin => { } newline } ) newline } fn ( ) -> not ? int { } 
+fn main() -> Int { - bin ^ .> ident ( not - not ? { ? bin newline continue } ) newline } fn ( ) -> & ? comptime { } { } 
+fn main() -> Int { } fn ident ( ) -> not not . ident .> ident ( ? if let ident = not [ ] not ? int ; - not - - & not bin { } ) { } 
+fn main() -> Int { ? hex .> ident ( { continue } [ not comptime { [ ] & mut dyn - - & dyn not - & - ? { } newline } ] ) newline } fn ( ) -> - int { } 
+fn main() -> Int { } fn ( ) -> - char . ident .> ident ( not [ * ] [ * ] [ * ] [ ] not not [ ] - not & mut & while unreachable { } ) { } 
+fn main() -> Int { unreachable ( ) . ident .> ident ( not ? comptime { return } ) *= unreachable newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { return } fn ( ident : oct .> ident ( [ ] match not not ? while let ident : ? { } ; [ ] - float { } { { } => & & & match not ? char { octal => { } newline } newline } ) ) -> not not [ ] not & & - not not & & ? { } { } 
+fn main() -> Int { - ? ( & oct .> ident ( - [ ] not - while let ( const ident ) = & comptime { } ; ? . ident { } ) ) newline } fn ( ) -> - - & not match - & & - & ? while not not - not ? { } { } { . ident => - ? fn ( ) -> char { } newline } { } 
+fn main() -> Int { - comptime { - [ ] ? oct .> ident ( ? if let ( ( ident ) ) : not & [ ] & int ; not & & & { } { } ) newline } newline } fn ( ) -> [ ] ? oct { } 
+fn main() -> Int { ( ) .> ident ( ? fn ident ( const ident : not & mut ? string ) -> not false { } ) newline } fn ( ) -> & not [ ] & & not ? comptime { } { } 
+fn main() -> Int { return ? unreachable .> ident ( ) .> ident ( int ( ? comptime { return - - not & mut ? comptime { } } ) ) } fn ( ) -> ? oct { } 
+fn main() -> Int { [ ] ? int . ident ( ) [ .. ] . ident ^ .> ident ( & mut - not ? while let ( ident ) = - ? . ident ; & & - not - if true { } { } ) newline } fn ( ) -> not not not match - not [ ] ? { } { ( bin ) => & not - [ ] { } newline } { } 
+fn main() -> Int { comptime { } ^ .> ident ( & ? { ident newline break } ) newline } fn ( ) -> - & not & - ? char { } 
+fn main() -> Int { [ int . ident .> ident ( [ ] - match ? oct *= - [ ] not not - not & - not - & not & match ? while & & & ident { } { false => match [ ] - & if ( ) { } { int => ident newline } newline } { ident => & & & - not if ? fn ( ) -> - [ ] not & not & int { } { } newline } ) ] ? oct newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { } fn ident ( ) -> hex ^ ( ) ^ .> ident ( & & mut not & mut [ ] not match let ( ( ident ) ) = { } ; ? while [ ] ? string { } { string => - - not - & not & - not - ? oct newline } ) { } 
+fn main() -> Int { } fn ( ) -> - - & hex . ident ^ ^ .> ident ( not if let ( ident ) = & mut dyn [ ] - [ ] if & & & ? . ident { } ; [ ] not comptime { } { } ) { } 
+fn main() -> Int { not & mut dyn [ & ? oct . ident .> ident ( fn ident ( ) -> not oct { } ) ] not [ ] - - & [ ] ? if & & - - - ? while - [ ] if unreachable { } { } { } newline } fn ( ) -> int { } 
+fn main() -> Int { - [ mut ] int .> ident ( - & mut [ [ ] - comptime { } ] if ? while [ ] [ ] ? float { } { } ) newline } fn ( ) -> [ ] not & - ? if & char { } { } 
+fn main() -> Int { not while comptime { } .> ident ( [ ] ? comptime { - [ * ] - [ * ] match not ? true { . ident => ? ident newline } newline } ) { } newline } fn ( ) -> & [ ] & & ? if not & & ? hex { } { } 
+fn main() -> Int { } fn ( ) -> [ ] ? ( ) .> ident ( [ ] ? if let ( mut ident ) = not not [ ] ? hex ; not float { } ) { } 
+fn main() -> Int { - ? unreachable .> ident ( ? comptime { - bin = { continue } newline } ) newline } fn ( ) -> & ? while & unreachable { } { } 
+fn main() -> Int { return fn ident ( ) -> & mut dyn not not comptime { return & match ? if [ ] & ? true { } { hex => not & while while & not ? if ? while ? { } { } { } { } { } newline } } { } } fn ( ) -> bin { } 
+fn main() -> Int { } fn ( ) -> ? . ident ( ) .> ident ( [ ] while not ? false ; errdefer & not - not not not not ? ( ) { } ) { } 
+fn main() -> Int { & dyn [ ] ? hex .> ident ( ) . ident .> ident ( - - & match let ( ( ident ) ) = int ; not & float { false => match - & & ? comptime { } { hex => - unreachable newline } newline } ) newline } fn ( ) -> not [ ] not not not & & - & [ ] - [ ] ? while ? int { } { } 
+fn main() -> Int { - not ? comptime { } .> ident ( [ ] - not { oct %= & [ ] - ? float newline } ) newline } fn ( ) -> not not ? ( ) { } 
+fn main() -> Int { ? { } .> ident ( & not & not - match let ( ( const ident ) ) : & - if - [ ] ? true { } ; & ? char { { } => [ ] & match & [ ] ? match { } { . ident => [ ] ? match ? ( ) { ( ( hex ) ) => - not & - ? match ? comptime { } { hex => [ ] ? match - - not not ? false { hex => not [ ] [ ] & ? char newline } newline } newline } newline } { octal => [ ] - not not { } newline } newline } ) newline } fn ( ) -> ? match - & bin { ( false ) => - & false newline } { } 
+fn main() -> Int { comptime { & mut dyn not ? while & [ ] ? . ident ; impl ident for & [ ] - [ ] & & [ ] while oct { } { } { } newline } newline } fn ( ) -> not not not [ ] - ? { } { } 
+fn main() -> Int { not - & not ? unreachable .> ident ( ? comptime { & dyn not false newline return [ ] [ ] float } ) newline } fn ( ) -> { } { } 
+fn main() -> Int { ? unreachable .> ident ( ) . ident .> ident ( & dyn - [ ] [ ] if let const ident : - if [ ] - if match not - ? if - not - & true { } { ( . ident ) => { } newline } { } { } ; not ? unreachable { } ) newline } fn ( ) -> [ ] ? fn ( ) -> ? { } { } { } 
+fn main() -> Int { [ mut ] & mut dyn [ mut ] ? int .> ident ( [ ] match not { & ? unreachable newline } { int => match ? match oct { float => [ ] ? if ? while oct { } { } newline } { ident => ? string newline } newline } ) newline } fn ( ) -> [ ] & not not - ? string { } 
+fn main() -> Int { - - not ? false ( ) ( ) ( ) ( ) .> ident ( [ ] comptime { ? if - [ * ] not ? comptime { } { } newline } ) newline } fn ( ) -> ? { } { } 
+fn main() -> Int { } fn ident ( ) -> - - ? comptime { } .> ident ( fn ( ) -> - not - - not ? . ident { } ) { } 
+fn main() -> Int { ? ( ? oct ( ) . ident .> ident ( & dyn - [ * ] & mut [ ] ? if let ( ( ( ident ) ) ) : ? { } ; { } { } ) ) newline } fn ( ) -> & ? while fn ( ) -> & not not unreachable { } { } { } 
+fn main() -> Int { } fn ident ( ) -> & dyn true .> ident ( not & dyn & mut & mut [ - - ? hex ] if & ? float { } ) { } 
+fn main() -> Int { ? unreachable ^ .> ident ( not ? { match match let ( ident ) : ? comptime { } ; & [ ] not [ ] & [ ] true { bin => - & & not ? char newline } { float => not - [ ] not & fn ( ) -> ? while - & not - & ? oct { } { } newline } newline } ) newline } fn ( ) -> oct { } 
+fn main() -> Int { - [ ] ? comptime { return - & mut dyn & dyn not - not while let ident : & dyn ? unreachable ; ? { } { } } newline } fn ( ) -> ? char { } 
+fn main() -> Int { } fn ( ident : - ? unreachable ^ .> ident ( [ ] [ ] not - [ ] ? if & mut - - ? int { } ) ) -> [ ] ? float { } 
+fn main() -> Int { } fn ( ) -> not - - ? oct ^ .> ident ( if - - & dyn not ? while let mut ident = & [ ] [ ] int ; not - [ ] - & - - [ ] & - ? match - - & [ ] ? if ? . ident { } { false => - not - not - [ ] not match ? true { true => not ? comptime { } newline } newline } { } { } ) { } 
+fn main() -> Int { hex ^ .> ident ( int ^ ^ ^ .> ident ( [ * ] - [ mut ] not - [ * ] while let const ident : & [ ] & ? unreachable ; [ ] string { } ) ) newline } fn ( ) -> ? ( ) { } 
+fn main() -> Int { & mut not not & mut not not not true .> ident ( ? while [ ] - not match let ( mut ident ) = ? match int { false => - ? comptime { } newline } ; [ ] - - & - - ? while - not & - ? if - ? string { } { } { char => [ ] ? match [ ] float { true => - ? oct newline } newline } { } ) newline } fn ( ) -> & [ ] - [ ] ? if ? ident { } { } 
+fn main() -> Int { not not [ & mut hex .> ident ( & dyn - [ ] & dyn not if let const ident : & [ ] ? match - comptime { } { char => ? comptime { } newline } ; & & not { } { } ) ] - & ? fn ( ) -> & unreachable { } newline } fn ( ) -> [ ] & not ? { } { } 
+fn main() -> Int { ? int ^ . ident .> ident ( not - [ ] & dyn [ - ? while let const ident : - not [ ] match - if not & not ? comptime { } { } { bin => [ ] [ ] hex newline } ; - not & not ? false { } ] ? comptime { } ) newline } fn ( ) -> [ ] hex { } 
+fn main() -> Int { [ ] & dyn not while [ ] ? char ; trait ident { } { return } newline } fn ( ) -> ? true { } 
+fn main() -> Int { - . ident . ident .> ident ( [ ] & mut dyn [ mut ] while & mut false ; defer & [ ] ? while [ ] - if [ ] ? while [ ] unreachable { } { } { } { } ) newline } fn ( ) -> [ ] [ ] not ? while not not - & not while - [ ] & ? if - & [ ] - [ ] . ident { } { } { } { } 
+fn main() -> Int { & dyn match ? . ident .> ident ( - not ? { [ ] not ? if [ ] not [ ] [ ] ? hex { } newline } ) { bin => not & & - & - not & not ( ) newline } newline } fn ( ) -> [ ] [ ] while & [ ] hex { } { } 
+fn main() -> Int { - - { } .> ident ( ? if let ident : & mut - ? if let ( mut ident ) = & & [ ] not [ ] not not & - - [ ] not & & ? comptime { } ; match not [ ] ? comptime { } { { } => ? ident newline } { } ; & & - [ ] - [ ] - - [ ] not & [ ] not float { } ) newline } fn ( ) -> [ ] not ? int { } 
+fn main() -> Int { ? hex ^ ^ . ident .> ident ( [ ] if not bin { while ? bin { } newline } ) newline } fn ( ) -> [ ] oct { } 
+fn main() -> Int { } fn ( ) -> { } ^ ^ .> ident ( [ ] not & mut not [ ] - [ ] - if not not not & [ ] - & & not [ ] match ? false { true => { } newline } { } ) { } 
+fn main() -> Int { } fn ( ident : & mut dyn { } .> ident ( [ * ] comptime { ? { [ ] not while & [ ] unreachable { } newline } newline } ) ) -> [ ] & & string { } 
+fn main() -> Int { ? { } ^ ( ) . ident . ident [ .. ] .> ident ( [ ] - - match ? ( - not [ ] not - not [ ] { } ) { true => & - ? if [ ] [ ] - - ? while - [ ] not ? match not [ ] - match not { } { ( hex ) => ident newline } { { } => [ ] not not - & & ? fn ( ) -> [ ] & & not while not ? { } { } { } newline } { } { } newline } ) newline } fn ( ) -> - not ? . ident { } 
+fn main() -> Int { } fn ident ( ) -> not bin ^ ^ . ident .> ident ( ? if bin %= & ? comptime { } { } ) { } 
+fn main() -> Int { - & - ? oct .> ident ( & mut & dyn & dyn { [ not not if let ( ( ( ( ( ident ) ) ) ) ) : not unreachable ; ? { } { } ] & comptime { } newline } ) newline } fn ( ) -> - [ ] float { } 
+fn main() -> Int { comptime { } .> ident ( . ident . ident [ .. - - ? match [ ? fn ( ) -> ? { } { } ] [ ] not [ ] { } { . ident => ? while - ? match ? unreachable { { } => - not & [ ] ? if comptime { } { } newline } { } newline } ] ) newline } fn ( ) -> [ ] & not ? . ident { } 
+fn main() -> Int { - - [ ] [ [ * ] ? false .> ident ( not & mut ? while & mut dyn - & mut dyn not ? { } { } ) ] & unreachable newline } fn ( ) -> if not & & int { } { } 
+fn main() -> Int { } fn ( mut ident : & dyn true ( ) . ident ^ .> ident ( & mut dyn [ ] ? if ? if ? . ident { } { } ) ) -> not . ident { } 
+fn main() -> Int { not [ ] - ( ) .> ident ( [ not while let ( ident ) : - & & mut ? hex ; - if - not ? comptime { } { } { } ] ? { } ) newline } fn ( ) -> - & - not not & ? float { } 
+fn main() -> Int { ? char . ident .> ident ( ) .> ident ( [ ] not ? { break } ) newline return ? { } } fn ( ) -> [ ] ( ) { } 
+fn main() -> Int { return } fn ( ident : [ ] ? ( ) . ident .> ident ( match let ( ( ( ident ) ) ) : ? match [ ] ? if - [ ] ? match - ? ( ) { { } => [ ] ? ( ) newline } { } { true => - [ ] [ ] ? match & ? hex { ( ident ) => - ? char newline } newline } ; [ ] hex { string => ? . ident newline } ) ) -> not ? unreachable { } 
+fn main() -> Int { } fn ( ) -> not ? unreachable .> ident ( ) .> ident ( - [ ] & mut dyn - ? match [ ] & mut dyn match ident { int => not ? false newline } { string => float newline } ) { } 
+fn main() -> Int { - ? hex .> ident ( ? . ident ^ ^ [ .. [ ] - & dyn & dyn while [ ] ? false { } ] ) newline } fn ( ) -> - [ ] ? false { } 
+fn main() -> Int { [ ] & dyn & mut dyn [ * ] ? bin . ident .> ident ( ? if let ( const ident ) = not & mut not ? if [ ] [ ] - [ ] [ ] char { } ; [ ] [ ] not [ ] - - while match { } { . ident => [ ] - & [ ] - . ident newline } { } { } ) newline } fn ( ) -> - [ ] int { } 
+fn main() -> Int { } fn ( ) -> not not ? unreachable ^ .> ident ( - [ false ] ? if let ( ( const ident ) ) : [ ] & - not & not not if [ ] not & - float { } ; [ ] ? while [ ] & ? { } { } { } ) { } 
+fn main() -> Int { true .> ident ( [ * ] ? if ? match let ( ( ( mut ident ) ) ) : while [ ] { } { } ; comptime { } { ident => { } newline } { } ) newline } fn ( ) -> [ ] - [ ] & not & if ? match & not - while - [ ] match ? hex { octal => not not ? { } newline } { } { . ident => [ ] - [ ] & - . ident newline } { } { } 
+fn main() -> Int { ? int . ident ^ .> ident ( ) ^ . ident .> ident ( - not [ ] not match let mut ident = ? while ? int { } ; - - & while not ? false { } { ident => - ? char newline } ) newline } fn ( ) -> not string { } 
+fn main() -> Int { [ ] & dyn not & mut dyn ? while [ mut ] & ? comptime { return ? char } { } newline } fn ( ) -> [ ] - [ ] not [ ] comptime { } { } 
+fn main() -> Int { hex .> ident ( & mut dyn not ? match ? true += [ ] not not - ? { } { . ident => [ ] - not - & [ ] - & & [ ] & match ? while not ? match not not fn ( ) -> & ? while ? match true { string => if & - - ? unreachable { } newline } { } { } { char => & [ ] [ ] [ ] & not true newline } { } { . ident => & not & [ ] ? ident newline } newline } ) newline } fn ( ) -> false { } 
+fn main() -> Int { - bin ^ .> ident ( [ mut ] ? fn ident ( ) -> match let ( ident ) : comptime { } ; ? ( ) { { } => [ ] while ? comptime { } { } newline } { } ) newline } fn ( ) -> oct { } 
+fn main() -> Int { & & oct . ident . ident .> ident ( & if let ( ( ( ( ( ident ) ) ) ) ) : & [ ] & & & & [ ] [ ] [ ] ? { } ; not & - - not [ ] - - not - match not int { string => [ ] & & not ? false newline } { } ) newline } fn ( ) -> ? while ? while [ ] - [ ] . ident { } { } { } 
+fn main() -> Int { - match ? comptime { return not [ ] - [ ] & - not [ & mut dyn & mut ? match { } { char => ( ) newline } ] ? . ident } { char => ? ident newline } newline } fn ( ) -> ? true { } 
+fn main() -> Int { } fn ( ident : ? . ident ^ .> ident ( { not & dyn - match let ( ( ( const ident ) ) ) = ? false ; & oct { ident => ? while [ ] if not [ ] not [ ] & match & [ ] - not not not & ? false { false => & hex newline } { } { } newline } newline } ) ) -> [ ] [ ] & not - & not ? bin { } 
+fn main() -> Int { return - - not hex . ident .> ident ( ) .> ident ( [ & mut comptime { - & mut ? { } newline } ] ? int ) } fn ( ) -> [ ] not & [ ] & if & & ? { } { } { } 
+fn main() -> Int { - - - & ? int ( ) . ident .> ident ( comptime { & dyn & dyn - ? match let ident : not [ ] unreachable ; ? match ? while while string { } { } { int => ? oct newline } { int => & & while [ ] [ ] & [ ] int { } newline } newline } ) newline } fn ( ) -> [ ] - - [ ] & [ ] { } { } 
+fn main() -> Int { true ^ ( ) .> ident ( not - ? while & float ; not & & [ ] ? { } { } ) newline } fn ( ) -> [ ] ? ident { } 
+fn main() -> Int { [ ] ? true .> ident ( - - ? if & mut dyn ( ) *= ident { } ) newline } fn ( ) -> if float { } { } 
+fn main() -> Int { } fn ( mut ident : - not ? true .> ident ( & not & dyn & mut ? { return } ) ) -> - & ? bin { } 
+fn main() -> Int { ? oct .> ident ( not comptime { & mut & mut dyn - ? if ? true { } newline } ) newline } fn ( ) -> not not & & ? . ident { } 
+fn main() -> Int { - . ident ^ ^ .> ident ( ) ( ) .> ident ( [ ? false ] ? match let ( ( mut ident ) ) = & [ ] false ; - if ? while hex { } { } { int => ? ident newline } ) newline } fn ( ) -> not ? false { } 
+fn main() -> Int { ? comptime { return } .> ident ( ) ^ . ident ^ ^ [ not [ * ] not comptime { not { return & not not ( ) } newline } ] newline } fn ( ) -> match & not & comptime { } { char => [ ] & ? char newline } { } 
+fn main() -> Int { comptime { & ? true .> ident ( ? if let ( mut ident ) : while let mut ident : not if & ? { } { } ; ? while not string { } { } ; & & while ? if not - & ? while [ ] not - [ ] bin { } { } { } { } ) newline } newline } fn ( ) -> match while ? char { } { { } => if not ? float { } newline } { } 
+fn main() -> Int { not [ * ] comptime { } ^ . ident .> ident ( not not ? comptime { [ ] [ ] - { continue } newline } ) newline } fn ( ) -> - if [ ] - ? if & - & [ ] ? int { } { } { } 
+fn main() -> Int { not - & . ident . ident .> ident ( - & mut not & ? match let mut ident : & mut [ ] [ ] [ ] [ ] not - - ? fn ( ) -> ? if while comptime { } { } { } { } ; & & ? . ident { string => [ ] & ? if not if ? bin { } { } newline } ) newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { ( ) .> ident ( ) .> ident ( & mut & mut & mut not & & mut dyn ? while let mut ident = & not [ ] - & not & & - [ ] ? bin ; - ? fn ( ) -> while & [ ] & & int { } { } { } ) newline } fn ( ) -> - ? { } { } 
+fn main() -> Int { not [ ] ? int ( ) . ident ( ) ^ .> ident ( [ ] not - not match let mut ident : ? { } ; not not ? float { true => ident newline } ) newline } fn ( ) -> [ ] not not - not { } { } 
+fn main() -> Int { not & mut comptime { } .> ident ( ? { - - not not - [ ] ? while [ ] - ? while [ ] - & & ? . ident { } { } newline } ) newline } fn ( ) -> & not & { } { } 
+fn main() -> Int { [ ] ? while not not ? unreachable ( ) ; trait ident { } { } += not & not not & - while bin { } newline } fn ( ) -> - [ ] ? false { } 
+fn main() -> Int { [ ] { } ( ) .> ident ( ) .> ident ( { return } ) -= - not comptime { } newline } fn ( ) -> [ ] fn ( ) -> not & ? unreachable { } { } 
+fn main() -> Int { [ ] hex ^ ( ) .> ident ( while let ident = while let ident = match let ( ident ) = { } ; ? comptime { } { true => ident newline } ; - bin { } ; [ ] . ident { } ) newline } fn ( ) -> ? ( ) { } 
+fn main() -> Int { hex ^ ( ) ( ) .> ident ( ) .> ident ( ) .> ident ( while [ * ] not not [ ] & mut dyn ( [ ] ? . ident ) { } ) newline } fn ( ) -> [ ] ? match ? { } { octal => if ? { } { } newline } { } 
+fn main() -> Int { } fn ( mut ident : & [ ] bin ( ) .> ident ( ? while let const ident : if let ident = - ? { } ; & ? { } { } ; comptime { } { } ) ) -> & & & not [ ] ? { } { } 
+fn main() -> Int { } fn ( ) -> not ? oct .> ident ( while - ? hex += [ ] - ? comptime { } { } ) { } 
+fn main() -> Int { } fn ( ident : ? hex .> ident ( & dyn & comptime { continue } ) = [ ] - [ ] [ ] not & & ? int ) -> not [ ] ? match - [ ] ? comptime { } { octal => not not oct newline } { } 
+fn main() -> Int { } fn ( ) -> ? { } . ident .> ident ( ? if [ * ] { continue } { } ) { } 
+fn main() -> Int { [ * ] ? { } .> ident ( if let ( ( ident ) ) = ? int ; - not ? fn ( ) -> - - - not [ ] [ ] ? int { } { } ) newline } fn ( ) -> not [ ] not & not [ ] not match [ ] { } { hex => comptime { } newline } { } 
+fn main() -> Int { ? int .> ident ( [ float . ident ] - & dyn - while let const ident = [ ] [ ] - [ ] not - not not comptime { } ; [ ] & ? ident { } ) newline } fn ( ) -> int { } 
+fn main() -> Int { hex .> ident ( & mut [ - [ * ] - ( not & mut dyn ? char ) ] while true { } ) newline } fn ( ) -> not - - ? fn ( ) -> ? comptime { } { } { } 
+fn main() -> Int { [ mut ] ? int .> ident ( & mut dyn ? fn ident ( ) -> ( ) { ? bin newline } ) newline } fn ( ) -> [ ] [ ] fn ( ) -> & [ ] not not - ? ident { } { } 
+fn main() -> Int { [ mut ] hex .> ident ( - - & mut - [ * ] & mut not match let ident : match - - oct { int => unreachable newline } ; & - true { . ident => ? if oct { } newline } ) newline } fn ( ) -> ? while & ? float { } { } 
+fn main() -> Int { not - ? oct .> ident ( & dyn { [ ] ? if while let ( ( ident ) ) = [ ] true ; & ? float { } { } newline } ) newline } fn ( ) -> ? string { } 
+fn main() -> Int { ? int . ident ^ .> ident ( ) .> ident ( [ ] [ * ] & mut while let ( const ident ) : bin ; - comptime { } { } ) newline } fn ( ) -> match ? fn ( ) -> [ ] not ? bin { } { hex => ? true newline } { } 
+fn main() -> Int { & dyn not true . ident .> ident ( [ * ] not not match let ( ( ident ) ) : - [ ] - [ ] - not - - ? true ; [ ] [ ] ? { } { char => & if & not & not & not [ ] - while int { } { } newline } ) newline } fn ( ) -> - not ? { } { } 
+fn main() -> Int { } fn ( ) -> not ? true .> ident ( while - int -= - not not if not & fn ( ) -> - ? hex { } { } { } ) { } 
+fn main() -> Int { return comptime { [ ] ? char . ident .> ident ( comptime { - comptime { break } newline } ) newline } } fn ( ) -> ? comptime { } { } 
+fn main() -> Int { & mut [ ] & dyn - not . ident . ident .> ident ( not - [ mut ] & [ ] [ ] & [ ] ? match let ( ( ident ) ) = not ( ) ; - not & & & ? while [ ] fn ( ) -> not [ ] [ ] & & ? ( ) { } { } { string => & ? false newline } ) newline } fn ( ) -> & ? int { } 
+fn main() -> Int { ? comptime { } ^ .> ident ( - not & mut dyn not - & mut dyn - ? comptime { not [ * ] ? while & & char { } newline } ) newline } fn ( ) -> [ ] [ ] & not true { } 
+fn main() -> Int { & dyn ? ( ) ^ ( ) ^ . ident .> ident ( ) .> ident ( - [ * ] match unreachable { ident => - not [ ] ? if - not ? false { } newline } ) newline } fn ( ) -> { } { } 
+fn main() -> Int { not & . ident .> ident ( [ ] [ while & ? ident ; defer not int { } ] ? . ident ) newline } fn ( ) -> - - - while - ? hex { } { } 
+fn main() -> Int { & mut dyn oct . ident .> ident ( [ ] - not not & match ? { not - - ? match - not [ ] & not & [ ] & [ ] not - not [ ] ? oct { float => - [ ] string newline } newline } { ident => - while [ ] ? fn ( ) -> - not & - ? comptime { } { } { } newline } ) newline } fn ( ) -> false { } 
+fn main() -> Int { & not [ mut ] ? ( ) .> ident ( - not - [ ] - [ mut ] [ * ] ? if let ( mut ident ) : ? comptime { } ; not ident { } ) newline } fn ( ) -> . ident { } 
+fn main() -> Int { false .> ident ( ) . ident .> ident ( ) . ident .> ident ( match let ident = ? bin ; not . ident { { } => & - & - - [ ] while not ? { } { } newline } ) newline } fn ( ) -> - [ ] ? float { } 
+fn main() -> Int { ? ( ) . ident .> ident ( comptime { while & mut - not match let mut ident : & & & ? true ; - [ ] not ? comptime { } { octal => not ? if ? while not int { } { } newline } { } newline } ) newline } fn ( ) -> not ( ) { } 
+fn main() -> Int { & [ ] ? oct ^ ^ .> ident ( [ fn ( ident : - float ) -> [ ] & & & if { } { } { } ] - not [ ] ? ( ) ) newline } fn ( ) -> ? if ? ( ) { } { } 
+fn main() -> Int { not ? false .> ident ( int . ident ^ .> ident ( & mut match let const ident : [ ] not [ ] hex ; not & not comptime { } { false => ? ident newline } ) ) newline } fn ( ) -> while - match comptime { } { int => [ ] ? while not ( ) { } newline } { } { } 
+fn main() -> Int { } fn ident ( ) -> not ? . ident ^ .> ident ( & dyn & dyn ? while ? ( [ ] - & { } ) { } ) { } 
+fn main() -> Int { ? bin . ident .> ident ( [ ] [ ] { & ident newline return ? if not match & & not char { ident => not ? if & & - [ ] & bin { } newline } { } } ) newline } fn ( ) -> ? ( ) { } 
+fn main() -> Int { { } .> ident ( ? while & mut dyn not - not oct { return } ) newline } fn ( ) -> & & & - [ ] & & [ ] match not not ( ) { char => & - - - [ ] [ ] false newline } { } 
+fn main() -> Int { } fn ( mut ident : bin .> ident ( & & [ - - ? match let const ident : - ? int ; - comptime { } { ( float ) => ? true newline } ] ( ) ) ) -> [ ] [ ] not [ ] while & not & . ident { } { } 
+fn main() -> Int { - - - & ? true . ident .> ident ( [ mut ] [ ] not match ? string *= not & - ? { } { int => - comptime { } newline } ) newline } fn ( ) -> & & [ ] & & match & - not [ ] ident { ( ( . ident ) ) => - [ ] [ ] [ ] not [ ] - & if ident { } newline } { } 
+fn main() -> Int { ? false . ident .> ident ( ? while let ( ident ) = [ ] ? while not - { } { } ; int { } ) newline } fn ( ) -> oct { } 
+fn main() -> Int { } fn ident ( ) -> ? ident ^ .> ident ( [ * ] [ ] comptime { & mut dyn not not & dyn [ if - true { } ] & if while ? fn ( ) -> & - not - ( ) { } { } { } newline } ) { } 
+fn main() -> Int { } fn ident ( ) -> & mut dyn ? true .> ident ( [ mut ] ? while [ * ] ? while while { } { } { } { } ) { } 
+fn main() -> Int { - not hex . ident .> ident ( ) .> ident ( ? if [ ] & dyn - ident = & not not match [ ] ident { bin => comptime { } newline } { } ) newline } fn ( ) -> ? ( ) { } 
+fn main() -> Int { ? comptime { return } .> ident ( ) .> ident ( [ * ] while [ ] [ ] [ ] not not & mut dyn comptime { } { } ) newline } fn ( ) -> & comptime { } { } 
+fn main() -> Int { } fn ( ident : match false .> ident ( [ - [ mut ] ? while let mut ident : not ? { } ; ? oct { } ] not not match - & & - & comptime { } { { } => - - - not [ ] - [ ] - & ? { } newline } ) { hex => not & not [ ] not - ? int newline } ) -> & - not [ ] & & & - & [ ] & if [ ] not false { } { } 
+fn main() -> Int { ? { return } .> ident ( comptime { not { return } newline continue } ) newline } fn ( ) -> [ ] ? comptime { } { } 
+fn main() -> Int { [ mut ] ( - false .> ident ( - while let mut ident : [ [ mut ] not & not not ? { } ] [ ] not not [ ] [ ] ? if - [ ] [ ] & ? string { } ; true { } ) ) newline } fn ( ) -> oct { } 
+fn main() -> Int { ? oct ^ ^ .> ident ( [ ] [ mut ] [ ] [ ] & if string { } ) newline } fn ( ) -> [ ] match ? match not [ ] [ ] [ ] - [ ] ? { } { true => ? while - [ ] ? hex { } newline } { string => - & - & [ ] if not [ ] [ ] ? char { } newline } { } 
+fn main() -> Int { } fn ( ) -> - not [ * ] ( ) ( ) .> ident ( & mut dyn comptime { . ident newline } ) { } 
+fn main() -> Int { . ident .> ident ( ) .> ident ( if [ ] - unreachable { break } else comptime { - - not ? true newline } ) newline } fn ( ) -> [ ] - & ? string { } 
+fn main() -> Int { not [ ] - ? bin ^ . ident . ident .> ident ( [ ] not not & mut [ * ] & & mut [ mut ] - [ mut ] - - ? match not not { } { float => ? ( ) newline } ) newline } fn ( ) -> - not - & bin { } 
+fn main() -> Int { return - hex . ident . ident ( ) .> ident ( not & [ ] & dyn - ? if let ident = & mut - char ; & & match & unreachable { float => - not ? oct newline } { } ) } fn ( ) -> - [ ] if & & ? if unreachable { } { } { } 
+fn main() -> Int { ? ( ) . ident ^ .> ident ( not - & mut & dyn { ident += { } newline } ) newline } fn ( ) -> { } { } 
+fn main() -> Int { [ ] & false . ident . ident ( ) ^ ^ .> ident ( ? comptime { break } ) newline } fn ( ) -> not int { } 
+fn main() -> Int { [ ] & mut dyn ? hex .> ident ( ? while ? true { - not & & not match ? { } { . ident => ? ident newline } newline } ) newline } fn ( ) -> [ ] not - not [ ] - - ? comptime { } { } 
+fn main() -> Int { ? . ident .> ident ( ) . ident . ident .> ident ( ) ^ .> ident ( [ ] - not not - - - { break } ) newline } fn ( ) -> oct { } 
+fn main() -> Int { & mut dyn ? char .> ident ( ? match [ ] ? match not [ * ] [ ] ident { octal => & ? match not - { } { . ident => ? match ? comptime { } { octal => not while - [ ] not - ? comptime { } { } newline } newline } newline } { hex => ? int newline } ) newline } fn ( ) -> [ ] comptime { } { } 
+fn main() -> Int { } fn ( ) -> int .> ident ( [ ] [ mut ] comptime { & - comptime { not & dyn & - not string newline } newline } ) { } 
+fn main() -> Int { hex . ident ^ . ident . ident . ident ( ) ^ . ident . ident .> ident ( - ? { - & mut ? . ident newline } ) newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { & mut ? hex .> ident ( [ * ] [ * ] ? comptime { & mut - not & unreachable newline } ) newline } fn ( ) -> - - ? { } { } 
+fn main() -> Int { bin .> ident ( ) .> ident ( [ - [ ] ? match bin { false => not - not & not & ? false newline } ] ? bin ) newline } fn ( ) -> [ ] true { } 
+fn main() -> Int { [ * ] [ ] comptime { return [ ] if false /= ? while ? { } { } { } } newline } fn ( ) -> & - ? comptime { } { } 
+fn main() -> Int { } fn ( ident : [ ] ? oct .> ident ( { continue } ) = ? match ? string { . ident => char newline } ) -> not bin { } 
+fn main() -> Int { not not & & mut dyn not & mut dyn hex ^ .> ident ( & mut dyn { [ * ] ? ident newline } ) newline } fn ( ) -> ? while while & [ ] [ ] { } { } { } { } 
+fn main() -> Int { { } . ident [ .. ] ( ) .> ident ( [ mut ] - & mut if not while ? if [ ] [ ] [ ] [ ] [ ] & [ ] ? hex { } { } { } ) newline } fn ( ) -> not comptime { } { } 
+fn main() -> Int { true .> ident ( not [ ] & mut while let ( ident ) : & dyn ? comptime { [ ] - match - - not - & while [ ] [ ] char { } { bin => ? comptime { } newline } newline } ; - not ? int { } ) newline } fn ( ) -> & - - unreachable { } 
+fn main() -> Int { return { } . ident ( ) . ident . ident ^ .> ident ( not ? while let ( ( ident ) ) : [ ? match - & bin { string => unreachable newline } ] & - & ? if - ? match [ ] & - ? int { true => ? { } newline } { } ; not comptime { } { } ) } fn ( ) -> [ ] & [ ] - false { } 
+fn main() -> Int { - [ ] ? hex ^ .> ident ( ) .> ident ( [ * ] - not [ * ] ? while not - [ * ] & mut dyn - & [ ] not not ? hex { } ) newline } fn ( ) -> ? ( ) { } 
+fn main() -> Int { [ not not ? char .> ident ( ) ( ) ^ .> ident ( - [ mut ] ? comptime { - ? float newline } ) ] [ ] ? while [ ] [ ] & [ ] & & & & [ ] - [ ] fn ( ) -> not char { } { } newline } fn ( ) -> int { } 
+fn main() -> Int { } fn ident ( ) -> ident . ident .> ident ( - not ? fn ident ( ident : [ ] & dyn [ ] - ? if let ( ident ) = float ; not & not & - not - comptime { } { } ) -> - & - [ ] . ident { } ) { } 
+fn main() -> Int { not & dyn - not ? ( ) .> ident ( - not not - not ? if let mut ident = - oct ; [ ] ? string { } ) newline } fn ( ) -> not ? comptime { } { } 
+fn main() -> Int { ( hex .> ident ( ) . ident .> ident ( [ ] { - not hex newline } ) ) newline } fn ( ) -> - & not [ ] - unreachable { } 
+fn main() -> Int { } fn ident ( ) -> & mut oct .> ident ( [ * ] [ ] ? { ? hex newline } ) { } 
+fn main() -> Int { ? false .> ident ( ) ^ [ .. ] .> ident ( - match let ( ( ident ) ) : ? match let ident = not - ? . ident ; & match not if [ ] ? { } { } { char => - not ? false newline } { true => & [ ] if [ ] not ? float { } newline } ; ? match & - ? . ident { . ident => not & { } newline } { { } => [ ] not string newline } ) newline } fn ( ) -> ? true { } 
+fn main() -> Int { } fn ident ( ) -> not . ident .> ident ( ? { break } ) { } 
+fn main() -> Int { return . ident .> ident ( ) ^ .> ident ( ) .> ident ( - [ * ] [ ] & mut if let const ident = not not ? fn ( ) -> not & not ( ) { } ; - not ? bin { } ) } fn ( ) -> ? char { } 
+fn main() -> Int { ? { } .> ident ( not ? comptime { not [ mut ] & mut - ? { match let ident : match [ ] float { octal => & - & [ ] not [ ] & [ ] & [ ] [ ] [ ] ? match ? while not & [ ] - - - not ? fn ( ) -> - not - & not not match & - not not hex { octal => ? match not [ ] { } { hex => & & & - - not ? unreachable newline } newline } { } { } { char => & & ? while ? comptime { } { } newline } newline } ; - & not ? char { ident => not - match unreachable { bin => ? match int { bin => & fn ( ) -> ? { } { } newline } newline } newline } newline } newline } ) newline } fn ( ) -> not false { } 
+fn main() -> Int { - ? hex .> ident ( [ ] ? false [ ? match [ mut ] - fn ident ( const ident : unreachable ) -> ( ) { } { ( string ) => ? match ? oct { true => not ( ) newline } newline } ] ) newline } fn ( ) -> not [ ] - ident { } 
+fn main() -> Int { not char .> ident ( ) .> ident ( [ mut ] - & mut [ mut ] not [ ? fn ( const ident : not ? int ) -> - ? . ident { } ] not - ? { } ) newline } fn ( ) -> [ ] [ ] bin { } 
+fn main() -> Int { return } fn ( ) -> not not & ? true .> ident ( & dyn - match let const ident = if let ident : ? match comptime { } { string => not [ ] ? float newline } ; fn ( ) -> [ ] - ident { } { } ; match ? if . ident { } { true => not [ ] not - [ ] [ ] & int newline } { ( false ) => [ ] true newline } ) { } 
+fn main() -> Int { true ^ ^ [ - - int .> ident ( not while let ident = not - & & dyn match & - fn ( ) -> match comptime { } { false => ? char newline } { } { { } => not & & - while - & match comptime { } { ident => [ ] true newline } { } newline } ; & not not & not - match ? string { true => [ ] - & [ ] oct newline } { } ) ] newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { } fn ( ident : - bin ^ . ident .> ident ( [ ] - [ mut ] not ? while [ mut ] ? oct { } ) ) -> ident { } 
+fn main() -> Int { - ? bin .> ident ( ( [ ] - not - not - ? while let ( mut ident ) = not - [ ] not not - ( ) ; ? string { } ) ) newline } fn ( ) -> - ? comptime { } { } 
+fn main() -> Int { not [ ] ? ( ) ( ) . ident ( ) .> ident ( not [ * ] - ? if let ident = & mut dyn - & ? int ; not comptime { } { } ) newline } fn ( ) -> unreachable { } 
+fn main() -> Int { } fn ident ( ) -> - ? . ident .> ident ( not - - & dyn [ ] not & mut dyn { return - not not & ? float } ) { } 
+fn main() -> Int { [ * ] & [ ] ? char ^ .> ident ( - & not ? fn ( mut ident : not & mut ? . ident ) -> match ? unreachable { ( octal ) => not & & bin newline } { } ) newline } fn ( ) -> & not ? if [ ] not not & & ? oct { } { } 
+fn main() -> Int { } fn ( ) -> ? while ? . ident .> ident ( - - [ ] while let ( ident ) = - - { } ; not & [ ] while - - [ ] ? hex { } { } ) { } { } 
+fn main() -> Int { - . ident ^ .> ident ( - [ ] not comptime { [ ] [ ] [ ] - true newline } ) newline } fn ( ) -> [ ] - - ( ) { } 
+fn main() -> Int { ? char .> ident ( ) ( ? char ^ .> ident ( ? while not not & mut dyn if let ident = & [ ] & & - not ? int ; - if - not comptime { } { } { } { } ) ) newline } fn ( ) -> - & . ident { } 
+fn main() -> Int { ? true .> ident ( match - - not [ ] - & mut dyn - not & mut [ ] ident { octal => - & - ? hex newline } ) newline } fn ( ) -> [ ] comptime { } { } 
+fn main() -> Int { ? ( ) .> ident ( & mut [ & dyn not & - ? if let ident : & dyn - - ? int ; & ? hex { } ] comptime { } ) newline } fn ( ) -> while & - - not { } { } { } 
+fn main() -> Int { ? comptime { char . ident ^ .> ident ( [ comptime { return & . ident } ] ? char ) newline } newline } fn ( ) -> ? string { } 
+fn main() -> Int { } fn ( ident : & mut dyn [ ? oct .> ident ( ? while not [ mut ] { } { } ) ] ? oct ) -> & - & - not & & . ident { } 
+fn main() -> Int { - & mut dyn not & mut dyn [ mut ] not oct .> ident ( match let ( mut ident ) = & mut ? bin ; [ ] [ ] comptime { } { bin => & not [ ] & - - & comptime { } newline } ) newline } fn ( ) -> ? . ident { } 
+fn main() -> Int { ? hex . ident .> ident ( - not while let mut ident = . ident ; [ mut ] - & & & ? string { } ) newline } fn ( ) -> not ? int { } 
+fn main() -> Int { ? . ident .> ident ( & mut dyn [ & mut not fn ( const ident : - if let const ident : & fn ( ) -> not [ ] - if - not [ ] - & & - [ ] & [ ] & not [ ] not [ ] - [ ] - [ ] & ? int { } { } ; while & - - int { } { } ) -> [ ] ? bin { } ] not not & ? match - [ ] & [ ] not [ ] & true { bin => & not & not not ? fn ( ) -> [ ] unreachable { } newline } ) newline } fn ( ) -> not if not [ ] ? { } { } { } 
+fn main() -> Int { ? comptime { return } .> ident ( match ? while let mut ident = ? comptime { } ; ( ) { } { . ident => & ? if ? while while - ( ) { } { } { } newline } ) newline } fn ( ) -> - ? match - ? char { hex => - if not & & if comptime { } { } { } newline } { } 
+fn main() -> Int { } fn ( ) -> - - & mut dyn - ? int .> ident ( ? match - [ ] - & mut [ * ] while - not [ ] [ ] ? match [ ] & & ? match [ ] ? true { { } => - ident newline } { string => ? unreachable newline } { } { false => & [ ] float newline } ) { } 
+fn main() -> Int { ? { & dyn [ ] ? bin .> ident ( & [ ] while let ( mut ident ) : [ ] [ ] & ? bin ; & - not ? fn ( ) -> - ? if - not - not - ? comptime { } { } { } { } ) newline } newline } fn ( ) -> { } { } 
+fn main() -> Int { ? comptime { } ^ .> ident ( [ ] ? { - not - not not [ ] unreachable newline } ) newline } fn ( ) -> not ? { } { } 
+fn main() -> Int { [ ] [ & dyn - bin .> ident ( - while let ( ( ( const ident ) ) ) = [ ] - [ ] & ? unreachable ; [ ] & ? match not [ ] - ? { } { { } => & & ? ( ) newline } { } ) ] - not - match & comptime { } { true => oct newline } newline } fn ( ) -> - not ? bin { } 
+fn main() -> Int { if ? char .> ident ( - - match - & mut & not ? comptime { } { ( false ) => not not ? comptime { } newline } ) { } newline } fn ( ) -> - ? if ? if ? oct { } { } { } 
+fn main() -> Int { & mut dyn & & mut [ * ] - ? unreachable .> ident ( & mut dyn not [ ] & dyn - ? if ? fn ( ) -> false { } { } ) newline } fn ( ) -> [ ] not oct { } 
+fn main() -> Int { - ? unreachable ^ .> ident ( ? { ? ( [ ] & mut dyn [ ] & mut dyn - not ident ) newline } ) newline } fn ( ) -> & & string { } 
+fn main() -> Int { ? ( ) [ .. ] .> ident ( [ * ] ? comptime { true *= match string { octal => & [ ] not - ? unreachable newline } newline } ) newline } fn ( ) -> not ? . ident { } 
+fn main() -> Int { ? false .> ident ( ? match not comptime { continue } *= int { false => not not & int newline } ) newline } fn ( ) -> float { } 
+fn main() -> Int { ? bin .> ident ( char .> ident ( & not & mut dyn [ ] & dyn match not [ ] [ ] comptime { } { char => [ ] ? ident newline } ) ) newline } fn ( ) -> ? fn ( ) -> & [ ] not ? if - - ? comptime { } { } { } { } 
+fn main() -> Int { unreachable .> ident ( ? hex [ & mut [ ] [ * ] ? { & false newline } ] ) newline } fn ( ) -> - int { } 
+fn main() -> Int { } fn ( ) -> hex . ident ( ) ^ ^ .> ident ( & mut dyn not - [ mut ] ? fn ( ident : not - - & & not char ) -> ? comptime { } { } ) { } 
+fn main() -> Int { [ ] [ ] & mut dyn & false ^ .> ident ( - ? { continue } ) newline } fn ( ) -> ? fn ( ) -> [ ] float { } { } 
+fn main() -> Int { not hex .> ident ( ) .> ident ( & mut dyn [ ] - [ * ] not comptime { hex += match not & not & [ ] { } { . ident => - [ ] - [ ] [ ] & not - { } newline } newline } ) newline } fn ( ) -> & not not not & ? int { } 
+fn main() -> Int { & false .> ident ( hex .> ident ( [ * ] - not [ [ ? unreachable ] & match not & [ ] - not not not & & not [ ] - false { string => . ident newline } ] - [ ] [ ] & & & & { } ) ) newline } fn ( ) -> true { } 
+fn main() -> Int { & - & dyn ? false .> ident ( - not & mut dyn [ ] not ? if let ( mut ident ) : & [ ] - ? match ? true { ident => not & & not - not not not float newline } ; & ident { } ) newline } fn ( ) -> while hex { } { } 
+fn main() -> Int { not - true .> ident ( & & mut - & mut dyn match not float += - & - - ? match [ ] not if not ? false { } { . ident => false newline } { bin => . ident newline } ) newline } fn ( ) -> & - comptime { } { } 
+fn main() -> Int { not & mut & mut ? unreachable .> ident ( - - [ ] ? if & not not not - [ ] ? { } { } ) newline } fn ( ) -> - not [ ] - not ? oct { } 
+fn main() -> Int { - not while [ * ] not & mut dyn unreachable ; trait ident { } { break } newline } fn ( ) -> [ ] not - not [ ] & - ? comptime { } { } 
+fn main() -> Int { ? true ^ .> ident ( ? fn ident ( ) -> int { } ) newline } fn ( ) -> while not ? { } { } { } 
+fn main() -> Int { & mut dyn ? unreachable ^ .> ident ( not - [ ] & mut match let ( ( ( ( ( ident ) ) ) ) ) = ? hex ; - comptime { } { ( ident ) => - not not ? float newline } ) newline } fn ( ) -> - & - & unreachable { } 
+fn main() -> Int { ? { } .> ident ( ) ( hex .> ident ( ? if let ident = not - [ ] [ & not ? . ident ] [ ] false ; unreachable { } ) ) newline } fn ( ) -> if int { } { } 
+fn main() -> Int { } fn ident ( ) -> - [ ] ? ( ) ^ .> ident ( [ * ] & match while let ( ( ( ( ( ident ) ) ) ) ) = match ? comptime { } { char => - [ ] - - not ? hex newline } ; [ ] not & not & [ ] not - [ ] ? if ? unreachable { } { } { string => & & [ ] ? comptime { } newline } ) { } 
+fn main() -> Int { return while let ident = ? bin .> ident ( not [ * ] [ * ] & dyn match ? while ? if not - [ ] not comptime { } { } { } { float => not string newline } ) ; [ ] - not - ? while - not comptime { } { } { } } fn ( ) -> { } { } 
+fn main() -> Int { not not ? bin .> ident ( bin ^ ^ ( not [ mut ] ? if - [ ] not & mut & [ ] ? ident { } ) ) newline } fn ( ) -> not not not ? hex { } 
+fn main() -> Int { } fn ( ) -> & mut dyn & mut dyn not ? oct .> ident ( match not [ ] not not [ ] - [ ] ? bin { hex => - not & - not & & not [ ] & ? while comptime { } { } newline } ) { } 
+fn main() -> Int { [ mut ] & not int ^ . ident ^ .> ident ( & dyn match let ident = - [ ] & mut ? { } ; true { true => ? if { } { } newline } ) newline } fn ( ) -> match not - not { } { ident => - [ ] - ? bin newline } { } 
+fn main() -> Int { - & & mut dyn . ident ^ .> ident ( not ? if let ( ( const ident ) ) = [ * ] not & [ ] not match & ? match & ? float { octal => not - - [ ] & & - & - bin newline } { true => ? string newline } ; - & ? float { } ) newline } fn ( ) -> match ( ) { string => ? match [ ] not [ ] ? { } { octal => ? false newline } newline } { } 
+fn main() -> Int { ? { } ( ) ^ ( ) [ comptime { return - [ ] & mut dyn - if let ( ( ( ( ( ident ) ) ) ) ) = - - [ ] & & [ ] char ; not [ ] & ? match not ? { } { int => ? while comptime { } { } newline } { } } ] newline } fn ( ) -> - ? { } { } 
+fn main() -> Int { & dyn unreachable [ .. ] .> ident ( & mut & not - not & mut dyn not & dyn ? { break } ) newline } fn ( ) -> - ? false { } 
+fn main() -> Int { ? true .> ident ( ? comptime { return [ * ] - [ ] - ? comptime { return } } ) newline } fn ( ) -> ? fn ( ) -> & [ ] & - bin { } { } 
+fn main() -> Int { - ? false ^ .> ident ( & mut dyn & not comptime { return } ) newline } fn ( ) -> match [ ] [ ] not not - [ ] not ? oct { true => - & if & not [ ] ? bin { } newline } { } 
+fn main() -> Int { not not ? comptime { comptime { return not [ * ] & mut ? while & mut dyn not - & ? unreachable { } } newline } newline } fn ( ) -> [ ] false { } 
+fn main() -> Int { . ident ^ ( ) ^ .> ident ( ) .> ident ( not not [ * ] & mut ? comptime { oct newline } ) newline } fn ( ) -> - - [ ] { } { } 
+fn main() -> Int { - [ [ * ] & dyn ? true ( ) .> ident ( if [ ] not - not while [ ] not not - float { } { } ) ] [ ] [ ] comptime { } newline } fn ( ) -> [ ] not & not not [ ] bin { } 
+fn main() -> Int { [ ] char .> ident ( ) .> ident ( match let const ident = & true ; - { } { . ident => [ ] & [ ] & ident newline } ) newline } fn ( ) -> ? match ? comptime { } { ( float ) => [ ] & ? if ? if ? string { } { } newline } { } 
+fn main() -> Int { [ * ] [ * ] false .> ident ( [ mut ] & ? if int = & not [ ] [ ] oct { } ) newline } fn ( ) -> [ ] not oct { } 
+fn main() -> Int { & not [ ] oct .> ident ( ? if ? if not comptime { - match & false { float => [ ] [ ] & not not not [ ] ? { } newline } newline } { } { } ) newline } fn ( ) -> & ? false { } 
+fn main() -> Int { [ * ] & dyn - [ ] int ^ ^ .> ident ( & [ ] ? comptime { not false newline } ) newline } fn ( ) -> [ ] & & char { } 
+fn main() -> Int { oct .> ident ( if - - while let const ident = ? ident ; - fn ( ) -> & & & int { } { } { } ) newline } fn ( ) -> ? comptime { } { } 
+fn main() -> Int { comptime { return ? true . ident ( & mut dyn while if not not [ mut ] ? . ident { } { } ) } newline } fn ( ) -> [ ] & oct { } 
+fn main() -> Int { } fn ( mut ident : ? oct [ .. ] .> ident ( [ * ] & not if ? while [ ] & ident { } { } ) ) -> - not [ ] { } { } 
+fn main() -> Int { } fn ( ) -> false ( ) .> ident ( [ - - ? while comptime { return } { } ] ident ) { } 
+fn main() -> Int { not [ ] not comptime { } . ident ^ .> ident ( [ ] ? while let ( ident ) = - ? while - ? string { } ; [ ] [ ] comptime { } { } ) newline } fn ( ) -> not ? while ? while - match not & - - not - ? char { int => - [ ] [ ] & & hex newline } { } { } { } 
+fn main() -> Int { - - ? match unreachable .> ident ( not if let mut ident : not not - [ ] & dyn [ ] not & - bin ; ? if not { } { } { } ) { float => [ ] [ ] & [ ] if - if ? comptime { } { } { } newline } newline } fn ( ) -> [ ] ? fn ( ) -> ? string { } { } 
+fn main() -> Int { } fn ident ( ) -> - [ . ident .> ident ( & mut dyn - & mut dyn comptime { true newline } ) ] - [ ] ? hex { } 
+fn main() -> Int { } fn ( ) -> ? comptime { } [ .. ] .> ident ( & not [ ] ? while let ident = bin ; ? match ? comptime { } { octal => not not ( ) newline } { } ) { } 
+fn main() -> Int { } fn ident ( ) -> char . ident ^ ( ) .> ident ( ) .> ident ( not comptime { float newline break } ) { } 
+fn main() -> Int { } fn ident ( ) -> [ ident .> ident ( ? while let const ident : not - ? if let ident : not not ? int ; char { } ; not [ ] - . ident { } ) ] not - not ? match - not match - - not ? comptime { } { string => & [ ] ident newline } { octal => & comptime { } newline } { } 
+fn main() -> Int { } fn ( ident : not true .> ident ( ) .> ident ( [ ] not ? ( fn ident ( ) -> - [ ] [ ] not { } { } ) ) ) -> & - & ? { } { } 
+fn main() -> Int { } fn ident ( ) -> - - - ident .> ident ( ) ( ) .> ident ( - { - [ ] [ ] match [ ] [ ] - - float { bin => ? comptime { } newline } newline } ) { } 
+fn main() -> Int { & ? int ^ . ident ^ . ident ^ ^ .> ident ( - - ? match let ( const ident ) = not if let ( ( ( ident ) ) ) = not [ ] & not & while & & [ ] ? ident { } ; ( ) { } ; not & [ ] not - - not [ ] float { bin => [ ] ? false newline } ) newline } fn ( ) -> { } { } 
+fn main() -> Int { not not & dyn [ ] - not bin ^ .> ident ( if - match & - ? match - ( ) { octal => ? ( ) newline } { ( false ) => [ ] [ ] & & [ ] not & not [ ] & if & & ? char { } newline } { } ) newline } fn ( ) -> not ? bin { } 
+fn main() -> Int { & ? match ? ( ) .> ident ( not not while let ident = hex ; [ ] & - not { } { } ) { { } => - - ? comptime { } newline } newline } fn ( ) -> & string { } 
+fn main() -> Int { ? char . ident .> ident ( ? fn ( ) -> [ not not & mut dyn false ] not - - if & ? ( ) { } { } ) newline } fn ( ) -> - not [ ] - & & [ ] [ ] - not not [ ] hex { } 
+fn main() -> Int { ? fn ( ident : ? bin ( ) .> ident ( & not ? fn ( ident : ? float ) -> ? . ident { } ) ) -> - & not ? while - & & ? fn ( ) -> ident { } { } { } newline } fn ( ) -> - not ? match ? comptime { } { hex => ? char newline } { } 
+fn main() -> Int { & mut dyn ? comptime { } [ .. ] .> ident ( ? if let ( const ident ) : not ? comptime { not [ ] [ ] & & [ ] ? unreachable newline } ; not ? comptime { } { } ) newline } fn ( ) -> & ? match ? oct { { } => not [ ] not ident newline } { } 
+fn main() -> Int { ? oct .> ident ( match let ident = hex ; { } { float => ? int newline } ) newline } fn ( ) -> ? ident { } 
+fn main() -> Int { not [ * ] ? true [ not - not ? comptime { return . ident } ] newline } fn ( ) -> ? bin { } 
+fn main() -> Int { not ? . ident ^ ^ ^ .> ident ( [ mut ] not [ mut ] [ mut ] ? if & dyn - [ ] - ? comptime { } { } ) newline } fn ( ) -> - not not if & & ident { } { } 
+fn main() -> Int { ? false . ident . ident ( ) ( ) ( ) ^ .> ident ( ? while let const ident : match - comptime { } { { } => & string newline } ; if [ ] not ? float { } { } ) newline } fn ( ) -> & & [ ] ? while unreachable { } { } 
+fn main() -> Int { ? oct ( ) . ident . ident . ident . ident [ not not [ ] comptime { return & ? bin } ] newline } fn ( ) -> - not not ? comptime { } { } 
+fn main() -> Int { not not - unreachable .> ident ( [ ] while char *= ? while let ident = & & ? ident ; & comptime { } { } { } ) newline } fn ( ) -> ? ident { } 
+fn main() -> Int { [ ] - - . ident ( ) . ident .> ident ( comptime { & dyn [ & dyn & & mut not not not [ ] ? while & [ ] not true { } ] match [ ] not not - ? hex { hex => hex newline } newline } ) newline } fn ( ) -> & match ? if & char { } { float => ? char newline } { } 
+fn main() -> Int { - comptime { return not & dyn { } } *= - & unreachable newline } fn ( ) -> [ ] [ ] [ ] [ ] not ? comptime { } { } 
+fn main() -> Int { [ ] - not [ mut ] not ? true .> ident ( not - while let ( ident ) = not not & mut dyn not not & - - [ ] - comptime { } ; ? comptime { } { } ) newline } fn ( ) -> true { } 
+fn main() -> Int { match let ident = not not ? oct .> ident ( & mut not [ * ] if [ ] & mut - [ ] ? comptime { } { } ) ; - not - match [ ] [ ] - not & not [ ] - & & ? { } { . ident => - - - if not [ ] not not - [ ] [ ] if not & & ? unreachable { } { } newline } { bin => & string newline } newline } fn ( ) -> ? match ? while not & & hex { } { . ident => { } newline } { } 
+fn main() -> Int { not - & not ? int ^ ( ) .> ident ( & mut dyn - [ mut ] not & mut [ ] - ? match not & ? true { octal => [ ] & & [ ] { } newline } ) newline } fn ( ) -> - not not & { } { } 
+fn main() -> Int { ? char ^ .> ident ( - [ & dyn if & - - & mut dyn not ident { } ] & - not [ ] [ ] ? char ) newline } fn ( ) -> & char { } 
+fn main() -> Int { [ mut ] hex .> ident ( - comptime { ? char newline } ) newline } fn ( ) -> not while [ ] [ ] & ? if ? int { } { } { } 
+fn main() -> Int { - & mut dyn [ mut ] not int [ .. ] .> ident ( [ ] - ? match ? match ? hex { hex => & not & ? if [ ] - ? { } { } newline } { octal => - [ ] ident newline } ) newline } fn ( ) -> ? unreachable { } 
+fn main() -> Int { - [ mut ] [ ] - { } . ident . ident .> ident ( - - ? match & mut dyn & mut not not [ ] ? comptime { } { true => ? comptime { } newline } ) newline } fn ( ) -> [ ] ? true { } 
+fn main() -> Int { [ ] ? oct .> ident ( [ ] ? comptime { while & dyn match let mut ident = comptime { } ; & not while - - [ ] not & - not ? while - & [ ] comptime { } { } { } { ( { } ) => ? float newline } { } newline } ) newline } fn ( ) -> not { } { } 
+fn main() -> Int { & mut [ ] not ? . ident ^ .> ident ( [ ] [ * ] - ? if [ * ] char { } ) newline } fn ( ) -> - - [ ] not not [ ] - & & & [ ] - ? while - & ? float { } { } 
+fn main() -> Int { not not ? oct .> ident ( [ ] not not & if let ident : not not - ? unreachable ; [ ] ? comptime { } { } ) newline } fn ( ) -> & - ? match ? oct { false => ? if & & [ ] ? if - ident { } { } newline } { } 
+fn main() -> Int { ? comptime { } .> ident ( - not not [ mut ] ? comptime { break } ) newline } fn ( ) -> ? hex { } 
+fn main() -> Int { & mut [ ] [ ] - [ ] true ^ . ident .> ident ( not - [ ] & [ ] [ ] [ * ] [ ] [ ] [ & not & & ? { } ] not [ ] not - [ ] not - ? while [ ] not - not [ ] [ ] & - [ ] not ? if - ? match & & [ ] not not not [ ] & & ? { } { char => [ ] not [ ] [ ] true newline } { } { } ) newline } fn ( ) -> & - ? comptime { } { } 
+fn main() -> Int { } fn ( mut ident : ? ident .> ident ( - while - [ ? if - [ ] not if comptime { } { } { } ] not [ ] not ? comptime { } { } ) ) -> [ ] [ ] not - ? match not & not & ? unreachable { ( int ) => ? while not string { } newline } { } 
+fn main() -> Int { return { } . ident ( ) .> ident ( not not - & dyn fn ( ) -> - - - not not ( ) { } ) } fn ( ) -> & not ? ( ) { } 
+fn main() -> Int { } fn ident ( ) -> & - - ? bin ^ ^ . ident .> ident ( [ ] & mut ? { [ * ] [ mut ] & not & & not not [ ] [ ] not true newline } ) { } 
+fn main() -> Int { ? int [ .. ] ( ) . ident [ .. ] .> ident ( match - - [ ] not not & [ ] [ * ] - & & not [ ] - - [ ] match fn ( ) -> if - not - & & - [ ] & ? if - ? false { } { } { } { int => unreachable newline } { . ident => . ident newline } ) newline } fn ( ) -> - not & [ ] - ? if & & ? { } { } { } 
+fn main() -> Int { - & ? char .> ident ( fn ( const ident : if let mut ident = [ ] [ * ] ? false ; & bin { } ) -> if match - & bin { { } => & not & ? hex newline } { } { } ) newline } fn ( ) -> & ? if ? comptime { } { } { } 
+fn main() -> Int { } fn ( mut ident : . ident ( ) ^ ^ ( ) .> ident ( not match [ ] & dyn not ? false { ident => oct newline } ) ) -> - ? unreachable { } 
+fn main() -> Int { return not not not ? bin .> ident ( bin .> ident ( not ? match - & dyn & while let ident = not - string ; & [ ] [ ] match & [ ] - - [ ] ? float { octal => if while - not & [ ] [ ] char { } { } newline } { } { octal => & - - [ ] not ? string newline } ) ) } fn ( ) -> & ? match ( ) { false => - & comptime { } newline } { } 
+fn main() -> Int { & mut dyn ? unreachable ^ .> ident ( [ mut ] & mut dyn & mut [ ] - - ? { [ ] [ * ] not true newline } ) newline } fn ( ) -> - - - ? while - - oct { } { } 
+fn main() -> Int { - & hex ^ . ident .> ident ( ? while & & mut while not ? { [ ] not [ ] match ? float { int => not not ? unreachable newline } newline } { } { } ) newline } fn ( ) -> ? bin { } 
+fn main() -> Int { ? false .> ident ( match let ( ident ) = [ ] [ ] - ? if [ mut ] not [ ] [ ] - - ( ) { } ; [ ] if not - ? unreachable { } { hex => [ ] & { } newline } ) newline } fn ( ) -> comptime { } { } 
+fn main() -> Int { ? unreachable .> ident ( while if let mut ident : & int ; - & [ ] not ? float { } { } ) newline } fn ( ) -> [ ] while ? hex { } { } 
+fn main() -> Int { unreachable .> ident ( not not { } [ & mut not - & & mut dyn [ mut ] - - not if - not - - & - not . ident { } ] ) newline } fn ( ) -> ? comptime { } { } 
+fn main() -> Int { - [ ] not & dyn bin .> ident ( not & mut - not - match let ( ( ( ident ) ) ) : [ ] - & ? ( ) ; - & & [ ] - [ ] [ ] ? hex { ident => not - - not [ ] & not if while not match ? { } { { } => float newline } { } { } newline } ) newline } fn ( ) -> [ ] match & [ ] - ? { } { string => & not ? match ? ident { false => & ? int newline } newline } { } 
+fn main() -> Int { & dyn & not bin ^ ^ .> ident ( [ & mut dyn [ ? comptime { ? { } newline } ] & oct ] [ ] [ ] [ ] if & [ ] [ ] not & while if [ ] - & [ ] bin { } { } { } ) newline } fn ( ) -> not [ ] ? while [ ] [ ] [ ] { } { } { } 
+fn main() -> Int { ? int ^ .> ident ( & mut ? comptime { break } ) %= not - not ? fn ( ) -> [ ] - - { } { } newline } fn ( ) -> - bin { } 
+fn main() -> Int { - ? false .> ident ( & mut while & mut string *= ? true { } ) newline } fn ( ) -> [ ] comptime { } { } 
+fn main() -> Int { not ? true .> ident ( & mut not - - [ ] & mut dyn - [ ] ? match & & mut - [ mut ] & not [ ] ? comptime { } { ident => not [ ] [ ] & & & & ? match [ ] not - - match & & ? ( ) { { } => & ? match [ ] ? char { hex => not ? . ident newline } newline } { false => & ? { } newline } newline } ) newline } fn ( ) -> [ ] & not & [ ] ? while [ ] ? comptime { } { } { } 
+fn main() -> Int { not [ mut ] ? int ^ ^ . ident .> ident ( & mut not comptime { continue } ) newline } fn ( ) -> not [ ] & & ? { } { } 
+fn main() -> Int { } fn ( ) -> not unreachable .> ident ( - - not & mut dyn not match let const ident = char ; & not not [ ] [ ] - & [ ] not [ ] [ ] fn ( ) -> { } { } { char => & not [ ] & [ ] not [ ] not not [ ] [ ] ? if [ ] & [ ] [ ] ? match while - - false { } { ident => ? ( ) newline } { } newline } ) { } 
+fn main() -> Int { } fn ( ident : [ not char .> ident ( not [ match not [ ] ? ( [ ] ? ident ) { float => ? match ? bin { hex => [ ] ? bin newline } newline } ] & not ? while unreachable { } ) ] . ident ) -> ? match & ? comptime { } { true => int newline } { } 
+fn main() -> Int { return [ mut ] unreachable .> ident ( ) .> ident ( - - & [ mut ] [ ] - while not & & dyn ? if - ( ) { } { } ) } fn ( ) -> hex { } 
+fn main() -> Int { not & dyn - true .> ident ( & mut not ? { break } ) = not ? oct newline } fn ( ) -> ? ( ) { } 
+fn main() -> Int { not [ ] - comptime { } .> ident ( ) . ident .> ident ( match ? . ident += [ ] ? ( ) { ( . ident ) => - ? true newline } ) newline } fn ( ) -> ? bin { } 
+fn main() -> Int { match & dyn hex .> ident ( - - ? comptime { continue } ) { bin => & - - - - [ ] [ ] - [ ] & - [ ] & ? string newline } newline } fn ( ) -> oct { } 
+fn main() -> Int { { } ( ) .> ident ( - & mut [ not while let const ident : [ * ] not & dyn ? match not char { true => [ ] [ ] char newline } ; not { } { } ] - ? comptime { } ) newline } fn ( ) -> ? comptime { } { } 
+fn main() -> Int { comptime { } .> ident ( [ ] ? { [ ] [ * ] [ ] - hex newline } ) newline } fn ( ) -> & ? oct { } 
+fn main() -> Int { [ ] & unreachable . ident .> ident ( ) .> ident ( ) .> ident ( [ ? { return - not [ ] while - & not - - & & [ ] not ? comptime { } { } } ] oct ) newline } fn ( ) -> not not { } { } 
+fn main() -> Int { ? hex .> ident ( ) .> ident ( not not & - ? fn ident ( ident : - - & mut dyn & dyn & dyn { } ) -> & ? match [ ] not - ? match hex { false => - [ ] fn ( ) -> ? { } { } newline } { octal => - not - ? if not not not - ? int { } newline } { } ) newline } fn ( ) -> [ ] - & [ ] { } { } 
+fn main() -> Int { not - & dyn not - hex .> ident ( - ? match - ? ident += not ? oct { . ident => [ ] & & & while oct { } newline } ) newline } fn ( ) -> not - [ ] ? false { } 
+fn main() -> Int { } fn ( ) -> - not - ? . ident . ident .> ident ( [ while & mut & mut dyn ? { - & not not - ? false newline } { } ] - - if - ident { } ) { } 
+fn main() -> Int { & dyn not ? ( ) .> ident ( ( & [ ] not not while & & { } { } ) ) newline } fn ( ) -> not ident { } 
+fn main() -> Int { } fn ( ) -> [ mut ] ? false .> ident ( [ ] not [ * ] - if not ident { } ) { } 
+fn main() -> Int { - while - & [ ] & mut dyn & mut & & dyn hex ; trait ident { } { } newline } fn ( ) -> & not ? bin { } 
+fn main() -> Int { } fn ( ) -> & [ ] comptime { } .> ident ( & mut - comptime { ? { unreachable newline } newline } ) { } 
+fn main() -> Int { [ not - - not ? hex [ .. ] .> ident ( & mut dyn & mut & dyn { [ * ] & - - fn ( ) -> ? match - & & comptime { } { float => & ? ident newline } { } newline } ) ] { } newline } fn ( ) -> ? ident { } 
+fn main() -> Int { ? true . ident ( ) . ident ( ) .> ident ( while while let const ident = - hex ; comptime { } { } { } ) newline } fn ( ) -> [ ] ? comptime { } { } 
+fn main() -> Int { bin .> ident ( ) ( ) .> ident ( & dyn if let ( const ident ) = unreachable ; - if fn ( ) -> ? int { } { } { } ) newline } fn ( ) -> ? bin { } 
+fn main() -> Int { not not - if int ^ .> ident ( [ * ] - - & mut dyn not [ - [ ] [ & & - not - [ ] ident ] - [ ] not ? int ] ? while & not ? if ? true { } { } ) { } newline } fn ( ) -> & ? if - match [ ] [ ] [ ] ? string { int => not & - & [ ] & not - & [ ] & & ? { } newline } { } { } 
+fn main() -> Int { [ * ] - [ mut ] ? int [ .. ] ( ) .> ident ( - [ ] not & not [ ] ? match ? { } { string => & & fn ( ) -> not ? comptime { } { } newline } ) newline } fn ( ) -> - & [ ] match ? false { false => comptime { } newline } { } 
+fn main() -> Int { - unreachable .> ident ( ) ( ) ( ) .> ident ( & { not [ mut ] ? match [ ] not - ( ) { hex => not not & & { } newline } newline } ) newline } fn ( ) -> not ? false { } 
+fn main() -> Int { not comptime { } .> ident ( - not [ ] - - & [ ] comptime { return & dyn not & dyn - comptime { } } ) newline } fn ( ) -> fn ( ) -> { } { } { } 
+fn main() -> Int { not not ? char .> ident ( & mut [ ] not & while if let ident : & dyn not int ; & & not not & unreachable { } { } ) newline } fn ( ) -> - [ ] & & & match match [ ] int { float => not if ? char { } newline } { octal => [ ] hex newline } { } 
+fn main() -> Int { [ ] & mut dyn oct .> ident ( ) .> ident ( ? match & mut dyn ? match let ( ident ) : not oct ; not & [ ] not [ ] [ ] - - - - ( ) { . ident => & ? unreachable newline } { string => ? unreachable newline } ) newline } fn ( ) -> [ ] not & not ? string { } 
+fn main() -> Int { ? ( ) .> ident ( ? if [ ] [ ] & dyn [ - [ ] & dyn - & - [ ] ? { } ] while - & & not ? { } { } { } ) newline } fn ( ) -> & - ? char { } 
+fn main() -> Int { [ mut ] not - ? oct .> ident ( ) . ident . ident .> ident ( [ mut ] & dyn ? fn ( ) -> & mut dyn true { } ) newline } fn ( ) -> ? ident { } 
+fn main() -> Int { while not & false .> ident ( comptime { & dyn [ * ] ? comptime { [ ] not & - - - not & - not [ ] not & - [ ] & & - while & . ident { } newline } newline } ) { } newline } fn ( ) -> while oct { } { } 
+fn main() -> Int { [ ] not ? true .> ident ( [ if let ident : not while [ * ] ? if unreachable { } { } ; not match & & bin { octal => - comptime { } newline } { } ] - ? while unreachable { } ) newline } fn ( ) -> [ ] - [ ] not [ ] while & & & not & if not float { } { } { } 
+fn main() -> Int { } fn ( ) -> & ? comptime { } ^ . ident .> ident ( [ ] [ ? if let ( ( ident ) ) : ? ident ; - [ ] not - & [ ] & - - - ? unreachable { } ] & [ ] [ ] & ? true ) { } 
+fn main() -> Int { - [ ] - & mut [ mut ] oct .> ident ( ? match - & ? comptime { return } { char => not not ? false newline } ) newline } fn ( ) -> { } { } 
+fn main() -> Int { & mut ( ) ^ .> ident ( comptime { [ * ] not float newline continue } ) newline } fn ( ) -> - & & - ? while ? { } { } { } 
+fn main() -> Int { } fn ident ( ) -> not - not hex .> ident ( while match let ( ident ) = & dyn [ ] [ ] not - & - string ; - not oct { octal => ? if false { } newline } { } ) { } 
+fn main() -> Int { [ ] ? comptime { return not not & mut dyn [ ] & dyn - & mut not comptime { not & dyn [ ] ? int newline } } newline } fn ( ) -> not ? if [ ] [ ] ? false { } { } 
+fn main() -> Int { return ? unreachable .> ident ( if let const ident : [ mut ] not [ ] & dyn & comptime { } ; ? comptime { } { } ) } fn ( ) -> not [ ] [ ] unreachable { } 
+fn main() -> Int { ? bin .> ident ( ? comptime { - & mut - not not not string /= - while & [ ] - . ident { } newline } ) newline } fn ( ) -> [ ] [ ] [ ] ? int { } 
+fn main() -> Int { not ? comptime { return if & mut dyn & dyn - & mut not [ ] & mut dyn [ ] comptime { } { } } newline } fn ( ) -> - match - ? { } { string => ? while not & & & & [ ] ? fn ( ) -> - unreachable { } { } newline } { } 
+fn main() -> Int { return ? true .> ident ( - char [ ? if let ident = ? fn ( ident : ? while not not [ ] ? oct { } ) -> false { } ; [ ] not not ? while { } { } { } ] ) } fn ( ) -> [ ] & [ ] [ ] & - - not [ ] unreachable { } 
+fn main() -> Int { [ ] ? int .> ident ( [ ] not & dyn - & mut dyn [ ] if ? if & - ? float { } { } ) newline } fn ( ) -> - not not true { } 
+fn main() -> Int { [ mut ] not ? int [ ? comptime { return not not hex } ] newline } fn ( ) -> not [ ] [ ] match while [ ] ident { } { false => not - false newline } { } 
+fn main() -> Int { char [ .. ] ( ) .> ident ( ) .> ident ( ? match ? string { { } => ? . ident newline } ) newline } fn ( ) -> [ ] - & not ( ) { } 
+fn main() -> Int { ? oct [ .. ? true .> ident ( ? { [ & - & mut dyn & dyn & [ ] - unreachable ] [ ] [ ] - [ ] not ? if ? fn ( ) -> & [ ] int { } { } newline } ) ] newline } fn ( ) -> if [ ] not & ? unreachable { } { } 

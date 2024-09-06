@@ -200,6 +200,7 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.else_block(), ast.@"for".scope.?, errors, allocator);
         },
         .block => {
+            std.debug.print("{}\n", .{ast.token().span});
             try decorate_identifiers_from_list(ast.children().*, ast.block.scope.?, errors, allocator);
             if (ast.block.final) |final| {
                 try decorate_identifiers(final, ast.block.scope.?, errors, allocator);
