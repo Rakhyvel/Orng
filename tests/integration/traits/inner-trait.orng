@@ -1,0 +1,14 @@
+// 322
+fn main() -> Int {
+    trait Return_322 {
+        fn get() -> Int
+    }
+
+    impl Return_322 for Int {
+        fn get() -> Int { 322 }
+    }
+
+    let x: Int = 4
+    _ = x
+    x.>get()
+}

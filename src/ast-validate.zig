@@ -369,8 +369,13 @@ fn validate_AST_internal(
 ) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError, SymbolError }!*ast_.AST {
     // std.debug.print("{}: {?}\n", .{ ast, expected });
     switch (ast.*) {
-        .poison => return ast,
-        .pattern_symbol => return ast,
+        // Nop, always "valid"
+        .poison,
+        // Pattern symbols, traits, and impls are validated elsewhere, the AST doesn't need to be re-validated.
+        .pattern_symbol,
+        .trait,
+        .impl,
+        => return ast,
         .anyptr_type, .unit_type => {
             try type_check(ast.token().span, primitives_.type_type, expected, errors);
             return ast;

@@ -1,0 +1,1 @@
+fn main() -> Int { - & [ ] - . ident ^ ( not - [ [ * ] ident ] ? . ident ( [ ] & ? match - - match ? fn ( ) -> - [ ] [ ] [ ] fn ( ) -> & [ ] while ? ident { } { } { } { true => ? if & & not ? ident { } newline } { ident => [ ] & ? . ident newline } ) ) newline } fn ( ) -> not & & fn ( ) -> not & & not ? . ident { } { } 

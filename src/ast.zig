@@ -2046,6 +2046,8 @@ pub const AST = union(enum) {
             .@"defer",
             .@"errdefer",
             .template,
+            .trait,
+            .impl,
             => return primitives_.unit_type,
 
             // Void type

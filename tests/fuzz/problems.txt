@@ -1,0 +1,1 @@
+fn main() -> Int { not not ? while - & mut dyn ? ( ) ; trait ident { } { } newline } fn ( ) -> - match ident { bin => while ? if & [ ] & [ ] - & & ident { } { } newline } { } 
