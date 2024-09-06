@@ -17,35 +17,35 @@ struct struct1 {
 typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1819_main(void);
-struct struct1 _1821_get(void);
+int64_t _1826_main(void);
+struct struct1 _1828_get(void);
 
 
 /* Function definitions */
-int64_t _1819_main(void){
-    function0 _1819_t0;
-    struct struct1 _1819_t1;
-    struct struct1 _1820_x;
-    int64_t _1819_$retval;
-    _1819_t0 = (function0) _1821_get;
+int64_t _1826_main(void){
+    function0 _1826_t0;
+    struct struct1 _1826_t1;
+    struct struct1 _1827_x;
+    int64_t _1826_$retval;
+    _1826_t0 = (function0) _1828_get;
     $lines[$line_idx++] = "tests/integration/tuples/1-tuple.orng:3:17:\n    let x = get()\n               ^";
-    _1819_t1 = _1819_t0();
+    _1826_t1 = _1826_t0();
     $line_idx--;
-    _1820_x = _1819_t1;
-    _1819_$retval = _1820_x._0;
-    return _1819_$retval;
+    _1827_x = _1826_t1;
+    _1826_$retval = _1827_x._0;
+    return _1826_$retval;
 }
 
-struct struct1 _1821_get(void){
-    int64_t _1821_t1;
-    struct struct1 _1821_$retval;
-    _1821_t1 = 234;
-    _1821_$retval = (struct struct1) {_1821_t1};
-    return _1821_$retval;
+struct struct1 _1828_get(void){
+    int64_t _1828_t1;
+    struct struct1 _1828_$retval;
+    _1828_t1 = 234;
+    _1828_$retval = (struct struct1) {_1828_t1};
+    return _1828_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1819_main());
+  printf("%ld",_1826_main());
   return 0;
 }

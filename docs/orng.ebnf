@@ -83,6 +83,9 @@ control_flow: if_expr
 factor: ident
       | "self"
       | fn_declaration
+      | "." ident ["(" assignment_expr ")"]
+      | parens
+      | "unreachable"
       .
 
 literal: "true"
@@ -95,9 +98,7 @@ literal: "true"
        | char
        | string
        | block_expr
-       | "." ident ["(" assignment_expr ")"]
-       | "unreachable"
-       | parens
+       .
 
 block_expr: "{" [ assignment_expr "newline" { "newline" statement "newline" } ] [( "return" [assignment_expr]) | ("continue") | ("break")] "}".
 

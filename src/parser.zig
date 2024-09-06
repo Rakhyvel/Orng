@@ -591,6 +591,17 @@ pub const Parser = struct {
             return ast_.AST.create_identifier(token, self.allocator);
         } else if (self.peek_kind(.@"fn")) {
             return self.fn_declaration();
+        } else if (self.accept(.period)) |_| {
+            const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
+            if (self.accept(.left_parenthesis) != null) {
+                if (!self.peek_kind(.right_parenthesis)) {
+                    sum_val.sum_value.init = try self.assignment_expr();
+                }
+                _ = try self.expect(.right_parenthesis);
+            }
+            return sum_val;
+        } else if (self.accept(.@"unreachable")) |token| {
+            return ast_.AST.create_unreachable(token, self.allocator);
         } else {
             return self.literal();
         }
@@ -619,17 +630,6 @@ pub const Parser = struct {
             return ast_.AST.create_string(token, token.data, self.allocator);
         } else if (self.peek_kind(.left_brace)) {
             return try self.block_expr();
-        } else if (self.accept(.period)) |_| {
-            const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
-            if (self.accept(.left_parenthesis) != null) {
-                if (!self.peek_kind(.right_parenthesis)) {
-                    sum_val.sum_value.init = try self.assignment_expr();
-                }
-                _ = try self.expect(.right_parenthesis);
-            }
-            return sum_val;
-        } else if (self.accept(.@"unreachable")) |token| {
-            return ast_.AST.create_unreachable(token, self.allocator);
         } else if (self.peek_kind(.left_parenthesis)) {
             return try self.parens();
         } else {

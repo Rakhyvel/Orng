@@ -270,7 +270,7 @@ fn lower_AST(
         },
         .select => {
             // Recursively get select's ast L_Value node
-            const ast_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
+            const ast_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator); // TODO: test: cannot be unreachable, since unreachable isn't selectable
 
             // Get the offset into the struct that this select does
             var lhs_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);
@@ -1010,9 +1010,9 @@ fn generate_match_pattern_check(
         .string,
         .block,
         => {
-            const value = try lower_AST(cfg, pattern.?, labels, errors, allocator);
+            const value = (try lower_AST(cfg, pattern.?, labels, errors, allocator)) orelse return;
             const condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
-            cfg.append_instruction(ir_.IR.init(.equal, condition, expr, value.?, pattern.?.token().span, allocator));
+            cfg.append_instruction(ir_.IR.init(.equal, condition, expr, value, pattern.?.token().span, allocator));
             cfg.append_instruction(ir_.IR.init_branch(condition, next_pattern, pattern.?.token().span, allocator));
         },
         .product => {

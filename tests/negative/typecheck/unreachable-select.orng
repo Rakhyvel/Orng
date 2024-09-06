@@ -1,0 +1,4 @@
+fn main() -> Int {
+    unreachable.x
+    4
+}

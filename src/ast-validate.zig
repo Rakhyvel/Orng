@@ -1915,8 +1915,7 @@ fn assert_pattern_matches(
         },
         .pattern_symbol => {},
         else => {
-            std.debug.print("unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
-            unreachable;
+            std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
         },
     }
     _ = pattern.assert_valid();

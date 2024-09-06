@@ -1,0 +1,6 @@
+fn main() -> Int {
+    match 4 {
+        unreachable => 35
+        _ => 2
+    }
+}
