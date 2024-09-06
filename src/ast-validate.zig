@@ -62,6 +62,10 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
 
     // std.debug.assert(symbol.init.* != .poison);
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
+    if (!symbol._type.valid_type()) {
+        errors.add_error(errs_.Error{ .invalid_type = .{ .span = symbol._type.token().span } });
+        return error.TypeError;
+    }
     symbol._type = validate_AST(symbol._type, primitives_.type_type, errors, allocator);
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
@@ -1297,6 +1301,10 @@ fn void_check(span: span_.Span, expected: ?*ast_.AST, errors: *errs_.Errors) Val
 
 /// Checks that a type is equal to unit, throws an error if it is not.
 fn middle_statement_check(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+    if (!got.valid_type()) {
+        errors.add_error(errs_.Error{ .invalid_type = .{ .span = span } });
+        return error.TypeError;
+    }
     if (!primitives_.unit_type.types_match(got) and !got.types_match(primitives_.void_type)) {
         return throw_unexpected_type(span, primitives_.unit_type, got, errors);
     }

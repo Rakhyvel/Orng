@@ -1,1 +1,1 @@
-fn main() -> Int { ? . ident .> ident ( not ident .> ident ( ) -= . ident ) newline } fn ( ) -> - & self { } 
+fn main() -> Int { - & mut ? . ident ( ) .> ident ( [ * ] not not & mut not - - not & ? fn ( mut ident : [ ] & not ? ident ) -> while ? while & [ ] fn ( ) -> [ ] & - not & ? while [ ] & - not ? comptime { } { } { } { } { } { } ) newline } fn ( ) -> fn ( ) -> - ? if if & ? . ident { } { } { } { } 

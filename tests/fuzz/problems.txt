@@ -1,1 +1,0 @@
-fn main() -> Int { ? while let ident = & dyn - & while ( ) ; impl ident for & comptime { } { } { } ; [ ] - & not not ? comptime { } { } newline } fn ( ) -> [ ] - ? comptime { } { } 

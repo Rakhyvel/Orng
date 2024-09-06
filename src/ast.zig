@@ -1717,20 +1717,31 @@ pub const AST = union(enum) {
     }
 
     /// Determines if an AST can structurally refer to a type. This is looser than if an AST value is Type typed, as
-    /// some ASTs that pass this check might fail `types_match(primitives_.type_type)`. types_match() assumes it's
-    /// arguments pass this test.
+    /// some ASTs that pass this check might fail `types_match(primitives_.type_type)`.
+    ///
+    /// The types_match() function assumes it's arguments pass this test.
     pub fn valid_type(_type: *AST) bool {
         return switch (_type.*) {
+            // Always well-formed, comptime types
+            .type_of,
+            .domain_of,
+            .anyptr_type,
+            .unit_type,
+            .dyn_type,
+            .identifier,
+            .call,
+            .invoke,
+            .poison,
+            => true,
+
             // Anything else probably isn't a valid type
             else => false,
 
-            // Always types
-            .anyptr_type, .unit_type, .dyn_type, .identifier, .call, .invoke => true,
-
             // Recursive
+            .index => _type.lhs().valid_type(), // Used by pattern matching, lhs is the array_of type, rhs is the index
             .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
             .annotation => _type.annotation.type.valid_type(),
-            .function, .@"union" => _type.lhs().valid_type() or _type.rhs().valid_type(),
+            .function, .@"union" => _type.lhs().valid_type() and _type.rhs().valid_type(),
             .product, .sum_type => {
                 for (_type.children().items) |item| {
                     if (!item.valid_type()) {
@@ -2299,6 +2310,8 @@ pub const AST = union(enum) {
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *AST, B: *AST) bool {
         // std.debug.print("{} == {}\n", .{ A, B });
+        std.debug.assert(A.valid_type());
+        std.debug.assert(B.valid_type());
         if (A.* == .annotation) {
             return types_match(A.annotation.type, B);
         } else if (B.* == .annotation) {
@@ -2582,7 +2595,7 @@ pub const AST = union(enum) {
                 }
                 try out.writer().print(")", .{});
             },
-            .index => try out.writer().print("index()", .{}),
+            .index => try out.writer().print("index({}, {})", .{ self.lhs(), self.rhs() }),
             .select => {
                 try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });
             },

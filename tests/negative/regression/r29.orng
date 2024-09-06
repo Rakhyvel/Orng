@@ -1,0 +1,13 @@
+trait A {
+    fn x(y: {Int}) -> ()
+}
+
+impl A for Int {
+    fn x(y: {Int}) -> () {
+        _ = y
+    }
+}
+
+fn main() -> Int {
+    4
+}

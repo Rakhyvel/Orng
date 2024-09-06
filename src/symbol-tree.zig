@@ -43,6 +43,7 @@ fn symbol_table_from_AST(
         return;
     }
     const ast = maybe_ast.?;
+    // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         .anyptr_type,
         .unit_type,
@@ -279,6 +280,7 @@ fn symbol_table_from_AST(
 
             for (ast.children().items) |method_decl| {
                 method_decl.method_decl.c_type = create_method_type(method_decl, allocator);
+                try symbol_table_from_AST(method_decl, new_scope, errors, allocator);
             }
         },
         .impl => {
@@ -304,13 +306,22 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST_list(ast.children().*, new_scope, errors, allocator);
         },
         .method_decl => {
-            if (ast.symbol() != null or ast.method_decl.init == null) {
+            if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return;
             }
-            const symbol = try create_method_symbol(ast, scope, errors, allocator);
-            try put_symbol(symbol, scope, errors);
-            ast.set_symbol(symbol);
+            if (ast.method_decl.init == null) {
+                // Trait method decl
+                var fn_scope = symbol_.Scope.init(scope, "", allocator);
+                fn_scope.function_depth = scope.function_depth + 1;
+                try symbol_table_from_AST_list(ast.children().*, fn_scope, errors, allocator);
+                try symbol_table_from_AST(ast.method_decl.ret_type, fn_scope, errors, allocator);
+            } else {
+                // Impl method decl
+                const symbol = try create_method_symbol(ast, scope, errors, allocator);
+                try put_symbol(symbol, scope, errors);
+                ast.set_symbol(symbol);
+            }
         },
         .@"defer" => {
             scope.defers.append(ast.statement()) catch unreachable;
