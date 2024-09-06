@@ -7,17 +7,19 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _480_main(void);
+int64_t _488_main(void);
 
 
 /* Function definitions */
-int64_t _480_main(void){
+int64_t _488_main(void){
+    goto BB567;
+BB567:
     $lines[$line_idx++] = "tests/integration/control-flow/match-non-exhaustive.orng:3:23:\n    let x: Int = match true {\n                     ^";
     $panic("could not match pattern\n");
 }
 
 
 int main(void) {
-  printf("%ld",_480_main());
+  printf("%ld",_488_main());
   return 0;
 }

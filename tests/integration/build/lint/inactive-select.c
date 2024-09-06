@@ -21,38 +21,38 @@ struct struct1 {
 typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1113_main(void);
-struct struct1 _1115_f(void);
+int64_t _1121_main(void);
+struct struct1 _1123_f(void);
 
 
 /* Function definitions */
-int64_t _1113_main(void){
-    function0 _1113_t0;
-    struct struct1 _1113_t1;
-    struct struct1 _1114_x;
-    uint64_t _1113_t3;
-    int64_t _1113_$retval;
-    _1113_t0 = (function0) _1115_f;
+int64_t _1121_main(void){
+    function0 _1121_t0;
+    struct struct1 _1121_t1;
+    struct struct1 _1122_x;
+    uint64_t _1121_t3;
+    int64_t _1121_$retval;
+    _1121_t0 = (function0) _1123_f;
     $lines[$line_idx++] = "tests/integration/lint/inactive-select.orng:3:15:\n    let x = f()\n             ^";
-    _1113_t1 = _1113_t0();
+    _1121_t1 = _1121_t0();
     $line_idx--;
-    _1114_x = _1113_t1;
-    _1113_t3 = _1113_t1.tag;
-    $tag_check(_1113_t3, 1, "tests/integration/lint/inactive-select.orng:2:8:\nfn main() -> Int {\n      ^");
-    _1113_$retval = _1114_x._1;
-    return _1113_$retval;
+    _1122_x = _1121_t1;
+    _1121_t3 = _1121_t1.tag;
+    $tag_check(_1121_t3, 1, "tests/integration/lint/inactive-select.orng:2:8:\nfn main() -> Int {\n      ^");
+    _1121_$retval = _1122_x._1;
+    return _1121_$retval;
 }
 
-struct struct1 _1115_f(void){
-    int64_t _1115_t0;
-    struct struct1 _1115_$retval;
-    _1115_t0 = 4;
-    _1115_$retval = (struct struct1) {.tag=0, ._0=_1115_t0};
-    return _1115_$retval;
+struct struct1 _1123_f(void){
+    int64_t _1123_t0;
+    struct struct1 _1123_$retval;
+    _1123_t0 = 4;
+    _1123_$retval = (struct struct1) {.tag=0, ._0=_1123_t0};
+    return _1123_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1113_main());
+  printf("%ld",_1121_main());
   return 0;
 }

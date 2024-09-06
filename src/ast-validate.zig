@@ -1057,20 +1057,45 @@ fn validate_AST_internal(
             if (ast.@"if".condition.* == .true and ast.else_block() != null) {
                 // condition is true and theres an else => return {let; body}
                 if (ast.@"if".let != null) {
-                    ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable; // TODO: If body_block() is unit_value, this causes an error
+                    if (ast.body_block().* == .block) {
+                        ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
+                    } else if (ast.body_block().* == .unit_value) {
+                        var statements = std.ArrayList(*ast_.AST).init(allocator);
+                        statements.append(ast.@"if".let.?) catch unreachable;
+                        const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
+                        block.block.scope = ast.@"if".scope.?;
+                        ast.set_body_block(block);
+                    }
                 }
                 return ast.body_block();
             } else if (ast.@"if".condition.* == .true and ast.else_block() == null) {
                 // condition is true and theres no else => return {let; some(body)}
                 if (ast.@"if".let != null) {
-                    ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable; // TODO: If body_block() is unit_value, this causes an error
+                    if (ast.body_block().* == .block) {
+                        ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
+                    } else if (ast.body_block().* == .unit_value) {
+                        var statements = std.ArrayList(*ast_.AST).init(allocator);
+                        statements.append(ast.@"if".let.?) catch unreachable;
+                        const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
+                        block.block.scope = ast.@"if".scope.?;
+                        ast.set_body_block(block);
+                    }
                 }
                 const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(allocator), allocator);
-                return ast_.AST.create_some_value(opt_type, ast.body_block(), allocator);
+                const retval = ast_.AST.create_some_value(opt_type, ast.body_block(), allocator);
+                return retval;
             } else if (ast.@"if".condition.* == .false and ast.else_block() != null) {
                 // condition is false and theres an else => return {let; else}
                 if (ast.@"if".let != null) {
-                    ast.else_block().?.children().insert(0, ast.@"if".let.?) catch unreachable; // TODO: If body_block() is unit_value, this causes an error
+                    if (ast.else_block().?.* == .block) {
+                        ast.else_block().?.children().insert(0, ast.@"if".let.?) catch unreachable;
+                    } else if (ast.else_block().?.* == .unit_value) {
+                        var statements = std.ArrayList(*ast_.AST).init(allocator);
+                        statements.append(ast.@"if".let.?) catch unreachable;
+                        const block = ast_.AST.create_block(ast.else_block().?.token(), statements, null, allocator);
+                        block.block.scope = ast.@"if".scope.?;
+                        ast.set_else_block(block);
+                    }
                 }
                 return ast.else_block().?;
             } else if (ast.@"if".condition.* == .false and ast.else_block() == null) {

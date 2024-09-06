@@ -44,58 +44,58 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _1759_main(void);
-int64_t _1755_a(void* _1755_$self_ptr, int64_t _1755_x);
-int64_t _1757_b(void* _1757_$self_ptr);
+int64_t _1767_main(void);
+int64_t _1763_a(void* _1763_$self_ptr, int64_t _1763_x);
+int64_t _1765_b(void* _1765_$self_ptr);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1754_$vtable = {
-    .b = _1757_b,
+struct vtable_My_Trait _1762_$vtable = {
+    .b = _1765_b,
 };
 
 
 /* Function definitions */
-int64_t _1759_main(void){
-    int64_t _1759_t1;
-    int64_t _1759_t2;
-    struct struct4 _1760_my_val;
-    struct struct4* _1759_t5;
-    int64_t _1759_t6;
-    function5 _1759_t8;
-    int64_t _1759_t4;
-    int64_t _1759_$retval;
-    _1759_t1 = 211;
-    _1759_t2 = 50;
-    _1760_my_val = (struct struct4) {_1759_t1, _1759_t2};
-    _1759_t5 = &_1760_my_val;
-    _1759_t6 = 2;
-    _1759_t8 = (function5) _1755_a;
+int64_t _1767_main(void){
+    int64_t _1767_t1;
+    int64_t _1767_t2;
+    struct struct4 _1768_my_val;
+    struct struct4* _1767_t5;
+    int64_t _1767_t6;
+    function5 _1767_t8;
+    int64_t _1767_t4;
+    int64_t _1767_$retval;
+    _1767_t1 = 211;
+    _1767_t2 = 50;
+    _1768_my_val = (struct struct4) {_1767_t1, _1767_t2};
+    _1767_t5 = &_1768_my_val;
+    _1767_t6 = 2;
+    _1767_t8 = (function5) _1763_a;
     $lines[$line_idx++] = "tests/integration/traits/unit-param.orng:18:13:\n    my_val.>a(2, {})\n           ^";
-    _1759_t4 = _1759_t8(_1759_t5, _1759_t6);
+    _1767_t4 = _1767_t8(_1767_t5, _1767_t6);
     $line_idx--;
-    _1759_$retval = _1759_t4;
-    return _1759_$retval;
+    _1767_$retval = _1767_t4;
+    return _1767_$retval;
 }
 
-int64_t _1755_a(void* _1755_$self_ptr, int64_t _1755_x){
-    struct struct4 _1756_self;
-    int64_t _1755_t2;
-    int64_t _1755_$retval;
-    _1756_self = *(struct struct4*)_1755_$self_ptr;
-    _1755_t2 = $mult_int64_t(_1756_self._1, _1755_x, "tests/integration/traits/unit-param.orng:11:64:\n    fn a(self, x: Int, y: ()) -> Int { _ = y; self.x + self.y * x }\n                                                              ^");
-    _1755_$retval = $add_int64_t(_1756_self._0, _1755_t2, "tests/integration/traits/unit-param.orng:11:55:\n    fn a(self, x: Int, y: ()) -> Int { _ = y; self.x + self.y * x }\n                                                     ^");
-    return _1755_$retval;
+int64_t _1763_a(void* _1763_$self_ptr, int64_t _1763_x){
+    struct struct4 _1764_self;
+    int64_t _1763_t2;
+    int64_t _1763_$retval;
+    _1764_self = *(struct struct4*)_1763_$self_ptr;
+    _1763_t2 = $mult_int64_t(_1764_self._1, _1763_x, "tests/integration/traits/unit-param.orng:11:64:\n    fn a(self, x: Int, y: ()) -> Int { _ = y; self.x + self.y * x }\n                                                              ^");
+    _1763_$retval = $add_int64_t(_1764_self._0, _1763_t2, "tests/integration/traits/unit-param.orng:11:55:\n    fn a(self, x: Int, y: ()) -> Int { _ = y; self.x + self.y * x }\n                                                     ^");
+    return _1763_$retval;
 }
 
-int64_t _1757_b(void* _1757_$self_ptr){
-    int64_t _1757_$retval;
-    (void)_1757_$self_ptr;
-    _1757_$retval = 4;
-    return _1757_$retval;
+int64_t _1765_b(void* _1765_$self_ptr){
+    int64_t _1765_$retval;
+    (void)_1765_$self_ptr;
+    _1765_$retval = 4;
+    return _1765_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1759_main());
+  printf("%ld",_1767_main());
   return 0;
 }

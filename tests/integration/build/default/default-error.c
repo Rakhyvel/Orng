@@ -27,25 +27,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _528_main(void);
+int64_t _536_main(void);
 
 
 /* Function definitions */
-int64_t _528_main(void){
-    int64_t _528_t0;
-    struct struct0 _529_x;
-    uint64_t _528_t3;
-    int64_t _528_$retval;
-    _528_t0 = 139;
-    _529_x = (struct struct0) {.tag=0, ._0=_528_t0};
-    _528_t3 = 0;
-    $tag_check(_528_t3, 0, "tests/integration/default/default-error.orng:2:8:\nfn main() -> Int {\n      ^");
-    _528_$retval = _529_x._0;
-    return _528_$retval;
+int64_t _536_main(void){
+    int64_t _536_t0;
+    struct struct0 _537_x;
+    uint64_t _536_t3;
+    int64_t _536_$retval;
+    _536_t0 = 139;
+    _537_x = (struct struct0) {.tag=0, ._0=_536_t0};
+    _536_t3 = 0;
+    $tag_check(_536_t3, 0, "tests/integration/default/default-error.orng:2:8:\nfn main() -> Int {\n      ^");
+    _536_$retval = _537_x._0;
+    return _536_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_528_main());
+  printf("%ld",_536_main());
   return 0;
 }

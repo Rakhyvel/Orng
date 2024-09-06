@@ -17,76 +17,76 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1296_main(void);
+int64_t _1304_main(void);
 
 
 /* Function definitions */
-int64_t _1296_main(void){
-    int64_t _1296_t2;
-    int64_t _1296_t3;
-    int64_t _1296_t4;
-    struct struct0 _1297_x;
-    int64_t _1296_t6;
-    int64_t _1296_t7;
-    int64_t _1296_t8;
-    uint8_t _1296_t9;
-    int64_t _1296_t0;
-    int64_t _1296_t12;
-    uint8_t _1296_t13;
-    int64_t _1296_$retval;
-    int64_t _1296_t10;
-    uint8_t _1296_t11;
-    _1296_t2 = 1;
-    _1296_t3 = 2;
-    _1296_t4 = 3;
-    _1297_x = (struct struct0) {_1296_t2, _1296_t3, _1296_t4};
-    _1296_t6 = 2;
-    _1296_t7 = 3;
-    _1296_t8 = 1;
-    $bounds_check(_1296_t6, _1296_t7, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
-    _1296_t9 = *((int64_t*)&_1297_x + _1296_t6)==_1296_t8;
-    if (_1296_t9) {
-        goto BB1488;
-    } else {
-        goto BB1491;
-    }
-BB1488:
-    _1296_t0 = 2;
-    goto BB1490;
-BB1491:
-    _1296_t10 = 2;
-    $bounds_check(_1296_t6, _1296_t7, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
-    _1296_t11 = *((int64_t*)&_1297_x + _1296_t6)==_1296_t10;
-    if (_1296_t11) {
-        goto BB1493;
-    } else {
+int64_t _1304_main(void){
+    int64_t _1304_t2;
+    int64_t _1304_t3;
+    int64_t _1304_t4;
+    struct struct0 _1305_x;
+    int64_t _1304_t6;
+    int64_t _1304_t7;
+    int64_t _1304_t8;
+    uint8_t _1304_t9;
+    int64_t _1304_t0;
+    int64_t _1304_t12;
+    uint8_t _1304_t13;
+    int64_t _1304_$retval;
+    int64_t _1304_t10;
+    uint8_t _1304_t11;
+    _1304_t2 = 1;
+    _1304_t3 = 2;
+    _1304_t4 = 3;
+    _1305_x = (struct struct0) {_1304_t2, _1304_t3, _1304_t4};
+    _1304_t6 = 2;
+    _1304_t7 = 3;
+    _1304_t8 = 1;
+    $bounds_check(_1304_t6, _1304_t7, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
+    _1304_t9 = *((int64_t*)&_1305_x + _1304_t6)==_1304_t8;
+    if (_1304_t9) {
         goto BB1494;
-    }
-BB1490:
-    _1296_$retval = _1296_t0;
-    return _1296_$retval;
-BB1493:
-    _1296_t0 = 22;
-    goto BB1490;
-BB1494:
-    _1296_t12 = 3;
-    $bounds_check(_1296_t6, _1296_t7, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
-    _1296_t13 = *((int64_t*)&_1297_x + _1296_t6)==_1296_t12;
-    if (_1296_t13) {
-        goto BB1496;
     } else {
-        goto BB1498;
+        goto BB1497;
+    }
+BB1494:
+    _1304_t0 = 2;
+    goto BB1496;
+BB1497:
+    _1304_t10 = 2;
+    $bounds_check(_1304_t6, _1304_t7, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
+    _1304_t11 = *((int64_t*)&_1305_x + _1304_t6)==_1304_t10;
+    if (_1304_t11) {
+        goto BB1499;
+    } else {
+        goto BB1500;
     }
 BB1496:
-    _1296_t0 = 222;
-    goto BB1490;
-BB1498:
-    _1296_t0 = 0;
-    goto BB1490;
+    _1304_$retval = _1304_t0;
+    return _1304_$retval;
+BB1499:
+    _1304_t0 = 22;
+    goto BB1496;
+BB1500:
+    _1304_t12 = 3;
+    $bounds_check(_1304_t6, _1304_t7, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
+    _1304_t13 = *((int64_t*)&_1305_x + _1304_t6)==_1304_t12;
+    if (_1304_t13) {
+        goto BB1502;
+    } else {
+        goto BB1504;
+    }
+BB1502:
+    _1304_t0 = 222;
+    goto BB1496;
+BB1504:
+    _1304_t0 = 0;
+    goto BB1496;
 }
 
 
 int main(void) {
-  printf("%ld",_1296_main());
+  printf("%ld",_1304_main());
   return 0;
 }

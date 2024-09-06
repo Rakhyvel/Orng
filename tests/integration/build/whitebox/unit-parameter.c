@@ -17,33 +17,35 @@ struct struct1 {
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _1946_main(void);
-int64_t _1948_f(int64_t _1948_x);
+int64_t _1954_main(void);
+int64_t _1956_f(int64_t _1956_x);
 
 
 /* Function definitions */
-int64_t _1946_main(void){
-    function0 _1946_t0;
-    int64_t _1946_t3;
-    int64_t _1946_t1;
-    int64_t _1946_$retval;
-    _1946_t0 = (function0) _1948_f;
-    _1946_t3 = 219;
+int64_t _1954_main(void){
+    function0 _1954_t0;
+    int64_t _1954_t3;
+    int64_t _1954_t1;
+    int64_t _1954_$retval;
+    _1954_t0 = (function0) _1956_f;
+    _1954_t3 = 219;
     $lines[$line_idx++] = "tests/integration/whitebox/unit-parameter.orng:3:7:\n    f({}, 219)\n     ^";
-    _1946_t1 = _1946_t0(_1946_t3);
+    _1954_t1 = _1954_t0(_1954_t3);
     $line_idx--;
-    _1946_$retval = _1946_t1;
-    return _1946_$retval;
+    _1954_$retval = _1954_t1;
+    return _1954_$retval;
 }
 
-int64_t _1948_f(int64_t _1948_x){
-    int64_t _1948_$retval;
-    _1948_$retval = _1948_x;
-    return _1948_$retval;
+int64_t _1956_f(int64_t _1956_x){
+    int64_t _1956_$retval;
+    goto BB2186;
+BB2186:
+    _1956_$retval = _1956_x;
+    return _1956_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1946_main());
+  printf("%ld",_1954_main());
   return 0;
 }

@@ -18,56 +18,56 @@ struct struct1 {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _336_add(int64_t _336_x, int64_t _336_y);
-int64_t _338_sub(int64_t _338_x, int64_t _338_y);
-int64_t _340_mul(int64_t _340_x, int64_t _340_y);
-int64_t _342_div(int64_t _342_x, int64_t _342_y);
-int64_t _319_main(void);
+int64_t _254_add(int64_t _254_x, int64_t _254_y);
+int64_t _256_sub(int64_t _256_x, int64_t _256_y);
+int64_t _258_mul(int64_t _258_x, int64_t _258_y);
+int64_t _260_div(int64_t _260_x, int64_t _260_y);
+int64_t _237_main(void);
 
 
 /* Function definitions */
-int64_t _336_add(int64_t _336_x, int64_t _336_y){
-    int64_t _336_$retval;
-    _336_$retval = $add_int64_t(_336_x, _336_y, "tests/integration/comptime/return-function.orng:17:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
-    return _336_$retval;
+int64_t _254_add(int64_t _254_x, int64_t _254_y){
+    int64_t _254_$retval;
+    _254_$retval = $add_int64_t(_254_x, _254_y, "tests/integration/comptime/return-function.orng:17:36:\nfn add(x: Int, y: Int) -> Int { x + y }\n                                  ^");
+    return _254_$retval;
 }
 
-int64_t _338_sub(int64_t _338_x, int64_t _338_y){
-    int64_t _338_$retval;
-    _338_$retval = $sub_int64_t(_338_x, _338_y, "tests/integration/comptime/return-function.orng:18:36:\nfn sub(x: Int, y: Int) -> Int { x - y }\n                                  ^");
-    return _338_$retval;
+int64_t _256_sub(int64_t _256_x, int64_t _256_y){
+    int64_t _256_$retval;
+    _256_$retval = $sub_int64_t(_256_x, _256_y, "tests/integration/comptime/return-function.orng:18:36:\nfn sub(x: Int, y: Int) -> Int { x - y }\n                                  ^");
+    return _256_$retval;
 }
 
-int64_t _340_mul(int64_t _340_x, int64_t _340_y){
-    int64_t _340_$retval;
-    _340_$retval = $mult_int64_t(_340_x, _340_y, "tests/integration/comptime/return-function.orng:19:36:\nfn mul(x: Int, y: Int) -> Int { x * y }\n                                  ^");
-    return _340_$retval;
+int64_t _258_mul(int64_t _258_x, int64_t _258_y){
+    int64_t _258_$retval;
+    _258_$retval = $mult_int64_t(_258_x, _258_y, "tests/integration/comptime/return-function.orng:19:36:\nfn mul(x: Int, y: Int) -> Int { x * y }\n                                  ^");
+    return _258_$retval;
 }
 
-int64_t _342_div(int64_t _342_x, int64_t _342_y){
-    int64_t _342_$retval;
-    _342_$retval = $div_int64_t(_342_x, _342_y, "tests/integration/comptime/return-function.orng:20:36:\nfn div(x: Int, y: Int) -> Int { x / y }\n                                  ^");
-    return _342_$retval;
+int64_t _260_div(int64_t _260_x, int64_t _260_y){
+    int64_t _260_$retval;
+    _260_$retval = $div_int64_t(_260_x, _260_y, "tests/integration/comptime/return-function.orng:20:36:\nfn div(x: Int, y: Int) -> Int { x / y }\n                                  ^");
+    return _260_$retval;
 }
 
-int64_t _319_main(void){
-    function0 _319_t2;
-    int64_t _319_t4;
-    int64_t _319_t5;
-    int64_t _319_t3;
-    int64_t _319_$retval;
-    _319_t2 = (function0) _340_mul;
-    _319_t4 = 66;
-    _319_t5 = 4;
+int64_t _237_main(void){
+    function0 _237_t2;
+    int64_t _237_t4;
+    int64_t _237_t5;
+    int64_t _237_t3;
+    int64_t _237_$retval;
+    _237_t2 = (function0) _258_mul;
+    _237_t4 = 66;
+    _237_t5 = 4;
     $lines[$line_idx++] = "tests/integration/comptime/return-function.orng:4:7:\n    f(66, 4)\n     ^";
-    _319_t3 = _319_t2(_319_t4, _319_t5);
+    _237_t3 = _237_t2(_237_t4, _237_t5);
     $line_idx--;
-    _319_$retval = _319_t3;
-    return _319_$retval;
+    _237_$retval = _237_t3;
+    return _237_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_319_main());
+  printf("%ld",_237_main());
   return 0;
 }

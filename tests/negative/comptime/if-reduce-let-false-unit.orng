@@ -1,0 +1,4 @@
+fn main() -> Int { 
+    _ = if let x = 4 ; false { } else { }
+    322
+} 

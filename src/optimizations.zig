@@ -642,10 +642,10 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
                 !next_bb.has_branch and
                 next_bb != bb and
                 next_bb.next != bb and
-                next_bb.next.?.next != next_bb)
+                (next_bb.next == null or next_bb.next.?.next != next_bb))
             {
                 var s = String.init(allocator);
-                s.writer().print("remove jump chain BB{}, BB{} -> BB{}", .{ next_bb.uid, bb.uid, next_bb.next.?.uid }) catch unreachable;
+                s.writer().print("remove jump chain BB{}", .{next_bb.uid}) catch unreachable;
                 defer s.deinit();
                 defer log_optimization_pass(s.str(), cfg);
                 bb.next = next_bb.next;

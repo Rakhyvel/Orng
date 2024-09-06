@@ -57,6 +57,7 @@ fn lower_AST(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!?*lval_.L_Value {
+    // std.debug.print("{}\n", .{ast});
     switch (ast.*) {
         // Straight up types, yo
         .function,
@@ -330,8 +331,11 @@ fn lower_AST(
             var init: ?*lval_.L_Value = null;
             const pos: usize = ast.pos().?;
             const proper_term: *ast_.AST = (ast.typeof(allocator)).children().items[pos];
-            if (proper_term.annotation.type.* != .unit_type) {
-                init = try lower_AST(cfg, ast.sum_value.init.?, labels, errors, allocator);
+            if (ast.sum_value.init != null) {
+                const sum_init = try lower_AST(cfg, ast.sum_value.init.?, labels, errors, allocator);
+                if (proper_term.annotation.type.* != .unit_type) { // still output the IR, but do not refer to it unless the type isn't unit
+                    init = sum_init;
+                }
             }
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             cfg.append_instruction(ir_.IR.init_union(temp, init, ast.pos().?, ast.token().span, allocator));

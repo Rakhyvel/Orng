@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _383_main(void);
+int64_t _301_main(void);
 
 
 /* Function definitions */
-int64_t _383_main(void){
-    int64_t _383_$retval;
-    _383_$retval = 241;
-    return _383_$retval;
+int64_t _301_main(void){
+    int64_t _301_$retval;
+    _301_$retval = 241;
+    return _301_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_383_main());
+  printf("%ld",_301_main());
   return 0;
 }

@@ -1395,8 +1395,7 @@ pub const AST = union(enum) {
             .method_decl => &self.method_decl._params,
             .invoke => &self.invoke._args,
             else => {
-                std.debug.print("{s}\n", .{@tagName(self.*)});
-                unreachable;
+                std.debug.panic("compiler error: cannot call `.children()` on the AST `{s}`", .{@tagName(self.*)});
             },
         };
     }
@@ -1413,7 +1412,9 @@ pub const AST = union(enum) {
             .impl => self.impl.method_defs = val,
             .method_decl => self.method_decl._params = val,
             .invoke => self.invoke._args = val,
-            else => unreachable,
+            else => {
+                std.debug.panic("compiler error: cannot call `.set_children()` on the AST `{s}`", .{@tagName(self.*)});
+            },
         }
     }
 
@@ -1480,8 +1481,7 @@ pub const AST = union(enum) {
         return switch (u) {
             inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
         } catch {
-            std.debug.print("`{s}` does not have field `{s}` {}\n", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
-            unreachable;
+            std.debug.panic("compiler error: `{s}` does not have field `{s}` {}\n", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
         };
     }
 
@@ -2572,7 +2572,9 @@ pub const AST = union(enum) {
                 }
                 try out.writer().print(", .from={s})", .{@tagName(self.sum_type.from)});
             },
-            .sum_value => try out.writer().print("sum_value()", .{}),
+            .sum_value => {
+                try out.writer().print("sum_value(.init={?})", .{self.sum_value.init});
+            },
             .product => {
                 try out.writer().print("product(", .{});
                 for (self.product._terms.items, 0..) |item, i| {
