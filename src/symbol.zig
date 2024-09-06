@@ -64,7 +64,7 @@ pub const Scope = struct {
             }
         } else if (self.parent) |parent| {
             const res = parent.lookup(name, parent.function_depth < self.function_depth or crossed_boundary);
-            if (res == .found_but_fn and self.inner_function.?.kind == .@"comptime") {
+            if (res == .found_but_fn and self.inner_function != null and self.inner_function.?.kind == .@"comptime") {
                 // If have to cross a `comptime` boundary, change fn error to rt error
                 return .found_but_rt;
             } else {

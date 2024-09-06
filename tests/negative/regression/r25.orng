@@ -1,0 +1,5 @@
+fn main() -> Int { } 
+
+fn (ident: Int) -> fn() -> (while ident {}) { } { 
+    
+} 

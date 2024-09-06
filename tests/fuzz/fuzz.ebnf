@@ -4,7 +4,7 @@
 
 program: top_level_declaration "eof".
 
-top_level_declaration: "fn main() -> Int" block_expr.
+top_level_declaration: "fn main() -> Int" block_expr fn_declaration.
 
 ###                                                            ###
 ### Put `let_declaration` and everything following after here: ###

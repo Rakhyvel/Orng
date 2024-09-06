@@ -1,3 +1,1 @@
-fn main() -> Int { ? if let ident : ? { ident newline } ; - false { } newline } 
-fn main() -> Int { not while let ident : ? { ? ( ) newline } ; ident { } newline } 
-fn main() -> Int { ? if let ident : ? { ident newline } ; - { } { } newline } 
+fn main() -> Int { } fn ( ident : ? . ident ( ) . ident . ident ) -> ? fn ( ) -> & & ? if - if & not if while - while not while & ? if - if ? fn ( ) -> - while & not ident { } { } { } { } { } { } { } { } { } { } { } { } 
