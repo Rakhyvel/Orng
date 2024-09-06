@@ -56,7 +56,7 @@ term_expr: prefix_expr ({("*" | "/" | "||" | "%") prefix_expr}).
 
 prefix_expr: "not" prefix_expr                                    # boolean not
            | "-" prefix_expr                                      # negation
-           | "&" ["mut"] ["dyn"] prefix_expr                      # address-of/trait object
+           | "&" (("dyn" ident) | prefix_expr)                      # address-of/trait object
            | "[" ["mut" | bool_expr | "*"] "]" prefix_expr  # slice-of/tuple-of/multi-pointer
            | "?" postfix_expr                                     # optional
            | postfix_expr

@@ -2195,8 +2195,7 @@ pub const AST = union(enum) {
             .pattern_symbol => return self.symbol().?._type,
 
             else => {
-                std.debug.print("Unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
-                unreachable;
+                std.debug.panic("compiler error: unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)});
             },
         }
     }
@@ -2379,7 +2378,9 @@ pub const AST = union(enum) {
                 return retval;
             },
             .function => return A.lhs().types_match(B.lhs()) and A.rhs().types_match(B.rhs()),
-            .dyn_type => return A.expr().symbol() == B.expr().symbol(),
+            .dyn_type => {
+                return A.expr().symbol() == B.expr().symbol();
+            },
             .call => return std.mem.eql(u8, A.lhs().token().data, B.lhs().token().data),
             else => {
                 std.debug.print("types_match(): Unimplemented for {s}\n", .{@tagName(A.*)});
@@ -2529,8 +2530,7 @@ pub const AST = union(enum) {
             },
             .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
             else => {
-                std.debug.print("types_match(): Unimplemented for {s}\n", .{@tagName(self.*)});
-                unreachable;
+                std.debug.panic("compiler error: c_types_match(): unimplemented for {s}\n", .{@tagName(self.*)});
             },
         }
     }

@@ -1,1 +1,1 @@
-fn main() -> Int { ? if let ( ident , ident , const ident , const ident ) = - fn ident ( const ident : - - - ? fn ( ) -> - not ? ( ) { } ) -> & - . ident { } ; ? self { } newline } fn ( ) -> not [ ] & ? ( ) { } 
+fn main() -> Int { return ? ident . ident . ident . ident . ident .> ident ( ) [ .. - - [ ] fn ident ( ) -> ? while - & not ? if & ( ) { } { } { } ] } fn ( ) -> & dyn ident { } 

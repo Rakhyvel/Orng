@@ -1,1 +1,1 @@
-fn main() -> Int { [ ? fn ( mut ident : & - ( [ ] - ( not & [ ] ? unreachable ) ) ) -> & [ ] - ? fn ( ) -> & & - fn ( ) -> not & - [ ] - ? . ident { } { } { } ] & . ident newline } fn ( ) -> ? unreachable { } 
+fn main() -> Int { not [ ] not ? unreachable .> ident ( ) ( ) [ - not [ ] [ ] & dyn ident ] newline } fn ( ) -> - [ ] not while not & not & - ? unreachable { } { } 

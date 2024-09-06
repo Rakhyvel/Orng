@@ -1,4 +1,0 @@
-fn main() -> Int {
-    let x: &dyn [2]Int = (4, 5)
-    5
-}

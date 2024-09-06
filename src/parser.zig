@@ -459,7 +459,12 @@ pub const Parser = struct {
         } else if (self.accept(.ampersand)) |token| {
             const mut = self.accept(.mut);
             if (self.accept(.dyn)) |token2| {
-                return ast_.AST.create_dyn_type(token2, try self.prefix_expr(), mut != null, self.allocator);
+                return ast_.AST.create_dyn_type(
+                    token2,
+                    ast_.AST.create_identifier(try self.expect(.identifier), self.allocator),
+                    mut != null,
+                    self.allocator,
+                );
             } else {
                 return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, self.allocator);
             }
@@ -1112,8 +1117,7 @@ fn resolve_escapes(input: []const u8, allocator: std.mem.Allocator) []const u8 {
                 retval.append(get_nibble(input[j + 1]) * 16 + get_nibble(input[j + 2])) catch unreachable;
                 skip = 2;
             } else {
-                std.debug.print("Unknown escape sequence '{c}'\n", .{byte});
-                unreachable;
+                std.debug.panic("compiler error: unknown escape sequence '{c}'\n", .{byte});
             }
         } else {
             if (byte == '\\') {
