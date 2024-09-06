@@ -23,61 +23,61 @@ struct vtable_$trait141 {
 };
 
 /* Function forward definitions */
-int64_t _1674_main(void);
-int64_t _1668_a(void* _1668_$self_ptr);
-int64_t _1672_b(void* _1672_$self_ptr);
+int64_t _1677_main(void);
+int64_t _1671_a(void* _1671_$self_ptr);
+int64_t _1675_b(void* _1675_$self_ptr);
 
 /* Trait vtable implementations */
-struct vtable_Trait_A _1667_$vtable = {
-    .a = _1668_a,
+struct vtable_Trait_A _1670_$vtable = {
+    .a = _1671_a,
 };
 
-struct vtable_$trait141 _1670_$vtable = {
-    .b = _1672_b,
+struct vtable_$trait141 _1673_$vtable = {
+    .b = _1675_b,
 };
 
 
 /* Function definitions */
-int64_t _1674_main(void){
-    int64_t _1675_x;
-    int64_t _1675_y;
-    int64_t* _1674_t5;
-    int64_t _1674_t4;
-    int64_t* _1674_t8;
-    int64_t _1674_t7;
-    int64_t _1674_$retval;
-    _1675_x = 300;
-    _1675_y = 2;
-    _1674_t5 = &_1675_x;
+int64_t _1677_main(void){
+    int64_t _1678_x;
+    int64_t _1678_y;
+    int64_t* _1677_t5;
+    int64_t _1677_t4;
+    int64_t* _1677_t8;
+    int64_t _1677_t7;
+    int64_t _1677_$retval;
+    _1678_x = 300;
+    _1678_y = 2;
+    _1677_t5 = &_1678_x;
     $lines[$line_idx++] = "tests/integration/traits/impl-trait-none.orng:18:8:\n    x.>a() + y.>b()\n      ^";
-    _1674_t4 = _1667_$vtable.a(_1674_t5);
+    _1677_t4 = _1670_$vtable.a(_1677_t5);
     $line_idx--;
-    _1674_t8 = &_1675_y;
+    _1677_t8 = &_1678_y;
     $lines[$line_idx++] = "tests/integration/traits/impl-trait-none.orng:18:17:\n    x.>a() + y.>b()\n               ^";
-    _1674_t7 = _1670_$vtable.b(_1674_t8);
+    _1677_t7 = _1673_$vtable.b(_1677_t8);
     $line_idx--;
-    _1674_$retval = $add_int64_t(_1674_t4, _1674_t7, "tests/integration/traits/impl-trait-none.orng:18:13:\n    x.>a() + y.>b()\n           ^");
-    return _1674_$retval;
+    _1677_$retval = $add_int64_t(_1677_t4, _1677_t7, "tests/integration/traits/impl-trait-none.orng:18:13:\n    x.>a() + y.>b()\n           ^");
+    return _1677_$retval;
 }
 
-int64_t _1668_a(void* _1668_$self_ptr){
-    int64_t _1668_$retval;
-    _1668_$retval = *(int64_t*)_1668_$self_ptr;
-    return _1668_$retval;
+int64_t _1671_a(void* _1671_$self_ptr){
+    int64_t _1671_$retval;
+    _1671_$retval = *(int64_t*)_1671_$self_ptr;
+    return _1671_$retval;
 }
 
-int64_t _1672_b(void* _1672_$self_ptr){
-    int64_t _1673_self;
-    int64_t _1672_t1;
-    int64_t _1672_$retval;
-    _1673_self = *(int64_t*)_1672_$self_ptr;
-    _1672_t1 = 2;
-    _1672_$retval = $mult_int64_t(_1673_self, _1672_t1, "tests/integration/traits/impl-trait-none.orng:12:39:\n    virtual fn b(self) -> Int { self * 2 }\n                                     ^");
-    return _1672_$retval;
+int64_t _1675_b(void* _1675_$self_ptr){
+    int64_t _1676_self;
+    int64_t _1675_t1;
+    int64_t _1675_$retval;
+    _1676_self = *(int64_t*)_1675_$self_ptr;
+    _1675_t1 = 2;
+    _1675_$retval = $mult_int64_t(_1676_self, _1675_t1, "tests/integration/traits/impl-trait-none.orng:12:39:\n    virtual fn b(self) -> Int { self * 2 }\n                                     ^");
+    return _1675_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1674_main());
+  printf("%ld",_1677_main());
   return 0;
 }

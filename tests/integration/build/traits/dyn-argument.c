@@ -25,51 +25,51 @@ struct vtable_Give_Num {
 };
 
 /* Function forward definitions */
-int64_t _1627_main(void);
-int64_t _1629_call_give_num(struct dyn2 _1629_x);
-int64_t _1625_give_num(void);
+int64_t _1630_main(void);
+int64_t _1632_call_give_num(struct dyn2 _1632_x);
+int64_t _1628_give_num(void);
 
 /* Trait vtable implementations */
-struct vtable_Give_Num _1624_$vtable = {
-    .give_num = _1625_give_num,
+struct vtable_Give_Num _1627_$vtable = {
+    .give_num = _1628_give_num,
 };
 
 
 /* Function definitions */
-int64_t _1627_main(void){
-    int64_t _1628_x;
-    function1 _1627_t2;
-    struct dyn2 _1627_t4;
-    int64_t _1627_t3;
-    int64_t _1627_$retval;
-    _1628_x = 4;
-    _1627_t2 = (function1) _1629_call_give_num;
-    _1627_t4 = (struct dyn2) {&_1628_x, &_1624_$vtable};
+int64_t _1630_main(void){
+    int64_t _1631_x;
+    function1 _1630_t2;
+    struct dyn2 _1630_t4;
+    int64_t _1630_t3;
+    int64_t _1630_$retval;
+    _1631_x = 4;
+    _1630_t2 = (function1) _1632_call_give_num;
+    _1630_t4 = (struct dyn2) {&_1631_x, &_1627_$vtable};
     $lines[$line_idx++] = "tests/integration/traits/dyn-argument.orng:15:19:\n    call_give_num(&x)\n                 ^";
-    _1627_t3 = _1627_t2(_1627_t4);
+    _1630_t3 = _1630_t2(_1630_t4);
     $line_idx--;
-    _1627_$retval = _1627_t3;
-    return _1627_$retval;
+    _1630_$retval = _1630_t3;
+    return _1630_$retval;
 }
 
-int64_t _1629_call_give_num(struct dyn2 _1629_x){
-    int64_t _1629_t1;
-    int64_t _1629_$retval;
+int64_t _1632_call_give_num(struct dyn2 _1632_x){
+    int64_t _1632_t1;
+    int64_t _1632_$retval;
     $lines[$line_idx++] = "tests/integration/traits/dyn-argument.orng:20:8:\n    x.>give_num()\n      ^";
-    _1629_t1 = _1629_x.vtable->give_num();
+    _1632_t1 = _1632_x.vtable->give_num();
     $line_idx--;
-    _1629_$retval = _1629_t1;
-    return _1629_$retval;
+    _1632_$retval = _1632_t1;
+    return _1632_$retval;
 }
 
-int64_t _1625_give_num(void){
-    int64_t _1625_$retval;
-    _1625_$retval = 302;
-    return _1625_$retval;
+int64_t _1628_give_num(void){
+    int64_t _1628_$retval;
+    _1628_$retval = 302;
+    return _1628_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1627_main());
+  printf("%ld",_1630_main());
   return 0;
 }

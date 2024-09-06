@@ -270,7 +270,7 @@ fn lower_AST(
         },
         .select => {
             // Recursively get select's ast L_Value node
-            const ast_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator); // TODO: test: cannot be unreachable, since unreachable isn't selectable
+            const ast_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator); // cannot be unreachable, since unreachable isn't selectable
 
             // Get the offset into the struct that this select does
             var lhs_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);

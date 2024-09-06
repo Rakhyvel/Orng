@@ -16,28 +16,28 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1890_main(void);
+int64_t _1893_main(void);
 
 
 /* Function definitions */
-int64_t _1890_main(void){
-    int64_t _1891_x;
-    int64_t _1891_y;
-    int64_t* _1890_t5;
-    int64_t* _1890_t6;
-    struct struct0 _1891_z;
-    int64_t _1890_$retval;
-    _1891_x = 30;
-    _1891_y = 29;
-    _1890_t5 = &_1891_x;
-    _1890_t6 = &_1891_y;
-    _1891_z = (struct struct0) {_1890_t5, _1890_t6};
-    _1890_$retval = $add_int64_t(*_1891_z._0, *_1891_z._1, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
-    return _1890_$retval;
+int64_t _1893_main(void){
+    int64_t _1894_x;
+    int64_t _1894_y;
+    int64_t* _1893_t5;
+    int64_t* _1893_t6;
+    struct struct0 _1894_z;
+    int64_t _1893_$retval;
+    _1894_x = 30;
+    _1894_y = 29;
+    _1893_t5 = &_1894_x;
+    _1893_t6 = &_1894_y;
+    _1894_z = (struct struct0) {_1893_t5, _1893_t6};
+    _1893_$retval = $add_int64_t(*_1894_z._0, *_1894_z._1, "tests/integration/tuples/tuple-addr.orng:6:11:\n    z.a^ + z.b^\n         ^");
+    return _1893_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1890_main());
+  printf("%ld",_1893_main());
   return 0;
 }

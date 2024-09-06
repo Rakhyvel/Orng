@@ -1,0 +1,4 @@
+fn main() -> Int { 
+    let x = fn ident (const ident: ()) -> () {}
+    3
+}

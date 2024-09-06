@@ -7,17 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1146_main(void);
+int64_t _1017_main(void);
 
 
 /* Function definitions */
-int64_t _1146_main(void){
-    $lines[$line_idx++] = "tests/integration/lint/unreachable-assign.orng:3:24:\n    let x = unreachable\n                      ^";
-    $panic("reached unreachable code\n");
+int64_t _1017_main(void){
+    int64_t _1017_$retval;
+    _1017_$retval = 323;
+    return _1017_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1146_main());
+  printf("%ld",_1017_main());
   return 0;
 }

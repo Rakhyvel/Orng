@@ -62,9 +62,8 @@ fn symbol_table_from_AST(
         .domain_of,
         .size_of,
         .receiver,
+        .template,
         => {},
-
-        .template => unreachable,
 
         .@"break", .@"continue" => try in_loop_check(ast, scope, errors),
 

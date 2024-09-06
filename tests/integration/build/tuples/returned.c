@@ -18,35 +18,35 @@ struct struct1 {
 typedef struct struct1(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1867_main(void);
-struct struct1 _1869_f(void);
+int64_t _1870_main(void);
+struct struct1 _1872_f(void);
 
 
 /* Function definitions */
-int64_t _1867_main(void){
-    function0 _1867_t0;
-    struct struct1 _1867_t1;
-    int64_t _1867_$retval;
-    _1867_t0 = (function0) _1869_f;
+int64_t _1870_main(void){
+    function0 _1870_t0;
+    struct struct1 _1870_t1;
+    int64_t _1870_$retval;
+    _1870_t0 = (function0) _1872_f;
     $lines[$line_idx++] = "tests/integration/tuples/returned.orng:3:7:\n    f().y\n     ^";
-    _1867_t1 = _1867_t0();
+    _1870_t1 = _1870_t0();
     $line_idx--;
-    _1867_$retval = _1867_t1._1;
-    return _1867_$retval;
+    _1870_$retval = _1870_t1._1;
+    return _1870_$retval;
 }
 
-struct struct1 _1869_f(void){
-    int64_t _1869_t1;
-    int64_t _1869_t2;
-    struct struct1 _1869_$retval;
-    _1869_t1 = 45;
-    _1869_t2 = 221;
-    _1869_$retval = (struct struct1) {_1869_t1, _1869_t2};
-    return _1869_$retval;
+struct struct1 _1872_f(void){
+    int64_t _1872_t1;
+    int64_t _1872_t2;
+    struct struct1 _1872_$retval;
+    _1872_t1 = 45;
+    _1872_t2 = 221;
+    _1872_$retval = (struct struct1) {_1872_t1, _1872_t2};
+    return _1872_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1867_main());
+  printf("%ld",_1870_main());
   return 0;
 }

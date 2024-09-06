@@ -28,83 +28,83 @@ struct struct1 {
 typedef int64_t(*function2)(struct struct1);
 
 /* Function forward definitions */
-int64_t _1406_main(void);
-int64_t _1408_sum_up(struct struct1 _1408_xs);
+int64_t _1409_main(void);
+int64_t _1411_sum_up(struct struct1 _1411_xs);
 
 
 /* Function definitions */
-int64_t _1406_main(void){
-    int64_t _1406_t1;
-    int64_t _1406_t2;
-    int64_t _1406_t3;
-    int64_t _1406_t4;
-    int64_t _1406_t5;
-    int64_t _1406_t6;
-    struct struct0 _1407_x;
-    int64_t _1406_t9;
-    int64_t _1406_t10;
-    int64_t* _1406_t11;
-    int64_t _1406_t12;
-    struct struct1 _1407_y;
-    int64_t _1406_t17;
-    int64_t* _1406_t18;
-    struct struct1 _1407_z;
-    function2 _1406_t21;
-    int64_t _1406_t22;
-    int64_t _1406_$retval;
-    _1406_t1 = 100;
-    _1406_t2 = 8;
-    _1406_t3 = 2;
-    _1406_t4 = 4;
-    _1406_t5 = 35;
-    _1406_t6 = 6;
-    _1407_x = (struct struct0) {_1406_t1, _1406_t2, _1406_t3, _1406_t4, _1406_t5, _1406_t6};
-    _1406_t9 = 0;
-    _1406_t10 = 6;
-    $bounds_check(_1406_t9, _1406_t10, "tests/integration/slices/infer-lower.orng:4:19:\n    let y = [mut]x\n                 ^");
-    _1406_t11 = ((int64_t*)&_1407_x + _1406_t9);
-    _1406_t12 = 6;
-    _1407_y = (struct struct1) {_1406_t11, _1406_t12};
-    _1406_t17 = 3;
-    _1406_t18 = _1407_y._0;
-    _1407_z = (struct struct1) {_1406_t18, _1406_t17};
-    _1406_t21 = (function2) _1408_sum_up;
+int64_t _1409_main(void){
+    int64_t _1409_t1;
+    int64_t _1409_t2;
+    int64_t _1409_t3;
+    int64_t _1409_t4;
+    int64_t _1409_t5;
+    int64_t _1409_t6;
+    struct struct0 _1410_x;
+    int64_t _1409_t9;
+    int64_t _1409_t10;
+    int64_t* _1409_t11;
+    int64_t _1409_t12;
+    struct struct1 _1410_y;
+    int64_t _1409_t17;
+    int64_t* _1409_t18;
+    struct struct1 _1410_z;
+    function2 _1409_t21;
+    int64_t _1409_t22;
+    int64_t _1409_$retval;
+    _1409_t1 = 100;
+    _1409_t2 = 8;
+    _1409_t3 = 2;
+    _1409_t4 = 4;
+    _1409_t5 = 35;
+    _1409_t6 = 6;
+    _1410_x = (struct struct0) {_1409_t1, _1409_t2, _1409_t3, _1409_t4, _1409_t5, _1409_t6};
+    _1409_t9 = 0;
+    _1409_t10 = 6;
+    $bounds_check(_1409_t9, _1409_t10, "tests/integration/slices/infer-lower.orng:4:19:\n    let y = [mut]x\n                 ^");
+    _1409_t11 = ((int64_t*)&_1410_x + _1409_t9);
+    _1409_t12 = 6;
+    _1410_y = (struct struct1) {_1409_t11, _1409_t12};
+    _1409_t17 = 3;
+    _1409_t18 = _1410_y._0;
+    _1410_z = (struct struct1) {_1409_t18, _1409_t17};
+    _1409_t21 = (function2) _1411_sum_up;
     $lines[$line_idx++] = "tests/integration/slices/infer-lower.orng:6:12:\n    sum_up(z)\n          ^";
-    _1406_t22 = _1406_t21(_1407_z);
+    _1409_t22 = _1409_t21(_1410_z);
     $line_idx--;
-    _1406_$retval = _1406_t22;
-    return _1406_$retval;
+    _1409_$retval = _1409_t22;
+    return _1409_$retval;
 }
 
-int64_t _1408_sum_up(struct struct1 _1408_xs){
-    int64_t _1409_sum;
-    int64_t _1410_i;
-    uint8_t _1408_t5;
-    int64_t _1408_t7;
-    int64_t _1408_$retval;
-    _1409_sum = 0;
-    _1410_i = 0;
-    goto BB1639;
-BB1639:
-    _1408_t5 = _1410_i<_1408_xs._1;
-    if (_1408_t5) {
-        goto BB1640;
+int64_t _1411_sum_up(struct struct1 _1411_xs){
+    int64_t _1412_sum;
+    int64_t _1413_i;
+    uint8_t _1411_t5;
+    int64_t _1411_t7;
+    int64_t _1411_$retval;
+    _1412_sum = 0;
+    _1413_i = 0;
+    goto BB1641;
+BB1641:
+    _1411_t5 = _1413_i<_1411_xs._1;
+    if (_1411_t5) {
+        goto BB1642;
     } else {
-        goto BB1645;
+        goto BB1647;
     }
-BB1640:
-    $bounds_check(_1410_i, _1408_xs._1, "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
-    _1409_sum = $add_int64_t(_1409_sum, *((int64_t*)_1408_xs._0 + _1410_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
-    _1408_t7 = 1;
-    _1410_i = $add_int64_t(_1410_i, _1408_t7, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
-    goto BB1639;
-BB1645:
-    _1408_$retval = _1409_sum;
-    return _1408_$retval;
+BB1642:
+    $bounds_check(_1413_i, _1411_xs._1, "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
+    _1412_sum = $add_int64_t(_1412_sum, *((int64_t*)_1411_xs._0 + _1413_i), "tests/integration/slices/infer-lower.orng:12:15:\n        sum += xs[i]\n             ^");
+    _1411_t7 = 1;
+    _1413_i = $add_int64_t(_1413_i, _1411_t7, "tests/integration/slices/infer-lower.orng:11:50:\n    while let mut i: Int = 0; i < xs.length; i += 1 {\n                                                ^");
+    goto BB1641;
+BB1647:
+    _1411_$retval = _1412_sum;
+    return _1411_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1406_main());
+  printf("%ld",_1409_main());
   return 0;
 }
