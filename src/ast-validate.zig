@@ -78,8 +78,8 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
                     symbol.validation_state = .invalid;
                     return error.TypeError;
                 },
-                // Pass fn and template blocks for generic functions
-                .@"fn", .@"comptime" => symbol.init.?.common().ok_for_comptime = true,
+                // Allow these inits to be non-comptime, since they're interpreted at comptime anyway
+                .@"fn", .@"comptime", .@"const" => symbol.init.?.common().ok_for_comptime = true,
                 else => {},
             }
         }
@@ -351,9 +351,7 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Er
         if (expected_type.?.* == .annotation) {
             expected_type = expected_type.?.annotation.type;
         }
-        if (ast.* != .@"comptime" and // comptime ASTs are generally not well-formed types (for impl lookup etc), except here where they'll be interpreted
-            checked_types_match(expected_type.?, primitives_.type_type, errors) catch return ast.enpoison())
-        {
+        if (checked_types_match(expected_type.?, primitives_.type_type, errors) catch return ast.enpoison()) {
             _ = checked_types_match(ast, primitives_.type_type, errors) catch return ast.enpoison();
         }
     }

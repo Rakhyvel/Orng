@@ -1718,9 +1718,6 @@ pub const AST = union(enum) {
     ///
     /// The types_match() function assumes it's arguments pass this test.
     pub fn valid_type(_type: *AST) bool {
-        if (_type.common().ok_for_comptime) {
-            return true;
-        }
         return switch (_type.*) {
             // Always well-formed, comptime types
             .type_of,
@@ -1734,9 +1731,8 @@ pub const AST = union(enum) {
             .poison,
             => true,
 
-            // HACK: This allows generic functions to return a type without surrounding it in a comptime block
             // Anything else probably isn't a valid type
-            else => _type.common().ok_for_comptime,
+            else => _type.common().ok_for_comptime, // HACK: This allows generic functions to return a type without surrounding it in a comptime block
 
             // Recursive
             .index => _type.lhs().valid_type(), // Used by pattern matching, lhs is the array_of type, rhs is the index

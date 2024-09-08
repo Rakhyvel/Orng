@@ -1,1 +1,0 @@
-fn main() -> Int { while let b = ? while not not [ ] not not ? comptime { } ; impl for [ ] ? comptime { } { } { } ; not if & & dyn b { } { } newline } fn ( ) -> comptime { } { } 
