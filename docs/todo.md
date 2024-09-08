@@ -102,6 +102,7 @@
 - [ ] Generates JSON files of example programs, with identifiers, numbers, etc replaced with random values
 - [ ] Supports including other ebnf files
 - [ ] Multiply all possible paths, barring recursion, through grammar, give that number and use it for fuzz testing metrics
+- [ ] Accepts escape sequences...
 
 ### Language Features
 - [x] addresses

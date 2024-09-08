@@ -6,6 +6,10 @@ program: top_level_declaration "eof".
 
 top_level_declaration: "fn main() -> Int" block_expr fn_declaration.
 
+ident: Bool | Byte | Char | Float | Int | String | Type | main | a | b.
+int: "0" | "1" | "2".
+char: "'0'" | "'1'" | "'2'".
+
 ###                                                            ###
 ### Put `let_declaration` and everything following after here: ###
 ###                                                            ###
@@ -62,7 +66,7 @@ prefix_expr: "not" prefix_expr                                    # boolean not
            | postfix_expr
            .
 
-postfix_expr: (control_flow | factor) 
+postfix_expr: (control_flow) 
       { call_args
       | "[" ((".."[bool_expr]) | (bool_expr[".." [bool_expr]])) "]"
       | "." ident

@@ -4,8 +4,6 @@ const span_ = @import("span.zig");
 const token_ = @import("token.zig");
 
 const Lexer_Errors = error{LexerError};
-const Rnd_Gen = std.rand.DefaultPrng;
-var rnd = Rnd_Gen.init(0);
 
 const Lex_State = enum {
     none,
@@ -428,7 +426,9 @@ pub const Scanner = struct {
             // Split on $
             var token = self.create_token(line, null);
             if (self.fuzz_tokens) {
-                fuzz_token(&token);
+                if (std.mem.eql(u8, token.data, "newline") or std.mem.eql(u8, token.data, "eof")) {
+                    token.kind = .newline;
+                }
             }
             self.tokens.append(token) catch unreachable;
             self.slice_start = self.ix;
@@ -449,54 +449,6 @@ pub const Scanner = struct {
             self.line_number,
             self.col,
         );
-    }
-
-    fn fuzz_token(token: *token_.Token) void {
-        if (std.mem.eql(u8, token.data, "newline")) {
-            token.kind = .newline;
-        } else if (std.mem.eql(u8, token.data, "eof")) {
-            token.kind = .newline;
-        } else if (std.mem.eql(u8, token.data, "int") or
-            std.mem.eql(u8, token.data, "hex") or
-            std.mem.eql(u8, token.data, "oct") or
-            std.mem.eql(u8, token.data, "bin"))
-        {
-            const some_random_num = rnd.random().int(i32);
-            token.kind = .dec_int;
-            switch (@mod(some_random_num, 3)) {
-                0 => token.data = "0",
-                1 => token.data = "1",
-                2 => token.data = "2",
-                else => unreachable,
-            }
-        } else if (std.mem.eql(u8, token.data, "char")) {
-            const some_random_num = rnd.random().int(i32);
-            token.kind = .char;
-            switch (@mod(some_random_num, 3)) {
-                0 => token.data = "'0'",
-                1 => token.data = "'1'",
-                2 => token.data = "'2'",
-                else => unreachable,
-            }
-        } else if (std.mem.eql(u8, token.data, "ident")) {
-            const some_random_num = rnd.random().int(i69);
-            switch (@mod(some_random_num, 2)) {
-                0 => switch (@mod(@divTrunc(some_random_num, 2), 7)) {
-                    0 => token.data = "Bool",
-                    1 => token.data = "Byte",
-                    2 => token.data = "Char",
-                    3 => token.data = "Float",
-                    4 => token.data = "Int",
-                    5 => token.data = "String",
-                    else => token.data = "Type",
-                },
-                else => switch (@mod(@divTrunc(some_random_num, 2), 3)) {
-                    0 => token.data = "main",
-                    1 => token.data = "a",
-                    else => token.data = "b",
-                },
-            }
-        }
     }
 
     fn is_base_identifier(c: u8) bool {
