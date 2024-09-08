@@ -623,10 +623,7 @@ pub const Kind = enum {
 
             .copy => 14,
 
-            else => {
-                std.debug.print("Unimplemented precedence for kind {s}\n", .{@tagName(self)});
-                unreachable;
-            },
+            else => std.debug.panic("compiler error: unimplemented precedence for kind {s}\n", .{@tagName(self)}),
         };
     }
 };

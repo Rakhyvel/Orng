@@ -1,0 +1,4 @@
+fn main() -> Int { 
+    let x: comptime {?match () { _ => Int }}
+    x.some
+} 

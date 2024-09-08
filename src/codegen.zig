@@ -454,10 +454,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         },
         .unit_type => try writer.print("void", .{}),
         .annotation => try output_type(_type.annotation.type, writer),
-        else => {
-            std.debug.print("Unimplemented output_type() for {?}", .{_type.*});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: unimplemented output_type() for {?}", .{_type.*}),
     }
 }
 
@@ -755,10 +752,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 .{ir.data.string},
             );
         },
-        else => {
-            std.debug.print("Unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)}),
     }
 }
 

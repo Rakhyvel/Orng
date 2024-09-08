@@ -1,1 +1,52 @@
-fn main() -> Int { return ? ident . ident . ident . ident . ident .> ident ( ) [ .. - - [ ] fn ident ( ) -> ? while - & not ? if & ( ) { } { } { } ] } fn ( ) -> & dyn ident { } 
+fn main() -> Int { - [ ] not ? fn ( ) -> - ? comptime { ? match ? ( ) { ( ident ) => ? ( ) newline } newline } { } newline } fn ( ) -> & dyn ident { } 
+fn main() -> Int { [ * ] fn ( ) -> while unreachable { ( ) newline } { } newline } fn ( ) -> - ? match . ident { . ident => not . ident newline } { } 
+fn main() -> Int { - [ ? . ident . ident . ident ^ ( ) .> ident ( ) ] ? fn ( ident : - [ ] [ ] [ ] [ ] not - not if ? while [ ] - not ? if & dyn ident { } { } { } ) -> & ident { } newline } fn ( ) -> ? fn ( ) -> if not & - [ ] unreachable { } { } { } 
+fn main() -> Int { fn ( ident : - ? . ident ( . ident += & while [ ] [ ] & dyn ident { } ) ) -> & ident { } newline } fn ( ) -> ? fn ( ) -> [ ] & not & dyn ident { } { } 
+fn main() -> Int { - ? fn ( ident : & dyn ident / while . ident ; & dyn ident { } ) -> & ident { } newline } fn ( ) -> - ? comptime { } { } 
+fn main() -> Int { [ - [ ] [ fn ident ( const ident : - fn ( ) -> fn ident ( ) -> not [ ] not ? if & dyn ident { } { } { } ) -> [ ] [ ] - . ident { } ] - . ident ] ? fn ( ) -> & ident { } newline } fn ( ) -> - not [ ] not not ? ( ) { } 
+fn main() -> Int { [ mut ] [ & ? fn ident ( ) -> [ mut ] ? match not & dyn ident { ( . ident ) => & ? if ? fn ( ) -> not while [ ] - - not [ ] while not - [ ] not [ ] ? ident { } { } { } { } newline } { } ] - - [ ] & ? fn ( ) -> & ident { } newline } fn ( ) -> ? . ident { } 
+fn main() -> Int { [ * ] [ ] ? ( not ? fn ( ident : - & dyn ident ) -> match ? ident { . ident => & ident newline } { } ) newline } fn ( ) -> match [ ] not . ident { ident => not [ ] comptime { } newline } { } 
+fn main() -> Int { - - ? while ? fn ( ) -> while unreachable { [ ] [ ] ? ( ) newline } { } { } newline } fn ( ) -> ? fn ( ) -> ? if - [ ] - not comptime { } { } { } { } 
+fn main() -> Int { comptime { } .> ident ( ) . ident . ident [ [ & - - & dyn ident ] comptime { ? match unreachable { ident => ( ) newline } newline } ] newline } fn ( ) -> [ ] [ ] & dyn ident { } 
+fn main() -> Int { ? fn ( ident : ? . ident . ident . ident ) -> & ident where ? unreachable { } newline } fn ( ) -> not - - ? . ident { } 
+fn main() -> Int { not ? fn ( ident : ? ident [ [ ] ident .. & dyn ident ] ) -> & & ident { } newline } fn ( ) -> - not & comptime { } { } 
+fn main() -> Int { ? fn ( ident : & dyn ident || ? fn ( ) -> [ mut ] ( [ - & dyn ident ] ident ) { } ) -> - & ident { } newline } fn ( ) -> & ? comptime { } { } 
+fn main() -> Int { not [ ] - [ ] fn ( ) -> & & not [ - not not not ? match let ( const ident ) = [ ] ? fn ( ) -> not fn ( ) -> - - ? ident { } { } ; not ? . ident { . ident => [ ] not fn ( ) -> - unreachable { } newline } ] not not ? fn ( ) -> & ident { } { } newline } fn ( ) -> [ ] - ? comptime { } { } 
+fn main() -> Int { - ? comptime { ? match not unreachable { mut ident => ? ( ) newline } newline } newline } fn ( ) -> & dyn ident { } 
+fn main() -> Int { [ mut ] ? fn ( mut ident : - ? . ident ( ? match . ident { . ident => fn ( ) -> - ? unreachable { } newline } ) ) -> & ident { } newline } fn ( ) -> ? unreachable { } 
+fn main() -> Int { return ? if let const ident = [ * ] [ ] & fn ( ) -> & match not - & dyn ident { . ident => fn ( ) -> [ ] ? . ident { } newline } { } ; fn ( ) -> & & ident { } { } } fn ( ) -> not & dyn ident { } 
+fn main() -> Int { [ ] ? fn ( ident : & dyn ident || [ ] & [ ident ] & & dyn ident ) -> & ident { } newline } fn ( ) -> fn ( ) -> [ ] [ ] ? comptime { } { } { } 
+fn main() -> Int { ? ident . ident . ident [ .. ] [ .. ] .> ident ( ) newline } fn ident ( ) -> [ * ] not match ? ( ) { . ident => ? fn ( ) -> not not [ ] & ident { } newline } { } 
+fn main() -> Int { not [ ] [ * ] - ? if let ( const ident ) = ? . ident ( & dyn ident -= not - not not not . ident ) ; fn ( ) -> & ident { } { } newline } fn ( ) -> not & dyn ident { } 
+fn main() -> Int { ? if - not ? fn ( ident : [ ] fn ( ) -> [ [ ] - [ - & dyn ident ] . ident ] not & [ ] not if [ ] ? while [ ] match not & fn ( ) -> not - not fn ( ) -> not not not - & dyn ident { } { } { . ident => if ? if - - - [ ] [ ] ? . ident { } { } newline } { } { } { } ) -> & ident { } { } newline } fn ( ) -> [ ] ? comptime { } { } 
+fn main() -> Int { ? fn ( mut ident : not ident . ident = [ ] not [ [ ] ? unreachable ] & dyn ident ) -> - & ident { } newline } fn ( ) -> [ ] & ? unreachable { } 
+fn main() -> Int { ? fn ( ident : & dyn ident * - ? if & ident { [ ] fn ( ) -> if ? ident { } { } newline } ) -> & ident { } newline } fn ( ) -> - & dyn ident { } 
+fn main() -> Int { comptime { if let ( const ident ) : while unreachable { ( ) newline } ; ? . ident { } newline } newline } fn ( ) -> - not ? comptime { } { } 
+fn main() -> Int { [ * ] ? fn ( ident : - not [ * ] & [ ] ? . ident ( [ ] & & [ ] [ [ ] not - & dyn ident ] ? if & dyn ident { } ) ) -> - & ident { } newline } fn ( ) -> & dyn ident { } 
+fn main() -> Int { not match - ? while let mut ident = not not ? comptime { ? match ( ) { string => & [ ] ident newline } newline } ; unreachable { } { hex => - - ? while not while [ ] ? comptime { } { } { } newline } newline } fn ( ) -> not & not ? ident { } 
+fn main() -> Int { not if let ident : while unreachable { & & ? ( ) newline } ; ? while [ ] [ ] . ident { } { } newline } fn ( ) -> & dyn ident { } 
+fn main() -> Int { - fn ident ( ) -> not ident . ident [ - & dyn ident .. [ ] & ident ] { } newline } fn ( ) -> [ ] [ ] not ? comptime { } { } 
+fn main() -> Int { fn ( ident : [ ] & dyn ident * not [ mut ] & ? . ident ( not not [ mut ] - & not . ident ) ) -> & ident { } newline } fn ( ) -> [ ] ? while ? ident { } { } 
+fn main() -> Int { fn ( mut ident : ? . ident ( & & dyn ident += [ * ] [ * ] [ ] [ ] [ ] [ ] ? while - - [ ] while fn ( ) -> fn ( ) -> & dyn ident { } { } { } { } ) ) -> & ident { } newline } fn ( ) -> ? ident { } 
+fn main() -> Int { [ ] & ? while ? comptime { ? match ? ( ) { ident => & ? ( ) newline } newline } { } newline } fn ( ) -> not [ ] ? fn ( ) -> unreachable { } { } 
+fn main() -> Int { [ mut ] ? fn ( mut ident : not match not - & - [ & dyn ident ] ? while [ ] not - comptime { } { } { . ident => ? . ident newline } ) -> & ident { } newline } fn ( ) -> & [ ] - & dyn ident { } 
+fn main() -> Int { . ident ^ . ident ^ . ident . ident [ ? fn ( ident : & & dyn ident ) -> & ident { } ] newline } fn ( ) -> ? while [ ] not [ ] . ident { } { } 
+fn main() -> Int { ? fn ( mut ident : & - ? . ident ( ? if . ident ( - [ * ] . ident ) { } ) ) -> & ident { } newline } fn ( ) -> ? if - not comptime { } { } { } 
+fn main() -> Int { ? if let ident = - not not while not - [ ] fn ( ) -> comptime { ? match comptime { } { float => [ ] ? ident newline } newline } { } { } ; & [ ] & dyn ident { } newline } fn ( ) -> ? fn ( ) -> [ ] . ident { } { } 
+fn main() -> Int { return ? fn ( ident : [ & ? fn ( ) -> & & dyn ident where - [ ] ident { } ] ? fn ( ) -> & dyn ident { } ) -> & ident { } } fn ( ) -> & [ ] while if & - - - - & & dyn ident { } { } { } 
+fn main() -> Int { return fn ( ident : & dyn ident / [ - & dyn ident ] ? ident ) -> - & ident { } } fn ( ) -> while ( ) { } { } 
+fn main() -> Int { fn ( ident : & ident . ident .> ident ( ) ) -> & ident { } newline } fn ( ) -> [ ] [ ] if & & dyn ident { } { } 
+fn main() -> Int { not fn ( ident : [ not not & & ? . ident ] ? . ident ( [ ] fn ( ) -> & - if not [ ] [ ] - not & - & dyn ident { } { } ) ) -> - & ident { } newline } fn ( ) -> [ ] & dyn ident { } 
+fn main() -> Int { not not if let const ident : match ? ident { . ident ( ( . ident ) ) => not [ ] fn ( ) -> & ident { } newline } ; [ ] fn ( ) -> not & dyn ident { } { } newline } fn ( ) -> . ident { } 
+fn main() -> Int { fn ( ident : not unreachable . ident ( [ ] - & dyn ident *= [ mut ] - match [ ] & - not & dyn ident { string => not comptime { } newline } ) ) -> - & ident { } newline } fn ( ) -> - not ? if not & & while not - comptime { } { } { } { } 
+fn main() -> Int { ? fn ( mut ident : ident .> ident ( [ ] ? comptime { while not - [ ] ident { } newline } ) ) -> & ident { } newline } fn ( ) -> - - not not match & dyn ident { ident => & & ? match ? ident { . ident => not - [ ] & not [ ] not [ ] not ? unreachable newline } newline } { } 
+fn main() -> Int { fn ( mut ident : ident [ ? . ident ( & & not - & dyn ident ) ] ) -> & ident { } newline } fn ( ) -> & - match & fn ( ) -> fn ( ) -> [ ] & dyn ident { } { } { ( ident ) => ? ( ) newline } { } 
+fn main() -> Int { - ? match let const ident = ? while unreachable { [ mut ] ident newline } ; & - [ ] & [ ] ? comptime { } { { } => [ ] not not not & - [ ] ( ) newline } newline } fn ( ) -> [ ] match ( ) { . ident => [ ] - & [ ] - [ ] [ ] ? unreachable newline } { } 
+fn main() -> Int { ? fn ( ident : ident .> ident ( not [ ] not [ mut ] ? . ident ) ) -> - - & ident { } newline } fn ( ) -> match comptime { } { ( bin ) => . ident newline } { } 
+fn main() -> Int { not [ ] ? fn ( ident : not ? . ident ( ? . ident = not & ? fn ( ) -> & dyn ident { } ) ) -> & ident { } newline } fn ( ) -> . ident { } 
+fn main() -> Int { not ? fn ( ident : match & not - - not & dyn ident /= fn ( ) -> not ( ) { } { . ident => [ ] ? while & - [ ] [ ] . ident { } newline } ) -> & ident { } newline } fn ( ) -> match ( ) { ( . ident ) => comptime { } newline } { } 
+fn main() -> Int { ? fn ( ident : & dyn ident * & dyn ident = while - ident { } ) -> - & ident { } newline } fn ( ) -> [ ] ? if fn ( ) -> - comptime { } { } { } { } 
+fn main() -> Int { - not fn ( ident : - - match not ( ) += . ident { . ident => not ? while . ident { } newline } ) -> & ident { } newline } fn ( ) -> [ ] ? . ident { } 
+fn main() -> Int { - - [ mut ] ? comptime { ? match ? ( ) { ident => ( ) newline } newline } newline } fn ( ) -> not - not - - ident { } 
+fn main() -> Int { ? while let ( ( ( ( ( ( ( const ident ) ) ) ) ) ) ) = ? match ident { string => ( ) newline } ; ? fn ( ) -> & match & dyn ident { . ident => fn ( ) -> - if & dyn ident { } { } newline } { } { } newline } fn ( ) -> ? comptime { } { } 
+fn main() -> Int { [ ] - [ [ & match let ( ( const ident ) ) : not [ ] not not & [ ] & dyn ident ; not - & dyn ident { . ident => [ ] ? . ident newline } ] & dyn ident ] - & ident newline } fn ( ) -> ? unreachable { } 

@@ -93,6 +93,7 @@
 - [ ] Give a list of the tests that failed after a run
 - [ ] Print integration test results after the tests are run, so it takes less time
 - [ ] Negative tests should be in folders according to the kind of error, fail if other error than the expected
+- [ ] Log manager, which takes in list of names from cmd line, only emits logs if the filename is in the list
 
 ### In-House rdgen
 - [ ] Written in Zig
@@ -100,6 +101,7 @@
 - [ ] Rejects if grammar is not LL(1) ("ambiguity" but not exactly)
 - [ ] Generates JSON files of example programs, with identifiers, numbers, etc replaced with random values
 - [ ] Supports including other ebnf files
+- [ ] Multiply all possible paths, barring recursion, through grammar, give that number and use it for fuzz testing metrics
 
 ### Language Features
 - [x] addresses

@@ -65,7 +65,7 @@ fn lower_AST(
         .sum_type,
         .annotation,
         .dyn_type,
-        => return lval_from_ast(ast, cfg, allocator),
+        => return lval_from_ast(ast.expand_type(allocator), cfg, allocator),
         // Unit-values
         .unit_value, .template, .trait, .impl => return lval_from_unit_value(ast, cfg, allocator),
         // Literals
@@ -540,10 +540,7 @@ fn lower_AST(
             return null;
         },
 
-        else => {
-            std.debug.print("Unimplemented lower_AST() for: AST.{s}\n", .{@tagName(ast.*)});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: unimplemented lower_AST() for: AST.{s}\n", .{@tagName(ast.*)}),
     }
 }
 
@@ -1038,10 +1035,7 @@ fn generate_match_pattern_check(
             cfg.append_instruction(ir_.IR.init(.equal, neql, tag, sel, pattern.?.token().span, allocator));
             cfg.append_instruction(ir_.IR.init_branch(neql, next_pattern, pattern.?.token().span, allocator));
         },
-        else => {
-            std.debug.print("Unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)}),
     }
 }
 

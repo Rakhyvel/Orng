@@ -508,7 +508,7 @@ pub const Errors = struct {
                 try out.print("`; value={}\n", .{err.integer_out_of_bounds.value});
             },
             .invalid_type => {
-                try out.print("error: expected a compile-time constant type\n", .{});
+                try out.print("error: expected a compile-time constant type\n", .{}); // TODO: Add a "got: "
             },
         }
     }

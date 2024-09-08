@@ -987,6 +987,7 @@ fn validate_AST_internal(
                 ast.annotation.init = validate_AST(ast.annotation.init.?, ast.annotation.type, errors, allocator);
             }
             try assert_none_poisoned(.{ast.annotation.init});
+            _ = try checked_types_match(ast.annotation.type, primitives_.type_type, errors);
             try type_check(ast.token().span, primitives_.type_type, expected, errors);
             return ast;
         },
@@ -1140,7 +1141,9 @@ fn validate_AST_internal(
                 try assert_pattern_matches(ast.children().items[i].lhs(), expanded_expr_type, errors, allocator);
             }
             try assert_none_poisoned(ast.children());
+
             try exhaustive_check(expanded_expr_type, ast.children(), ast.token().span, errors, allocator);
+
             return ast;
         },
         .mapping => {
@@ -1265,10 +1268,7 @@ fn validate_AST_internal(
             try type_check(ast.token().span, primitives_.unit_type, expected, errors);
             return ast;
         },
-        else => {
-            std.debug.print("validate_AST() unimplemented for {s}\n", .{@tagName(ast.*)});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: validate_AST() unimplemented for {s}\n", .{@tagName(ast.*)}),
     }
 }
 
@@ -1584,10 +1584,7 @@ fn positional_args(
 
         .unit_type, .identifier => filled_args = asts,
 
-        else => {
-            std.debug.print("positional_args(): unimplemented for {s}\n", .{@tagName(expected.*)});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: positional_args(): unimplemented for {s}\n", .{@tagName(expected.*)}),
     }
     return filled_args;
 }
@@ -2026,9 +2023,6 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
         } else {
             return generate_default(_type.annotation.type, span, errors, allocator);
         },
-        else => {
-            std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
-            unreachable;
-        },
+        else => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)}),
     }
 }

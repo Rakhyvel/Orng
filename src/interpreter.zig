@@ -79,10 +79,10 @@ pub const Context = struct {
                     // If this is triggered for a temporary or a constant, you didn't offset it correctly
                     if (lval.symbver.def != null) {
                         // symbver def is real (Good fortune!!)
-                        return self.panic(lval.symbver.def.?.span, "error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                        return self.panic(lval.symbver.def.?.span, "interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                     } else {
                         // symbver def is null, use symbol span instead (bad fortune!! curse on family)
-                        return self.panic(lval.symbver.symbol.span, "error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                        return self.panic(lval.symbver.symbol.span, "interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                     }
                 } else {
                     // std.debug.print("{s}\n", .{lval.symbver.symbol.name});
@@ -117,10 +117,7 @@ pub const Context = struct {
             2 => self.store(i16, address, @as(i16, @intCast(val))),
             4 => self.store(i32, address, @as(i32, @intCast(val))),
             8 => self.store(i64, address, @as(i64, @intCast(val))),
-            else => {
-                std.debug.print("cannot store an int of size {}\n", .{size});
-                unreachable;
-            },
+            else => std.debug.panic("interpreter error: cannot store an int of size {}\n", .{size}),
         }
     }
 
@@ -282,7 +279,7 @@ pub const Context = struct {
             // std.debug.print("\n\n\n\n{}=>\n", .{ir});
             const time_now = std.time.milliTimestamp();
             if (time_now - self.start_time > timeout_ms) {
-                return self.panic(null, "error: compile-time interpreter timeout\n", .{});
+                return self.panic(null, "interpreter error: compile-time interpreter timeout\n", .{});
             }
             try self.execute_instruction(ir);
         }
@@ -411,7 +408,7 @@ pub const Context = struct {
             .div_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 if (data.src2 == 0) {
-                    return self.panic(ir.span, "error: division by zero\n", .{});
+                    return self.panic(ir.span, "interpreter error: division by zero\n", .{});
                 }
                 const val = @divTrunc(data.src1, data.src2);
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division result", ir.span);
@@ -492,9 +489,9 @@ pub const Context = struct {
                 _ = self.debug_call_stack.pop();
             },
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
-                return self.panic(ir.span, "error: reached unreachable code\n", .{});
+                return self.panic(ir.span, "interpreter error: reached unreachable code\n", .{});
             },
-            else => std.debug.print("interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
+            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
         }
     }
 
@@ -524,7 +521,7 @@ pub const Context = struct {
     fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
         const bounds = primitives_.bounds_from_ast(_type) orelse return;
         if (val < bounds.lower or val > bounds.upper) {
-            return self.panic(span, "error: {s} is out of bounds; value={}\n", .{ operation_name, val });
+            return self.panic(span, "interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
         }
     }
 
@@ -620,10 +617,7 @@ pub const Context = struct {
                 return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_valid();
             },
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
-            else => {
-                std.debug.print("Unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)});
-                unreachable;
-            },
+            else => std.debug.panic("interpreter error: unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)}),
         }
     }
 };
