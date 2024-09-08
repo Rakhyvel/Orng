@@ -209,8 +209,10 @@ pub const Error = union(enum) {
     },
     invalid_type: struct {
         span: span_.Span,
+        got: *ast_.AST,
     },
 
+    // TODO: Add span() and get field like for AST
     fn get_span(self: *const Error) ?span_.Span {
         switch (self.*) {
             .basic => return self.basic.span,
@@ -508,7 +510,7 @@ pub const Errors = struct {
                 try out.print("`; value={}\n", .{err.integer_out_of_bounds.value});
             },
             .invalid_type => {
-                try out.print("error: expected a compile-time constant type\n", .{}); // TODO: Add a "got: "
+                try out.print("error: expected a compile-time constant type, got {s}\n", .{@tagName(err.invalid_type.got.*)});
             },
         }
     }

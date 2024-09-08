@@ -67,13 +67,21 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
     if (symbol._type.* != .poison) {
         _ = symbol.assert_valid();
         symbol.expanded_type = symbol._type.expand_type(allocator);
-        if (type_is_type_type(symbol.expanded_type.?) and (symbol.kind == .let or symbol.kind == .mut)) {
-            errors.add_error(errs_.Error{ .basic = .{
-                .span = symbol.span,
-                .msg = "non-constant variable with `Type` type",
-            } });
-            symbol.validation_state = .invalid;
-            return error.TypeError;
+        if (type_is_type_type(symbol.expanded_type.?)) {
+            switch (symbol.kind) {
+                .let, .mut => {
+                    // let and mut cannot be Type typed
+                    errors.add_error(errs_.Error{ .basic = .{
+                        .span = symbol.span,
+                        .msg = "non-constant variable with `Type` type",
+                    } });
+                    symbol.validation_state = .invalid;
+                    return error.TypeError;
+                },
+                // Pass fn and template blocks for generic functions
+                .@"fn" => symbol.init.?.block.ok_for_comptime = true,
+                else => {},
+            }
         }
         const expected: ?*ast_.AST = if (symbol.kind == .@"fn" or symbol.kind == .@"comptime") symbol._type.rhs() else symbol._type;
         // std.debug.print("validating init for: {s}\n", .{symbol.name});
@@ -336,11 +344,15 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Er
         std.debug.assert(expected_type.?.* != .poison);
         std.debug.assert(expected_type.?.common().validation_state == .valid);
         const expected_type_type = expected_type.?.typeof(allocator);
-        // std.debug.print("typeof({?}) = {}\n", .{ expected, expected_type });
-        std.debug.assert(checked_types_match(expected_type_type, primitives_.type_type, errors) catch unreachable);
+        // std.debug.print("typeof({?}) = {}\n", .{ expected_type, expected_type_type });
+        const expected_type_is_type = checked_types_match(expected_type_type, primitives_.type_type, errors) catch return ast.enpoison();
+        std.debug.assert(expected_type_is_type);
 
         if (expected_type.?.* == .annotation) {
             expected_type = expected_type.?.annotation.type;
+        }
+        if (checked_types_match(expected_type.?, primitives_.type_type, errors) catch return ast.enpoison()) {
+            _ = checked_types_match(ast, primitives_.type_type, errors) catch return ast.enpoison();
         }
     }
 
@@ -987,7 +999,6 @@ fn validate_AST_internal(
                 ast.annotation.init = validate_AST(ast.annotation.init.?, ast.annotation.type, errors, allocator);
             }
             try assert_none_poisoned(.{ast.annotation.init});
-            _ = try checked_types_match(ast.annotation.type, primitives_.type_type, errors);
             try type_check(ast.token().span, primitives_.type_type, expected, errors);
             return ast;
         },
@@ -1280,7 +1291,7 @@ fn checked_types_match(A: *ast_.AST, B: *ast_.AST, errors: *errs_.Errors) Valida
 
 fn type_valid_check(span: span_.Span, _type: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!_type.valid_type()) {
-        errors.add_error(errs_.Error{ .invalid_type = .{ .span = span } });
+        errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = _type } });
         return error.TypeError;
     }
 }
@@ -1300,7 +1311,7 @@ fn void_check(span: span_.Span, expected: ?*ast_.AST, errors: *errs_.Errors) Val
 /// Checks that a type is equal to unit, throws an error if it is not.
 fn middle_statement_check(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.valid_type()) {
-        errors.add_error(errs_.Error{ .invalid_type = .{ .span = span } });
+        errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = got } });
         return error.TypeError;
     }
     if (!try checked_types_match(primitives_.unit_type, got, errors) and !try checked_types_match(got, primitives_.void_type, errors)) {

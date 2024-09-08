@@ -79,14 +79,15 @@ pub const Scope = struct {
 
     /// Returns the unique implementation for a given type and trait
     ///
-    /// `for_type` doesn't necessarily need to be a valid type to match. It is not expanded.
+    /// `for_type` doesn't necessarily need to be a valid type to match. It is not expanded, and not evaluated at
+    /// compile-time. If it is invalid, it will simply not match.
     pub fn impl_trait_lookup(self: *Scope, for_type: *ast_.AST, trait: ?*Symbol) ?*ast_.AST {
-        if (!for_type.valid_type()) {
+        if (!for_type.valid_type() or for_type.* == .@"comptime") {
             return null;
         }
         // Go through the scope's list of implementations, check to see if the types and traits match
         for (self.impls.items) |impl| {
-            if (!impl.impl._type.valid_type()) {
+            if (!impl.impl._type.valid_type() or impl.impl._type.* == .@"comptime") {
                 return null;
             }
             if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
