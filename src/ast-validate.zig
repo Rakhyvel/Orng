@@ -521,7 +521,7 @@ fn validate_AST_internal(
             if (try checked_types_match(ret_type, primitives_.void_type, errors)) {
                 return throw_unexpected_void_type(ast.expr().token().span, errors);
             }
-            try type_check(ast.token().span, ast_type, expected, errors);
+            try type_check(ast.token().span, ret_type, expected, errors);
 
             // Get the cfg from the symbol, and embed into the module
             const cfg = try module_.get_cfg(ast.symbol().?, null, &ast.symbol().?.scope.module.?.interned_strings, errors, allocator);

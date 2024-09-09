@@ -2,6 +2,8 @@
 zig-out/
 kcov-out/
 tests/fuzz/fuzz.txt
+tests/fuzz/problems.txt
+tests/fuzz/fuzz.orng
 tests/fuzz/*.c
 tests/fuzz/*.out
 orngdoc_old.md

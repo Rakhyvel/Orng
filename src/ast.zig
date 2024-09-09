@@ -1810,6 +1810,7 @@ pub const AST = union(enum) {
                 return _expr.children().items[@as(usize, @intCast(self.rhs().int.data))];
             },
             .addr_of, .poison, .unit_type => return self,
+            .type_of => return self.typeof(allocator),
 
             else => return self,
         }
@@ -1947,6 +1948,11 @@ pub const AST = union(enum) {
                 try out.print("{s}: ", .{self.annotation.pattern.token().data});
                 try self.annotation.type.print_type(out);
             },
+            .type_of => {
+                try out.print("@typeof(", .{});
+                try self.type_of._expr.print_type(out);
+                try out.print(")", .{});
+            },
 
             // Not necessarily types, but may appear in a type definition
             .int => try out.print("{}", .{self.int.data}),
@@ -1982,10 +1988,7 @@ pub const AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
-            else => {
-                try out.print("\nprint_types(): Unimplemented or not a type: {s}\n", .{@tagName(self.*)});
-                unreachable;
-            },
+            else => std.debug.panic("compiler error: unimplemented or not a type: {s}\n", .{@tagName(self.*)}),
         }
     }
 

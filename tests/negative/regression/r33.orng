@@ -1,0 +1,3 @@
+fn main() -> Int { 
+    main += match let const main = main ; 4 { _ => 3 } 
+} 
