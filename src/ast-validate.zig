@@ -880,6 +880,13 @@ fn validate_AST_internal(
                 // Address type, type of this ast must be a type, inner must be a type
                 if (ast.expr().* == .identifier) {
                     _ = ast.expr().expand_type(allocator);
+                    const span = ast.expr().token().span;
+                    const got = ast.expr().typeof(allocator);
+                    if (got.* != .type_of) {
+                        if (!try checked_types_match(got, primitives_.type_type, errors)) {
+                            return throw_unexpected_type(span, primitives_.type_type, got, errors);
+                        }
+                    }
                     _ = ast.expr().assert_valid();
                 } else {
                     ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, errors, allocator));

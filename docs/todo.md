@@ -83,6 +83,7 @@
 - [ ] Omitting a `->` in a function defaults to return type to be unit
 - [ ] go through and see if parameters are needed, or if their select-children can be taken instead
 - [ ] go through anywhere `unreachable` is used, and replace with a descriptive panic, prepend message with `compiler error: `
+- [ ] revisit tuples/cyclic.orng... there should NOT be comptime AST types that last until codegen!
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.

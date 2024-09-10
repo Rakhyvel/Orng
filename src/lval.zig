@@ -176,6 +176,7 @@ pub const L_Value = union(enum) {
     }
 
     pub fn sizeof(self: *L_Value) i64 {
+        std.debug.assert(self.get_expanded_type().valid_type()); // This is it!
         return self.get_expanded_type().sizeof();
     }
 

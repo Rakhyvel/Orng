@@ -1750,6 +1750,27 @@ pub const AST = union(enum) {
         };
     }
 
+    pub fn non_comptime_type(_type: *AST) bool {
+        return switch (_type.*) {
+            .@"comptime" => false,
+            else => true,
+
+            // Recursive
+            .index => _type.lhs().non_comptime_type(), // Used by pattern matching, lhs is the array_of type, rhs is the index
+            .addr_of, .slice_of, .array_of => _type.expr().non_comptime_type(),
+            .annotation => _type.annotation.type.non_comptime_type(),
+            .function, .@"union" => _type.lhs().non_comptime_type() and _type.rhs().non_comptime_type(),
+            .product, .sum_type => {
+                for (_type.children().items) |item| {
+                    if (!item.non_comptime_type()) {
+                        return false;
+                    }
+                }
+                return true;
+            },
+        };
+    }
+
     /// Expand the type of an AST value. This call is memoized for ASTs besides identifiers.
     pub fn expand_type(self: *AST, allocator: std.mem.Allocator) *AST {
         if (self.common()._expanded_type != null and self.* != .identifier) {
@@ -2320,6 +2341,14 @@ pub const AST = union(enum) {
         } else if (A.* != .identifier and B.* == .identifier and B != B.expand_identifier()) {
             // If only B is an identifier, and B isn't an atom type, dive
             return types_match(A, B.expand_identifier());
+        }
+        if (A.* == .type_of and B.* == .identifier and std.mem.eql(u8, B.token().data, "Type")) {
+            // @type_of(t) : $T -> Type
+            return true;
+        }
+        if (B.* == .type_of and A.* == .identifier and std.mem.eql(u8, A.token().data, "Type")) {
+            // @type_of(t) : $T -> Type
+            return true;
         }
         if (A.* == .poison or B.* == .poison) {
             return true; // Whatever

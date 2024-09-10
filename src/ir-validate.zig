@@ -4,7 +4,9 @@ const std = @import("std");
 const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
 const ir_ = @import("ir.zig");
+const lval_ = @import("lval.zig");
 const primitives_ = @import("primitives.zig");
+const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
 pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{IRError}!void {
@@ -31,6 +33,9 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{IRError}!void {
                 try err_if_unused(ir.dest.?.symbver.symbol, errors);
                 try err_if_var_not_mutated(ir.dest.?.symbver.symbol, errors);
             }
+            try valid_lvalue_expanded_type_check(ir.span, ir.dest, errors);
+            try valid_lvalue_expanded_type_check(ir.span, ir.src1, errors);
+            try valid_lvalue_expanded_type_check(ir.span, ir.src2, errors);
         }
     }
 }
@@ -67,6 +72,16 @@ fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{
             .name = symbol.name,
             .problem = "is marked `mut` but is never mutated",
             .context_message = "",
+        } });
+        return error.IRError;
+    }
+}
+
+fn valid_lvalue_expanded_type_check(span: span_.Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{IRError}!void {
+    if (lvalue != null and !lvalue.?.get_expanded_type().valid_type()) {
+        errors.add_error(errs_.Error{ .recursive_definition = .{
+            .span = span,
+            .symbol_name = null,
         } });
         return error.IRError;
     }
