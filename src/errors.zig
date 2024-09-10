@@ -211,6 +211,10 @@ pub const Error = union(enum) {
         span: span_.Span,
         got: *ast_.AST,
     },
+    recursive_definition: struct {
+        span: span_.Span,
+        symbol_name: ?[]const u8,
+    },
 
     // TODO: Add span() and get field like for AST
     fn get_span(self: *const Error) ?span_.Span {
@@ -259,6 +263,7 @@ pub const Error = union(enum) {
             .wrong_from => return self.wrong_from.span,
             .integer_out_of_bounds => return self.integer_out_of_bounds.span,
             .invalid_type => return self.invalid_type.span,
+            .recursive_definition => return self.recursive_definition.span,
         }
     }
 };
@@ -511,6 +516,11 @@ pub const Errors = struct {
             },
             .invalid_type => {
                 try out.print("error: expected a compile-time constant type, got {s}\n", .{@tagName(err.invalid_type.got.*)});
+            },
+            .recursive_definition => if (err.recursive_definition.symbol_name) |symbol_name| {
+                try out.print("error: recursive definition of symbol `{s}` detected\n", .{symbol_name});
+            } else {
+                try out.print("error: recursive definition detected\n", .{});
             },
         }
     }

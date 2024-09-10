@@ -393,14 +393,14 @@
         - [x] template-call in template function
         - [x] generic types without `comptime` keyword
     - [x] memoize expanded call types
+    - [ ] trait constants
     - [ ] generic traits
         > simply stamps out a trait instead, yeah?
-    - [ ] generic methods
     - [ ] generic type unification
-        > I seriously don't think this can be done with calls. It will still be useful, better than Zig's `anytype`.
         > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
         - [ ] error if an identifier is `$` twice
         - [ ] error if `$` appears anywhere else but a type annotation
+    - [ ] generic methods
     - [ ] `impl Tr` stamps out a new monomorphised function for every new impl of `Tr`
         > Even though the type is stamped out, you can only treat it using its trait methods
     - [ ] iterators & for loops

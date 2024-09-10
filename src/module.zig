@@ -377,6 +377,13 @@ pub fn get_cfg(
 ) lower_.Lower_Errors!*cfg_.CFG {
     std.debug.assert(symbol.kind == .@"fn" or symbol.kind == .@"comptime");
     std.debug.assert(symbol.validation_state == .valid);
+    if (symbol.init_validation_state == .validating) {
+        errors.add_error(errs_.Error{ .recursive_definition = .{
+            .span = symbol.span,
+            .symbol_name = symbol.name,
+        } });
+        return error.TypeError;
+    }
     if (symbol.cfg == null) {
         symbol.cfg = cfg_.CFG.init(symbol, caller, interned_strings, allocator);
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
@@ -490,7 +497,7 @@ pub fn interpret(
         scope,
         errors,
         allocator,
-    )).assert_valid();
+    )).assert_valid().assert_init_valid();
 
     // Get the cfg from the symbol, and embed into the module
     const cfg = try get_cfg(symbol, null, &symbol.scope.module.?.interned_strings, errors, allocator);

@@ -44,6 +44,9 @@ pub fn validate_module(module: *module_.Module, errors: *errs_.Errors, allocator
 pub fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     for (scope.symbols.keys()) |key| {
         const symbol = scope.symbols.get(key).?;
+        if (symbol.kind == .@"comptime") {
+            continue;
+        }
         try validate_symbol(symbol, errors, allocator);
     }
     for (scope.children.items) |child| {
@@ -59,6 +62,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
         return;
     }
     symbol.validation_state = .validating;
+    symbol.init_validation_state = .validating;
 
     // std.debug.assert(symbol.init.* != .poison);
     // std.debug.print("validating type for: {s}\n", .{symbol.name});
@@ -76,6 +80,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
                         .msg = "non-constant variable with `Type` type",
                     } });
                     symbol.validation_state = .invalid;
+                    symbol.init_validation_state = .invalid;
                     return error.TypeError;
                 },
                 // Allow these inits to be non-comptime, since they're interpreted at comptime anyway
@@ -94,11 +99,13 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
             try validate_trait(symbol, errors, allocator);
         } else if (symbol.init != null and symbol.init.?.* == .poison) {
             symbol.validation_state = .invalid;
+            symbol.init_validation_state = .invalid;
             return error.TypeError;
             // unreachable;
         }
     } else {
         symbol.validation_state = .invalid;
+        symbol.init_validation_state = .invalid;
         return error.TypeError;
     }
 
@@ -118,6 +125,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
             } });
         }
     }
+    _ = symbol.assert_init_valid();
 }
 
 fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
@@ -328,7 +336,10 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Er
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
         // std.debug.print("{}\n", .{ast});
-        errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "recursive definition detected" } });
+        errors.add_error(errs_.Error{ .recursive_definition = .{
+            .span = ast.token().span,
+            .symbol_name = null,
+        } });
         return ast_.poisoned;
     } else if (ast.common().validation_state == .invalid) {
         return ast_.poisoned;

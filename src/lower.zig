@@ -112,8 +112,15 @@ fn lower_AST(
         },
         .identifier => {
             const symbol = ast.symbol().?;
+            if (symbol.init_validation_state == .validating) {
+                errors.add_error(errs_.Error{ .recursive_definition = .{
+                    .span = symbol.span,
+                    .symbol_name = symbol.name,
+                } });
+                return error.TypeError;
+            }
             if (symbol.kind == .@"fn") {
-                return try lval_from_symbol_cfg(ast.symbol().?, cfg, ast.token().span, errors, allocator);
+                return try lval_from_symbol_cfg(symbol, cfg, ast.token().span, errors, allocator);
             } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
                 return lval_from_ast(ast, cfg, allocator);
             } else if (symbol.kind == .@"const") {

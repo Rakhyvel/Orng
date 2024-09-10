@@ -201,6 +201,7 @@ pub const Symbol = struct {
 
     defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,
+    init_validation_state: Symbol_Validation_State,
     decld: bool, // True when the symbol is a local variable, whether or not the variable has been printed out or not
     param: bool, // True when the symbol is a parameter in a function
     is_temp: bool = false, // True
@@ -240,12 +241,18 @@ pub const Symbol = struct {
             retval.defined = false;
         }
         retval.validation_state = .unvalidated;
+        retval.init_validation_state = .unvalidated;
         retval.decld = false;
         return retval;
     }
 
     pub fn assert_valid(self: *Symbol) *Symbol {
         self.validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
+        return self;
+    }
+
+    pub fn assert_init_valid(self: *Symbol) *Symbol {
+        self.init_validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }
 };

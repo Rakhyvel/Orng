@@ -7,8 +7,13 @@ program: top_level_declaration "eof".
 top_level_declaration: "fn main() -> Int" block_expr fn_declaration.
 
 ident: Bool | Byte | Char | Float | Int | String | Type | main | a | b.
-int: "0" | "1" | "2".
+int: "0" | "1" | "2" | "1024".
 char: "'0'" | "'1'" | "'2'".
+hex: "0x0" | "0x1" | "0x400".
+oct: "0o0" | "0o1" | "0o2000".
+bin: "0b0" | "0b1" | "0b100_0000_0000".
+float: "0.0" | "0.5" | "2.0" | "1024.1024".
+#string: "\"abc\"".
 
 ###                                                            ###
 ### Put `let_declaration` and everything following after here: ###

@@ -1,0 +1,5 @@
+fn main() -> Int {
+    // This can't be checked properly because slice-of can't know if comptime is valid without knowing if slice-of is valid
+    []comptime {main}
+    323
+}

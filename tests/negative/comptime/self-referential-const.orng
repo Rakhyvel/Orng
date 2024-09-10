@@ -1,0 +1,3 @@
+let const x = comptime{x}
+
+fn main() -> Int {0}
