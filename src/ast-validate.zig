@@ -1518,7 +1518,7 @@ pub fn default_args(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
-    if (try args_are_named(asts, errors)) {
+    if (try args_are_named(asts, errors) and expected.* != .unit_type) {
         return named_args(asts, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => asts,
             error.TypeError => error.TypeError,
@@ -1688,7 +1688,7 @@ fn named_args(
             }
         },
 
-        else => unreachable,
+        else => std.debug.panic("compiler error: unimplemented named_args() for `{}`", .{expected.*}),
     }
     return filled_args;
 }

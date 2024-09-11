@@ -95,6 +95,7 @@
 - [ ] Print integration test results after the tests are run, so it takes less time
 - [ ] Negative tests should be in folders according to the kind of error, fail if other error than the expected
 - [ ] Log manager, which takes in list of names from cmd line, only emits logs if the filename is in the list
+- [ ] Automate a way to cycle through problems.txt, when it runs into one that crashes, have it automatically create a regressions file
 
 ### In-House rdgen
 - [ ] Written in Zig
