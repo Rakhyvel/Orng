@@ -176,6 +176,19 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     const trait_symbol: *symbol_.Symbol = impl.impl.trait.?.symbol().?;
     const trait_ast = trait_symbol.decl.?;
 
+    // Check that the (trait, type) pair is unique for this scope
+    const lookup_res = impl.impl.scope.?.impl_trait_lookup(impl.impl._type, trait_symbol);
+    if (lookup_res.count > 1) {
+        // Check if there's already an implementation for the same trait and type
+        errors.add_error(errs_.Error{ .reimpl = .{
+            .first_defined_span = lookup_res.ast.?.token().span,
+            .redefined_span = impl.token().span,
+            .name = if (!impl.impl.impls_anon_trait) trait_symbol.name else null,
+            ._type = impl.impl._type,
+        } });
+        return error.TypeError;
+    }
+
     // Construct a map of all trait decls
     var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
     defer trait_decls.deinit();
@@ -808,7 +821,7 @@ fn validate_AST_internal(
             const expr_type = ast.expr().typeof(allocator);
 
             const impl = ast.dyn_value.scope.?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
-            if (impl == null) {
+            if (impl.ast == null) {
                 errors.add_error(errs_.Error{ .type_not_impl_trait = .{
                     .span = ast.token().span,
                     .trait_name = ast.dyn_value.dyn_type.expr().symbol().?.name,
@@ -816,7 +829,7 @@ fn validate_AST_internal(
                 } });
                 return error.TypeError;
             }
-            ast.dyn_value.impl = impl;
+            ast.dyn_value.impl = impl.ast;
 
             try type_check(ast.token().span, ast.dyn_value.dyn_type, expected, errors);
             return ast;

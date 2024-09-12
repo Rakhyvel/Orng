@@ -229,19 +229,6 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.impl.trait, ast.impl.scope.?, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.impl.scope.?, errors, allocator);
 
-            // Determine the impl's trait's symbol, if it exists
-            const trait_symbol: *symbol_.Symbol = ast.impl.trait.?.symbol().?;
-            if (scope.impl_trait_lookup(ast.impl._type, trait_symbol)) |other_impl| {
-                // Check if there's already an implementation for the same trait and type
-                errors.add_error(errs_.Error{ .reimpl = .{
-                    .first_defined_span = other_impl.token().span,
-                    .redefined_span = ast.token().span,
-                    .name = if (!ast.impl.impls_anon_trait) trait_symbol.name else null,
-                    ._type = ast.impl._type,
-                } });
-                return error.SymbolError;
-            }
-
             // No duplicate impls found, add this impl to scope's list of impls
             scope.impls.append(ast) catch unreachable;
         },

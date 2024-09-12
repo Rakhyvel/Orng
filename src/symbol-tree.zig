@@ -59,8 +59,6 @@ fn symbol_table_from_AST(
         .false,
         .poison,
         .pattern_symbol,
-        .domain_of,
-        .size_of,
         .receiver,
         .template,
         => {},
@@ -68,6 +66,8 @@ fn symbol_table_from_AST(
         .@"break", .@"continue" => try in_loop_check(ast, scope, errors),
 
         .type_of,
+        .domain_of,
+        .size_of,
         .default,
         .not,
         .negate,

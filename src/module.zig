@@ -164,6 +164,7 @@ pub const Module = struct {
         module.collect_traits_and_impls(module.scope);
 
         // Add each CFG's instructions to the module's instruction's list
+        var found_main = false;
         for (module.scope.symbols.keys()) |key| {
             const symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
             if (symbol.kind != .@"fn") {
@@ -176,7 +177,15 @@ pub const Module = struct {
             if (std.mem.eql(u8, key, "main")) {
                 module.entry = cfg;
                 module.entry.needed_at_runtime = true;
+                found_main = true;
             }
+        }
+        if (!found_main) {
+            errors.add_error(errs_.Error{ .basic = .{
+                .span = span_.phony_span,
+                .msg = "no main function found",
+            } });
+            return error.TypeError;
         }
 
         // Go through traits

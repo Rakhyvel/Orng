@@ -1718,14 +1718,13 @@ pub const AST = union(enum) {
     ///
     /// The types_match() function assumes it's arguments pass this test.
     pub fn valid_type(_type: *AST) bool {
-        return switch (_type.*) {
+        const val = switch (_type.*) {
             // Always well-formed, comptime types
             .type_of,
             .domain_of,
             .anyptr_type,
             .unit_type,
             .dyn_type,
-            .identifier,
             .call,
             .invoke,
             .poison,
@@ -1735,6 +1734,7 @@ pub const AST = union(enum) {
             else => _type.common().ok_for_comptime, // HACK: This allows generic functions to return a type without surrounding it in a comptime block
 
             // Recursive
+            .identifier => true,
             .index => _type.lhs().valid_type(), // Used by pattern matching, lhs is the array_of type, rhs is the index
             .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
             .annotation => _type.annotation.type.valid_type(),
@@ -1748,6 +1748,7 @@ pub const AST = union(enum) {
                 return true;
             },
         };
+        return val;
     }
 
     pub fn non_comptime_type(_type: *AST) bool {
@@ -1860,7 +1861,8 @@ pub const AST = union(enum) {
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
         if (self.* == .identifier and self.symbol().?.init != null) {
-            return self.symbol().?.init.?;
+            const init = self.symbol().?.init.?;
+            return init;
         } else {
             return self;
         }

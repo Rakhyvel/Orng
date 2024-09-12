@@ -62,7 +62,7 @@ prefix_expr: "not" prefix_expr                                    # boolean not
            | postfix_expr
            .
 
-postfix_expr: (control_flow) 
+postfix_expr: (control_flow | factor) 
       { call_args
       | "[" ((".."[bool_expr]) | (bool_expr[".." [bool_expr]])) "]"
       | "." ident

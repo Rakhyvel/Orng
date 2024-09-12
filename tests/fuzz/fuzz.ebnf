@@ -4,9 +4,9 @@
 
 program: top_level_declaration "eof".
 
-top_level_declaration: "fn main() -> Int" block_expr fn_declaration.
+top_level_declaration: trait_declaration impl "fn main() -> Int" "{" statement ";" statement ";" statement "}" .
 
-ident: Bool | Byte | Char | Float | Int | String | Type | main | a | b.
+ident: Bool | Byte | Char | Float | Int | String | Type | main | a | b | c | d | A | B | C | D.
 int: "0" | "1" | "2" | "1024".
 char: "'0'" | "'1'" | "'2'".
 hex: "0x0" | "0x1" | "0x400".
@@ -55,23 +55,27 @@ arrow_expr: bool_expr {"->" bool_expr}.
 
 bool_expr: comparison_expr {("and" | "or") comparison_expr}.
 
-comparison_expr: coalesce_expr {("==" | "!=" | "<" | "<=" | ">" | ">=") coalesce_expr}.
+comparison_expr: coalesce_expr [("==" | "!=" | "<" | "<=" | ">" | ">=") coalesce_expr].
 
 coalesce_expr: int_expr {("orelse" | "catch") int_expr}.
 
 int_expr: term_expr {("+" | "-" | "!") term_expr}.
 
-term_expr: prefix_expr ({("*" | "/" | "||" | "%") prefix_expr}).
+term_expr: fifty_fifty ({("*" | "/" | "||" | "%") fifty_fifty}).
 
-prefix_expr: "not" prefix_expr                                    # boolean not
-           | "-" prefix_expr                                      # negation
-           | "&" (("dyn" ident) | prefix_expr)                    # address-of/trait object
-           | "[" ["mut" | bool_expr | "*"] "]" prefix_expr        # slice-of/tuple-of/multi-pointer
+fifty_fifty: prefix_expr | postfix_expr | postfix_expr | postfix_expr | postfix_expr.
+
+prefix_expr: "not" fifty_fifty                                    # boolean not
+           | "@typeof(" assignment_expr ")"
+           | "@default(" assignment_expr ")"
+           | "@sizeof(" assignment_expr ")"
+           | "-" fifty_fifty                                      # negation
+           | "&" (("dyn" ident) | fifty_fifty)                    # address-of/trait object
+           | "[" ["mut" | bool_expr | "*"] "]" fifty_fifty        # slice-of/tuple-of/multi-pointer
            | "?" postfix_expr                                     # optional
-           | postfix_expr
            .
 
-postfix_expr: (control_flow) 
+postfix_expr: (control_flow | factor) 
       { call_args
       | "[" ((".."[bool_expr]) | (bool_expr[".." [bool_expr]])) "]"
       | "." ident
@@ -86,7 +90,7 @@ control_flow: if_expr
             | match_expr
             #| for_expr
             | "comptime" block_expr
-            | factor
+            | block_expr
             .
 
 factor: ident
@@ -106,7 +110,6 @@ literal: "true"
        | float
        | char
        | string
-       | block_expr
        .
 
 block_expr: "{" [ assignment_expr "newline" { "newline" statement "newline" } ] [( "return" [assignment_expr]) | ("continue") | ("break")] "}".
@@ -123,7 +126,7 @@ param: ident ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or amb
 
 trait_declaration: "trait" ident "{" {method_declaration} "}". # Traits may be empty, but the braces are necessary to maintain unambiguity
 method_declaration: ["virtual"] "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr].
-method_paramlist: "(" [("const" param | ["mut"](param|receiver)) {"," ["mut" | "const"]param}] ")".
+method_paramlist: "(" [("const" param | (param|receiver)) {"," ["mut" | "const"]param}] ")".
 receiver: ["&" ["mut"]] "self".
 
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
