@@ -161,6 +161,7 @@ pub const CFG = struct {
     /// Converts the list of IR to a web of BB's
     /// Also versions IR dest's if they are symbvers. This versioning should persist and should not be wiped.
     pub fn basic_block_from_IR(self: *CFG, maybe_ir: ?*ir_.IR, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
+        // FIXME: High Cyclo
         if (maybe_ir == null) {
             return null;
         } else if (maybe_ir.?.in_block) |in_block| {
@@ -171,6 +172,7 @@ pub const CFG = struct {
         retval.ir_head = maybe_ir;
         var _maybe_ir = maybe_ir;
         while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
+            // TODO: Too long
             ir.in_block = retval;
 
             if (ir.dest != null and ir.dest.?.* == .symbver) {
@@ -250,6 +252,7 @@ pub const CFG = struct {
     /// - Need to be requested as phi parameters,
     /// - Need to be passed to children basic-blocks as phi arguments
     pub fn calculate_phi_params_and_args(self: *CFG, allocator: std.mem.Allocator) void {
+        // FIXME: High Cyclo
         // clear arguments
         for (self.basic_blocks.items) |bb| {
             bb.parameters.clearRetainingCapacity();
@@ -417,6 +420,7 @@ pub const CFG = struct {
     }
 
     pub fn calculate_usage(cfg: *CFG) void {
+        // FIXME: High Cyclo
         if (cfg.symbol.decl.?.* == .fn_decl or cfg.symbol.decl.?.* == .method_decl) {
             const param_symbols = if (cfg.symbol.decl.?.* == .fn_decl) cfg.symbol.decl.?.fn_decl.param_symbols else cfg.symbol.decl.?.method_decl.param_symbols;
             for (param_symbols.items) |param_symbol| {
@@ -482,6 +486,7 @@ pub const CFG = struct {
     }
 
     pub fn calculate_versions(cfg: *CFG) void {
+        // FIXME: High Cyclo
         for (cfg.basic_blocks.items) |bb| {
             // Reset all reachable symbol verison counts to 0
             var maybe_ir: ?*ir_.IR = bb.ir_head;

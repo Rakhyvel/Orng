@@ -884,6 +884,7 @@ fn flow(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!void {
+    // FIXME: High Cyclo
     switch (condition.*) {
         .true => if (sense) {
             cfg.append_instruction(ir_.IR.init_jump(label, span, allocator));

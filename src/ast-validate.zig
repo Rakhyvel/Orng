@@ -58,6 +58,7 @@ pub fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: s
 }
 
 pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+    // TODO: Bit long
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -162,6 +163,7 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
     }
 }
 
+// TODO: Split up into smaller functions
 fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     if (impl.impl._type.* == .addr_of) {
         errors.add_error(errs_.Error{ .basic = .{
@@ -346,6 +348,7 @@ fn is_capitalized(name: []const u8) bool {
 /// Errors out if `ast` is not the expected type
 /// - `old_expected_type`: Should be null if `ast` can be any type
 fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) *ast_.AST {
+    // TODO: Bit long
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
         // std.debug.print("{}\n", .{ast});
@@ -404,6 +407,7 @@ fn validate_AST_internal(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError, SymbolError }!*ast_.AST {
+    // TODO: Ugh this function is too long
     // std.debug.print("{}: {?}\n", .{ ast, expected });
     switch (ast.*) {
         // Nop, always "valid"
@@ -422,7 +426,9 @@ fn validate_AST_internal(
             return ast;
         },
         .int => {
-            try type_check_int(ast, expected, errors, allocator);
+            if (expected != null and !try checked_types_match(primitives_.unit_type, expected.?, errors)) {
+                try type_check_int(ast, expected, errors, allocator);
+            }
             return ast;
         },
         .float => {
@@ -671,7 +677,7 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        .index => { // TODO: TOO LONG!
+        .index => {
             const lhs_span = ast.lhs().token().span; // Used for error reporting
             if (expected != null and try checked_types_match(primitives_.type_type, expected.?, errors)) {
                 ast.set_lhs(validate_AST(ast.lhs(), primitives_.type_type, errors, allocator));
@@ -884,6 +890,7 @@ fn validate_AST_internal(
             return try merge_sums(expanded_lhs, expanded_rhs, new_ast.token(), errors, allocator);
         },
         .addr_of => {
+            // FIXME: High cyclo
             if (expected == null) {
                 // Not expecting anything, just validate expr
                 ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
@@ -1065,7 +1072,8 @@ fn validate_AST_internal(
 
             return ast;
         },
-        .@"if" => { // TODO: TOO LONG!
+        .@"if" => {
+            // FIXME: High cyclo
             if (ast.@"if".let) |let| {
                 ast.@"if".let = validate_AST(let, null, errors, allocator);
             }
@@ -1352,12 +1360,12 @@ fn middle_statement_check(span: span_.Span, got: *ast_.AST, errors: *errs_.Error
 
 fn type_check_int(
     ast: *ast_.AST,
-    expected: ?*ast_.AST, // This should NOT be expanded
+    expected: ?*ast_.AST, // This should NOT be expanded < it is, though...
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
     const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
-    if (expanded_expected != null and !try checked_types_match(primitives_.unit_type, expanded_expected.?, errors)) {
+    if (expanded_expected != null) { //and !try checked_types_match(primitives_.unit_type, expanded_expected.?, errors)
         const info = primitives_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
             if (ast.int.data < info.?.bounds.?.lower or
@@ -1583,6 +1591,7 @@ fn positional_args(
     expected: *ast_.AST,
     allocator: std.mem.Allocator,
 ) error{NoDefault}!std.ArrayList(*ast_.AST) {
+    // TODO: Too long
     var filled_args = std.ArrayList(*ast_.AST).init(allocator);
     errdefer filled_args.deinit();
 
@@ -1637,6 +1646,7 @@ fn named_args(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) error{ TypeError, NoDefault }!std.ArrayList(*ast_.AST) {
+    // FIXME: High cyclo
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
     var arg_name_to_val_map = std.StringArrayHashMap(*ast_.AST).init(allocator);
@@ -1955,9 +1965,7 @@ fn assert_pattern_matches(
             }
         },
         .pattern_symbol => {},
-        else => {
-            std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
-        },
+        else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)}),
     }
     _ = pattern.assert_valid();
 }
@@ -2018,6 +2026,7 @@ fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, a
 }
 
 fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+    // TODO: Too long
     switch (_type.*) {
         .anyptr_type => return _type,
         .identifier => {
@@ -2034,7 +2043,11 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
                 return try generate_default(expanded_type, span, errors, allocator);
             }
         },
-        .dyn_type, .addr_of, .function => return ast_.AST.create_int(_type.token(), 0, allocator),
+        .function => {
+            errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
+            return error.TypeError;
+        },
+        .dyn_type, .addr_of => return ast_.AST.create_int(_type.token(), 0, allocator),
         .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator),
         .sum_type => {
             var retval = ast_.AST.create_sum_value(_type.token(), allocator);

@@ -147,12 +147,10 @@ pub fn decorate_identifiers(
             try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
         },
         .sum_type, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
-
         .sum_value => {
             try decorate_identifiers(ast.sum_value.init, scope, errors, allocator);
             try decorate_identifiers(ast.sum_value.base, scope, errors, allocator);
         },
-
         .array_of => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);
             try decorate_identifiers(ast.array_of.len, scope, errors, allocator);
@@ -167,7 +165,6 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.annotation.predicate, scope, errors, allocator);
             try decorate_identifiers(ast.annotation.init, scope, errors, allocator);
         },
-
         .@"if" => {
             try decorate_identifiers(ast.@"if".let, scope, errors, allocator);
             try decorate_identifiers(ast.@"if".condition, ast.@"if".scope.?, errors, allocator);
@@ -181,8 +178,6 @@ pub fn decorate_identifiers(
         },
         .mapping => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
-            // non-else mappings have their own scope
-            // else mappings use the surrounding match scope
             try decorate_identifiers(ast.rhs(), ast.mapping.scope orelse scope, errors, allocator);
         },
         .@"while" => {
@@ -206,7 +201,6 @@ pub fn decorate_identifiers(
                 try decorate_identifiers(final, ast.block.scope.?, errors, allocator);
             }
         },
-
         .@"return" => try decorate_identifiers(ast.@"return"._ret_expr, scope, errors, allocator),
         .decl => {
             try decorate_identifiers(ast.decl.type, scope, errors, allocator);
@@ -228,8 +222,6 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.impl._type, scope, errors, allocator);
             try decorate_identifiers(ast.impl.trait, ast.impl.scope.?, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.impl.scope.?, errors, allocator);
-
-            // No duplicate impls found, add this impl to scope's list of impls
             scope.impls.append(ast) catch unreachable;
         },
         .method_decl => {

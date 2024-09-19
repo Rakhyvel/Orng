@@ -1728,13 +1728,13 @@ pub const AST = union(enum) {
             .call,
             .invoke,
             .poison,
+            .identifier,
             => true,
 
             // Anything else probably isn't a valid type
             else => _type.common().ok_for_comptime, // HACK: This allows generic functions to return a type without surrounding it in a comptime block
 
             // Recursive
-            .identifier => true,
             .index => _type.lhs().valid_type(), // Used by pattern matching, lhs is the array_of type, rhs is the index
             .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
             .annotation => _type.annotation.type.valid_type(),
@@ -1784,6 +1784,7 @@ pub const AST = union(enum) {
 
     /// Non-memoized slow path for expanding the type of an AST value.
     fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
+        // FIXME: High Cyclo
         switch (self.*) {
             .identifier => {
                 const _symbol = self.symbol().?;
@@ -2319,6 +2320,7 @@ pub const AST = union(enum) {
     ///
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *AST, B: *AST) bool {
+        // FIXME: High Cyclo
         // std.debug.print("{} == {}\n", .{ A, B });
         std.debug.assert(A.valid_type());
         std.debug.assert(B.valid_type());
@@ -2513,6 +2515,7 @@ pub const AST = union(enum) {
 
     /// Checks whether two AST types would generate to the same C type.
     pub fn c_types_match(self: *AST, other: *AST) bool {
+        // FIXME: High Cyclo
         if (self.* == .annotation) {
             return c_types_match(self.annotation.type, other);
         } else if (other.* == .annotation) {

@@ -96,18 +96,21 @@ pub const Module = struct {
         allocator: std.mem.Allocator,
     ) Module_Errors!*Module {
         // Construct the name
+        // TODO: Move this to it's own function
         var i: usize = 0;
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
         const name: []const u8 = in_name[0..i];
 
         // Tokenize, and also append lines to the list of lines
+        // TODO: Move this to it's own function
         var lines = std.ArrayList([]const u8).init(allocator);
         defer lines.deinit();
         try lines_.get_lines(contents, &lines, errors);
-        var scanner = lexer_.Scanner.init(&lines, in_name, errors, fuzz_tokens, allocator);
+        var scanner = lexer_.Scanner.init(&lines, in_name, errors, fuzz_tokens, allocator); // TODO: Deinit?
         var tokens = try scanner.get_tokens();
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
+        // TODO: Move to own function
         if (false and fuzz_tokens) { // print tokens before layout_
             for (tokens.items) |token| {
                 std.debug.print("{s} ", .{token.data});
@@ -120,6 +123,7 @@ pub const Module = struct {
             layout_.do_layout(&tokens);
         }
 
+        // TODO: Move to own function
         if (false) { // Print out tokens after layout_
             var indent: usize = 0;
             for (0..tokens.items.len - 1) |j| {
@@ -142,12 +146,14 @@ pub const Module = struct {
             std.debug.print("\n", .{});
         }
 
+        // TODO: Move to own function, returning module_ast
         // Parse, expand AST
         ast_.init_structures();
         var parser = parser_.Parser.init(&tokens, errors, allocator);
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, errors, allocator);
 
+        // TODO: Move to own function, returning file_root
         // Module/Symbol-Tree construction
         var file_root = symbol_.Scope.init(prelude, name, allocator);
         const module = Module.init(file_root, allocator);
@@ -158,11 +164,13 @@ pub const Module = struct {
         // Validate the module
         try ast_validate_.validate_module(module, errors, allocator);
         if (errors.errors_list.items.len > 0) {
+            // Errors occur in AST, fatal, do not procede
             return error.TypeError;
         }
 
         module.collect_traits_and_impls(module.scope);
 
+        // TODO: Move to own function
         // Add each CFG's instructions to the module's instruction's list
         var found_main = false;
         for (module.scope.symbols.keys()) |key| {
@@ -180,11 +188,12 @@ pub const Module = struct {
                 found_main = true;
             }
         }
-        if (!found_main) {
+        if (!found_main) { // TODO: This will be removed once we get project structure going
             errors.add_error(errs_.Error{ .basic = .{
                 .span = span_.phony_span,
                 .msg = "no main function found",
             } });
+            // Cannot find main function, fatal, do not procede
             return error.TypeError;
         }
 
@@ -214,6 +223,7 @@ pub const Module = struct {
                 _ = module.type_set.add(param.expanded_type.?, allocator);
             }
 
+            // TODO: Move to own function
             for (cfg.basic_blocks.items) |bb| {
                 var maybe_ir = bb.ir_head;
                 while (maybe_ir) |ir| : (maybe_ir = ir.next) {
@@ -299,6 +309,7 @@ pub const Module = struct {
         work_queue.append(first_bb) catch unreachable;
 
         while (work_queue.items.len > 0) {
+            // TODO: Too long
             var bb = work_queue.orderedRemove(0); // Youch! Does this really have to be ordered?
 
             if (bb.offset != null) {

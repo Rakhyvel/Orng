@@ -76,6 +76,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
 }
 
 fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) bool {
+    // FIXME: High Cyclo
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -219,6 +220,7 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
 }
 
 fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) bool {
+    // FIXME: High Cyclo
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
     }
@@ -321,6 +323,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
 
 /// Uses Dr. Proebsting's rdgen to create random Orng programs, feeds them to the compiler
 fn fuzz_tests() !void { // TODO: Uninfer error
+    // FIXME: High Cyclo
     // Open and read tests/fuzz/fuzz.txt
     var file = try std.fs.cwd().openFile("tests/fuzz/fuzz.txt", .{});
     defer file.close();
@@ -343,7 +346,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
     var start: usize = index_of(contents, '"').? + 1;
     var end: usize = start + 1;
     var broken: bool = false;
-    while (end < contents.len and !broken) : (end += 1) {
+    while (end < contents.len and !broken) : (end += 1) { // TODO: Too long!
         if (contents[end] == '"') {
             defer {
                 if (end < contents.len - 4) {

@@ -83,7 +83,7 @@
 - [ ] Omitting a `->` in a function defaults to return type to be unit
 - [ ] go through and see if parameters are needed, or if their select-children can be taken instead
 - [ ] go through anywhere `unreachable` is used, and replace with a descriptive panic, prepend message with `compiler error: `
-- [ ] revisit tuples/cyclic.orng... there should NOT be comptime AST types that last until codegen!
+- [ ] bring back `const` as an introducer, remove it as a pattern
 
 ### Testing
 - [x] test.orng should detect which folders are in tests/integration, and create those folders in tests/integration/build, rather than it being hard-coded.
@@ -104,7 +104,7 @@
 - [ ] Generates JSON files of example programs, with identifiers, numbers, etc replaced with random values
 - [ ] Supports including other ebnf files
 - [ ] Multiply all possible paths, barring recursion, through grammar, give that number and use it for fuzz testing metrics
-- [ ] Accepts escape sequences...
+- [ ] Accepts escape sequences
 
 ### Language Features
 - [x] addresses
@@ -278,9 +278,11 @@
         - [x] Error if match is not total
         - [x] Remove `else` from match blocks
         - [ ] `|` to match different cases
+            > Must be paren'd, like `,`
             > All cases must have the same number of symbols defined
             > For each symbol defined, it must have the same type for all cases
         - [ ] `pattern if cond => rhs` for arbitrary additional conditions in match cases
+            > I don't like how this is a pattern in itself in rust
         - [ ] `low..upp` for ranges, like in Zig. Can leave off `low` or `upp` to be (theoretically) "negative and positive infinity", respectively
             - [ ] should work for floats, also
 - [ ] new optimizations
@@ -415,6 +417,7 @@
     - [ ] `id` function in standard
 - [ ] build system (built upon compile-time evaluation) 
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run CC on modified files and the files that depend* on modified files, to produce .o files which should be linked.
+    > Projects are made up of packages are made up of modules. Projects have a `build.orng`.
     - [ ] compile phase
         - [ ] locate `build.orng`
         - [ ] compile `build.orng` file into a module
@@ -438,6 +441,7 @@
         > Also makes canonical names the norm
         > `module` is the filename in the package without the `.orng`, so file names have to abide by identifier syntax
     - [ ] `::` for module selection
+    - [ ] `@filename()`, `@line()`, `@fn_name()`
     - [ ] `test` to do tests
         > Rework integration tests
     - [ ] `fn main(sys: System)->!()`
@@ -464,22 +468,49 @@
         > `debug::assert(ast^ == .sum_value ==> ast_type^ == .sum_type)` <- very concise, readable, useful!
         > `ast^ == .match ==> mappings_have_rhs(ast)` <- short-circuits exactly like `(not a) or b`, (which isn't actually all that useful because rhs has to eval to a bool...)
     - [ ] `where comptime` checks a condition at compiletime. If a condition is false at compile-time, error
+- [ ] type reflection
+    - [ ] `@type_info()` and `@Type_Info()`, which give and are type reflection respectively
+    - [ ] `@insert()`, which takes a comptime string and returns comptime AST structure
+
+### Maybe Pile
+- [ ] `undefined` (does this break some optimization assumptions?)
+
+### Core Library
+> Mostly trait and type definitions, and really basic stuff. Available for freestanding programs
+- [ ] ASTs
+    > All the ASTs, for type reflection and everything
+- [ ] Ops
+    - [ ] `trait Add`
+    - [ ] `trait Sub`
+    - [ ] `trait Mul`
+    - [ ] `trait Div`
+    - [ ] `trait Mod`
+- [ ] IO
+    - [ ] `trait Writer`
+    - [ ] `trait Reader`
+- [ ] Iterator
+    - [ ] `trait Iterator`
+    - [ ] `trait Into_Iterator`
+- [ ] ASCII
+    - [ ] `is_whitespace()`
+    - [ ] `is_lower()`
+    - [ ] `is_upper()`
+    - [ ] `is_digit()`
+    - [ ] `is_alphanumeric()`
 
 ### Standard Library
+> Full standard library for user-mode programs
 - [ ] Collections
     - [ ] List
         - [ ] `map`, `filter`, `reduce`
         - [ ] `Array_List`, `Double_Linked_List`
     - [ ] HashMap
-- [ ] IO
-    - [ ] `class Writer`
-    - [ ] `class Reader`
 - [ ] Debug (?)
     - [ ] `print()`
     - [ ] `assert()`
     - [ ] `dump_currect_stack_trace()`
 - [ ] Memory
-    - [ ] `class Allocator`
+    - [ ] `trait Allocator`
     - [ ] `let const Fixed_Buffer_Allocator`
     - [ ] `let const Arena_Allocator`
     - [ ] `impl Eq for []T\Eq`
@@ -489,12 +520,6 @@
     - [ ] `utf8_byte_sequence_length()`
     - [ ] `utf8_decode()`
     - [ ] `utf8_count_codepoints`
-- [ ] ASCII
-    - [ ] `is_whitespace()`
-    - [ ] `is_lower()`
-    - [ ] `is_upper()`
-    - [ ] `is_digit()`
-    - [ ] `is_alphanumeric()`
 - [ ] Testing
     - [ ] `expect()`
     - [ ] `expect_equal()`
@@ -502,7 +527,7 @@
     - [ ] something like `subprocess.Popen` in Python
 - [ ] Threads
 - [ ] Fmt
-    - [ ] `class Format`
+    - [ ] `trait Format`
     - [ ] `parse_int()`
     - [ ] `parse_float()`
 - [ ] Rand
@@ -516,18 +541,6 @@
     - [ ] `sub() // does overflow check`
     - [ ] `mul() // does overflow check`
     - [ ] `lossy_cast()`
-- [ ] prelude?
-    - [ ] `@::tag_name()`
-    - [ ] `@::as()`
-    - [ ] `@::int_cast()`
-    - [ ] `@::int_from_sum_tag()`
-    - [ ] `@::div_trunc()`
-    - [ ] `@::rem()`
-    - [ ] `@::mod()`
-    - [ ] `@::int_from_float()`
-    - [ ] `@::int_from_bool()`
-    - [ ] `@::truncate()`
-    - [ ] `@::sum_from_tag()`
 - [ ] C stdlib headers, even python imports!
 
 ### Language Server
@@ -539,6 +552,7 @@
 - [ ] Formatter
     - [ ] Takes in code and formats it
 - [ ] Linter
+    > Make as many of these errors as you can, no one pays attention to warnings
     - [ ] Warn if line is too long (140, after being whitespace stripped, not including comments, is excessive)
     - [ ] Warn about code such as `y, x = x, y` which is parsed as `y, (x = x), y`
         > Error when non-unit expressions are in the middle of a block?

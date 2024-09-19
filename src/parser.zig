@@ -151,9 +151,6 @@ pub const Parser = struct {
 
         if (self.accept(.colon)) |_| {
             _type = try self.arrow_expr();
-            // if (_type.?.* == .call) {
-            //     _type = ast_.AST.create_comptime(_type.?.token(), _type.?, self.allocator);
-            // }
             if (self.peek_kind(.single_equals)) {
                 _ = try self.expect(.single_equals);
                 _init = try self.arrow_expr();
@@ -282,6 +279,7 @@ pub const Parser = struct {
         }
     }
 
+    // TODO: Basically identical to sum_type, fix it!
     fn product_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.annotation_expr();
         var terms: ?std.ArrayList(*ast_.AST) = null;
@@ -432,6 +430,7 @@ pub const Parser = struct {
     }
 
     fn prefix_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        // FIXME: High Cyclo
         if (self.accept(.not)) |token| {
             return ast_.AST.create_not(token, try self.prefix_expr(), self.allocator);
         } else if (self.accept(.at_symbol)) |_| {
@@ -506,6 +505,7 @@ pub const Parser = struct {
     }
 
     fn postfix_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        // FIXME: High Cyclo
         var exp = if (self.next_is_control_flow()) try self.control_flow() else try self.factor();
         while (true) {
             if (self.peek_kind(.left_parenthesis)) {
@@ -613,6 +613,7 @@ pub const Parser = struct {
     }
 
     fn literal(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        // FIXME: High Cyclo
         if (self.accept(.true)) |token| {
             return ast_.AST.create_true(token, self.allocator);
         } else if (self.accept(.false)) |token| {
@@ -1092,6 +1093,7 @@ pub const Parser = struct {
 };
 
 fn resolve_escapes(input: []const u8, allocator: std.mem.Allocator) []const u8 {
+    // FIXME: High Cyclo
     var retval = std.ArrayList(u8).init(allocator);
     var escape = false;
     var skip: i8 = 0;

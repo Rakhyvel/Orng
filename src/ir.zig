@@ -9,7 +9,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 var ir_uid: u64 = 0;
-pub const IR = struct {
+pub const IR = struct { // TODO: Add IR_List struct, with some append_instruction, mark_irs_as_removed, and get_latest_def
     uid: u64,
     kind: Kind,
     dest: ?*lval_.L_Value,
