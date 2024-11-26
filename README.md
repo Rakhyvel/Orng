@@ -23,7 +23,7 @@ cd Orng
 zig build
 ```
 
-A fancy hello-world example
+A fancy hello-world example:
 ```rs
 fn main(sys: System) -> !() {
     greet("Orng! 🍊", sys.stdout) catch unreachable
@@ -45,32 +45,105 @@ Orng comes with a wide range of features that make it a powerful and flexible pr
 ### First-Class Types
 In Orng, types are first class citizens. Pass types as function arguments, return them from functions, and create powerful generic abstractions.
 
-[Example](https://github.com/Rakhyvel/Orng/blob/main/examples/type-unification.orng)
+```rs
+fn make_array_type(const n: Int, const T: Type) -> Type { [n]T }
+
+fn main() {
+    let x: template(4, Char) = ('1', '2', '3', '4')
+    println("{c} squared is 9", x[3])
+}
+```
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/generics)
 
 ### Parametric Effect System
-Say goodbye to hidden side effects! Orng forbids global variables and requires all objects to be explicitly passed as parameters. This includes allocators, file writers, network sockets, making your program's behavior transparent and predictable.
+Say goodbye to hidden side effects! Orng forbids global variables and requires all objects to be explicitly passed as parameters, making your program's behavior transparent and predictable.
 
-[Example](https://github.com/Rakhyvel/Orng/blob/main/examples/type-unification.orng)
+```rs
+// We can tell this function doesn't do anything dangerous
+fn something_harmless(x: T) { /* ... */ }
+
+// We can tell this function probably mutates it's arguments
+fn maybe_mutate(x: &mut T) { /* ... */ }
+
+// We can tell this function probably allocates memory
+fn maybe_alloc(alloc: impl Allocator) { /* ... */ }
+
+// We can tell this function probably does stuff with IO
+fn maybe_write(reader: impl Reader, writer: impl Writer) { /* ... */ }
+```
 
 ### Traits 
 Traits offer a flexible way to define behavior that can be attatched to any type. Instead of deep inheritance hierarchies, Orng lets you extend types with new capabilities through simple composable traits.
 
-[Example](https://github.com/Rakhyvel/Orng/blob/main/examples/type-unification.orng)
+```rs
+trait Counter {
+    fn increment(&mut self) -> Int
+    fn total(&self) -> Int
+    fn reset(&mut self) -> ()
+}
+
+impl Counter for (count: Int, max: Int) {
+    fn increment(&mut self) -> Int {
+        self.count = (self.count + 1) % self.max
+        self.count
+    }
+    
+    fn total(&self) -> Int { self.count }
+    
+    fn reset(&mut self) -> () { self.count = 0 }
+}
+
+fn main(sys: System) -> !() {
+    let mut counter = (0, 5)
+    try sys.stdout.>println("{d}", counter.>increment())  // Prints 1
+    try sys.stdout.>println("{d}", counter.>increment())  // Prints 2
+}
+```
+
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/traits)
 
 ### Algebraic Data Types
 Algebraic Data Types (ADTs) allow you to define types that can be one of several variants with zero runtime overhead. Represent complex state machines, parse abstract syntax trees, or handle error conditons with a single, compact type definition.
 
-[Example](https://github.com/Rakhyvel/Orng/blob/main/examples/type-unification.orng)
+```rs
+const Shape = (
+    circle: (radius: Float) | 
+    rectangle: (width: Float, height: Float) | 
+    triangle: (base: Float, height: Float)
+)
+
+fn calculate_area(shape: Shape) -> Float {
+    match shape {
+        .circle(r)         => 3.14 * r * r
+        .rectangle(w, h)   => w * h
+        .triangle(b, h)    => 0.5 * b * h
+    }
+}
+```
+
+[More](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/sums) [examples](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/tuples)
 
 ### Pattern Matching & Destructuring
 Pattern matching in Orng lets you elagantly deconstruct complex data structures with a single, readable expression. Forget verbose `if-else` chains and nested conditionals - match on ADTs, extract values, and handle different cases with unprecedented clarity.
 
-[Example](https://github.com/Rakhyvel/Orng/blob/main/examples/type-unification.orng)
+```rs
+const Person = (name: String, age: Int, job: String)
+
+fn classify_person(person: Person) -> String {
+   match person {
+       (name, age, "Teacher") when age > 50 => "Veteran Educator: " + name
+       (name, _,   "Doctor")                => name + " is a medical professional"
+       (_,    age, _)         when age < 18 => "Baby 👶"
+   }
+}
+```
+
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/pattern)
 
 ### Seamless C Interoperability
 Compile to C and parse C header files with ease. Orng bridges the gap between low-level system programming and high-level expressiveness.
 
-[Example](https://github.com/Rakhyvel/Orng/blob/main/examples/type-unification.orng)
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/build)
 
 ## 🤝 Get Involved
 
