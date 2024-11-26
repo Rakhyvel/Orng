@@ -2,8 +2,7 @@
 <div align="center">
     <a href="#"><img src="docs/budi.png" alt="Budi the Orangutan!" width="30%"></a>
     <h1>Orng Programming Language</h1>
-    <h6>For When Live Gives You Orngs...</h6>
-    <p><em>Empowering Developers with Expressive, Lightweight Systems Programming</em></p>
+    <h6><em>For When Live Gives You Orngs...</em></h6>
 </div>
 
 > **⚠️WARNING**! Orng is still a work in progress! Expect exciting changes and improvements.
