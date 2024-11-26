@@ -5,10 +5,6 @@
     <h6>For When Live Gives You Orngs...</h6>
     <p><em>Empowering Developers with Expressive, Lightweight Systems Programming</em></p>
 </div>
-    
-![Build Status](https://img.shields.io/badge/status-active_development-orange)
-![Language](https://img.shields.io/badge/paradigm-systems-blue)
-![Version](https://img.shields.io/badge/version-0.1.0-green)
 
 > **⚠️WARNING**! Orng is still a work in progress! Expect exciting changes and improvements.
 
