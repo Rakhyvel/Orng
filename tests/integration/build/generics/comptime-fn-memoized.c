@@ -18,45 +18,45 @@ struct struct1 {
 typedef int64_t(*function0)(int64_t, int64_t);
 
 /* Function forward definitions */
-int64_t _7_main(void);
-int64_t _9_$anon1(int64_t _9_x, int64_t _9_y);
+int64_t _10_main(void);
+int64_t _12_$anon1(int64_t _12_x, int64_t _12_y);
 
 
 /* Function definitions */
-int64_t _7_main(void){
-    function0 _7_t0;
-    int64_t _7_t2;
-    int64_t _7_t3;
-    int64_t _7_t1;
-    function0 _7_t4;
-    int64_t _7_t6;
-    int64_t _7_t7;
-    int64_t _7_t5;
-    int64_t _7_$retval;
-    _7_t0 = (function0) _9_$anon1;
-    _7_t2 = 200;
-    _7_t3 = 100;
+int64_t _10_main(void){
+    function0 _10_t0;
+    int64_t _10_t2;
+    int64_t _10_t3;
+    int64_t _10_t1;
+    function0 _10_t4;
+    int64_t _10_t6;
+    int64_t _10_t7;
+    int64_t _10_t5;
+    int64_t _10_$retval;
+    _10_t0 = (function0) _12_$anon1;
+    _10_t2 = 200;
+    _10_t3 = 100;
     $lines[$line_idx++] = "tests/integration/generics/comptime-fn-memoized.orng:6:9:\n    add(Int, 200, 100) + add(Int, 8, 4)\n       ^";
-    _7_t1 = _7_t0(_7_t2, _7_t3);
+    _10_t1 = _10_t0(_10_t2, _10_t3);
     $line_idx--;
-    _7_t4 = (function0) _9_$anon1;
-    _7_t6 = 8;
-    _7_t7 = 4;
+    _10_t4 = (function0) _12_$anon1;
+    _10_t6 = 8;
+    _10_t7 = 4;
     $lines[$line_idx++] = "tests/integration/generics/comptime-fn-memoized.orng:6:30:\n    add(Int, 200, 100) + add(Int, 8, 4)\n                            ^";
-    _7_t5 = _7_t4(_7_t6, _7_t7);
+    _10_t5 = _10_t4(_10_t6, _10_t7);
     $line_idx--;
-    _7_$retval = $add_int64_t(_7_t1, _7_t5, "tests/integration/generics/comptime-fn-memoized.orng:6:25:\n    add(Int, 200, 100) + add(Int, 8, 4)\n                       ^");
-    return _7_$retval;
+    _10_$retval = $add_int64_t(_10_t1, _10_t5, "tests/integration/generics/comptime-fn-memoized.orng:6:25:\n    add(Int, 200, 100) + add(Int, 8, 4)\n                       ^");
+    return _10_$retval;
 }
 
-int64_t _9_$anon1(int64_t _9_x, int64_t _9_y){
-    int64_t _9_$retval;
-    _9_$retval = $add_int64_t(_9_x, _9_y, "tests/integration/generics/comptime-fn-memoized.orng:3:45:\nfn add(const T: Type, x: T, y: T) -> T { x + y }\n                                           ^");
-    return _9_$retval;
+int64_t _12_$anon1(int64_t _12_x, int64_t _12_y){
+    int64_t _12_$retval;
+    _12_$retval = $add_int64_t(_12_x, _12_y, "tests/integration/generics/comptime-fn-memoized.orng:3:45:\nfn add(const T: Type, x: T, y: T) -> T { x + y }\n                                           ^");
+    return _12_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_7_main());
+  printf("%ld",_10_main());
   return 0;
 }

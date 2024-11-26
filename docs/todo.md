@@ -476,6 +476,7 @@
 - [ ] Make sure readme is up-to-date
     * Remove weird files/folder, make it appear clean
 - [ ] Make sure examples showcase:
+    > You can give Claude the readme, an ok example, and then ask it to give a better
     * Immutable by default
     * Algebraic data types
     * Pattern matching
