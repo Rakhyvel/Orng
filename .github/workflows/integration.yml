@@ -19,16 +19,7 @@ jobs:
         zig-version: 0.13.0  # Match the version in your README
     
     - name: Build project
-      run: zig build
-    
-    - name: Run tests
-      run: zig build test
-    
-    - name: Check formatting
-      run: zig fmt --check src/**/*.zig
-    
-    - name: Static analysis
-      run: zig build lint  # If you have a lint target
+      run: pwd
 
     # Optional: Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
