@@ -665,6 +665,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print(".tag;\n", .{});
         },
         .call => {
+            // TODO: De-duplicate 2
             const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
             const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
             if (!symbol_used) {
@@ -689,6 +690,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .invoke => {
             // FIXME: High Cyclo
+            // TODO: De-duplicate 1
             const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
             const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
             if (!symbol_used) {

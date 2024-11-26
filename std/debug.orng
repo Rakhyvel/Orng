@@ -1,5 +1,0 @@
-fn assert(condition: Bool) -> () {
-    if not condition {
-        unreachable
-    }
-}

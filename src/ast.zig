@@ -141,6 +141,7 @@ pub const AST = union(enum) {
     },
 
     // Binary operators
+    // TODO: We could de-duplicate this, I suppose.
     assign: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"or": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"and": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
@@ -190,15 +191,6 @@ pub const AST = union(enum) {
         num_virtual_methods: i64 = 0,
         scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
-
-        pub fn find_method(self: @This(), name: []const u8) ?*AST {
-            for (self.method_decls.items) |decl| {
-                if (std.mem.eql(u8, decl.method_decl.name.token().data, name)) {
-                    return decl;
-                }
-            }
-            return null;
-        }
     },
     invoke: struct {
         common: AST_Common,

@@ -28,6 +28,30 @@ pub fn decorate_identifiers_from_list(
     }
 }
 
+// TODO:
+//
+// // A struct to contain a generic pass
+// const Pass = struct {
+//     run: *const fn(ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Pass_Error!void
+// };
+//
+// // A function that walks over an AST, applying pass's function to each one
+// fn walk_ast(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator, pass: Pass) Pass_Error!void {
+//     try pass.run(ast, scope, errors, allocator);
+//     switch (ast.*) {
+//         .add, sub, mul, div, .mod => {
+//             try walk_ast(ast.lhs(), scope, errors, allocator);
+//             try walk_ast(ast.rhs(), scope, errors, allocator);
+//         }
+//     }
+// }
+//
+// fn decorate(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Pass_Error!void {
+//     if (ast.* == .identifier) {
+//         // decorate the identifier
+//     } // That's it!
+// }
+
 /// Recursively decorates the identifiers in the given AST with the symbols they refer to.
 ///
 /// ## Parameters:

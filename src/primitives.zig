@@ -4,6 +4,7 @@ const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
+// TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
 pub var anyptr_type: *ast_.AST = undefined;
 pub var bool_type: *ast_.AST = undefined;
 pub var byte_type: *ast_.AST = undefined;
@@ -124,6 +125,7 @@ pub fn get_scope() *symbol_.Scope {
         const default_char = ast_.AST.create_char(token_.Token.init_simple("'\\\\0'"), std.heap.page_allocator);
         const default_float32 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
         const default_float64 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+        // TODO: De-duplicate the following
         const default_int8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
         const default_int16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
         const default_int32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);

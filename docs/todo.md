@@ -96,6 +96,7 @@
 - [ ] Negative tests should be in folders according to the kind of error, fail if other error than the expected
 - [ ] Log manager, which takes in list of names from cmd line, only emits logs if the filename is in the list
 - [ ] Automate a way to cycle through problems.txt, when it runs into one that crashes, have it automatically create a regressions file
+- [ ] When a test fails, keep track of which test it was and how many times it's failed
 
 ### In-House rdgen
 - [ ] Written in Zig
@@ -414,7 +415,6 @@
     - [ ] derive
     - [ ] `as` method which can do reinterpret casting (maybe different name?)
         > trait Convertible(const Other: Type) { fn as(self) -> Other }
-    - [ ] `id` function in standard
 - [ ] build system (built upon compile-time evaluation) 
     > **!IMPORTANT!** Should output .c and .h pair for each .orng file. Track dependencies, and only run CC on modified files and the files that depend* on modified files, to produce .o files which should be linked.
     > Projects are made up of packages are made up of modules. Projects have a `build.orng`.
@@ -472,6 +472,27 @@
     - [ ] `@type_info()` and `@Type_Info()`, which give and are type reflection respectively
     - [ ] `@insert()`, which takes a comptime string and returns comptime AST structure
 
+### Online
+- [ ] Make sure readme is up-to-date
+    * Remove weird files/folder, make it appear clean
+- [ ] Make sure examples showcase:
+    * Immutable by default
+    * Algebraic data types
+    * Pattern matching
+    * First-class types, general type unification
+    * Trait system
+    * Parametric effect system
+    * C interoperability
+    * Null Safety with Optionals
+    * Errors
+- [ ] Basic documentation
+    * Installation guide
+    * Quick start tutorial
+    * Language reference document
+    * Comparison with other languages (highlight Orng's key features)
+- [ ] WEBSITE!
+- [ ] Advertise, video
+
 ### Maybe Pile
 - [ ] `undefined` (does this break some optimization assumptions?)
 
@@ -497,18 +518,11 @@
     - [ ] `is_upper()`
     - [ ] `is_digit()`
     - [ ] `is_alphanumeric()`
-
-### Standard Library
-> Full standard library for user-mode programs
 - [ ] Collections
     - [ ] List
         - [ ] `map`, `filter`, `reduce`
         - [ ] `Array_List`, `Double_Linked_List`
     - [ ] HashMap
-- [ ] Debug (?)
-    - [ ] `print()`
-    - [ ] `assert()`
-    - [ ] `dump_currect_stack_trace()`
 - [ ] Memory
     - [ ] `trait Allocator`
     - [ ] `let const Fixed_Buffer_Allocator`
@@ -520,6 +534,13 @@
     - [ ] `utf8_byte_sequence_length()`
     - [ ] `utf8_decode()`
     - [ ] `utf8_count_codepoints`
+
+### Standard Library
+> Full standard library for user-mode programs
+- [ ] Debug (?)
+    - [ ] `print()`
+    - [ ] `assert()`
+    - [ ] `dump_currect_stack_trace()`
 - [ ] Testing
     - [ ] `expect()`
     - [ ] `expect_equal()`

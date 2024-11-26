@@ -1113,6 +1113,7 @@ fn validate_AST_internal(
 
             if (ast.@"if".condition.* == .true and ast.else_block() != null) {
                 // condition is true and theres an else => return {let; body}
+                // TODO: De-duplicate this code! 1
                 if (ast.@"if".let != null) {
                     if (ast.body_block().* == .block) {
                         ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
@@ -1127,6 +1128,7 @@ fn validate_AST_internal(
                 return ast.body_block();
             } else if (ast.@"if".condition.* == .true and ast.else_block() == null) {
                 // condition is true and theres no else => return {let; some(body)}
+                // TODO: De-duplicate this code! 2
                 if (ast.@"if".let != null) {
                     if (ast.body_block().* == .block) {
                         ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;

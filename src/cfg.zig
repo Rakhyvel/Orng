@@ -168,7 +168,7 @@ pub const CFG = struct {
             return in_block;
         }
         var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(allocator);
-        self.basic_blocks.append(retval) catch unreachable;
+        self.basic_blocks.append(retval) catch unreachable; // TODO: If you just accept a list, you don't even need this function to be in CFG!
         retval.ir_head = maybe_ir;
         var _maybe_ir = maybe_ir;
         while (_maybe_ir) |ir| : (_maybe_ir = ir.next) {
