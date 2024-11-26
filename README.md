@@ -53,7 +53,7 @@ fn main() {
     println("{c} squared is 9", x[3])
 }
 ```
-[More examples](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/generics)
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/generics)
 
 ### Parametric Effect System
 Say goodbye to hidden side effects! Orng forbids global variables and requires all objects to be explicitly passed as parameters, making your program's behavior transparent and predictable.
@@ -100,7 +100,7 @@ fn main(sys: System) -> !() {
 }
 ```
 
-[More examples](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/traits)
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/traits)
 
 ### Algebraic Data Types
 Algebraic Data Types (ADTs) allow you to define types that can be one of several variants with zero runtime overhead. Represent complex state machines, parse abstract syntax trees, or handle error conditons with a single, compact type definition.
@@ -121,7 +121,7 @@ fn calculate_area(shape: Shape) -> Float {
 }
 ```
 
-[More](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/sums) [examples](https://github.com/Rakhyvel/Orng/blob/main/examples/tests/integration/tuples)
+[More](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/sums) [examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/tuples)
 
 ### Pattern Matching & Destructuring
 Pattern matching in Orng lets you elagantly deconstruct complex data structures with a single, readable expression. Forget verbose `if-else` chains and nested conditionals - match on ADTs, extract values, and handle different cases with unprecedented clarity.
