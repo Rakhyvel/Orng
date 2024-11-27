@@ -129,7 +129,7 @@ def all(args):
     else:
         negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode
 
-    if negative_res != 0 and integration_res != 0:
+    if negative_res != 0 or integration_res != 0:
         exit(1)
 
     
