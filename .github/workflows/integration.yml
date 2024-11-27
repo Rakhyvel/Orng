@@ -12,7 +12,8 @@ jobs:
     
     steps:
     - uses: actions/checkout@v4
-      with: recursive
+      with:
+        submodules: recursive
     
     - name: Set up Zig
       uses: korandoru/setup-zig@v1
