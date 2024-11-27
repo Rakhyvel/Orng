@@ -5,4 +5,4 @@ fn main() -> Int {
     f(y)
 }
 
-fn f(x: []Int)->Int {x[1] + 80
+fn f(x: []Int)->Int {x[1] + 80}
