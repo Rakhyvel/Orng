@@ -11,8 +11,14 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout main
+      uses: actions/checkout@v4
+
+    - name: Checkout zig-string
+      uses: actions/checkout@v4
       with:
+        repository: 'JakubSzark/zig-string'
+        path: src/zig-string
         submodules: recursive
     
     - name: Set up Zig
