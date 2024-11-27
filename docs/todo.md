@@ -19,8 +19,6 @@
 - [x] All inits have a corresponding deinit
 - [x] Plot input orng sloc against output c sloc, check to see if there's any outlier, analyze...
 - [ ] Find some code not covered and write an integration test for it
-
-### Misc.
 - [x] Errors should print lines
     - [x] Errors print to stderr instead of debug
     - [x] Lexer fills lines array
@@ -79,6 +77,9 @@
 - [x] Write a python script to look for duplicate code!
 - [x] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [x] Figure out how to do lints before GCC does
+- [ ] Do "accept slice" todos
+- [ ] Deduplication
+- [ ] AST walker struct
 - [ ] Go through MISRA when writing reqs
 - [ ] Omitting a `->` in a function defaults to return type to be unit
 - [ ] go through and see if parameters are needed, or if their select-children can be taken instead
@@ -472,7 +473,7 @@
     - [ ] `@type_info()` and `@Type_Info()`, which give and are type reflection respectively
     - [ ] `@insert()`, which takes a comptime string and returns comptime AST structure
 
-### Online
+### Online precense
 - [ ] Make sure readme is up-to-date
     * Remove weird files/folder, make it appear clean
 - [ ] Make sure examples showcase:
@@ -487,6 +488,7 @@
     * Null Safety with Optionals
     * Errors
 - [ ] Basic documentation
+    * Cleanup the verbiage in the rationale doc
     * Installation guide
     * Quick start tutorial
     * Language reference document

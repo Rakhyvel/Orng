@@ -1009,7 +1009,7 @@ fn validate_AST_internal(
                 errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is not positive" } });
                 return ast.enpoison();
             }
-            return ast_.AST.create_array_type(array_length, ast.expr(), allocator);
+            return ast_.AST.create_array_type(array_length.int.data, ast.expr(), allocator);
         },
         .sub_slice => {
             ast.sub_slice.super = validate_AST(ast.sub_slice.super, null, errors, allocator);

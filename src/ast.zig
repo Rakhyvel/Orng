@@ -1494,14 +1494,14 @@ pub const AST = union(enum) {
     }
 
     pub fn create_array_type(
-        len: *AST, // TODO: Just pass the i128
+        len: i128,
         of: *AST,
         allocator: std.mem.Allocator,
     ) *AST {
         // Inflate an array-of to a product with `len` `of`'s
         var new_terms = std.ArrayList(*AST).init(allocator);
-        std.debug.assert(len.int.data >= 0);
-        for (0..@as(usize, @intCast(len.int.data))) |_| {
+        std.debug.assert(len >= 0);
+        for (0..@as(usize, @intCast(len))) |_| {
             new_terms.append(of) catch unreachable;
         }
         return AST.create_product(of.token(), new_terms, allocator);
