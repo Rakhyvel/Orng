@@ -72,6 +72,7 @@ def parse_args():
     create = subparsers.add_parser("all", help="run integration and negative tests, merge code coverage")
     create.add_argument("-t", "--test", nargs="*", help="list of one or more files/directories of negative tests to run")
     create.add_argument("-c", "--count", nargs="*", help="recursively counts the number of negative test files in the directories specified")
+    create.add_argument("-n", "--no-coverage", action='store_const', default=False, const=True, help="does not perform coverage after negative testing, even if tests pass")
     
     create = subparsers.add_parser("fuzz", help="create fuzz and run fuzz tests")
 
@@ -117,13 +118,19 @@ def negative(args):
 
 def all(args):
     files = collect_files(args, "tests/integration")
-    res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
-    if res != 0:
-        return
-    subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+    integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
+    if not args.no_coverage:
+        subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
         
     files = collect_files(args, "tests/negative")
-    subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
+    negative_res = 0
+    if not args.no_coverage:
+        subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
+    else:
+        negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode
+
+    if negative_res != 0 or integration_res != 0:
+        exit(1)
 
     
 def fuzz():

@@ -1,0 +1,37 @@
+name: Orng CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout main
+      uses: actions/checkout@v4
+
+    - name: Checkout zig-string
+      uses: actions/checkout@v4
+      with:
+        repository: 'JakubSzark/zig-string'
+        path: src/zig-string
+        submodules: recursive
+    
+    - name: Set up Zig
+      uses: korandoru/setup-zig@v1
+      with:
+        zig-version: 0.13.0
+    
+    - name: Build project
+      run: python tests/test.py all --no-coverage
+
+    # Optional: Upload artifacts if build fails
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-logs
+        path: zig-cache/log
