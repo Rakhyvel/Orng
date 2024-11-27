@@ -1,4 +1,5 @@
 .zig-cache/
+.vscode/
 zig-out/
 kcov-out/
 tests/fuzz/fuzz.txt
@@ -12,8 +13,3 @@ orng.out
 examples/out
 examples/out.c
 a.out
-
-# Added by cargo
-
-/target
-node_modules

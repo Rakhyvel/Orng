@@ -28,6 +28,30 @@ pub fn decorate_identifiers_from_list(
     }
 }
 
+// TODO:
+//
+// // A struct to contain a generic pass
+// const Pass = struct {
+//     run: *const fn(ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Pass_Error!void
+// };
+//
+// // A function that walks over an AST, applying pass's function to each one
+// fn walk_ast(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator, pass: Pass) Pass_Error!void {
+//     try pass.run(ast, scope, errors, allocator);
+//     switch (ast.*) {
+//         .add, sub, mul, div, .mod => {
+//             try walk_ast(ast.lhs(), scope, errors, allocator);
+//             try walk_ast(ast.rhs(), scope, errors, allocator);
+//         }
+//     }
+// }
+//
+// fn decorate(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Pass_Error!void {
+//     if (ast.* == .identifier) {
+//         // decorate the identifier
+//     } // That's it!
+// }
+
 /// Recursively decorates the identifiers in the given AST with the symbols they refer to.
 ///
 /// ## Parameters:
@@ -147,12 +171,10 @@ pub fn decorate_identifiers(
             try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator);
         },
         .sum_type, .product => try decorate_identifiers_from_list(ast.children().*, scope, errors, allocator),
-
         .sum_value => {
             try decorate_identifiers(ast.sum_value.init, scope, errors, allocator);
             try decorate_identifiers(ast.sum_value.base, scope, errors, allocator);
         },
-
         .array_of => {
             try decorate_identifiers(ast.expr(), scope, errors, allocator);
             try decorate_identifiers(ast.array_of.len, scope, errors, allocator);
@@ -167,7 +189,6 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.annotation.predicate, scope, errors, allocator);
             try decorate_identifiers(ast.annotation.init, scope, errors, allocator);
         },
-
         .@"if" => {
             try decorate_identifiers(ast.@"if".let, scope, errors, allocator);
             try decorate_identifiers(ast.@"if".condition, ast.@"if".scope.?, errors, allocator);
@@ -181,8 +202,6 @@ pub fn decorate_identifiers(
         },
         .mapping => {
             try decorate_identifiers(ast.lhs(), scope, errors, allocator);
-            // non-else mappings have their own scope
-            // else mappings use the surrounding match scope
             try decorate_identifiers(ast.rhs(), ast.mapping.scope orelse scope, errors, allocator);
         },
         .@"while" => {
@@ -206,7 +225,6 @@ pub fn decorate_identifiers(
                 try decorate_identifiers(final, ast.block.scope.?, errors, allocator);
             }
         },
-
         .@"return" => try decorate_identifiers(ast.@"return"._ret_expr, scope, errors, allocator),
         .decl => {
             try decorate_identifiers(ast.decl.type, scope, errors, allocator);
@@ -228,21 +246,6 @@ pub fn decorate_identifiers(
             try decorate_identifiers(ast.impl._type, scope, errors, allocator);
             try decorate_identifiers(ast.impl.trait, ast.impl.scope.?, errors, allocator);
             try decorate_identifiers_from_list(ast.children().*, ast.impl.scope.?, errors, allocator);
-
-            // Determine the impl's trait's symbol, if it exists
-            const trait_symbol: *symbol_.Symbol = ast.impl.trait.?.symbol().?;
-            if (scope.impl_trait_lookup(ast.impl._type, trait_symbol)) |other_impl| {
-                // Check if there's already an implementation for the same trait and type
-                errors.add_error(errs_.Error{ .reimpl = .{
-                    .first_defined_span = other_impl.token().span,
-                    .redefined_span = ast.token().span,
-                    .name = if (!ast.impl.impls_anon_trait) trait_symbol.name else null,
-                    ._type = ast.impl._type,
-                } });
-                return error.SymbolError;
-            }
-
-            // No duplicate impls found, add this impl to scope's list of impls
             scope.impls.append(ast) catch unreachable;
         },
         .method_decl => {

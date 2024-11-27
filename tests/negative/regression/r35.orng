@@ -1,0 +1,6 @@
+impl for () { } // The order matters here, this HAS to be first
+
+fn main() -> Int {
+    impl for main { }
+    0
+}

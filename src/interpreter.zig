@@ -527,17 +527,18 @@ pub const Context = struct {
 
     /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
     pub fn extract_ast(self: *Context, address: i64, _type: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
+        // FIXME: High Cyclo
         std.debug.assert(address >= 0);
         switch (_type.*) {
             .identifier => {
                 const info = primitives_.info_from_name(_type.token().data);
                 switch (info.type_kind) {
                     .type => {
-                        const addr_int = @as(usize, @intCast(self.load_int(address, 8)));
-                        if (addr_int == 0x5858585858585858) { // This works only if the interpreter never has uninitialized memory
+                        const stack_value = @as(usize, @intCast(self.load_int(address, 8)));
+                        if (stack_value == 0x5858585858585858) { // This works only if the interpreter never has uninitialized memory
                             return primitives_.unit_type;
                         } else {
-                            return @ptrFromInt(addr_int);
+                            return @ptrFromInt(stack_value);
                         }
                     },
                     .none => unreachable,
@@ -584,15 +585,20 @@ pub const Context = struct {
                 allocator,
             ).assert_valid(),
             .function => {
-                const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(address, 8))));
-                const ast = ast_.AST.create_symbol(
-                    token_.Token.init_simple("function"),
-                    .@"fn",
-                    symbol.name,
-                    allocator,
-                );
-                ast.set_symbol(symbol);
-                return ast.assert_valid();
+                const stack_value = @as(usize, @intCast(self.load_int(address, 8)));
+                if (stack_value == 0) {
+                    return primitives_.void_type;
+                } else {
+                    const symbol: *symbol_.Symbol = @ptrFromInt(stack_value);
+                    const ast = ast_.AST.create_symbol(
+                        token_.Token.init_simple("function"),
+                        .@"fn",
+                        symbol.name,
+                        allocator,
+                    );
+                    ast.set_symbol(symbol);
+                    return ast.assert_valid();
+                }
             },
             .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator).assert_valid(),
             .sum_type => {

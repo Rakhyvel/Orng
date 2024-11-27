@@ -1,19 +1,21 @@
 
 <div align="center">
     <a href="#"><img src="docs/budi.png" alt="Budi the Orangutan!" width="30%"></a>
-    <h6>For When Live Gives You Orngs...</h6>
+    <h6><em>For When Live Gives You Orngs...</em></h6>
     <h1>Orng Programming Language</h1>
 </div>
 
-> **WARNING**! Orng is still a work in progress!
+> **⚠️WARNING**! Orng is still a work in progress! Expect exciting changes and improvements.
 
-Orng is a versatile general purpose programming language that gives developers control while still being expressive. It is designed to be both lightweight and simple, making it a great choice for enthusiast programmers.
+## 🍊 What is Orng?
+
+Orng is a versatile systems programming language that gives developers control without sacrificing expressiveness. It is designed to be both lightweight and simple, making it a great choice for enthusiasts and professionals alike.
 
 * Visit [the website (coming soon)](http://ornglang.org) to learn more about Orng.
 * Tutorials can be found [here (coming soon)](http://ornglang.orng/tutorials).
 * Documentation can be found [here (coming soon)](http://ornglang.orng/docs).
 
-## Installation
+## 🚀 Quick Start
 ```sh
 # Orng compiler requires Zig 0.13.0 at the moment
 git clone https://github.com/Rakhyvel/Orng.git
@@ -21,162 +23,135 @@ cd Orng
 zig build
 ```
 
-## Usage
-Once you have installed the Orng compiler, you can start using the language to write your applications. Here's a "Hello, World" program in Orng:
+A fancy hello-world example:
 ```rs
 fn main(sys: System) -> !() {
-    greet("Orng! 🍊", sys.stdout)
+    greet("Orng! 🍊", sys.stdout) catch unreachable
 }
 
-fn greet(recipient: String, out: dyn Writer) -> !() {
+fn greet(recipient: String, out: $T impl Writer) -> T::Error!() {
     try out.>println("Hello, {s}", recipient)
 }
 ```
 
-To run this program, simply save it to a file with a ".orng" extension and then run the following command in the terminal:
+Run it with:
 ```sh
 orng run hello.orng
 ```
 
-## Features
+## ✨ Standout Features
 Orng comes with a wide range of features that make it a powerful and flexible programming language, including:
-* **First-Class Types:** Types are first class in Orng, which means you can pass types to functions as arguments, and return them from functions. This is how generics are done!
-* **Parametric Effect System:** Objects capable of side-effects, such as allocators, file writers, network sockets, etc, must be passed in as parameters to functions. This allows side-effects to be effortlessly tracked by what a function takes in as its parameters.
-* **Traits:** Traits offer a simple, yet powerful way to express ad-hoc polymorphism.
-* **Functional Programming Idioms:** Orng has many functional programming features, which include:
-    - Algebraic Data Types
-    - Pattern Matching
-    - Optional types, in place of `null` values
-    - Error types, for runtime error handling
-    - Immutable-By-Default variables
-* **Bidirectional C Interop:** Orng compiles to C and can parse C header files, which afford seamless interop with C. Orng code can interact with existing C code, and C code can interact with your Orng code.
 
-<!-- ## Standard Library -->
+### First-Class Types
+In Orng, types are first class citizens. Pass types as function arguments, return them from functions, and create powerful generic abstractions.
 
-<!-- ## Examples (do 3) -->
-## Examples
-### Factorial Function
 ```rs
-// A factorial function!
-fn factorial(n: Int) -> Int {
-    if n < 2 {1} else {n * factorial(n - 1)}
+fn make_array_type(const n: Int, const T: Type) -> Type { [n]T }
+
+fn main() {
+    let x: template(4, Char) = ('1', '2', '3', '4')
+    println("{c} squared is 9", x[3])
 }
 ```
-Lets break that down so we can understand how Orng works.
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/generics)
+
+### Parametric Effect System
+Say goodbye to hidden side effects! Orng forbids global variables and requires all objects to be explicitly passed as parameters, making your program's behavior transparent and predictable.
+
 ```rs
-fn factorial                      // Define a new function called `factorial`.
-    (n: Int) -> Int {             // The type of `factorial` is a function, 
-                                  //     which takes an integer called `n` and 
-                                  //     returns an integer.
-    if n < 2 {1}                  // The result of calling factorial is either 
-                                  //     `1` if `n < 2`,
-      else {n * factorial(n - 1)}}// Otherwise is `n * factorial(n-1)`.
+// We can tell this function doesn't do anything dangerous
+fn something_harmless(x: T) { /* ... */ }
+
+// We can tell this function probably mutates it's arguments
+fn maybe_mutate(x: &mut T) { /* ... */ }
+
+// We can tell this function probably allocates memory
+fn maybe_alloc(alloc: impl Allocator) { /* ... */ }
+
+// We can tell this function probably does stuff with IO
+fn maybe_write(reader: impl Reader, writer: impl Writer) { /* ... */ }
 ```
-### Traits
+
+### Traits 
+Traits offer a flexible way to define behavior that can be attatched to any type. Instead of deep inheritance hierarchies, Orng lets you extend types with new capabilities through simple composable traits.
+
 ```rs
-import debug from std
-
-// Define a trait `Speak` with a method `speak`, which returns a String
-trait Speak {
-    fn speak(self) -> String
+trait Counter {
+    fn increment(&mut self) -> Int
+    fn total(&self) -> Int
+    fn reset(&mut self) -> ()
 }
 
-// Define two types, `Dog` and `Cat`
-let const Dog: Type = (name: String, bones_consumed: Int)
-let const Cat: Type = (name: String, lives_left: Int)
-
-// Implement `Speak` for `Dog`
-impl Speak for Dog {
-    fn speak(self) -> String {
-        "bark!"
+impl Counter for (count: Int, max: Int) {
+    fn increment(&mut self) -> Int {
+        self.count = (self.count + 1) % self.max
+        self.count
     }
-}
-
-// Implement `Speak` for `Cat`
-impl Speak for Cat {
-    fn speak(self) -> String {
-        "meow!"
-    }
+    
+    fn total(&self) -> Int { self.count }
+    
+    fn reset(&mut self) -> () { self.count = 0 }
 }
 
 fn main(sys: System) -> !() {
-    let my_dog: Dog = ("fido", 34)
-    let my_cat: Cat = ("garfield", 8)
-
-    make_animal_speak(&dyn my_dog)
-    make_animal_speak(&dyn my_cat)
-}
-
-// This function takes in an address of a value of a type which implements Speak
-fn make_animal_speak(animal: &dyn Speak) -> () {
-    debug::println("{s}", animal.>speak())
+    let mut counter = (0, 5)
+    try sys.stdout.>println("{d}", counter.>increment())  // Prints 1
+    try sys.stdout.>println("{d}", counter.>increment())  // Prints 2
 }
 ```
-### Fizzbuzz - ADTs and Pattern Matching
+
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/traits)
+
+### Algebraic Data Types
+Algebraic Data Types (ADTs) allow you to define types that can be one of several variants with zero runtime overhead. Represent complex state machines, parse abstract syntax trees, or handle error conditons with a single, compact type definition.
+
 ```rs
-// Define an Algebraic Data Type (ADT), similar to tagged unions
-// `FizzBuzzResult` can either hold a String, or an Int
-const FizzBuzzResult = (string: String | integer: Int)
+const Shape = (
+    circle: (radius: Float) | 
+    rectangle: (width: Float, height: Float) | 
+    triangle: (base: Float, height: Float)
+)
 
-fn fizzbuzz(n: Int) -> FizzBuzzResult {
-    match 0 {
-        {n % 15} => FizzBuzzResult.string("fizzbuzz") 
-        //          ^^^^^^^^^^^^^^
-        // We can either be explicit with the ADT we use...
-
-        {n % 5}  => .string("buzz") 
-        //         ^
-        // ... Or we can let it be inferred, if possible.
-
-        {n % 3}  => .string("fizz")
-
-        _        => .integer(n)
-    }
-}
-
-fn main(sys: System) -> !() {
-    while let i = 0; i < 100; i += 1 {
-        // Can pattern match on ADTs! Again, can let which ADT be inferred if possible
-        match fizzbuzz(i) {
-            .string(s)  => try sys.stdout.>println("{}", s)
-            .integer(j) => try sys.stdout.>println("{}", j)
-        }
+fn calculate_area(shape: Shape) -> Float {
+    match shape {
+        .circle(r)         => 3.14 * r * r
+        .rectangle(w, h)   => w * h
+        .triangle(b, h)    => 0.5 * b * h
     }
 }
 ```
-<!--
-### Generic Type Unification
-Parameter types identifiers that begin with `$` are considered free. This method of ad-hoc polymorphism is more readable than other methods, such as overloaded functions, as each function name has one unique definition.
+
+[More](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/sums) [examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/tuples)
+
+### Pattern Matching & Destructuring
+Pattern matching in Orng lets you elagantly deconstruct complex data structures with a single, readable expression. Forget verbose `if-else` chains and nested conditionals - match on ADTs, extract values, and handle different cases with unprecedented clarity.
+
 ```rs
-// Define a simple, generic array list type
-fn List(const T: Type) -> Type {
-    (
-        items: []T,
-        length: Int,
-        alloc: dyn Allocator
-    )
-}
+const Person = (name: String, age: Int, job: String)
 
-// Define generic functions that act on instances of List
-fn append(list: List($T), element: T) -> !() {
-    if list.items.length >= list.length {
-        // ... expand the list's capacity
-    }
-    list.items[list.length] = element
-    list.length += 1
-}
-
-fn get(list: List($T), index: Int) -> T {
-    list.items[index]
+fn classify_person(person: Person) -> String {
+   match person {
+       (name, age, "Teacher") when age > 50 => "Veteran Educator: " + name
+       (name, _,   "Doctor")                => name + " is a medical professional"
+       (_,    age, _)         when age < 18 => "Baby 👶"
+   }
 }
 ```
--->
 
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/pattern)
 
-## Contributing
-We welcome contributions of all kinds! Bug reports, feature requests, code contributions and documentation updates are always appreciated.
+### Seamless C Interoperability
+Compile to C and parse C header files with ease. Orng bridges the gap between low-level system programming and high-level expressiveness.
 
-Take a look at the `Nits` section under `todo.md` for some entry-level PR ideas.
+[More examples](https://github.com/Rakhyvel/Orng/blob/main/tests/integration/build)
 
-## License
-Orng is released under the MIT license. See LICENSE for details.
+## 🤝 Get Involved
+
+We're passionate about building a community around Orng. Contributions of all kinds are welcome:
+- 🐛 Report bugs
+- 📝 Improve documentation
+- 💡 Suggest features
+- 🧑‍💻 Submit pull requests
+
+## 📄 License
+Orng is open-source and released under the MIT License. See `LICENSE` for details.

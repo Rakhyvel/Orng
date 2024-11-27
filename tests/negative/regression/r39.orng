@@ -1,0 +1,4 @@
+fn main() -> Int { 
+    let const a: Int = match { } { 4 => 5 }
+    a
+} 

@@ -58,6 +58,7 @@ pub fn validate_scope(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: s
 }
 
 pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
+    // TODO: Bit long
     if (symbol.validation_state == .valid or symbol.validation_state == .validating) {
         return;
     }
@@ -162,6 +163,7 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
     }
 }
 
+// TODO: Split up into smaller functions
 fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     if (impl.impl._type.* == .addr_of) {
         errors.add_error(errs_.Error{ .basic = .{
@@ -175,6 +177,19 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 
     const trait_symbol: *symbol_.Symbol = impl.impl.trait.?.symbol().?;
     const trait_ast = trait_symbol.decl.?;
+
+    // Check that the (trait, type) pair is unique for this scope
+    const lookup_res = impl.impl.scope.?.impl_trait_lookup(impl.impl._type, trait_symbol);
+    if (lookup_res.count > 1) {
+        // Check if there's already an implementation for the same trait and type
+        errors.add_error(errs_.Error{ .reimpl = .{
+            .first_defined_span = lookup_res.ast.?.token().span,
+            .redefined_span = impl.token().span,
+            .name = if (!impl.impl.impls_anon_trait) trait_symbol.name else null,
+            ._type = impl.impl._type,
+        } });
+        return error.TypeError;
+    }
 
     // Construct a map of all trait decls
     var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
@@ -333,6 +348,7 @@ fn is_capitalized(name: []const u8) bool {
 /// Errors out if `ast` is not the expected type
 /// - `old_expected_type`: Should be null if `ast` can be any type
 fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allocator) *ast_.AST {
+    // TODO: Bit long
     var expected_type = old_expected_type;
     if (ast.common().validation_state == .validating) {
         // std.debug.print("{}\n", .{ast});
@@ -391,6 +407,7 @@ fn validate_AST_internal(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError, SymbolError }!*ast_.AST {
+    // TODO: Ugh this function is too long
     // std.debug.print("{}: {?}\n", .{ ast, expected });
     switch (ast.*) {
         // Nop, always "valid"
@@ -409,7 +426,9 @@ fn validate_AST_internal(
             return ast;
         },
         .int => {
-            try type_check_int(ast, expected, errors, allocator);
+            if (expected != null and !try checked_types_match(primitives_.unit_type, expected.?, errors)) {
+                try type_check_int(ast, expected, errors, allocator);
+            }
             return ast;
         },
         .float => {
@@ -658,7 +677,7 @@ fn validate_AST_internal(
             }
             return ast;
         },
-        .index => { // TODO: TOO LONG!
+        .index => {
             const lhs_span = ast.lhs().token().span; // Used for error reporting
             if (expected != null and try checked_types_match(primitives_.type_type, expected.?, errors)) {
                 ast.set_lhs(validate_AST(ast.lhs(), primitives_.type_type, errors, allocator));
@@ -808,7 +827,7 @@ fn validate_AST_internal(
             const expr_type = ast.expr().typeof(allocator);
 
             const impl = ast.dyn_value.scope.?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
-            if (impl == null) {
+            if (impl.ast == null) {
                 errors.add_error(errs_.Error{ .type_not_impl_trait = .{
                     .span = ast.token().span,
                     .trait_name = ast.dyn_value.dyn_type.expr().symbol().?.name,
@@ -816,7 +835,7 @@ fn validate_AST_internal(
                 } });
                 return error.TypeError;
             }
-            ast.dyn_value.impl = impl;
+            ast.dyn_value.impl = impl.ast;
 
             try type_check(ast.token().span, ast.dyn_value.dyn_type, expected, errors);
             return ast;
@@ -871,6 +890,7 @@ fn validate_AST_internal(
             return try merge_sums(expanded_lhs, expanded_rhs, new_ast.token(), errors, allocator);
         },
         .addr_of => {
+            // FIXME: High cyclo
             if (expected == null) {
                 // Not expecting anything, just validate expr
                 ast.set_expr(validate_AST(ast.expr(), null, errors, allocator));
@@ -989,7 +1009,7 @@ fn validate_AST_internal(
                 errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "array length is not positive" } });
                 return ast.enpoison();
             }
-            return ast_.AST.create_array_type(array_length, ast.expr(), allocator);
+            return ast_.AST.create_array_type(array_length.int.data, ast.expr(), allocator);
         },
         .sub_slice => {
             ast.sub_slice.super = validate_AST(ast.sub_slice.super, null, errors, allocator);
@@ -1052,7 +1072,8 @@ fn validate_AST_internal(
 
             return ast;
         },
-        .@"if" => { // TODO: TOO LONG!
+        .@"if" => {
+            // FIXME: High cyclo
             if (ast.@"if".let) |let| {
                 ast.@"if".let = validate_AST(let, null, errors, allocator);
             }
@@ -1092,6 +1113,7 @@ fn validate_AST_internal(
 
             if (ast.@"if".condition.* == .true and ast.else_block() != null) {
                 // condition is true and theres an else => return {let; body}
+                // TODO: De-duplicate this code! 1
                 if (ast.@"if".let != null) {
                     if (ast.body_block().* == .block) {
                         ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
@@ -1106,6 +1128,7 @@ fn validate_AST_internal(
                 return ast.body_block();
             } else if (ast.@"if".condition.* == .true and ast.else_block() == null) {
                 // condition is true and theres no else => return {let; some(body)}
+                // TODO: De-duplicate this code! 2
                 if (ast.@"if".let != null) {
                     if (ast.body_block().* == .block) {
                         ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
@@ -1339,12 +1362,12 @@ fn middle_statement_check(span: span_.Span, got: *ast_.AST, errors: *errs_.Error
 
 fn type_check_int(
     ast: *ast_.AST,
-    expected: ?*ast_.AST, // This should NOT be expanded
+    expected: ?*ast_.AST, // This should NOT be expanded < it is, though...
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!void {
     const expanded_expected = if (expected != null) expected.?.expand_type(allocator) else null;
-    if (expanded_expected != null and !try checked_types_match(primitives_.unit_type, expanded_expected.?, errors)) {
+    if (expanded_expected != null) { //and !try checked_types_match(primitives_.unit_type, expanded_expected.?, errors)
         const info = primitives_.info_from_ast(expanded_expected.?);
         if (info != null and info.?.bounds != null) {
             if (ast.int.data < info.?.bounds.?.lower or
@@ -1518,7 +1541,7 @@ pub fn default_args(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Validate_Error_Enum!std.ArrayList(*ast_.AST) {
-    if (try args_are_named(asts, errors)) {
+    if (try args_are_named(asts, errors) and expected.* != .unit_type) {
         return named_args(asts, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => asts,
             error.TypeError => error.TypeError,
@@ -1570,6 +1593,7 @@ fn positional_args(
     expected: *ast_.AST,
     allocator: std.mem.Allocator,
 ) error{NoDefault}!std.ArrayList(*ast_.AST) {
+    // TODO: Too long
     var filled_args = std.ArrayList(*ast_.AST).init(allocator);
     errdefer filled_args.deinit();
 
@@ -1624,6 +1648,7 @@ fn named_args(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) error{ TypeError, NoDefault }!std.ArrayList(*ast_.AST) {
+    // FIXME: High cyclo
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
     var arg_name_to_val_map = std.StringArrayHashMap(*ast_.AST).init(allocator);
@@ -1688,7 +1713,7 @@ fn named_args(
             }
         },
 
-        else => unreachable,
+        else => std.debug.panic("compiler error: unimplemented named_args() for `{}`", .{expected.*}),
     }
     return filled_args;
 }
@@ -1942,9 +1967,7 @@ fn assert_pattern_matches(
             }
         },
         .pattern_symbol => {},
-        else => {
-            std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)});
-        },
+        else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)}),
     }
     _ = pattern.assert_valid();
 }
@@ -2005,6 +2028,7 @@ fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, a
 }
 
 fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
+    // TODO: Too long
     switch (_type.*) {
         .anyptr_type => return _type,
         .identifier => {
@@ -2021,7 +2045,11 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
                 return try generate_default(expanded_type, span, errors, allocator);
             }
         },
-        .dyn_type, .addr_of, .function => return ast_.AST.create_int(_type.token(), 0, allocator),
+        .function => {
+            errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
+            return error.TypeError;
+        },
+        .dyn_type, .addr_of => return ast_.AST.create_int(_type.token(), 0, allocator),
         .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator),
         .sum_type => {
             var retval = ast_.AST.create_sum_value(_type.token(), allocator);

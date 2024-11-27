@@ -18,6 +18,7 @@ struct struct0 {
 
 struct struct1 {
     int64_t _0;
+    int64_t _1;
     int64_t _2;
 };
 
@@ -33,6 +34,7 @@ int64_t _1209_main(void){
     int64_t _1210_x;
     int64_t _1210_y;
     int64_t _1209_t5;
+    int64_t _1209_t6;
     int64_t _1209_t7;
     struct struct1 _1209_t4;
     int64_t _1209_$retval;
@@ -42,8 +44,9 @@ int64_t _1209_main(void){
     _1210_x = _1209_t0._0;
     _1210_y = _1209_t0._1;
     _1209_t5 = 5;
+    _1209_t6 = 19;
     _1209_t7 = 33;
-    _1209_t4 = (struct struct1) {_1209_t5, _1209_t7};
+    _1209_t4 = (struct struct1) {_1209_t5, _1209_t6, _1209_t7};
     _1210_x = _1209_t4._0;
     _1210_y = _1209_t4._2;
     _1209_$retval = $mult_int64_t(_1210_x, _1210_y, "tests/integration/pattern/assign-product-discard.orng:5:8:\n    x * y\n      ^");

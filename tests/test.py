@@ -151,7 +151,7 @@ def fuzz():
             for line in f:
                 if len(line) <3:
                     continue # Skip opening and closing lines
-                eof_index = line.index("eof")
+                eof_index = line.index("eof\"")
                 trimmed = line[3:eof_index]
                 with open("tests/fuzz/fuzz.orng", "w") as w:
                     w.write(trimmed)

@@ -85,6 +85,7 @@ fn output_typedef(
     dag: *type_set_.DAG,
     writer: Writer,
 ) CodeGen_Error!void {
+    // FIXME: High Cyclo
     if (dag.visited) {
         // only visit a DAG node once
         return;
@@ -158,12 +159,14 @@ fn output_traits(
     traits: *std.ArrayList(*ast_.AST), // TODO: Accept slice
     writer: Writer,
 ) CodeGen_Error!void {
+    // FIXME: High Cyclo
     if (traits.items.len > 0) {
         // Do not output header comment if there are no traits!
         try writer.print("/* Trait vtable type definitions */\n", .{});
     }
 
     for (traits.items) |trait| {
+        // TODO: Too long
         if (trait.trait.num_virtual_methods == 0) {
             continue;
         }
@@ -465,6 +468,7 @@ fn output_basic_block(
     return_symbol: *symbol_.Symbol,
     writer: Writer,
 ) CodeGen_Error!void {
+    // FIXME: High Cyclo
     var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator);
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
@@ -661,6 +665,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print(".tag;\n", .{});
         },
         .call => {
+            // TODO: De-duplicate 2
             const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
             const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
             if (!symbol_used) {
@@ -684,6 +689,8 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print(");\n", .{});
         },
         .invoke => {
+            // FIXME: High Cyclo
+            // TODO: De-duplicate 1
             const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
             const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
             if (!symbol_used) {

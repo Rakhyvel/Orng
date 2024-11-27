@@ -563,6 +563,7 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
 /// Performs various Basic Block optimizations in a CFG. Returns true if any optimizations are made.
 /// TODO: Split up optimization checks into their own functions
 fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
+    // FIXME: High Cyclo
     var retval: bool = false;
 
     cfg.count_bb_predecessors();
@@ -579,6 +580,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     }
 
     for (cfg.basic_blocks.items) |bb| {
+        // TODO: Too long
         // Adopt basic blocks with only one incoming block
         if (bb.next != null and bb.ir_head != null and !bb.has_branch and bb.next.?.number_predecessors == 1) {
             var log_msg = String.init(allocator);

@@ -12,33 +12,33 @@
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1055_main(void);
-int64_t _1057_$anon101(void);
+int64_t _45_main(void);
+int64_t _47_$anon8(void);
 
 
 /* Function definitions */
-int64_t _1055_main(void){
-    function0 _1055_t0;
-    int64_t _1055_t1;
-    int64_t _1055_$retval;
-    _1055_t0 = (function0) _1057_$anon101;
+int64_t _45_main(void){
+    function0 _45_t0;
+    int64_t _45_t1;
+    int64_t _45_$retval;
+    _45_t0 = (function0) _47_$anon8;
     $lines[$line_idx++] = "tests/integration/generics/named-const.orng:12:12:\n    getval(.n = 317)\n          ^";
-    _1055_t1 = _1055_t0();
+    _45_t1 = _45_t0();
     $line_idx--;
-    _1055_$retval = _1055_t1;
-    return _1055_$retval;
+    _45_$retval = _45_t1;
+    return _45_$retval;
 }
 
-int64_t _1057_$anon101(void){
-    int64_t _1057_$retval;
-    goto BB1229;
-BB1229:
-    _1057_$retval = 317;
-    return _1057_$retval;
+int64_t _47_$anon8(void){
+    int64_t _47_$retval;
+    goto BB43;
+BB43:
+    _47_$retval = 317;
+    return _47_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1055_main());
+  printf("%ld",_45_main());
   return 0;
 }

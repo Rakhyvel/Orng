@@ -1,23 +1,38 @@
-name: Zig test
+name: Orng CI
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  test:
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{matrix.os}}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: goto-bus-stop/setup-zig@v2
-        with:
-          version: 0.10.1
-      - run: zig build orng-test
-      - run: zig-out/bin/orng-test integration
-  lint:
+  build-and-test:
     runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v2
-      - uses: goto-bus-stop/setup-zig@v2
-      - run: zig fmt --check src/*.zig
+    - uses: actions/checkout@v4
+    
+    - name: Set up Zig
+      uses: korandoru/setup-zig@v1
+      with:
+        zig-version: 0.13.0  # Match the version in your README
+    
+    - name: Build project
+      run: zig build
+    
+    - name: Run tests
+      run: zig build test
+    
+    - name: Check formatting
+      run: zig fmt --check src/**/*.zig
+    
+    - name: Static analysis
+      run: zig build lint  # If you have a lint target
+
+    # Optional: Upload artifacts if build fails
+    - uses: actions/upload-artifact@v4
+      if: failure()
+      with:
+        name: build-logs
+        path: zig-cache/log

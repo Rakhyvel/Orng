@@ -141,6 +141,7 @@ pub const AST = union(enum) {
     },
 
     // Binary operators
+    // TODO: We could de-duplicate this, I suppose.
     assign: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"or": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"and": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
@@ -190,15 +191,6 @@ pub const AST = union(enum) {
         num_virtual_methods: i64 = 0,
         scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
-
-        pub fn find_method(self: @This(), name: []const u8) ?*AST {
-            for (self.method_decls.items) |decl| {
-                if (std.mem.eql(u8, decl.method_decl.name.token().data, name)) {
-                    return decl;
-                }
-            }
-            return null;
-        }
     },
     invoke: struct {
         common: AST_Common,
@@ -1502,14 +1494,14 @@ pub const AST = union(enum) {
     }
 
     pub fn create_array_type(
-        len: *AST, // TODO: Just pass the i128
+        len: i128,
         of: *AST,
         allocator: std.mem.Allocator,
     ) *AST {
         // Inflate an array-of to a product with `len` `of`'s
         var new_terms = std.ArrayList(*AST).init(allocator);
-        std.debug.assert(len.int.data >= 0);
-        for (0..@as(usize, @intCast(len.int.data))) |_| {
+        std.debug.assert(len >= 0);
+        for (0..@as(usize, @intCast(len))) |_| {
             new_terms.append(of) catch unreachable;
         }
         return AST.create_product(of.token(), new_terms, allocator);
@@ -1718,17 +1710,17 @@ pub const AST = union(enum) {
     ///
     /// The types_match() function assumes it's arguments pass this test.
     pub fn valid_type(_type: *AST) bool {
-        return switch (_type.*) {
+        const val = switch (_type.*) {
             // Always well-formed, comptime types
             .type_of,
             .domain_of,
             .anyptr_type,
             .unit_type,
             .dyn_type,
-            .identifier,
             .call,
             .invoke,
             .poison,
+            .identifier,
             => true,
 
             // Anything else probably isn't a valid type
@@ -1748,6 +1740,7 @@ pub const AST = union(enum) {
                 return true;
             },
         };
+        return val;
     }
 
     pub fn non_comptime_type(_type: *AST) bool {
@@ -1783,6 +1776,7 @@ pub const AST = union(enum) {
 
     /// Non-memoized slow path for expanding the type of an AST value.
     fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
+        // FIXME: High Cyclo
         switch (self.*) {
             .identifier => {
                 const _symbol = self.symbol().?;
@@ -1860,7 +1854,8 @@ pub const AST = union(enum) {
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
         if (self.* == .identifier and self.symbol().?.init != null) {
-            return self.symbol().?.init.?;
+            const init = self.symbol().?.init.?;
+            return init;
         } else {
             return self;
         }
@@ -2317,6 +2312,7 @@ pub const AST = union(enum) {
     ///
     /// Assumes ASTs structurally can refer to compile-time constant types.
     pub fn types_match(A: *AST, B: *AST) bool {
+        // FIXME: High Cyclo
         // std.debug.print("{} == {}\n", .{ A, B });
         std.debug.assert(A.valid_type());
         std.debug.assert(B.valid_type());
@@ -2511,6 +2507,7 @@ pub const AST = union(enum) {
 
     /// Checks whether two AST types would generate to the same C type.
     pub fn c_types_match(self: *AST, other: *AST) bool {
+        // FIXME: High Cyclo
         if (self.* == .annotation) {
             return c_types_match(self.annotation.type, other);
         } else if (other.* == .annotation) {

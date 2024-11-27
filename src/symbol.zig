@@ -77,43 +77,31 @@ pub const Scope = struct {
         }
     }
 
-    /// Returns the unique implementation for a given type and trait
-    ///
-    /// `for_type` doesn't necessarily need to be a valid type to match. It is not expanded, and not evaluated at
-    /// compile-time. If it is invalid, it will simply not match.
-    pub fn impl_trait_lookup(self: *Scope, for_type: *ast_.AST, trait: ?*Symbol) ?*ast_.AST {
-        if (!for_type.valid_type() or for_type.* == .@"comptime") {
-            return null;
-        }
+    const Impl_Trait_Lookup_Result = struct { count: u8, ast: ?*ast_.AST };
+
+    /// Returns the number of impls found for a given type-trait pair, and the impl ast. The impl is unique if count == 1.
+    pub fn impl_trait_lookup(self: *Scope, for_type: *ast_.AST, trait: *Symbol) Impl_Trait_Lookup_Result {
+        var retval: Impl_Trait_Lookup_Result = .{ .count = 0, .ast = null };
+
         // Go through the scope's list of implementations, check to see if the types and traits match
         for (self.impls.items) |impl| {
-            if (!impl.impl._type.valid_type() or impl.impl._type.* == .@"comptime") {
-                return null;
-            }
-            if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
-                // Types do not match
-                continue;
-            } else if ((impl.impl.trait == null and trait != null) or (impl.impl.trait != null and trait == null)) {
-                // impl trait and search trait nullality doesn't match
-                continue;
-            } else if (impl.impl.trait != null and impl.impl.trait.?.symbol() == trait.?) {
-                // non-null trait, types match => found impl
-                return impl;
-            } else if (impl.impl.trait != null and impl.impl.trait.?.symbol() != trait.? and !impl.impl.impls_anon_trait) {
-                // non-null, non-anon trait, types match, wrong impl!
-                continue;
-            } else {
-                // null trait, types match => found impl
-                return impl;
+            const types_match = (impl.impl._type.types_match(for_type) or for_type.types_match(impl.impl._type));
+            const traits_match = impl.impl.trait.?.symbol() == trait;
+            if (types_match and traits_match) {
+                retval.count += 1;
+                retval.ast = retval.ast orelse impl;
             }
         }
 
         if (self.parent != null) {
             // Did not match in this scope. Try parent scope
-            return self.parent.?.impl_trait_lookup(for_type, trait);
+            const parent_res = self.parent.?.impl_trait_lookup(for_type, trait);
+            retval.count += parent_res.count;
+            retval.ast = retval.ast orelse parent_res.ast;
+            return retval;
         } else {
             // Not found, parent scope is null
-            return null;
+            return retval;
         }
     }
 

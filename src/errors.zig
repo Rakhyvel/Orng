@@ -541,6 +541,7 @@ pub const Errors = struct {
     }
 
     fn print_extra_info(err: Error) Error_Error_Sum!void {
+        // FIXME: High Cyclo
         switch (err) {
             .missing_close => {
                 try bold.dump(out);
