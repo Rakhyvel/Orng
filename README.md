@@ -131,8 +131,8 @@ const Person = (name: String, age: Int, job: String)
 
 fn classify_person(person: Person) -> String {
    match person {
-       (name, age, "Teacher") when age > 50 => "Veteran Educator: " + name
-       (name, _,   "Doctor")                => name + " is a medical professional"
+       (name, age, "Teacher") when age > 50 => "Veteran Educator"
+       (name, _,   "Doctor")                => "Medical professional"
        (_,    age, _)         when age < 18 => "Baby 👶"
    }
 }
