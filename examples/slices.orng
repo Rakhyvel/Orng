@@ -1,0 +1,64 @@
+fn main(sys: System) -> !() {
+    // Create an array and convert to a slice
+    let x: [5]Int = (10, 20, 30, 40, 50)
+    let full_slice: []Int = []x
+    print_slice("Full Slice", full_slice)
+
+    // Mutable slice creation
+    let mut y: [5]Int = (1, 2, 3, 4, 5)
+    let mutable_slice: [mut]Int = [mut]y
+    mutable_slice[2] = 99
+    print_slice("Mutable Slice", mutable_slice)
+
+    // Slice subranging
+    let partial_slice: [mut]Int = mutable_slice[1..4]
+    let from_beginning: [mut]Int = mutable_slice[..4]
+    let to_end: [mut]Int = mutable_slice[1..]
+    print_slice("Partial Slice", partial_slice)
+    print_slice("Partial Slice", from_beginning)
+    print_slice("Partial Slice", to_end)
+
+    // Slice sum demonstrations
+    debug::println("Sum (iterative): {}", iterative_sum(full_slice))
+    debug::println("Sum (recursive): {}", recursive_sum(full_slice))
+
+    // Empty slices
+    let empty_slice: []Int = []()
+    debug::println("Empty slice sum: {}", iterative_sum(empty_slice))
+
+    // Slice of slice
+    let nested_slice: [][]Int = (
+        [](1, 2, 3),
+        [](4, 5, 6),
+        [](7, 8, 9)
+    )
+    let sub_nested_slice: []Int = nested_slice[1]
+    print_slice("Nested Slice", sub_nested_slice)
+}
+
+fn print_slice(title: String, slice: []Int) -> !() {
+    debug::print("{s}: [", title)
+    while let mut i = 0; i < slice.length; i += 1 {
+        debug::print("{}", slice[i])
+        if i < slice.length - 1 {
+            debug::print(", ")
+        }
+    }
+    debug::println("]")
+}
+
+fn iterative_sum(slice: []Int) -> Int {
+    let mut total = 0
+    while let mut i = 0; i < slice.length; i += 1 {
+        total += slice[i]
+    }
+    total
+}
+
+fn recursive_sum(slice: []Int) -> Int {
+    if slice.length == 0 {
+        0
+    } else {
+        slice[0] + recursive_sum(slice[1..])
+    }
+}

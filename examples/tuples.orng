@@ -1,0 +1,37 @@
+fn main() -> () {
+    // Basic tuple creation with named fields
+    let simple_tuple: (a: Int, b: Int) = (50, 5)
+    let named_result = simple_tuple.a + simple_tuple.b
+    debug::println("Result: {}", named_result)
+
+    // Tuple with default field values
+    let default_tuple: (a: Int = 50, b: Int = 7) = ()
+    let default_result = default_tuple.a + default_tuple.b
+    debug::println("Result: {}", default_result)
+
+    // Nested tuples with complex type definitions
+    let const Complex_Type = (
+        outer_a: (inner_x: Int, inner_y: Int), 
+        outer_b: (inner_e: Int, inner_f: Int)
+    )
+    let complex_tuple: Complex_Type = (
+        .outer_a = (.inner_x = 25, .inner_y = 75),
+        .outer_b = (.inner_e = 5, .inner_f = 90)
+    )
+    let complex_result = complex_tuple.outer_a.inner_x + 
+                         complex_tuple.outer_a.inner_y + 
+                         complex_tuple.outer_b.inner_e + 
+                         complex_tuple.outer_b.inner_f
+    debug::println("Result: {}", complex_result)
+
+    // Tuple with mixed types and indexing
+    let mixed_tuple: (Char, Int, Float) = ('π', 247, 3.14)
+    let indexed_result = mixed_tuple[1]
+    debug::println("Result: {}", indexed_result)
+
+    // Tuple comparison (structural equality)
+    let x_compare = (1, (2, 3.4), 'r')
+    let y_compare = (1, (2, 3.4), 'r')
+    let comparison_result = x_compare == y_compare
+    debug::println("x_compare == y_compare: {}", comparison_result)
+}
