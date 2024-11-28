@@ -5,11 +5,9 @@ fn main() {
     a = 10
 
 
-
     // Immutable variable - cannot be reassigned
     let b = 0
     // b = 10  // ERROR! `b` is immutable
-
 
 
     // Mixed mutability in tuple destructuring
@@ -17,7 +15,6 @@ fn main() {
     // `c` and `e` are mutable, `d` remains immutable
     c = 5
     // d = 5  // ERROR!
-
 
 
     // Pointer and reference mutability
@@ -28,12 +25,10 @@ fn main() {
     // g = &mut d  // ERROR! `g` pointer is immutable
 
 
-
     // Pointer aliasing goes one way: you can assign mut to immut, but never immut to mut.
     let h: &mut Int = g // Ok
     let i: &Int = h // Ok
     // let j: &mut Int = i // ERROR! Cannot assign &Int to &mut Int
-
 
 
     // Function parameter mutabulity
@@ -51,12 +46,10 @@ fn main() {
     }
 
 
-
     // Slice mutability
     let xs: [mut]Int = [mut](1, 2, 3)
     // Mutable slice allows element modification
      xs[0] = xs[1]
-
 
 
     // Trait object mutability

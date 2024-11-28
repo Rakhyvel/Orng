@@ -4,10 +4,12 @@ fn main() -> () {
     let named_result = simple_tuple.a + simple_tuple.b
     debug::println("Result: {}", named_result)
 
+
     // Tuple with default field values
     let default_tuple: (a: Int = 50, b: Int = 7) = ()
     let default_result = default_tuple.a + default_tuple.b
     debug::println("Result: {}", default_result)
+
 
     // Nested tuples with complex type definitions
     let const Complex_Type = (
@@ -24,11 +26,13 @@ fn main() -> () {
                          complex_tuple.outer_b.inner_f
     debug::println("Result: {}", complex_result)
 
+
     // Tuple with mixed types and indexing
     let mixed_tuple: (Char, Int, Float) = ('π', 247, 3.14)
     let indexed_result = mixed_tuple[1]
     debug::println("Result: {}", indexed_result)
 
+    
     // Tuple comparison (structural equality)
     let x_compare = (1, (2, 3.4), 'r')
     let y_compare = (1, (2, 3.4), 'r')

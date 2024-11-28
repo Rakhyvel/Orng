@@ -5,15 +5,18 @@ fn main() -> () {
     let x: [4]Int = (1, 2, 3, 4)
     debug::println("First element: {}", x[0])
 
+
     // Mutable arrays and element modification
     let mut mutable_arr: [3]Int = (10, 20, 30)
     mutable_arr[1] = 50
     debug::println("Modified array element: {}", mutable_arr[1])
 
+
     // Array references and mutation through references
     let y: &mut [3]Int = &mut mutable_arr
     y^[2] = 100
     debug::println("Modified via reference: {}", mutable_arr[2])
+
 
     // Nested arrays
     let nested: [3][3]Int = (
@@ -23,6 +26,7 @@ fn main() -> () {
     )
     debug::println("Nested array access: {}", nested[1][1])
 
+
     // Array with named tuple elements
     let named_arr: [3](a: Int, b: Int) = (
         (1, 2),
@@ -30,6 +34,7 @@ fn main() -> () {
         (5, 6)
     )
     debug::println("Named tuple array: {}", named_arr[1].a)
+
 
     // Optional array with safe division
     fn safe_div_vec(x: [3]Int, y: [3]Int) -> [3]?Int {
@@ -43,6 +48,7 @@ fn main() -> () {
     let div_result = safe_div_vec((10, 20, 30), (2, 5, 3))
     debug::println("Safe div result: {}", div_result[1].some)
 
+
     // Array of functions
     const Operation = (Int, Int) -> Int
     let ops: [3]Operation = (
@@ -51,6 +57,7 @@ fn main() -> () {
         (x: Int, y: Int) -> Int { x * y }   // mult
     )
     debug::println("Function array result: {}", ops[2](4, 5))
+
 
     // Array reference passing
     fn modify_array(arr: &mut [4]Int) -> &[4]Int {
