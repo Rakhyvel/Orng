@@ -1,0 +1,90 @@
+fn main() {
+    // Basic variable mutability
+    let mut a = 0
+    // `mut` allows the variable's value to be changed
+    a = 10
+
+
+
+    // Immutable variable - cannot be reassigned
+    let b = 0
+    // b = 10  // ERROR! `b` is immutable
+
+
+
+    // Mixed mutability in tuple destructuring
+    let (mut c, d, mut e) = (1, 2, 3)
+    // `c` and `e` are mutable, `d` remains immutable
+    c = 5
+    // d = 5  // ERROR!
+
+
+
+    // Pointer and reference mutability
+    let mut source = 42
+    let g: &mut Int = &mut source
+    // `g` is an immutable pointer to a mutable value
+    g^ = 4  // Modify the value through the pointer
+    // g = &mut d  // ERROR! `g` pointer is immutable
+
+
+
+    // Pointer aliasing goes one way: you can assign mut to immut, but never immut to mut.
+    let h: &mut Int = g // Ok
+    let i: &Int = h // Ok
+    // let j: &mut Int = i // ERROR! Cannot assign &Int to &mut Int
+
+
+
+    // Function parameter mutabulity
+    fn f(mut x: Int, y: &mut Int, mut z: &mut Int) {
+        // `x` is a mutable copy, changes don't affect original
+        x += 4
+
+        // `y` is an immutable mutable reference, changes affect the original, but cannot be changed within `f`
+        y^ += 4
+        // y = z // ERROR!
+
+        // `z` is a mutable mutable reference, changes affect the original, and `z` can be changed within `f`
+        z^ += 4
+        z = y
+    }
+
+
+
+    // Slice mutability
+    let xs: [mut]Int = [mut](1, 2, 3)
+    // Mutable slice allows element modification
+     xs[0] = xs[1]
+
+
+
+    // Trait object mutability
+    // Mutable trait object - can call mutating methods
+    let mut counter: Int = 0
+    let counter_ref: &dyn mut Counter = &dyn mut counter
+    counter_ref.>value()
+    counter_ref.>increment()
+
+    // Immutable trait object - cannot call mutating methods
+    let immutable_counter: Int = 0
+    let immutable_counter_ref: &dyn Counter = &dyn immutable_counter
+    immutable_counter_ref.>value()
+    // immutable_counter_ref.>increment() // ERROR! Cannot call `mut` trait methods
+}
+
+trait Counter {
+    virtual fn value(&self) -> Int
+    virtual fn increment(&mut self) -> ()
+                        // ^ The `mut` keyword is added before the `self` reference
+}
+
+impl Counter for Int {
+    virtual fn value(&self) -> Int {
+        self^
+    }
+
+    virtual fn increment(&mut self) -> () {
+        self^ += 1
+    }
+}
