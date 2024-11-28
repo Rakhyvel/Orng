@@ -1,0 +1,25 @@
+// Generics in Orng are done using compile-time evaluation
+fn Linked_List(const T: Type) -> Type {
+    (
+        next: ?&T
+        prev: ?&T
+    )
+}
+
+impl for Linked_List($T) {
+    fn new() -> Self {
+        (.none, .none)
+    }
+
+    fn append(&mut self, elem: T) {
+        // ...
+    }
+}
+
+fn main() {
+    let mut my_list = Linked_List(Int)::new()
+    
+    my_list.>append(1)
+    my_list.>append(2)
+    my_list.>append(3)
+}

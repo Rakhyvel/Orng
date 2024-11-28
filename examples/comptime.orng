@@ -1,0 +1,34 @@
+fn main() -> () {
+    // Run any function at compile-time
+    const factorial_5 = comptime { factorial(5) }
+    fn factorial(n: Int) -> Int {
+        if n <= 1 { 1 } else { n * factorial(n - 1) }
+    }
+
+
+    // Validate constraints and invariants at compile-time
+    const size = 10
+    comptime {assert(size > 0, "Array size must be greater than 0")}
+    let arr: [size]Int
+    _ = arr
+
+
+    // Type manipulation at compile-time
+    const My_Type = comptime { select_type(64) }
+    fn select_type(bits: Int) -> Type {
+        if bits == 32 { Int32 }
+        else if bits == 64 { Int }
+        else { unreachable }
+    }
+    let x: My_Type = 100
+    _ = x
+
+
+    // System-specific logic
+    const system_bits: (bits_64 | bits_32) = .bits_32
+    if comptime { system_bits == .bits_32 } {
+        debug::println("This code is inlined!")
+    } else {
+        debug::println("This code is removed!")
+    }
+}

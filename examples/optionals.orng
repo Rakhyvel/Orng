@@ -1,0 +1,19 @@
+fn main() {
+    // A basic optional
+    let mut x: ?Int = .some(4)
+
+    // Setting to `.none` indicates nothing is stored
+    x = .none
+
+    // Setting to `.some()` indicates something is stored
+    x = .some(113)
+    debug::assert(x.some == 113)
+
+    // Orelse returns the lhs if it's not .none, orelse returns the rhs
+    let y: ?Int = .none
+    debug::assert(y orelse 45 == 45)
+
+    // `if` statements without an else return an optional
+    let z: ?Int = if x == .some(113) { 4 }
+    debug::assert(z.some == 4)
+}
