@@ -473,24 +473,6 @@
     - [ ] `@type_info()` and `@Type_Info()`, which give and are type reflection respectively
     - [ ] `@insert()`, which takes a comptime string and returns comptime AST structure
 
-### Online precense
-- [ ] Make sure examples showcase:
-    > You can give Claude the readme, an ok example, and then ask it to give a better
-    * Null Safety with Optionals
-    * Errors
-    * Anonymous functions?
-    * First-class types [general type unification]
-    * Parametric effect system
-    * C interoperability
-- [ ] Basic documentation
-    * Cleanup the verbiage in the rationale doc
-    * Installation guide
-    * Quick start tutorial
-    * Language reference document
-    * Comparison with other languages (highlight Orng's key features)
-- [ ] WEBSITE!
-- [ ] Advertise, video
-
 ### Maybe Pile
 - [ ] `undefined` (does this break some optimization assumptions?)
 

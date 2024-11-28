@@ -7,15 +7,18 @@ fn main() -> () {
     //                     ^ ...or can leave to be infered, if possible
     debug::assert(red_color == Color.red)
 
+
     // Sum type with named variants and associated values
     const Int_Or_Bool = (int: Int | bool: Bool)
     
+
     // Create variants using the type's name
     let int_variant: Int_Or_Bool = Int_Or_Bool.int(42)
     let bool_variant: Int_Or_Bool = Int_Or_Bool.bool(true)
     
     debug::assert(int_variant.int == 42)
     debug::assert(bool_variant.bool == true)
+
 
     // Sum type with default values
     const DefaultInt_Or_Bool = (int: Int = 102 | bool: Bool = false)
@@ -24,6 +27,7 @@ fn main() -> () {
     
     debug::assert(default_int.int == 102)
     debug::assert(default_bool.bool == false)
+
 
     // Nested sum types
     const Nested_Type = (
@@ -44,6 +48,7 @@ fn main() -> () {
     
     debug::assert(nested_result == 1)
 
+
     // Sum type unions
     const A = (aa: Int | ab: String)
     const B = (ba: Int | bb: String)
@@ -57,6 +62,7 @@ fn main() -> () {
     
     union_var = .ba(108)
     debug::assert(union_var.ba == 108)
+
 
     // Pattern matching with sum types
     const FizzBuzzResult = (
@@ -81,6 +87,7 @@ fn main() -> () {
     
     debug::assert(match_result == 8)
 
+    
     // Sum type with unit variants
     const UnitType = (a | b | c)
     let unit_var: UnitType = UnitType.a({})
