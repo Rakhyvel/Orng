@@ -149,7 +149,6 @@ fn lower_AST(
 
             var expanded_expr_type = expr.get_expanded_type();
             // Trying error sum, runtime check if error, branch to error path
-            // TODO: De-duplicate 2
             const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
             cfg.append_instruction(ir_.IR.init_get_tag(condition, expr, ast.token().span, allocator)); // `ok` is zero, `err`s are nonzero
             cfg.append_instruction(ir_.IR.init_branch(condition, err_label, ast.token().span, allocator));
@@ -437,7 +436,6 @@ fn lower_AST(
             if (ast.@"while".post) |post| { // do `post` if there's a post, jump to end_label to break
                 _ = try lower_AST(cfg, post, post_labels, errors, allocator);
             }
-            // TODO: De-duplicate 2
             cfg.append_instruction(ir_.IR.init_jump(cond_label, ast.token().span, allocator));
 
             cfg.append_instruction(else_label);
@@ -626,7 +624,6 @@ fn binop(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!?*lval_.L_Value {
-    // TODO: De-duplicate 1
     const lhs_lval = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
     const rhs_lval = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
     if (lhs_lval == null or rhs_lval == null) {
@@ -713,7 +710,6 @@ fn tuple_equality_check(
     allocator: std.mem.Allocator,
 ) Lower_Errors!?*lval_.L_Value {
     std.debug.assert(ast.* == .equal or ast.* == .not_equal);
-    // TODO: De-duplicate 2
     const lhs = try lower_AST(cfg, ast.lhs(), labels, errors, allocator);
     const rhs = try lower_AST(cfg, ast.rhs(), labels, errors, allocator);
     if (lhs == null or rhs == null) {
@@ -784,7 +780,7 @@ fn coalesce_op(
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
     const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
-    // TODO: De-duplicate 1
+
     const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
     cfg.append_instruction(ir_.IR.init_get_tag(condition, lhs, ast.token().span, allocator));
     cfg.append_instruction(ir_.IR.init_branch(condition, zero_label, ast.token().span, allocator));
@@ -1022,7 +1018,6 @@ fn generate_match_pattern_check(
         .block,
         => {
             const value = (try lower_AST(cfg, pattern.?, labels, errors, allocator)) orelse return;
-            // TODO: De-duplicate with select/sum-value
             const condition = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
             cfg.append_instruction(ir_.IR.init(.equal, condition, expr, value, pattern.?.token().span, allocator));
             cfg.append_instruction(ir_.IR.init_branch(condition, next_pattern, pattern.?.token().span, allocator));
@@ -1046,7 +1041,6 @@ fn generate_match_pattern_check(
             cfg.append_instruction(ir_.IR.init_get_tag(tag, expr, pattern.?.token().span, allocator));
 
             // Compare them, jump to next pattern if they are not equal
-            // TODO: De-duplicate with primitives
             const neql = create_temp_lvalue(cfg, primitives_.bool_type, allocator);
             cfg.append_instruction(ir_.IR.init(.equal, neql, tag, sel, pattern.?.token().span, allocator));
             cfg.append_instruction(ir_.IR.init_branch(neql, next_pattern, pattern.?.token().span, allocator));

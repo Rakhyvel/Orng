@@ -18,7 +18,7 @@ const Decorate_Error = error{SymbolError};
 /// ## Errors:
 /// Errors out if symbols cannot be looked up. Error messages are added to the error manager.
 pub fn decorate_identifiers_from_list(
-    asts: std.ArrayList(*ast_.AST), // TODO: Accept slice
+    asts: std.ArrayList(*ast_.AST),
     scope: *symbol_.Scope,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,

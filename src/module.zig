@@ -456,7 +456,7 @@ pub fn stamp(
 
         const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, allocator);
         args.* = try ast_validate_.default_args(args.*, domain, errors, allocator);
-        _ = try ast_validate_.validate_args_arity(.function, args, domain, call_span, errors);
+        _ = try ast_validate_.validate_args_arity(.function, args.items, domain, call_span, errors);
 
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position
         // Combines the arg value and the position in the args/params list

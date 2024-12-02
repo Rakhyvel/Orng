@@ -46,7 +46,7 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
 fn output_forward_typedefs(
-    type_set: *type_set_.Type_Set, // TODO: Accept types slice
+    type_set: *type_set_.Type_Set,
     writer: Writer,
 ) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
@@ -66,7 +66,7 @@ fn output_forward_typedefs(
 
 /// Outputs typedefs based on the provided `Type_Set`.
 fn output_typedefs(
-    type_set: *type_set_.Type_Set, // TODO: Accept type slice
+    type_set: *type_set_.Type_Set,
     writer: Writer,
 ) CodeGen_Error!void {
     if (type_set.types.items.len > 0) {
@@ -138,7 +138,7 @@ fn output_typedef(
 
 /// Outputs the fields of a structure or union type based on the provided list of AST types.
 fn output_field_list(
-    fields: *std.ArrayList(*ast_.AST), // TODO: Accept slice
+    fields: *std.ArrayList(*ast_.AST),
     spaces: usize,
     writer: Writer,
 ) CodeGen_Error!void {
@@ -156,7 +156,7 @@ fn output_field_list(
 }
 
 fn output_traits(
-    traits: *std.ArrayList(*ast_.AST), // TODO: Accept slice
+    traits: *std.ArrayList(*ast_.AST),
     writer: Writer,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo
@@ -238,7 +238,7 @@ fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), wri
 
 /// Applies a function to all CFGs in a list of CFGs.
 fn forall_functions(
-    cfgs: *std.ArrayList(*cfg_.CFG), // TODO: Accept slice
+    cfgs: *std.ArrayList(*cfg_.CFG),
     header_comment: []const u8,
     writer: Writer,
     comptime f: fn (*cfg_.CFG, Writer) CodeGen_Error!void,
@@ -264,7 +264,7 @@ fn output_forward_function(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void {
 }
 
 fn output_impls(
-    impls: *std.ArrayList(*ast_.AST), // TODO: Accept slice
+    impls: *std.ArrayList(*ast_.AST),
     writer: Writer,
 ) CodeGen_Error!void {
     if (impls.items.len > 0) {
@@ -666,15 +666,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .call => {
             // TODO: De-duplicate 2
-            const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
-            const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
-            if (!symbol_used) {
-                try writer.print("    (void) ", .{});
-            } else if (!void_fn) {
-                try output_var_assign(ir.dest.?, writer);
-            } else {
-                try writer.print("    ", .{});
-            }
+            try output_call_prefix(ir, writer);
             try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             try writer.print("(", .{});
             for (ir.data.lval_list.items, 0..) |term, i| {
@@ -690,16 +682,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .invoke => {
             // FIXME: High Cyclo
-            // TODO: De-duplicate 1
-            const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
-            const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
-            if (!symbol_used) {
-                try writer.print("    (void) ", .{});
-            } else if (!void_fn) {
-                try output_var_assign(ir.dest.?, writer);
-            } else {
-                try writer.print("    ", .{});
-            }
+            try output_call_prefix(ir, writer);
             if (!ir.data.invoke.method_decl.method_decl.is_virtual) {
                 // method is non-virtual
                 // { method name }({ args })
@@ -760,6 +743,19 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             );
         },
         else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)}),
+    }
+}
+
+/// Outputs C code for the prefix of a call
+fn output_call_prefix(ir: *ir_.IR, writer: anytype) !void {
+    const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
+    const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
+    if (!symbol_used) {
+        try writer.print("    (void) ", .{});
+    } else if (!void_fn) {
+        try output_var_assign(ir.dest.?, writer);
+    } else {
+        try writer.print("    ", .{});
     }
 }
 

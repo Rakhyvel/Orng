@@ -186,7 +186,7 @@ pub const Context = struct {
     fn move_lval_list(
         self: *Context,
         dest: i64,
-        list: *std.ArrayList(*lval_.L_Value), // TODO: Slice only
+        list: *std.ArrayList(*lval_.L_Value),
     ) !void {
         std.debug.assert(dest >= 0);
         var cursor = dest;

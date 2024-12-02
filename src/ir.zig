@@ -388,7 +388,7 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
     }
 
     fn print_lval_list(
-        lval_list: std.ArrayList(*lval_.L_Value), // TODO: Slice
+        lval_list: std.ArrayList(*lval_.L_Value),
         writer: anytype,
     ) !void {
         for (lval_list.items, 0..) |lval, i| {
