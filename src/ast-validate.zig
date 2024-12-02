@@ -1113,33 +1113,11 @@ fn validate_AST_internal(
 
             if (ast.@"if".condition.* == .true and ast.else_block() != null) {
                 // condition is true and theres an else => return {let; body}
-                // TODO: De-duplicate this code! 1
-                if (ast.@"if".let != null) {
-                    if (ast.body_block().* == .block) {
-                        ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
-                    } else if (ast.body_block().* == .unit_value) {
-                        var statements = std.ArrayList(*ast_.AST).init(allocator);
-                        statements.append(ast.@"if".let.?) catch unreachable;
-                        const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
-                        block.block.scope = ast.@"if".scope.?;
-                        ast.set_body_block(block);
-                    }
-                }
+                inset_let_into_if(ast, allocator);
                 return ast.body_block();
             } else if (ast.@"if".condition.* == .true and ast.else_block() == null) {
                 // condition is true and theres no else => return {let; some(body)}
-                // TODO: De-duplicate this code! 2
-                if (ast.@"if".let != null) {
-                    if (ast.body_block().* == .block) {
-                        ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
-                    } else if (ast.body_block().* == .unit_value) {
-                        var statements = std.ArrayList(*ast_.AST).init(allocator);
-                        statements.append(ast.@"if".let.?) catch unreachable;
-                        const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
-                        block.block.scope = ast.@"if".scope.?;
-                        ast.set_body_block(block);
-                    }
-                }
+                inset_let_into_if(ast, allocator);
                 const opt_type = ast_.AST.create_optional_type(ast.body_block().typeof(allocator), allocator);
                 const retval = ast_.AST.create_some_value(opt_type, ast.body_block(), allocator);
                 return retval;
@@ -1533,6 +1511,20 @@ fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.S
     }
 }
 
+fn inset_let_into_if(ast: *ast_.AST, allocator: std.mem.Allocator) void {
+    if (ast.@"if".let != null) {
+        if (ast.body_block().* == .block) {
+            ast.body_block().children().insert(0, ast.@"if".let.?) catch unreachable;
+        } else if (ast.body_block().* == .unit_value) {
+            var statements = std.ArrayList(*ast_.AST).init(allocator);
+            statements.append(ast.@"if".let.?) catch unreachable;
+            const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
+            block.block.scope = ast.@"if".scope.?;
+            ast.set_body_block(block);
+        }
+    }
+}
+
 // This has to be public for stamps to use it when fleshing out the default args
 // This has to be ok to do twice for the same args, because stamps have to do it internally.
 pub fn default_args(
@@ -1558,7 +1550,7 @@ pub fn default_args(
 ///
 /// Throws `error.TypeError` if there is a mix of positional and named arguments.
 fn args_are_named(
-    asts: std.ArrayList(*ast_.AST), // TODO: This could be replaced with just a slice of ASTs
+    asts: []*ast_.AST,
     errors: *errs_.Errors,
 ) Validate_Error_Enum!bool {
     if (asts.items.len == 0) {
@@ -1643,7 +1635,7 @@ fn positional_args(
 }
 
 fn named_args(
-    asts: std.ArrayList(*ast_.AST), // TODO: This could be replaced with just a slice of ASTs
+    asts: std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -1721,7 +1713,7 @@ fn named_args(
 /// Validates that the number of arguments matches the number of parameters
 pub fn validate_args_arity(
     thing: Validate_Args_Thing,
-    args: *std.ArrayList(*ast_.AST), // TODO: This could be replaced with just a slice of ASTs
+    args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     span: span_.Span,
     errors: *errs_.Errors,
@@ -1742,7 +1734,7 @@ pub fn validate_args_arity(
 
 /// Validates just that each argument's type matches its corresponding parameter's type. Assumes arity is valid.
 pub fn validate_args_type(
-    args: *std.ArrayList(*ast_.AST), // TODO: This could be replaced with a slice of ASTs
+    args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -1758,7 +1750,7 @@ pub fn validate_args_type(
 }
 
 fn remove_const_args(
-    params: std.ArrayList(*ast_.AST), // TODO: This could be replaced with a slice of ASTs
+    params: std.ArrayList(*ast_.AST),
     args: *std.ArrayList(*ast_.AST),
 ) void {
     var param_idx: usize = 0;
@@ -1808,7 +1800,7 @@ fn merge_sums(
 }
 
 fn put_many_annot_map(
-    asts: *std.ArrayList(*ast_.AST), // TODO: This could be replaced with just a slice of ASTs
+    asts: *std.ArrayList(*ast_.AST),
     new_terms: *std.ArrayList(*ast_.AST),
     map: *std.StringArrayHashMap(*ast_.AST),
     errors: *errs_.Errors,

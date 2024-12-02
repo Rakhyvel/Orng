@@ -199,7 +199,6 @@ pub const Parser = struct {
 
     fn let_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.let_pattern_atom();
-        // TODO: De-duplicate 2
         var terms: ?std.ArrayList(*ast_.AST) = null;
         var firsttoken_: ?token_.Token = null;
         while (self.accept(.comma)) |token| {
@@ -261,7 +260,6 @@ pub const Parser = struct {
         const exp = try self.product_expr();
         var terms: ?std.ArrayList(*ast_.AST) = null;
         var firsttoken_: ?token_.Token = null;
-        // TODO: De-duplicate 2
         while (self.accept(.bar)) |token| {
             if (terms == null) {
                 terms = std.ArrayList(*ast_.AST).init(self.allocator);
@@ -284,10 +282,8 @@ pub const Parser = struct {
     // TODO: Basically identical to sum_type, fix it!
     fn product_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.annotation_expr();
-        // TODO: De-duplicate 3
         var terms: ?std.ArrayList(*ast_.AST) = null;
         var firsttoken_: ?token_.Token = null;
-        // TODO: De-duplicate 1
         while (self.accept(.comma)) |token| {
             if (terms == null) {
                 terms = std.ArrayList(*ast_.AST).init(self.allocator);
@@ -601,7 +597,6 @@ pub const Parser = struct {
         } else if (self.peek_kind(.@"fn")) {
             return self.fn_declaration();
         } else if (self.accept(.period)) |_| {
-            // TODO: De-duplicate 1
             const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
             if (self.accept(.left_parenthesis) != null) {
                 if (!self.peek_kind(.right_parenthesis)) {
@@ -782,8 +777,7 @@ pub const Parser = struct {
         const token = try self.expect(.left_parenthesis);
         if (self.peek_kind(.mut) or self.peek_kind(.@"const") or self.peek_kind(.left_parenthesis) or self.peek_kind(.identifier)) {
             params.append(try self.param()) catch unreachable;
-            
-            // TODO: De-duplicate 2
+
             while (self.accept(.comma)) |_| {
                 params.append(try self.param()) catch unreachable;
             }
@@ -873,7 +867,6 @@ pub const Parser = struct {
     }
 
     fn method_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        // TODO: De-duplicate 1
         const virtual = self.accept(.virtual);
         const introducer = try self.expect(.@"fn");
         const name: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
@@ -904,7 +897,6 @@ pub const Parser = struct {
     }
 
     fn method_definition(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        // TODO: De-duplicate 2
         const virtual = self.accept(.virtual);
         const introducer = try self.expect(.@"fn");
         const name: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
@@ -948,7 +940,6 @@ pub const Parser = struct {
             } else {
                 params.append(try self.param()) catch unreachable;
             }
-            // TODO: De-duplicate 1
             while (self.accept(.comma)) |_| {
                 params.append(try self.param()) catch unreachable;
             }
@@ -1050,7 +1041,6 @@ pub const Parser = struct {
                 return ast_.AST.create_symbol(token, .let, token.data, self.allocator);
             }
         } else if (self.accept(.period)) |_| {
-            // TODO: De-duplicate 2
             const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
             if (self.accept(.left_parenthesis) != null) {
                 if (!self.peek_kind(.right_parenthesis)) {
@@ -1070,7 +1060,6 @@ pub const Parser = struct {
 
     fn match_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.match_pattern_sum_value();
-        // TODO: De-duplicate 1
         var terms: ?std.ArrayList(*ast_.AST) = null;
         var firsttoken_: ?token_.Token = null;
         while (self.accept(.comma)) |token| {

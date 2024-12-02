@@ -77,7 +77,6 @@
 - [x] Write a python script to look for duplicate code!
 - [x] Error if non-unit/non-void expression in block that isn't the final expression (this must be discarded, discards are unit typed)
 - [x] Figure out how to do lints before GCC does
-- [ ] Do "accept slice" todos
 - [ ] Deduplication
 - [ ] AST walker struct
 - [ ] Go through MISRA when writing reqs

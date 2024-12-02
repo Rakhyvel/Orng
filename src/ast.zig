@@ -1833,7 +1833,7 @@ pub const AST = union(enum) {
 
     /// Expand the types of each AST in a list
     fn expand_type_list(
-        asts: *std.ArrayList(*AST), // TODO: Just take in a slice of ASTs
+        asts: *std.ArrayList(*AST),
         allocator: std.mem.Allocator,
     ) ?std.ArrayList(*AST) {
         var terms = std.ArrayList(*AST).init(allocator);
