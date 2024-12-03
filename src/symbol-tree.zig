@@ -208,6 +208,7 @@ fn symbol_table_from_AST(
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
                     if (symbol.kind != .@"const") {
+                        std.debug.print("{}\n", .{ast.decl.pattern.pattern_symbol.kind});
                         errors.add_error(errs_.Error{ .basic = .{
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",
@@ -449,6 +450,7 @@ fn create_symbol(
                 try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
             }
         },
+        // Likely literals etc, for `match` mappings
         else => {},
     }
 }

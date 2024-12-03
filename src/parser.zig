@@ -82,7 +82,13 @@ pub const Parser = struct {
 
     fn next_is_statement(self: *Parser) bool {
         const next_kind = self.peek().kind;
-        return next_kind == .let or next_kind == .impl or next_kind == .trait or next_kind == .@"defer" or next_kind == .@"errdefer" or self.next_is_expr();
+        return next_kind == .let or
+            next_kind == .@"const" or
+            next_kind == .impl or
+            next_kind == .trait or
+            next_kind == .@"defer" or
+            next_kind == .@"errdefer" or
+            self.next_is_expr();
     }
 
     /// Returns the next token if its kind matches the given kind, otherwise
@@ -145,7 +151,7 @@ pub const Parser = struct {
     fn const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const token = try self.expect(.@"const");
 
-        const ident = try self.const_pattern_atom();
+        const pattern = try self.const_pattern_atom();
         var _type: ?*ast_.AST = null;
         var _init: ?*ast_.AST = null;
 
@@ -167,7 +173,7 @@ pub const Parser = struct {
 
         return ast_.AST.create_decl(
             token,
-            ident,
+            pattern,
             _type orelse ast_.AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
             _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
             false,
@@ -177,16 +183,8 @@ pub const Parser = struct {
 
     fn const_pattern_atom(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.peek_kind(.identifier)) {
-            var kind: symbol_.Symbol_Kind = undefined;
-            if (self.accept(.mut) != null) {
-                kind = .mut;
-            } else if (self.accept(.@"const") != null) {
-                kind = .@"const";
-            } else {
-                kind = .let;
-            }
             const identifier = try self.expect(.identifier);
-            return ast_.AST.create_symbol(identifier, kind, identifier.data, self.allocator);
+            return ast_.AST.create_symbol(identifier, .@"const", identifier.data, self.allocator);
         } else if (self.accept(.left_parenthesis)) |_| {
             const res = try self.const_pattern_product();
             _ = try self.expect(.right_parenthesis);
@@ -294,6 +292,11 @@ pub const Parser = struct {
         var retval: ?*ast_.AST = null;
         if (self.peek_kind(.let)) {
             retval = try self.let_declaration();
+        } else if (self.peek_kind(.@"const")) {
+            retval = try self.const_declaration();
+        }
+
+        if (retval != null) {
             if (self.peek_kind(.semicolon)) {
                 _ = self.expect(.semicolon) catch {};
             } else {
