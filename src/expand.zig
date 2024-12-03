@@ -78,6 +78,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
         .@"orelse",
         .index,
         .select,
+        .access,
         .function,
         .invoke,
         .@"union",

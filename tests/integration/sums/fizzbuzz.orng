@@ -3,7 +3,7 @@ fn main()-> String {
     fizzbuzz(30).string
 }
 
-let const Fizz_Buzz_Result: Type = (
+const Fizz_Buzz_Result: Type = (
     string: String
     | integer: Int)
 

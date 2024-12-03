@@ -155,6 +155,7 @@ pub fn decorate_identifiers(
         .@"orelse",
         .index,
         .select,
+        .access,
         .function,
         .@"union",
         => {

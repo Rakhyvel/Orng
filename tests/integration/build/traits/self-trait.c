@@ -27,85 +27,85 @@ typedef int64_t(*function2)(int64_t*, int64_t*);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1787_main(void);
-int64_t _1780_cmp(void* _1780_$self_ptr, int64_t* _1780_other);
+int64_t _199_main(void);
+int64_t _192_cmp(void* _192_$self_ptr, int64_t* _192_other);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1787_main(void){
-    int64_t _1788_x;
-    int64_t _1788_y;
-    int64_t* _1787_t6;
-    int64_t* _1787_t7;
-    function2 _1787_t8;
-    int64_t _1787_t5;
-    int64_t _1787_t9;
-    uint8_t _1787_t11;
-    int64_t _1787_$retval;
-    _1788_x = 5;
-    _1788_y = 6;
-    _1787_t6 = &_1788_x;
-    _1787_t7 = &_1788_y;
-    _1787_t8 = (function2) _1780_cmp;
+int64_t _199_main(void){
+    int64_t _200_x;
+    int64_t _200_y;
+    int64_t* _199_t6;
+    int64_t* _199_t7;
+    function2 _199_t8;
+    int64_t _199_t5;
+    int64_t _199_t9;
+    uint8_t _199_t11;
+    int64_t _199_$retval;
+    _200_x = 5;
+    _200_y = 6;
+    _199_t6 = &_200_x;
+    _199_t7 = &_200_y;
+    _199_t8 = (function2) _192_cmp;
     $lines[$line_idx++] = "tests/integration/traits/self-trait.orng:21:11:\n    if x.>cmp(&y) == 1 {\n         ^";
-    _1787_t5 = _1787_t8(_1787_t6, _1787_t7);
+    _199_t5 = _199_t8(_199_t6, _199_t7);
     $line_idx--;
-    _1787_t9 = 1;
-    _1787_t11 = _1787_t5==_1787_t9;
-    if (_1787_t11) {
-        goto BB1956;
+    _199_t9 = 1;
+    _199_t11 = _199_t5==_199_t9;
+    if (_199_t11) {
+        goto BB129;
     } else {
-        goto BB1960;
+        goto BB133;
     }
-BB1956:
-    _1787_$retval = 301;
-    return _1787_$retval;
-BB1960:
+BB129:
+    _199_$retval = 301;
+    return _199_$retval;
+BB133:
     $lines[$line_idx++] = "tests/integration/traits/self-trait.orng:24:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
-int64_t _1780_cmp(void* _1780_$self_ptr, int64_t* _1780_other){
-    int64_t _1781_self;
-    uint8_t _1780_t2;
-    int64_t _1780_t1;
-    int64_t _1780_t5;
-    int64_t _1780_$retval;
-    uint8_t _1780_t7;
-    _1781_self = *(int64_t*)_1780_$self_ptr;
-    _1780_t2 = _1781_self>*_1780_other;
-    if (_1780_t2) {
-        goto BB1940;
+int64_t _192_cmp(void* _192_$self_ptr, int64_t* _192_other){
+    int64_t _193_self;
+    uint8_t _192_t2;
+    int64_t _192_t1;
+    int64_t _192_t5;
+    int64_t _192_$retval;
+    uint8_t _192_t7;
+    _193_self = *(int64_t*)_192_$self_ptr;
+    _192_t2 = _193_self>*_192_other;
+    if (_192_t2) {
+        goto BB113;
     } else {
-        goto BB1944;
+        goto BB117;
     }
-BB1940:
-    _1780_t1 = -1;
-    goto BB1943;
-BB1944:
-    _1780_t7 = _1781_self==*_1780_other;
-    if (_1780_t7) {
-        goto BB1947;
+BB113:
+    _192_t1 = -1;
+    goto BB116;
+BB117:
+    _192_t7 = _193_self==*_192_other;
+    if (_192_t7) {
+        goto BB120;
     } else {
-        goto BB1950;
+        goto BB123;
     }
-BB1943:
-    _1780_$retval = _1780_t1;
-    return _1780_$retval;
-BB1947:
-    _1780_t5 = 0;
-    goto BB1949;
-BB1950:
-    _1780_t5 = 1;
-    goto BB1949;
-BB1949:
-    _1780_t1 = _1780_t5;
-    goto BB1943;
+BB116:
+    _192_$retval = _192_t1;
+    return _192_$retval;
+BB120:
+    _192_t5 = 0;
+    goto BB122;
+BB123:
+    _192_t5 = 1;
+    goto BB122;
+BB122:
+    _192_t1 = _192_t5;
+    goto BB116;
 }
 
 
 int main(void) {
-  printf("%ld",_1787_main());
+  printf("%ld",_199_main());
   return 0;
 }

@@ -398,7 +398,8 @@
         - [x] template-call in template function
         - [x] generic types without `comptime` keyword
     - [x] memoize expanded call types
-    - [ ] trait constants
+    - [ ] impl constants
+        - [ ] type methods
     - [ ] generic traits
         > simply stamps out a trait instead, yeah?
     - [ ] generic type unification
@@ -504,8 +505,8 @@
     - [ ] HashMap
 - [ ] Memory
     - [ ] `trait Allocator`
-    - [ ] `let const Fixed_Buffer_Allocator`
-    - [ ] `let const Arena_Allocator`
+    - [ ] `const Fixed_Buffer_Allocator`
+    - [ ] `const Arena_Allocator`
     - [ ] `impl Eq for []T\Eq`
 - [ ] Strings
     - [ ] String Buffer
@@ -533,7 +534,7 @@
 - [ ] Rand
     - [ ] `prng()`
 - [ ] File System
-    - [ ] `let const MAX_PATH_BYTES`
+    - [ ] `const max_path_bytes`
     - [ ] `realpath()`
     - [ ] `cwd()`
 - [ ] Math

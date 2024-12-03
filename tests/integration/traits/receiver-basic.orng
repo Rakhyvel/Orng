@@ -3,7 +3,7 @@ trait My_Trait {
     fn a(self, x: Int) -> Int
 }
 
-let const My_Type = (x: Int, y: Int)
+const My_Type = (x: Int, y: Int)
 
 impl My_Trait for My_Type {
     fn a(self, x: Int) -> Int { self.x + self.y * x }

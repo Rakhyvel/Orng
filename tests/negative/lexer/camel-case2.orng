@@ -1,4 +1,4 @@
-let const C4Mel: Type = Int
+const C4Mel: Type = Int
 
 fn main() -> Int {
     4

@@ -1,1 +1,1 @@
-let const a: Bool = (0, []1)
+const a: Bool = (0, []1)

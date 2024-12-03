@@ -1,5 +1,5 @@
 // 240
-let const My_Type = (a: Int, b: Int)
+const My_Type = (a: Int, b: Int)
 
 fn main() -> Int {
     let x: My_Type = (200, 40)

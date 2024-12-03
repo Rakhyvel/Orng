@@ -1,5 +1,5 @@
 // 215
-let const My_Type = (a | b | c)
+const My_Type = (a | b | c)
 
 fn main() -> Int {
     let x: [3]My_Type = (.a, .b, .c)

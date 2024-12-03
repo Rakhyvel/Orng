@@ -1,0 +1,12 @@
+// 326
+trait Has_Constant {
+    const the_constant: Int
+}
+
+impl Has_Constant for Byte {
+    const the_constant: Int = 326
+}
+
+fn main() -> Int {
+    Byte::the_constant
+}

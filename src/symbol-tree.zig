@@ -109,6 +109,7 @@ fn symbol_table_from_AST(
         .lesser_equal,
         .index,
         .select,
+        .access,
         .function,
         .@"union",
         .@"catch",

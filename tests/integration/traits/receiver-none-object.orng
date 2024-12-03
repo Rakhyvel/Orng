@@ -3,7 +3,7 @@ trait My_Trait {
     virtual fn d(x: Int, y: Int) -> Int
 }
 
-let const My_Type = (x: Int, y: Int)
+const My_Type = (x: Int, y: Int)
 
 impl My_Trait for My_Type {
     virtual fn d(x: Int, y: Int) -> Int {

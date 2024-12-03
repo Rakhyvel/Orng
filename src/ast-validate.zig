@@ -1550,7 +1550,7 @@ pub fn default_args(
 ///
 /// Throws `error.TypeError` if there is a mix of positional and named arguments.
 fn args_are_named(
-    asts: []*ast_.AST,
+    asts: std.ArrayList(*ast_.AST),
     errors: *errs_.Errors,
 ) Validate_Error_Enum!bool {
     if (asts.items.len == 0) {

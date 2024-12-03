@@ -1,6 +1,6 @@
 // 308
 fn main() -> Int {
-    let const My_Type = (a | b | c)
+    const My_Type = (a | b | c)
     let x: My_Type = My_Type.a({})
     match x {
         .a() => 308

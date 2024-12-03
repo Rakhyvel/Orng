@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _109_main(void);
+int64_t _100_main(void);
 
 
 /* Function definitions */
-int64_t _109_main(void){
-    int64_t _109_$retval;
-    _109_$retval = 241;
-    return _109_$retval;
+int64_t _100_main(void){
+    int64_t _100_$retval;
+    _100_$retval = 241;
+    return _100_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_109_main());
+  printf("%ld",_100_main());
   return 0;
 }

@@ -16,24 +16,24 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1862_main(void);
+int64_t _1872_main(void);
 
 
 /* Function definitions */
-int64_t _1862_main(void){
-    int64_t _1862_t1;
-    int64_t _1862_t2;
-    struct struct0 _1863_x;
-    int64_t _1862_$retval;
-    _1862_t1 = 20;
-    _1862_t2 = 3;
-    _1863_x = (struct struct0) {_1862_t1, _1862_t2};
-    _1862_$retval = $mult_int64_t(_1863_x._0, _1863_x._1, "tests/integration/tuples/named-field.orng:4:10:\n    x.a * x.b\n        ^");
-    return _1862_$retval;
+int64_t _1872_main(void){
+    int64_t _1872_t1;
+    int64_t _1872_t2;
+    struct struct0 _1873_x;
+    int64_t _1872_$retval;
+    _1872_t1 = 20;
+    _1872_t2 = 3;
+    _1873_x = (struct struct0) {_1872_t1, _1872_t2};
+    _1872_$retval = $mult_int64_t(_1873_x._0, _1873_x._1, "tests/integration/tuples/named-field.orng:4:10:\n    x.a * x.b\n        ^");
+    return _1872_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1862_main());
+  printf("%ld",_1872_main());
   return 0;
 }

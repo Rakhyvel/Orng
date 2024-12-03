@@ -19,25 +19,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1514_main(void);
+int64_t _1524_main(void);
 
 
 /* Function definitions */
-int64_t _1514_main(void){
-    int64_t _1514_t0;
-    struct struct0 _1515_x;
-    uint64_t _1514_t3;
-    int64_t _1514_$retval;
-    _1514_t0 = 102;
-    _1515_x = (struct struct0) {.tag=0, ._0=_1514_t0};
-    _1514_t3 = 0;
-    $tag_check(_1514_t3, 0, "tests/integration/sums/default.orng:4:8:\nfn main() -> Int {\n      ^");
-    _1514_$retval = _1515_x._0;
-    return _1514_$retval;
+int64_t _1524_main(void){
+    int64_t _1524_t0;
+    struct struct0 _1525_x;
+    uint64_t _1524_t3;
+    int64_t _1524_$retval;
+    _1524_t0 = 102;
+    _1525_x = (struct struct0) {.tag=0, ._0=_1524_t0};
+    _1524_t3 = 0;
+    $tag_check(_1524_t3, 0, "tests/integration/sums/default.orng:4:8:\nfn main() -> Int {\n      ^");
+    _1524_$retval = _1525_x._0;
+    return _1524_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1514_main());
+  printf("%ld",_1524_main());
   return 0;
 }

@@ -166,6 +166,12 @@ pub const AST = union(enum) {
         _rhs: *AST,
         _pos: ?usize,
     },
+    access: struct {
+        common: AST_Common,
+        _lhs: *AST,
+        _rhs: *AST,
+        _pos: ?usize,
+    },
     function: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     trait: struct {
         common: AST_Common,
@@ -647,6 +653,11 @@ pub const AST = union(enum) {
         return AST.box(AST{ .select = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._pos = null } }, allocator);
     }
 
+    pub fn create_access(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
+        const _common: AST_Common = .{ ._token = _token };
+        return AST.box(AST{ .access = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs, ._pos = null } }, allocator);
+    }
+
     pub fn create_sum_type(_token: token_.Token, terms: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .sum_type = .{ .common = AST_Common{ ._token = _token, ._type = null }, ._terms = terms } }, allocator);
     }
@@ -1094,6 +1105,12 @@ pub const AST = union(enum) {
                 allocator,
             ),
             .select => return create_select(
+                self.token(),
+                self.lhs().clone(allocator),
+                self.rhs().clone(allocator),
+                allocator,
+            ),
+            .access => return create_access(
                 self.token(),
                 self.lhs().clone(allocator),
                 self.rhs().clone(allocator),
@@ -2607,6 +2624,9 @@ pub const AST = union(enum) {
             .index => try out.writer().print("index({}, {})", .{ self.lhs(), self.rhs() }),
             .select => {
                 try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });
+            },
+            .access => {
+                try out.writer().print("access({},{})", .{ self.lhs(), self.rhs() });
             },
             .function => try out.writer().print("function({},{})", .{ self.lhs(), self.rhs() }),
             .trait => try out.writer().print("trait()", .{}),

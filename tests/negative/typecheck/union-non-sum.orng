@@ -1,4 +1,4 @@
 fn main() -> Int {
-    let const A = Int || Float
+    const A = Int || Float
     0
 }

@@ -1,6 +1,6 @@
 // 286
-let const A = (x: ?&B, y: Int)
-let const B = (x: ?&A, y: Int)
+const A = (x: ?&B, y: Int)
+const B = (x: ?&A, y: Int)
 
 fn main() -> Int {
     let mut a: A = (.none, 200)
