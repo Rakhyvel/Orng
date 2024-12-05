@@ -151,7 +151,8 @@ pub const Parser = struct {
     fn const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const token = try self.expect(.@"const");
 
-        const pattern = try self.const_pattern_atom();
+        const identifier = try self.expect(.identifier);
+        const pattern = ast_.AST.create_symbol(identifier, .@"const", identifier.data, self.allocator);
         var _type: ?*ast_.AST = null;
         var _init: ?*ast_.AST = null;
 
@@ -179,39 +180,6 @@ pub const Parser = struct {
             false,
             self.allocator,
         );
-    }
-
-    fn const_pattern_atom(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        if (self.peek_kind(.identifier)) {
-            const identifier = try self.expect(.identifier);
-            return ast_.AST.create_symbol(identifier, .@"const", identifier.data, self.allocator);
-        } else if (self.accept(.left_parenthesis)) |_| {
-            const res = try self.const_pattern_product();
-            _ = try self.expect(.right_parenthesis);
-            return res;
-        } else {
-            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a pattern expression here", .got = self.peek() } });
-            return Parser_Error_Enum.ParseError;
-        }
-    }
-
-    fn const_pattern_product(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const exp = try self.const_pattern_atom();
-        var terms: ?std.ArrayList(*ast_.AST) = null;
-        var firsttoken_: ?token_.Token = null;
-        while (self.accept(.comma)) |token| {
-            if (terms == null) {
-                terms = std.ArrayList(*ast_.AST).init(self.allocator);
-                firsttoken_ = token;
-                terms.?.append(exp) catch unreachable;
-            }
-            terms.?.append(try self.const_pattern_atom()) catch unreachable;
-        }
-        if (terms) |terms_list| {
-            return ast_.AST.create_product(firsttoken_.?, terms_list, self.allocator);
-        } else {
-            return exp;
-        }
     }
 
     fn let_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -925,7 +893,7 @@ pub const Parser = struct {
         while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         while (self.peek_kind(.@"fn") or self.peek_kind(.virtual) or self.peek_kind(.@"const")) {
             if (self.peek_kind(.@"const")) {
-                const_decls.append(try self.trait_constant_declaration()) catch unreachable;
+                const_decls.append(try self.const_declaration()) catch unreachable;
             } else {
                 method_decls.append(try self.method_declaration()) catch unreachable;
             }
@@ -933,7 +901,7 @@ pub const Parser = struct {
         }
 
         _ = try self.expect(.right_brace);
-        return ast_.AST.create_trait(trait_name, method_decls, self.allocator);
+        return ast_.AST.create_trait(trait_name, method_decls, const_decls, self.allocator);
     }
 
     fn impl_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -946,12 +914,12 @@ pub const Parser = struct {
         errdefer method_defs.deinit();
         var const_defs = std.ArrayList(*ast_.AST).init(self.allocator);
         errdefer const_defs.deinit();
-        const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, self.allocator);
+        const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, const_defs, self.allocator);
 
         while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         while (self.peek_kind(.@"fn") or self.peek_kind(.virtual) or self.peek_kind(.@"const")) {
             if (self.peek_kind(.@"const")) {
-                const_defs.append(try self.trait_constant_definition()) catch unreachable;
+                const_defs.append(try self.const_declaration()) catch unreachable;
             } else {
                 const method = try self.method_definition();
                 method.method_decl.impl = retval;
@@ -960,7 +928,8 @@ pub const Parser = struct {
             while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         }
         _ = try self.expect(.right_brace);
-        retval.set_children(method_defs);
+        retval.impl.method_defs = method_defs;
+        retval.impl.const_defs = const_defs;
         return retval;
     }
 
@@ -994,21 +963,6 @@ pub const Parser = struct {
         );
     }
 
-    fn trait_constant_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const token = try self.expect(.@"const");
-        const ident: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
-        _ = try self.expect(.single_colon);
-        const _type = try self.arrow_expr();
-        return ast_.AST.create_decl(
-            token,
-            ident,
-            _type,
-            null,
-            false,
-            self.allocator,
-        );
-    }
-
     fn method_definition(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const virtual = self.accept(.virtual);
         const introducer = try self.expect(.@"fn");
@@ -1037,24 +991,6 @@ pub const Parser = struct {
             ret_type,
             refinement,
             _init,
-            self.allocator,
-        );
-    }
-
-    fn trait_constant_definition(self: *Parser) Parser_Error_Enum!*ast_.AST {
-        const token = try self.expect(.@"const");
-        const ident: *ast_.AST = ast_.AST.create_identifier(try self.expect(.identifier), self.allocator);
-        _ = try self.expect(.single_colon);
-        const _type = try self.arrow_expr();
-        _ = try self.expect(.single_equals);
-        const _init = try self.arrow_expr();
-
-        return ast_.AST.create_decl(
-            token,
-            ident,
-            _type,
-            _init,
-            false,
             self.allocator,
         );
     }

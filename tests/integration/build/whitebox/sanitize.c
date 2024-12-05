@@ -21,33 +21,33 @@ typedef int64_t(*function0)(struct struct1);
 char* string_0 = "\x6D\x61\x6B\x65\x20\x73\x75\x72\x65\x20\x79\x6F\x75\x20\x73\x61\x6E\x69\x74\x69\x7A\x65\x20\x6D\x65\x21\x0A";
 
 /* Function forward definitions */
-int64_t _1991_main(void);
-int64_t _1993_f(struct struct1 _1993_x);
+int64_t _1997_main(void);
+int64_t _1999_f(struct struct1 _1999_x);
 
 
 /* Function definitions */
-int64_t _1991_main(void){
-    function0 _1991_t0;
-    struct struct1 _1991_t2;
-    int64_t _1991_t1;
-    int64_t _1991_$retval;
-    _1991_t0 = (function0) _1993_f;
-    _1991_t2 = (struct struct1) {(uint8_t*)string_0, 27};
+int64_t _1997_main(void){
+    function0 _1997_t0;
+    struct struct1 _1997_t2;
+    int64_t _1997_t1;
+    int64_t _1997_$retval;
+    _1997_t0 = (function0) _1999_f;
+    _1997_t2 = (struct struct1) {(uint8_t*)string_0, 27};
     $lines[$line_idx++] = "tests/integration/whitebox/sanitize.orng:3:7:\n    f(\"make sure you sanitize me!\\n\")\n     ^";
-    _1991_t1 = _1991_t0(_1991_t2);
+    _1997_t1 = _1997_t0(_1997_t2);
     $line_idx--;
-    _1991_$retval = _1991_t1;
-    return _1991_$retval;
+    _1997_$retval = _1997_t1;
+    return _1997_$retval;
 }
 
-int64_t _1993_f(struct struct1 _1993_x){
-    (void)_1993_x;
+int64_t _1999_f(struct struct1 _1999_x){
+    (void)_1999_x;
     $lines[$line_idx++] = "tests/integration/whitebox/sanitize.orng:8:16:\n    unreachable\n              ^";
     $panic("reached unreachable code\n");
 }
 
 
 int main(void) {
-  printf("%ld",_1991_main());
+  printf("%ld",_1997_main());
   return 0;
 }

@@ -199,11 +199,15 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
             try expand_from_list(ast.children().*, errors, allocator);
             try expand(ast.fn_decl.ret_type, errors, allocator);
         },
-        .trait => try expand_from_list(ast.children().*, errors, allocator),
+        .trait => {
+            try expand_from_list(ast.trait.method_decls, errors, allocator);
+            try expand_from_list(ast.trait.const_decls, errors, allocator);
+        },
         .impl => {
             try expand(ast.impl._type, errors, allocator);
             try expand(ast.impl.trait, errors, allocator);
-            try expand_from_list(ast.children().*, errors, allocator);
+            try expand_from_list(ast.impl.method_defs, errors, allocator);
+            try expand_from_list(ast.impl.const_defs, errors, allocator);
         },
         .method_decl => {
             try expand(ast.method_decl.init, errors, allocator);
