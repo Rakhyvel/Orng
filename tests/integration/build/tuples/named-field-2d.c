@@ -22,36 +22,36 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1859_main(void);
+int64_t _1875_main(void);
 
 
 /* Function definitions */
-int64_t _1859_main(void){
-    int64_t _1859_t2;
-    int64_t _1859_t3;
-    struct struct0 _1859_t1;
-    int64_t _1859_t5;
-    int64_t _1859_t6;
-    struct struct0 _1859_t4;
-    struct struct1 _1860_x;
-    int64_t _1859_t8;
-    int64_t _1859_t9;
-    int64_t _1859_$retval;
-    _1859_t2 = 25;
-    _1859_t3 = 75;
-    _1859_t1 = (struct struct0) {_1859_t2, _1859_t3};
-    _1859_t5 = 5;
-    _1859_t6 = 90;
-    _1859_t4 = (struct struct0) {_1859_t5, _1859_t6};
-    _1860_x = (struct struct1) {_1859_t1, _1859_t4};
-    _1859_t8 = $add_int64_t(_1860_x._0._0, _1860_x._0._1, "tests/integration/tuples/named-field-2d.orng:10:12:\n    x.a.c + x.a.d + x.b.e + x.b.f\n          ^");
-    _1859_t9 = $add_int64_t(_1859_t8, _1860_x._1._0, "tests/integration/tuples/named-field-2d.orng:10:20:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                  ^");
-    _1859_$retval = $add_int64_t(_1859_t9, _1860_x._1._1, "tests/integration/tuples/named-field-2d.orng:10:28:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                          ^");
-    return _1859_$retval;
+int64_t _1875_main(void){
+    int64_t _1875_t2;
+    int64_t _1875_t3;
+    struct struct0 _1875_t1;
+    int64_t _1875_t5;
+    int64_t _1875_t6;
+    struct struct0 _1875_t4;
+    struct struct1 _1876_x;
+    int64_t _1875_t8;
+    int64_t _1875_t9;
+    int64_t _1875_$retval;
+    _1875_t2 = 25;
+    _1875_t3 = 75;
+    _1875_t1 = (struct struct0) {_1875_t2, _1875_t3};
+    _1875_t5 = 5;
+    _1875_t6 = 90;
+    _1875_t4 = (struct struct0) {_1875_t5, _1875_t6};
+    _1876_x = (struct struct1) {_1875_t1, _1875_t4};
+    _1875_t8 = $add_int64_t(_1876_x._0._0, _1876_x._0._1, "tests/integration/tuples/named-field-2d.orng:10:12:\n    x.a.c + x.a.d + x.b.e + x.b.f\n          ^");
+    _1875_t9 = $add_int64_t(_1875_t8, _1876_x._1._0, "tests/integration/tuples/named-field-2d.orng:10:20:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                  ^");
+    _1875_$retval = $add_int64_t(_1875_t9, _1876_x._1._1, "tests/integration/tuples/named-field-2d.orng:10:28:\n    x.a.c + x.a.d + x.b.e + x.b.f\n                          ^");
+    return _1875_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1859_main());
+  printf("%ld",_1875_main());
   return 0;
 }

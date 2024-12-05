@@ -23,13 +23,13 @@ Thus, Orng shall:
     3. have *no* implicit fields    
 The same file above might look something like this in Orng:
 ```rust
-let const file1 = import("package-a/file1.orng")
-let const file2 = import("package-a/file2.orng")
-let const file3 = import("package-b/file3.orng")
+const file1 = import("package-a/file1.orng")
+const file2 = import("package-a/file2.orng")
+const file3 = import("package-b/file3.orng")
 // ...
-let const filen = import("package-c/filen.orng")
+const filen = import("package-c/filen.orng")
 
-let const Some_Struct = file2.Some_Struct
+const Some_Struct = file2.Some_Struct
 
 fn foo(self: &mut Some_Struct) -> () {
     self.bar = file1.qux()

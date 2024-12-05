@@ -1,1 +1,1 @@
-let x : unreachable = 3
+const x : unreachable = 3

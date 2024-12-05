@@ -82,7 +82,13 @@ pub const Parser = struct {
 
     fn next_is_statement(self: *Parser) bool {
         const next_kind = self.peek().kind;
-        return next_kind == .let or next_kind == .impl or next_kind == .trait or next_kind == .@"defer" or next_kind == .@"errdefer" or self.next_is_expr();
+        return next_kind == .let or
+            next_kind == .@"const" or
+            next_kind == .impl or
+            next_kind == .trait or
+            next_kind == .@"defer" or
+            next_kind == .@"errdefer" or
+            self.next_is_expr();
     }
 
     /// Returns the next token if its kind matches the given kind, otherwise
@@ -122,8 +128,8 @@ pub const Parser = struct {
     fn top_level_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.peek_kind(.@"fn")) {
             return try self.fn_declaration();
-        } else if (self.peek_kind(.let)) {
-            var decl: *ast_.AST = try self.let_declaration();
+        } else if (self.peek_kind(.@"const")) {
+            var decl: *ast_.AST = try self.const_declaration();
             if (!self.peek_kind(.EOF)) {
                 _ = try self.expect(.newline);
             }
@@ -135,11 +141,45 @@ pub const Parser = struct {
             return try self.impl_declaration();
         } else {
             self.errors.add_error(errs_.Error{ .expected_basic_token = .{
-                .expected = "`fn` or `let` declaration in the top level",
+                .expected = "`fn`, `trait`, `impl`, or `const` here",
                 .got = self.peek(),
             } });
             return Parser_Error_Enum.ParseError;
         }
+    }
+
+    fn const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const token = try self.expect(.@"const");
+
+        const identifier = try self.expect(.identifier);
+        const pattern = ast_.AST.create_symbol(identifier, .@"const", identifier.data, self.allocator);
+        var _type: ?*ast_.AST = null;
+        var _init: ?*ast_.AST = null;
+
+        if (self.accept(.single_colon)) |_| {
+            _type = try self.arrow_expr();
+            if (self.peek_kind(.single_equals)) {
+                _ = try self.expect(.single_equals);
+                _init = try self.arrow_expr();
+            }
+        } else if (self.accept(.single_equals)) |_| {
+            _init = try self.arrow_expr();
+        } else {
+            self.errors.add_error(errs_.Error{ .basic = .{
+                .span = self.peek().span,
+                .msg = "variable declarations require at least a type or an intial value",
+            } });
+            return error.ParseError;
+        }
+
+        return ast_.AST.create_decl(
+            token,
+            pattern,
+            _type orelse ast_.AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
+            _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
+            false,
+            self.allocator,
+        );
     }
 
     fn let_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -149,7 +189,7 @@ pub const Parser = struct {
         var _type: ?*ast_.AST = null;
         var _init: ?*ast_.AST = null;
 
-        if (self.accept(.colon)) |_| {
+        if (self.accept(.single_colon)) |_| {
             _type = try self.arrow_expr();
             if (self.peek_kind(.single_equals)) {
                 _ = try self.expect(.single_equals);
@@ -192,7 +232,7 @@ pub const Parser = struct {
             _ = try self.expect(.right_parenthesis);
             return res;
         } else {
-            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a pattern after `let`", .got = self.peek() } });
+            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a pattern expression here", .got = self.peek() } });
             return Parser_Error_Enum.ParseError;
         }
     }
@@ -220,11 +260,16 @@ pub const Parser = struct {
         var retval: ?*ast_.AST = null;
         if (self.peek_kind(.let)) {
             retval = try self.let_declaration();
+        } else if (self.peek_kind(.@"const")) {
+            retval = try self.const_declaration();
+        }
+
+        if (retval != null) {
             if (self.peek_kind(.semicolon)) {
                 _ = self.expect(.semicolon) catch {};
             } else {
                 self.errors.add_error(errs_.Error{ .expected_basic_token = .{
-                    .expected = "a semicolon separating declaration and condition",
+                    .expected = "a semicolon here",
                     .got = self.peek(),
                 } });
                 return error.ParseError;
@@ -236,6 +281,8 @@ pub const Parser = struct {
     fn statement(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.peek_kind(.let)) {
             return self.let_declaration();
+        } else if (self.peek_kind(.@"const")) {
+            return self.const_declaration();
         } else if (self.peek_kind(.trait)) {
             return self.trait_declaration();
         } else if (self.peek_kind(.impl)) {
@@ -247,7 +294,7 @@ pub const Parser = struct {
         } else if (self.next_is_expr()) {
             return self.assignment_expr();
         } else {
-            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a statement", .got = self.peek() } });
+            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a statement here", .got = self.peek() } });
             return Parser_Error_Enum.ParseError;
         }
     }
@@ -305,7 +352,7 @@ pub const Parser = struct {
 
     fn annotation_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         const exp = try self.assignment_expr();
-        if (self.accept(.colon)) |token| {
+        if (self.accept(.single_colon)) |token| {
             const _type = try self.arrow_expr();
             var predicate: ?*ast_.AST = null;
             var _init: ?*ast_.AST = null;
@@ -450,7 +497,7 @@ pub const Parser = struct {
                 _ = try self.expect(.right_parenthesis);
                 return ast_.AST.create_size_of(token, exp, self.allocator);
             } else {
-                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a built-in function", .got = self.peek() } });
+                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a built-in function here", .got = self.peek() } });
                 return error.ParseError;
             }
         } else if (self.accept(.minus)) |token| {
@@ -525,7 +572,7 @@ pub const Parser = struct {
                     // Simple index
                     exp = ast_.AST.create_index(token, exp, first orelse {
                         self.errors.add_error(errs_.Error{ .expected_basic_token = .{
-                            .expected = "an expression within index",
+                            .expected = "an expression here",
                             .got = self.peek(),
                         } });
                         return Parser_Error_Enum.ParseError;
@@ -539,6 +586,13 @@ pub const Parser = struct {
                 }
             } else if (self.accept(.period)) |token| {
                 exp = ast_.AST.create_select(
+                    token,
+                    exp,
+                    ast_.AST.create_field(try self.expect(.identifier), self.allocator),
+                    self.allocator,
+                );
+            } else if (self.accept(.double_colon)) |token| {
+                exp = ast_.AST.create_access(
                     token,
                     exp,
                     ast_.AST.create_field(try self.expect(.identifier), self.allocator),
@@ -639,7 +693,7 @@ pub const Parser = struct {
         } else if (self.peek_kind(.left_parenthesis)) {
             return try self.parens();
         } else {
-            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an expression", .got = self.peek() } });
+            self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an expression here", .got = self.peek() } });
             return Parser_Error_Enum.ParseError;
         }
     }
@@ -660,7 +714,7 @@ pub const Parser = struct {
             statements.append(try self.statement()) catch unreachable;
             if (!self.peek_kind(.semicolon) and !self.peek_kind(.newline) and !self.peek_kind(.right_brace)) {
                 self.errors.add_error(errs_.Error{ .expected_basic_token = .{
-                    .expected = "a semicolon or a newline after statement",
+                    .expected = "a semicolon or a newline here",
                     .got = self.peek(),
                 } });
                 return error.ParseError;
@@ -807,7 +861,7 @@ pub const Parser = struct {
         var _type: *ast_.AST = undefined;
         var _init: ?*ast_.AST = null;
 
-        _ = try self.expect(.colon);
+        _ = try self.expect(.single_colon);
         _type = try self.arrow_expr();
         // if (_type.* == .call) {
         //     _type = ast_.AST.create_comptime(_type.token(), _type, self.allocator);
@@ -833,15 +887,21 @@ pub const Parser = struct {
         _ = try self.expect(.left_brace);
         var method_decls = std.ArrayList(*ast_.AST).init(self.allocator);
         errdefer method_decls.deinit();
+        var const_decls = std.ArrayList(*ast_.AST).init(self.allocator);
+        errdefer const_decls.deinit();
 
         while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
-        while (self.peek_kind(.@"fn") or self.peek_kind(.virtual)) {
-            method_decls.append(try self.method_declaration()) catch unreachable;
+        while (self.peek_kind(.@"fn") or self.peek_kind(.virtual) or self.peek_kind(.@"const")) {
+            if (self.peek_kind(.@"const")) {
+                const_decls.append(try self.const_declaration()) catch unreachable;
+            } else {
+                method_decls.append(try self.method_declaration()) catch unreachable;
+            }
             while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         }
 
         _ = try self.expect(.right_brace);
-        return ast_.AST.create_trait(trait_name, method_decls, self.allocator);
+        return ast_.AST.create_trait(trait_name, method_decls, const_decls, self.allocator);
     }
 
     fn impl_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -852,17 +912,24 @@ pub const Parser = struct {
         _ = try self.expect(.left_brace);
         var method_defs = std.ArrayList(*ast_.AST).init(self.allocator);
         errdefer method_defs.deinit();
-        const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, self.allocator);
+        var const_defs = std.ArrayList(*ast_.AST).init(self.allocator);
+        errdefer const_defs.deinit();
+        const retval = ast_.AST.create_impl(token, trait_ident, _type, method_defs, const_defs, self.allocator);
 
         while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
-        while (self.peek_kind(.@"fn") or self.peek_kind(.virtual)) {
-            const method = try self.method_definition();
-            method.method_decl.impl = retval;
-            method_defs.append(method) catch unreachable;
+        while (self.peek_kind(.@"fn") or self.peek_kind(.virtual) or self.peek_kind(.@"const")) {
+            if (self.peek_kind(.@"const")) {
+                const_defs.append(try self.const_declaration()) catch unreachable;
+            } else {
+                const method = try self.method_definition();
+                method.method_decl.impl = retval;
+                method_defs.append(method) catch unreachable;
+            }
             while (self.accept(.semicolon) orelse self.accept(.newline)) |_| {}
         }
         _ = try self.expect(.right_brace);
-        retval.set_children(method_defs);
+        retval.impl.method_defs = method_defs;
+        retval.impl.const_defs = const_defs;
         return retval;
     }
 
@@ -980,7 +1047,7 @@ pub const Parser = struct {
             if (self.next_is_expr() or self.peek().kind == .mut) {
                 mappings.append(try self.match_mapping()) catch unreachable;
             } else {
-                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "match mapping", .got = self.peek() } });
+                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "match mapping here", .got = self.peek() } });
                 return error.ParseError;
             }
         }

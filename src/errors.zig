@@ -77,7 +77,7 @@ pub const Error = union(enum) {
         name: ?[]const u8,
         _type: *ast_.AST,
     },
-    type_not_impl_method: struct {
+    type_not_impl_method: struct { // TODO: This should take in an enum to determine if the name is of a method or of a member
         span: span_.Span,
         method_name: []const u8,
         _type: *ast_.AST,

@@ -105,30 +105,37 @@ pub const Scope = struct {
         }
     }
 
-    /// Looks up the impl method_decl ast implemented for a given type, with a given name
-    pub fn method_lookup(self: *Scope, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
+    /// Looks up the impl's decl/method_decl ast for a given type, with a given name
+    pub fn lookup_impl_member(self: *Scope, for_type: *ast_.AST, name: []const u8) ?*ast_.AST {
         if (!for_type.valid_type()) {
             return null;
         }
         // Go through the list of implementations, check to see if the types and traits match
         for (self.impls.items) |impl| {
             if (!impl.impl._type.valid_type()) {
+                // The type of the impl isn't even valid
+                // This is an edge case for badly formed programs
                 return null;
             }
             if (!impl.impl._type.types_match(for_type) or !for_type.types_match(impl.impl._type)) {
-                // Types do not match
+                // The type for this impl does not equal the given type
                 continue;
             }
-            for (impl.children().items) |method_def| {
+            for (impl.impl.method_defs.items) |method_def| {
                 if (std.mem.eql(u8, method_def.method_decl.name.token().data, name)) {
                     return method_def;
+                }
+            }
+            for (impl.impl.const_defs.items) |const_def| {
+                if (std.mem.eql(u8, const_def.decl.symbols.items[0].name, name)) {
+                    return const_def;
                 }
             }
         }
 
         if (self.parent != null) {
             // Did not match in this scope. Try parent scope
-            return self.parent.?.method_lookup(for_type, name);
+            return self.parent.?.lookup_impl_member(for_type, name);
         } else {
             // Not found, parent scope is null
             return null;
@@ -146,7 +153,7 @@ pub const Scope = struct {
                 // Types do not match
                 continue;
             }
-            for (impl.children().items) |def| {
+            for (impl.impl.method_defs.items) |def| {
                 if (method_map.get(def.decl.symbols.items[0].name)) {
                     unreachable; // TODO: Give an error about redefining a method for a given type
                 }

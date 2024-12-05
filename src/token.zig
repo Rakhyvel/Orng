@@ -78,7 +78,8 @@ pub const Token_Kind = enum(u32) {
 
     // Punctuation
     ampersand,
-    colon,
+    single_colon,
+    double_colon,
     comma,
     double_period,
     exclamation_mark,
@@ -106,15 +107,6 @@ pub const Token_Kind = enum(u32) {
     // HACK: Used to count how many constructors are in the enum
     // (yes, this is needed in Zig)
     len,
-
-    pub fn is_binop(self: Token_Kind) bool {
-        for (binary_operators) |binop_kind| {
-            if (self == binop_kind) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     pub fn is_end_token(self: Token_Kind) bool {
         for (end_tokens) |kind| {
@@ -204,7 +196,8 @@ pub const Token_Kind = enum(u32) {
 
             // Punctuation
             .ampersand => "&",
-            .colon => ":",
+            .single_colon => ":",
+            .double_colon => "::",
             .comma => ",",
             .double_period => "..",
             .exclamation_mark => "!",
@@ -246,49 +239,6 @@ pub const Token_Kind = enum(u32) {
         }
         return Token_Kind.identifier;
     }
-
-    const unary_operators = [_]Token_Kind{
-        .not,
-        .exclamation_mark,
-        .minus,
-        .ampersand,
-        .left_square,
-        .question_mark,
-        .@"try",
-        .caret,
-    };
-
-    const binary_operators = [_]Token_Kind{
-        .single_equals,
-        .plus_equals,
-        .minus_equals,
-        .star_equals,
-        .slash_equals,
-        .percent_equals,
-        .bar,
-        .comma,
-        .colon,
-        .skinny_arrow,
-        .@"and",
-        .@"or",
-        .e_mark_equals,
-        .double_equals,
-        .greater,
-        .greater_equal,
-        .lesser,
-        .lesser_equal,
-        .@"orelse",
-        .@"catch",
-        .plus,
-        .minus,
-        .exclamation_mark,
-        .star,
-        .slash,
-        .percent,
-        .double_bar,
-        .invoke,
-        .where,
-    };
 
     const end_tokens = [_]Token_Kind{
         .identifier,

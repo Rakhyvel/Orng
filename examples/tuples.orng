@@ -12,7 +12,7 @@ fn main() -> () {
 
 
     // Nested tuples with complex type definitions
-    let const Complex_Type = (
+    const Complex_Type = (
         outer_a: (inner_x: Int, inner_y: Int), 
         outer_b: (inner_e: Int, inner_f: Int)
     )

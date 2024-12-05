@@ -1,5 +1,5 @@
 fn main() -> Int {
-    let const My_Sum = (a | b | c | d)
+    const My_Sum = (a | b | c | d)
     let my_val: My_Sum = .a
     match my_val {
         .a => 4

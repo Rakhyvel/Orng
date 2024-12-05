@@ -398,9 +398,12 @@
         - [x] template-call in template function
         - [x] generic types without `comptime` keyword
     - [x] memoize expanded call types
-    - [ ] trait constants
+    - [ ] impl constants
+        - [ ] iterators & for loops
+            - [ ] multi-loops, ranges like zig
+        - [ ] type methods (Default trait)
     - [ ] generic traits
-        > simply stamps out a trait instead, yeah?
+        - [ ] `trait From(const T: Type) { fn from(value: T) -> Self }`
     - [ ] generic type unification
         > Types can begin with `$ident`, where the type of `ident` will be inferred, and defined as a constant parameter
         - [ ] error if an identifier is `$` twice
@@ -408,8 +411,6 @@
     - [ ] generic methods
     - [ ] `impl Tr` stamps out a new monomorphised function for every new impl of `Tr`
         > Even though the type is stamped out, you can only treat it using its trait methods
-    - [ ] iterators & for loops
-        - [ ] multi-loops, ranges like zig
     - [ ] allocators
     - [ ] Eq, Ord, Num, Bits, Convertible in std
     - [ ] derive
@@ -435,12 +436,12 @@
     - [ ] make phase
         - [ ] Directed by the Builder object, and by the target specified by the cmd line args, execute the steps
     - [ ] `pub` keyword
-    - [ ] import syntax before any definitions `["from" package {"::" package}] "import" module ["as" ident]`
-        > Packages are directories, mapped in the build file
-        > This allows dependencies to be simple
-        > Also makes canonical names the norm
-        > `module` is the filename in the package without the `.orng`, so file names have to abide by identifier syntax
-    - [ ] `::` for module selection
+    - [ ] `[pub] import qualified-name`, `[pub] using qualified-name` keywords
+        > Packages are directories with a `build.orng` file (and likely either a `main.orng` or `root.orng` file)
+        > Modules are either `.orng` files, or directories with a `root.orng` file, that conventionally imports/uses other modules in it's directory
+        > Importing/Using namespaces begin either locally in the immediate directory, or with the dependencies added in the packages `build.orng`
+        - [ ] `Builder::add_dependency`, which can take either an absolute, relative, or git input
+    - [ ] `::` for module access
     - [ ] `@filename()`, `@line()`, `@fn_name()`
     - [ ] `test` to do tests
         > Rework integration tests
@@ -504,8 +505,8 @@
     - [ ] HashMap
 - [ ] Memory
     - [ ] `trait Allocator`
-    - [ ] `let const Fixed_Buffer_Allocator`
-    - [ ] `let const Arena_Allocator`
+    - [ ] `const Fixed_Buffer_Allocator`
+    - [ ] `const Arena_Allocator`
     - [ ] `impl Eq for []T\Eq`
 - [ ] Strings
     - [ ] String Buffer
@@ -533,7 +534,7 @@
 - [ ] Rand
     - [ ] `prng()`
 - [ ] File System
-    - [ ] `let const MAX_PATH_BYTES`
+    - [ ] `const max_path_bytes`
     - [ ] `realpath()`
     - [ ] `cwd()`
 - [ ] Math

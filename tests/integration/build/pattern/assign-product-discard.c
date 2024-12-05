@@ -23,38 +23,38 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1209_main(void);
+int64_t _1214_main(void);
 
 
 /* Function definitions */
-int64_t _1209_main(void){
-    int64_t _1209_t1;
-    int64_t _1209_t2;
-    struct struct0 _1209_t0;
-    int64_t _1210_x;
-    int64_t _1210_y;
-    int64_t _1209_t5;
-    int64_t _1209_t6;
-    int64_t _1209_t7;
-    struct struct1 _1209_t4;
-    int64_t _1209_$retval;
-    _1209_t1 = 0;
-    _1209_t2 = 0;
-    _1209_t0 = (struct struct0) {_1209_t1, _1209_t2};
-    _1210_x = _1209_t0._0;
-    _1210_y = _1209_t0._1;
-    _1209_t5 = 5;
-    _1209_t6 = 19;
-    _1209_t7 = 33;
-    _1209_t4 = (struct struct1) {_1209_t5, _1209_t6, _1209_t7};
-    _1210_x = _1209_t4._0;
-    _1210_y = _1209_t4._2;
-    _1209_$retval = $mult_int64_t(_1210_x, _1210_y, "tests/integration/pattern/assign-product-discard.orng:5:8:\n    x * y\n      ^");
-    return _1209_$retval;
+int64_t _1214_main(void){
+    int64_t _1214_t1;
+    int64_t _1214_t2;
+    struct struct0 _1214_t0;
+    int64_t _1215_x;
+    int64_t _1215_y;
+    int64_t _1214_t5;
+    int64_t _1214_t6;
+    int64_t _1214_t7;
+    struct struct1 _1214_t4;
+    int64_t _1214_$retval;
+    _1214_t1 = 0;
+    _1214_t2 = 0;
+    _1214_t0 = (struct struct0) {_1214_t1, _1214_t2};
+    _1215_x = _1214_t0._0;
+    _1215_y = _1214_t0._1;
+    _1214_t5 = 5;
+    _1214_t6 = 19;
+    _1214_t7 = 33;
+    _1214_t4 = (struct struct1) {_1214_t5, _1214_t6, _1214_t7};
+    _1215_x = _1214_t4._0;
+    _1215_y = _1214_t4._2;
+    _1214_$retval = $mult_int64_t(_1215_x, _1215_y, "tests/integration/pattern/assign-product-discard.orng:5:8:\n    x * y\n      ^");
+    return _1214_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1209_main());
+  printf("%ld",_1214_main());
   return 0;
 }

@@ -1,5 +1,5 @@
 // 242
-let const My_Type: Type = &Int
+const My_Type: Type = &Int
 
 fn main() -> Int {
     let x = 242

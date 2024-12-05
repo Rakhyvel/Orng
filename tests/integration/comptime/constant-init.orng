@@ -1,5 +1,5 @@
 // 238
-let const a = add(200, 38)
+const a = add(200, 38)
 
 fn main() -> Int {
     a

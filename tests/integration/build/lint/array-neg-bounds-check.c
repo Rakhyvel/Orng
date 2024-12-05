@@ -20,44 +20,44 @@ struct struct0 {
 typedef int64_t(*function1)(void);
 
 /* Function forward definitions */
-int64_t _1103_main(void);
-int64_t _1105_f(void);
+int64_t _1108_main(void);
+int64_t _1110_f(void);
 
 
 /* Function definitions */
-int64_t _1103_main(void){
-    int64_t _1103_t1;
-    int64_t _1103_t2;
-    int64_t _1103_t3;
-    int64_t _1103_t4;
-    struct struct0 _1104_x;
-    function1 _1103_t6;
-    int64_t _1103_t7;
-    int64_t _1103_t8;
-    int64_t _1103_$retval;
-    _1103_t1 = 0;
-    _1103_t2 = 0;
-    _1103_t3 = 0;
-    _1103_t4 = 0;
-    _1104_x = (struct struct0) {_1103_t1, _1103_t2, _1103_t3, _1103_t4};
-    _1103_t6 = (function1) _1105_f;
+int64_t _1108_main(void){
+    int64_t _1108_t1;
+    int64_t _1108_t2;
+    int64_t _1108_t3;
+    int64_t _1108_t4;
+    struct struct0 _1109_x;
+    function1 _1108_t6;
+    int64_t _1108_t7;
+    int64_t _1108_t8;
+    int64_t _1108_$retval;
+    _1108_t1 = 0;
+    _1108_t2 = 0;
+    _1108_t3 = 0;
+    _1108_t4 = 0;
+    _1109_x = (struct struct0) {_1108_t1, _1108_t2, _1108_t3, _1108_t4};
+    _1108_t6 = (function1) _1110_f;
     $lines[$line_idx++] = "tests/integration/lint/array-neg-bounds-check.orng:4:9:\n    x[f()]\n       ^";
-    _1103_t7 = _1103_t6();
+    _1108_t7 = _1108_t6();
     $line_idx--;
-    _1103_t8 = 4;
-    $bounds_check(_1103_t7, _1103_t8, "tests/integration/lint/array-neg-bounds-check.orng:2:8:\nfn main() -> Int {\n      ^");
-    _1103_$retval = *((int64_t*)&_1104_x + _1103_t7);
-    return _1103_$retval;
+    _1108_t8 = 4;
+    $bounds_check(_1108_t7, _1108_t8, "tests/integration/lint/array-neg-bounds-check.orng:2:8:\nfn main() -> Int {\n      ^");
+    _1108_$retval = *((int64_t*)&_1109_x + _1108_t7);
+    return _1108_$retval;
 }
 
-int64_t _1105_f(void){
-    int64_t _1105_$retval;
-    _1105_$retval = -100;
-    return _1105_$retval;
+int64_t _1110_f(void){
+    int64_t _1110_$retval;
+    _1110_$retval = -100;
+    return _1110_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1103_main());
+  printf("%ld",_1108_main());
   return 0;
 }

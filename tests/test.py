@@ -40,7 +40,7 @@ def main():
     subprocess.run(["rm", "-rf", "zig-cache", "zig-out"])
     res = subprocess.run(["zig", "build", "orng-test"]).returncode
     if res != 0:
-        return
+        exit(1)
 
     match args.command:
         case "integration":

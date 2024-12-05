@@ -41,80 +41,80 @@ struct vtable_Trait_B {
 };
 
 /* Function forward definitions */
-int64_t _1693_main(void);
-int64_t _1695_do_things(struct struct4 _1695_t);
-int64_t _1688_a(void* _1688_$self_ptr);
-int64_t _1691_b(void* _1691_$self_ptr);
+int64_t _1709_main(void);
+int64_t _1711_do_things(struct struct4 _1711_t);
+int64_t _1704_a(void* _1704_$self_ptr);
+int64_t _1707_b(void* _1707_$self_ptr);
 
 /* Trait vtable implementations */
-struct vtable_Trait_A _1687_$vtable = {
-    .a = _1688_a,
+struct vtable_Trait_A _1703_$vtable = {
+    .a = _1704_a,
 };
 
-struct vtable_Trait_B _1690_$vtable = {
-    .b = _1691_b,
+struct vtable_Trait_B _1706_$vtable = {
+    .b = _1707_b,
 };
 
 
 /* Function definitions */
-int64_t _1693_main(void){
-    int64_t _1694_x;
-    int64_t _1694_y;
-    struct dyn1 _1693_t4;
-    struct dyn1 _1694_x_d;
-    struct dyn2 _1693_t6;
-    struct dyn2 _1694_y_d;
-    function3 _1693_t8;
-    struct struct4 _1693_t10;
-    int64_t _1693_t9;
-    int64_t _1693_$retval;
-    _1694_x = 3;
-    _1694_y = 150;
-    _1693_t4 = (struct dyn1) {&_1694_x, &_1687_$vtable};
-    _1694_x_d = _1693_t4;
-    _1693_t6 = (struct dyn2) {&_1694_y, &_1690_$vtable};
-    _1694_y_d = _1693_t6;
-    _1693_t8 = (function3) _1695_do_things;
-    _1693_t10 = (struct struct4) {_1694_x_d, _1694_y_d};
+int64_t _1709_main(void){
+    int64_t _1710_x;
+    int64_t _1710_y;
+    struct dyn1 _1709_t4;
+    struct dyn1 _1710_x_d;
+    struct dyn2 _1709_t6;
+    struct dyn2 _1710_y_d;
+    function3 _1709_t8;
+    struct struct4 _1709_t10;
+    int64_t _1709_t9;
+    int64_t _1709_$retval;
+    _1710_x = 3;
+    _1710_y = 150;
+    _1709_t4 = (struct dyn1) {&_1710_x, &_1703_$vtable};
+    _1710_x_d = _1709_t4;
+    _1709_t6 = (struct dyn2) {&_1710_y, &_1706_$vtable};
+    _1710_y_d = _1709_t6;
+    _1709_t8 = (function3) _1711_do_things;
+    _1709_t10 = (struct struct4) {_1710_x_d, _1710_y_d};
     $lines[$line_idx++] = "tests/integration/traits/multiple-traits.orng:24:15:\n    do_things((x_d, y_d))\n             ^";
-    _1693_t9 = _1693_t8(_1693_t10);
+    _1709_t9 = _1709_t8(_1709_t10);
     $line_idx--;
-    _1693_$retval = _1693_t9;
-    return _1693_$retval;
+    _1709_$retval = _1709_t9;
+    return _1709_$retval;
 }
 
-int64_t _1695_do_things(struct struct4 _1695_t){
-    int64_t _1695_t0;
-    int64_t _1695_t1;
-    int64_t _1695_$retval;
+int64_t _1711_do_things(struct struct4 _1711_t){
+    int64_t _1711_t0;
+    int64_t _1711_t1;
+    int64_t _1711_$retval;
     $lines[$line_idx++] = "tests/integration/traits/multiple-traits.orng:28:10:\n    t.a.>a() + t.b.>b()\n        ^";
-    _1695_t0 = _1695_t._0.vtable->a(_1695_t._0.data_ptr);
+    _1711_t0 = _1711_t._0.vtable->a(_1711_t._0.data_ptr);
     $line_idx--;
     $lines[$line_idx++] = "tests/integration/traits/multiple-traits.orng:28:21:\n    t.a.>a() + t.b.>b()\n                   ^";
-    _1695_t1 = _1695_t._1.vtable->b(_1695_t._1.data_ptr);
+    _1711_t1 = _1711_t._1.vtable->b(_1711_t._1.data_ptr);
     $line_idx--;
-    _1695_$retval = $add_int64_t(_1695_t0, _1695_t1, "tests/integration/traits/multiple-traits.orng:28:15:\n    t.a.>a() + t.b.>b()\n             ^");
-    return _1695_$retval;
+    _1711_$retval = $add_int64_t(_1711_t0, _1711_t1, "tests/integration/traits/multiple-traits.orng:28:15:\n    t.a.>a() + t.b.>b()\n             ^");
+    return _1711_$retval;
 }
 
-int64_t _1688_a(void* _1688_$self_ptr){
-    int64_t _1688_$retval;
-    _1688_$retval = *(int64_t*)_1688_$self_ptr;
-    return _1688_$retval;
+int64_t _1704_a(void* _1704_$self_ptr){
+    int64_t _1704_$retval;
+    _1704_$retval = *(int64_t*)_1704_$self_ptr;
+    return _1704_$retval;
 }
 
-int64_t _1691_b(void* _1691_$self_ptr){
-    int64_t _1692_self;
-    int64_t _1691_t1;
-    int64_t _1691_$retval;
-    _1692_self = *(int64_t*)_1691_$self_ptr;
-    _1691_t1 = 2;
-    _1691_$retval = $mult_int64_t(_1692_self, _1691_t1, "tests/integration/traits/multiple-traits.orng:16:39:\n    virtual fn b(self) -> Int { self * 2 }\n                                     ^");
-    return _1691_$retval;
+int64_t _1707_b(void* _1707_$self_ptr){
+    int64_t _1708_self;
+    int64_t _1707_t1;
+    int64_t _1707_$retval;
+    _1708_self = *(int64_t*)_1707_$self_ptr;
+    _1707_t1 = 2;
+    _1707_$retval = $mult_int64_t(_1708_self, _1707_t1, "tests/integration/traits/multiple-traits.orng:16:39:\n    virtual fn b(self) -> Int { self * 2 }\n                                     ^");
+    return _1707_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1693_main());
+  printf("%ld",_1709_main());
   return 0;
 }

@@ -1,7 +1,7 @@
 // 323
 fn main() -> Int { 
-    let const Sum_AB = (a | b)
-    let const Sum_XY = (x: Sum_AB | y: Sum_AB)
+    const Sum_AB = (a | b)
+    const Sum_XY = (x: Sum_AB | y: Sum_AB)
 
     let g = Sum_XY.x(.a)
     match g {

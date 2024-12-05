@@ -1,5 +1,5 @@
 // 250
-let const My_Type: Type = (
+const My_Type: Type = (
     x: Int = 450,
     y: Int = 50,
 )

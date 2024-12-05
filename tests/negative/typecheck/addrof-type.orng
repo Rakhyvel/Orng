@@ -1,4 +1,4 @@
 fn main() -> Int {
-    let const X: Type = &4
+    const X: Type = &4
     0
 }

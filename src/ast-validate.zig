@@ -132,7 +132,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
 fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!void {
     var names = std.StringArrayHashMap(*ast_.AST).init(allocator);
     defer names.deinit();
-    for (trait.decl.?.children().items) |decl| {
+    for (trait.decl.?.trait.method_decls.items) |decl| {
         if (names.get(decl.method_decl.name.token().data)) |other| {
             errors.add_error(errs_.Error{ .duplicate = .{
                 .span = decl.token().span,
@@ -194,12 +194,12 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     // Construct a map of all trait decls
     var trait_decls = std.StringArrayHashMap(*ast_.AST).init(allocator); // Map name -> Method Decl
     defer trait_decls.deinit();
-    for (trait_ast.children().items) |decl| {
+    for (trait_ast.trait.method_decls.items) |decl| {
         trait_decls.put(decl.method_decl.name.token().data, decl) catch unreachable;
     }
 
     // Subtract trait defs - impl decls
-    for (impl.children().items) |def| {
+    for (impl.impl.method_defs.items) |def| {
         const def_key = def.method_decl.name.token().data;
         const trait_decl = trait_decls.get(def_key);
 
@@ -305,8 +305,8 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
         return error.TypeError;
     }
 
-    for (impl.children().items, 0..) |def, i| {
-        impl.children().items[i] = validate_AST(def, null, errors, allocator);
+    for (impl.impl.method_defs.items, 0..) |def, i| {
+        impl.impl.method_defs.items[i] = validate_AST(def, null, errors, allocator);
     }
 }
 
@@ -744,6 +744,34 @@ fn validate_AST_internal(
             try type_check(ast.token().span, ast_type, expected, errors);
             return ast;
         },
+        .access => {
+            ast.set_lhs(validate_AST(ast.lhs(), primitives_.type_type, errors, allocator));
+            try assert_none_poisoned(ast.lhs());
+            // STRIP AWAY ADDRs!
+            const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
+            var access_result = ast.access.scope.?.lookup_impl_member(stripped_lhs, ast.rhs().token().data);
+            if (access_result == null) {
+                errors.add_error(errs_.Error{
+                    .type_not_impl_method = .{
+                        .span = ast.token().span,
+                        .method_name = ast.rhs().token().data,
+                        ._type = stripped_lhs, // TODO: Strip away addr_of's
+                    },
+                });
+                return error.TypeError;
+            }
+            access_result = validate_AST(access_result.?, null, errors, allocator);
+            try assert_none_poisoned(access_result);
+
+            std.debug.assert(access_result.?.* == .decl);
+            std.debug.assert(access_result.?.decl.symbols.items.len == 1);
+            ast.access._symbol = access_result.?.decl.symbols.items[0];
+
+            _ = ast.assert_valid();
+            const ast_type = ast.typeof(allocator);
+            try type_check(ast.token().span, ast_type, expected, errors);
+            return ast;
+        },
 
         .invoke => {
             ast.set_lhs(validate_AST(ast.lhs(), null, errors, allocator));
@@ -757,9 +785,9 @@ fn validate_AST_internal(
                 const trait = true_lhs_type.expand_identifier().expr().symbol().?.decl.?;
                 method_decl = trait.trait.find_method(ast.rhs().token().data);
             } else {
-                // The receiver is a regular type
+                // The receiver is a regular type. STRIP AWAY ADDRs!
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
-                method_decl = ast.invoke.scope.?.method_lookup(lhs_type, ast.rhs().token().data);
+                method_decl = ast.invoke.scope.?.lookup_impl_member(lhs_type, ast.rhs().token().data);
             }
             if (method_decl == null) {
                 errors.add_error(errs_.Error{
@@ -1550,7 +1578,7 @@ pub fn default_args(
 ///
 /// Throws `error.TypeError` if there is a mix of positional and named arguments.
 fn args_are_named(
-    asts: []*ast_.AST,
+    asts: std.ArrayList(*ast_.AST),
     errors: *errs_.Errors,
 ) Validate_Error_Enum!bool {
     if (asts.items.len == 0) {

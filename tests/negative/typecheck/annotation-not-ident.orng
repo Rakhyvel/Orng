@@ -1,4 +1,4 @@
 fn main() -> Int {
-    let const My_Type = (.a: Int | .b: Int | .c: Int)
+    const My_Type = (.a: Int | .b: Int | .c: Int)
     4
 }

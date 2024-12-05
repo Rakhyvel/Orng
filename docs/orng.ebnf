@@ -5,20 +5,23 @@
 program: top_level_declaration {"newline" {"newline"} top_level_declaration} "eof".
 
 top_level_declaration: fn_declaration 
-                     | let_declaration
+                     | const_declaration
                      | trait_declaration
                      | impl
                      .
 
+const_declaration: "const" const_pattern_atom ":" arrow_expr "=" arrow_expr.
+const_pattern_product: const_pattern_atom {"," const_pattern_atom}.
+const_pattern_atom: ident | "(" const_pattern_product ")".
+
 let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" arrow_expr] | "=" arrow_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
-let_pattern_atom: ["mut" | "const"] ident
-                | "(" let_pattern_product ")"
-                .
+let_pattern_atom: ["mut"] ident | "(" let_pattern_product ")".
 
-let_pre: [let_declaration ";"]
+let_pre: [let_declaration ";"].
 
 statement: let_declaration
+         | const_declaration
          | trait_declaration
          | impl
          | "defer" assignment_expr
@@ -66,6 +69,7 @@ postfix_expr: (control_flow | factor)
       { call_args
       | "[" ((".."[bool_expr]) | (bool_expr[".." [bool_expr]])) "]"
       | "." ident
+      | "::" ident
       | ".>" ident call_args
       | "^"
       }.
@@ -112,13 +116,15 @@ fn_declaration: "fn" [ident] paramlist "->" bool_expr ["where" arrow_expr] block
 paramlist: "(" [["mut" | "const"] param {"," ["mut" | "const"] param}] ")".
 param: ident ":" arrow_expr ["=" arrow_expr]. # must not be product_expr, or ambiguous with ,
 
-trait_declaration: "trait" ident "{" {method_declaration} "}". # Traits may be empty, but the braces are necessary to maintain unambiguity
+trait_declaration: "trait" ident "{" {trait_constant_declaration | method_declaration} "}". # Traits may be empty, but the braces are necessary to maintain unambiguity
 method_declaration: ["virtual"] "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr].
+trait_constant_declaration: "const" ident ":" arrow_expr.
 method_paramlist: "(" [("const" param | ["mut"](param|receiver)) {"," ["mut" | "const"]param}] ")".
 receiver: ["&" ["mut"]] "self".
 
 impl: "impl" [ident] "for" arrow_expr "{" {method_definition}"}".
 method_definition: ["virtual"] "fn" ident method_paramlist "->" bool_expr ["where" arrow_expr] block_expr.
+trait_constant_definition: "const" ident ":" arrow_expr "=" arrow_expr.
 
 match_expr: "match" let_pre assignment_expr "{" match_mapping {match_mapping}"}".
 match_mapping: match_pattern_sum_value "=>" assignment_expr "newline".

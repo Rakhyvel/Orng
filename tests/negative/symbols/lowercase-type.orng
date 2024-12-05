@@ -1,4 +1,4 @@
-let const int: Type = (a: Int, b: Int)
+const int: Type = (a: Int, b: Int)
 
 fn main() -> Int {
     let x: int = (3, 4)

@@ -37,7 +37,7 @@ fn main() -> Int {
 
 
     // Sum type pattern matching
-    let const The_Type = (a | b | c)
+    const The_Type = (a | b | c)
     let x: The_Type = The_Type.c
     let sum_result = match x {
         The_Type.a => 168,
@@ -49,7 +49,7 @@ fn main() -> Int {
 
 
     // Sum type with associated values
-    let const The_Advanced_Type = (a: Int | b: Bool | c: Char)
+    const The_Advanced_Type = (a: Int | b: Bool | c: Char)
     let sum_val: The_Advanced_Type = The_Advanced_Type.a(172)
     let advanced_result = match sum_val {
         .a(a) => a,
@@ -61,7 +61,7 @@ fn main() -> Int {
 
 
     // Complex nested sum matching
-    let const ComplexType = (a: (aa: Int | ab: Int) | b: (ba: Int | bb: Int))
+    const ComplexType = (a: (aa: Int | ab: Int) | b: (ba: Int | bb: Int))
     let complex_val: ComplexType = ComplexType.b(.ba(173))
     let complex_result = match complex_val {
         .a(y) => match y {

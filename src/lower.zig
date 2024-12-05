@@ -110,7 +110,7 @@ fn lower_AST(
             cfg.append_instruction(ir_.IR.init_string(temp, id, ast.token().span, allocator));
             return temp;
         },
-        .identifier => {
+        .access, .identifier => {
             const symbol = ast.symbol().?;
             if (symbol.init_validation_state == .validating) {
                 errors.add_error(errs_.Error{ .recursive_definition = .{

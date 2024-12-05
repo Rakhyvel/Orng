@@ -117,6 +117,10 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
             try symbol_table_from_AST(ast.rhs(), scope, errors, allocator);
         },
+        .access => {
+            ast.access.scope = scope; // CANNOT do lookup here, because we do not have type info yet
+            try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
+        },
         .invoke => {
             ast.invoke.scope = scope; // CANNOT do lookup here, because we do not have type info yet
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
@@ -207,6 +211,7 @@ fn symbol_table_from_AST(
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
                     if (symbol.kind != .@"const") {
+                        std.debug.print("{}\n", .{ast.decl.pattern.pattern_symbol.kind});
                         errors.add_error(errs_.Error{ .basic = .{
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",
@@ -277,7 +282,7 @@ fn symbol_table_from_AST(
             );
             try symbol_table_from_AST(self_type_decl, new_scope, errors, allocator);
 
-            for (ast.children().items) |method_decl| {
+            for (ast.trait.method_decls.items) |method_decl| {
                 method_decl.method_decl.c_type = create_method_type(method_decl, allocator);
                 try symbol_table_from_AST(method_decl, new_scope, errors, allocator);
             }
@@ -289,7 +294,12 @@ fn symbol_table_from_AST(
                 var token = ast.token();
                 token.kind = .identifier;
                 token.data = next_anon_name("trait", allocator);
-                ast.impl.trait = ast_.AST.create_trait(token, ast.children().*, allocator);
+                ast.impl.trait = ast_.AST.create_trait(
+                    token,
+                    ast.impl.method_defs,
+                    ast.impl.const_defs,
+                    allocator,
+                );
                 ast.impl.impls_anon_trait = true;
             }
             const self_type_decl = ast_.AST.create_decl(
@@ -302,7 +312,8 @@ fn symbol_table_from_AST(
             );
             try symbol_table_from_AST(ast.impl.trait, scope, errors, allocator);
             try symbol_table_from_AST(self_type_decl, new_scope, errors, allocator);
-            try symbol_table_from_AST_list(ast.children().*, new_scope, errors, allocator);
+            try symbol_table_from_AST_list(ast.impl.method_defs, new_scope, errors, allocator);
+            try symbol_table_from_AST_list(ast.impl.const_defs, new_scope, errors, allocator);
         },
         .method_decl => {
             if (ast.symbol() != null) {
@@ -448,6 +459,7 @@ fn create_symbol(
                 try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
             }
         },
+        // Likely literals etc, for `match` mappings
         else => {},
     }
 }

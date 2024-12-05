@@ -171,7 +171,7 @@ fn output_traits(
             continue;
         }
         try writer.print("struct vtable_{s} {{\n", .{trait.symbol().?.name});
-        for (trait.children().items) |decl| {
+        for (trait.trait.method_decls.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
@@ -279,7 +279,7 @@ fn output_impls(
         }
         const trait = impl.impl.trait.?;
         try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.impl.scope.?.uid });
-        for (impl.children().items) |decl| {
+        for (impl.impl.method_defs.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
             }

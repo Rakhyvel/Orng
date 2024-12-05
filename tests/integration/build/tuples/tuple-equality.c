@@ -31,107 +31,107 @@ struct struct3 {
 typedef uint8_t(*function2)(struct struct1, struct struct1);
 
 /* Function forward definitions */
-int64_t _1891_main(void);
-uint8_t _1896_f(struct struct1 _1896_x, struct struct1 _1896_y);
+int64_t _1907_main(void);
+uint8_t _1912_f(struct struct1 _1912_x, struct struct1 _1912_y);
 
 
 /* Function definitions */
-int64_t _1891_main(void){
-    int64_t _1891_t1;
-    int64_t _1891_t3;
-    double _1891_t4;
-    struct struct0 _1891_t2;
-    uint32_t _1891_t5;
-    struct struct1 _1892_x;
-    int64_t _1891_t8;
-    int64_t _1891_t10;
-    double _1891_t11;
-    struct struct0 _1891_t9;
-    uint32_t _1891_t12;
-    struct struct1 _1892_y;
-    function2 _1891_t15;
-    uint8_t _1891_t16;
-    int64_t _1891_t14;
-    int64_t _1891_$retval;
-    _1891_t1 = 1;
-    _1891_t3 = 2;
-    _1891_t4 = 3.4e0;
-    _1891_t2 = (struct struct0) {_1891_t3, _1891_t4};
-    _1891_t5 = 114;
-    _1892_x = (struct struct1) {_1891_t1, _1891_t2, _1891_t5};
-    _1891_t8 = 1;
-    _1891_t10 = 2;
-    _1891_t11 = 3.4e0;
-    _1891_t9 = (struct struct0) {_1891_t10, _1891_t11};
-    _1891_t12 = 114;
-    _1892_y = (struct struct1) {_1891_t8, _1891_t9, _1891_t12};
-    _1891_t15 = (function2) _1896_f;
+int64_t _1907_main(void){
+    int64_t _1907_t1;
+    int64_t _1907_t3;
+    double _1907_t4;
+    struct struct0 _1907_t2;
+    uint32_t _1907_t5;
+    struct struct1 _1908_x;
+    int64_t _1907_t8;
+    int64_t _1907_t10;
+    double _1907_t11;
+    struct struct0 _1907_t9;
+    uint32_t _1907_t12;
+    struct struct1 _1908_y;
+    function2 _1907_t15;
+    uint8_t _1907_t16;
+    int64_t _1907_t14;
+    int64_t _1907_$retval;
+    _1907_t1 = 1;
+    _1907_t3 = 2;
+    _1907_t4 = 3.4e0;
+    _1907_t2 = (struct struct0) {_1907_t3, _1907_t4};
+    _1907_t5 = 114;
+    _1908_x = (struct struct1) {_1907_t1, _1907_t2, _1907_t5};
+    _1907_t8 = 1;
+    _1907_t10 = 2;
+    _1907_t11 = 3.4e0;
+    _1907_t9 = (struct struct0) {_1907_t10, _1907_t11};
+    _1907_t12 = 114;
+    _1908_y = (struct struct1) {_1907_t8, _1907_t9, _1907_t12};
+    _1907_t15 = (function2) _1912_f;
     $lines[$line_idx++] = "tests/integration/tuples/tuple-equality.orng:5:10:\n    if f(x, y) {\n        ^";
-    _1891_t16 = _1891_t15(_1892_x, _1892_y);
+    _1907_t16 = _1907_t15(_1908_x, _1908_y);
     $line_idx--;
-    if (_1891_t16) {
-        goto BB2051;
+    if (_1907_t16) {
+        goto BB2062;
     } else {
-        goto BB2055;
+        goto BB2066;
     }
-BB2051:
-    _1891_t14 = 238;
-    goto BB2054;
-BB2055:
-    _1891_t14 = 832;
-    goto BB2054;
-BB2054:
-    _1891_$retval = _1891_t14;
-    return _1891_$retval;
+BB2062:
+    _1907_t14 = 238;
+    goto BB2065;
+BB2066:
+    _1907_t14 = 832;
+    goto BB2065;
+BB2065:
+    _1907_$retval = _1907_t14;
+    return _1907_$retval;
 }
 
-uint8_t _1896_f(struct struct1 _1896_x, struct struct1 _1896_y){
-    uint8_t _1896_t2;
-    uint8_t _1896_t4;
-    uint8_t _1896_t5;
-    uint8_t _1896_t6;
-    uint8_t _1896_t0;
-    uint8_t _1896_$retval;
-    _1896_t2 = _1896_x._0==_1896_y._0;
-    if (_1896_t2) {
-        goto BB2043;
+uint8_t _1912_f(struct struct1 _1912_x, struct struct1 _1912_y){
+    uint8_t _1912_t2;
+    uint8_t _1912_t4;
+    uint8_t _1912_t5;
+    uint8_t _1912_t6;
+    uint8_t _1912_t0;
+    uint8_t _1912_$retval;
+    _1912_t2 = _1912_x._0==_1912_y._0;
+    if (_1912_t2) {
+        goto BB2054;
     } else {
-        goto BB2049;
+        goto BB2060;
     }
-BB2043:
-    _1896_t4 = _1896_x._1._0==_1896_y._1._0;
-    if (_1896_t4) {
-        goto BB2044;
+BB2054:
+    _1912_t4 = _1912_x._1._0==_1912_y._1._0;
+    if (_1912_t4) {
+        goto BB2055;
     } else {
-        goto BB2049;
+        goto BB2060;
     }
-BB2049:
-    _1896_t0 = 0;
-    goto BB2048;
-BB2044:
-    _1896_t5 = _1896_x._1._1==_1896_y._1._1;
-    if (_1896_t5) {
-        goto BB2045;
+BB2060:
+    _1912_t0 = 0;
+    goto BB2059;
+BB2055:
+    _1912_t5 = _1912_x._1._1==_1912_y._1._1;
+    if (_1912_t5) {
+        goto BB2056;
     } else {
-        goto BB2049;
+        goto BB2060;
     }
-BB2048:
-    _1896_$retval = _1896_t0;
-    return _1896_$retval;
-BB2045:
-    _1896_t6 = _1896_x._2==_1896_y._2;
-    if (_1896_t6) {
-        goto BB2046;
+BB2059:
+    _1912_$retval = _1912_t0;
+    return _1912_$retval;
+BB2056:
+    _1912_t6 = _1912_x._2==_1912_y._2;
+    if (_1912_t6) {
+        goto BB2057;
     } else {
-        goto BB2049;
+        goto BB2060;
     }
-BB2046:
-    _1896_t0 = 1;
-    goto BB2048;
+BB2057:
+    _1912_t0 = 1;
+    goto BB2059;
 }
 
 
 int main(void) {
-  printf("%ld",_1891_main());
+  printf("%ld",_1907_main());
   return 0;
 }

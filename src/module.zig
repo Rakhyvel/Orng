@@ -199,14 +199,14 @@ pub const Module = struct {
 
         // Go through traits
         for (module.traits.items) |trait| {
-            for (trait.children().items) |decl| {
+            for (trait.trait.method_decls.items) |decl| {
                 _ = module.type_set.add(decl.method_decl.c_type.?, allocator);
             }
         }
 
         // Go through impls
         for (module.impls.items) |impl| {
-            for (impl.children().items) |def| {
+            for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
                 const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
                 module.collect_cfgs(cfg);
@@ -456,7 +456,7 @@ pub fn stamp(
 
         const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, allocator);
         args.* = try ast_validate_.default_args(args.*, domain, errors, allocator);
-        _ = try ast_validate_.validate_args_arity(.function, args.items, domain, call_span, errors);
+        _ = try ast_validate_.validate_args_arity(.function, args, domain, call_span, errors);
 
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position
         // Combines the arg value and the position in the args/params list
