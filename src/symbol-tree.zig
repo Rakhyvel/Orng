@@ -221,7 +221,7 @@ fn symbol_table_from_AST(
                 }
             }
 
-            if (!scope.is_param_scope and ast.decl.init == null) {
+            if (!scope.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
                 // If this isn't a parameter, and the init is null, set the init to the default value of the type
                 ast.decl.init = ast_.AST.create_default(ast.token(), ast.decl.type, allocator);
             }

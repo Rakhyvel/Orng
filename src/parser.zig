@@ -84,6 +84,7 @@ pub const Parser = struct {
         const next_kind = self.peek().kind;
         return next_kind == .let or
             next_kind == .@"const" or
+            next_kind == .@"extern" or
             next_kind == .impl or
             next_kind == .trait or
             next_kind == .@"defer" or
@@ -171,7 +172,7 @@ pub const Parser = struct {
         _ = try self.expect(.single_colon);
         const _type: *ast_.AST = try self.arrow_expr();
 
-        return ast_.AST.create_decl(
+        var retval = ast_.AST.create_decl(
             token,
             pattern,
             _type,
@@ -179,6 +180,8 @@ pub const Parser = struct {
             false,
             self.allocator,
         );
+        retval.decl.prohibit_defaults = true;
+        return retval;
     }
 
     fn const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {

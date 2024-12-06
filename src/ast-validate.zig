@@ -127,7 +127,11 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
         }
     }
     if (symbol.kind == .@"extern") {
-        symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, primitives_.string_type, errors, allocator);
+        if (symbol.kind.@"extern".c_name != null) {
+            symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, primitives_.string_type, errors, allocator);
+        } else {
+            symbol.kind.@"extern".c_name = ast_.AST.create_string(token_.Token.init_simple(symbol.name), symbol.name, allocator);
+        }
     }
     _ = symbol.assert_init_valid();
 }
