@@ -1,0 +1,10 @@
+// 327
+const pi = @extern("PI", Float)
+
+fn main() -> Int {
+    if pi > 3.1 and pi < 3.2 {
+        327
+    } else {
+        unreachable
+    }
+}
