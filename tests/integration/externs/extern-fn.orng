@@ -1,0 +1,13 @@
+// 328
+fn main() -> Int {
+    print("32")
+    8
+}
+
+fn print(str: String) -> () {
+    extern const putchar: Byte -> Int32
+
+    while let mut i = 0; i < str.length; i += 1 {
+        _ = putchar(str[i])    
+    }
+}

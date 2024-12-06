@@ -7,19 +7,19 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1383_main(void);
+int64_t _1389_main(void);
 
 
 /* Function definitions */
-int64_t _1383_main(void){
-    goto BB1615;
-BB1615:
+int64_t _1389_main(void){
+    goto BB1624;
+BB1624:
     $lines[$line_idx++] = "tests/integration/pattern/match-unreachable.orng:4:21:\n        {unreachable} => 35\n                   ^";
     $panic("reached unreachable code\n");
 }
 
 
 int main(void) {
-  printf("%ld",_1383_main());
+  printf("%ld",_1389_main());
   return 0;
 }

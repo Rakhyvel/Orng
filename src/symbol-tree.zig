@@ -210,7 +210,7 @@ fn symbol_table_from_AST(
 
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
-                    if (symbol.kind != .@"const") {
+                    if (symbol.kind != .@"const" and symbol.kind != .@"extern") {
                         std.debug.print("{}\n", .{ast.decl.pattern.pattern_symbol.kind});
                         errors.add_error(errs_.Error{ .basic = .{
                             .span = symbol.span,
@@ -221,7 +221,7 @@ fn symbol_table_from_AST(
                 }
             }
 
-            if (!scope.is_param_scope and ast.decl.init == null) {
+            if (!scope.is_param_scope and !ast.decl.prohibit_defaults and ast.decl.init == null) {
                 // If this isn't a parameter, and the init is null, set the init to the default value of the type
                 ast.decl.init = ast_.AST.create_default(ast.token(), ast.decl.type, allocator);
             }

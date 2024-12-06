@@ -13,32 +13,32 @@ typedef int64_t(*function0)(void);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1691_main(void);
-int64_t _1696_get(void);
+int64_t _1697_main(void);
+int64_t _1702_get(void);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1691_main(void){
-    function0 _1691_t6;
-    int64_t _1691_t5;
-    int64_t _1691_$retval;
-    _1691_t6 = (function0) _1696_get;
+int64_t _1697_main(void){
+    function0 _1697_t6;
+    int64_t _1697_t5;
+    int64_t _1697_$retval;
+    _1697_t6 = (function0) _1702_get;
     $lines[$line_idx++] = "tests/integration/traits/inner-trait.orng:13:8:\n    x.>get()\n      ^";
-    _1691_t5 = _1691_t6();
+    _1697_t5 = _1697_t6();
     $line_idx--;
-    _1691_$retval = _1691_t5;
-    return _1691_$retval;
+    _1697_$retval = _1697_t5;
+    return _1697_$retval;
 }
 
-int64_t _1696_get(void){
-    int64_t _1696_$retval;
-    _1696_$retval = 322;
-    return _1696_$retval;
+int64_t _1702_get(void){
+    int64_t _1702_$retval;
+    _1702_$retval = 322;
+    return _1702_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1691_main());
+  printf("%ld",_1697_main());
   return 0;
 }

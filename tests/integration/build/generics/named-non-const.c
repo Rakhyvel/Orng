@@ -12,37 +12,37 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _1068_main(void);
-int64_t _1070_$anon103(int64_t _1070_m);
+int64_t _1074_main(void);
+int64_t _1076_$anon103(int64_t _1076_m);
 
 
 /* Function definitions */
-int64_t _1068_main(void){
-    function0 _1068_t0;
-    int64_t _1068_t2;
-    int64_t _1068_t1;
-    int64_t _1068_$retval;
-    _1068_t0 = (function0) _1070_$anon103;
-    _1068_t2 = 18;
+int64_t _1074_main(void){
+    function0 _1074_t0;
+    int64_t _1074_t2;
+    int64_t _1074_t1;
+    int64_t _1074_$retval;
+    _1074_t0 = (function0) _1076_$anon103;
+    _1074_t2 = 18;
     $lines[$line_idx++] = "tests/integration/generics/named-non-const.orng:12:12:\n    getval(.m = 18, .n = 300)\n          ^";
-    _1068_t1 = _1068_t0(_1068_t2);
+    _1074_t1 = _1074_t0(_1074_t2);
     $line_idx--;
-    _1068_$retval = _1068_t1;
-    return _1068_$retval;
+    _1074_$retval = _1074_t1;
+    return _1074_$retval;
 }
 
-int64_t _1070_$anon103(int64_t _1070_m){
-    int64_t _1070_t5;
-    int64_t _1070_$retval;
-    goto BB1245;
-BB1245:
-    _1070_t5 = 300;
-    _1070_$retval = $add_int64_t(_1070_t5, _1070_m, "tests/integration/generics/named-non-const.orng:5:12:\n        n + m\n          ^");
-    return _1070_$retval;
+int64_t _1076_$anon103(int64_t _1076_m){
+    int64_t _1076_t5;
+    int64_t _1076_$retval;
+    goto BB1254;
+BB1254:
+    _1076_t5 = 300;
+    _1076_$retval = $add_int64_t(_1076_t5, _1076_m, "tests/integration/generics/named-non-const.orng:5:12:\n        n + m\n          ^");
+    return _1076_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1068_main());
+  printf("%ld",_1074_main());
   return 0;
 }

@@ -84,6 +84,7 @@ pub const Parser = struct {
         const next_kind = self.peek().kind;
         return next_kind == .let or
             next_kind == .@"const" or
+            next_kind == .@"extern" or
             next_kind == .impl or
             next_kind == .trait or
             next_kind == .@"defer" or
@@ -135,6 +136,13 @@ pub const Parser = struct {
             }
             decl.decl.top_level = true;
             return decl;
+        } else if (self.peek_kind(.@"extern")) {
+            var decl: *ast_.AST = try self.extern_const_declaration();
+            if (!self.peek_kind(.EOF)) {
+                _ = try self.expect(.newline);
+            }
+            decl.decl.top_level = true;
+            return decl;
         } else if (self.peek_kind(.trait)) {
             return try self.trait_declaration();
         } else if (self.peek_kind(.impl)) {
@@ -146,6 +154,34 @@ pub const Parser = struct {
             } });
             return Parser_Error_Enum.ParseError;
         }
+    }
+
+    fn extern_const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const token = try self.expect(.@"extern");
+
+        var c_name: ?*ast_.AST = null;
+        if (self.accept(.left_parenthesis) != null) {
+            c_name = try self.arrow_expr();
+            _ = try self.expect(.right_parenthesis);
+        }
+
+        _ = try self.expect(.@"const");
+
+        const identifier = try self.expect(.identifier);
+        const pattern = ast_.AST.create_symbol(identifier, .{ .@"extern" = .{ .c_name = c_name } }, identifier.data, self.allocator);
+        _ = try self.expect(.single_colon);
+        const _type: *ast_.AST = try self.arrow_expr();
+
+        var retval = ast_.AST.create_decl(
+            token,
+            pattern,
+            _type,
+            null,
+            false,
+            self.allocator,
+        );
+        retval.decl.prohibit_defaults = true;
+        return retval;
     }
 
     fn const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
@@ -262,6 +298,8 @@ pub const Parser = struct {
             retval = try self.let_declaration();
         } else if (self.peek_kind(.@"const")) {
             retval = try self.const_declaration();
+        } else if (self.peek_kind(.@"extern")) {
+            retval = try self.extern_const_declaration();
         }
 
         if (retval != null) {
@@ -283,6 +321,8 @@ pub const Parser = struct {
             return self.let_declaration();
         } else if (self.peek_kind(.@"const")) {
             return self.const_declaration();
+        } else if (self.peek_kind(.@"extern")) {
+            return self.extern_const_declaration();
         } else if (self.peek_kind(.trait)) {
             return self.trait_declaration();
         } else if (self.peek_kind(.impl)) {

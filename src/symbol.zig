@@ -24,7 +24,7 @@ pub const Scope = struct {
     defers: std.ArrayList(*ast_.AST),
     errdefers: std.ArrayList(*ast_.AST),
     inner_function: ?*Symbol = null,
-    is_param_scope: bool = false, // true when this scope encompases function parameters
+    is_param_scope: bool = false, // true when this scope encompases function parameters and externs. prohibits defaults from being generated
 
     pub fn init(parent: ?*Scope, name: []const u8, allocator: std.mem.Allocator) *Scope {
         var retval = allocator.create(Scope) catch unreachable;
@@ -163,9 +163,10 @@ pub const Scope = struct {
     }
 };
 
-pub const Symbol_Kind = enum {
+pub const Symbol_Kind = union(enum) {
     @"fn",
     @"const",
+    @"extern": struct { c_name: ?*ast_.AST },
     let,
     mut,
     @"comptime",

@@ -6,13 +6,14 @@ program: top_level_declaration {"newline" {"newline"} top_level_declaration} "eo
 
 top_level_declaration: fn_declaration 
                      | const_declaration
+                     | extern_const_declaration
                      | trait_declaration
                      | impl
                      .
 
-const_declaration: "const" const_pattern_atom ":" arrow_expr "=" arrow_expr.
-const_pattern_product: const_pattern_atom {"," const_pattern_atom}.
-const_pattern_atom: ident | "(" const_pattern_product ")".
+extern_const_declaration: "extern" ["(" arrow_expr ")"] "const" ident ":" arrow_expr.
+
+const_declaration: "const" ident ":" arrow_expr "=" arrow_expr.
 
 let_declaration: "let" let_pattern_atom (":" arrow_expr ["=" arrow_expr] | "=" arrow_expr).
 let_pattern_product: let_pattern_atom {"," let_pattern_atom}.
@@ -22,6 +23,7 @@ let_pre: [let_declaration ";"].
 
 statement: let_declaration
          | const_declaration
+         | extern_const_declaration
          | trait_declaration
          | impl
          | "defer" assignment_expr

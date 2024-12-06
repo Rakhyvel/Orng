@@ -419,6 +419,7 @@ pub const AST = union(enum) {
         init: ?*AST,
         top_level: bool,
         is_alias: bool,
+        prohibit_defaults: bool,
     },
     fn_decl: struct {
         common: AST_Common,
@@ -1160,6 +1161,7 @@ pub const AST = union(enum) {
                 .init = init,
                 .top_level = false,
                 .is_alias = is_alias,
+                .prohibit_defaults = false,
             } },
             allocator,
         );

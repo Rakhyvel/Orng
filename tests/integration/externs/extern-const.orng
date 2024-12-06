@@ -1,0 +1,10 @@
+// 327
+extern("EXIT_SUCCESS") const zero: Int
+
+fn main() -> Int {
+    if zero == 0 {
+        327
+    } else {
+        unreachable
+    }
+}

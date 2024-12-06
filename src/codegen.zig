@@ -427,7 +427,11 @@ fn output_var_decl(
 
 /// Outputs a symbol with it's file's unique identifier
 fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
-    try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
+    if (symbol.kind == .@"extern") {
+        try writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
+    } else {
+        try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
+    }
 }
 
 /// Outputs the C type which corresponds to an AST type.
