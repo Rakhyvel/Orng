@@ -126,6 +126,9 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
             } });
         }
     }
+    if (symbol.kind == .@"extern") {
+        symbol.kind.@"extern".c_name = validate_AST(symbol.kind.@"extern".c_name.?, primitives_.string_type, errors, allocator);
+    }
     _ = symbol.assert_init_valid();
 }
 

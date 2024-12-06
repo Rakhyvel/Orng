@@ -22,82 +22,82 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1327_main(void);
+int64_t _1333_main(void);
 
 
 /* Function definitions */
-int64_t _1327_main(void){
-    int64_t _1327_t3;
-    int64_t _1327_t4;
-    struct struct0 _1327_t2;
-    int64_t _1327_t6;
-    int64_t _1327_t7;
-    struct struct0 _1327_t5;
-    struct struct1 _1327_t1;
-    int64_t _1327_t8;
-    uint8_t _1327_t9;
-    int64_t _1327_t10;
-    uint8_t _1327_t11;
-    int64_t _1327_t0;
-    int64_t _1327_t14;
-    uint8_t _1327_t15;
-    int64_t _1327_$retval;
-    int64_t _1327_t12;
-    uint8_t _1327_t13;
-    _1327_t3 = 100;
-    _1327_t4 = 100;
-    _1327_t2 = (struct struct0) {_1327_t3, _1327_t4};
-    _1327_t6 = 200;
-    _1327_t7 = 200;
-    _1327_t5 = (struct struct0) {_1327_t6, _1327_t7};
-    _1327_t1 = (struct struct1) {_1327_t2, _1327_t5};
-    _1327_t8 = 100;
-    _1327_t9 = _1327_t1._0._0==_1327_t8;
-    if (_1327_t9) {
-        goto BB1527;
+int64_t _1333_main(void){
+    int64_t _1333_t3;
+    int64_t _1333_t4;
+    struct struct0 _1333_t2;
+    int64_t _1333_t6;
+    int64_t _1333_t7;
+    struct struct0 _1333_t5;
+    struct struct1 _1333_t1;
+    int64_t _1333_t8;
+    uint8_t _1333_t9;
+    int64_t _1333_t10;
+    uint8_t _1333_t11;
+    int64_t _1333_t0;
+    int64_t _1333_t14;
+    uint8_t _1333_t15;
+    int64_t _1333_$retval;
+    int64_t _1333_t12;
+    uint8_t _1333_t13;
+    _1333_t3 = 100;
+    _1333_t4 = 100;
+    _1333_t2 = (struct struct0) {_1333_t3, _1333_t4};
+    _1333_t6 = 200;
+    _1333_t7 = 200;
+    _1333_t5 = (struct struct0) {_1333_t6, _1333_t7};
+    _1333_t1 = (struct struct1) {_1333_t2, _1333_t5};
+    _1333_t8 = 100;
+    _1333_t9 = _1333_t1._0._0==_1333_t8;
+    if (_1333_t9) {
+        goto BB1536;
     } else {
-        goto BB1532;
+        goto BB1541;
     }
-BB1527:
-    _1327_t10 = 130;
-    _1327_t11 = _1327_t1._0._1==_1327_t10;
-    if (_1327_t11) {
-        goto BB1529;
+BB1536:
+    _1333_t10 = 130;
+    _1333_t11 = _1333_t1._0._1==_1333_t10;
+    if (_1333_t11) {
+        goto BB1538;
     } else {
-        goto BB1532;
+        goto BB1541;
     }
-BB1532:
-    _1327_t12 = 100;
-    _1327_t13 = _1327_t1._0._0==_1327_t12;
-    if (_1327_t13) {
-        goto BB1533;
+BB1541:
+    _1333_t12 = 100;
+    _1333_t13 = _1333_t1._0._0==_1333_t12;
+    if (_1333_t13) {
+        goto BB1542;
     } else {
-        goto BB1537;
+        goto BB1546;
     }
-BB1529:
-    _1327_t0 = 4;
-    goto BB1531;
-BB1533:
-    _1327_t14 = 100;
-    _1327_t15 = _1327_t1._0._1==_1327_t14;
-    if (_1327_t15) {
-        goto BB1535;
+BB1538:
+    _1333_t0 = 4;
+    goto BB1540;
+BB1542:
+    _1333_t14 = 100;
+    _1333_t15 = _1333_t1._0._1==_1333_t14;
+    if (_1333_t15) {
+        goto BB1544;
     } else {
-        goto BB1537;
+        goto BB1546;
     }
-BB1537:
+BB1546:
     $lines[$line_idx++] = "tests/integration/pattern/match-product-product.orng:6:39:\n        _               => unreachable\n                                     ^";
     $panic("reached unreachable code\n");
-BB1531:
-    _1327_$retval = _1327_t0;
-    return _1327_$retval;
-BB1535:
-    _1327_t0 = 170;
-    goto BB1531;
+BB1540:
+    _1333_$retval = _1333_t0;
+    return _1333_$retval;
+BB1544:
+    _1333_t0 = 170;
+    goto BB1540;
 }
 
 
 int main(void) {
-  printf("%ld",_1327_main());
+  printf("%ld",_1333_main());
   return 0;
 }

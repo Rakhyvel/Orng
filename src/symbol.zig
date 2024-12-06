@@ -163,9 +163,10 @@ pub const Scope = struct {
     }
 };
 
-pub const Symbol_Kind = enum {
+pub const Symbol_Kind = union(enum) {
     @"fn",
     @"const",
+    @"extern": struct { c_name: ?*ast_.AST },
     let,
     mut,
     @"comptime",

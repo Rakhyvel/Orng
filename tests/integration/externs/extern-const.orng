@@ -1,8 +1,8 @@
 // 327
-extern("M_PI") const pi: Float
+extern("EXIT_SUCCESS") const zero: Int
 
 fn main() -> Int {
-    if pi > 3.1 and pi < 3.2 {
+    if zero == 0 {
         327
     } else {
         unreachable
