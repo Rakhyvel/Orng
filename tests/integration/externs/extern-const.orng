@@ -1,5 +1,5 @@
 // 327
-const pi = @extern("PI", Float)
+extern("M_PI") const pi: Float
 
 fn main() -> Int {
     if pi > 3.1 and pi < 3.2 {
