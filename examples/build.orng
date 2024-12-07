@@ -1,0 +1,7 @@
+// This is an example build script
+
+// `build()` is a function that's ran at compile-time. It returns a Package object, that details how the structure of 
+// the package being built.
+fn build() -> Int {
+    4
+}

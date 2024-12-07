@@ -156,7 +156,7 @@ def fuzz():
                 with open("tests/fuzz/fuzz.orng", "w") as w:
                     w.write(trimmed)
                 try:
-                    res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "--fuzz"], timeout=2).returncode
+                    res = subprocess.run(["./zig-out/bin/orng", "tests/fuzz/fuzz.orng", "_enable_fuzz_tokens"], timeout=2).returncode
                 except subprocess.TimeoutExpired:
                     res = 1
                 if res != 0:

@@ -23,7 +23,7 @@ const symbol_tree_ = @import("symbol-tree.zig");
 const token_ = @import("token.zig");
 const type_set_ = @import("type-set.zig");
 
-const Module_Errors = error{
+pub const Module_Errors = error{
     LexerError,
     ParseError,
     NotCompileTimeKnown,
@@ -90,6 +90,7 @@ pub const Module = struct {
     pub fn compile(
         contents: []const u8,
         in_name: []const u8,
+        entry_name: ?[]const u8,
         prelude: *symbol_.Scope,
         fuzz_tokens: bool,
         errors: *errs_.Errors,
@@ -172,7 +173,8 @@ pub const Module = struct {
 
         // TODO: Move to own function
         // Add each CFG's instructions to the module's instruction's list
-        var found_main = false;
+        var found_entry = false;
+        const need_entry = entry_name != null;
         for (module.scope.symbols.keys()) |key| {
             const symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
             if (symbol.kind != .@"fn") {
@@ -182,13 +184,13 @@ pub const Module = struct {
             const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
             module.collect_cfgs(cfg);
 
-            if (std.mem.eql(u8, key, "main")) {
+            if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
                 module.entry = cfg;
                 module.entry.needed_at_runtime = true;
-                found_main = true;
+                found_entry = true;
             }
         }
-        if (!found_main) { // TODO: This will be removed once we get project structure going
+        if (need_entry and !found_entry) { // TODO: This will be reworked once we get project structure going
             errors.add_error(errs_.Error{ .basic = .{
                 .span = span_.phony_span,
                 .msg = "no main function found",

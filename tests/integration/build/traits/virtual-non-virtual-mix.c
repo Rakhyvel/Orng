@@ -33,102 +33,102 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _1840_main(void);
-int64_t _1833_cmp(void* _1833_$self_ptr, int64_t* _1833_other);
-int64_t _1831_id(void);
+int64_t _1848_main(void);
+int64_t _1841_cmp(void* _1841_$self_ptr, int64_t* _1841_other);
+int64_t _1839_id(void);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1830_$vtable = {
-    .id = _1831_id,
+struct vtable_My_Trait _1838_$vtable = {
+    .id = _1839_id,
 };
 
 
 /* Function definitions */
-int64_t _1840_main(void){
-    int64_t _1841_x;
-    int64_t _1841_y;
-    int64_t* _1840_t6;
-    int64_t* _1840_t7;
-    function3 _1840_t8;
-    int64_t _1840_t5;
-    int64_t _1840_t9;
-    uint8_t _1840_t11;
-    int64_t _1840_t12;
-    int64_t _1840_t13;
-    int64_t _1840_$retval;
-    _1841_x = 5;
-    _1841_y = 6;
-    _1840_t6 = &_1841_x;
-    _1840_t7 = &_1841_y;
-    _1840_t8 = (function3) _1833_cmp;
+int64_t _1848_main(void){
+    int64_t _1849_x;
+    int64_t _1849_y;
+    int64_t* _1848_t6;
+    int64_t* _1848_t7;
+    function3 _1848_t8;
+    int64_t _1848_t5;
+    int64_t _1848_t9;
+    uint8_t _1848_t11;
+    int64_t _1848_t12;
+    int64_t _1848_t13;
+    int64_t _1848_$retval;
+    _1849_x = 5;
+    _1849_y = 6;
+    _1848_t6 = &_1849_x;
+    _1848_t7 = &_1849_y;
+    _1848_t8 = (function3) _1841_cmp;
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:25:11:\n    if x.>cmp(&y) == 1 {\n         ^";
-    _1840_t5 = _1840_t8(_1840_t6, _1840_t7);
+    _1848_t5 = _1848_t8(_1848_t6, _1848_t7);
     $line_idx--;
-    _1840_t9 = 1;
-    _1840_t11 = _1840_t5==_1840_t9;
-    if (_1840_t11) {
-        goto BB2008;
+    _1848_t9 = 1;
+    _1848_t11 = _1848_t5==_1848_t9;
+    if (_1848_t11) {
+        goto BB2018;
     } else {
-        goto BB2012;
+        goto BB2022;
     }
-BB2008:
-    _1840_t12 = 301;
+BB2018:
+    _1848_t12 = 301;
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:26:18:\n        301 + x.>id()\n                ^";
-    _1840_t13 = _1830_$vtable.id();
+    _1848_t13 = _1838_$vtable.id();
     $line_idx--;
-    _1840_$retval = $add_int64_t(_1840_t12, _1840_t13, "tests/integration/traits/virtual-non-virtual-mix.orng:26:14:\n        301 + x.>id()\n            ^");
-    return _1840_$retval;
-BB2012:
+    _1848_$retval = $add_int64_t(_1848_t12, _1848_t13, "tests/integration/traits/virtual-non-virtual-mix.orng:26:14:\n        301 + x.>id()\n            ^");
+    return _1848_$retval;
+BB2022:
     $lines[$line_idx++] = "tests/integration/traits/virtual-non-virtual-mix.orng:28:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
-int64_t _1833_cmp(void* _1833_$self_ptr, int64_t* _1833_other){
-    int64_t _1834_self;
-    uint8_t _1833_t2;
-    int64_t _1833_t1;
-    int64_t _1833_t5;
-    int64_t _1833_$retval;
-    uint8_t _1833_t7;
-    _1834_self = *(int64_t*)_1833_$self_ptr;
-    _1833_t2 = _1834_self>*_1833_other;
-    if (_1833_t2) {
-        goto BB1990;
-    } else {
-        goto BB1994;
-    }
-BB1990:
-    _1833_t1 = -1;
-    goto BB1993;
-BB1994:
-    _1833_t7 = _1834_self==*_1833_other;
-    if (_1833_t7) {
-        goto BB1997;
-    } else {
+int64_t _1841_cmp(void* _1841_$self_ptr, int64_t* _1841_other){
+    int64_t _1842_self;
+    uint8_t _1841_t2;
+    int64_t _1841_t1;
+    int64_t _1841_t5;
+    int64_t _1841_$retval;
+    uint8_t _1841_t7;
+    _1842_self = *(int64_t*)_1841_$self_ptr;
+    _1841_t2 = _1842_self>*_1841_other;
+    if (_1841_t2) {
         goto BB2000;
+    } else {
+        goto BB2004;
     }
-BB1993:
-    _1833_$retval = _1833_t1;
-    return _1833_$retval;
-BB1997:
-    _1833_t5 = 0;
-    goto BB1999;
 BB2000:
-    _1833_t5 = 1;
-    goto BB1999;
-BB1999:
-    _1833_t1 = _1833_t5;
-    goto BB1993;
+    _1841_t1 = -1;
+    goto BB2003;
+BB2004:
+    _1841_t7 = _1842_self==*_1841_other;
+    if (_1841_t7) {
+        goto BB2007;
+    } else {
+        goto BB2010;
+    }
+BB2003:
+    _1841_$retval = _1841_t1;
+    return _1841_$retval;
+BB2007:
+    _1841_t5 = 0;
+    goto BB2009;
+BB2010:
+    _1841_t5 = 1;
+    goto BB2009;
+BB2009:
+    _1841_t1 = _1841_t5;
+    goto BB2003;
 }
 
-int64_t _1831_id(void){
-    int64_t _1831_$retval;
-    _1831_$retval = 4;
-    return _1831_$retval;
+int64_t _1839_id(void){
+    int64_t _1839_$retval;
+    _1839_$retval = 4;
+    return _1839_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1840_main());
+  printf("%ld",_1848_main());
   return 0;
 }
