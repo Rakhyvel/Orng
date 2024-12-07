@@ -21,49 +21,49 @@ typedef void(*function0)(struct struct1);
 char* string_0 = "\x33\x32";
 
 /* Function forward definitions */
-int64_t _8_main(void);
-void _10_print(struct struct1 _10_str);
+int64_t _929_main(void);
+void _931_print(struct struct1 _931_str);
 
 
 /* Function definitions */
-int64_t _8_main(void){
-    function0 _8_t0;
-    struct struct1 _8_t2;
-    int64_t _8_$retval;
-    _8_t0 = (function0) _10_print;
-    _8_t2 = (struct struct1) {(uint8_t*)string_0, 2};
+int64_t _929_main(void){
+    function0 _929_t0;
+    struct struct1 _929_t2;
+    int64_t _929_$retval;
+    _929_t0 = (function0) _931_print;
+    _929_t2 = (struct struct1) {(uint8_t*)string_0, 2};
     $lines[$line_idx++] = "tests/integration/externs/extern-fn.orng:3:11:\n    print(\"32\")\n         ^";
-    (void) _8_t0(_8_t2);
+    (void) _929_t0(_929_t2);
     $line_idx--;
-    _8_$retval = 8;
-    return _8_$retval;
+    _929_$retval = 8;
+    return _929_$retval;
 }
 
-void _10_print(struct struct1 _10_str){
-    int64_t _12_i;
-    uint8_t _10_t4;
-    int64_t _10_t7;
-    _12_i = 0;
-    goto BB10;
-BB10:
-    _10_t4 = _12_i<_10_str._1;
-    if (_10_t4) {
-        goto BB11;
+void _931_print(struct struct1 _931_str){
+    int64_t _933_i;
+    uint8_t _931_t4;
+    int64_t _931_t7;
+    _933_i = 0;
+    goto BB1110;
+BB1110:
+    _931_t4 = _933_i<_931_str._1;
+    if (_931_t4) {
+        goto BB1111;
     } else {
         return;
     }
-BB11:
+BB1111:
     $lines[$line_idx++] = "tests/integration/externs/extern-fn.orng:11:21:\n        _ = putchar(str[i])    \n                   ^";
-    $bounds_check(_12_i, _10_str._1, "tests/integration/externs/extern-fn.orng:11:21:\n        _ = putchar(str[i])    \n                   ^");
-    (void) putchar(*((uint8_t*)_10_str._0 + _12_i));
+    $bounds_check(_933_i, _931_str._1, "tests/integration/externs/extern-fn.orng:11:21:\n        _ = putchar(str[i])    \n                   ^");
+    (void) putchar(*((uint8_t*)_931_str._0 + _933_i));
     $line_idx--;
-    _10_t7 = 1;
-    _12_i = $add_int64_t(_12_i, _10_t7, "tests/integration/externs/extern-fn.orng:10:46:\n    while let mut i = 0; i < str.length; i += 1 {\n                                            ^");
-    goto BB10;
+    _931_t7 = 1;
+    _933_i = $add_int64_t(_933_i, _931_t7, "tests/integration/externs/extern-fn.orng:10:46:\n    while let mut i = 0; i < str.length; i += 1 {\n                                            ^");
+    goto BB1110;
 }
 
 
 int main(void) {
-  printf("%ld",_8_main());
+  printf("%ld",_929_main());
   return 0;
 }

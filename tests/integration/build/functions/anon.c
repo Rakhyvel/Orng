@@ -20,48 +20,48 @@ struct struct2 {
 typedef int64_t(*function1)(function0, int64_t);
 
 /* Function forward definitions */
-int64_t _929_main(void);
-int64_t _931_$anon93(int64_t _931_x);
-int64_t _933_apply(function0 _933_f, int64_t _933_x);
+int64_t _937_main(void);
+int64_t _939_$anon93(int64_t _939_x);
+int64_t _941_apply(function0 _941_f, int64_t _941_x);
 
 
 /* Function definitions */
-int64_t _929_main(void){
-    function0 _930_id;
-    function1 _929_t2;
-    int64_t _929_t4;
-    int64_t _929_t3;
-    int64_t _929_$retval;
-    _930_id = (function0) _931_$anon93;
-    _929_t2 = (function1) _933_apply;
-    _929_t4 = 43;
+int64_t _937_main(void){
+    function0 _938_id;
+    function1 _937_t2;
+    int64_t _937_t4;
+    int64_t _937_t3;
+    int64_t _937_$retval;
+    _938_id = (function0) _939_$anon93;
+    _937_t2 = (function1) _941_apply;
+    _937_t4 = 43;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:4:11:\n    apply(id, 43)\n         ^";
-    _929_t3 = _929_t2(_930_id, _929_t4);
+    _937_t3 = _937_t2(_938_id, _937_t4);
     $line_idx--;
-    _929_$retval = _929_t3;
-    return _929_$retval;
+    _937_$retval = _937_t3;
+    return _937_$retval;
 }
 
-int64_t _931_$anon93(int64_t _931_x){
-    int64_t _931_$retval;
-    goto BB1110;
-BB1110:
-    _931_$retval = _931_x;
-    return _931_$retval;
+int64_t _939_$anon93(int64_t _939_x){
+    int64_t _939_$retval;
+    goto BB1120;
+BB1120:
+    _939_$retval = _939_x;
+    return _939_$retval;
 }
 
-int64_t _933_apply(function0 _933_f, int64_t _933_x){
-    int64_t _933_t0;
-    int64_t _933_$retval;
+int64_t _941_apply(function0 _941_f, int64_t _941_x){
+    int64_t _941_t0;
+    int64_t _941_$retval;
     $lines[$line_idx++] = "tests/integration/functions/anon.orng:7:39:\nfn apply(f: Int->Int, x: Int)->Int {f(x)}\n                                     ^";
-    _933_t0 = _933_f(_933_x);
+    _941_t0 = _941_f(_941_x);
     $line_idx--;
-    _933_$retval = _933_t0;
-    return _933_$retval;
+    _941_$retval = _941_t0;
+    return _941_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_929_main());
+  printf("%ld",_937_main());
   return 0;
 }

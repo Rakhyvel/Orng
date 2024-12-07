@@ -125,7 +125,7 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
-    const module = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, filename, "main", prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             errors.print_errors() catch unreachable;
             term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
@@ -255,7 +255,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
-    const module = module_.Module.compile(contents, filename, prelude, false, &errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, filename, "main", prelude, false, &errors, allocator) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.LexerError,
@@ -367,7 +367,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            const module = module_.Module.compile(contents, "fuzz", prelude, false, &errors, allocator) catch |err| {
+            const module = module_.Module.compile(contents, "fuzz", "main", prelude, false, &errors, allocator) catch |err| {
                 try errors.print_errors();
                 switch (err) {
                     error.LexerError,

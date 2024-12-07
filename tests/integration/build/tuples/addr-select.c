@@ -18,31 +18,31 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1851_main(void);
+int64_t _1859_main(void);
 
 
 /* Function definitions */
-int64_t _1851_main(void){
-    int64_t _1851_t1;
-    int64_t _1851_t2;
-    int64_t _1851_t3;
-    int64_t _1851_t4;
-    struct struct0 _1852_x;
-    int64_t* _1852_y;
-    int64_t _1851_$retval;
-    _1851_t1 = 1;
-    _1851_t2 = 2;
-    _1851_t3 = 3;
-    _1851_t4 = 4;
-    _1852_x = (struct struct0) {_1851_t1, _1851_t2, _1851_t3, _1851_t4};
-    _1852_y = &_1852_x._3;
-    *_1852_y = 66;
-    _1851_$retval = _1852_x._3;
-    return _1851_$retval;
+int64_t _1859_main(void){
+    int64_t _1859_t1;
+    int64_t _1859_t2;
+    int64_t _1859_t3;
+    int64_t _1859_t4;
+    struct struct0 _1860_x;
+    int64_t* _1860_y;
+    int64_t _1859_$retval;
+    _1859_t1 = 1;
+    _1859_t2 = 2;
+    _1859_t3 = 3;
+    _1859_t4 = 4;
+    _1860_x = (struct struct0) {_1859_t1, _1859_t2, _1859_t3, _1859_t4};
+    _1860_y = &_1860_x._3;
+    *_1860_y = 66;
+    _1859_$retval = _1860_x._3;
+    return _1859_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1851_main());
+  printf("%ld",_1859_main());
   return 0;
 }

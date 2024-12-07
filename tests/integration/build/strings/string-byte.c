@@ -19,23 +19,23 @@ struct struct0 {
 char* string_0 = "\x5B";
 
 /* Function forward definitions */
-uint8_t _1490_main(void);
+uint8_t _1498_main(void);
 
 
 /* Function definitions */
-uint8_t _1490_main(void){
-    struct struct0 _1491_x;
-    int64_t _1490_t2;
-    uint8_t _1490_$retval;
-    _1491_x = (struct struct0) {(uint8_t*)string_0, 1};
-    _1490_t2 = 0;
-    $bounds_check(_1490_t2, _1491_x._1, "tests/integration/strings/string-byte.orng:2:8:\nfn main() -> Byte {\n      ^");
-    _1490_$retval = *((uint8_t*)_1491_x._0 + _1490_t2);
-    return _1490_$retval;
+uint8_t _1498_main(void){
+    struct struct0 _1499_x;
+    int64_t _1498_t2;
+    uint8_t _1498_$retval;
+    _1499_x = (struct struct0) {(uint8_t*)string_0, 1};
+    _1498_t2 = 0;
+    $bounds_check(_1498_t2, _1499_x._1, "tests/integration/strings/string-byte.orng:2:8:\nfn main() -> Byte {\n      ^");
+    _1498_$retval = *((uint8_t*)_1499_x._0 + _1498_t2);
+    return _1498_$retval;
 }
 
 
 int main(void) {
-  printf("%u",_1490_main());
+  printf("%u",_1498_main());
   return 0;
 }

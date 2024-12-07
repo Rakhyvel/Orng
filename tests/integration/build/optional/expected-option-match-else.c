@@ -18,27 +18,27 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1171_main(void);
+int64_t _1179_main(void);
 
 
 /* Function definitions */
-int64_t _1171_main(void){
-    int64_t _1171_t10;
-    struct struct0 _1172_x;
-    uint64_t _1171_t13;
-    int64_t _1171_$retval;
-    goto BB1344;
-BB1344:
-    _1171_t10 = 128;
-    _1172_x = (struct struct0) {.tag=0, ._0=_1171_t10};
-    _1171_t13 = 0;
-    $tag_check(_1171_t13, 0, "tests/integration/optional/expected-option-match-else.orng:2:8:\nfn main() -> Int {\n      ^");
-    _1171_$retval = _1172_x._0;
-    return _1171_$retval;
+int64_t _1179_main(void){
+    int64_t _1179_t10;
+    struct struct0 _1180_x;
+    uint64_t _1179_t13;
+    int64_t _1179_$retval;
+    goto BB1354;
+BB1354:
+    _1179_t10 = 128;
+    _1180_x = (struct struct0) {.tag=0, ._0=_1179_t10};
+    _1179_t13 = 0;
+    $tag_check(_1179_t13, 0, "tests/integration/optional/expected-option-match-else.orng:2:8:\nfn main() -> Int {\n      ^");
+    _1179_$retval = _1180_x._0;
+    return _1179_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1171_main());
+  printf("%ld",_1179_main());
   return 0;
 }

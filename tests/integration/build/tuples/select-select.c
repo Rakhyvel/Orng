@@ -22,33 +22,33 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1899_main(void);
+int64_t _1907_main(void);
 
 
 /* Function definitions */
-int64_t _1899_main(void){
-    int64_t _1899_t2;
-    int64_t _1899_t3;
-    struct struct0 _1899_t1;
-    int64_t _1899_t5;
-    int64_t _1899_t6;
-    struct struct0 _1899_t4;
-    struct struct1 _1900_x;
-    int64_t _1899_$retval;
-    _1899_t2 = 1;
-    _1899_t3 = 2;
-    _1899_t1 = (struct struct0) {_1899_t2, _1899_t3};
-    _1899_t5 = 3;
-    _1899_t6 = 4;
-    _1899_t4 = (struct struct0) {_1899_t5, _1899_t6};
-    _1900_x = (struct struct1) {_1899_t1, _1899_t4};
-    _1900_x._0._0 = 77;
-    _1899_$retval = _1900_x._0._0;
-    return _1899_$retval;
+int64_t _1907_main(void){
+    int64_t _1907_t2;
+    int64_t _1907_t3;
+    struct struct0 _1907_t1;
+    int64_t _1907_t5;
+    int64_t _1907_t6;
+    struct struct0 _1907_t4;
+    struct struct1 _1908_x;
+    int64_t _1907_$retval;
+    _1907_t2 = 1;
+    _1907_t3 = 2;
+    _1907_t1 = (struct struct0) {_1907_t2, _1907_t3};
+    _1907_t5 = 3;
+    _1907_t6 = 4;
+    _1907_t4 = (struct struct0) {_1907_t5, _1907_t6};
+    _1908_x = (struct struct1) {_1907_t1, _1907_t4};
+    _1908_x._0._0 = 77;
+    _1907_$retval = _1908_x._0._0;
+    return _1907_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1899_main());
+  printf("%ld",_1907_main());
   return 0;
 }

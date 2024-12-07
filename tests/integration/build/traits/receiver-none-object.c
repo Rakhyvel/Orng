@@ -29,48 +29,48 @@ struct vtable_My_Trait {
 };
 
 /* Function forward definitions */
-int64_t _1778_main(void);
-int64_t _1776_d(int64_t _1776_x, int64_t _1776_y);
+int64_t _1786_main(void);
+int64_t _1784_d(int64_t _1784_x, int64_t _1784_y);
 
 /* Trait vtable implementations */
-struct vtable_My_Trait _1775_$vtable = {
-    .d = _1776_d,
+struct vtable_My_Trait _1783_$vtable = {
+    .d = _1784_d,
 };
 
 
 /* Function definitions */
-int64_t _1778_main(void){
-    int64_t _1778_t1;
-    int64_t _1778_t2;
-    struct struct1 _1779_my_val;
-    struct dyn2 _1778_t4;
-    struct dyn2 _1779_my_dyn;
-    int64_t _1778_t8;
-    int64_t _1778_t9;
-    int64_t _1778_t7;
-    int64_t _1778_$retval;
-    _1778_t1 = 100;
-    _1778_t2 = 45;
-    _1779_my_val = (struct struct1) {_1778_t1, _1778_t2};
-    _1778_t4 = (struct dyn2) {&_1779_my_val, &_1775_$vtable};
-    _1779_my_dyn = _1778_t4;
-    _1778_t8 = 200;
-    _1778_t9 = 91;
+int64_t _1786_main(void){
+    int64_t _1786_t1;
+    int64_t _1786_t2;
+    struct struct1 _1787_my_val;
+    struct dyn2 _1786_t4;
+    struct dyn2 _1787_my_dyn;
+    int64_t _1786_t8;
+    int64_t _1786_t9;
+    int64_t _1786_t7;
+    int64_t _1786_$retval;
+    _1786_t1 = 100;
+    _1786_t2 = 45;
+    _1787_my_val = (struct struct1) {_1786_t1, _1786_t2};
+    _1786_t4 = (struct dyn2) {&_1787_my_val, &_1783_$vtable};
+    _1787_my_dyn = _1786_t4;
+    _1786_t8 = 200;
+    _1786_t9 = 91;
     $lines[$line_idx++] = "tests/integration/traits/receiver-none-object.orng:18:13:\n    my_dyn.>d(200, 91)\n           ^";
-    _1778_t7 = _1779_my_dyn.vtable->d(_1778_t8, _1778_t9);
+    _1786_t7 = _1787_my_dyn.vtable->d(_1786_t8, _1786_t9);
     $line_idx--;
-    _1778_$retval = _1778_t7;
-    return _1778_$retval;
+    _1786_$retval = _1786_t7;
+    return _1786_$retval;
 }
 
-int64_t _1776_d(int64_t _1776_x, int64_t _1776_y){
-    int64_t _1776_$retval;
-    _1776_$retval = $add_int64_t(_1776_x, _1776_y, "tests/integration/traits/receiver-none-object.orng:10:12:\n        x + y\n          ^");
-    return _1776_$retval;
+int64_t _1784_d(int64_t _1784_x, int64_t _1784_y){
+    int64_t _1784_$retval;
+    _1784_$retval = $add_int64_t(_1784_x, _1784_y, "tests/integration/traits/receiver-none-object.orng:10:12:\n        x + y\n          ^");
+    return _1784_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1778_main());
+  printf("%ld",_1786_main());
   return 0;
 }

@@ -1,9 +1,38 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
+const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
+const interpreter_ = @import("interpreter.zig");
 const primitives_ = @import("primitives.zig");
 const module_ = @import("module.zig");
 const symbol_ = @import("symbol.zig");
+
+const version_year: usize = 25;
+const version_month: usize = 1;
+const version_minor: ?usize = null;
+
+const Command_Error: type = (std.fs.File.WriteError ||
+    std.fs.File.ReadError ||
+    std.fs.File.OpenError ||
+    std.mem.Allocator.Error ||
+    module_.Module_Errors ||
+    std.posix.RealPathError || // TODO: Fix for Windows
+    error{ StreamTooLong, BuildOrngError });
+
+const Command: type = *const fn (name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void;
+
+const Command_Entry: type = struct {
+    name: []const u8, // The name of the command
+    help: []const u8, // Printed by the help command
+    func: Command, // Command to be performed when selected
+};
+
+const command_table = [_]Command_Entry{
+    Command_Entry{ .name = "build", .help = "Builds an Orng package", .func = build },
+    Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
+    Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
+    Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
+};
 
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
@@ -14,25 +43,52 @@ pub fn main() !void {
     // Get second command line argument
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
-    const arg = args.next() orelse {
-        std.debug.print("{s}\n", .{"Usage: zig build run -- <orng-filename>"});
+
+    // Parse the command arg
+    const command = args.next() orelse {
+        try help("help", &args, allocator);
         return;
     };
+    for (command_table) |command_entry| {
+        if (std.mem.eql(u8, command, command_entry.name)) {
+            command_entry.func(command, &args, allocator) catch |err| switch (err) {
+                error.LexerError,
+                error.ParseError,
+                error.NotCompileTimeKnown,
+                error.InvalidCharacter,
+                error.Overflow,
+                error.SymbolError,
+                error.TypeError,
+                error.IRError,
+                error.DivideByZero,
+                error.NotAnLValue,
+                error.InterpreterPanic,
+                error.BuildOrngError,
+                => std.process.exit(1),
 
-    // Get the path
-    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    const path: []u8 = try std.fs.realpath(arg, &path_buffer);
-
-    // Parse further args
-    var fuzz_tokens = false;
-    if (args.next()) |_arg| {
-        if (std.mem.eql(u8, "--fuzz", _arg)) {
-            fuzz_tokens = true;
-        } else {
-            std.debug.print("invalid command-line argument: {s}\nusage: orng-test (integration | coverage | fuzz)\n", .{_arg});
-            return error.InvalidCliArgument;
+                else => return err,
+            };
+            return;
         }
     }
+
+    try help("help", &args, allocator);
+}
+
+fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = name; // autofix
+    _ = args;
+    // Get the path
+    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
+    // const path: []u8 = try std.fs.realpath(args.next().?, &path_buffer);
+    const path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| switch (err) {
+        error.FileNotFound => {
+            // TODO: This should be printed out in bold and red
+            try std.io.getStdOut().writer().print("error: no `build.orng` file found in current working directory\n", .{});
+            return error.BuildOrngError;
+        },
+        else => return err,
+    };
 
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
@@ -41,22 +97,60 @@ pub fn main() !void {
     ast_.init_structures();
     const prelude = primitives_.get_scope();
 
-    if (fuzz_tokens) {
-        compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator) catch {};
-    } else {
-        try compile(&errors, path, "examples/out.c", prelude, fuzz_tokens, allocator);
-    }
+    const build_module = try compile_module(&errors, path, "build", prelude, false, allocator);
+
+    const cfg = build_module.scope.lookup("build", false).found.cfg.?;
+
+    var build_context = interpreter_.Context.init(cfg, &build_module.instructions, primitives_.int_type, cfg.offset.?);
+    try build_context.interpret();
+
+    // Extract the retval
+    const result = build_context.extract_ast(0, primitives_.int_type, allocator);
+    std.debug.print("{}\n", .{result});
+
+    // const fuzz_tokens = std.mem.eql(u8, name, "_fuzz_tokens"); // TODO: Re-add fuzz tokens
 }
 
-/// Compiles and outputs a file
-fn compile(
+fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = name;
+    _ = allocator;
+    _ = args;
+    try std.io.getStdOut().writer().print("Orng {}.{:0>2}", .{ version_year, version_month });
+    if (version_minor != null) {
+        try std.io.getStdOut().writer().print(".{}", .{version_minor.?});
+    }
+    try std.io.getStdOut().writer().print("\n", .{});
+}
+
+fn help(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = name;
+    _ = allocator;
+    _ = args;
+    try std.io.getStdOut().writer().print("Usage: orng [command] [options]\n\nCommands:\n", .{});
+    for (command_table) |command_entry| {
+        if (command_entry.name[0] == '_') {
+            // Skip internal commands
+            continue;
+        }
+        try std.io.getStdOut().writer().print("  {s}", .{command_entry.name});
+        const num_spaces = 12 - command_entry.name.len;
+        for (0..num_spaces) |_| {
+            try std.io.getStdOut().writer().print(" ", .{});
+        }
+        try std.io.getStdOut().writer().print("{s}\n", .{command_entry.help});
+    }
+    try std.io.getStdOut().writer().print("\n", .{});
+}
+
+/// Compiles a module from a file
+fn compile_module(
     errors: *errs_.Errors,
     in_name: []const u8,
-    out_name: []const u8,
+    entry_name: []const u8,
     prelude: *symbol_.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) !void {
+) Command_Error!*module_.Module {
     // Open the file
     var file = try std.fs.cwd().openFile(in_name, .{});
     defer file.close();
@@ -73,7 +167,7 @@ fn compile(
     try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
     const contents = try contents_arraylist.toOwnedSlice();
 
-    const module = module_.Module.compile(contents, in_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, in_name, entry_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
         switch (err) {
             error.LexerError,
             error.ParseError,
@@ -92,10 +186,5 @@ fn compile(
             else => return err,
         }
     };
-    var output_file = try std.fs.cwd().createFile(
-        out_name,
-        .{ .read = false },
-    );
-    defer output_file.close();
-    module.output(output_file.writer()) catch unreachable;
+    return module;
 }
