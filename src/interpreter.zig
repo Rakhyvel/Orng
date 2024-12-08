@@ -50,7 +50,7 @@ pub const Context = struct {
         entry_point: Instruction_Pointer, // Address of the intruction to start execution at
     ) Context {
         const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
-        std.debug.print("frame_address:{}", .{frame_address});
+        // std.debug.print("frame_address:{}", .{frame_address});
         var retval = Context{
             .stack = [_]u8{uninit_byte} ** stack_limit,
             .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
@@ -181,7 +181,7 @@ pub const Context = struct {
 
     /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
     fn move(self: *Context, dest: i64, src: i64, len: i64) void {
-        std.debug.print("dest:{} src:{}, len:{}\n", .{ dest, src, len });
+        // std.debug.print("dest:{} src:{}, len:{}\n", .{ dest, src, len });
         std.debug.assert(dest >= 0);
         std.debug.assert(src >= 0);
         if (len == 0) {
@@ -260,7 +260,7 @@ pub const Context = struct {
         self.base_pointer = @as(i64, @intCast(self.pop_int(8)));
         // restore previous stack-pointer, deallocate params, deallocate return-pointer
         self.stack_pointer = @as(i64, @intCast(self.pop_int(8)));
-        self.print_registers();
+        // self.print_registers();
     }
 
     /// Prints the values of the interpreter's registers
@@ -325,9 +325,9 @@ pub const Context = struct {
         // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
-            self.print_registers();
-            self.print_stack();
-            std.debug.print("\n\n\n\n{}=>\n", .{ir});
+            // self.print_registers();
+            // self.print_stack();
+            // std.debug.print("\n\n\n\n{}=>\n", .{ir});
             const time_now = std.time.milliTimestamp();
             if (time_now - self.start_time > timeout_ms) {
                 return self.panic(null, "interpreter error: compile-time interpreter timeout\n", .{});
@@ -509,11 +509,11 @@ pub const Context = struct {
                 }
             },
             .call => {
-                std.debug.print("symbol ir src: {}\n", .{ir.src1.?});
+                // std.debug.print("symbol ir src: {}\n", .{ir.src1.?});
                 const symbol_loc = try self.effective_address(ir.src1.?);
-                std.debug.print("symbol_loc: {}\n", .{symbol_loc});
+                // std.debug.print("symbol_loc: {}\n", .{symbol_loc});
                 const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
-                std.debug.print("symbol_int: {}\n", .{symbol_int});
+                // std.debug.print("symbol_int: {}\n", .{symbol_int});
                 const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
 
                 // Save old stack pointer
