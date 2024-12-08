@@ -109,12 +109,15 @@ pub const Module = struct {
         // TODO: Move this to it's own function
         var i: usize = 0;
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
-        const name: []const u8 = in_name[0..i];
+        const full_name: []const u8 = in_name[0..i];
+        i = full_name.len - 1;
+        while (i >= 1 and full_name[i] != '/') : (i -= 1) {}
+        const short_name: []const u8 = full_name[i + 1 ..];
 
         // TODO: Move to own function, returning file_root
         // Module/Symbol-Tree construction
-        var file_root = symbol_.Scope.init(prelude, name, allocator);
-        const module = Module.init(name, file_root, allocator);
+        var file_root = symbol_.Scope.init(prelude, full_name, allocator);
+        const module = Module.init(short_name, file_root, allocator);
         file_root.module = module;
 
         try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, errors, allocator);
