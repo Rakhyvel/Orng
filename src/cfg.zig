@@ -4,6 +4,7 @@ const std = @import("std");
 const basic_block_ = @import("basic-block.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
+const offsets_ = @import("offsets.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
@@ -47,7 +48,7 @@ pub const CFG = struct {
 
     /// Address in the first instruction of this CFG
     /// Used for IR interpretation
-    offset: ?i64,
+    offset: ?offsets_.Instruction_Idx,
     /// Number of bytes required in order to store the local variables of the function
     locals_size: ?i64,
 

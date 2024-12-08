@@ -3,25 +3,40 @@ const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
+const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const offsets_ = @import("offsets.zig");
 const token_ = @import("token.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const stack_limit = 0x4000; // 16 KiB
-const uninit_byte: u8 = 0x58; // It is, in general, not a good idea to memset to 0x00!
-const halt_trap: i64 = 0xFFFF_FFFF_FFF0;
+/// Interpreter execution timeout in milliseconds
 const timeout_ms = 1000;
+/// Size of the stack. 32 KiB, or around 1024 stack frames.
+const stack_limit = 0x8000; // 32 KiB
 
-// TODO: Could you make a debugger, that lets you step to the next instruction etc?
+/// What uninitialized bytes are set to, purposely not set to 0x00 to stand out during debugging
+const uninit_byte: u8 = 0x55;
+/// Executing an instruction at this address causes the interpreter to halt. This is used as the return address for the
+/// entry point, so that if the entry returns, interpretation halts. Also allows for a way to halt interpretation from
+/// anywhere, by simply jumping to here.
+const halt_trap_instruction: offsets_.Instruction_Idx = 0xFFFF_FFF0;
+
+const Instruction_Pointer = struct {
+    /// The UID of the module currently being executed
+    module_uid: module_.Module_UID,
+    /// The index of the instruction currently being executed, relative to the current module
+    inst_idx: offsets_.Instruction_Idx,
+};
+
+// TODO: make a debugger, that lets you step to the next instruction etc?
 pub const Context = struct {
     stack: [stack_limit]u8,
     stack_pointer: i64,
     base_pointer: i64,
 
-    instructions: *std.ArrayList(*ir_.IR),
-    instruction_pointer: i64,
+    modules: std.AutoArrayHashMap(module_.Module_UID, *module_.Module),
+    instruction_pointer: Instruction_Pointer,
 
     debug_call_mem: [stack_limit]u8,
     debug_call_stack: std.ArrayList(span_.Span),
@@ -31,18 +46,17 @@ pub const Context = struct {
     /// Initializes a new interpreter context.
     pub fn init(
         cfg: *cfg_.CFG,
-        instructions: *std.ArrayList(*ir_.IR), // Flat list of instructions to interpret
         ret_type: *ast_.AST, // TODO: Just accept ret_type size
-        entry_point: i64, // Address of the intruction to start execution at
+        entry_point: Instruction_Pointer, // Address of the intruction to start execution at
     ) Context {
-        std.debug.assert(entry_point >= 0);
         const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
+        std.debug.print("frame_address:{}", .{frame_address});
         var retval = Context{
             .stack = [_]u8{uninit_byte} ** stack_limit,
             .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
-            .base_pointer = (4 * @sizeOf(i64)) + frame_address,
+            .base_pointer = (3 * @sizeOf(i64)) + frame_address,
 
-            .instructions = instructions,
+            .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(std.heap.page_allocator),
             .instruction_pointer = entry_point,
             .debug_call_mem = [_]u8{uninit_byte} ** stack_limit,
             .debug_call_stack = undefined,
@@ -60,9 +74,13 @@ pub const Context = struct {
         retval.store_int(frame_address + 0 * @sizeOf(i64), @sizeOf(i64), 0); // Set the return value address to 0
         retval.store_int(frame_address + 1 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-bp to 0
         retval.store_int(frame_address + 2 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-sp to 0
-        retval.store_int(frame_address + 3 * @sizeOf(i64), @sizeOf(i64), halt_trap); // Set the return address to halt trap value
+        retval.store(Instruction_Pointer, frame_address + 3 * @sizeOf(i64), .{ .module_uid = 0, .inst_idx = halt_trap_instruction }); // Set the return address to halt trap value
 
         return retval;
+    }
+
+    pub fn load_module(self: *Context, module: *module_.Module) void {
+        self.modules.put(module.uid, module) catch unreachable;
     }
 
     /// Gets the effective address of an lvalue in the interpreter's memory.
@@ -163,6 +181,7 @@ pub const Context = struct {
 
     /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
     fn move(self: *Context, dest: i64, src: i64, len: i64) void {
+        std.debug.print("dest:{} src:{}, len:{}\n", .{ dest, src, len });
         std.debug.assert(dest >= 0);
         std.debug.assert(src >= 0);
         if (len == 0) {
@@ -198,6 +217,13 @@ pub const Context = struct {
         }
     }
 
+    /// Pushes a generic, compiler-comptime-known type to the stack
+    fn push(self: *Context, comptime T: type, val: T) void {
+        self.store(T, self.stack_pointer, val);
+        const t_size: usize = @sizeOf(T);
+        self.stack_pointer += t_size;
+    }
+
     /// Pushes an integer value onto the interpreter's stack.
     fn push_int(self: *Context, size: i64, val: i128) void {
         self.store_int(self.stack_pointer, size, val);
@@ -210,7 +236,15 @@ pub const Context = struct {
         self.stack_pointer += block_size;
     }
 
-    /// Pops and returns an integer value from the interpreter's stack.
+    /// Pops a generic, compiler-comptime-known type from the stack
+    fn pop(self: *Context, comptime T: type) T {
+        const t_size: usize = @sizeOf(T);
+        self.stack_pointer -= t_size;
+        return self.load(T, self.stack_pointer);
+    }
+
+    /// Pops and returns an integer value from the interpreter's stack. The size of the integer is allowed to be known
+    /// only at compiler runtime.
     fn pop_int(self: *Context, int_size_bytes: i64) i128 {
         self.stack_pointer -= int_size_bytes;
         return self.load_int(self.stack_pointer, int_size_bytes);
@@ -221,17 +255,24 @@ pub const Context = struct {
         // deallocate locals
         self.stack_pointer = self.base_pointer + 8;
         // jump to return-address
-        self.instruction_pointer = @as(i64, @intCast(self.pop_int(8)));
+        self.instruction_pointer = self.pop(Instruction_Pointer);
         // restore previous base-pointer
         self.base_pointer = @as(i64, @intCast(self.pop_int(8)));
         // restore previous stack-pointer, deallocate params, deallocate return-pointer
         self.stack_pointer = @as(i64, @intCast(self.pop_int(8)));
-        // self.print_registers();
+        self.print_registers();
     }
 
     /// Prints the values of the interpreter's registers
     fn print_registers(self: *Context) void {
-        std.debug.print("bp:0x{X} sp:0x{X} ip:0x{X}\n", .{ self.base_pointer, self.stack_pointer, self.instruction_pointer });
+        const module: ?*module_.Module = self.curr_module() catch null;
+        std.debug.print("bp:0x{X} sp:0x{X} ip:[{s}#{}]@{X}\n", .{
+            self.base_pointer,
+            self.stack_pointer,
+            if (module != null) module.?.name else "?",
+            self.instruction_pointer.module_uid,
+            self.instruction_pointer.inst_idx,
+        });
     }
 
     /// Prints the contents of the interpreter's stack. Used for debugging.
@@ -268,15 +309,25 @@ pub const Context = struct {
         };
     }
 
+    fn curr_module(self: *Context) error{InterpreterPanic}!*module_.Module {
+        return self.modules.get(self.instruction_pointer.module_uid) orelse
+            self.panic(null, "interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
+    }
+
+    fn curr_instruction(self: *Context) error{InterpreterPanic}!*ir_.IR {
+        const module = try self.curr_module();
+        return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
+    }
+
     /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
     /// the maximum allowed instructions.
     pub fn interpret(self: *Context) error{InterpreterPanic}!void {
         // Halt whenever instruction pointer is greater than the max allowed instructions
-        while (self.instruction_pointer < halt_trap) : (self.instruction_pointer += 1) {
-            const ir: *ir_.IR = self.instructions.items[@as(usize, @intCast(self.instruction_pointer))];
-            // self.print_registers();
-            // self.print_stack();
-            // std.debug.print("\n\n\n\n{}=>\n", .{ir});
+        while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
+            const ir: *ir_.IR = try self.curr_instruction();
+            self.print_registers();
+            self.print_stack();
+            std.debug.print("\n\n\n\n{}=>\n", .{ir});
             const time_now = std.time.milliTimestamp();
             if (time_now - self.start_time > timeout_ms) {
                 return self.panic(null, "interpreter error: compile-time interpreter timeout\n", .{});
@@ -302,8 +353,14 @@ pub const Context = struct {
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
             },
             .load_float => self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
-            .load_string => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.string_id),
-            .load_symbol => self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol)),
+            .load_string => self.store_int(try self.effective_address(ir.dest.?), 8, ir.data.string_id),
+            .load_symbol => {
+                const symbol_module = ir.data.symbol.scope.module.?;
+                if (self.modules.get(symbol_module.uid) == null) {
+                    self.load_module(symbol_module);
+                }
+                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), @intFromPtr(ir.data.symbol));
+            },
             .load_AST => self.store_int(try self.effective_address(ir.dest.?), 8, @intFromPtr(ir.data.ast)),
             .load_struct => try self.move_lval_list(try self.effective_address(ir.dest.?), &ir.data.lval_list),
             .load_union => {
@@ -431,7 +488,7 @@ pub const Context = struct {
             },
             .jump => {
                 if (ir.data.jump_bb.next) |next| {
-                    self.instruction_pointer = next.offset.?;
+                    self.instruction_pointer.inst_idx = next.offset.?;
                 } else {
                     self.ret();
                 }
@@ -439,20 +496,25 @@ pub const Context = struct {
             .branch_if_false => {
                 if (self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.sizeof()) != 0) {
                     if (ir.data.branch_bb.next) |next| {
-                        self.instruction_pointer = next.offset.?;
+                        self.instruction_pointer.inst_idx = next.offset.?;
                     } else {
                         self.ret();
                     }
                 } else {
                     if (ir.data.branch_bb.branch) |branch| {
-                        self.instruction_pointer = branch.offset.?;
+                        self.instruction_pointer.inst_idx = branch.offset.?;
                     } else {
                         self.ret();
                     }
                 }
             },
             .call => {
-                const symbol: *symbol_.Symbol = @ptrFromInt(@as(usize, @intCast(self.load_int(try self.effective_address(ir.src1.?), 8))));
+                std.debug.print("symbol ir src: {}\n", .{ir.src1.?});
+                const symbol_loc = try self.effective_address(ir.src1.?);
+                std.debug.print("symbol_loc: {}\n", .{symbol_loc});
+                const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
+                std.debug.print("symbol_int: {}\n", .{symbol_int});
+                const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
 
                 // Save old stack pointer
                 const old_sp = self.stack_pointer;
@@ -470,17 +532,20 @@ pub const Context = struct {
                 self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
 
                 // Setup next stackframe
-                self.push_int(8, try self.effective_address(ir.dest.?)); //          push return-value address
-                self.push_int(8, old_sp); //                            push old sp
-                self.push_int(8, self.base_pointer); //                 push bp
-                self.push_int(8, self.instruction_pointer); //          push return address
-                self.base_pointer = self.stack_pointer - 8; //          bp := sp -1
+                self.push_int(8, try self.effective_address(ir.dest.?)); // push return-value address
+                self.push_int(8, old_sp); //                                push old sp
+                self.push_int(8, self.base_pointer); //                     push bp
+                self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
+                self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
 
                 // allocate space for locals
                 self.stack_pointer += symbol.cfg.?.locals_size.?;
 
                 // jump to symbol addr
-                self.instruction_pointer = symbol.cfg.?.offset.?;
+                self.instruction_pointer = Instruction_Pointer{
+                    .module_uid = symbol.scope.module.?.uid,
+                    .inst_idx = symbol.cfg.?.offset.?,
+                };
             },
             .push_stack_trace => { // Pushes a static span/code to the lines array if debug mode is on
                 self.debug_call_stack.append(ir.span) catch unreachable;

@@ -37,18 +37,26 @@ pub const Module_Errors = error{
     InterpreterPanic,
 };
 
+pub const Module_UID: type = u32;
+
 const Writer = std.fs.File.Writer;
 
-var module_uids: usize = 0;
-/// This structure represents a module being compiled.
+var module_uids: Module_UID = 0;
+/// This structure represents a module being compiled. Each module corresponds to a single .c/.h pair. A program has
+/// many modules.
+///
+/// Each module has a list of instructions, and a table of symbols/cfgs that refer to their corresponding instructions.
 pub const Module = struct {
     // A unique identifier for this Orng module
-    uid: i128,
+    uid: Module_UID,
+
+    // Name of the module
+    name: []const u8,
 
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
-    // Flat list of instructions
+    // List of instructions for this module
     instructions: std.ArrayList(*ir_.IR),
 
     // List of CFGs defined in this module
@@ -72,10 +80,11 @@ pub const Module = struct {
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    fn init(scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
+    pub fn init(name: []const u8, scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
+        retval.name = name;
         retval.interned_strings = std.StringArrayHashMap(usize).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;
@@ -102,6 +111,27 @@ pub const Module = struct {
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
         const name: []const u8 = in_name[0..i];
 
+        // TODO: Move to own function, returning file_root
+        // Module/Symbol-Tree construction
+        var file_root = symbol_.Scope.init(prelude, name, allocator);
+        const module = Module.init(name, file_root, allocator);
+        file_root.module = module;
+
+        try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, errors, allocator);
+
+        return module;
+    }
+
+    pub fn fill_contents(
+        contents: []const u8,
+        in_name: []const u8,
+        entry_name: ?[]const u8,
+        file_root: *symbol_.Scope,
+        module: *Module,
+        fuzz_tokens: bool,
+        errors: *errs_.Errors,
+        allocator: std.mem.Allocator,
+    ) Module_Errors!void {
         // Tokenize, and also append lines to the list of lines
         // TODO: Move this to it's own function
         var lines = std.ArrayList([]const u8).init(allocator);
@@ -153,12 +183,6 @@ pub const Module = struct {
         var parser = parser_.Parser.init(&tokens, errors, allocator);
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, errors, allocator);
-
-        // TODO: Move to own function, returning file_root
-        // Module/Symbol-Tree construction
-        var file_root = symbol_.Scope.init(prelude, name, allocator);
-        const module = Module.init(file_root, allocator);
-        file_root.module = module;
         try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, errors, allocator);
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, errors, allocator);
 
@@ -235,8 +259,6 @@ pub const Module = struct {
                 }
             }
         }
-
-        return module;
     }
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
@@ -305,7 +327,7 @@ pub const Module = struct {
         self: *Module, // TODO: Accept instructions list and allocator
         first_bb: *basic_block_.Basic_Block,
         cfg: *cfg_.CFG,
-    ) i64 {
+    ) offsets_.Instruction_Idx {
         var work_queue = std.ArrayList(*basic_block_.Basic_Block).init(self.allocator);
         defer work_queue.deinit();
         work_queue.append(first_bb) catch unreachable;
@@ -318,7 +340,7 @@ pub const Module = struct {
                 continue;
             }
 
-            bb.offset = @as(i64, @intCast(self.instructions.items.len));
+            bb.offset = @as(offsets_.Instruction_Idx, @intCast(self.instructions.items.len));
             var label = ir_.IR.init_label(cfg, span_.phony_span, self.allocator);
             label.uid = bb.uid;
             self.instructions.append(label) catch unreachable;
@@ -362,8 +384,8 @@ pub const Module = struct {
     fn append_phony_block(
         self: *Module, // TODO: Accept instructions and allocator
         cfg: *cfg_.CFG,
-    ) i64 {
-        const offset = @as(i64, @intCast(self.instructions.items.len));
+    ) offsets_.Instruction_Idx {
+        const offset = @as(offsets_.Instruction_Idx, @intCast(self.instructions.items.len));
         // Append a label which has a back-reference to the CFG
         self.instructions.append(ir_.IR.init_label(
             cfg,
@@ -529,7 +551,9 @@ pub fn interpret(
     defer symbol.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret
-    var context = interpreter_.Context.init(cfg, &symbol.scope.module.?.instructions, ret_type, cfg.offset.?);
+    const module = symbol.scope.module.?;
+    var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
+    context.load_module(module);
     try context.interpret();
 
     // Extract the retval

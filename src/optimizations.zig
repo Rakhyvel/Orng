@@ -10,7 +10,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const debug = false;
+const debug = true;
 
 pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ DivideByZero, Overflow }!void {
     if (debug) {

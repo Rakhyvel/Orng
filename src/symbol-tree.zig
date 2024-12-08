@@ -288,9 +288,12 @@ fn symbol_table_from_AST(
             }
         },
         .impl => {
+            // Impls get there own scope, actually
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             ast.impl.scope = new_scope;
+
             if (ast.impl.trait == null) {
+                // impl'd for an anon trait, create an anon trait for it
                 var token = ast.token();
                 token.kind = .identifier;
                 token.data = next_anon_name("trait", allocator);

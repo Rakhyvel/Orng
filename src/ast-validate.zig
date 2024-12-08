@@ -375,12 +375,12 @@ fn validate_AST(ast: *ast_.AST, old_expected_type: ?*ast_.AST, errors: *errs_.Er
 
     if (expected_type) |_| {
         // expected must be a valid Type type
-        std.debug.assert(expected_type.?.* != .poison);
-        std.debug.assert(expected_type.?.common().validation_state == .valid);
+        std.debug.assert(expected_type.?.* != .poison); // expected type is poisoned
+        std.debug.assert(expected_type.?.common().validation_state == .valid); // expected type isn't determined to be valid
         const expected_type_type = expected_type.?.typeof(allocator);
         // std.debug.print("typeof({?}) = {}\n", .{ expected_type, expected_type_type });
         const expected_type_is_type = checked_types_match(expected_type_type, primitives_.type_type, errors) catch return ast.enpoison();
-        std.debug.assert(expected_type_is_type);
+        std.debug.assert(expected_type_is_type); // expected type isn't of type Type
 
         if (expected_type.?.* == .annotation) {
             expected_type = expected_type.?.annotation.type;
@@ -568,7 +568,9 @@ fn validate_AST_internal(
             defer ast.symbol().?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = interpreter_.Context.init(cfg, &ast.symbol().?.scope.module.?.instructions, ret_type, cfg.offset.?);
+            const module = ast.symbol().?.scope.module.?;
+            var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
+            context.load_module(module);
             try context.interpret();
 
             // Extract the retval
@@ -660,7 +662,7 @@ fn validate_AST_internal(
             }
 
             // since sum_values are always compiler constructed, and their type is always a sum-type, this should always hold
-            std.debug.assert(ast.lhs().* != .sum_value or expanded_lhs_type.* == .sum_type); // an `implies` operator would be cool btw...
+            std.debug.assert(ast.lhs().* != .sum_value or expanded_lhs_type.* == .sum_type); // (an `implies` operator would be cool btw...)
 
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
@@ -770,9 +772,15 @@ fn validate_AST_internal(
             access_result = validate_AST(access_result.?, null, errors, allocator);
             try assert_none_poisoned(access_result);
 
-            std.debug.assert(access_result.?.* == .decl);
-            std.debug.assert(access_result.?.decl.symbols.items.len == 1);
-            ast.access._symbol = access_result.?.decl.symbols.items[0];
+            std.debug.assert(access_result.?.* == .decl or access_result.?.* == .method_decl);
+            if (access_result.?.* == .decl) {
+                std.debug.assert(access_result.?.decl.symbols.items.len == 1);
+                ast.access._symbol = access_result.?.decl.symbols.items[0];
+            } else if (access_result.?.* == .method_decl) {
+                ast.access._symbol = access_result.?.method_decl._symbol;
+            } else {
+                std.debug.panic("compiler error: type access isn't decl or method_decl, it's {s}", .{@tagName(access_result.?.*)});
+            }
 
             _ = ast.assert_valid();
             const ast_type = ast.typeof(allocator);

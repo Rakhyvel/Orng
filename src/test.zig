@@ -55,7 +55,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
 
     var results = Results{ .passed = 0, .failed = 0 };
     ast_.init_structures();
-    const prelude = primitives_.get_scope();
+    const prelude = try primitives_.get_scope();
     while (args.next()) |next| {
         const res = test_file(next, prelude, coverage);
         if (res) {
@@ -340,7 +340,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
     var failed: usize = 0;
     var i: usize = 0;
 
-    const prelude = primitives_.get_scope();
+    const prelude = try primitives_.get_scope();
 
     // Add lines to arraylist
     var start: usize = index_of(contents, '"').? + 1;
