@@ -561,14 +561,14 @@ fn validate_AST_internal(
             try type_check(ast.token().span, ret_type, expected, errors);
 
             // Get the cfg from the symbol, and embed into the module
-            const cfg = try module_.get_cfg(ast.symbol().?, null, &ast.symbol().?.scope.module.?.interned_strings, errors, allocator);
+            const module = ast.symbol().?.scope.module.?;
+            const cfg = try module_.get_cfg(ast.symbol().?, null, errors, allocator);
             defer cfg.deinit(); // Remove the cfg so that it isn't output
 
-            const idx = ast.symbol().?.scope.module.?.emplace_cfg(cfg);
-            defer ast.symbol().?.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
+            const idx = module.emplace_cfg(cfg);
+            defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            const module = ast.symbol().?.scope.module.?;
             var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
             context.load_module(module);
             try context.interpret();

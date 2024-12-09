@@ -98,14 +98,8 @@ fn lower_AST(
             return temp;
         },
         .string => {
-            const res = cfg.interned_strings.get(ast.string.data);
-            var id: usize = undefined;
-            if (res) |res_| {
-                id = res_;
-            } else {
-                id = cfg.interned_strings.count();
-                cfg.interned_strings.put(ast.string.data, id) catch unreachable;
-            }
+            const module = cfg.symbol.scope.module.?;
+            const id: ir_.String_Idx = module.interned_string_set_add(ast.string.data);
             const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
             cfg.append_instruction(ir_.IR.init_string(temp, id, ast.token().span, allocator));
             return temp;
@@ -591,7 +585,7 @@ fn lval_from_symbol_cfg(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!*lval_.L_Value {
-    const callee_cfg = try module_.get_cfg(symbol, caller, caller.interned_strings, errors, allocator);
+    const callee_cfg = try module_.get_cfg(symbol, caller, errors, allocator);
     callee_cfg.needed_at_runtime = callee_cfg.needed_at_runtime or (caller.symbol.scope.inner_function.?.kind == .@"fn" or
         caller.symbol.scope.inner_function.?.kind == .trait);
     const lval = create_temp_lvalue(caller, symbol._type, allocator);

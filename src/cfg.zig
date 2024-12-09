@@ -35,10 +35,6 @@ pub const CFG = struct {
 
     return_symbol: *symbol_.Symbol,
 
-    /// Non-owning pointer to set of interned string literals
-    /// Provided by main, global to all CFGs.
-    interned_strings: *std.StringArrayHashMap(usize),
-
     /// Whether or not this CFG is visited
     visited: bool,
 
@@ -58,7 +54,6 @@ pub const CFG = struct {
     pub fn init(
         symbol: *symbol_.Symbol,
         caller: ?*CFG,
-        interned_strings: *std.StringArrayHashMap(usize),
         allocator: std.mem.Allocator,
     ) *CFG {
         if (symbol.cfg) |cfg| {
@@ -87,7 +82,6 @@ pub const CFG = struct {
         retval.return_symbol.expanded_type = retval.return_symbol._type.expand_type(allocator);
         retval.visited = false;
         retval.needed_at_runtime = false;
-        retval.interned_strings = interned_strings;
         retval.offset = null;
         retval.locals_size = null;
         retval.allocator = allocator;

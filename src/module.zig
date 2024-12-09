@@ -72,7 +72,7 @@ pub const Module = struct {
     impls: std.ArrayList(*ast_.AST),
 
     // Interned strings
-    interned_strings: std.StringArrayHashMap(usize),
+    interned_strings: std.ArrayList([]const u8),
 
     // The root scope node for the module
     scope: *symbol_.Scope,
@@ -85,7 +85,7 @@ pub const Module = struct {
         retval.uid = module_uids;
         module_uids += 1;
         retval.name = name;
-        retval.interned_strings = std.StringArrayHashMap(usize).init(allocator);
+        retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
@@ -208,7 +208,7 @@ pub const Module = struct {
                 continue;
             }
             // IR translation
-            const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
+            const cfg = try get_cfg(symbol, null, errors, allocator);
             module.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -237,7 +237,7 @@ pub const Module = struct {
         for (module.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
-                const cfg = try get_cfg(symbol, null, &module.interned_strings, errors, allocator);
+                const cfg = try get_cfg(symbol, null, errors, allocator);
                 module.collect_cfgs(cfg);
                 cfg.needed_at_runtime = true;
             }
@@ -408,6 +408,19 @@ pub const Module = struct {
         _ = self.cfgs.orderedRemove(@as(usize, @intCast(idx)));
     }
 
+    pub fn interned_string_set_add(self: *Module, str: []const u8) ir_.String_Idx {
+        for (0..self.interned_strings.items.len) |i| {
+            const item = self.interned_strings.items[i];
+            if (std.mem.eql(u8, item, str)) {
+                return .{ .module_uid = self.uid, .string_idx = @as(u32, @intCast(i)) };
+            }
+        }
+        // sanitized_str must not be in set, add it
+        const idx: u32 = @intCast(self.interned_strings.items.len);
+        self.interned_strings.append(str) catch unreachable;
+        return .{ .module_uid = self.uid, .string_idx = idx };
+    }
+
     pub fn print_instructions(self: *Module) void {
         for (self.instructions.items) |ir| {
             std.debug.print("{}", .{ir});
@@ -418,7 +431,6 @@ pub const Module = struct {
 pub fn get_cfg(
     symbol: *symbol_.Symbol,
     caller: ?*cfg_.CFG,
-    interned_strings: *std.StringArrayHashMap(usize),
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) lower_.Lower_Errors!*cfg_.CFG {
@@ -432,7 +444,7 @@ pub fn get_cfg(
         return error.TypeError;
     }
     if (symbol.cfg == null) {
-        symbol.cfg = cfg_.CFG.init(symbol, caller, interned_strings, allocator);
+        symbol.cfg = cfg_.CFG.init(symbol, caller, allocator);
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
         try ir_validate_.validate_cfg(symbol.cfg.?, errors);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);
@@ -440,16 +452,6 @@ pub fn get_cfg(
         symbol.cfg.?.locals_size = offsets_.calculate_offsets(symbol);
     }
     return symbol.cfg.?;
-}
-
-pub fn interned_string_set_add(str: []const u8, set: *std.ArrayList([]const u8)) void {
-    for (set.items) |item| {
-        if (std.mem.eql(u8, item, str)) {
-            return;
-        }
-    }
-    // sanitized_str must not be in set, add it
-    set.append(str) catch unreachable;
 }
 
 /// Stamps out a new function declaration along with a fully built and validated symbol tree, and decorated identifiers.
@@ -547,14 +549,14 @@ pub fn interpret(
     )).assert_valid().assert_init_valid();
 
     // Get the cfg from the symbol, and embed into the module
-    const cfg = try get_cfg(symbol, null, &symbol.scope.module.?.interned_strings, errors, allocator);
+    const module = symbol.scope.module.?;
+    const cfg = try get_cfg(symbol, null, errors, allocator);
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
-    const idx = symbol.scope.module.?.emplace_cfg(cfg);
-    defer symbol.scope.module.?.pop_cfg(idx); // Remove the cfg so that it isn't output
+    const idx = module.emplace_cfg(cfg);
+    defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret
-    const module = symbol.scope.module.?;
     var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
     context.load_module(module);
     try context.interpret();

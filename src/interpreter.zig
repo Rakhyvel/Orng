@@ -353,7 +353,7 @@ pub const Context = struct {
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.int);
             },
             .load_float => self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.sizeof(), ir.data.float),
-            .load_string => self.store_int(try self.effective_address(ir.dest.?), 8, ir.data.string_id),
+            .load_string => self.store(ir_.String_Idx, try self.effective_address(ir.dest.?), ir.data.string_id),
             .load_symbol => {
                 const symbol_module = ir.data.symbol.scope.module.?;
                 if (self.modules.get(symbol_module.uid) == null) {
@@ -600,11 +600,17 @@ pub const Context = struct {
                 switch (info.type_kind) {
                     .type => {
                         const stack_value = @as(usize, @intCast(self.load_int(address, 8)));
-                        if (stack_value == 0x5858585858585858) { // This works only if the interpreter never has uninitialized memory
+                        if (stack_value == 0x5555555555555555) { // This works only if the interpreter never has uninitialized memory
                             return primitives_.unit_type;
                         } else {
                             return @ptrFromInt(stack_value);
                         }
+                    },
+                    .string => {
+                        const idx = self.load(ir_.String_Idx, address);
+                        const module = self.modules.get(idx.module_uid) orelse std.debug.panic("interpreter error: unknown module uid: {}", .{idx.module_uid});
+                        const string = module.interned_strings.items[idx.string_idx];
+                        return ast_.AST.create_string(token_.Token.init_simple("\""), string, allocator);
                     },
                     .none => unreachable,
                     .boolean => {
@@ -680,6 +686,7 @@ pub const Context = struct {
                 errdefer value_terms.deinit();
                 var offset: i64 = 0;
                 for (_type.children().items) |term| {
+                    // std.debug.print("term:{}\n", .{term});
                     offset = offsets_.next_alignment(offset, term.alignof());
                     const extracted_term = self.extract_ast(address + offset, term, allocator);
                     value_terms.append(extracted_term) catch unreachable;

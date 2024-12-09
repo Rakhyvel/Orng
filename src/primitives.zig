@@ -20,7 +20,7 @@ pub var int8_type: *ast_.AST = undefined;
 pub var int16_type: *ast_.AST = undefined;
 pub var int32_type: *ast_.AST = undefined;
 pub var int64_type: *ast_.AST = undefined;
-// pub var package_type: *ast_.AST = undefined;
+pub var package_type: *ast_.AST = undefined;
 pub var string_type: *ast_.AST = undefined;
 pub var type_type: *ast_.AST = undefined;
 pub var unit_type: *ast_.AST = undefined;
@@ -80,6 +80,7 @@ pub const Type_Kind = enum {
     unsigned_integer,
     floating_point,
     boolean,
+    string,
 };
 
 var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
@@ -108,7 +109,6 @@ fn create_prelude() !void {
     int16_type = create_identifier("Int16");
     int32_type = create_identifier("Int32");
     int64_type = create_identifier("Int64");
-    // package_type = create_identifier("Package");
     string_type = create_identifier("String");
     type_type = create_identifier("Type");
     unit_type = create_unit_type();
@@ -270,17 +270,6 @@ fn create_prelude() !void {
         default_int64,
         8,
     );
-    // create_info(
-    //     "Package",
-    //     null,
-    //     "NO C EQUIVALENT!",
-    //     package_type,
-    //     int_type,
-    //     .int,
-    //     .signed_integer,
-    //     default_int64,
-    //     8,
-    // );
     create_info(
         "String",
         null,
@@ -288,9 +277,9 @@ fn create_prelude() !void {
         string_type,
         byte_slice_type,
         .none,
-        .none,
+        .string,
         default_string,
-        0,
+        8,
     );
     create_info(
         "Type",
@@ -386,6 +375,19 @@ fn create_prelude() !void {
         &errors,
         std.heap.page_allocator,
     );
+
+    // create_info(
+    //     "Package",
+    //     null,
+    //     "NO C EQUIVALENT!",
+    //     package_type,
+    //     module.scope.lookup("Package", false).found.init.?,
+    //     .none,
+    //     .none,
+    //     default_string,
+    //     0,
+    // );
+    package_type = module.scope.lookup("Package", false).found.init.?;
 }
 
 fn create_identifier(name: []const u8) *ast_.AST {
@@ -432,7 +434,13 @@ fn create_info(
     default_value: ?*ast_.AST, // Optional AST of default value for the primitive
     size: i64, // Size of values of the type in bytes
 ) void {
-    const symbol = create_prelude_symbol(name, type_type, definition orelse _ast);
+    const symbol_lookup_res = prelude.?.lookup(name, false);
+    var symbol: *symbol_.Symbol = undefined;
+    if (symbol_lookup_res == .found) {
+        symbol = symbol_lookup_res.found;
+    } else {
+        symbol = create_prelude_symbol(name, type_type, definition orelse _ast);
+    }
     _ast.set_symbol(symbol);
     primitives.put(name, Primitive_Info{
         .name = name,

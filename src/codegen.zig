@@ -211,26 +211,24 @@ fn output_traits(
 }
 
 /// Outputs the interned strings declarations
-fn output_interned_strings(interned_strings: *std.StringArrayHashMap(usize), writer: Writer) CodeGen_Error!void {
-    const key_set = interned_strings.keys();
-    if (key_set.len > 0) {
+fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer: Writer) CodeGen_Error!void {
+    if (interned_strings.items.len > 0) {
         // Do not output header comment if there are no interned strings!
         try writer.print("/* Interned Strings */\n", .{});
     }
 
     // Output each string in the string hash map
-    for (0..key_set.len) |i| {
-        const str = key_set[i];
-        const id = interned_strings.get(str).?;
-        try writer.print("char* string_{} = \"", .{id});
+    for (0..interned_strings.items.len) |i| {
+        try writer.print("char* string_{} = \"", .{i});
         // Print each byte in the string in hex format
+        const str = interned_strings.items[i];
         for (str) |byte| {
             try writer.print("\\x{X:0>2}", .{byte});
         }
         try writer.print("\";\n", .{});
     }
 
-    if (key_set.len > 0) {
+    if (interned_strings.items.len > 0) {
         // Do not output this newline if there are no interned strings!
         try writer.print("\n", .{});
     }
@@ -595,7 +593,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
                 ir.data.string_id,
-                cheat_module.interned_strings.keys()[ir.data.string_id].len,
+                cheat_module.interned_strings.items[ir.data.string_id.string_idx].len,
             });
         },
         .load_struct => {

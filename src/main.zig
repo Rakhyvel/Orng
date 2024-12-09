@@ -109,8 +109,8 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     try build_context.interpret();
 
     // Extract the retval
-    const result = build_context.extract_ast(0, primitives_.int_type, allocator);
-    std.debug.print("{}\n", .{result});
+    const result = build_context.extract_ast(0, primitives_.package_type, allocator);
+    std.debug.print("root: {s}\n", .{result.children().items[0].string.data});
 
     // const fuzz_tokens = std.mem.eql(u8, name, "_fuzz_tokens"); // TODO: Re-add fuzz tokens
 }
