@@ -17,35 +17,35 @@ struct struct1 {
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _2021_main(void);
-int64_t _2023_f(int64_t _2023_x);
+int64_t _2026_main(void);
+int64_t _2028_f(int64_t _2028_x);
 
 
 /* Function definitions */
-int64_t _2021_main(void){
-    function0 _2021_t0;
-    int64_t _2021_t3;
-    int64_t _2021_t1;
-    int64_t _2021_$retval;
-    _2021_t0 = (function0) _2023_f;
-    _2021_t3 = 219;
+int64_t _2026_main(void){
+    function0 _2026_t0;
+    int64_t _2026_t3;
+    int64_t _2026_t1;
+    int64_t _2026_$retval;
+    _2026_t0 = (function0) _2028_f;
+    _2026_t3 = 219;
     $lines[$line_idx++] = "tests/integration/whitebox/unit-parameter.orng:3:7:\n    f({}, 219)\n     ^";
-    _2021_t1 = _2021_t0(_2021_t3);
+    _2026_t1 = _2026_t0(_2026_t3);
     $line_idx--;
-    _2021_$retval = _2021_t1;
-    return _2021_$retval;
+    _2026_$retval = _2026_t1;
+    return _2026_$retval;
 }
 
-int64_t _2023_f(int64_t _2023_x){
-    int64_t _2023_$retval;
-    goto BB2224;
-BB2224:
-    _2023_$retval = _2023_x;
-    return _2023_$retval;
+int64_t _2028_f(int64_t _2028_x){
+    int64_t _2028_$retval;
+    goto BB2227;
+BB2227:
+    _2028_$retval = _2028_x;
+    return _2028_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_2021_main());
+  printf("%ld",_2026_main());
   return 0;
 }

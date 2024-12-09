@@ -47,6 +47,8 @@ const symbol_ = @import("symbol.zig");
 // There is padding before, in between, and after parameters, locals, and tuple fields so that each
 // location is aligned to a multiple of it's size in bytes.
 
+pub const Instruction_Idx: type = u32;
+
 // bp offset of a frame's retval address
 pub const retval_offset: i64 = -3 * @sizeOf(i64);
 pub const locals_starting_offset = 8;
@@ -102,6 +104,7 @@ pub fn calculate_offsets(
 }
 
 pub fn next_alignment(address: i64, align_to: i64) i64 {
+    // std.debug.print("align_to:{}\n", .{align_to});
     std.debug.assert(align_to == 1 or align_to == 2 or align_to == 4 or align_to == 8);
     if (address == 0) {
         return address;

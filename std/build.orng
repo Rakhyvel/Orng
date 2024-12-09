@@ -1,0 +1,3 @@
+fn build() -> Package {
+    Package::static_library(.root="root.orng")
+}

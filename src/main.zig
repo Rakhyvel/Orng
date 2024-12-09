@@ -95,18 +95,22 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 
     // MUST init ast before primitives_
     ast_.init_structures();
-    const prelude = primitives_.get_scope();
+    const prelude = try primitives_.get_scope();
+
+    // var program = program_.init(); // initializes prelude module, has a common instructions list
+    // program.compile_module(&errors, path, "build", false, allocator);
 
     const build_module = try compile_module(&errors, path, "build", prelude, false, allocator);
 
     const cfg = build_module.scope.lookup("build", false).found.cfg.?;
 
-    var build_context = interpreter_.Context.init(cfg, &build_module.instructions, primitives_.int_type, cfg.offset.?);
+    var build_context = interpreter_.Context.init(cfg, primitives_.int_type, .{ .module_uid = build_module.uid, .inst_idx = cfg.offset.? });
+    build_context.load_module(build_module);
     try build_context.interpret();
 
     // Extract the retval
-    const result = build_context.extract_ast(0, primitives_.int_type, allocator);
-    std.debug.print("{}\n", .{result});
+    const result = build_context.extract_ast(0, primitives_.package_type, allocator);
+    std.debug.print("root: {s}\n", .{result.children().items[0].string.data});
 
     // const fuzz_tokens = std.mem.eql(u8, name, "_fuzz_tokens"); // TODO: Re-add fuzz tokens
 }

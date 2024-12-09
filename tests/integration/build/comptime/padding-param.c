@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _283_main(void);
+int64_t _288_main(void);
 
 
 /* Function definitions */
-int64_t _283_main(void){
-    int64_t _283_$retval;
-    _283_$retval = 255;
-    return _283_$retval;
+int64_t _288_main(void){
+    int64_t _288_$retval;
+    _288_$retval = 255;
+    return _288_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_283_main());
+  printf("%ld",_288_main());
   return 0;
 }

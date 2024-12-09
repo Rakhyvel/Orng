@@ -3,6 +3,7 @@
 const std = @import("std");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
+const offsets_ = @import("offsets.zig");
 
 /// Unique id for a basic-block.
 var uid: u64 = 0;
@@ -36,7 +37,7 @@ pub const Basic_Block = struct {
 
     /// Address in the first instruction of this Basic_Block
     /// Used for IR interpretation
-    offset: ?i64,
+    offset: ?offsets_.Instruction_Idx,
 
     /// Initializes a basic-block
     pub fn init(allocator: std.mem.Allocator) *Basic_Block {

@@ -8,6 +8,11 @@ const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
+pub const String_Idx: type = struct {
+    module_uid: u32,
+    string_idx: u32,
+};
+
 var ir_uid: u64 = 0;
 pub const IR = struct { // TODO: Add IR_List struct, with some append_instruction, mark_irs_as_removed, and get_latest_def
     uid: u64,
@@ -64,7 +69,7 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
         return retval;
     }
 
-    pub fn init_string(dest: *lval_.L_Value, id: usize, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_string(dest: *lval_.L_Value, id: String_Idx, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_string, dest, null, null, span, allocator);
         retval.data = Data{ .string_id = id };
         return retval;
@@ -634,7 +639,7 @@ pub const Data = union(enum) {
     branch_bb: struct { next: ?*basic_block_.Basic_Block, branch: ?*basic_block_.Basic_Block },
     int: i128,
     float: f64,
-    string_id: usize,
+    string_id: String_Idx,
     cfg: ?*cfg_.CFG, // Used by the interpreter to know how much space to leave for a CFGs locals
     string: []const u8,
     symbol: *symbol_.Symbol,

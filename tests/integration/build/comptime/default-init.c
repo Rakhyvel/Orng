@@ -16,24 +16,24 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _126_main(void);
+int64_t _131_main(void);
 
 
 /* Function definitions */
-int64_t _126_main(void){
-    int64_t _126_t1;
-    int64_t _126_t2;
-    struct struct0 _127_x;
-    int64_t _126_$retval;
-    _126_t1 = 240;
-    _126_t2 = 5;
-    _127_x = (struct struct0) {_126_t1, _126_t2};
-    _126_$retval = $add_int64_t(_127_x._0, _127_x._1, "tests/integration/comptime/default-init.orng:4:10:\n    x.a + x.b\n        ^");
-    return _126_$retval;
+int64_t _131_main(void){
+    int64_t _131_t1;
+    int64_t _131_t2;
+    struct struct0 _132_x;
+    int64_t _131_$retval;
+    _131_t1 = 240;
+    _131_t2 = 5;
+    _132_x = (struct struct0) {_131_t1, _131_t2};
+    _131_$retval = $add_int64_t(_132_x._0, _132_x._1, "tests/integration/comptime/default-init.orng:4:10:\n    x.a + x.b\n        ^");
+    return _131_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_126_main());
+  printf("%ld",_131_main());
   return 0;
 }

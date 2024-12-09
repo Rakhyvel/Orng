@@ -12,33 +12,33 @@
 typedef void(*function0)(int64_t*);
 
 /* Function forward definitions */
-int64_t _971_main(void);
-void _973_change_x(int64_t* _973_x);
+int64_t _976_main(void);
+void _978_change_x(int64_t* _978_x);
 
 
 /* Function definitions */
-int64_t _971_main(void){
-    int64_t _972_x;
-    function0 _971_t2;
-    int64_t* _971_t4;
-    int64_t _971_$retval;
-    _972_x = 40;
-    _971_t2 = (function0) _973_change_x;
-    _971_t4 = &_972_x;
+int64_t _976_main(void){
+    int64_t _977_x;
+    function0 _976_t2;
+    int64_t* _976_t4;
+    int64_t _976_$retval;
+    _977_x = 40;
+    _976_t2 = (function0) _978_change_x;
+    _976_t4 = &_977_x;
     $lines[$line_idx++] = "tests/integration/functions/immutable-param-mut-addr.orng:4:14:\n    change_x(&mut x)\n            ^";
-    (void) _971_t2(_971_t4);
+    (void) _976_t2(_976_t4);
     $line_idx--;
-    _971_$retval = _972_x;
-    return _971_$retval;
+    _976_$retval = _977_x;
+    return _976_$retval;
 }
 
-void _973_change_x(int64_t* _973_x){
-    *_973_x = 288;
+void _978_change_x(int64_t* _978_x){
+    *_978_x = 288;
     return;
 }
 
 
 int main(void) {
-  printf("%ld",_971_main());
+  printf("%ld",_976_main());
   return 0;
 }

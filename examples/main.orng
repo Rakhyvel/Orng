@@ -1,0 +1,16 @@
+fn main() -> () {
+    println("Hello, World!")
+}
+
+extern const putchar: Byte -> Int32
+
+fn print(s: String) -> () {
+    while let i = 0; i < s.length; i += 1 {
+        _ = putchar(s[i])
+    }
+}
+
+fn println(s: String) -> () {
+    print(s)
+    print("\n")
+}

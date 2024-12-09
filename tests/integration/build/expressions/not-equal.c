@@ -7,20 +7,20 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint8_t _811_main(void);
+uint8_t _816_main(void);
 
 
 /* Function definitions */
-uint8_t _811_main(void){
-    uint8_t _811_$retval;
-    goto BB986;
-BB986:
-    _811_$retval = 0;
-    return _811_$retval;
+uint8_t _816_main(void){
+    uint8_t _816_$retval;
+    goto BB989;
+BB989:
+    _816_$retval = 0;
+    return _816_$retval;
 }
 
 
 int main(void) {
-  printf("%d",_811_main());
+  printf("%d",_816_main());
   return 0;
 }
