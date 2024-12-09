@@ -15,27 +15,27 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _2_main(void);
+int64_t _7_main(void);
 
 
 /* Function definitions */
-int64_t _2_main(void){
-    int64_t _2_t1;
-    struct struct0 _3_x;
-    int64_t _2_t3;
-    int64_t _2_t4;
-    int64_t _2_$retval;
-    _2_t1 = 120;
-    _3_x = (struct struct0) {_2_t1};
-    _2_t3 = 0;
-    _2_t4 = 1;
-    $bounds_check(_2_t3, _2_t4, "tests/integration/arrays/1-array.orng:2:8:\nfn main() -> Int {\n      ^");
-    _2_$retval = *((int64_t*)&_3_x + _2_t3);
-    return _2_$retval;
+int64_t _7_main(void){
+    int64_t _7_t1;
+    struct struct0 _8_x;
+    int64_t _7_t3;
+    int64_t _7_t4;
+    int64_t _7_$retval;
+    _7_t1 = 120;
+    _8_x = (struct struct0) {_7_t1};
+    _7_t3 = 0;
+    _7_t4 = 1;
+    $bounds_check(_7_t3, _7_t4, "tests/integration/arrays/1-array.orng:2:8:\nfn main() -> Int {\n      ^");
+    _7_$retval = *((int64_t*)&_8_x + _7_t3);
+    return _7_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_2_main());
+  printf("%ld",_7_main());
   return 0;
 }

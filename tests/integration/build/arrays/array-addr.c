@@ -18,47 +18,47 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _16_main(void);
+int64_t _21_main(void);
 
 
 /* Function definitions */
-int64_t _16_main(void){
-    int64_t _17_a;
-    int64_t _17_b;
-    int64_t _17_c;
-    int64_t _17_d;
-    int64_t* _16_t9;
-    int64_t* _16_t10;
-    int64_t* _16_t11;
-    int64_t* _16_t12;
-    struct struct0 _17_x;
-    int64_t _16_t15;
-    int64_t _16_t16;
-    int64_t _16_t17;
-    int64_t _16_t18;
-    int64_t _16_$retval;
-    _17_a = 1;
-    _17_b = 2;
-    _17_c = 3;
-    _17_d = 4;
-    _16_t9 = &_17_a;
-    _16_t10 = &_17_b;
-    _16_t11 = &_17_c;
-    _16_t12 = &_17_d;
-    _17_x = (struct struct0) {_16_t9, _16_t10, _16_t11, _16_t12};
-    _16_t15 = 2;
-    _16_t16 = 4;
-    $bounds_check(_16_t15, _16_t16, "tests/integration/arrays/array-addr.orng:8:15:\n    x[2]^ = 71\n             ^");
-    **((int64_t**)&_17_x + _16_t15) = 71;
-    _16_t17 = 2;
-    _16_t18 = 4;
-    $bounds_check(_16_t17, _16_t18, "tests/integration/arrays/array-addr.orng:2:8:\nfn main() -> Int {\n      ^");
-    _16_$retval = **((int64_t**)&_17_x + _16_t17);
-    return _16_$retval;
+int64_t _21_main(void){
+    int64_t _22_a;
+    int64_t _22_b;
+    int64_t _22_c;
+    int64_t _22_d;
+    int64_t* _21_t9;
+    int64_t* _21_t10;
+    int64_t* _21_t11;
+    int64_t* _21_t12;
+    struct struct0 _22_x;
+    int64_t _21_t15;
+    int64_t _21_t16;
+    int64_t _21_t17;
+    int64_t _21_t18;
+    int64_t _21_$retval;
+    _22_a = 1;
+    _22_b = 2;
+    _22_c = 3;
+    _22_d = 4;
+    _21_t9 = &_22_a;
+    _21_t10 = &_22_b;
+    _21_t11 = &_22_c;
+    _21_t12 = &_22_d;
+    _22_x = (struct struct0) {_21_t9, _21_t10, _21_t11, _21_t12};
+    _21_t15 = 2;
+    _21_t16 = 4;
+    $bounds_check(_21_t15, _21_t16, "tests/integration/arrays/array-addr.orng:8:15:\n    x[2]^ = 71\n             ^");
+    **((int64_t**)&_22_x + _21_t15) = 71;
+    _21_t17 = 2;
+    _21_t18 = 4;
+    $bounds_check(_21_t17, _21_t18, "tests/integration/arrays/array-addr.orng:2:8:\nfn main() -> Int {\n      ^");
+    _21_$retval = **((int64_t**)&_22_x + _21_t17);
+    return _21_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_16_main());
+  printf("%ld",_21_main());
   return 0;
 }

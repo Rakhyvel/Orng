@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint64_t _920_main(void);
+uint64_t _925_main(void);
 
 
 /* Function definitions */
-uint64_t _920_main(void){
-    uint64_t _920_$retval;
-    _920_$retval = 206;
-    return _920_$retval;
+uint64_t _925_main(void){
+    uint64_t _925_$retval;
+    _925_$retval = 206;
+    return _925_$retval;
 }
 
 
 int main(void) {
-  printf("%lu",_920_main());
+  printf("%lu",_925_main());
   return 0;
 }

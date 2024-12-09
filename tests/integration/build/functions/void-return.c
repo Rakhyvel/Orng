@@ -12,28 +12,28 @@
 typedef void(*function0)(void);
 
 /* Function forward definitions */
-int64_t _1027_main(void);
-void _1029_void(void);
+int64_t _1032_main(void);
+void _1034_void(void);
 
 
 /* Function definitions */
-int64_t _1027_main(void){
-    function0 _1027_t0;
-    int64_t _1027_$retval;
-    _1027_t0 = (function0) _1029_void;
+int64_t _1032_main(void){
+    function0 _1032_t0;
+    int64_t _1032_$retval;
+    _1032_t0 = (function0) _1034_void;
     $lines[$line_idx++] = "tests/integration/functions/void-return.orng:3:10:\n    void()\n        ^";
-    (void) _1027_t0();
+    (void) _1032_t0();
     $line_idx--;
-    _1027_$retval = 65;
-    return _1027_$retval;
+    _1032_$retval = 65;
+    return _1032_$retval;
 }
 
-void _1029_void(void){
+void _1034_void(void){
     return;
 }
 
 
 int main(void) {
-  printf("%ld",_1027_main());
+  printf("%ld",_1032_main());
   return 0;
 }

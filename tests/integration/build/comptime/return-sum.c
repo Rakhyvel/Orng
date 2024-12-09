@@ -18,22 +18,22 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _345_main(void);
+int64_t _350_main(void);
 
 
 /* Function definitions */
-int64_t _345_main(void){
-    int64_t _345_t1;
-    struct struct0 _345_t2;
-    int64_t _345_$retval;
-    _345_t1 = 265;
-    _345_t2 = (struct struct0) {.tag=0, ._0=_345_t1};
-    _345_$retval = _345_t2._0;
-    return _345_$retval;
+int64_t _350_main(void){
+    int64_t _350_t1;
+    struct struct0 _350_t2;
+    int64_t _350_$retval;
+    _350_t1 = 265;
+    _350_t2 = (struct struct0) {.tag=0, ._0=_350_t1};
+    _350_$retval = _350_t2._0;
+    return _350_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_345_main());
+  printf("%ld",_350_main());
   return 0;
 }

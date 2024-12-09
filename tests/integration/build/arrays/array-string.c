@@ -28,31 +28,31 @@ char* string_1 = "\x32\x31\x37";
 char* string_2 = "\x57\x6F\x72\x6C\x64\x21";
 
 /* Function forward definitions */
-struct struct0 _47_main(void);
+struct struct0 _52_main(void);
 
 
 /* Function definitions */
-struct struct0 _47_main(void){
-    struct struct0 _47_t1;
-    struct struct0 _47_t2;
-    struct struct0 _47_t3;
-    struct struct1 _48_x;
-    int64_t _47_t5;
-    int64_t _47_t6;
-    struct struct0 _47_$retval;
-    _47_t1 = (struct struct0) {(uint8_t*)string_0, 7};
-    _47_t2 = (struct struct0) {(uint8_t*)string_1, 3};
-    _47_t3 = (struct struct0) {(uint8_t*)string_2, 6};
-    _48_x = (struct struct1) {_47_t1, _47_t2, _47_t3};
-    _47_t5 = 1;
-    _47_t6 = 3;
-    $bounds_check(_47_t5, _47_t6, "tests/integration/arrays/array-string.orng:2:8:\nfn main() -> String {\n      ^");
-    _47_$retval = *((struct struct0*)&_48_x + _47_t5);
-    return _47_$retval;
+struct struct0 _52_main(void){
+    struct struct0 _52_t1;
+    struct struct0 _52_t2;
+    struct struct0 _52_t3;
+    struct struct1 _53_x;
+    int64_t _52_t5;
+    int64_t _52_t6;
+    struct struct0 _52_$retval;
+    _52_t1 = (struct struct0) {(uint8_t*)string_0, 7};
+    _52_t2 = (struct struct0) {(uint8_t*)string_1, 3};
+    _52_t3 = (struct struct0) {(uint8_t*)string_2, 6};
+    _53_x = (struct struct1) {_52_t1, _52_t2, _52_t3};
+    _52_t5 = 1;
+    _52_t6 = 3;
+    $bounds_check(_52_t5, _52_t6, "tests/integration/arrays/array-string.orng:2:8:\nfn main() -> String {\n      ^");
+    _52_$retval = *((struct struct0*)&_53_x + _52_t5);
+    return _52_$retval;
 }
 
 
 int main(void) {
-  printf("%s",_47_main()._0);
+  printf("%s",_52_main()._0);
   return 0;
 }

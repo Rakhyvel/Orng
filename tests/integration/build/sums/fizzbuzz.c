@@ -32,93 +32,93 @@ char* string_1 = "\x62\x75\x7A\x7A";
 char* string_2 = "\x66\x69\x7A\x7A";
 
 /* Function forward definitions */
-struct struct2 _1544_main(void);
-struct struct1 _1547_fizzbuzz(int64_t _1547_n);
+struct struct2 _1549_main(void);
+struct struct1 _1552_fizzbuzz(int64_t _1552_n);
 
 
 /* Function definitions */
-struct struct2 _1544_main(void){
-    function0 _1544_t0;
-    int64_t _1544_t2;
-    struct struct1 _1544_t1;
-    uint64_t _1544_t3;
-    struct struct2 _1544_$retval;
-    _1544_t0 = (function0) _1547_fizzbuzz;
-    _1544_t2 = 30;
+struct struct2 _1549_main(void){
+    function0 _1549_t0;
+    int64_t _1549_t2;
+    struct struct1 _1549_t1;
+    uint64_t _1549_t3;
+    struct struct2 _1549_$retval;
+    _1549_t0 = (function0) _1552_fizzbuzz;
+    _1549_t2 = 30;
     $lines[$line_idx++] = "tests/integration/sums/fizzbuzz.orng:3:14:\n    fizzbuzz(30).string\n            ^";
-    _1544_t1 = _1544_t0(_1544_t2);
+    _1549_t1 = _1549_t0(_1549_t2);
     $line_idx--;
-    _1544_t3 = _1544_t1.tag;
-    $tag_check(_1544_t3, 0, "tests/integration/sums/fizzbuzz.orng:2:8:\nfn main()-> String {\n      ^");
-    _1544_$retval = _1544_t1._0;
-    return _1544_$retval;
+    _1549_t3 = _1549_t1.tag;
+    $tag_check(_1549_t3, 0, "tests/integration/sums/fizzbuzz.orng:2:8:\nfn main()-> String {\n      ^");
+    _1549_$retval = _1549_t1._0;
+    return _1549_$retval;
 }
 
-struct struct1 _1547_fizzbuzz(int64_t _1547_n){
-    int64_t _1547_t1;
-    int64_t _1547_t2;
-    int64_t _1547_t3;
-    uint8_t _1547_t4;
-    struct struct1 _1547_t0;
-    struct struct2 _1547_t13;
-    struct struct2 _1547_t15;
-    struct struct2 _1547_t11;
-    int64_t _1547_t8;
-    int64_t _1547_t9;
-    uint8_t _1547_t10;
-    struct struct1 _1547_$retval;
-    int64_t _1547_t5;
-    int64_t _1547_t6;
-    uint8_t _1547_t7;
-    _1547_t1 = 0;
-    _1547_t2 = 15;
-    _1547_t3 = $mod_int64_t(_1547_n, _1547_t2, "tests/integration/sums/fizzbuzz.orng:12:13:\n        {n % 15} => .string(\"fizzbuzz\")\n           ^");
-    _1547_t4 = _1547_t1==_1547_t3;
-    if (_1547_t4) {
-        goto BB1774;
-    } else {
+struct struct1 _1552_fizzbuzz(int64_t _1552_n){
+    int64_t _1552_t1;
+    int64_t _1552_t2;
+    int64_t _1552_t3;
+    uint8_t _1552_t4;
+    struct struct1 _1552_t0;
+    struct struct2 _1552_t13;
+    struct struct2 _1552_t15;
+    struct struct2 _1552_t11;
+    int64_t _1552_t8;
+    int64_t _1552_t9;
+    uint8_t _1552_t10;
+    struct struct1 _1552_$retval;
+    int64_t _1552_t5;
+    int64_t _1552_t6;
+    uint8_t _1552_t7;
+    _1552_t1 = 0;
+    _1552_t2 = 15;
+    _1552_t3 = $mod_int64_t(_1552_n, _1552_t2, "tests/integration/sums/fizzbuzz.orng:12:13:\n        {n % 15} => .string(\"fizzbuzz\")\n           ^");
+    _1552_t4 = _1552_t1==_1552_t3;
+    if (_1552_t4) {
         goto BB1777;
-    }
-BB1774:
-    _1547_t11 = (struct struct2) {(uint8_t*)string_0, 8};
-    _1547_t0 = (struct struct1) {.tag=0, ._0=_1547_t11};
-    goto BB1776;
-BB1777:
-    _1547_t5 = 5;
-    _1547_t6 = $mod_int64_t(_1547_n, _1547_t5, "tests/integration/sums/fizzbuzz.orng:13:13:\n        {n % 5}  => .string(\"buzz\")\n           ^");
-    _1547_t7 = _1547_t1==_1547_t6;
-    if (_1547_t7) {
+    } else {
         goto BB1780;
-    } else {
-        goto BB1781;
     }
-BB1776:
-    _1547_$retval = _1547_t0;
-    return _1547_$retval;
+BB1777:
+    _1552_t11 = (struct struct2) {(uint8_t*)string_0, 8};
+    _1552_t0 = (struct struct1) {.tag=0, ._0=_1552_t11};
+    goto BB1779;
 BB1780:
-    _1547_t13 = (struct struct2) {(uint8_t*)string_1, 4};
-    _1547_t0 = (struct struct1) {.tag=0, ._0=_1547_t13};
-    goto BB1776;
-BB1781:
-    _1547_t8 = 3;
-    _1547_t9 = $mod_int64_t(_1547_n, _1547_t8, "tests/integration/sums/fizzbuzz.orng:14:13:\n        {n % 3}  => .string(\"fizz\")\n           ^");
-    _1547_t10 = _1547_t1==_1547_t9;
-    if (_1547_t10) {
-        goto BB1784;
+    _1552_t5 = 5;
+    _1552_t6 = $mod_int64_t(_1552_n, _1552_t5, "tests/integration/sums/fizzbuzz.orng:13:13:\n        {n % 5}  => .string(\"buzz\")\n           ^");
+    _1552_t7 = _1552_t1==_1552_t6;
+    if (_1552_t7) {
+        goto BB1783;
     } else {
-        goto BB1786;
+        goto BB1784;
     }
+BB1779:
+    _1552_$retval = _1552_t0;
+    return _1552_$retval;
+BB1783:
+    _1552_t13 = (struct struct2) {(uint8_t*)string_1, 4};
+    _1552_t0 = (struct struct1) {.tag=0, ._0=_1552_t13};
+    goto BB1779;
 BB1784:
-    _1547_t15 = (struct struct2) {(uint8_t*)string_2, 4};
-    _1547_t0 = (struct struct1) {.tag=0, ._0=_1547_t15};
-    goto BB1776;
-BB1786:
-    _1547_t0 = (struct struct1) {.tag=1, ._1=_1547_n};
-    goto BB1776;
+    _1552_t8 = 3;
+    _1552_t9 = $mod_int64_t(_1552_n, _1552_t8, "tests/integration/sums/fizzbuzz.orng:14:13:\n        {n % 3}  => .string(\"fizz\")\n           ^");
+    _1552_t10 = _1552_t1==_1552_t9;
+    if (_1552_t10) {
+        goto BB1787;
+    } else {
+        goto BB1789;
+    }
+BB1787:
+    _1552_t15 = (struct struct2) {(uint8_t*)string_2, 4};
+    _1552_t0 = (struct struct1) {.tag=0, ._0=_1552_t15};
+    goto BB1779;
+BB1789:
+    _1552_t0 = (struct struct1) {.tag=1, ._1=_1552_n};
+    goto BB1779;
 }
 
 
 int main(void) {
-  printf("%s",_1544_main()._0);
+  printf("%s",_1549_main()._0);
   return 0;
 }

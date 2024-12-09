@@ -592,7 +592,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .load_string => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
             try writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
-                ir.data.string_id,
+                ir.data.string_id.string_idx,
                 cheat_module.interned_strings.items[ir.data.string_id.string_idx].len,
             });
         },

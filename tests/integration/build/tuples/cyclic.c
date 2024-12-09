@@ -38,36 +38,36 @@ struct struct3 {
 };
 
 /* Function forward definitions */
-int64_t _1867_main(void);
+int64_t _1872_main(void);
 
 
 /* Function definitions */
-int64_t _1867_main(void){
-    struct struct0 _1867_t2;
-    int64_t _1867_t3;
-    struct struct1 _1868_a;
-    struct struct2 _1867_t7;
-    int64_t _1867_t8;
-    struct struct3 _1868_b;
-    struct struct3* _1867_t10;
-    uint64_t _1867_t12;
-    int64_t _1867_$retval;
-    _1867_t2 = (struct struct0) {.tag=1};
-    _1867_t3 = 200;
-    _1868_a = (struct struct1) {_1867_t2, _1867_t3};
-    _1867_t7 = (struct struct2) {.tag=1};
-    _1867_t8 = 86;
-    _1868_b = (struct struct3) {_1867_t7, _1867_t8};
-    _1867_t10 = &_1868_b;
-    _1868_a._0 = (struct struct0) {.tag=0, ._0=_1867_t10};
-    _1867_t12 = _1868_a._0.tag;
-    $tag_check(_1867_t12, 0, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
-    _1867_$retval = $add_int64_t(_1868_a._1, (*_1868_a._0._0)._1, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
-    return _1867_$retval;
+int64_t _1872_main(void){
+    struct struct0 _1872_t2;
+    int64_t _1872_t3;
+    struct struct1 _1873_a;
+    struct struct2 _1872_t7;
+    int64_t _1872_t8;
+    struct struct3 _1873_b;
+    struct struct3* _1872_t10;
+    uint64_t _1872_t12;
+    int64_t _1872_$retval;
+    _1872_t2 = (struct struct0) {.tag=1};
+    _1872_t3 = 200;
+    _1873_a = (struct struct1) {_1872_t2, _1872_t3};
+    _1872_t7 = (struct struct2) {.tag=1};
+    _1872_t8 = 86;
+    _1873_b = (struct struct3) {_1872_t7, _1872_t8};
+    _1872_t10 = &_1873_b;
+    _1873_a._0 = (struct struct0) {.tag=0, ._0=_1872_t10};
+    _1872_t12 = _1873_a._0.tag;
+    $tag_check(_1872_t12, 0, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
+    _1872_$retval = $add_int64_t(_1873_a._1, (*_1873_a._0._0)._1, "tests/integration/tuples/cyclic.orng:9:10:\n    a.y + a.x.some.y\n        ^");
+    return _1872_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1867_main());
+  printf("%ld",_1872_main());
   return 0;
 }
