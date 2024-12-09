@@ -190,7 +190,7 @@ fn init() Command_Error!void {
 
     try build_writer.writeAll(build_content); // writing content to build.orng
     // i get an error telling me that a semicolon is expected? not sure why
-} 
+}
 
 /// Compiles a module from a file
 fn compile_module(
