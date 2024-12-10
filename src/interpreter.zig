@@ -194,6 +194,7 @@ pub const Context = struct {
         } else {
             std.debug.assert(src >= dest + len); // src is not within dest
         }
+        // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}", .{ dest, src, len });
         @memcpy(
             self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
             self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
@@ -211,8 +212,11 @@ pub const Context = struct {
         var cursor = dest;
         for (list.items) |lval| {
             cursor = offsets_.next_alignment(cursor, lval.alignof());
+            const src = try self.effective_address(lval);
             const len = lval.sizeof();
-            self.move(cursor, try self.effective_address(lval), len);
+            // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ cursor, src, len });
+            // std.debug.print("{}\n", .{lval});
+            self.move(cursor, src, len);
             cursor += len;
         }
     }
@@ -366,15 +370,20 @@ pub const Context = struct {
             .load_union => {
                 if (ir.src1 != null) {
                     // Store data into first field
-                    self.move(try self.effective_address(ir.dest.?), try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
+                    const dest = try self.effective_address(ir.dest.?);
+                    const src = try self.effective_address(ir.src1.?);
+                    self.move(dest, src, ir.src1.?.sizeof());
                 }
                 // Store tag in last field
-                self.store(i64, try self.effective_address(ir.dest.?) + ir.dest.?.sizeof() - 8, @as(i64, @intCast(ir.data.int)));
+                const address = try self.effective_address(ir.dest.?) + ir.dest.?.sizeof() - 8;
+                self.store(i64, address, @as(i64, @intCast(ir.data.int)));
             },
 
             .copy => {
                 std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
-                self.move(try self.effective_address(ir.dest.?), try self.effective_address(ir.src1.?), ir.dest.?.sizeof());
+                const dest = try self.effective_address(ir.dest.?);
+                const src = try self.effective_address(ir.src1.?);
+                self.move(dest, src, ir.dest.?.sizeof());
             },
             .not => {
                 const data = self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.sizeof());
@@ -684,13 +693,13 @@ pub const Context = struct {
             .product => {
                 var value_terms = std.ArrayList(*ast_.AST).init(allocator);
                 errdefer value_terms.deinit();
-                var offset: i64 = 0;
-                for (_type.children().items) |term| {
+                for (0.., _type.children().items) |i, term| {
                     // std.debug.print("term:{}\n", .{term});
-                    offset = offsets_.next_alignment(offset, term.alignof());
+                    const offset = _type.product.get_offset(i, allocator);
+                    // std.debug.print("offset:{}\n", .{offset});
                     const extracted_term = self.extract_ast(address + offset, term, allocator);
+                    // std.debug.print("extracted_term:{}\n", .{extracted_term});
                     value_terms.append(extracted_term) catch unreachable;
-                    offset += term.sizeof();
                 }
                 return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_valid();
             },

@@ -17,26 +17,26 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1885_main(void);
+int64_t _1900_main(void);
 
 
 /* Function definitions */
-int64_t _1885_main(void){
-    uint32_t _1885_t1;
-    int64_t _1885_t2;
-    double _1885_t3;
-    struct struct0 _1886_x;
-    int64_t _1885_$retval;
-    _1885_t1 = 960;
-    _1885_t2 = 247;
-    _1885_t3 = 3.14e0;
-    _1886_x = (struct struct0) {_1885_t1, _1885_t2, _1885_t3};
-    _1885_$retval = _1886_x._1;
-    return _1885_$retval;
+int64_t _1900_main(void){
+    uint32_t _1900_t1;
+    int64_t _1900_t2;
+    double _1900_t3;
+    struct struct0 _1901_x;
+    int64_t _1900_$retval;
+    _1900_t1 = 960;
+    _1900_t2 = 247;
+    _1900_t3 = 3.14e0;
+    _1901_x = (struct struct0) {_1900_t1, _1900_t2, _1900_t3};
+    _1900_$retval = _1901_x._1;
+    return _1900_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1885_main());
+  printf("%ld",_1900_main());
   return 0;
 }

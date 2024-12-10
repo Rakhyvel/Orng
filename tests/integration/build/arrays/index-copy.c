@@ -18,39 +18,39 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _77_main(void);
+int64_t _79_main(void);
 
 
 /* Function definitions */
-int64_t _77_main(void){
-    int64_t _77_t1;
-    int64_t _77_t2;
-    int64_t _77_t3;
-    int64_t _77_t4;
-    struct struct0 _78_x;
-    int64_t _77_t7;
-    int64_t _77_t8;
-    int64_t _77_t9;
-    int64_t _77_t10;
-    int64_t _77_$retval;
-    _77_t1 = 1;
-    _77_t2 = 2;
-    _77_t3 = 3;
-    _77_t4 = 4;
-    _78_x = (struct struct0) {_77_t1, _77_t2, _77_t3, _77_t4};
-    _77_t7 = 2;
-    _77_t8 = 4;
-    $bounds_check(_77_t7, _77_t8, "tests/integration/arrays/index-copy.orng:4:14:\n    x[2] = 62\n            ^");
-    *((int64_t*)&_78_x + _77_t7) = 62;
-    _77_t9 = 2;
-    _77_t10 = 4;
-    $bounds_check(_77_t9, _77_t10, "tests/integration/arrays/index-copy.orng:2:8:\nfn main() -> Int {\n      ^");
-    _77_$retval = *((int64_t*)&_78_x + _77_t9);
-    return _77_$retval;
+int64_t _79_main(void){
+    int64_t _79_t1;
+    int64_t _79_t2;
+    int64_t _79_t3;
+    int64_t _79_t4;
+    struct struct0 _80_x;
+    int64_t _79_t7;
+    int64_t _79_t8;
+    int64_t _79_t9;
+    int64_t _79_t10;
+    int64_t _79_$retval;
+    _79_t1 = 1;
+    _79_t2 = 2;
+    _79_t3 = 3;
+    _79_t4 = 4;
+    _80_x = (struct struct0) {_79_t1, _79_t2, _79_t3, _79_t4};
+    _79_t7 = 2;
+    _79_t8 = 4;
+    $bounds_check(_79_t7, _79_t8, "tests/integration/arrays/index-copy.orng:4:14:\n    x[2] = 62\n            ^");
+    *((int64_t*)&_80_x + _79_t7) = 62;
+    _79_t9 = 2;
+    _79_t10 = 4;
+    $bounds_check(_79_t9, _79_t10, "tests/integration/arrays/index-copy.orng:2:8:\nfn main() -> Int {\n      ^");
+    _79_$retval = *((int64_t*)&_80_x + _79_t9);
+    return _79_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_77_main());
+  printf("%ld",_79_main());
   return 0;
 }

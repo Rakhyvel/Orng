@@ -24,63 +24,63 @@ struct struct1 {
 typedef int64_t(*function2)(struct struct1);
 
 /* Function forward definitions */
-int64_t _56_main(void);
-int64_t _58_f(struct struct1 _58_x);
+int64_t _58_main(void);
+int64_t _60_f(struct struct1 _60_x);
 
 
 /* Function definitions */
-int64_t _56_main(void){
-    struct struct0 _56_t2;
-    struct struct0 _56_t4;
-    struct struct0 _56_t6;
-    struct struct1 _57_x;
-    function2 _56_t8;
-    int64_t _56_t9;
-    int64_t _56_$retval;
-    _56_t2 = (struct struct0) {.tag=0};
-    _56_t4 = (struct struct0) {.tag=1};
-    _56_t6 = (struct struct0) {.tag=2};
-    _57_x = (struct struct1) {_56_t2, _56_t4, _56_t6};
-    _56_t8 = (function2) _58_f;
+int64_t _58_main(void){
+    struct struct0 _58_t2;
+    struct struct0 _58_t4;
+    struct struct0 _58_t6;
+    struct struct1 _59_x;
+    function2 _58_t8;
+    int64_t _58_t9;
+    int64_t _58_$retval;
+    _58_t2 = (struct struct0) {.tag=0};
+    _58_t4 = (struct struct0) {.tag=1};
+    _58_t6 = (struct struct0) {.tag=2};
+    _59_x = (struct struct1) {_58_t2, _58_t4, _58_t6};
+    _58_t8 = (function2) _60_f;
     $lines[$line_idx++] = "tests/integration/arrays/array-sum.orng:6:7:\n    f(x)\n     ^";
-    _56_t9 = _56_t8(_57_x);
+    _58_t9 = _58_t8(_59_x);
     $line_idx--;
-    _56_$retval = _56_t9;
-    return _56_$retval;
+    _58_$retval = _58_t9;
+    return _58_$retval;
 }
 
-int64_t _58_f(struct struct1 _58_x){
-    int64_t _58_t1;
-    int64_t _58_t2;
-    uint64_t _58_t7;
-    uint64_t _58_t8;
-    uint8_t _58_t6;
-    int64_t _58_t0;
-    int64_t _58_$retval;
-    _58_t1 = 1;
-    _58_t2 = 3;
-    $bounds_check(_58_t1, _58_t2, "tests/integration/arrays/array-sum.orng:9:7:\nfn f(x: [3]My_Type) -> Int {\n     ^");
-    _58_t7 = (*((struct struct0*)&_58_x + _58_t1)).tag;
-    _58_t8 = 1;
-    _58_t6 = _58_t7==_58_t8;
-    if (_58_t6) {
-        goto BB51;
+int64_t _60_f(struct struct1 _60_x){
+    int64_t _60_t1;
+    int64_t _60_t2;
+    uint64_t _60_t7;
+    uint64_t _60_t8;
+    uint8_t _60_t6;
+    int64_t _60_t0;
+    int64_t _60_$retval;
+    _60_t1 = 1;
+    _60_t2 = 3;
+    $bounds_check(_60_t1, _60_t2, "tests/integration/arrays/array-sum.orng:9:7:\nfn f(x: [3]My_Type) -> Int {\n     ^");
+    _60_t7 = (*((struct struct0*)&_60_x + _60_t1)).tag;
+    _60_t8 = 1;
+    _60_t6 = _60_t7==_60_t8;
+    if (_60_t6) {
+        goto BB53;
     } else {
-        goto BB55;
+        goto BB57;
     }
-BB51:
-    _58_t0 = 215;
-    goto BB54;
-BB55:
-    _58_t0 = 3;
-    goto BB54;
-BB54:
-    _58_$retval = _58_t0;
-    return _58_$retval;
+BB53:
+    _60_t0 = 215;
+    goto BB56;
+BB57:
+    _60_t0 = 3;
+    goto BB56;
+BB56:
+    _60_$retval = _60_t0;
+    return _60_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_56_main());
+  printf("%ld",_58_main());
   return 0;
 }

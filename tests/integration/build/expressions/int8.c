@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int8_t _724_main(void);
+int8_t _739_main(void);
 
 
 /* Function definitions */
-int8_t _724_main(void){
-    int8_t _724_$retval;
-    _724_$retval = 99;
-    return _724_$retval;
+int8_t _739_main(void){
+    int8_t _739_$retval;
+    _739_$retval = 99;
+    return _739_$retval;
 }
 
 
 int main(void) {
-  printf("%d",_724_main());
+  printf("%d",_739_main());
   return 0;
 }

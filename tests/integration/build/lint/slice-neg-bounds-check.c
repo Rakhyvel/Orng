@@ -26,53 +26,53 @@ struct struct1 {
 typedef int64_t(*function2)(void);
 
 /* Function forward definitions */
-int64_t _1155_main(void);
-int64_t _1157_f(void);
+int64_t _1170_main(void);
+int64_t _1172_f(void);
 
 
 /* Function definitions */
-int64_t _1155_main(void){
-    int64_t _1155_t1;
-    int64_t _1155_t2;
-    int64_t _1155_t3;
-    int64_t _1155_t4;
-    struct struct0 _1156_x;
-    int64_t _1155_t7;
-    int64_t _1155_t8;
-    int64_t* _1155_t9;
-    int64_t _1155_t10;
-    struct struct1 _1156_y;
-    function2 _1155_t12;
-    int64_t _1155_t13;
-    int64_t _1155_$retval;
-    _1155_t1 = 0;
-    _1155_t2 = 0;
-    _1155_t3 = 0;
-    _1155_t4 = 0;
-    _1156_x = (struct struct0) {_1155_t1, _1155_t2, _1155_t3, _1155_t4};
-    _1155_t7 = 0;
-    _1155_t8 = 4;
-    $bounds_check(_1155_t7, _1155_t8, "tests/integration/lint/slice-neg-bounds-check.orng:4:16:\n    let y = []x\n              ^");
-    _1155_t9 = ((int64_t*)&_1156_x + _1155_t7);
-    _1155_t10 = 4;
-    _1156_y = (struct struct1) {_1155_t9, _1155_t10};
-    _1155_t12 = (function2) _1157_f;
+int64_t _1170_main(void){
+    int64_t _1170_t1;
+    int64_t _1170_t2;
+    int64_t _1170_t3;
+    int64_t _1170_t4;
+    struct struct0 _1171_x;
+    int64_t _1170_t7;
+    int64_t _1170_t8;
+    int64_t* _1170_t9;
+    int64_t _1170_t10;
+    struct struct1 _1171_y;
+    function2 _1170_t12;
+    int64_t _1170_t13;
+    int64_t _1170_$retval;
+    _1170_t1 = 0;
+    _1170_t2 = 0;
+    _1170_t3 = 0;
+    _1170_t4 = 0;
+    _1171_x = (struct struct0) {_1170_t1, _1170_t2, _1170_t3, _1170_t4};
+    _1170_t7 = 0;
+    _1170_t8 = 4;
+    $bounds_check(_1170_t7, _1170_t8, "tests/integration/lint/slice-neg-bounds-check.orng:4:16:\n    let y = []x\n              ^");
+    _1170_t9 = ((int64_t*)&_1171_x + _1170_t7);
+    _1170_t10 = 4;
+    _1171_y = (struct struct1) {_1170_t9, _1170_t10};
+    _1170_t12 = (function2) _1172_f;
     $lines[$line_idx++] = "tests/integration/lint/slice-neg-bounds-check.orng:5:9:\n    y[f()]\n       ^";
-    _1155_t13 = _1155_t12();
+    _1170_t13 = _1170_t12();
     $line_idx--;
-    $bounds_check(_1155_t13, _1156_y._1, "tests/integration/lint/slice-neg-bounds-check.orng:2:8:\nfn main() -> Int {\n      ^");
-    _1155_$retval = *((int64_t*)_1156_y._0 + _1155_t13);
-    return _1155_$retval;
+    $bounds_check(_1170_t13, _1171_y._1, "tests/integration/lint/slice-neg-bounds-check.orng:2:8:\nfn main() -> Int {\n      ^");
+    _1170_$retval = *((int64_t*)_1171_y._0 + _1170_t13);
+    return _1170_$retval;
 }
 
-int64_t _1157_f(void){
-    int64_t _1157_$retval;
-    _1157_$retval = -100;
-    return _1157_$retval;
+int64_t _1172_f(void){
+    int64_t _1172_$retval;
+    _1172_$retval = -100;
+    return _1172_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1155_main());
+  printf("%ld",_1170_main());
   return 0;
 }

@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint32_t _1477_main(void);
+uint32_t _1492_main(void);
 
 
 /* Function definitions */
-uint32_t _1477_main(void){
-    uint32_t _1477_$retval;
-    _1477_$retval = 127818;
-    return _1477_$retval;
+uint32_t _1492_main(void){
+    uint32_t _1492_$retval;
+    _1492_$retval = 127818;
+    return _1492_$retval;
 }
 
 
 int main(void) {
-  printf("%u",_1477_main());
+  printf("%u",_1492_main());
   return 0;
 }

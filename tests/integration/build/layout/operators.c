@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1111_main(void);
+int64_t _1126_main(void);
 
 
 /* Function definitions */
-int64_t _1111_main(void){
-    int64_t _1111_$retval;
-    _1111_$retval = 110;
-    return _1111_$retval;
+int64_t _1126_main(void){
+    int64_t _1126_$retval;
+    _1126_$retval = 110;
+    return _1126_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1111_main());
+  printf("%ld",_1126_main());
   return 0;
 }

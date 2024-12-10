@@ -15,26 +15,26 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _568_main(void);
+int64_t _583_main(void);
 
 
 /* Function definitions */
-int64_t _568_main(void){
-    int64_t _568_t2;
-    struct struct0 _569_x;
-    struct struct0* _569_y;
-    int64_t _568_t7;
-    int64_t _568_$retval;
-    _568_t2 = 0;
-    _569_x = (struct struct0) {_568_t2, };
-    _569_y = &_569_x;
-    _568_t7 = 140;
-    _568_$retval = $add_int64_t(_568_t7, (*_569_y)._1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
-    return _568_$retval;
+int64_t _583_main(void){
+    int64_t _583_t2;
+    struct struct0 _584_x;
+    struct struct0* _584_y;
+    int64_t _583_t7;
+    int64_t _583_$retval;
+    _583_t2 = 0;
+    _584_x = (struct struct0) {_583_t2, };
+    _584_y = &_584_x;
+    _583_t7 = 140;
+    _583_$retval = $add_int64_t(_583_t7, (*_584_y)._1, "tests/integration/default/default-product-unit.orng:5:10:\n    140 + y.b\n        ^");
+    return _583_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_568_main());
+  printf("%ld",_583_main());
   return 0;
 }
