@@ -145,47 +145,48 @@ fn help(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.All
     try std.io.getStdOut().writer().print("\n", .{});
 }
 
-fn init() Command_Error!void {
+fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = args;
     // not experienced in zig enough to try this but i feel like you could initalize
     // both at the same time and in the switch(i) check if both files exist and only if
     // both conditions are false, continue with creating the rest of the files
-    var main_orng = try std.fs.cwd().createFile("main.orng", .{ .exclusive = true}) catch |i| {
+    var main_orng = std.fs.cwd().createFile("main.orng", .{ .exclusive = true}) catch |i| 
     switch (i) {
         i.PathAlreadyExists => {
             std.log.err("Main.orng already present.", .{});
-            return 1;
+            return error.BuildOrngError;
         }, else => {
-            std.log.err("Unable to initalize file main.orng", .{}); // Seeing if it's able to create the file; if not, return error
-            return 1;
+            return i;
         }
     }
 
     const main_writer = try main_orng.writer();
     const main_content = 
-        \\import std::debug
+        \\    import std::debug
         \\
-        \\fn main() -> () {
-            \\debug::println("Hello, World!")
-        \\}
+        \\    fn main() -> () {
+        \\    debug::println("Hello, World!")
+        \\    }
+        \\
     ;
 
     try main_writer.writeAll(main_content); // writing content to main.orng
     
-    var build_orng = std.fs.cwd().createFile("build.orng", .{ .exclusive = true}) catch |j| {
+    var build_orng = std.fs.cwd().createFile("build.orng", .{ .exclusive = true}) catch |j| 
         switch (j) {
         j.PathAlreadyExists => {
             std.log.err("build.orng already present.", .{});
-            return 1;
+            return error.BuildOrngError;
         }, else => {
-            std.log.err("Unable to initalize file build.orng", .{}); // Seeing if it's able to create the file; if not, return error
-            return 1;
+            return j;
         }
     }
 
     const build_writer = try build_orng.writer();
     const build_content =
-        \\fn build() -> Package {
-        \\Package::executable(.root="main.orng")
+        \\    fn build() -> Package {
+        \\    Package::executable(.root="main.orng")
+        \\    }
     ;
 
     try build_writer.writeAll(build_content); // writing content to build.orng
