@@ -1,7 +1,7 @@
 
 ## Bug Report Template
 ### Bug Summary
-**Describe the issue in one or two sentences:**
+Describe the issue in one or two sentences:
 
 ...
 
@@ -10,16 +10,16 @@
 - Orng Version: [e.g., 25.01, or a commit hash]
 
 ### Steps to Reproduce
-**Provide a step-by-step guide to recreate the bug:**
+Provide a step-by-step guide to recreate the bug:
 
 ...
 
 ### Expected Behavior
-**What did you expect to happen?**
+What did you expect to happen?
 
 ...
 
 ### Actual Behavior
-**What actually happened?**
+What actually happened?
 
 ...
