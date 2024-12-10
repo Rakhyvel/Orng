@@ -29,8 +29,10 @@ To get your contributions merged efficiently:
 * Run `zig fmt` before committing (zls in VSCode makes this easy!)
 
 ### Naming
-- Use `Snake_Case` for types, and `snake_case` for everything else (functions, variables, constants, fields).
-- Imported modules should 
+- Use `Snake_Case` for types.
+- Use `snake_case` for functions, variables, constants, fields.
+- Use `snake_case_` for imports.
+- Use `CamelCase` for errors.
 
 ## Communication
 If you have a question or need clarification, feel free to reach out and open a discussion in the Discussions tab, or create an issue in the Issues tab.
