@@ -35,6 +35,11 @@ To get your contributions merged efficiently:
     ```bash
     zig build orng
     ```
+    * Ensure the compiler can compile the example project
+    ```bash
+    cd examples
+    ../zig-out/bin/orng build
+    ```
     * Ensure all integration and negative tests pass
     ```bash
     # To run all tests, run the following command
