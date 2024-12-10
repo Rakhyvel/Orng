@@ -158,7 +158,7 @@ fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.All
         }, else => {
             return i;
         }
-    }
+    } // aaaand now VS Code thinks this is an invalid semicolon. probably should just ignore :-)
 
     const main_writer = try main_orng.writer();
     const main_content = 
