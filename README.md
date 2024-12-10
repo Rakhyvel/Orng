@@ -153,5 +153,7 @@ Contributions of all kinds are welcome:
 - 💡 Suggest features
 - 🧑‍💻 Submit pull requests
 
+Check out [CONTRIBUTING.md](https://github.com/Rakhyvel/Orng/blob/main/CONTRIBUTING.md) for more info!
+
 ## 📄 License
 Orng is open-source and released under the MIT License. See `LICENSE` for details.
