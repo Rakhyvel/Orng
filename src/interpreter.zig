@@ -194,6 +194,7 @@ pub const Context = struct {
         } else {
             std.debug.assert(src >= dest + len); // src is not within dest
         }
+        // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}", .{ dest, src, len });
         @memcpy(
             self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
             self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
@@ -213,7 +214,7 @@ pub const Context = struct {
             cursor = offsets_.next_alignment(cursor, lval.alignof());
             const src = try self.effective_address(lval);
             const len = lval.sizeof();
-            std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ cursor, src, len });
+            // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ cursor, src, len });
             // std.debug.print("{}\n", .{lval});
             self.move(cursor, src, len);
             cursor += len;
@@ -328,9 +329,9 @@ pub const Context = struct {
         // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
-            self.print_registers();
-            self.print_stack();
-            std.debug.print("\n\n\n\n{}=>\n", .{ir});
+            // self.print_registers();
+            // self.print_stack();
+            // std.debug.print("\n\n\n\n{}=>\n", .{ir});
             const time_now = std.time.milliTimestamp();
             if (time_now - self.start_time > timeout_ms) {
                 return self.panic(null, "interpreter error: compile-time interpreter timeout\n", .{});
@@ -371,12 +372,10 @@ pub const Context = struct {
                     // Store data into first field
                     const dest = try self.effective_address(ir.dest.?);
                     const src = try self.effective_address(ir.src1.?);
-                    std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, ir.dest.?.sizeof() });
                     self.move(dest, src, ir.src1.?.sizeof());
                 }
                 // Store tag in last field
                 const address = try self.effective_address(ir.dest.?) + ir.dest.?.sizeof() - 8;
-                std.debug.print("address:0x{X}\n", .{address});
                 self.store(i64, address, @as(i64, @intCast(ir.data.int)));
             },
 
@@ -384,7 +383,6 @@ pub const Context = struct {
                 std.debug.assert(ir.dest.?.sizeof() == ir.src1.?.sizeof());
                 const dest = try self.effective_address(ir.dest.?);
                 const src = try self.effective_address(ir.src1.?);
-                std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, ir.dest.?.sizeof() });
                 self.move(dest, src, ir.dest.?.sizeof());
             },
             .not => {
@@ -695,15 +693,13 @@ pub const Context = struct {
             .product => {
                 var value_terms = std.ArrayList(*ast_.AST).init(allocator);
                 errdefer value_terms.deinit();
-                var offset: i64 = 0;
                 for (0.., _type.children().items) |i, term| {
                     // std.debug.print("term:{}\n", .{term});
-                    offset = _type.product.get_offset(i, allocator); // offsets_.next_alignment(offset, term.alignof());
-                    std.debug.print("offset:{}\n", .{offset});
+                    const offset = _type.product.get_offset(i, allocator);
+                    // std.debug.print("offset:{}\n", .{offset});
                     const extracted_term = self.extract_ast(address + offset, term, allocator);
                     // std.debug.print("extracted_term:{}\n", .{extracted_term});
                     value_terms.append(extracted_term) catch unreachable;
-                    offset += term.sizeof();
                 }
                 return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_valid();
             },
