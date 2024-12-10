@@ -21,6 +21,7 @@ Help us improve Orng by reporting bugs effectively:
 ## Submitting Pull Requests
 
 ### Prerequisites
+- Ensure you are working on linux or WSL (for now)
 - Ensure you have Zig installed (version 0.13.0 or later)
 - Ensure you have Python installed (version 3.10.12 or later)
 
@@ -28,6 +29,10 @@ To get your contributions merged efficiently:
 1. Open an issue for significant changes to discuss the proposed modification (or feel free to claim an already open one!)
 2. Fork the repo
 3. Create a new branch with a descriptive name
+3. Clone the repo locally, with recursive submodules for `zig-string`
+    ```bash
+    git clone --recurse-submodules <url here>
+    ```
 3. Make your changes
     * Follow the stlye guide (see below)
 4. When you are finished:
@@ -70,8 +75,5 @@ To get your contributions merged efficiently:
 Need help or want to discuss the project?
 * Open a discussion in the GitHub Discussions tab
 * Create an issue for a specific problem
-
-## Recognition
-Contributions are valued! Feel free to add your name to the `docs/CONTRIBUTORS.md` file.
 
 _Last updated: 2024-09-12_
