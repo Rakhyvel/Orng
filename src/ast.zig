@@ -295,6 +295,10 @@ pub const AST = union(enum) {
                 offset = offsets_.next_alignment(offset, self._terms.items[i + 1].alignof());
             }
             return offset;
+        }
+    },
+    @"union": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
+
     // Fancy operators
     addr_of: struct {
         common: AST_Common,
