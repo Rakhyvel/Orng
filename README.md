@@ -18,7 +18,7 @@ Orng is a versatile systems programming language I've been developing that gives
 ## 🚀 Quick Start
 ```sh
 # Orng compiler requires Zig 0.13.0 at the moment
-git clone --recurse-submodules https://github.com/Rakhyvel/Orng.git
+git clone --recursive https://github.com/Rakhyvel/Orng.git
 cd Orng
 zig build orng
 ```

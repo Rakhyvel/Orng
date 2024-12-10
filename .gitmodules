@@ -1,6 +1,3 @@
 [submodule "src/zig-string"]
 	path = src/zig-string
 	url = https://github.com/JakubSzark/zig-string.git
-# [submodule "src/rdgen"]
-# 	path = src/rdgen
-# 	url = https://github.com/proebsting/rdgen.git

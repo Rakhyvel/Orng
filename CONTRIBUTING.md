@@ -31,7 +31,7 @@ To get your contributions merged efficiently:
 3. Create a new branch with a descriptive name
 3. Clone the repo locally, with recursive submodules for `zig-string`
     ```bash
-    git clone --recurse-submodules <url here>
+    git clone --recursive <url here>
     ```
 3. Make your changes
     * Follow the stlye guide (see below)
