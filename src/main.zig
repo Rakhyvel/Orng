@@ -76,7 +76,7 @@ pub fn main() !void {
 }
 
 fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
-    _ = name; // autofix
+    _ = name;
     _ = args;
     // Get the path
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;

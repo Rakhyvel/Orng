@@ -1,5 +1,5 @@
 // debug utilities made use by the Orng compiler when in debug mode
-// © 2023-2024 Joseph Shimel. All rights reserved.
+// Copyright (c) 2023-2024, Joseph Shimel and contributors.
 
 #include <stdnoreturn.h>
 

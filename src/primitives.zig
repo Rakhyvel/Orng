@@ -353,10 +353,14 @@ fn create_prelude() !void {
     const prelude_contents =
         \\const Package: Type = (
         \\  root: String,
+        \\  kind: (executable: Int | static_library:Int)
         \\)
+        \\
         \\impl for Package {
-        \\  fn executable(root: String) -> Self { (root,) }
+        \\  fn executable(root: String) -> Self { (root, .executable(4)) }
+        \\  fn static_library(root: String) -> Self { (root, .static_library(4)) }
         \\}
+        \\
     ;
 
     var errors = errs_.Errors.init(std.heap.page_allocator);
@@ -376,17 +380,6 @@ fn create_prelude() !void {
         std.heap.page_allocator,
     );
 
-    // create_info(
-    //     "Package",
-    //     null,
-    //     "NO C EQUIVALENT!",
-    //     package_type,
-    //     module.scope.lookup("Package", false).found.init.?,
-    //     .none,
-    //     .none,
-    //     default_string,
-    //     0,
-    // );
     package_type = module.scope.lookup("Package", false).found.init.?;
 }
 
@@ -460,7 +453,8 @@ pub fn keys() [][]const u8 {
 }
 
 pub fn info_from_name(name: []const u8) Primitive_Info {
-    return primitives.get(name).?;
+    const res = primitives.get(name) orelse std.debug.panic("compiler error: unknown primitive `{s}`", .{name});
+    return res;
 }
 
 pub fn bounds_from_ast(_type: *ast_.AST) ?Bounds {
