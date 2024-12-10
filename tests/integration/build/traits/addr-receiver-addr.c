@@ -37,59 +37,59 @@ typedef int64_t(*function6)(struct struct3*, int64_t);
 
 /* Trait vtable type definitions */
 /* Function forward definitions */
-int64_t _1628_main(void);
-void _1626_c(void* _1626_self, int64_t _1626_x);
-int64_t _1624_b(void* _1624_self, int64_t _1624_x);
+int64_t _1643_main(void);
+void _1641_c(void* _1641_self, int64_t _1641_x);
+int64_t _1639_b(void* _1639_self, int64_t _1639_x);
 
 /* Trait vtable implementations */
 
 /* Function definitions */
-int64_t _1628_main(void){
-    int64_t _1628_t1;
-    int64_t _1628_t2;
-    struct struct3 _1629_my_val;
-    struct struct3* _1629_my_val_ptr;
-    int64_t _1628_t7;
-    function4 _1628_t8;
-    int64_t _1628_t10;
-    function6 _1628_t11;
-    int64_t _1628_t9;
-    int64_t _1628_t12;
-    int64_t _1628_$retval;
-    _1628_t1 = 100;
-    _1628_t2 = 45;
-    _1629_my_val = (struct struct3) {_1628_t1, _1628_t2};
-    _1629_my_val_ptr = &_1629_my_val;
-    _1628_t7 = 2;
-    _1628_t8 = (function4) _1626_c;
+int64_t _1643_main(void){
+    int64_t _1643_t1;
+    int64_t _1643_t2;
+    struct struct3 _1644_my_val;
+    struct struct3* _1644_my_val_ptr;
+    int64_t _1643_t7;
+    function4 _1643_t8;
+    int64_t _1643_t10;
+    function6 _1643_t11;
+    int64_t _1643_t9;
+    int64_t _1643_t12;
+    int64_t _1643_$retval;
+    _1643_t1 = 100;
+    _1643_t2 = 45;
+    _1644_my_val = (struct struct3) {_1643_t1, _1643_t2};
+    _1644_my_val_ptr = &_1644_my_val;
+    _1643_t7 = 2;
+    _1643_t8 = (function4) _1641_c;
     $lines[$line_idx++] = "tests/integration/traits/addr-receiver-addr.orng:19:17:\n    my_val_ptr.>c(2)\n               ^";
-    (void) _1628_t8(_1629_my_val_ptr, _1628_t7);
+    (void) _1643_t8(_1644_my_val_ptr, _1643_t7);
     $line_idx--;
-    _1628_t10 = 2;
-    _1628_t11 = (function6) _1624_b;
+    _1643_t10 = 2;
+    _1643_t11 = (function6) _1639_b;
     $lines[$line_idx++] = "tests/integration/traits/addr-receiver-addr.orng:20:17:\n    my_val_ptr.>b(2) + 4\n               ^";
-    _1628_t9 = _1628_t11(_1629_my_val_ptr, _1628_t10);
+    _1643_t9 = _1643_t11(_1644_my_val_ptr, _1643_t10);
     $line_idx--;
-    _1628_t12 = 4;
-    _1628_$retval = $add_int64_t(_1628_t9, _1628_t12, "tests/integration/traits/addr-receiver-addr.orng:20:23:\n    my_val_ptr.>b(2) + 4\n                     ^");
-    return _1628_$retval;
+    _1643_t12 = 4;
+    _1643_$retval = $add_int64_t(_1643_t9, _1643_t12, "tests/integration/traits/addr-receiver-addr.orng:20:23:\n    my_val_ptr.>b(2) + 4\n                     ^");
+    return _1643_$retval;
 }
 
-void _1626_c(void* _1626_self, int64_t _1626_x){
-    (*(struct struct3*)_1626_self)._0 = $mult_int64_t((*(struct struct3*)_1626_self)._0, _1626_x, "tests/integration/traits/addr-receiver-addr.orng:13:46:\n    fn c(&mut self, x: Int) -> () { self.x *= x }\n                                            ^");
+void _1641_c(void* _1641_self, int64_t _1641_x){
+    (*(struct struct3*)_1641_self)._0 = $mult_int64_t((*(struct struct3*)_1641_self)._0, _1641_x, "tests/integration/traits/addr-receiver-addr.orng:13:46:\n    fn c(&mut self, x: Int) -> () { self.x *= x }\n                                            ^");
     return;
 }
 
-int64_t _1624_b(void* _1624_self, int64_t _1624_x){
-    int64_t _1624_t0;
-    int64_t _1624_$retval;
-    _1624_t0 = $mult_int64_t((*(struct struct3*)_1624_self)._1, _1624_x, "tests/integration/traits/addr-receiver-addr.orng:11:51:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                 ^");
-    _1624_$retval = $add_int64_t((*(struct struct3*)_1624_self)._0, _1624_t0, "tests/integration/traits/addr-receiver-addr.orng:11:42:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                        ^");
-    return _1624_$retval;
+int64_t _1639_b(void* _1639_self, int64_t _1639_x){
+    int64_t _1639_t0;
+    int64_t _1639_$retval;
+    _1639_t0 = $mult_int64_t((*(struct struct3*)_1639_self)._1, _1639_x, "tests/integration/traits/addr-receiver-addr.orng:11:51:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                                 ^");
+    _1639_$retval = $add_int64_t((*(struct struct3*)_1639_self)._0, _1639_t0, "tests/integration/traits/addr-receiver-addr.orng:11:42:\n    fn b(&self, x: Int) -> Int { self.x + self.y * x }\n                                        ^");
+    return _1639_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1628_main());
+  printf("%ld",_1643_main());
   return 0;
 }

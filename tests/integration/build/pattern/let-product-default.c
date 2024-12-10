@@ -16,47 +16,47 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1260_main(void);
+int64_t _1275_main(void);
 
 
 /* Function definitions */
-int64_t _1260_main(void){
-    int64_t _1260_t1;
-    int64_t _1260_t2;
-    struct struct0 _1260_t0;
-    int64_t _1261_a;
-    int64_t _1261_b;
-    int64_t _1260_t5;
-    int64_t _1260_t6;
-    uint8_t _1260_t8;
-    int64_t _1260_t4;
-    int64_t _1260_$retval;
-    _1260_t1 = 0;
-    _1260_t2 = 0;
-    _1260_t0 = (struct struct0) {_1260_t1, _1260_t2};
-    _1261_a = _1260_t0._0;
-    _1261_b = _1260_t0._1;
-    _1260_t5 = $add_int64_t(_1261_a, _1261_b, "tests/integration/pattern/let-product-default.orng:4:11:\n    if a + b == 0 {\n         ^");
-    _1260_t6 = 0;
-    _1260_t8 = _1260_t5==_1260_t6;
-    if (_1260_t8) {
-        goto BB1432;
+int64_t _1275_main(void){
+    int64_t _1275_t1;
+    int64_t _1275_t2;
+    struct struct0 _1275_t0;
+    int64_t _1276_a;
+    int64_t _1276_b;
+    int64_t _1275_t5;
+    int64_t _1275_t6;
+    uint8_t _1275_t8;
+    int64_t _1275_t4;
+    int64_t _1275_$retval;
+    _1275_t1 = 0;
+    _1275_t2 = 0;
+    _1275_t0 = (struct struct0) {_1275_t1, _1275_t2};
+    _1276_a = _1275_t0._0;
+    _1276_b = _1275_t0._1;
+    _1275_t5 = $add_int64_t(_1276_a, _1276_b, "tests/integration/pattern/let-product-default.orng:4:11:\n    if a + b == 0 {\n         ^");
+    _1275_t6 = 0;
+    _1275_t8 = _1275_t5==_1275_t6;
+    if (_1275_t8) {
+        goto BB1448;
     } else {
-        goto BB1436;
+        goto BB1452;
     }
-BB1432:
-    _1260_t4 = 160;
-    goto BB1435;
-BB1436:
-    _1260_t4 = 61;
-    goto BB1435;
-BB1435:
-    _1260_$retval = _1260_t4;
-    return _1260_$retval;
+BB1448:
+    _1275_t4 = 160;
+    goto BB1451;
+BB1452:
+    _1275_t4 = 61;
+    goto BB1451;
+BB1451:
+    _1275_$retval = _1275_t4;
+    return _1275_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1260_main());
+  printf("%ld",_1275_main());
   return 0;
 }

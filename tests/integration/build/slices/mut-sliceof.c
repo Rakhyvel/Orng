@@ -25,48 +25,48 @@ struct struct1 {
 };
 
 /* Function forward definitions */
-int64_t _1452_main(void);
+int64_t _1467_main(void);
 
 
 /* Function definitions */
-int64_t _1452_main(void){
-    int64_t _1452_t1;
-    int64_t _1452_t2;
-    int64_t _1452_t3;
-    int64_t _1452_t4;
-    int64_t _1452_t5;
-    struct struct0 _1453_x;
-    int64_t _1452_t8;
-    int64_t _1452_t9;
-    int64_t* _1452_t10;
-    int64_t _1452_t11;
-    struct struct1 _1453_y;
-    int64_t _1452_t14;
-    int64_t _1452_t15;
-    int64_t _1452_$retval;
-    _1452_t1 = 1;
-    _1452_t2 = 2;
-    _1452_t3 = 3;
-    _1452_t4 = 4;
-    _1452_t5 = 5;
-    _1453_x = (struct struct0) {_1452_t1, _1452_t2, _1452_t3, _1452_t4, _1452_t5};
-    _1452_t8 = 0;
-    _1452_t9 = 5;
-    $bounds_check(_1452_t8, _1452_t9, "tests/integration/slices/mut-sliceof.orng:4:29:\n    let y: [mut]Int = [mut]x\n                           ^");
-    _1452_t10 = ((int64_t*)&_1453_x + _1452_t8);
-    _1452_t11 = 5;
-    _1453_y = (struct struct1) {_1452_t10, _1452_t11};
-    _1452_t14 = 2;
-    $bounds_check(_1452_t14, _1453_y._1, "tests/integration/slices/mut-sliceof.orng:5:14:\n    y[2] = 81\n            ^");
-    *((int64_t*)_1453_y._0 + _1452_t14) = 81;
-    _1452_t15 = 2;
-    $bounds_check(_1452_t15, _1453_y._1, "tests/integration/slices/mut-sliceof.orng:2:8:\nfn main() -> Int {\n      ^");
-    _1452_$retval = *((int64_t*)_1453_y._0 + _1452_t15);
-    return _1452_$retval;
+int64_t _1467_main(void){
+    int64_t _1467_t1;
+    int64_t _1467_t2;
+    int64_t _1467_t3;
+    int64_t _1467_t4;
+    int64_t _1467_t5;
+    struct struct0 _1468_x;
+    int64_t _1467_t8;
+    int64_t _1467_t9;
+    int64_t* _1467_t10;
+    int64_t _1467_t11;
+    struct struct1 _1468_y;
+    int64_t _1467_t14;
+    int64_t _1467_t15;
+    int64_t _1467_$retval;
+    _1467_t1 = 1;
+    _1467_t2 = 2;
+    _1467_t3 = 3;
+    _1467_t4 = 4;
+    _1467_t5 = 5;
+    _1468_x = (struct struct0) {_1467_t1, _1467_t2, _1467_t3, _1467_t4, _1467_t5};
+    _1467_t8 = 0;
+    _1467_t9 = 5;
+    $bounds_check(_1467_t8, _1467_t9, "tests/integration/slices/mut-sliceof.orng:4:29:\n    let y: [mut]Int = [mut]x\n                           ^");
+    _1467_t10 = ((int64_t*)&_1468_x + _1467_t8);
+    _1467_t11 = 5;
+    _1468_y = (struct struct1) {_1467_t10, _1467_t11};
+    _1467_t14 = 2;
+    $bounds_check(_1467_t14, _1468_y._1, "tests/integration/slices/mut-sliceof.orng:5:14:\n    y[2] = 81\n            ^");
+    *((int64_t*)_1468_y._0 + _1467_t14) = 81;
+    _1467_t15 = 2;
+    $bounds_check(_1467_t15, _1468_y._1, "tests/integration/slices/mut-sliceof.orng:2:8:\nfn main() -> Int {\n      ^");
+    _1467_$retval = *((int64_t*)_1468_y._0 + _1467_t15);
+    return _1467_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1452_main());
+  printf("%ld",_1467_main());
   return 0;
 }

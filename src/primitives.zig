@@ -353,12 +353,12 @@ fn create_prelude() !void {
     const prelude_contents =
         \\const Package: Type = (
         \\  root: String,
-        \\  kind: (executable: Int | static_library:Int)
+        \\  kind: (executable | static_library)
         \\)
         \\
         \\impl for Package {
-        \\  fn executable(root: String) -> Self { (root, .executable(4)) }
-        \\  fn static_library(root: String) -> Self { (root, .static_library(4)) }
+        \\  fn executable(root: String) -> Self { (root, .executable) }
+        \\  fn static_library(root: String) -> Self { (root, .static_library) }
         \\}
         \\
     ;

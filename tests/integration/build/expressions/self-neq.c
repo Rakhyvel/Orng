@@ -12,49 +12,49 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _863_main(void);
-uint8_t _868_f(int64_t _868_x);
+int64_t _878_main(void);
+uint8_t _883_f(int64_t _883_x);
 
 
 /* Function definitions */
-int64_t _863_main(void){
-    function0 _863_t1;
-    int64_t _863_t3;
-    uint8_t _863_t2;
-    int64_t _863_t0;
-    int64_t _863_$retval;
-    _863_t1 = (function0) _868_f;
-    _863_t3 = 4;
+int64_t _878_main(void){
+    function0 _878_t1;
+    int64_t _878_t3;
+    uint8_t _878_t2;
+    int64_t _878_t0;
+    int64_t _878_$retval;
+    _878_t1 = (function0) _883_f;
+    _878_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/self-neq.orng:3:10:\n    if f(4) {\n        ^";
-    _863_t2 = _863_t1(_863_t3);
+    _878_t2 = _878_t1(_878_t3);
     $line_idx--;
-    if (_863_t2) {
-        goto BB1043;
+    if (_878_t2) {
+        goto BB1059;
     } else {
-        goto BB1047;
+        goto BB1063;
     }
-BB1043:
-    _863_t0 = 0;
-    goto BB1046;
-BB1047:
-    _863_t0 = 223;
-    goto BB1046;
-BB1046:
-    _863_$retval = _863_t0;
-    return _863_$retval;
+BB1059:
+    _878_t0 = 0;
+    goto BB1062;
+BB1063:
+    _878_t0 = 223;
+    goto BB1062;
+BB1062:
+    _878_$retval = _878_t0;
+    return _878_$retval;
 }
 
-uint8_t _868_f(int64_t _868_x){
-    uint8_t _868_$retval;
-    (void)_868_x;
-    goto BB1038;
-BB1038:
-    _868_$retval = 0;
-    return _868_$retval;
+uint8_t _883_f(int64_t _883_x){
+    uint8_t _883_$retval;
+    (void)_883_x;
+    goto BB1054;
+BB1054:
+    _883_$retval = 0;
+    return _883_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_863_main());
+  printf("%ld",_878_main());
   return 0;
 }

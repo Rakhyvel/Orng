@@ -12,55 +12,55 @@
 typedef int64_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _991_main(void);
-int64_t _993_sum_down(int64_t _993_x);
+int64_t _1006_main(void);
+int64_t _1008_sum_down(int64_t _1008_x);
 
 
 /* Function definitions */
-int64_t _991_main(void){
-    function0 _991_t0;
-    int64_t _991_t2;
-    int64_t _991_t1;
-    int64_t _991_t3;
-    int64_t _991_$retval;
-    _991_t0 = (function0) _993_sum_down;
-    _991_t2 = 8;
+int64_t _1006_main(void){
+    function0 _1006_t0;
+    int64_t _1006_t2;
+    int64_t _1006_t1;
+    int64_t _1006_t3;
+    int64_t _1006_$retval;
+    _1006_t0 = (function0) _1008_sum_down;
+    _1006_t2 = 8;
     $lines[$line_idx++] = "tests/integration/functions/mut-param.orng:2:28:\nfn main() -> Int {sum_down(8) + 2}\n                          ^";
-    _991_t1 = _991_t0(_991_t2);
+    _1006_t1 = _1006_t0(_1006_t2);
     $line_idx--;
-    _991_t3 = 2;
-    _991_$retval = $add_int64_t(_991_t1, _991_t3, "tests/integration/functions/mut-param.orng:2:32:\nfn main() -> Int {sum_down(8) + 2}\n                              ^");
-    return _991_$retval;
+    _1006_t3 = 2;
+    _1006_$retval = $add_int64_t(_1006_t1, _1006_t3, "tests/integration/functions/mut-param.orng:2:32:\nfn main() -> Int {sum_down(8) + 2}\n                              ^");
+    return _1006_$retval;
 }
 
-int64_t _993_sum_down(int64_t _993_x){
-    int64_t _995_i;
-    int64_t _993_t2;
-    uint8_t _993_t3;
-    int64_t _993_t5;
-    int64_t _993_$retval;
-    _995_i = _993_x;
-    goto BB1167;
-BB1167:
-    _993_t2 = 0;
-    _993_t3 = _995_i>=_993_t2;
-    if (_993_t3) {
-        goto BB1168;
+int64_t _1008_sum_down(int64_t _1008_x){
+    int64_t _1010_i;
+    int64_t _1008_t2;
+    uint8_t _1008_t3;
+    int64_t _1008_t5;
+    int64_t _1008_$retval;
+    _1010_i = _1008_x;
+    goto BB1183;
+BB1183:
+    _1008_t2 = 0;
+    _1008_t3 = _1010_i>=_1008_t2;
+    if (_1008_t3) {
+        goto BB1184;
     } else {
-        goto BB1173;
+        goto BB1189;
     }
-BB1168:
-    _993_x = $add_int64_t(_993_x, _995_i, "tests/integration/functions/mut-param.orng:6:13:\n        x += i\n           ^");
-    _993_t5 = 1;
-    _995_i = $sub_int64_t(_995_i, _993_t5, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
-    goto BB1167;
-BB1173:
-    _993_$retval = _993_x;
-    return _993_$retval;
+BB1184:
+    _1008_x = $add_int64_t(_1008_x, _1010_i, "tests/integration/functions/mut-param.orng:6:13:\n        x += i\n           ^");
+    _1008_t5 = 1;
+    _1010_i = $sub_int64_t(_1010_i, _1008_t5, "tests/integration/functions/mut-param.orng:5:38:\n    while let mut i = x; i >= 0; i -= 1 {\n                                    ^");
+    goto BB1183;
+BB1189:
+    _1008_$retval = _1008_x;
+    return _1008_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_991_main());
+  printf("%ld",_1006_main());
   return 0;
 }

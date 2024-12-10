@@ -19,29 +19,29 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1583_main(void);
+int64_t _1598_main(void);
 
 
 /* Function definitions */
-int64_t _1583_main(void){
-    int64_t _1583_t0;
-    struct struct0 _1584_x;
-    uint64_t _1583_t4;
-    uint64_t _1583_t5;
-    int64_t _1583_$retval;
-    _1583_t0 = 4;
-    _1584_x = (struct struct0) {.tag=0, ._0=_1583_t0};
-    _1583_t4 = 0;
-    $tag_check(_1583_t4, 0, "tests/integration/sums/re-assign.orng:6:16:\n    x.int = 103\n              ^");
-    _1584_x._0 = 103;
-    _1583_t5 = _1584_x.tag;
-    $tag_check(_1583_t5, 0, "tests/integration/sums/re-assign.orng:4:8:\nfn main() -> Int {\n      ^");
-    _1583_$retval = _1584_x._0;
-    return _1583_$retval;
+int64_t _1598_main(void){
+    int64_t _1598_t0;
+    struct struct0 _1599_x;
+    uint64_t _1598_t4;
+    uint64_t _1598_t5;
+    int64_t _1598_$retval;
+    _1598_t0 = 4;
+    _1599_x = (struct struct0) {.tag=0, ._0=_1598_t0};
+    _1598_t4 = 0;
+    $tag_check(_1598_t4, 0, "tests/integration/sums/re-assign.orng:6:16:\n    x.int = 103\n              ^");
+    _1599_x._0 = 103;
+    _1598_t5 = _1599_x.tag;
+    $tag_check(_1598_t5, 0, "tests/integration/sums/re-assign.orng:4:8:\nfn main() -> Int {\n      ^");
+    _1598_$retval = _1599_x._0;
+    return _1598_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1583_main());
+  printf("%ld",_1598_main());
   return 0;
 }

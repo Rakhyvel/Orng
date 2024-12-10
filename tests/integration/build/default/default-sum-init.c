@@ -18,25 +18,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _577_main(void);
+int64_t _592_main(void);
 
 
 /* Function definitions */
-int64_t _577_main(void){
-    int64_t _577_t0;
-    struct struct0 _578_x;
-    uint64_t _577_t3;
-    int64_t _577_$retval;
-    _577_t0 = 134;
-    _578_x = (struct struct0) {.tag=0, ._0=_577_t0};
-    _577_t3 = 0;
-    $tag_check(_577_t3, 0, "tests/integration/default/default-sum-init.orng:2:8:\nfn main() -> Int {\n      ^");
-    _577_$retval = _578_x._0;
-    return _577_$retval;
+int64_t _592_main(void){
+    int64_t _592_t0;
+    struct struct0 _593_x;
+    uint64_t _592_t3;
+    int64_t _592_$retval;
+    _592_t0 = 134;
+    _593_x = (struct struct0) {.tag=0, ._0=_592_t0};
+    _592_t3 = 0;
+    $tag_check(_592_t3, 0, "tests/integration/default/default-sum-init.orng:2:8:\nfn main() -> Int {\n      ^");
+    _592_$retval = _593_x._0;
+    return _592_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_577_main());
+  printf("%ld",_592_main());
   return 0;
 }

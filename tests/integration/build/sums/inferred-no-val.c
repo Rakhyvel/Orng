@@ -19,38 +19,38 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1563_main(void);
+int64_t _1578_main(void);
 
 
 /* Function definitions */
-int64_t _1563_main(void){
-    int64_t _1563_t0;
-    struct struct0 _1564_x;
-    uint64_t _1563_t4;
-    int64_t _1563_t5;
-    uint8_t _1563_t7;
-    int64_t _1563_$retval;
-    _1563_t0 = 0;
-    _1564_x = (struct struct0) {.tag=0, ._0=_1563_t0};
-    _1563_t4 = 0;
-    _1563_t5 = 0;
-    $tag_check(_1563_t4, 0, "tests/integration/sums/inferred-no-val.orng:3:10:\n    let x: (a: Int | b: Int) = .a\n        ^");
-    _1563_t7 = _1564_x._0==_1563_t5;
-    if (_1563_t7) {
-        goto BB1795;
+int64_t _1578_main(void){
+    int64_t _1578_t0;
+    struct struct0 _1579_x;
+    uint64_t _1578_t4;
+    int64_t _1578_t5;
+    uint8_t _1578_t7;
+    int64_t _1578_$retval;
+    _1578_t0 = 0;
+    _1579_x = (struct struct0) {.tag=0, ._0=_1578_t0};
+    _1578_t4 = 0;
+    _1578_t5 = 0;
+    $tag_check(_1578_t4, 0, "tests/integration/sums/inferred-no-val.orng:3:10:\n    let x: (a: Int | b: Int) = .a\n        ^");
+    _1578_t7 = _1579_x._0==_1578_t5;
+    if (_1578_t7) {
+        goto BB1811;
     } else {
-        goto BB1799;
+        goto BB1815;
     }
-BB1795:
-    _1563_$retval = 280;
-    return _1563_$retval;
-BB1799:
+BB1811:
+    _1578_$retval = 280;
+    return _1578_$retval;
+BB1815:
     $lines[$line_idx++] = "tests/integration/sums/inferred-no-val.orng:7:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
 }
 
 
 int main(void) {
-  printf("%ld",_1563_main());
+  printf("%ld",_1578_main());
   return 0;
 }

@@ -7,18 +7,18 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _408_main(void);
+int64_t _423_main(void);
 
 
 /* Function definitions */
-int64_t _408_main(void){
-    int64_t _408_$retval;
-    _408_$retval = 260;
-    return _408_$retval;
+int64_t _423_main(void){
+    int64_t _423_$retval;
+    _423_$retval = 260;
+    return _423_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_408_main());
+  printf("%ld",_423_main());
   return 0;
 }

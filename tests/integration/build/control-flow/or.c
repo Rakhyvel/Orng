@@ -7,20 +7,20 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-uint8_t _491_main(void);
+uint8_t _506_main(void);
 
 
 /* Function definitions */
-uint8_t _491_main(void){
-    uint8_t _491_$retval;
-    goto BB566;
-BB566:
-    _491_$retval = 1;
-    return _491_$retval;
+uint8_t _506_main(void){
+    uint8_t _506_$retval;
+    goto BB582;
+BB582:
+    _506_$retval = 1;
+    return _506_$retval;
 }
 
 
 int main(void) {
-  printf("%d",_491_main());
+  printf("%d",_506_main());
   return 0;
 }
