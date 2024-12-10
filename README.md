@@ -18,9 +18,9 @@ Orng is a versatile systems programming language I've been developing that gives
 ## 🚀 Quick Start
 ```sh
 # Orng compiler requires Zig 0.13.0 at the moment
-git clone https://github.com/Rakhyvel/Orng.git
+git clone --recurse-submodules https://github.com/Rakhyvel/Orng.git
 cd Orng
-zig build
+zig build orng
 ```
 
 A fancy hello-world example:
@@ -36,7 +36,7 @@ fn greet(recipient: String, out: $T impl Writer) -> T::Error!() {
 
 Run it with:
 ```sh
-orng run hello.orng
+orng run
 ```
 
 ## ✨ Standout Features
@@ -107,10 +107,9 @@ Algebraic Data Types (ADTs) allow you to define types that can be one of several
 
 ```rs
 const Shape = (
-    circle: (radius: Float) | 
-    rectangle: (width: Float, height: Float) | 
-    triangle: (base: Float, height: Float)
-)
+    | circle: (radius: Float)
+    | rectangle: (width: Float, height: Float)
+    | triangle: (base: Float, height: Float))
 
 fn calculate_area(shape: Shape) -> Float {
     match shape {
@@ -131,9 +130,9 @@ const Person = (name: String, age: Int, job: String)
 
 fn classify_person(person: Person) -> String {
    match person {
-       (name, age, "Teacher") when age > 50 => "Veteran Educator"
+       (name, age, "Teacher") if age > 50 => "Veteran Educator"
        (name, _,   "Doctor")                => "Medical professional"
-       (_,    age, _)         when age < 18 => "Baby 👶"
+       (_,    age, _)         if age < 18 => "Baby 👶"
    }
 }
 ```
