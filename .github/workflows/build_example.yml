@@ -1,4 +1,4 @@
-name: Integration & negative tests
+name: Build example project
 
 on:
   push:
@@ -26,8 +26,12 @@ jobs:
       with:
         zig-version: 0.13.0
     
-    - name: Build project
-      run: python tests/test.py all --no-coverage
+    - name: Build example project
+      run: |
+        #!/bin/bash
+        zig build orng
+        cd examples
+        ../zig-out/bin/orng build
 
     # Optional: Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
