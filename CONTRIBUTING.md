@@ -18,6 +18,7 @@ To get your contributions merged efficiently:
 3. Follow the stlye guide (see below)
 4. When you are finished, ensure the compiler builds, and all integration and negative tests pass.
 ```bash
+# To run all tests, run the following command
 ./tests/test.py all
 ```
 5. Submit your pull request:
@@ -28,6 +29,7 @@ To get your contributions merged efficiently:
 ### Naming
     - Use `Snake_Case` for types, and `snake_case` for everything else (functions, variables, constants, fields).
     - Imported modules should 
+    
 * Run `zig fmt` before committing (zls in VSCode makes this easy!)
 
 ## Communication
