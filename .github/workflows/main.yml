@@ -1,4 +1,4 @@
-name: zig fmt
+name: zig fmt check
 
 on:
   push:
