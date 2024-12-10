@@ -85,7 +85,10 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         error.FileNotFound => {
             // TODO: This should be printed out in bold and red
             try std.io.getStdOut().writer().print("error: no `build.orng` file found in current working directory\n", .{});
-      
+            return error.BuildOrngError;
+        },
+        else => return err,
+    };
 
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
