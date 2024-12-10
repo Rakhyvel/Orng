@@ -32,7 +32,10 @@ const command_table = [_]Command_Entry{
     Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
     Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
+    Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init },
 };
+
+// Right now, I'll see if it's possible to store the main.orng and build.orng functions as text and write them to a file - dellzer 12/8/24
 
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
@@ -144,6 +147,54 @@ fn help(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.All
         try std.io.getStdOut().writer().print("{s}\n", .{command_entry.help});
     }
     try std.io.getStdOut().writer().print("\n", .{});
+}
+
+fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
+    _ = args;
+    // not experienced in zig enough to try this but i feel like you could initalize
+    // both at the same time and in the switch(i) check if both files exist and only if
+    // both conditions are false, continue with creating the rest of the files
+    var main_orng = std.fs.cwd().createFile("main.orng", .{ .exclusive = true}) catch |i| 
+    switch (i) {
+        i.PathAlreadyExists => {
+            std.log.err("Main.orng already present.", .{});
+            return error.BuildOrngError;
+        }, else => {
+            return i;
+        }
+    } // aaaand now VS Code thinks this is an invalid semicolon. probably should just ignore :-)
+
+    const main_writer = try main_orng.writer();
+    const main_content = 
+        \\    import std::debug
+        \\
+        \\    fn main() -> () {
+        \\    debug::println("Hello, World!")
+        \\    }
+        \\
+    ;
+
+    try main_writer.writeAll(main_content); // writing content to main.orng
+    
+    var build_orng = std.fs.cwd().createFile("build.orng", .{ .exclusive = true}) catch |j| 
+        switch (j) {
+        j.PathAlreadyExists => {
+            std.log.err("build.orng already present.", .{});
+            return error.BuildOrngError;
+        }, else => {
+            return j;
+        }
+    }
+
+    const build_writer = try build_orng.writer();
+    const build_content =
+        \\    fn build() -> Package {
+        \\    Package::executable(.root="main.orng")
+        \\    }
+    ;
+
+    try build_writer.writeAll(build_content); // writing content to build.orng
+    // i get an error telling me that a semicolon is expected? not sure why
 }
 
 /// Compiles a module from a file
