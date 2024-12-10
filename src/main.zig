@@ -81,7 +81,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     // Get the path
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
     // const path: []u8 = try std.fs.realpath(args.next().?, &path_buffer);
-    const path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| {switch (err) {
+    const path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| switch (err) {
         error.FileNotFound => {
             // TODO: This should be printed out in bold and red
             try std.io.getStdOut().writer().print("error: no `build.orng` file found in current working directory\n", .{});
