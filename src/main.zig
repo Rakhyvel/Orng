@@ -32,7 +32,10 @@ const command_table = [_]Command_Entry{
     Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
     Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
+    Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init },
 };
+
+// Right now, I'll see if it's possible to store the main.orng and build.orng functions as text and write them to a file - dellzer 12/8/24
 
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
@@ -144,6 +147,51 @@ fn help(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.All
         try std.io.getStdOut().writer().print("{s}\n", .{command_entry.help});
     }
     try std.io.getStdOut().writer().print("\n", .{});
+}
+
+pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) !void {
+    _ = args;
+    _ = name;
+    _ = allocator; // defining these as _ to silence the compiler
+
+    const main_path = "main.orng";
+    if (std.fs.cwd().openFile(main_path, .{})) |_| {
+        std.log.err("the file `{s}` already exists", .{main_path});
+        return error.BuildOrngError;
+    } else |err| switch (err) {
+        error.FileNotFound => {},
+        else => return err,
+    }
+
+    const build_path = "build.orng";
+    if (std.fs.cwd().openFile(build_path, .{})) |_| {
+        std.log.err("the file `{s}` already exists", .{build_path});
+        return error.BuildOrngError;
+    } else |err| switch (err) {
+        error.FileNotFound => {},
+        else => return err,
+    }
+    var main_orng = try std.fs.cwd().createFile(main_path, .{});
+    defer main_orng.close();
+
+    const main_content =
+        \\import std::debug
+        \\
+        \\fn main() -> () {
+        \\    debug::println("Hello, World!")
+        \\}
+    ;
+    try main_orng.writer().writeAll(main_content);
+
+    var build_orng = try std.fs.cwd().createFile(build_path, .{});
+    defer build_orng.close();
+
+    const build_content =
+        \\fn build() -> Package {
+        \\    Package::executable(.root="main.orng")
+        \\}
+    ;
+    try build_orng.writer().writeAll(build_content);
 }
 
 /// Compiles a module from a file
