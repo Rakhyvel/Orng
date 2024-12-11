@@ -150,30 +150,31 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
     _ = name;
     _ = allocator; // defining these as _ to silence the compiler
 
-    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    const main_path = std.fs.cwd().realpath("main.orng", &path_buffer) catch |err| switch (err) {
-        error.PathAlreadyExists => {
-            std.log.err("main.orng already present.", .{});
-            return error.BuildOrngError;
-        },
+    const main_path = "main.orng";
+    if (std.fs.cwd().openFile(main_path, .{})) |_| {
+        std.log.err("the file `{s}` already exists", .{main_path});
+        return error.BuildOrngError;
+    } else |err| switch (err) {
+        error.FileNotFound => {},
         else => return err,
-    };
+    }
 
-    const build_path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| switch (err) {
-        error.PathAlreadyExists => {
-            std.log.err("build.orng already present.", .{});
-            return error.BuildOrngError;
-        },
+    const build_path = "build.orng";
+    if (std.fs.cwd().openFile(build_path, .{})) |_| {
+        std.log.err("the file `{s}` already exists", .{build_path});
+        return error.BuildOrngError;
+    } else |err| switch (err) {
+        error.FileNotFound => {},
         else => return err,
-    };
-
+    }
     var main_orng = try std.fs.cwd().createFile(main_path, .{});
     defer main_orng.close();
 
     const main_content =
-        \\import std::debug;
-        \\fn main() void {
-        \\    debug::println("Hello, World!");
+        \\import std::debug
+        \\
+        \\fn main() -> () {
+        \\    debug::println("Hello, World!")
         \\}
     ;
     try main_orng.writer().writeAll(main_content);
@@ -182,8 +183,8 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
     defer build_orng.close();
 
     const build_content =
-        \\fn build() Package {
-        \\    Package::executable(.root="main.orng");\\
+        \\fn build() -> Package {
+        \\    Package::executable(.root="main.orng")
         \\}
     ;
     try build_orng.writer().writeAll(build_content);
