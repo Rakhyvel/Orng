@@ -359,6 +359,7 @@ fn create_prelude() !void {
         \\impl for Package {
         \\  fn executable(root: String) -> Self { (root, .executable) }
         \\  fn static_library(root: String) -> Self { (root, .static_library) }
+        \\  fn find(name: String) -> Self { @find_package(name) }
         \\}
         \\
     ;
