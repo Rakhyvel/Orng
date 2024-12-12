@@ -221,21 +221,30 @@ fn compile_module(
 
     const module = module_.Module.compile(contents, in_name, entry_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
         switch (err) {
+            // Always print these errors for fuzz testing
             error.LexerError,
             error.ParseError,
             => {
                 try errors.print_errors();
                 return err;
             },
+
+            // Only print these errors if NOT fuzz testing
             error.SymbolError,
             error.TypeError,
+            error.IRError,
             => if (!fuzz_tokens) {
                 try errors.print_errors();
                 return err;
             } else {
                 return err;
             },
-            else => return err,
+
+            // Unknown error
+            else => {
+                try errors.print_errors();
+                return err;
+            },
         }
     };
     return module;

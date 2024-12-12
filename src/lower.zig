@@ -773,16 +773,18 @@ fn coalesce_op(
 
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
-    const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
 
     const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
     cfg.append_instruction(ir_.IR.init_get_tag(condition, lhs, ast.token().span, allocator));
     cfg.append_instruction(ir_.IR.init_branch(condition, zero_label, ast.token().span, allocator));
 
     // tag was an error/none, store rhs in temp
-    const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
-    cfg.append_instruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
-    cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
+    const maybe_rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator));
+    if (maybe_rhs) |rhs| {
+        const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
+        cfg.append_instruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
+        cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
+    }
 
     // tag was `.ok` or `.some`, store lhs in temp
     cfg.append_instruction(zero_label);

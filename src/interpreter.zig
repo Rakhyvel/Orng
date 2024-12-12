@@ -97,10 +97,12 @@ pub const Context = struct {
                     // If this is triggered for a temporary or a constant, you didn't offset it correctly
                     if (lval.symbver.def != null) {
                         // symbver def is real (Good fortune!!)
-                        return self.panic(lval.symbver.def.?.span, "interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                        self.debug_call_stack.append(lval.symbver.def.?.span) catch unreachable;
+                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                     } else {
                         // symbver def is null, use symbol span instead (bad fortune!! curse on family)
-                        return self.panic(lval.symbver.symbol.span, "interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                        self.debug_call_stack.append(lval.symbver.symbol.span) catch unreachable;
+                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                     }
                 } else {
                     // std.debug.print("{s}\n", .{lval.symbver.symbol.name});
@@ -315,7 +317,7 @@ pub const Context = struct {
 
     fn curr_module(self: *Context) error{InterpreterPanic}!*module_.Module {
         return self.modules.get(self.instruction_pointer.module_uid) orelse
-            self.panic(null, "interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
+            self.panic("interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
     }
 
     fn curr_instruction(self: *Context) error{InterpreterPanic}!*ir_.IR {
@@ -334,7 +336,8 @@ pub const Context = struct {
             // std.debug.print("\n\n\n\n{}=>\n", .{ir});
             const time_now = std.time.milliTimestamp();
             if (time_now - self.start_time > timeout_ms) {
-                return self.panic(null, "interpreter error: compile-time interpreter timeout\n", .{});
+                self.debug_call_stack.append(ir.span) catch unreachable;
+                return self.panic("interpreter error: compile-time interpreter timeout\n", .{});
             }
             try self.execute_instruction(ir);
         }
@@ -474,7 +477,8 @@ pub const Context = struct {
             .div_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 if (data.src2 == 0) {
-                    return self.panic(ir.span, "interpreter error: division by zero\n", .{});
+                    self.debug_call_stack.append(ir.span) catch unreachable;
+                    return self.panic("interpreter error: division by zero\n", .{});
                 }
                 const val = @divTrunc(data.src1, data.src2);
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division result", ir.span);
@@ -525,6 +529,25 @@ pub const Context = struct {
                 // std.debug.print("symbol_int: {}\n", .{symbol_int});
                 const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
 
+                // Intercept method calls to builtin methods
+                if (symbol.decl != null and
+                    symbol.decl.?.* == .method_decl and
+                    symbol.decl.?.method_decl.impl != null and
+                    symbol.decl.?.method_decl.impl.?.impl._type.types_match(primitives_.package_type))
+                {
+                    const method_name = symbol.name;
+                    if (std.mem.eql(u8, method_name, "find")) {
+                        var i: i64 = 0;
+                        while (i >= 0) : (i -= 1) {
+                            const arg = ir.data.lval_list.items[@as(usize, @intCast(i))];
+                            const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, std.heap.page_allocator);
+                            std.debug.print("search for package: '{s}'\n", .{string.string.data});
+                            // search for the package, run `build.orng` on it, extract the Package, and place it in the _heap_!
+                        }
+                        return;
+                    }
+                }
+
                 // Save old stack pointer
                 const old_sp = self.stack_pointer;
                 self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
@@ -563,18 +586,15 @@ pub const Context = struct {
                 _ = self.debug_call_stack.pop();
             },
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
-                return self.panic(ir.span, "interpreter error: reached unreachable code\n", .{});
+                return self.panic("interpreter error: reached unreachable code\n", .{});
             },
             else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
         }
     }
 
     /// Signals an interpreter panic, printing an error message and call stack information.
-    fn panic(self: *Context, span: ?span_.Span, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
+    fn panic(self: *Context, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
         std.io.getStdErr().writer().print(msg, args) catch return error.InterpreterPanic;
-        if (span != null) {
-            self.debug_call_stack.append(span.?) catch unreachable;
-        }
 
         var i = self.debug_call_stack.items.len - 1;
         while (true) {
@@ -595,7 +615,8 @@ pub const Context = struct {
     fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
         const bounds = primitives_.bounds_from_ast(_type) orelse return;
         if (val < bounds.lower or val > bounds.upper) {
-            return self.panic(span, "interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
+            self.debug_call_stack.append(span) catch unreachable;
+            return self.panic("interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
         }
     }
 

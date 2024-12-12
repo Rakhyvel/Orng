@@ -1453,6 +1453,7 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
+                // TODO: Clone the attributes, too
                 return create_sum_type(
                     self.token(),
                     cloned_terms,
@@ -1465,6 +1466,7 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
+                // TODO: Clone the attributes, too
                 return create_product(
                     self.token(),
                     cloned_terms,
@@ -1969,6 +1971,8 @@ pub const AST = union(enum) {
         allocator: std.mem.Allocator,
     ) *AST {
         switch (trait_type.*) {
+            // TODO: Do the other types too (don't let this PR without it!)
+            .anyptr_type, .dyn_type => return trait_type,
             .identifier => if (std.mem.eql(u8, trait_type.token().data, "Self")) {
                 return for_type;
             } else {
@@ -1978,9 +1982,23 @@ pub const AST = union(enum) {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
                 return create_addr_of(trait_type.token(), _expr, trait_type.mut(), allocator);
             },
+            .annotation => {
+                const _type = convert_self_type(trait_type.annotation.type, for_type, allocator);
+                return create_annotation(trait_type.token(), trait_type.annotation.pattern, _type, trait_type.annotation.predicate, trait_type.annotation.init, allocator);
+            },
             .unit_type => return trait_type,
-            // TODO: Shouldn't this be full?
-            else => unreachable,
+            .sum_type => {
+                var new_children = std.ArrayList(*AST).init(allocator);
+                for (trait_type.children().items) |item| {
+                    const new_type = item.convert_self_type(for_type, allocator);
+                    new_children.append(new_type) catch unreachable;
+                }
+                var retval = create_sum_type(trait_type.token(), new_children, allocator);
+                retval.sum_type.from = trait_type.sum_type.from;
+                // NOTE: Do NOT copy over the `all_unit` type, as Self could be unit. Leave it null to be re-evaluated.
+                return retval;
+            },
+            else => std.debug.panic("compiler error: convert_self_type doesn't support trait type AST `{s}`", .{@tagName(trait_type.*)}),
         }
     }
 

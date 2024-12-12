@@ -1,8 +1,19 @@
 const std = @import("std");
 const String = @import("zig-string/zig-string.zig").String;
 
-pub const c_format = "\"{s}:{}:{}:\\n{s}\\n{s}^\"";
-pub const interpreter_format = "{s}:{}:{}:\n{s}\n{s}^\n";
+const Span_Format = struct {
+    fmt_str: []const u8,
+    sanitize: bool,
+};
+pub const c_format: Span_Format = .{
+    .fmt_str = "\"{s}:{}:{}:\\n{s}\\n{s}^\"",
+    .sanitize = true,
+};
+
+pub const interpreter_format: Span_Format = .{
+    .fmt_str = "{s}:{}:{}:\n{s}\n{s}^\n",
+    .sanitize = false,
+};
 
 pub const phony_span = Span{ .filename = "", .line_text = "", .line_number = 0, .col = 0 };
 
@@ -13,18 +24,22 @@ pub const Span = struct {
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: Span, writer: anytype, comptime span_format: []const u8) !void { // TODO: Uninfer error
+    pub fn print_debug_line(self: Span, writer: anytype, comptime span_format: Span_Format) !void { // TODO: Uninfer error
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
 
         for (1..self.col - 1) |_| {
             spaces.insert(" ", spaces.size) catch unreachable;
         }
-        try writer.print(span_format, .{
+        const text_to_write = if (span_format.sanitize)
+            sanitize_string(self.line_text, std.heap.page_allocator)
+        else
+            self.line_text;
+        try writer.print(span_format.fmt_str, .{
             self.filename,
             self.line_number,
             self.col,
-            sanitize_string(self.line_text, std.heap.page_allocator),
+            text_to_write,
             spaces.str(),
         });
     }
