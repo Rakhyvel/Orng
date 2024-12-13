@@ -23,6 +23,11 @@ const uninit_byte: u8 = 0x55;
 /// anywhere, by simply jumping to here.
 const halt_trap_instruction: offsets_.Instruction_Idx = 0xFFFF_FFF0;
 
+/// When true, interpreter runs each instruction at a time, printing the stack and registers for debugging purposes.
+/// I _think_ that VSCode language servers consume a JSON file representing the state of the debugger, so this could be
+/// useful.
+const debugger: bool = false;
+
 const Instruction_Pointer = struct {
     /// The UID of the module currently being executed
     module_uid: module_.Module_UID,
@@ -30,7 +35,6 @@ const Instruction_Pointer = struct {
     inst_idx: offsets_.Instruction_Idx,
 };
 
-// TODO: make a debugger, that lets you step to the next instruction etc?
 pub const Context = struct {
     stack_pointer: i64,
     base_pointer: i64,
@@ -195,7 +199,9 @@ pub const Context = struct {
 
     /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
     fn move(self: *Context, dest: i64, src: i64, len: i64) void {
-        // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, len });
+        if (debugger) {
+            std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, len });
+        }
         std.debug.assert(dest >= 0);
         std.debug.assert(src >= 0);
         if (len == 0) {
@@ -350,13 +356,19 @@ pub const Context = struct {
         // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
-            // self.print_registers();
-            // self.print_stack();
-            // std.debug.print("\n\n\n\n{}=>\n", .{ir});
-            // self.print_debug_stack();
+            if (debugger) {
+                std.debug.print("\n", .{});
+                self.print_registers();
+                self.print_stack();
+                std.debug.print("\n\n\n\n{}=> ", .{ir});
+            }
             const time_now = std.time.milliTimestamp();
-            if (time_now - self.start_time > timeout_ms) {
+            if (!debugger and time_now - self.start_time > timeout_ms) {
                 return self.panic("interpreter error: compile-time interpreter timeout\n", .{});
+            }
+            if (debugger) {
+                var in_buffer: [256]u8 = undefined;
+                _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
             }
             try self.execute_instruction(ir);
         }
