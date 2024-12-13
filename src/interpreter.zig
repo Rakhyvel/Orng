@@ -88,7 +88,7 @@ pub const Context = struct {
     }
 
     /// Gets the effective address of an lvalue in the interpreter's memory.
-    fn effective_address(self: *Context, lval: *lval_.L_Value) error{InterpreterPanic}!i64 {
+    fn effective_address(self: *Context, lval: *lval_.L_Value) error{CompileError}!i64 {
         switch (lval.*) {
             .symbver => {
                 if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
@@ -340,19 +340,19 @@ pub const Context = struct {
         };
     }
 
-    fn curr_module(self: *Context) error{InterpreterPanic}!*module_.Module {
+    fn curr_module(self: *Context) error{CompileError}!*module_.Module {
         return self.modules.get(self.instruction_pointer.module_uid) orelse
             self.panic("interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
     }
 
-    fn curr_instruction(self: *Context) error{InterpreterPanic}!*ir_.IR {
+    fn curr_instruction(self: *Context) error{CompileError}!*ir_.IR {
         const module = try self.curr_module();
         return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
     }
 
     /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
     /// the maximum allowed instructions.
-    pub fn interpret(self: *Context) error{InterpreterPanic}!void {
+    pub fn interpret(self: *Context) error{CompileError}!void {
         // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
@@ -375,7 +375,7 @@ pub const Context = struct {
     }
 
     /// Executes an instruction within the interpreter context.
-    inline fn execute_instruction(self: *Context, ir: *ir_.IR) error{InterpreterPanic}!void { // This doesn't work if it's not inlined, lol!
+    inline fn execute_instruction(self: *Context, ir: *ir_.IR) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
             // Invalid instructions
             .load_extern,
@@ -628,13 +628,13 @@ pub const Context = struct {
     }
 
     /// Signals an interpreter panic, printing an error message and call stack information.
-    fn panic(self: *Context, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
-        std.io.getStdErr().writer().print(msg, args) catch return error.InterpreterPanic;
+    fn panic(self: *Context, comptime msg: []const u8, args: anytype) error{CompileError} {
+        std.io.getStdErr().writer().print(msg, args) catch return error.CompileError;
 
         var i = self.debug_call_stack.items.len - 1;
         while (true) {
             const stack_span = self.debug_call_stack.items[i];
-            stack_span.print_debug_line(std.io.getStdErr().writer(), span_.interpreter_format) catch return error.InterpreterPanic;
+            stack_span.print_debug_line(std.io.getStdErr().writer(), span_.interpreter_format) catch return error.CompileError;
 
             if (i == 0) {
                 break;
@@ -642,12 +642,12 @@ pub const Context = struct {
                 i -= 1;
             }
         }
-        return error.InterpreterPanic;
+        return error.CompileError;
     }
 
     /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
     /// Adds an error if the value is out of bounds.
-    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
+    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{CompileError}!void {
         const bounds = primitives_.bounds_from_ast(_type) orelse return;
         if (val < bounds.lower or val > bounds.upper) {
             self.debug_call_stack.append(span) catch unreachable;

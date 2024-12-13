@@ -6,7 +6,7 @@ const errs_ = @import("errors.zig");
 const primitives_ = @import("primitives.zig");
 const token_ = @import("token.zig");
 
-const Expand_Error = error{TypeError};
+const Expand_Error = error{CompileError};
 
 pub fn expand_from_list(
     asts: std.ArrayList(*ast_.AST),
@@ -108,7 +108,7 @@ fn expand(maybe_ast: ?*ast_.AST, errors: *errs_.Errors, allocator: std.mem.Alloc
                     errors.add_error(errs_.Error{
                         .duplicate = .{ .span = term.token().span, .identifier = name, .first = _res.value.token().span },
                     });
-                    return error.TypeError;
+                    return error.CompileError;
                 }
             }
 
@@ -228,6 +228,6 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             .span = ast.token().span,
             .msg = "invalid sum expression, must be annotation or identifier",
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }

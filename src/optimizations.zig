@@ -12,7 +12,7 @@ const symbol_ = @import("symbol.zig");
 
 const debug = false;
 
-pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ DivideByZero, Overflow }!void {
+pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!void {
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -29,7 +29,7 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
     log_optimization_pass("final", cfg);
 }
 
-fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{ Overflow, DivideByZero }!bool {
+fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!bool {
     var retval = false;
 
     cfg.calculate_versions();
@@ -69,9 +69,9 @@ fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator
     return retval;
 }
 
-/// May throw `error.Overflow` for integer arithmetic overflow, or `error.DivideByZero` when it can be
+/// May throw `error.CompileError` for integer arithmetic overflow, or `error.CompileError` when it can be
 /// proven that code would divide by zero.
-fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) error{ Overflow, DivideByZero }!bool {
+fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *errs_.Errors) error{CompileError}!bool {
     var retval = false;
 
     switch (ir.kind) {
@@ -434,7 +434,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
     return retval;
 }
 
-fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Errors) error{Overflow}!bool {
+fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Errors) error{CompileError}!bool {
     if (src1_def != null and src1_def.?.kind == kind) {
         if (kind == .load_int) {
             try assert_fits(src1_def.?.data.int, ir.dest.?.get_expanded_type(), ir.span, errors);
@@ -477,7 +477,7 @@ fn copy_of_prop(ir: *ir_.IR, src: *?*lval_.L_Value, src_def: ?*ir_.IR) bool {
 
 /// Checks if a value fits within the bounds of a given type and reports an overflow error if it does not, modifying the
 /// error list.
-fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Errors) error{Overflow}!void {
+fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Errors) error{CompileError}!void {
     const bounds = primitives_.bounds_from_ast(_type);
     if (bounds != null and (val < bounds.?.lower or val > bounds.?.upper)) {
         errors.add_error(errs_.Error{ .integer_out_of_bounds = .{
@@ -485,12 +485,12 @@ fn assert_fits(val: i128, _type: *ast_.AST, span: span_.Span, errors: *errs_.Err
             .expected = _type,
             .value = val,
         } });
-        return error.Overflow;
+        return error.CompileError;
     }
 }
 
 /// Converts a non-load IR to a load IR, with data. Performs bounds checking for load_int destination IR Kinds.
-fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data, errors: *errs_.Errors) error{Overflow}!void {
+fn convert_to_load(ir: *ir_.IR, kind: ir_.Kind, data: ir_.Data, errors: *errs_.Errors) error{CompileError}!void {
     if (kind == .load_int) {
         try assert_fits(data.int, ir.dest.?.get_expanded_type(), ir.span, errors);
     }
@@ -509,20 +509,20 @@ fn convert_to_unop(ir: *ir_.IR, src1: *lval_.L_Value, kind: ir_.Kind) void {
 }
 
 /// Checks if a div_int, div_float, or mod IR divides by zero
-fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{DivideByZero}!void {
+fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{CompileError}!void {
     if (ir != null) {
         if (ir.?.kind == .load_int and ir.?.data.int == 0) {
             errors.add_error(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0",
             } });
-            return error.DivideByZero;
+            return error.CompileError;
         } else if (ir.?.kind == .load_float and ir.?.data.float == 0.0) {
             errors.add_error(errs_.Error{ .basic = .{
                 .span = ir.?.span,
                 .msg = "divide by 0.0",
             } });
-            return error.DivideByZero;
+            return error.CompileError;
         }
     }
 }

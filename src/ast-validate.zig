@@ -11,7 +11,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-const Validate_Error_Enum = error{TypeError};
+const Validate_Error_Enum = error{CompileError};
 
 const Validate_Args_Thing = enum {
     function,
@@ -82,7 +82,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
                     } });
                     symbol.validation_state = .invalid;
                     symbol.init_validation_state = .invalid;
-                    return error.TypeError;
+                    return error.CompileError;
                 },
                 // Allow these inits to be non-comptime, since they're interpreted at comptime anyway
                 .@"fn", .@"comptime", .@"const" => symbol.init.?.common().ok_for_comptime = true,
@@ -101,13 +101,13 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, errors: *errs_.Errors, allocator
         } else if (symbol.init != null and symbol.init.?.* == .poison) {
             symbol.validation_state = .invalid;
             symbol.init_validation_state = .invalid;
-            return error.TypeError;
+            return error.CompileError;
             // unreachable;
         }
     } else {
         symbol.validation_state = .invalid;
         symbol.init_validation_state = .invalid;
-        return error.TypeError;
+        return error.CompileError;
     }
 
     // Symbol's name must be capitalized iff its type is Type
@@ -146,7 +146,7 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
                 .identifier = decl.method_decl.name.token().data,
                 .first = other.token().span,
             } });
-            return error.TypeError;
+            return error.CompileError;
         } else {
             names.put(decl.method_decl.name.token().data, decl) catch unreachable;
         }
@@ -163,7 +163,7 @@ fn validate_trait(trait: *symbol_.Symbol, errors: *errs_.Errors, allocator: std.
                     .method_name = decl.method_decl.name.token().data,
                     .trait_name = trait.name,
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
             trait.decl.?.trait.num_virtual_methods += 1;
         }
@@ -177,7 +177,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             .span = impl.impl._type.token().span,
             .msg = "cannot implement method for address types",
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
 
     impl.impl._type = validate_AST(impl.impl._type, primitives_.type_type, errors, allocator);
@@ -195,7 +195,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             .name = if (!impl.impl.impls_anon_trait) trait_symbol.name else null,
             ._type = impl.impl._type,
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
 
     // Construct a map of all trait decls
@@ -217,7 +217,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                 .method_name = def.method_decl.name.token().data,
                 .trait_name = trait_ast.token().data,
             } });
-            return error.TypeError;
+            return error.CompileError;
         }
 
         // Check that receivers match
@@ -229,7 +229,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                 .trait_receiver = if (trait_decl.?.method_decl.receiver != null) trait_decl.?.method_decl.receiver.?.receiver.kind else null,
                 .impl_receiver = if (def.method_decl.receiver != null) def.method_decl.receiver.?.receiver.kind else null,
             } });
-            return error.TypeError;
+            return error.CompileError;
         }
 
         // Check that paramter arity matches
@@ -241,7 +241,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                 .trait_arity = trait_decl.?.children().items.len + @intFromBool(trait_decl.?.method_decl.receiver != null),
                 .impl_arity = def.children().items.len + @intFromBool(def.method_decl.receiver != null),
             } });
-            return error.TypeError;
+            return error.CompileError;
         }
 
         // Check that parameters match
@@ -257,7 +257,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                     .trait_type = trait_type,
                     .impl_type = impl_type,
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
         }
 
@@ -271,7 +271,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                 .trait_type = trait_method_ret_type,
                 .impl_type = def.method_decl.ret_type,
             } });
-            return error.TypeError;
+            return error.CompileError;
         }
 
         // Copy over the c_type from trait method decl
@@ -286,7 +286,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
                 .trait_method_is_virtual = trait_decl.?.method_decl.is_virtual,
                 .impl_method_is_virtual = def.method_decl.is_virtual,
             } });
-            return error.TypeError;
+            return error.CompileError;
         }
 
         if (def.method_decl.is_virtual) {
@@ -309,7 +309,7 @@ fn validate_impl(impl: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
         errant = true;
     }
     if (errant) {
-        return error.TypeError;
+        return error.CompileError;
     }
 
     for (impl.impl.method_defs.items, 0..) |def, i| {
@@ -413,7 +413,7 @@ fn validate_AST_internal(
     expected: ?*ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ InterpreterPanic, TypeError, Overflow, DivideByZero, IRError, SymbolError }!*ast_.AST {
+) error{CompileError}!*ast_.AST {
     // TODO: Ugh this function is too long
     // std.debug.print("{}: {?}\n", .{ ast, expected });
     switch (ast.*) {
@@ -454,7 +454,7 @@ fn validate_AST_internal(
             // look up symbol, that's the type
             const symbol = ast.symbol().?;
             if (symbol.validation_state == .invalid) {
-                return error.TypeError;
+                return error.CompileError;
             }
             try validate_symbol(symbol, errors, allocator);
             try type_check(ast.token().span, symbol._type, expected, errors);
@@ -708,7 +708,7 @@ fn validate_AST_internal(
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (expanded_lhs_type.* != .product) {
                 errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
-                return error.TypeError;
+                return error.CompileError;
             } else if (expanded_lhs_type.* == .product and
                 !expanded_lhs_type.product.was_slice and
                 !expanded_lhs_type.product.is_homotypical())
@@ -768,7 +768,7 @@ fn validate_AST_internal(
                         ._type = stripped_lhs, // TODO: Strip away addr_of's
                     },
                 });
-                return error.TypeError;
+                return error.CompileError;
             }
             access_result = validate_AST(access_result.?, null, errors, allocator);
             try assert_none_poisoned(access_result);
@@ -813,7 +813,7 @@ fn validate_AST_internal(
                         ._type = true_lhs_type, // TODO: Strip away addr_of's
                     },
                 });
-                return error.TypeError;
+                return error.CompileError;
             }
             method_decl = validate_AST(method_decl.?, null, errors, allocator);
             try assert_none_poisoned(method_decl);
@@ -834,7 +834,7 @@ fn validate_AST_internal(
                             .method_receiver = receiver_kind.?,
                             .receiver_span = ast.lhs().token().span,
                         } });
-                        return error.TypeError;
+                        return error.CompileError;
                     }
                     ast.children().insert(0, ast.lhs()) catch unreachable; // prepend lhs to children as a receiver
                 } else {
@@ -877,7 +877,7 @@ fn validate_AST_internal(
                     .trait_name = ast.dyn_value.dyn_type.expr().symbol().?.name,
                     ._type = expr_type,
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
             ast.dyn_value.impl = impl.ast;
 
@@ -1066,14 +1066,14 @@ fn validate_AST_internal(
                     .span = ast.token().span,
                     .msg = "cannot take a sub-slice of something that is not a slice",
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
             return ast;
         },
         .annotation => {
             if (ast.annotation.pattern.* != .pattern_symbol and ast.annotation.pattern.* != .identifier) {
                 errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "identifier", .got = ast.annotation.pattern.token() } });
-                return error.TypeError;
+                return error.CompileError;
             }
             ast.annotation.type = validate_AST(ast.annotation.type, primitives_.type_type, errors, allocator);
             try assert_none_poisoned(.{ast.annotation.type});
@@ -1087,7 +1087,7 @@ fn validate_AST_internal(
         .sum_value => {
             if (ast.sum_value.base == null and expected == null) {
                 errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot infer the sum type" } });
-                return error.TypeError;
+                return error.CompileError;
             } else if (ast.sum_value.base == null) {
                 // Infer that the base type is `expected`
                 ast.sum_value.base = expected;
@@ -1101,7 +1101,7 @@ fn validate_AST_internal(
             const pos = expanded_base.get_pos(ast.token().data);
             if (pos == null and expanded_base.* == .sum_type) {
                 errors.add_error(errs_.Error{ .member_not_in = .{ .span = ast.token().span, .identifier = ast.token().data, .name = "sum", .group = expanded_base } });
-                return error.TypeError;
+                return error.CompileError;
             }
             ast.set_pos(expanded_base.get_pos(ast.token().data));
 
@@ -1325,7 +1325,7 @@ fn validate_AST_internal(
                         },
                     },
                 );
-                return error.TypeError;
+                return error.CompileError;
             }
             return ast;
         },
@@ -1355,7 +1355,7 @@ fn checked_types_match(A: *ast_.AST, B: *ast_.AST, errors: *errs_.Errors) Valida
 fn type_valid_check(span: span_.Span, _type: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!_type.valid_type()) {
         errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = _type } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
@@ -1375,7 +1375,7 @@ fn void_check(span: span_.Span, expected: ?*ast_.AST, errors: *errs_.Errors) Val
 fn middle_statement_check(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.valid_type()) {
         errors.add_error(errs_.Error{ .invalid_type = .{ .span = span, .got = got } });
-        return error.TypeError;
+        return error.CompileError;
     }
     if (!try checked_types_match(primitives_.unit_type, got, errors) and !try checked_types_match(got, primitives_.void_type, errors)) {
         return throw_unexpected_type(span, primitives_.unit_type, got, errors);
@@ -1401,7 +1401,7 @@ fn type_check_int(
                     .expected = expected.?,
                     .value = ast.int.data,
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
         } else {
             // This error is thrown because the `expanded_expected` is not an integer primitive type
@@ -1421,44 +1421,44 @@ fn type_check_float(ast: *ast_.AST, expected: ?*ast_.AST, errors: *errs_.Errors)
 fn type_check_eq(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_eq_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "equalable", .got = got } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
 fn type_check_ord(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_ord_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "orderable", .got = got } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
 fn type_check_arithmetic(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_num_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "arithmetic", .got = got } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
 fn type_check_integral(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!got.is_int_type()) {
         errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "integer", .got = got } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
 fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
-    return error.TypeError;
+    return error.CompileError;
 }
 
 fn throw_unexpected_void_type(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "comptime cannot be type `Void`" } });
-    return error.TypeError;
+    return error.CompileError;
 }
 
 fn throw_not_selectable(span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .basic = .{ .span = span, .msg = "left-hand-side of select is not selectable" } });
-    return error.TypeError;
+    return error.CompileError;
 }
 
 fn throw_wrong_from(
@@ -1474,7 +1474,7 @@ fn throw_wrong_from(
         .from = from_name,
         .got = got,
     } });
-    return error.TypeError;
+    return error.CompileError;
 }
 
 fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
@@ -1483,7 +1483,7 @@ fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
     if (T == *std.ArrayList(*ast_.AST)) {
         for (value.items) |ast| {
             if (ast.* == .poison) {
-                return error.TypeError;
+                return error.CompileError;
             }
         }
     } else switch (@typeInfo(T)) {
@@ -1492,8 +1492,8 @@ fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
                 try assert_none_poisoned(@field(value, f.name));
             }
         },
-        .Optional => if (value != null and value.?.* == .poison) return error.TypeError,
-        .Pointer => if (value.* == .poison) return error.TypeError,
+        .Optional => if (value != null and value.?.* == .poison) return error.CompileError,
+        .Pointer => if (value.* == .poison) return error.CompileError,
         else => {},
     }
 }
@@ -1551,7 +1551,7 @@ fn coalesce_operator(lhs_expanded_type: *ast_.AST, ast: *ast_.AST, span: span_.S
             .from = @tagName(expected_sum_from),
             .got = lhs_expanded_type,
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
@@ -1580,7 +1580,7 @@ pub fn default_args(
     if (try args_are_named(asts, errors) and expected.* != .unit_type) {
         return named_args(asts, expected, errors, allocator) catch |err| switch (err) {
             error.NoDefault => asts,
-            error.TypeError => error.TypeError,
+            error.CompileError => error.CompileError,
         };
     } else {
         return positional_args(asts, expected, allocator) catch |err| switch (err) {
@@ -1592,7 +1592,7 @@ pub fn default_args(
 /// Determines if there are named arguments in an argument list. If there are no arguments, there are
 /// no named arguments.
 ///
-/// Throws `error.TypeError` if there is a mix of positional and named arguments.
+/// Throws `error.CompileError` if there is a mix of positional and named arguments.
 fn args_are_named(
     asts: std.ArrayList(*ast_.AST),
     errors: *errs_.Errors,
@@ -1614,7 +1614,7 @@ fn args_are_named(
     if (has_named_arg and has_pos_arg) {
         const arg_span = asts.items[0].token().span;
         errors.add_error(errs_.Error{ .basic = .{ .span = arg_span, .msg = "mixed positional and named arguments are not allowed" } });
-        return error.TypeError;
+        return error.CompileError;
     } else {
         return has_named_arg;
     }
@@ -1683,7 +1683,7 @@ fn named_args(
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) error{ TypeError, NoDefault }!std.ArrayList(*ast_.AST) {
+) error{ CompileError, NoDefault }!std.ArrayList(*ast_.AST) {
     // FIXME: High cyclo
     std.debug.assert(asts.items.len > 0);
     // Maps assign.lhs name to assign.rhs
@@ -1693,7 +1693,7 @@ fn named_args(
     // Associate argument names with their values
     for (asts.items) |term| {
         put_assign(term, &arg_name_to_val_map, errors) catch |err| switch (err) {
-            error.TypeError => return error.NoDefault,
+            error.CompileError => return error.NoDefault,
             else => return err,
         };
     }
@@ -1772,7 +1772,7 @@ pub fn validate_args_arity(
             .takes_name = thing.takes_name(),
             .given_name = thing.given_name(),
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
@@ -1813,7 +1813,7 @@ fn remove_const_args(
 fn put_assign(ast: *ast_.AST, arg_map: *std.StringArrayHashMap(*ast_.AST), errors: *errs_.Errors) Validate_Error_Enum!void {
     if (ast.lhs().* != .sum_value) {
         errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "an inferred member", .got = ast.lhs().token() } });
-        return error.TypeError;
+        return error.CompileError;
     }
     try put_ast_map(ast.rhs(), ast.lhs().sum_value.get_name(), ast.token().span, arg_map, errors);
 }
@@ -1890,7 +1890,7 @@ fn validate_L_Value(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!v
 
         else => {
             errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not an l-value" } });
-            return error.TypeError;
+            return error.CompileError;
         },
     }
 }
@@ -1901,7 +1901,7 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             const symbol = ast.symbol().?;
             if (!std.mem.eql(u8, symbol.name, "_") and symbol.kind != .mut) {
                 errors.add_error(errs_.Error{ .modify_immutable = .{ .identifier = ast.token() } });
-                return error.TypeError;
+                return error.CompileError;
             }
         },
 
@@ -1932,7 +1932,7 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 fn assert_mutable_address(ast: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
     if (!ast.addr_of.mut) {
         errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "cannot modify non-mutable address" } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
@@ -1964,7 +1964,7 @@ fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors
         }
     } else {
         errors.add_error(errs_.Error{ .member_not_in = .{ .span = span, .identifier = field, .name = "tuple", .group = _type } });
-        return error.TypeError;
+        return error.CompileError;
     }
 }
 
@@ -2039,7 +2039,7 @@ fn exhaustive_check(
                 forgotten_sum_variants.append(_type.children().items[id]) catch unreachable;
             }
             errors.add_error(errs_.Error{ .non_exhaustive_sum = .{ .span = match_span, .forgotten = forgotten_sum_variants } });
-            return error.TypeError;
+            return error.CompileError;
         }
     }
 }
@@ -2075,7 +2075,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
                     return primitive_info.default_value.?;
                 } else {
                     errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
-                    return error.TypeError;
+                    return error.CompileError;
                 }
             } else {
                 return try generate_default(expanded_type, span, errors, allocator);
@@ -2083,7 +2083,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
         },
         .function => {
             errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
-            return error.TypeError;
+            return error.CompileError;
         },
         .dyn_type, .addr_of => return ast_.AST.create_int(_type.token(), 0, allocator),
         .unit_type => return ast_.AST.create_unit_value(_type.token(), allocator),

@@ -5,12 +5,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-const Parser_Error_Enum = error{
-    ParseError, // For general parsing errors. Error is logged in errors.zig.errors. Likely
-    NotCompileTimeKnown,
-    InvalidCharacter, // If parsing a float goes wrong. Likely
-    Overflow, // If parsing an integer goes wrong. Unlikely
-};
+const Parser_Error_Enum = error{ParseError};
 
 pub const Parser = struct {
     tokens: *std.ArrayList(token_.Token),
@@ -566,7 +561,7 @@ pub const Parser = struct {
                 len = try self.arrow_expr();
                 if (!len.?.is_comptime_expr()) {
                     self.errors.add_error(errs_.Error{ .comptime_known = .{ .span = len.?.token().span, .what = "array lengths" } });
-                    return error.NotCompileTimeKnown;
+                    return error.ParseError;
                 }
             } else {
                 slice_kind = .slice;
@@ -713,15 +708,15 @@ pub const Parser = struct {
         } else if (self.accept(.false)) |token| {
             return ast_.AST.create_false(token, self.allocator);
         } else if (self.accept(.dec_int)) |token| {
-            return ast_.AST.create_int(token, try std.fmt.parseInt(i128, token.data, 10), self.allocator);
+            return ast_.AST.create_int(token, std.fmt.parseInt(i128, token.data, 10) catch return error.ParseError, self.allocator);
         } else if (self.accept(.hex_int)) |token| {
-            return ast_.AST.create_int(token, try std.fmt.parseInt(i128, token.data[2..], 16), self.allocator);
+            return ast_.AST.create_int(token, std.fmt.parseInt(i128, token.data[2..], 16) catch return error.ParseError, self.allocator);
         } else if (self.accept(.oct_int)) |token| {
-            return ast_.AST.create_int(token, try std.fmt.parseInt(i128, token.data[2..], 8), self.allocator);
+            return ast_.AST.create_int(token, std.fmt.parseInt(i128, token.data[2..], 8) catch return error.ParseError, self.allocator);
         } else if (self.accept(.bin_int)) |token| {
-            return ast_.AST.create_int(token, try std.fmt.parseInt(i128, token.data[2..], 2), self.allocator);
+            return ast_.AST.create_int(token, std.fmt.parseInt(i128, token.data[2..], 2) catch return error.ParseError, self.allocator);
         } else if (self.accept(.float)) |token| {
-            return ast_.AST.create_float(token, try std.fmt.parseFloat(f64, token.data), self.allocator);
+            return ast_.AST.create_float(token, std.fmt.parseFloat(f64, token.data) catch return error.ParseError, self.allocator);
         } else if (self.accept(.char)) |token| {
             return ast_.AST.create_char(token, self.allocator);
         } else if (self.accept(.string)) |token| {

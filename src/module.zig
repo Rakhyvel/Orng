@@ -26,15 +26,7 @@ const type_set_ = @import("type-set.zig");
 pub const Module_Errors = error{
     LexerError,
     ParseError,
-    NotCompileTimeKnown,
-    InvalidCharacter,
-    Overflow,
-    SymbolError,
-    TypeError,
-    IRError,
-    DivideByZero,
-    NotAnLValue,
-    InterpreterPanic,
+    CompileError,
 };
 
 pub const Module_UID: type = u32;
@@ -196,7 +188,7 @@ pub const Module = struct {
         try ast_validate_.validate_module(module, errors, allocator);
         if (errors.errors_list.items.len > 0) {
             // Errors occur in AST, fatal, do not procede
-            return error.TypeError;
+            return error.CompileError;
         }
 
         module.collect_traits_and_impls(module.scope);
@@ -226,7 +218,7 @@ pub const Module = struct {
                 .msg = "no main function found",
             } });
             // Cannot find main function, fatal, do not procede
-            return error.TypeError;
+            return error.CompileError;
         }
 
         // Go through traits
@@ -444,7 +436,7 @@ pub fn get_cfg(
             .span = symbol.span,
             .symbol_name = symbol.name,
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
     if (symbol.cfg == null) {
         symbol.cfg = cfg_.CFG.init(symbol, caller, allocator);

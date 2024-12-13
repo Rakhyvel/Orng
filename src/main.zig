@@ -11,13 +11,7 @@ const version_year: usize = 25;
 const version_month: usize = 1;
 const version_minor: ?usize = null;
 
-const Command_Error: type = (std.fs.File.WriteError ||
-    std.fs.File.ReadError ||
-    std.fs.File.OpenError ||
-    std.mem.Allocator.Error ||
-    module_.Module_Errors ||
-    std.posix.RealPathError || // TODO: Fix for Windows
-    error{ StreamTooLong, BuildOrngError });
+pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError };
 
 const Command: type = *const fn (name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void;
 
@@ -44,7 +38,7 @@ pub fn main() !void {
     const allocator = std.heap.page_allocator;
 
     // Get second command line argument
-    var args = try std.process.ArgIterator.initWithAllocator(allocator);
+    var args = std.process.ArgIterator.initWithAllocator(allocator) catch unreachable;
     _ = args.next() orelse unreachable;
 
     // Parse the command arg
@@ -57,16 +51,7 @@ pub fn main() !void {
             command_entry.func(command, &args, allocator) catch |err| switch (err) {
                 error.LexerError,
                 error.ParseError,
-                error.NotCompileTimeKnown,
-                error.InvalidCharacter,
-                error.Overflow,
-                error.SymbolError,
-                error.TypeError,
-                error.IRError,
-                error.DivideByZero,
-                error.NotAnLValue,
-                error.InterpreterPanic,
-                error.BuildOrngError,
+                error.CompileError,
                 => std.process.exit(1),
 
                 else => return err,
@@ -90,7 +75,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
                 .span = span_.phony_span,
             } }).fatal_error();
         },
-        else => return err,
+        else => return error.CompileError,
     };
     ast_.init_structures();
     var build_context = try builtin_.compile_build_file(path, allocator);
@@ -105,34 +90,36 @@ fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: st
     _ = name;
     _ = allocator;
     _ = args;
-    try std.io.getStdOut().writer().print("Orng {}.{:0>2}", .{ version_year, version_month });
+    const out = std.io.getStdOut().writer();
+    out.print("Orng {}.{:0>2}", .{ version_year, version_month }) catch unreachable;
     if (version_minor != null) {
-        try std.io.getStdOut().writer().print(".{}", .{version_minor.?});
+        out.print(".{}", .{version_minor.?}) catch unreachable;
     }
-    try std.io.getStdOut().writer().print("\n", .{});
+    out.print("\n", .{}) catch unreachable;
 }
 
 fn help(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = name;
     _ = allocator;
     _ = args;
-    try std.io.getStdOut().writer().print("Usage: orng [command] [options]\n\nCommands:\n", .{});
+    const out = std.io.getStdOut().writer();
+    out.print("Usage: orng [command] [options]\n\nCommands:\n", .{}) catch unreachable;
     for (command_table) |command_entry| {
         if (command_entry.name[0] == '_') {
             // Skip internal commands
             continue;
         }
-        try std.io.getStdOut().writer().print("  {s}", .{command_entry.name});
+        out.print("  {s}", .{command_entry.name}) catch unreachable;
         const num_spaces = 12 - command_entry.name.len;
         for (0..num_spaces) |_| {
-            try std.io.getStdOut().writer().print(" ", .{});
+            out.print(" ", .{}) catch unreachable;
         }
-        try std.io.getStdOut().writer().print("{s}\n", .{command_entry.help});
+        out.print("{s}\n", .{command_entry.help}) catch unreachable;
     }
-    try std.io.getStdOut().writer().print("\n", .{});
+    out.print("\n", .{}) catch unreachable;
 }
 
-pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) !void {
+pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
     _ = args;
     _ = name;
     _ = allocator; // defining these as _ to silence the compiler
@@ -145,7 +132,7 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
         } }).fatal_error();
     } else |err| switch (err) {
         error.FileNotFound => {},
-        else => return err,
+        else => return error.FileError,
     }
 
     const build_path = "build.orng";
@@ -156,9 +143,9 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
         } }).fatal_error();
     } else |err| switch (err) {
         error.FileNotFound => {},
-        else => return err,
+        else => return error.FileError,
     }
-    var main_orng = try std.fs.cwd().createFile(main_path, .{});
+    var main_orng = std.fs.cwd().createFile(main_path, .{}) catch return error.FileError;
     defer main_orng.close();
 
     const main_content =
@@ -168,9 +155,9 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
         \\    debug::println("Hello, World!")
         \\}
     ;
-    try main_orng.writer().writeAll(main_content);
+    main_orng.writer().writeAll(main_content) catch return error.FileError;
 
-    var build_orng = try std.fs.cwd().createFile(build_path, .{});
+    var build_orng = std.fs.cwd().createFile(build_path, .{}) catch return error.FileError;
     defer build_orng.close();
 
     const build_content =
@@ -178,5 +165,5 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
         \\    Package::executable(.root="main.orng")
         \\}
     ;
-    try build_orng.writer().writeAll(build_content);
+    build_orng.writer().writeAll(build_content) catch return error.FileError;
 }

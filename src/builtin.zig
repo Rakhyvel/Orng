@@ -6,23 +6,21 @@ const primitives_ = @import("primitives.zig");
 const module_ = @import("module.zig");
 const symbol_ = @import("symbol.zig");
 
-const Command_Error: type = (std.fs.File.WriteError ||
-    std.fs.File.ReadError ||
-    std.fs.File.OpenError ||
-    std.mem.Allocator.Error ||
-    module_.Module_Errors ||
-    std.posix.RealPathError || // TODO: Fix for Windows
-    error{ StreamTooLong, BuildOrngError });
+const Error: type = error{
+    LexerError,
+    ParseError,
+    CompileError,
+};
 
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
-pub fn package_find(current_module_path: []const u8, package_path: []const u8) Command_Error![]u8 {
+pub fn package_find(current_module_path: []const u8, package_path: []const u8) Error![]u8 {
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
 
     const current_package = std.fs.path.dirname(current_module_path).?;
     const package_build_paths = [_][]const u8{ current_package, package_path, "build.orng" };
     const package_build_dir = std.fs.path.join(std.heap.page_allocator, &package_build_paths) catch unreachable;
-    const package_build_file = try std.fs.cwd().realpath(package_build_dir, &path_buffer);
+    const package_build_file = std.fs.cwd().realpath(package_build_dir, &path_buffer) catch return error.CompileError;
     var build_context = try compile_build_file(package_build_file, std.heap.page_allocator);
 
     // Extract the retval
@@ -34,7 +32,7 @@ pub fn package_find(current_module_path: []const u8, package_path: []const u8) C
     return result;
 }
 
-pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Command_Error!interpreter_.Context {
+pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Error!interpreter_.Context {
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
 
@@ -60,12 +58,12 @@ fn compile_module(
     prelude: *symbol_.Scope,
     fuzz_tokens: bool,
     allocator: std.mem.Allocator,
-) Command_Error!*module_.Module {
+) Error!*module_.Module {
     // Open the file
-    var file = try std.fs.openFileAbsolute(in_name, .{});
+    var file = std.fs.openFileAbsolute(in_name, .{}) catch return error.CompileError;
     defer file.close();
 
-    const stat = try file.stat();
+    const stat = file.stat() catch return error.CompileError;
     const uid = stat.mtime;
     _ = uid;
 
@@ -74,8 +72,8 @@ fn compile_module(
     var in_stream = buf_reader.reader();
     var contents_arraylist = std.ArrayList(u8).init(allocator);
     defer contents_arraylist.deinit();
-    try in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF);
-    const contents = try contents_arraylist.toOwnedSlice();
+    in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
+    const contents = contents_arraylist.toOwnedSlice() catch unreachable;
 
     const module = module_.Module.compile(contents, in_name, entry_name, prelude, fuzz_tokens, errors, allocator) catch |err| {
         switch (err) {
@@ -83,24 +81,16 @@ fn compile_module(
             error.LexerError,
             error.ParseError,
             => {
-                try errors.print_errors();
+                errors.print_errors();
                 return err;
             },
 
             // Only print these errors if NOT fuzz testing
-            error.SymbolError,
-            error.TypeError,
-            error.IRError,
+            error.CompileError,
             => if (!fuzz_tokens) {
-                try errors.print_errors();
+                errors.print_errors();
                 return err;
             } else {
-                return err;
-            },
-
-            // Unknown error
-            else => {
-                try errors.print_errors();
                 return err;
             },
         }

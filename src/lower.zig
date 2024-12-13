@@ -12,13 +12,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-pub const Lower_Errors = error{
-    TypeError,
-    InterpreterPanic,
-    DivideByZero,
-    IRError,
-    Overflow,
-};
+pub const Lower_Errors = error{CompileError};
 
 const Labels = struct {
     return_label: ?*ir_.IR,
@@ -85,7 +79,7 @@ fn lower_AST(
                     else => unreachable,
                 },
                 else => {
-                    const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.TypeError;
+                    const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.CompileError;
                     codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch unreachable; // Checked by lexer
                 },
             }
@@ -111,7 +105,7 @@ fn lower_AST(
                     .span = symbol.span,
                     .symbol_name = symbol.name,
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
             if (symbol.kind == .@"fn") {
                 return try lval_from_symbol_cfg(symbol, cfg, ast.token().span, errors, allocator);

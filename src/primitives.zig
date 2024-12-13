@@ -367,7 +367,7 @@ fn create_prelude() !void {
 
     var errors = errs_.Errors.init(std.heap.page_allocator);
     defer errors.deinit();
-    errdefer errors.print_errors() catch {};
+    errdefer errors.print_errors();
 
     const module = module_.Module.init("prelude", "", prelude.?, std.heap.page_allocator);
     prelude.?.module = module;
