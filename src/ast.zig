@@ -1453,12 +1453,14 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
-                // TODO: Clone the attributes, too
-                return create_sum_type(
+                var retval = create_sum_type(
                     self.token(),
                     cloned_terms,
                     allocator,
                 );
+                retval.sum_type.from = self.sum_type.from;
+                retval.sum_type.all_unit = self.sum_type.all_unit;
+                return retval;
             },
             .sum_value => return create_sum_value(self.token(), allocator),
             .product => {

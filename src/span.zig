@@ -1,6 +1,8 @@
 const std = @import("std");
 const String = @import("zig-string/zig-string.zig").String;
 
+pub const Span_Print_Error = std.fs.File.WriteError;
+
 const Span_Format = struct {
     fmt_str: []const u8,
     sanitize: bool,
@@ -24,7 +26,7 @@ pub const Span = struct {
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: *const Span, writer: anytype, comptime span_format: Span_Format) !void { // TODO: Uninfer error
+    pub fn print_debug_line(self: *const Span, writer: anytype, comptime span_format: Span_Format) Span_Print_Error!void {
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
 
@@ -37,6 +39,7 @@ pub const Span = struct {
             sanitize_string(self.line_text, std.heap.page_allocator)
         else
             self.line_text;
+
         try writer.print(span_format.fmt_str, .{
             self.filename,
             self.line_number,
