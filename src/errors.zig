@@ -266,64 +266,23 @@ pub const Error = union(enum) {
             .recursive_definition => return self.recursive_definition.span,
         }
     }
-};
 
-const out = std.io.getStdOut().writer();
-const bold = term_.Attr{ .bold = true };
-const not_bold = term_.Attr{ .bold = false };
-pub const Errors = struct {
-    errors_list: std.ArrayList(Error),
-
-    pub fn init(allocator: std.mem.Allocator) Errors {
-        return .{
-            .errors_list = std.ArrayList(Error).init(allocator),
-        };
+    pub fn fatal_error(self: Error) noreturn {
+        self.print() catch unreachable;
+        std.process.exit(1);
     }
 
-    pub fn deinit(self: *Errors) void {
-        self.errors_list.deinit();
-    }
-
-    pub fn add_error(self: *Errors, err: Error) void {
-        self.errors_list.append(err) catch unreachable;
-        // peek_error(err) catch unreachable; // uncomment if you want to see where errors come from
-    }
-
-    fn peek_error(err: Error) !void {
+    pub fn print(self: Error) Error_Error_Sum!void {
         try bold.dump(out);
-        try print_label(err.get_span(), "error: ", .red);
+        try print_label(self.get_span(), "error: ", .red);
         try bold.dump(out);
-        try print_main_error(err);
+        try self.print_msg();
         try not_bold.dump(out);
-        try print_epilude(err.get_span());
-        try print_extra_info(err);
-        unreachable;
+        try print_epilude(self.get_span());
+        try self.print_extra_info();
     }
 
-    pub fn print_errors(self: *Errors) Error_Error_Sum!void {
-        for (self.errors_list.items) |err| {
-            try bold.dump(out);
-            try print_label(err.get_span(), "error: ", .red);
-            try bold.dump(out);
-            try print_main_error(err);
-            try not_bold.dump(out);
-            try print_epilude(err.get_span());
-            try print_extra_info(err);
-        }
-    }
-
-    fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) Error_Error_Sum!void {
-        if (maybe_span) |span| {
-            if (span.line_number > 0 and span.col > 0) {
-                try out.print("{s}:{}:{}: ", .{ span.filename, span.line_number, span.col });
-            } else {
-                try out.print("{s}: ", .{span.filename});
-            }
-        }
-        try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
-    }
-
-    fn print_main_error(err: Error) Error_Error_Sum!void {
+    fn print_msg(err: Error) Error_Error_Sum!void {
         switch (err) {
             // General errors
             .basic => try out.print("{s}\n", .{err.basic.msg}),
@@ -525,69 +484,54 @@ pub const Errors = struct {
         }
     }
 
-    fn print_epilude(maybe_span: ?span_.Span) Error_Error_Sum!void {
-        if (maybe_span) |old_span| {
-            const span = old_span;
-            if (span.line_number == 0) {
-                return;
-            } else if (span.line_text.len > 0) {
-                try out.print("{s}\n", .{span.line_text});
-            }
-            for (2..span.col) |_| {
-                try out.print(" ", .{});
-            }
-            try term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", out);
-        }
-    }
-
-    fn print_extra_info(err: Error) Error_Error_Sum!void {
+    fn print_extra_info(self: Error) Error_Error_Sum!void {
         // FIXME: High Cyclo
-        switch (err) {
+        switch (self) {
             .missing_close => {
                 try bold.dump(out);
-                try print_note_label(err.missing_close.open.span);
+                try print_note_label(self.missing_close.open.span);
                 try bold.dump(out);
-                try out.print("opening `{s}` here:\n", .{err.missing_close.open.kind.repr() orelse err.missing_close.open.data});
+                try out.print("opening `{s}` here:\n", .{self.missing_close.open.kind.repr() orelse self.missing_close.open.data});
                 try not_bold.dump(out);
-                try print_epilude(err.missing_close.open.span);
+                try print_epilude(self.missing_close.open.span);
             },
             .comptime_known => {
                 try bold.dump(out);
-                try print_note_label(err.comptime_known.span);
+                try print_note_label(self.comptime_known.span);
                 try bold.dump(out);
                 try out.print("consider wrapping with `comptime`\n", .{});
                 try not_bold.dump(out);
             },
             .redefinition => {
-                if (err.redefinition.first_defined_span.line_number != 0) { // Don't print redefinitions for places that don't exist
+                if (self.redefinition.first_defined_span.line_number != 0) { // Don't print redefinitions for places that don't exist
                     try bold.dump(out);
-                    try print_note_label(err.redefinition.first_defined_span);
+                    try print_note_label(self.redefinition.first_defined_span);
                     try bold.dump(out);
-                    try out.print("other definition of `{s}` here:\n", .{err.redefinition.name});
+                    try out.print("other definition of `{s}` here:\n", .{self.redefinition.name});
                     try not_bold.dump(out);
-                    try print_epilude(err.redefinition.first_defined_span);
+                    try print_epilude(self.redefinition.first_defined_span);
                 }
             },
             .symbol_error => {
-                if (err.symbol_error.context_span != null) {
+                if (self.symbol_error.context_span != null) {
                     try bold.dump(out);
-                    try print_note_label(err.symbol_error.context_span.?);
+                    try print_note_label(self.symbol_error.context_span.?);
                     try bold.dump(out);
-                    try out.print("{s}\n", .{err.symbol_error.context_message});
+                    try out.print("{s}\n", .{self.symbol_error.context_message});
                     try not_bold.dump(out);
-                    try print_epilude(err.symbol_error.context_span.?);
+                    try print_epilude(self.symbol_error.context_span.?);
                 }
             },
-            .duplicate => if (err.duplicate.first != null) {
+            .duplicate => if (self.duplicate.first != null) {
                 try bold.dump(out);
-                try print_note_label(err.duplicate.first);
+                try print_note_label(self.duplicate.first);
                 try bold.dump(out);
-                try out.print("other definition of `{s}` here:\n", .{err.duplicate.identifier});
+                try out.print("other definition of `{s}` here:\n", .{self.duplicate.identifier});
                 try not_bold.dump(out);
-                try print_epilude(err.duplicate.first);
+                try print_epilude(self.duplicate.first);
             },
             .non_exhaustive_sum => {
-                for (err.non_exhaustive_sum.forgotten.items) |_type| {
+                for (self.non_exhaustive_sum.forgotten.items) |_type| {
                     try bold.dump(out);
                     try print_note_label(_type.token().span);
                     try bold.dump(out);
@@ -597,32 +541,97 @@ pub const Errors = struct {
                 }
             },
             .reimpl => {
-                if (err.reimpl.first_defined_span.line_number != 0) { // Don't print reimpls for places that don't exist!
+                if (self.reimpl.first_defined_span.line_number != 0) { // Don't print reimpls for places that don't exist!
                     try bold.dump(out);
-                    try print_note_label(err.reimpl.first_defined_span);
+                    try print_note_label(self.reimpl.first_defined_span);
                     try bold.dump(out);
-                    if (err.reimpl.name != null) {
-                        try out.print("other implementation of `{s}` here:\n", .{err.reimpl.name.?});
+                    if (self.reimpl.name != null) {
+                        try out.print("other implementation of `{s}` here:\n", .{self.reimpl.name.?});
                     } else {
                         try out.print("other implementation here:\n", .{});
                     }
                     try not_bold.dump(out);
-                    try print_epilude(err.reimpl.first_defined_span);
+                    try print_epilude(self.reimpl.first_defined_span);
                 }
             },
             .method_not_in_impl => {
                 try bold.dump(out);
-                try print_note_label(err.method_not_in_impl.method_span);
+                try print_note_label(self.method_not_in_impl.method_span);
                 try bold.dump(out);
                 try out.print("method specification here:\n", .{});
                 try not_bold.dump(out);
-                try print_epilude(err.method_not_in_impl.method_span);
+                try print_epilude(self.method_not_in_impl.method_span);
             },
             else => {},
         }
     }
 
-    fn print_note_label(maybe_span: ?span_.Span) Error_Error_Sum!void {
-        try print_label(maybe_span, "note: ", .cyan);
+    fn peek_error(err: Error) !void {
+        try bold.dump(out);
+        try print_label(err.get_span(), "error: ", .red);
+        try bold.dump(out);
+        try err.print();
+        try not_bold.dump(out);
+        try print_epilude(err.get_span());
+        try print_extra_info(err);
+        unreachable;
     }
 };
+
+const out = std.io.getStdErr().writer();
+const bold = term_.Attr{ .bold = true };
+const not_bold = term_.Attr{ .bold = false };
+pub const Errors = struct {
+    errors_list: std.ArrayList(Error),
+
+    pub fn init(allocator: std.mem.Allocator) Errors {
+        return .{
+            .errors_list = std.ArrayList(Error).init(allocator),
+        };
+    }
+
+    pub fn deinit(self: *Errors) void {
+        self.errors_list.deinit();
+    }
+
+    pub fn add_error(self: *Errors, err: Error) void {
+        self.errors_list.append(err) catch unreachable;
+        // err.peek_error() catch unreachable; // uncomment if you want to see where errors come from
+    }
+
+    pub fn print_errors(self: *Errors) Error_Error_Sum!void {
+        for (self.errors_list.items) |err| {
+            try err.print();
+        }
+    }
+};
+
+fn print_note_label(maybe_span: ?span_.Span) Error_Error_Sum!void {
+    try print_label(maybe_span, "note: ", .cyan);
+}
+
+fn print_epilude(maybe_span: ?span_.Span) Error_Error_Sum!void {
+    if (maybe_span) |old_span| {
+        const span = old_span;
+        if (span.line_number == 0) {
+            return;
+        } else if (span.line_text.len > 0) {
+            try out.print("{s}\n", .{span.line_text});
+        }
+        for (2..span.col) |_| {
+            try out.print(" ", .{});
+        }
+        try term_.outputColor(term_.Attr{ .fg = .green, .bold = true }, "^\n", out);
+    }
+}
+
+fn print_label(maybe_span: ?span_.Span, label: []const u8, color: term_.Color) Error_Error_Sum!void {
+    if (maybe_span) |span| {
+        if (span.line_number > 0 and span.col > 0) {
+            try out.print("{s}:{}:{}: ", .{ span.filename, span.line_number, span.col });
+        } else if (span.filename.len > 0) {
+            try out.print("{s}: ", .{span.filename});
+        }
+    }
+    try term_.outputColor(term_.Attr{ .fg = color, .bold = true }, label, out);
+}

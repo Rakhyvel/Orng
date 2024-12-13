@@ -118,7 +118,6 @@ pub const Module = struct {
         while (i >= 1 and full_name[i] != '/') : (i -= 1) {}
         const short_name: []const u8 = full_name[i + 1 ..];
 
-        // TODO: Move to own function, returning file_root
         // Module/Symbol-Tree construction
         var file_root = symbol_.Scope.init(prelude, full_name, allocator);
         const module = Module.init(short_name, in_name, file_root, allocator);

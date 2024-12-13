@@ -1,9 +1,11 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const builtin_ = @import("builtin.zig");
+const errs_ = @import("errors.zig");
 const interpreter_ = @import("interpreter.zig");
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
+const span_ = @import("span.zig");
 
 const version_year: usize = 25;
 const version_month: usize = 1;
@@ -83,9 +85,10 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
     const path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| switch (err) {
         error.FileNotFound => {
-            // TODO: This should be printed out in bold and red
-            try std.io.getStdOut().writer().print("error: no `build.orng` file found in current working directory\n", .{});
-            return error.BuildOrngError;
+            (errs_.Error{ .basic = .{
+                .msg = "no `build.orng` file found in current working directory",
+                .span = span_.phony_span,
+            } }).fatal_error();
         },
         else => return err,
     };
@@ -136,8 +139,10 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
 
     const main_path = "main.orng";
     if (std.fs.cwd().openFile(main_path, .{})) |_| {
-        std.log.err("the file `{s}` already exists", .{main_path});
-        return error.BuildOrngError;
+        (errs_.Error{ .basic = .{
+            .msg = "an Orng package already exists here",
+            .span = span_.phony_span,
+        } }).fatal_error();
     } else |err| switch (err) {
         error.FileNotFound => {},
         else => return err,
@@ -145,8 +150,10 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
 
     const build_path = "build.orng";
     if (std.fs.cwd().openFile(build_path, .{})) |_| {
-        std.log.err("the file `{s}` already exists", .{build_path});
-        return error.BuildOrngError;
+        (errs_.Error{ .basic = .{
+            .msg = "an Orng package already exists here",
+            .span = span_.phony_span,
+        } }).fatal_error();
     } else |err| switch (err) {
         error.FileNotFound => {},
         else => return err,
