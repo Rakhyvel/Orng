@@ -716,7 +716,7 @@ pub const Data = union(enum) {
         }
     }
 
-    // TODO: The following are pretty useless
+    // TODO: Fix these when removing i128
 
     pub fn add_int_overflow(self: Data, other: Data) error{CompileError}!Data {
         return Data{

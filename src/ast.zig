@@ -1468,12 +1468,13 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
-                // TODO: Clone the attributes, too
-                return create_product(
+                var retval = create_product(
                     self.token(),
                     cloned_terms,
                     allocator,
                 );
+                retval.product.was_slice = self.product.was_slice;
+                return retval;
             },
             .@"union" => return create_union(
                 self.token(),
@@ -1973,8 +1974,7 @@ pub const AST = union(enum) {
         allocator: std.mem.Allocator,
     ) *AST {
         switch (trait_type.*) {
-            // TODO: Do the other types too (don't let this PR without it!)
-            .anyptr_type, .dyn_type => return trait_type,
+            .anyptr_type, .dyn_type, .unit_type => return trait_type,
             .identifier => if (std.mem.eql(u8, trait_type.token().data, "Self")) {
                 return for_type;
             } else {
@@ -1984,11 +1984,28 @@ pub const AST = union(enum) {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
                 return create_addr_of(trait_type.token(), _expr, trait_type.mut(), allocator);
             },
+            .slice_of => {
+                const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
+                return create_slice_of(trait_type.token(), _expr, trait_type.slice_of.kind, allocator);
+            },
+            .array_of => {
+                const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
+                return create_array_of(trait_type.token(), _expr, trait_type.array_of.len, allocator);
+            },
             .annotation => {
                 const _type = convert_self_type(trait_type.annotation.type, for_type, allocator);
                 return create_annotation(trait_type.token(), trait_type.annotation.pattern, _type, trait_type.annotation.predicate, trait_type.annotation.init, allocator);
             },
-            .unit_type => return trait_type,
+            .function => {
+                const _lhs = convert_self_type(trait_type.lhs(), for_type, allocator);
+                const _rhs = convert_self_type(trait_type.rhs(), for_type, allocator);
+                return create_function(trait_type.token(), _lhs, _rhs, allocator);
+            },
+            .@"union" => {
+                const _lhs = convert_self_type(trait_type.lhs(), for_type, allocator);
+                const _rhs = convert_self_type(trait_type.rhs(), for_type, allocator);
+                return create_union(trait_type.token(), _lhs, _rhs, allocator);
+            },
             .sum_type => {
                 var new_children = std.ArrayList(*AST).init(allocator);
                 for (trait_type.children().items) |item| {
