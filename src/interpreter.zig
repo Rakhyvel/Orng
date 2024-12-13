@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
+const builtin_ = @import("builtin.zig");
 const cfg_ = @import("cfg.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
@@ -22,6 +23,11 @@ const uninit_byte: u8 = 0x55;
 /// anywhere, by simply jumping to here.
 const halt_trap_instruction: offsets_.Instruction_Idx = 0xFFFF_FFF0;
 
+/// When true, interpreter runs each instruction at a time, printing the stack and registers for debugging purposes.
+/// I _think_ that VSCode language servers consume a JSON file representing the state of the debugger, so this could be
+/// useful.
+const debugger: bool = false;
+
 const Instruction_Pointer = struct {
     /// The UID of the module currently being executed
     module_uid: module_.Module_UID,
@@ -29,18 +35,14 @@ const Instruction_Pointer = struct {
     inst_idx: offsets_.Instruction_Idx,
 };
 
-// TODO: make a debugger, that lets you step to the next instruction etc?
 pub const Context = struct {
-    stack: [stack_limit]u8,
     stack_pointer: i64,
     base_pointer: i64,
-
-    modules: std.AutoArrayHashMap(module_.Module_UID, *module_.Module),
     instruction_pointer: Instruction_Pointer,
 
-    debug_call_mem: [stack_limit]u8,
+    stack: []u8,
+    modules: std.AutoArrayHashMap(module_.Module_UID, *module_.Module),
     debug_call_stack: std.ArrayList(span_.Span),
-
     start_time: i64,
 
     /// Initializes a new interpreter context.
@@ -52,20 +54,16 @@ pub const Context = struct {
         const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
         // std.debug.print("frame_address:{}", .{frame_address});
         var retval = Context{
-            .stack = [_]u8{uninit_byte} ** stack_limit,
+            .stack = std.heap.page_allocator.alloc(u8, stack_limit) catch unreachable,
             .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
             .base_pointer = (3 * @sizeOf(i64)) + frame_address,
 
             .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(std.heap.page_allocator),
             .instruction_pointer = entry_point,
-            .debug_call_mem = [_]u8{uninit_byte} ** stack_limit,
-            .debug_call_stack = undefined,
+            .debug_call_stack = std.ArrayList(span_.Span).init(std.heap.page_allocator),
 
             .start_time = std.time.milliTimestamp(),
         };
-
-        var fba = std.heap.FixedBufferAllocator.init(&retval.debug_call_mem);
-        retval.debug_call_stack = std.ArrayList(span_.Span).init(fba.allocator());
 
         retval.debug_call_stack.append(cfg.symbol.span) catch unreachable;
 
@@ -79,12 +77,18 @@ pub const Context = struct {
         return retval;
     }
 
+    pub fn deinit(self: *Context) void {
+        self.modules.deinit();
+        self.debug_call_stack.deinit();
+        std.heap.page_allocator.free(self.stack);
+    }
+
     pub fn load_module(self: *Context, module: *module_.Module) void {
         self.modules.put(module.uid, module) catch unreachable;
     }
 
     /// Gets the effective address of an lvalue in the interpreter's memory.
-    fn effective_address(self: *Context, lval: *lval_.L_Value) error{InterpreterPanic}!i64 {
+    fn effective_address(self: *Context, lval: *lval_.L_Value) error{CompileError}!i64 {
         switch (lval.*) {
             .symbver => {
                 if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
@@ -97,10 +101,12 @@ pub const Context = struct {
                     // If this is triggered for a temporary or a constant, you didn't offset it correctly
                     if (lval.symbver.def != null) {
                         // symbver def is real (Good fortune!!)
-                        return self.panic(lval.symbver.def.?.span, "interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                        self.debug_call_stack.append(lval.symbver.def.?.span) catch unreachable;
+                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                     } else {
                         // symbver def is null, use symbol span instead (bad fortune!! curse on family)
-                        return self.panic(lval.symbver.symbol.span, "interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                        self.debug_call_stack.append(lval.symbver.symbol.span) catch unreachable;
+                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
                     }
                 } else {
                     // std.debug.print("{s}\n", .{lval.symbver.symbol.name});
@@ -169,6 +175,18 @@ pub const Context = struct {
         };
     }
 
+    /// Loads an integer value from the specified address in the interpreter's memory.
+    fn load_unsigned_int(self: *Context, address: i64, size: i64) u64 {
+        std.debug.assert(address >= 0);
+        return switch (size) {
+            1 => self.load(u8, address),
+            2 => self.load(u16, address),
+            4 => self.load(u32, address),
+            8 => self.load(u64, address),
+            else => unreachable,
+        };
+    }
+
     /// Loads a floating-point value from the specified address in the interpreter's memory.
     fn load_float(self: *Context, address: i64, size: i64) f64 {
         std.debug.assert(address >= 0);
@@ -181,7 +199,9 @@ pub const Context = struct {
 
     /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
     fn move(self: *Context, dest: i64, src: i64, len: i64) void {
-        // std.debug.print("dest:{} src:{}, len:{}\n", .{ dest, src, len });
+        if (debugger) {
+            std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, len });
+        }
         std.debug.assert(dest >= 0);
         std.debug.assert(src >= 0);
         if (len == 0) {
@@ -194,7 +214,6 @@ pub const Context = struct {
         } else {
             std.debug.assert(src >= dest + len); // src is not within dest
         }
-        // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}", .{ dest, src, len });
         @memcpy(
             self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
             self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
@@ -295,6 +314,14 @@ pub const Context = struct {
         }
     }
 
+    fn print_debug_stack(self: *Context) void {
+        for (0..self.debug_call_stack.items.len) |i| {
+            const span = self.debug_call_stack.items[i];
+            std.debug.print("{}: {s}\n", .{ i, span.line_text });
+        }
+        std.debug.print("\n", .{});
+    }
+
     /// Loads integer values from the specified L_Values and returns a structure containing both the loaded
     /// values.
     fn binop_load_int(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: i128, src2: i128 } {
@@ -313,35 +340,42 @@ pub const Context = struct {
         };
     }
 
-    fn curr_module(self: *Context) error{InterpreterPanic}!*module_.Module {
+    fn curr_module(self: *Context) error{CompileError}!*module_.Module {
         return self.modules.get(self.instruction_pointer.module_uid) orelse
-            self.panic(null, "interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
+            self.panic("interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
     }
 
-    fn curr_instruction(self: *Context) error{InterpreterPanic}!*ir_.IR {
+    fn curr_instruction(self: *Context) error{CompileError}!*ir_.IR {
         const module = try self.curr_module();
         return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
     }
 
     /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
     /// the maximum allowed instructions.
-    pub fn interpret(self: *Context) error{InterpreterPanic}!void {
+    pub fn interpret(self: *Context) error{CompileError}!void {
         // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
-            // self.print_registers();
-            // self.print_stack();
-            // std.debug.print("\n\n\n\n{}=>\n", .{ir});
+            if (debugger) {
+                std.debug.print("\n", .{});
+                self.print_registers();
+                self.print_stack();
+                std.debug.print("\n\n\n\n{}=> ", .{ir});
+            }
             const time_now = std.time.milliTimestamp();
-            if (time_now - self.start_time > timeout_ms) {
-                return self.panic(null, "interpreter error: compile-time interpreter timeout\n", .{});
+            if (!debugger and time_now - self.start_time > timeout_ms) {
+                return self.panic("interpreter error: compile-time interpreter timeout\n", .{});
+            }
+            if (debugger) {
+                var in_buffer: [256]u8 = undefined;
+                _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
             }
             try self.execute_instruction(ir);
         }
     }
 
     /// Executes an instruction within the interpreter context.
-    inline fn execute_instruction(self: *Context, ir: *ir_.IR) error{InterpreterPanic}!void { // This doesn't work if it's not inlined, lol!
+    inline fn execute_instruction(self: *Context, ir: *ir_.IR) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
             // Invalid instructions
             .load_extern,
@@ -474,7 +508,8 @@ pub const Context = struct {
             .div_int => {
                 const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
                 if (data.src2 == 0) {
-                    return self.panic(ir.span, "interpreter error: division by zero\n", .{});
+                    self.debug_call_stack.append(ir.span) catch unreachable;
+                    return self.panic("interpreter error: division by zero\n", .{});
                 }
                 const val = @divTrunc(data.src1, data.src2);
                 try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division result", ir.span);
@@ -525,6 +560,29 @@ pub const Context = struct {
                 // std.debug.print("symbol_int: {}\n", .{symbol_int});
                 const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
 
+                // Intercept method calls to builtin methods
+                if (symbol.decl != null and
+                    symbol.decl.?.* == .method_decl and
+                    symbol.decl.?.method_decl.impl != null and
+                    symbol.decl.?.method_decl.impl.?.impl._type.types_match(primitives_.package_type))
+                {
+                    const method_name = symbol.name;
+                    if (std.mem.eql(u8, method_name, "find")) {
+                        const arg: *lval_.L_Value = ir.data.lval_list.items[@as(usize, @intCast(0))];
+                        const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, std.heap.page_allocator);
+                        std.debug.print("searching for package: '{s}'\n", .{string.string.data});
+                        const ret_addr: usize = @intCast(try self.effective_address(ir.dest.?));
+                        const ret_len: usize = @intCast(ir.dest.?.sizeof());
+                        const curr_module_path = (self.curr_module() catch unreachable).path;
+                        if (builtin_.package_find(curr_module_path, string.string.data)) |mem| {
+                            @memcpy(self.stack[ret_addr .. ret_addr + ret_len], mem);
+                        } else |_| {
+                            @memset(self.stack[ret_addr .. ret_addr + ret_len], 0x01); // this sets the error status
+                        }
+                        return;
+                    }
+                }
+
                 // Save old stack pointer
                 const old_sp = self.stack_pointer;
                 self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
@@ -563,23 +621,20 @@ pub const Context = struct {
                 _ = self.debug_call_stack.pop();
             },
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
-                return self.panic(ir.span, "interpreter error: reached unreachable code\n", .{});
+                return self.panic("interpreter error: reached unreachable code\n", .{});
             },
             else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
         }
     }
 
     /// Signals an interpreter panic, printing an error message and call stack information.
-    fn panic(self: *Context, span: ?span_.Span, comptime msg: []const u8, args: anytype) error{InterpreterPanic} {
-        std.io.getStdErr().writer().print(msg, args) catch return error.InterpreterPanic;
-        if (span != null) {
-            self.debug_call_stack.append(span.?) catch unreachable;
-        }
+    fn panic(self: *Context, comptime msg: []const u8, args: anytype) error{CompileError} {
+        std.io.getStdErr().writer().print(msg, args) catch return error.CompileError;
 
         var i = self.debug_call_stack.items.len - 1;
         while (true) {
-            var stack_span = self.debug_call_stack.items[i];
-            stack_span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.InterpreterPanic;
+            const stack_span = self.debug_call_stack.items[i];
+            stack_span.print_debug_line(std.io.getStdErr().writer(), span_.interpreter_format) catch return error.CompileError;
 
             if (i == 0) {
                 break;
@@ -587,15 +642,16 @@ pub const Context = struct {
                 i -= 1;
             }
         }
-        return error.InterpreterPanic;
+        return error.CompileError;
     }
 
     /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
     /// Adds an error if the value is out of bounds.
-    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{InterpreterPanic}!void {
+    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{CompileError}!void {
         const bounds = primitives_.bounds_from_ast(_type) orelse return;
         if (val < bounds.lower or val > bounds.upper) {
-            return self.panic(span, "interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
+            self.debug_call_stack.append(span) catch unreachable;
+            return self.panic("interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
         }
     }
 
@@ -608,8 +664,8 @@ pub const Context = struct {
                 const info = primitives_.info_from_name(_type.token().data);
                 switch (info.type_kind) {
                     .type => {
-                        const stack_value = @as(usize, @intCast(self.load_int(address, 8)));
-                        if (stack_value == 0x5555555555555555) { // This works only if the interpreter never has uninitialized memory
+                        const stack_value = self.load_unsigned_int(address, 8);
+                        if (stack_value == 0xAAAAAAAAAAAAAAAA) { // NOTE: This only works if the interpreter never overwrites this address...
                             return primitives_.unit_type;
                         } else {
                             return @ptrFromInt(stack_value);
@@ -706,5 +762,13 @@ pub const Context = struct {
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
             else => std.debug.panic("interpreter error: unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)}),
         }
+    }
+
+    pub fn extract_memory_to_owned(self: *Context, address: usize, size_bytes: usize, allocator: std.mem.Allocator) []u8 {
+        const owned = allocator.alloc(u8, size_bytes) catch unreachable;
+
+        @memcpy(owned, self.stack[address .. address + size_bytes]);
+
+        return owned;
     }
 };

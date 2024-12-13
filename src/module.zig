@@ -26,15 +26,7 @@ const type_set_ = @import("type-set.zig");
 pub const Module_Errors = error{
     LexerError,
     ParseError,
-    NotCompileTimeKnown,
-    InvalidCharacter,
-    Overflow,
-    SymbolError,
-    TypeError,
-    IRError,
-    DivideByZero,
-    NotAnLValue,
-    InterpreterPanic,
+    CompileError,
 };
 
 pub const Module_UID: type = u32;
@@ -52,6 +44,9 @@ pub const Module = struct {
 
     // Name of the module
     name: []const u8,
+
+    // Path of the module
+    path: []const u8,
 
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
@@ -80,11 +75,12 @@ pub const Module = struct {
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(name: []const u8, scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
+    pub fn init(name: []const u8, path: []const u8, scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
         retval.name = name;
+        retval.path = path;
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;
@@ -114,10 +110,9 @@ pub const Module = struct {
         while (i >= 1 and full_name[i] != '/') : (i -= 1) {}
         const short_name: []const u8 = full_name[i + 1 ..];
 
-        // TODO: Move to own function, returning file_root
         // Module/Symbol-Tree construction
         var file_root = symbol_.Scope.init(prelude, full_name, allocator);
-        const module = Module.init(short_name, file_root, allocator);
+        const module = Module.init(short_name, in_name, file_root, allocator);
         file_root.module = module;
 
         try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, errors, allocator);
@@ -193,7 +188,7 @@ pub const Module = struct {
         try ast_validate_.validate_module(module, errors, allocator);
         if (errors.errors_list.items.len > 0) {
             // Errors occur in AST, fatal, do not procede
-            return error.TypeError;
+            return error.CompileError;
         }
 
         module.collect_traits_and_impls(module.scope);
@@ -223,7 +218,7 @@ pub const Module = struct {
                 .msg = "no main function found",
             } });
             // Cannot find main function, fatal, do not procede
-            return error.TypeError;
+            return error.CompileError;
         }
 
         // Go through traits
@@ -441,7 +436,7 @@ pub fn get_cfg(
             .span = symbol.span,
             .symbol_name = symbol.name,
         } });
-        return error.TypeError;
+        return error.CompileError;
     }
     if (symbol.cfg == null) {
         symbol.cfg = cfg_.CFG.init(symbol, caller, allocator);
@@ -558,6 +553,7 @@ pub fn interpret(
 
     // Create a context and interpret
     var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
+    defer context.deinit();
     context.load_module(module);
     try context.interpret();
 

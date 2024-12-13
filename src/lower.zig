@@ -12,13 +12,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-pub const Lower_Errors = error{
-    TypeError,
-    InterpreterPanic,
-    DivideByZero,
-    IRError,
-    Overflow,
-};
+pub const Lower_Errors = error{CompileError};
 
 const Labels = struct {
     return_label: ?*ir_.IR,
@@ -85,7 +79,7 @@ fn lower_AST(
                     else => unreachable,
                 },
                 else => {
-                    const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.TypeError;
+                    const num_bytes = std.unicode.utf8ByteSequenceLength(ast.token().data[1]) catch return error.CompileError;
                     codepoint = std.unicode.utf8Decode(ast.token().data[1 .. num_bytes + 1]) catch unreachable; // Checked by lexer
                 },
             }
@@ -111,7 +105,7 @@ fn lower_AST(
                     .span = symbol.span,
                     .symbol_name = symbol.name,
                 } });
-                return error.TypeError;
+                return error.CompileError;
             }
             if (symbol.kind == .@"fn") {
                 return try lval_from_symbol_cfg(symbol, cfg, ast.token().span, errors, allocator);
@@ -773,16 +767,18 @@ fn coalesce_op(
 
     // Test if lhs tag is 0 (`ok` or `some`)
     const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
-    const rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator)) orelse return null;
 
     const condition = create_temp_lvalue(cfg, primitives_.word64_type, allocator);
     cfg.append_instruction(ir_.IR.init_get_tag(condition, lhs, ast.token().span, allocator));
     cfg.append_instruction(ir_.IR.init_branch(condition, zero_label, ast.token().span, allocator));
 
     // tag was an error/none, store rhs in temp
-    const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
-    cfg.append_instruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
-    cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
+    const maybe_rhs = (try lower_AST(cfg, ast.rhs(), labels, errors, allocator));
+    if (maybe_rhs) |rhs| {
+        const rhs_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
+        cfg.append_instruction(ir_.IR.init_simple_copy(rhs_lval, rhs, ast.token().span, allocator));
+        cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
+    }
 
     // tag was `.ok` or `.some`, store lhs in temp
     cfg.append_instruction(zero_label);

@@ -9,7 +9,7 @@ const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{IRError}!void {
+pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!void {
     cfg.calculate_usage();
     cfg.calculate_versions();
 
@@ -40,8 +40,8 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{IRError}!void {
     }
 }
 
-/// Throws an `error.IRError` if a symbol is not used.
-fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{IRError}!void {
+/// Throws an `error.CompileError` if a symbol is not used.
+fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileError}!void {
     if (symbol.kind != .@"const" and
         symbol.uses == 0)
     {
@@ -52,16 +52,16 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{IRError}!
             .problem = "is never used",
             .context_message = "",
         } });
-        return error.IRError;
+        return error.CompileError;
     }
 }
 
-/// Throws an `error.IRError` if a symbol is marked `mut`, but is never mutated.
+/// Throws an `error.CompileError` if a symbol is marked `mut`, but is never mutated.
 ///
 /// Symbols are mutated when:
 /// - They are the root of at least one IR's destination's L-Value tree, OR
 /// - They are aliased with `&mut`.
-fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{IRError}!void {
+fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileError}!void {
     if (symbol.kind == .mut and
         symbol.aliases == 0 and
         symbol.roots == 0)
@@ -73,16 +73,16 @@ fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{
             .problem = "is marked `mut` but is never mutated",
             .context_message = "",
         } });
-        return error.IRError;
+        return error.CompileError;
     }
 }
 
-fn valid_lvalue_expanded_type_check(span: span_.Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{IRError}!void {
+fn valid_lvalue_expanded_type_check(span: span_.Span, lvalue: ?*lval_.L_Value, errors: *errs_.Errors) error{CompileError}!void {
     if (lvalue != null and !lvalue.?.get_expanded_type().valid_type()) {
         errors.add_error(errs_.Error{ .recursive_definition = .{
             .span = span,
             .symbol_name = null,
         } });
-        return error.IRError;
+        return error.CompileError;
     }
 }

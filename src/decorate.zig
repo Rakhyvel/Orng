@@ -5,7 +5,7 @@ const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
 const symbol_ = @import("symbol.zig");
 
-const Decorate_Error = error{SymbolError};
+const Decorate_Error = error{CompileError};
 
 /// Recursively decorates the identifiers in the given ASTs with the symbols they refer to.
 ///
@@ -102,24 +102,24 @@ pub fn decorate_identifiers(
                 // Couldn't find the symbol
                 .not_found => {
                     errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = ast.token(), .expected = null } });
-                    return error.SymbolError;
+                    return error.CompileError;
                 },
 
                 // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
                 .found_but_rt => {
                     errors.add_error(errs_.Error{ .comptime_access_runtime = .{ .identifier = ast.token() } });
-                    return error.SymbolError;
+                    return error.CompileError;
                 },
 
                 // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
                 .found_but_fn => {
                     errors.add_error(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = ast.token() } });
-                    return error.SymbolError;
+                    return error.CompileError;
                 },
             }
             if (!ast.symbol().?.defined) {
                 errors.add_error(errs_.Error{ .use_before_def = .{ .identifier = ast.token() } });
-                return error.SymbolError;
+                return error.CompileError;
             }
         },
 

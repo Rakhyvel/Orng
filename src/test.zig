@@ -125,20 +125,11 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
     // Try to compile Orng (make sure no errors)
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
-    const module = module_.Module.compile(contents, filename, "main", prelude, false, &errors, allocator) catch |err| {
+    const module = module_.Module.compile(contents, filename, "main", prelude, false, &errors, allocator) catch {
         if (!coverage) {
-            errors.print_errors() catch unreachable;
+            errors.print_errors();
             term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-            switch (err) {
-                error.LexerError,
-                error.ParseError,
-                error.SymbolError,
-                error.TypeError,
-                error.IRError,
-                error.DivideByZero,
-                => out.print("Orng -> C.\n", .{}) catch unreachable,
-                else => out.print("Orng Compiler crashed! {}\n", .{err}) catch unreachable,
-            }
+            out.print("Orng -> C.\n", .{}) catch unreachable;
             std.debug.dumpCurrentStackTrace(128);
         }
         return false;
@@ -228,12 +219,16 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return false;
     };
-    const test_name = filename[0..dot_index];
-    _ = test_name;
+    var test_name = filename[14..dot_index];
+
+    // Output .c file
+    var out_name: String = String.init_with_contents(allocator, "tests/integration/build") catch unreachable;
+    defer out_name.deinit();
+    out_name.concat(test_name) catch unreachable;
 
     if (!coverage) {
         term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
-        out.print("{s}\n", .{filename}) catch unreachable;
+        out.print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
 
     // Read in the expected value and stdout
@@ -259,21 +254,16 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
         if (!coverage) {
             switch (err) {
                 error.LexerError,
-                error.SymbolError,
-                error.TypeError,
-                error.InterpreterPanic,
-                error.IRError,
-                error.DivideByZero,
-                error.Overflow,
+                error.CompileError,
                 => {
-                    errors.print_errors() catch unreachable;
+                    errors.print_errors();
                     term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                     return true;
                 },
                 error.ParseError => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    errors.print_errors() catch unreachable;
+                    errors.print_errors();
                     if (str.find("parser") != null) {
                         term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                         return true;
@@ -281,16 +271,9 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                         std.debug.print("{}\n", .{err});
                         term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
                         out.print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
-                        errors.print_errors() catch unreachable;
+                        errors.print_errors();
                         return false;
                     }
-                },
-                else => {
-                    std.debug.print("{}\n", .{err});
-                    term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-                    out.print("Orng Compiler crashed unexpectedly!\n", .{}) catch unreachable;
-                    std.debug.dumpCurrentStackTrace(128);
-                    return false;
                 },
             }
         } else {
@@ -368,29 +351,16 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             defer lines.deinit();
             i += 1;
             const module = module_.Module.compile(contents, "fuzz", "main", prelude, false, &errors, allocator) catch |err| {
-                try errors.print_errors();
+                errors.print_errors();
                 switch (err) {
                     error.LexerError,
-                    error.SymbolError,
-                    error.TypeError,
-                    error.IRError,
-                    error.DivideByZero,
-                    => {
-                        // passed += 1;
-                        // try term_.outputColor(succeed_color, "[ ... PASSED ] ", out);
-                        // try out.print("Orng -> IR. {}\n", .{i});
-                        continue;
-                    },
+                    error.CompileError,
+                    => continue,
+
                     error.ParseError => {
                         failed += 1;
                         try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                         try out.print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
-                        return;
-                    },
-                    else => {
-                        failed += 1;
-                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                        try out.print("Orng Compiler crashed!\n", .{});
                         return;
                     },
                 }

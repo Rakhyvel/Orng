@@ -21,6 +21,7 @@ pub var int16_type: *ast_.AST = undefined;
 pub var int32_type: *ast_.AST = undefined;
 pub var int64_type: *ast_.AST = undefined;
 pub var package_type: *ast_.AST = undefined;
+pub var err_package_type: *ast_.AST = undefined;
 pub var string_type: *ast_.AST = undefined;
 pub var type_type: *ast_.AST = undefined;
 pub var unit_type: *ast_.AST = undefined;
@@ -279,7 +280,7 @@ fn create_prelude() !void {
         .none,
         .string,
         default_string,
-        8,
+        16,
     );
     create_info(
         "Type",
@@ -359,15 +360,16 @@ fn create_prelude() !void {
         \\impl for Package {
         \\  fn executable(root: String) -> Self { (root, .executable) }
         \\  fn static_library(root: String) -> Self { (root, .static_library) }
+        \\  fn find(name: String) -> ()!Self { _ = name; .err }
         \\}
         \\
     ;
 
     var errors = errs_.Errors.init(std.heap.page_allocator);
     defer errors.deinit();
-    errdefer errors.print_errors() catch {};
+    errdefer errors.print_errors();
 
-    const module = module_.Module.init("prelude", prelude.?, std.heap.page_allocator);
+    const module = module_.Module.init("prelude", "", prelude.?, std.heap.page_allocator);
     prelude.?.module = module;
     try module_.Module.fill_contents(
         prelude_contents,
@@ -381,6 +383,7 @@ fn create_prelude() !void {
     );
 
     package_type = module.scope.lookup("Package", false).found.init.?;
+    err_package_type = ast_.AST.create_error_type(unit_type, package_type, std.heap.page_allocator);
 }
 
 fn create_identifier(name: []const u8) *ast_.AST {

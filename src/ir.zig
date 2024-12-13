@@ -716,21 +716,21 @@ pub const Data = union(enum) {
         }
     }
 
-    // TODO: The following are pretty useless
+    // TODO: Fix these when removing i128
 
-    pub fn add_int_overflow(self: Data, other: Data) error{Overflow}!Data {
+    pub fn add_int_overflow(self: Data, other: Data) error{CompileError}!Data {
         return Data{
             .int = std.math.add(i128, self.int, other.int) catch unreachable,
         };
     }
 
-    pub fn sub_int_overflow(self: Data, other: Data) error{Overflow}!Data {
+    pub fn sub_int_overflow(self: Data, other: Data) error{CompileError}!Data {
         return Data{
             .int = std.math.sub(i128, self.int, other.int) catch unreachable,
         };
     }
 
-    pub fn mult_int_overflow(self: Data, other: Data) error{Overflow}!Data {
+    pub fn mult_int_overflow(self: Data, other: Data) error{CompileError}!Data {
         return Data{
             .int = std.math.mul(i128, self.int, other.int) catch unreachable,
         };

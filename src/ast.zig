@@ -1453,11 +1453,14 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
-                return create_sum_type(
+                var retval = create_sum_type(
                     self.token(),
                     cloned_terms,
                     allocator,
                 );
+                retval.sum_type.from = self.sum_type.from;
+                retval.sum_type.all_unit = self.sum_type.all_unit;
+                return retval;
             },
             .sum_value => return create_sum_value(self.token(), allocator),
             .product => {
@@ -1465,11 +1468,13 @@ pub const AST = union(enum) {
                 for (self.children().items) |child| {
                     cloned_terms.append(child.clone(allocator)) catch unreachable;
                 }
-                return create_product(
+                var retval = create_product(
                     self.token(),
                     cloned_terms,
                     allocator,
                 );
+                retval.product.was_slice = self.product.was_slice;
+                return retval;
             },
             .@"union" => return create_union(
                 self.token(),
@@ -1969,6 +1974,7 @@ pub const AST = union(enum) {
         allocator: std.mem.Allocator,
     ) *AST {
         switch (trait_type.*) {
+            .anyptr_type, .dyn_type, .unit_type => return trait_type,
             .identifier => if (std.mem.eql(u8, trait_type.token().data, "Self")) {
                 return for_type;
             } else {
@@ -1978,9 +1984,40 @@ pub const AST = union(enum) {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
                 return create_addr_of(trait_type.token(), _expr, trait_type.mut(), allocator);
             },
-            .unit_type => return trait_type,
-            // TODO: Shouldn't this be full?
-            else => unreachable,
+            .slice_of => {
+                const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
+                return create_slice_of(trait_type.token(), _expr, trait_type.slice_of.kind, allocator);
+            },
+            .array_of => {
+                const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
+                return create_array_of(trait_type.token(), _expr, trait_type.array_of.len, allocator);
+            },
+            .annotation => {
+                const _type = convert_self_type(trait_type.annotation.type, for_type, allocator);
+                return create_annotation(trait_type.token(), trait_type.annotation.pattern, _type, trait_type.annotation.predicate, trait_type.annotation.init, allocator);
+            },
+            .function => {
+                const _lhs = convert_self_type(trait_type.lhs(), for_type, allocator);
+                const _rhs = convert_self_type(trait_type.rhs(), for_type, allocator);
+                return create_function(trait_type.token(), _lhs, _rhs, allocator);
+            },
+            .@"union" => {
+                const _lhs = convert_self_type(trait_type.lhs(), for_type, allocator);
+                const _rhs = convert_self_type(trait_type.rhs(), for_type, allocator);
+                return create_union(trait_type.token(), _lhs, _rhs, allocator);
+            },
+            .sum_type => {
+                var new_children = std.ArrayList(*AST).init(allocator);
+                for (trait_type.children().items) |item| {
+                    const new_type = item.convert_self_type(for_type, allocator);
+                    new_children.append(new_type) catch unreachable;
+                }
+                var retval = create_sum_type(trait_type.token(), new_children, allocator);
+                retval.sum_type.from = trait_type.sum_type.from;
+                // NOTE: Do NOT copy over the `all_unit` type, as Self could be unit. Leave it null to be re-evaluated.
+                return retval;
+            },
+            else => std.debug.panic("compiler error: convert_self_type doesn't support trait type AST `{s}`", .{@tagName(trait_type.*)}),
         }
     }
 
@@ -2070,6 +2107,7 @@ pub const AST = union(enum) {
         }
         const retval = expand_type_internal(self, allocator).assert_valid();
         self.common()._expanded_type = retval;
+        retval.common()._expanded_type = retval;
         return retval;
     }
 
@@ -2514,6 +2552,8 @@ pub const AST = union(enum) {
             self.common()._size = self.sizeof_internal(); // memoize call
         }
 
+        std.debug.assert(self.common()._expanded_type != null); // get the size of expanded types only
+
         return self.common()._size.?;
     }
 
@@ -2554,6 +2594,8 @@ pub const AST = union(enum) {
         if (self.common()._alignof == null) {
             self.common()._alignof = self.alignof_internal(); // memoize call
         }
+
+        std.debug.assert(self.common()._expanded_type != null); // get the align of expanded types only
 
         return self.common()._alignof.?;
     }

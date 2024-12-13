@@ -6,7 +6,7 @@ const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
 
-const Symbol_Error_Enum = error{SymbolError};
+const Symbol_Error_Enum = error{CompileError};
 
 pub fn symbol_table_from_AST_list(
     asts: std.ArrayList(*ast_.AST),
@@ -216,7 +216,7 @@ fn symbol_table_from_AST(
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",
                         } });
-                        return error.SymbolError;
+                        return error.CompileError;
                     }
                 }
             }
@@ -240,7 +240,7 @@ fn symbol_table_from_AST(
                             },
                         },
                     );
-                    return error.SymbolError;
+                    return error.CompileError;
                 }
                 // Template declaration, transform function into template
                 // Clone the fn declaration and keep it to be templated out when stamping
@@ -353,7 +353,7 @@ fn in_loop_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors) S
             .span = ast.token().span,
             .name = @tagName(ast.*),
         } });
-        return error.SymbolError;
+        return error.CompileError;
     }
 }
 
@@ -364,13 +364,13 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
             .span = ast.token().span,
             .name = @tagName(ast.*),
         } });
-        return error.SymbolError;
+        return error.CompileError;
     } else if (scope.inner_function.?.kind == .@"comptime") {
         errors.add_error(errs_.Error{ .basic = .{
             .span = ast.token().span,
             .msg = "`return` cannot be within comptime",
         } });
-        return error.SymbolError;
+        return error.CompileError;
     } else {
         return scope.inner_function.?;
     }
@@ -386,7 +386,7 @@ pub fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_
                 .redefined_span = symbol.span,
                 .name = symbol.name,
             } });
-            return error.SymbolError;
+            return error.CompileError;
         },
         else => scope.symbols.put(symbol.name, symbol) catch unreachable,
     }
@@ -418,7 +418,7 @@ fn create_symbol(
                         .span = pattern.token().span,
                         .kind = pattern.pattern_symbol.kind,
                     } });
-                    return error.SymbolError;
+                    return error.CompileError;
                 } else {
                     // Register the symbol of the symbol pattern as the blackhole symbol, but do not append
                     pattern.set_symbol(primitives_.blackhole);
