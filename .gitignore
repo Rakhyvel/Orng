@@ -2,6 +2,7 @@
 .vscode/
 zig-out/
 kcov-out/
+tests/integration/build
 tests/fuzz/fuzz.txt
 tests/fuzz/problems.txt
 tests/fuzz/fuzz.orng
