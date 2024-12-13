@@ -561,7 +561,8 @@ pub const Context = struct {
                         std.debug.print("searching for package: '{s}'\n", .{string.string.data});
                         const ret_addr: usize = @intCast(try self.effective_address(ir.dest.?));
                         const ret_len: usize = @intCast(ir.dest.?.sizeof());
-                        if (builtin_.package_find(string.string.data)) |mem| {
+                        const curr_module_path = (self.curr_module() catch unreachable).path;
+                        if (builtin_.package_find(curr_module_path, string.string.data)) |mem| {
                             @memcpy(self.stack[ret_addr .. ret_addr + ret_len], mem);
                         } else |_| {
                             @memset(self.stack[ret_addr .. ret_addr + ret_len], 0x01); // this sets the error status

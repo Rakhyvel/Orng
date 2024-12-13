@@ -16,23 +16,13 @@ const Command_Error: type = (std.fs.File.WriteError ||
 
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
-pub fn package_find(package_path: []const u8) Command_Error![]u8 {
-    // Find out where home is
-    const home_path = std.process.getEnvVarOwned(std.heap.page_allocator, "HOME") catch unreachable;
-    defer std.heap.page_allocator.free(home_path);
-
-    // Make `.orng` if it doesn't exist
-    // Should this go here?
-    std.fs.Dir.makeDir(std.fs.openDirAbsolute(home_path, .{}) catch unreachable, ".orng") catch |err| switch (err) {
-        error.PathAlreadyExists => {},
-        else => unreachable,
-    };
-
-    const package_build_paths = [_][]const u8{ package_path, "build.orng" };
-    const package_build_dir = std.fs.path.join(std.heap.page_allocator, &package_build_paths) catch unreachable;
+pub fn package_find(current_module_path: []const u8, package_path: []const u8) Command_Error![]u8 {
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    const package_build_file = try std.fs.cwd().realpath(package_build_dir, &path_buffer);
 
+    const current_package = std.fs.path.dirname(current_module_path).?;
+    const package_build_paths = [_][]const u8{ current_package, package_path, "build.orng" };
+    const package_build_dir = std.fs.path.join(std.heap.page_allocator, &package_build_paths) catch unreachable;
+    const package_build_file = try std.fs.cwd().realpath(package_build_dir, &path_buffer);
     var build_context = try compile_build_file(package_build_file, std.heap.page_allocator);
 
     // Extract the retval

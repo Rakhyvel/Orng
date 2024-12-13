@@ -53,6 +53,9 @@ pub const Module = struct {
     // Name of the module
     name: []const u8,
 
+    // Path of the module
+    path: []const u8,
+
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
@@ -80,11 +83,12 @@ pub const Module = struct {
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(name: []const u8, scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
+    pub fn init(name: []const u8, path: []const u8, scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
         retval.name = name;
+        retval.path = path;
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;
@@ -117,7 +121,7 @@ pub const Module = struct {
         // TODO: Move to own function, returning file_root
         // Module/Symbol-Tree construction
         var file_root = symbol_.Scope.init(prelude, full_name, allocator);
-        const module = Module.init(short_name, file_root, allocator);
+        const module = Module.init(short_name, in_name, file_root, allocator);
         file_root.module = module;
 
         try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, errors, allocator);

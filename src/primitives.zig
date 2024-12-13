@@ -369,7 +369,7 @@ fn create_prelude() !void {
     defer errors.deinit();
     errdefer errors.print_errors() catch {};
 
-    const module = module_.Module.init("prelude", prelude.?, std.heap.page_allocator);
+    const module = module_.Module.init("prelude", "", prelude.?, std.heap.page_allocator);
     prelude.?.module = module;
     try module_.Module.fill_contents(
         prelude_contents,
