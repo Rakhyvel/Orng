@@ -19,23 +19,23 @@ struct struct0 {
 char* string_0 = "\x0A\x0D\x09\x27\x22";
 
 /* Function forward definitions */
-uint8_t _1530_main(void);
+uint8_t _1532_main(void);
 
 
 /* Function definitions */
-uint8_t _1530_main(void){
-    struct struct0 _1531_x;
-    int64_t _1530_t2;
-    uint8_t _1530_$retval;
-    _1531_x = (struct struct0) {(uint8_t*)string_0, 5};
-    _1530_t2 = 1;
-    $bounds_check(_1530_t2, _1531_x._1, "tests/integration/strings/string-return.orng:2:8:\nfn main() -> Byte {\n      ^");
-    _1530_$retval = *((uint8_t*)_1531_x._0 + _1530_t2);
-    return _1530_$retval;
+uint8_t _1532_main(void){
+    struct struct0 _1533_x;
+    int64_t _1532_t2;
+    uint8_t _1532_$retval;
+    _1533_x = (struct struct0) {(uint8_t*)string_0, 5};
+    _1532_t2 = 1;
+    $bounds_check(_1532_t2, _1533_x._1, "tests/integration/strings/string-return.orng:2:8:\nfn main() -> Byte {\n      ^");
+    _1532_$retval = *((uint8_t*)_1533_x._0 + _1532_t2);
+    return _1532_$retval;
 }
 
 
 int main(void) {
-  printf("%u",_1530_main());
+  printf("%u",_1532_main());
   return 0;
 }

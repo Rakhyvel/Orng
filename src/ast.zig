@@ -2088,6 +2088,7 @@ pub const AST = union(enum) {
         }
         const retval = expand_type_internal(self, allocator).assert_valid();
         self.common()._expanded_type = retval;
+        retval.common()._expanded_type = retval;
         return retval;
     }
 
@@ -2532,6 +2533,8 @@ pub const AST = union(enum) {
             self.common()._size = self.sizeof_internal(); // memoize call
         }
 
+        std.debug.assert(self.common()._expanded_type != null); // get the size of expanded types only
+
         return self.common()._size.?;
     }
 
@@ -2572,6 +2575,8 @@ pub const AST = union(enum) {
         if (self.common()._alignof == null) {
             self.common()._alignof = self.alignof_internal(); // memoize call
         }
+
+        std.debug.assert(self.common()._expanded_type != null); // get the align of expanded types only
 
         return self.common()._alignof.?;
     }

@@ -16,51 +16,51 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _586_main(void);
+int64_t _588_main(void);
 
 
 /* Function definitions */
-int64_t _586_main(void){
-    int64_t _586_t1;
-    double _586_t2;
-    struct struct0 _587_x;
-    int64_t _586_t5;
-    uint8_t _586_t7;
-    int64_t _586_t4;
-    double _586_t8;
-    uint8_t _586_t10;
-    int64_t _586_$retval;
-    _586_t1 = 0;
-    _586_t2 = 0e0;
-    _587_x = (struct struct0) {_586_t1, _586_t2};
-    _586_t5 = 0;
-    _586_t7 = _587_x._0==_586_t5;
-    if (_586_t7) {
-        goto BB664;
+int64_t _588_main(void){
+    int64_t _588_t1;
+    double _588_t2;
+    struct struct0 _589_x;
+    int64_t _588_t5;
+    uint8_t _588_t7;
+    int64_t _588_t4;
+    double _588_t8;
+    uint8_t _588_t10;
+    int64_t _588_$retval;
+    _588_t1 = 0;
+    _588_t2 = 0e0;
+    _589_x = (struct struct0) {_588_t1, _588_t2};
+    _588_t5 = 0;
+    _588_t7 = _589_x._0==_588_t5;
+    if (_588_t7) {
+        goto BB666;
     } else {
-        goto BB671;
+        goto BB673;
     }
-BB664:
-    _586_t8 = 0e0;
-    _586_t10 = _587_x._1==_586_t8;
-    if (_586_t10) {
-        goto BB667;
+BB666:
+    _588_t8 = 0e0;
+    _588_t10 = _589_x._1==_588_t8;
+    if (_588_t10) {
+        goto BB669;
     } else {
-        goto BB671;
+        goto BB673;
     }
-BB671:
-    _586_t4 = 0;
-    goto BB670;
-BB667:
-    _586_t4 = 135;
-    goto BB670;
-BB670:
-    _586_$retval = _586_t4;
-    return _586_$retval;
+BB673:
+    _588_t4 = 0;
+    goto BB672;
+BB669:
+    _588_t4 = 135;
+    goto BB672;
+BB672:
+    _588_$retval = _588_t4;
+    return _588_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_586_main());
+  printf("%ld",_588_main());
   return 0;
 }

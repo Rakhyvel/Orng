@@ -228,12 +228,16 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
         std.debug.print("filename {s} doens't contain a '.'", .{filename});
         return false;
     };
-    const test_name = filename[0..dot_index];
-    _ = test_name;
+    var test_name = filename[14..dot_index];
+
+    // Output .c file
+    var out_name: String = String.init_with_contents(allocator, "tests/integration/build") catch unreachable;
+    defer out_name.deinit();
+    out_name.concat(test_name) catch unreachable;
 
     if (!coverage) {
         term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
-        out.print("{s}\n", .{filename}) catch unreachable;
+        out.print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
 
     // Read in the expected value and stdout

@@ -20,45 +20,45 @@ struct struct0 {
 typedef int64_t(*function1)(void);
 
 /* Function forward definitions */
-int64_t _1137_main(void);
-int64_t _1139_f(void);
+int64_t _1139_main(void);
+int64_t _1141_f(void);
 
 
 /* Function definitions */
-int64_t _1137_main(void){
-    int64_t _1137_t1;
-    int64_t _1137_t2;
-    int64_t _1137_t3;
-    int64_t _1137_t4;
-    struct struct0 _1138_x;
-    function1 _1137_t7;
-    int64_t _1137_t8;
-    int64_t _1137_t9;
-    int64_t _1137_$retval;
-    _1137_t1 = 0;
-    _1137_t2 = 0;
-    _1137_t3 = 0;
-    _1137_t4 = 0;
-    _1138_x = (struct struct0) {_1137_t1, _1137_t2, _1137_t3, _1137_t4};
-    _1137_t7 = (function1) _1139_f;
+int64_t _1139_main(void){
+    int64_t _1139_t1;
+    int64_t _1139_t2;
+    int64_t _1139_t3;
+    int64_t _1139_t4;
+    struct struct0 _1140_x;
+    function1 _1139_t7;
+    int64_t _1139_t8;
+    int64_t _1139_t9;
+    int64_t _1139_$retval;
+    _1139_t1 = 0;
+    _1139_t2 = 0;
+    _1139_t3 = 0;
+    _1139_t4 = 0;
+    _1140_x = (struct struct0) {_1139_t1, _1139_t2, _1139_t3, _1139_t4};
+    _1139_t7 = (function1) _1141_f;
     $lines[$line_idx++] = "tests/integration/lint/array-copy-pos-bounds-check.orng:4:9:\n    x[f()] = 0\n       ^";
-    _1137_t8 = _1137_t7();
+    _1139_t8 = _1139_t7();
     $line_idx--;
-    _1137_t9 = 4;
-    $bounds_check(_1137_t8, _1137_t9, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:15:\n    x[f()] = 0\n             ^");
-    *((int64_t*)&_1138_x + _1137_t8) = 0;
-    _1137_$retval = 0;
-    return _1137_$retval;
+    _1139_t9 = 4;
+    $bounds_check(_1139_t8, _1139_t9, "tests/integration/lint/array-copy-pos-bounds-check.orng:4:15:\n    x[f()] = 0\n             ^");
+    *((int64_t*)&_1140_x + _1139_t8) = 0;
+    _1139_$retval = 0;
+    return _1139_$retval;
 }
 
-int64_t _1139_f(void){
-    int64_t _1139_$retval;
-    _1139_$retval = 100;
-    return _1139_$retval;
+int64_t _1141_f(void){
+    int64_t _1141_$retval;
+    _1141_$retval = 100;
+    return _1141_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1137_main());
+  printf("%ld",_1139_main());
   return 0;
 }

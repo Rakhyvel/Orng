@@ -4,6 +4,6 @@
 // the package being built.
 fn build() -> Package {
     let ratval = Package::executable(.root="main.orng")
-    let _ = Package::find("yo momma") catch unreachable
+    let _ = Package::find("../std") catch unreachable
     ratval
 }

@@ -18,26 +18,26 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1231_main(void);
+int64_t _1233_main(void);
 
 
 /* Function definitions */
-int64_t _1231_main(void){
-    int64_t _1231_t3;
-    struct struct0 _1232_y;
-    int64_t _1231_t6;
-    int64_t _1231_t10;
-    int64_t _1231_$retval;
-    _1231_t3 = 100;
-    _1232_y = (struct struct0) {.tag=0, ._0=_1231_t3};
-    _1231_t6 = _1232_y._0;
-    _1231_t10 = 14;
-    _1231_$retval = $add_int64_t(_1231_t6, _1231_t10, "tests/integration/optional/orelse.orng:5:21:\n    (y orelse -10) + (x orelse 14)\n                   ^");
-    return _1231_$retval;
+int64_t _1233_main(void){
+    int64_t _1233_t3;
+    struct struct0 _1234_y;
+    int64_t _1233_t6;
+    int64_t _1233_t10;
+    int64_t _1233_$retval;
+    _1233_t3 = 100;
+    _1234_y = (struct struct0) {.tag=0, ._0=_1233_t3};
+    _1233_t6 = _1234_y._0;
+    _1233_t10 = 14;
+    _1233_$retval = $add_int64_t(_1233_t6, _1233_t10, "tests/integration/optional/orelse.orng:5:21:\n    (y orelse -10) + (x orelse 14)\n                   ^");
+    return _1233_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1231_main());
+  printf("%ld",_1233_main());
   return 0;
 }

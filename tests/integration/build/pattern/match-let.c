@@ -17,76 +17,76 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1338_main(void);
+int64_t _1340_main(void);
 
 
 /* Function definitions */
-int64_t _1338_main(void){
-    int64_t _1338_t2;
-    int64_t _1338_t3;
-    int64_t _1338_t4;
-    struct struct0 _1339_x;
-    int64_t _1338_t6;
-    int64_t _1338_t7;
-    int64_t _1338_t8;
-    uint8_t _1338_t9;
-    int64_t _1338_t0;
-    int64_t _1338_t12;
-    uint8_t _1338_t13;
-    int64_t _1338_$retval;
-    int64_t _1338_t10;
-    uint8_t _1338_t11;
-    _1338_t2 = 1;
-    _1338_t3 = 2;
-    _1338_t4 = 3;
-    _1339_x = (struct struct0) {_1338_t2, _1338_t3, _1338_t4};
-    _1338_t6 = 2;
-    _1338_t7 = 3;
-    _1338_t8 = 1;
-    $bounds_check(_1338_t6, _1338_t7, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
-    _1338_t9 = *((int64_t*)&_1339_x + _1338_t6)==_1338_t8;
-    if (_1338_t9) {
-        goto BB1532;
+int64_t _1340_main(void){
+    int64_t _1340_t2;
+    int64_t _1340_t3;
+    int64_t _1340_t4;
+    struct struct0 _1341_x;
+    int64_t _1340_t6;
+    int64_t _1340_t7;
+    int64_t _1340_t8;
+    uint8_t _1340_t9;
+    int64_t _1340_t0;
+    int64_t _1340_t12;
+    uint8_t _1340_t13;
+    int64_t _1340_$retval;
+    int64_t _1340_t10;
+    uint8_t _1340_t11;
+    _1340_t2 = 1;
+    _1340_t3 = 2;
+    _1340_t4 = 3;
+    _1341_x = (struct struct0) {_1340_t2, _1340_t3, _1340_t4};
+    _1340_t6 = 2;
+    _1340_t7 = 3;
+    _1340_t8 = 1;
+    $bounds_check(_1340_t6, _1340_t7, "tests/integration/pattern/match-let.orng:4:10:\n        1 => 2\n        ^");
+    _1340_t9 = *((int64_t*)&_1341_x + _1340_t6)==_1340_t8;
+    if (_1340_t9) {
+        goto BB1534;
     } else {
-        goto BB1535;
-    }
-BB1532:
-    _1338_t0 = 2;
-    goto BB1534;
-BB1535:
-    _1338_t10 = 2;
-    $bounds_check(_1338_t6, _1338_t7, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
-    _1338_t11 = *((int64_t*)&_1339_x + _1338_t6)==_1338_t10;
-    if (_1338_t11) {
         goto BB1537;
-    } else {
-        goto BB1538;
     }
 BB1534:
-    _1338_$retval = _1338_t0;
-    return _1338_$retval;
+    _1340_t0 = 2;
+    goto BB1536;
 BB1537:
-    _1338_t0 = 22;
-    goto BB1534;
-BB1538:
-    _1338_t12 = 3;
-    $bounds_check(_1338_t6, _1338_t7, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
-    _1338_t13 = *((int64_t*)&_1339_x + _1338_t6)==_1338_t12;
-    if (_1338_t13) {
-        goto BB1540;
+    _1340_t10 = 2;
+    $bounds_check(_1340_t6, _1340_t7, "tests/integration/pattern/match-let.orng:5:10:\n        2 => 22\n        ^");
+    _1340_t11 = *((int64_t*)&_1341_x + _1340_t6)==_1340_t10;
+    if (_1340_t11) {
+        goto BB1539;
     } else {
-        goto BB1542;
+        goto BB1540;
     }
+BB1536:
+    _1340_$retval = _1340_t0;
+    return _1340_$retval;
+BB1539:
+    _1340_t0 = 22;
+    goto BB1536;
 BB1540:
-    _1338_t0 = 222;
-    goto BB1534;
+    _1340_t12 = 3;
+    $bounds_check(_1340_t6, _1340_t7, "tests/integration/pattern/match-let.orng:6:10:\n        3 => 222\n        ^");
+    _1340_t13 = *((int64_t*)&_1341_x + _1340_t6)==_1340_t12;
+    if (_1340_t13) {
+        goto BB1542;
+    } else {
+        goto BB1544;
+    }
 BB1542:
-    _1338_t0 = 0;
-    goto BB1534;
+    _1340_t0 = 222;
+    goto BB1536;
+BB1544:
+    _1340_t0 = 0;
+    goto BB1536;
 }
 
 
 int main(void) {
-  printf("%ld",_1338_main());
+  printf("%ld",_1340_main());
   return 0;
 }

@@ -12,28 +12,28 @@
 typedef void(*function0)(void);
 
 /* Function forward definitions */
-int64_t _930_main(void);
-void _932_f(void);
+int64_t _932_main(void);
+void _934_f(void);
 
 
 /* Function definitions */
-int64_t _930_main(void){
-    function0 _930_t0;
-    int64_t _930_$retval;
-    _930_t0 = (function0) _932_f;
+int64_t _932_main(void){
+    function0 _932_t0;
+    int64_t _932_$retval;
+    _932_t0 = (function0) _934_f;
     $lines[$line_idx++] = "tests/integration/expressions/unit.orng:3:7:\n    f()\n     ^";
-    (void) _930_t0();
+    (void) _932_t0();
     $line_idx--;
-    _930_$retval = 48;
-    return _930_$retval;
+    _932_$retval = 48;
+    return _932_$retval;
 }
 
-void _932_f(void){
+void _934_f(void){
     return;
 }
 
 
 int main(void) {
-  printf("%ld",_930_main());
+  printf("%ld",_932_main());
   return 0;
 }

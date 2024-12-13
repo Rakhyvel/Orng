@@ -12,31 +12,31 @@
 typedef int64_t(*function0)(void);
 
 /* Function forward definitions */
-int64_t _151_main(void);
-int64_t _154_f(void);
+int64_t _153_main(void);
+int64_t _156_f(void);
 
 
 /* Function definitions */
-int64_t _151_main(void){
-    function0 _151_t0;
-    int64_t _151_t1;
-    int64_t _151_$retval;
-    _151_t0 = (function0) _154_f;
+int64_t _153_main(void){
+    function0 _153_t0;
+    int64_t _153_t1;
+    int64_t _153_$retval;
+    _153_t0 = (function0) _156_f;
     $lines[$line_idx++] = "tests/integration/comptime/empty-block.orng:3:7:\n    f(comptime {})\n     ^";
-    _151_t1 = _151_t0();
+    _153_t1 = _153_t0();
     $line_idx--;
-    _151_$retval = _151_t1;
-    return _151_$retval;
+    _153_$retval = _153_t1;
+    return _153_$retval;
 }
 
-int64_t _154_f(void){
-    int64_t _154_$retval;
-    _154_$retval = 262;
-    return _154_$retval;
+int64_t _156_f(void){
+    int64_t _156_$retval;
+    _156_$retval = 262;
+    return _156_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_151_main());
+  printf("%ld",_153_main());
   return 0;
 }

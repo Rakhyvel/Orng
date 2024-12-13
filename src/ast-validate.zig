@@ -570,6 +570,7 @@ fn validate_AST_internal(
 
             // Create a context and interpret
             var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
+            defer context.deinit();
             context.load_module(module);
             try context.interpret();
 

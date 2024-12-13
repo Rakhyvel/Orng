@@ -19,25 +19,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1588_main(void);
+int64_t _1590_main(void);
 
 
 /* Function definitions */
-int64_t _1588_main(void){
-    int64_t _1588_t0;
-    struct struct0 _1589_x;
-    uint64_t _1588_t3;
-    int64_t _1588_$retval;
-    _1588_t0 = 104;
-    _1589_x = (struct struct0) {.tag=0, ._0=_1588_t0};
-    _1588_t3 = 0;
-    $tag_check(_1588_t3, 0, "tests/integration/sums/namespace.orng:4:8:\nfn main() -> Int {\n      ^");
-    _1588_$retval = _1589_x._0;
-    return _1588_$retval;
+int64_t _1590_main(void){
+    int64_t _1590_t0;
+    struct struct0 _1591_x;
+    uint64_t _1590_t3;
+    int64_t _1590_$retval;
+    _1590_t0 = 104;
+    _1591_x = (struct struct0) {.tag=0, ._0=_1590_t0};
+    _1590_t3 = 0;
+    $tag_check(_1590_t3, 0, "tests/integration/sums/namespace.orng:4:8:\nfn main() -> Int {\n      ^");
+    _1590_$retval = _1591_x._0;
+    return _1590_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1588_main());
+  printf("%ld",_1590_main());
   return 0;
 }

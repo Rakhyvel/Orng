@@ -7,74 +7,74 @@
 #include "debug.inc"
 
 /* Function forward definitions */
-int64_t _1952_main(void);
+int64_t _1954_main(void);
 
 
 /* Function definitions */
-int64_t _1952_main(void){
-    uint8_t _1953_found;
-    int64_t _1954_n;
-    int64_t _1952_t5;
-    uint8_t _1952_t6;
-    int64_t _1952_t14;
-    int64_t _1952_t10;
-    uint8_t _1952_t12;
-    int64_t _1952_t16;
-    int64_t _1952_$retval;
-    _1953_found = 0;
-    _1954_n = 0;
-    goto BB2109;
-BB2109:
-    _1952_t5 = 10;
-    _1952_t6 = _1954_n<_1952_t5;
-    if (_1952_t6) {
-        goto BB2110;
-    } else {
-        goto BB2125;
-    }
-BB2110:
-    if (_1953_found) {
-        goto BB2111;
-    } else {
-        goto BB2113;
-    }
-BB2125:
-    if (_1953_found) {
-        goto BB2126;
-    } else {
-        goto BB2130;
-    }
+int64_t _1954_main(void){
+    uint8_t _1955_found;
+    int64_t _1956_n;
+    int64_t _1954_t5;
+    uint8_t _1954_t6;
+    int64_t _1954_t14;
+    int64_t _1954_t10;
+    uint8_t _1954_t12;
+    int64_t _1954_t16;
+    int64_t _1954_$retval;
+    _1955_found = 0;
+    _1956_n = 0;
+    goto BB2111;
 BB2111:
-    _1954_n = 100;
-    goto BB2113;
-BB2113:
-    _1952_t10 = 6;
-    _1952_t12 = _1954_n==_1952_t10;
-    if (_1952_t12) {
-        goto BB2116;
+    _1954_t5 = 10;
+    _1954_t6 = _1956_n<_1954_t5;
+    if (_1954_t6) {
+        goto BB2112;
     } else {
-        goto BB2120;
+        goto BB2127;
     }
-BB2126:
-    _1952_t16 = 15;
-    goto BB2129;
-BB2130:
-    _1952_t16 = 4;
-    goto BB2129;
-BB2116:
-    _1953_found = 1;
-    goto BB2120;
-BB2120:
-    _1952_t14 = 1;
-    _1954_n = $add_int64_t(_1954_n, _1952_t14, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
-    goto BB2109;
-BB2129:
-    _1952_$retval = _1952_t16;
-    return _1952_$retval;
+BB2112:
+    if (_1955_found) {
+        goto BB2113;
+    } else {
+        goto BB2115;
+    }
+BB2127:
+    if (_1955_found) {
+        goto BB2128;
+    } else {
+        goto BB2132;
+    }
+BB2113:
+    _1956_n = 100;
+    goto BB2115;
+BB2115:
+    _1954_t10 = 6;
+    _1954_t12 = _1956_n==_1954_t10;
+    if (_1954_t12) {
+        goto BB2118;
+    } else {
+        goto BB2122;
+    }
+BB2128:
+    _1954_t16 = 15;
+    goto BB2131;
+BB2132:
+    _1954_t16 = 4;
+    goto BB2131;
+BB2118:
+    _1955_found = 1;
+    goto BB2122;
+BB2122:
+    _1954_t14 = 1;
+    _1956_n = $add_int64_t(_1956_n, _1954_t14, "tests/integration/whitebox/branch-condition-versioning.orng:4:43:\n    while let mut n: Int = 0; n < 10; n += 1 {\n                                         ^");
+    goto BB2111;
+BB2131:
+    _1954_$retval = _1954_t16;
+    return _1954_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1952_main());
+  printf("%ld",_1954_main());
   return 0;
 }

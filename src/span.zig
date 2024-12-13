@@ -24,12 +24,14 @@ pub const Span = struct {
     col: usize,
 
     /// Prints out a line string, with quotes and arrow.
-    pub fn print_debug_line(self: Span, writer: anytype, comptime span_format: Span_Format) !void { // TODO: Uninfer error
+    pub fn print_debug_line(self: *const Span, writer: anytype, comptime span_format: Span_Format) !void { // TODO: Uninfer error
         var spaces = String.init(std.heap.page_allocator);
         defer spaces.deinit();
 
-        for (1..self.col - 1) |_| {
-            spaces.insert(" ", spaces.size) catch unreachable;
+        if (self.col > 0) {
+            for (1..self.col -| 1) |_| {
+                spaces.insert(" ", spaces.size) catch unreachable;
+            }
         }
         const text_to_write = if (span_format.sanitize)
             sanitize_string(self.line_text, std.heap.page_allocator)

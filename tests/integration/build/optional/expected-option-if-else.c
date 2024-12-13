@@ -18,25 +18,25 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _1188_main(void);
+int64_t _1190_main(void);
 
 
 /* Function definitions */
-int64_t _1188_main(void){
-    int64_t _1188_t0;
-    struct struct0 _1189_x;
-    uint64_t _1188_t3;
-    int64_t _1188_$retval;
-    _1188_t0 = 125;
-    _1189_x = (struct struct0) {.tag=0, ._0=_1188_t0};
-    _1188_t3 = 0;
-    $tag_check(_1188_t3, 0, "tests/integration/optional/expected-option-if-else.orng:2:8:\nfn main() -> Int {\n      ^");
-    _1188_$retval = _1189_x._0;
-    return _1188_$retval;
+int64_t _1190_main(void){
+    int64_t _1190_t0;
+    struct struct0 _1191_x;
+    uint64_t _1190_t3;
+    int64_t _1190_$retval;
+    _1190_t0 = 125;
+    _1191_x = (struct struct0) {.tag=0, ._0=_1190_t0};
+    _1190_t3 = 0;
+    $tag_check(_1190_t3, 0, "tests/integration/optional/expected-option-if-else.orng:2:8:\nfn main() -> Int {\n      ^");
+    _1190_$retval = _1191_x._0;
+    return _1190_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_1188_main());
+  printf("%ld",_1190_main());
   return 0;
 }

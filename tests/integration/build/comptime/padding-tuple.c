@@ -17,18 +17,18 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _305_main(void);
+int64_t _307_main(void);
 
 
 /* Function definitions */
-int64_t _305_main(void){
-    int64_t _305_$retval;
-    _305_$retval = 257;
-    return _305_$retval;
+int64_t _307_main(void){
+    int64_t _307_$retval;
+    _307_$retval = 257;
+    return _307_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_305_main());
+  printf("%ld",_307_main());
   return 0;
 }

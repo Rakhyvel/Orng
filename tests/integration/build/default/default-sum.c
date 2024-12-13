@@ -18,42 +18,42 @@ struct struct0 {
 };
 
 /* Function forward definitions */
-int64_t _597_main(void);
+int64_t _599_main(void);
 
 
 /* Function definitions */
-int64_t _597_main(void){
-    int64_t _597_t0;
-    struct struct0 _598_x;
-    uint64_t _597_t4;
-    int64_t _597_t5;
-    uint8_t _597_t7;
-    int64_t _597_t3;
-    int64_t _597_$retval;
-    _597_t0 = 0;
-    _598_x = (struct struct0) {.tag=0, ._0=_597_t0};
-    _597_t4 = 0;
-    _597_t5 = 0;
-    $tag_check(_597_t4, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
-    _597_t7 = _598_x._0==_597_t5;
-    if (_597_t7) {
-        goto BB681;
+int64_t _599_main(void){
+    int64_t _599_t0;
+    struct struct0 _600_x;
+    uint64_t _599_t4;
+    int64_t _599_t5;
+    uint8_t _599_t7;
+    int64_t _599_t3;
+    int64_t _599_$retval;
+    _599_t0 = 0;
+    _600_x = (struct struct0) {.tag=0, ._0=_599_t0};
+    _599_t4 = 0;
+    _599_t5 = 0;
+    $tag_check(_599_t4, 0, "tests/integration/default/default-sum.orng:3:10:\n    let x: (a: Int | b | c)\n        ^");
+    _599_t7 = _600_x._0==_599_t5;
+    if (_599_t7) {
+        goto BB683;
     } else {
-        goto BB685;
+        goto BB687;
     }
-BB681:
-    _597_t3 = 133;
-    goto BB684;
-BB685:
-    _597_t3 = 0;
-    goto BB684;
-BB684:
-    _597_$retval = _597_t3;
-    return _597_$retval;
+BB683:
+    _599_t3 = 133;
+    goto BB686;
+BB687:
+    _599_t3 = 0;
+    goto BB686;
+BB686:
+    _599_$retval = _599_t3;
+    return _599_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_597_main());
+  printf("%ld",_599_main());
   return 0;
 }

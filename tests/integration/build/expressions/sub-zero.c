@@ -12,67 +12,67 @@
 typedef uint8_t(*function0)(int64_t);
 
 /* Function forward definitions */
-int64_t _892_main(void);
-uint8_t _897_f(int64_t _897_x);
+int64_t _894_main(void);
+uint8_t _899_f(int64_t _899_x);
 
 
 /* Function definitions */
-int64_t _892_main(void){
-    function0 _892_t1;
-    int64_t _892_t3;
-    uint8_t _892_t2;
-    int64_t _892_t0;
-    int64_t _892_$retval;
-    _892_t1 = (function0) _897_f;
-    _892_t3 = 4;
+int64_t _894_main(void){
+    function0 _894_t1;
+    int64_t _894_t3;
+    uint8_t _894_t2;
+    int64_t _894_t0;
+    int64_t _894_$retval;
+    _894_t1 = (function0) _899_f;
+    _894_t3 = 4;
     $lines[$line_idx++] = "tests/integration/expressions/sub-zero.orng:3:10:\n    if f(4) {\n        ^";
-    _892_t2 = _892_t1(_892_t3);
+    _894_t2 = _894_t1(_894_t3);
     $line_idx--;
-    if (_892_t2) {
-        goto BB1088;
+    if (_894_t2) {
+        goto BB1090;
     } else {
-        goto BB1092;
+        goto BB1094;
     }
-BB1088:
-    _892_t0 = 184;
-    goto BB1091;
-BB1092:
-    _892_t0 = 4;
-    goto BB1091;
-BB1091:
-    _892_$retval = _892_t0;
-    return _892_$retval;
+BB1090:
+    _894_t0 = 184;
+    goto BB1093;
+BB1094:
+    _894_t0 = 4;
+    goto BB1093;
+BB1093:
+    _894_$retval = _894_t0;
+    return _894_$retval;
 }
 
-uint8_t _897_f(int64_t _897_x){
-    uint8_t _897_$retval;
-    uint8_t _897_t0;
-    int64_t _897_t6;
-    int64_t _897_t7;
-    uint8_t _897_t9;
-    goto BB1078;
-BB1078:
-    _897_t6 = $negate_int64_t(_897_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^");
-    _897_t7 = $negate_int64_t(_897_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
-    _897_t9 = _897_t6==_897_t7;
-    if (_897_t9) {
-        goto BB1081;
+uint8_t _899_f(int64_t _899_x){
+    uint8_t _899_$retval;
+    uint8_t _899_t0;
+    int64_t _899_t6;
+    int64_t _899_t7;
+    uint8_t _899_t9;
+    goto BB1080;
+BB1080:
+    _899_t6 = $negate_int64_t(_899_x, "tests/integration/expressions/sub-zero.orng:11:23:\n    x - 0 == x and 0 - x == -x\n                     ^");
+    _899_t7 = $negate_int64_t(_899_x, "tests/integration/expressions/sub-zero.orng:11:30:\n    x - 0 == x and 0 - x == -x\n                            ^");
+    _899_t9 = _899_t6==_899_t7;
+    if (_899_t9) {
+        goto BB1083;
     } else {
-        goto BB1084;
+        goto BB1086;
     }
-BB1081:
-    _897_t0 = 1;
-    goto BB1083;
-BB1084:
-    _897_t0 = 0;
-    goto BB1083;
 BB1083:
-    _897_$retval = _897_t0;
-    return _897_$retval;
+    _899_t0 = 1;
+    goto BB1085;
+BB1086:
+    _899_t0 = 0;
+    goto BB1085;
+BB1085:
+    _899_$retval = _899_t0;
+    return _899_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_892_main());
+  printf("%ld",_894_main());
   return 0;
 }

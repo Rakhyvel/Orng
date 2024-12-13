@@ -19,70 +19,70 @@ struct struct1 {
 typedef int64_t(*function0)(int8_t, int16_t, int8_t);
 
 /* Function forward definitions */
-int64_t _282_main(void);
-int64_t _284_f(int8_t _284_x, int16_t _284_y, int8_t _284_z);
+int64_t _284_main(void);
+int64_t _286_f(int8_t _286_x, int16_t _286_y, int8_t _286_z);
 
 
 /* Function definitions */
-int64_t _282_main(void){
-    int8_t _283_x;
-    int16_t _283_y;
-    int8_t _283_z;
-    function0 _282_t6;
-    int64_t _282_t7;
-    int64_t _282_$retval;
-    _283_x = 50;
-    _283_y = 200;
-    _283_z = 6;
-    _282_t6 = (function0) _284_f;
+int64_t _284_main(void){
+    int8_t _285_x;
+    int16_t _285_y;
+    int8_t _285_z;
+    function0 _284_t6;
+    int64_t _284_t7;
+    int64_t _284_$retval;
+    _285_x = 50;
+    _285_y = 200;
+    _285_z = 6;
+    _284_t6 = (function0) _286_f;
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:6:7:\n    f(x, y, z)\n     ^";
-    _282_t7 = _282_t6(_283_x, _283_y, _283_z);
+    _284_t7 = _284_t6(_285_x, _285_y, _285_z);
     $line_idx--;
-    _282_$retval = _282_t7;
-    return _282_$retval;
+    _284_$retval = _284_t7;
+    return _284_$retval;
 }
 
-int64_t _284_f(int8_t _284_x, int16_t _284_y, int8_t _284_z){
-    int8_t _284_t1;
-    uint8_t _284_t3;
-    int64_t _284_$retval;
-    int16_t _284_t4;
-    uint8_t _284_t6;
-    int8_t _284_t7;
-    uint8_t _284_t9;
-    _284_t1 = 50;
-    _284_t3 = _284_x==_284_t1;
-    if (_284_t3) {
-        goto BB279;
+int64_t _286_f(int8_t _286_x, int16_t _286_y, int8_t _286_z){
+    int8_t _286_t1;
+    uint8_t _286_t3;
+    int64_t _286_$retval;
+    int16_t _286_t4;
+    uint8_t _286_t6;
+    int8_t _286_t7;
+    uint8_t _286_t9;
+    _286_t1 = 50;
+    _286_t3 = _286_x==_286_t1;
+    if (_286_t3) {
+        goto BB281;
     } else {
-        goto BB289;
+        goto BB291;
     }
-BB279:
-    _284_t4 = 200;
-    _284_t6 = _284_y==_284_t4;
-    if (_284_t6) {
-        goto BB282;
+BB281:
+    _286_t4 = 200;
+    _286_t6 = _286_y==_286_t4;
+    if (_286_t6) {
+        goto BB284;
     } else {
-        goto BB289;
+        goto BB291;
     }
-BB289:
+BB291:
     $lines[$line_idx++] = "tests/integration/comptime/padding-local.orng:13:20:\n        unreachable\n                  ^";
     $panic("reached unreachable code\n");
-BB282:
-    _284_t7 = 6;
-    _284_t9 = _284_z==_284_t7;
-    if (_284_t9) {
-        goto BB285;
+BB284:
+    _286_t7 = 6;
+    _286_t9 = _286_z==_286_t7;
+    if (_286_t9) {
+        goto BB287;
     } else {
-        goto BB289;
+        goto BB291;
     }
-BB285:
-    _284_$retval = 256;
-    return _284_$retval;
+BB287:
+    _286_$retval = 256;
+    return _286_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_282_main());
+  printf("%ld",_284_main());
   return 0;
 }

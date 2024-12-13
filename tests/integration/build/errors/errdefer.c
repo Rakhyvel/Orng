@@ -23,58 +23,58 @@ struct struct2 {
 typedef struct struct2(*function0)(int64_t*, uint8_t);
 
 /* Function forward definitions */
-int64_t _609_main(void);
-struct struct2 _611_f(int64_t* _611_x, uint8_t _611_fail);
+int64_t _611_main(void);
+struct struct2 _613_f(int64_t* _613_x, uint8_t _613_fail);
 
 
 /* Function definitions */
-int64_t _609_main(void){
-    int64_t _610_x;
-    int64_t _610_y;
-    function0 _609_t4;
-    int64_t* _609_t6;
-    uint8_t _609_t7;
-    function0 _609_t9;
-    int64_t* _609_t11;
-    uint8_t _609_t12;
-    int64_t _609_$retval;
-    _610_x = 10;
-    _610_y = 10;
-    _609_t4 = (function0) _611_f;
-    _609_t6 = &_610_x;
-    _609_t7 = 1;
+int64_t _611_main(void){
+    int64_t _612_x;
+    int64_t _612_y;
+    function0 _611_t4;
+    int64_t* _611_t6;
+    uint8_t _611_t7;
+    function0 _611_t9;
+    int64_t* _611_t11;
+    uint8_t _611_t12;
+    int64_t _611_$retval;
+    _612_x = 10;
+    _612_y = 10;
+    _611_t4 = (function0) _613_f;
+    _611_t6 = &_612_x;
+    _611_t7 = 1;
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:5:11:\n    _ = f(&mut x, true)\n         ^";
-    (void) _609_t4(_609_t6, _609_t7);
+    (void) _611_t4(_611_t6, _611_t7);
     $line_idx--;
-    _609_t9 = (function0) _611_f;
-    _609_t11 = &_610_y;
-    _609_t12 = 0;
+    _611_t9 = (function0) _613_f;
+    _611_t11 = &_612_y;
+    _611_t12 = 0;
     $lines[$line_idx++] = "tests/integration/errors/errdefer.orng:6:11:\n    _ = f(&mut y, false)\n         ^";
-    (void) _609_t9(_609_t11, _609_t12);
+    (void) _611_t9(_611_t11, _611_t12);
     $line_idx--;
-    _609_$retval = $add_int64_t(_610_x, _610_y, "tests/integration/errors/errdefer.orng:7:8:\n    x + y\n      ^");
-    return _609_$retval;
+    _611_$retval = $add_int64_t(_612_x, _612_y, "tests/integration/errors/errdefer.orng:7:8:\n    x + y\n      ^");
+    return _611_$retval;
 }
 
-struct struct2 _611_f(int64_t* _611_x, uint8_t _611_fail){
-    struct struct2 _611_$retval;
-    *_611_x = 4;
-    if (_611_fail) {
-        goto BB696;
+struct struct2 _613_f(int64_t* _613_x, uint8_t _613_fail){
+    struct struct2 _613_$retval;
+    *_613_x = 4;
+    if (_613_fail) {
+        goto BB698;
     } else {
-        goto BB699;
+        goto BB701;
     }
-BB696:
-    _611_$retval = (struct struct2) {.tag=1};
-    *_611_x = 115;
-    return _611_$retval;
-BB699:
-    _611_$retval = (struct struct2) {.tag=0};
-    return _611_$retval;
+BB698:
+    _613_$retval = (struct struct2) {.tag=1};
+    *_613_x = 115;
+    return _613_$retval;
+BB701:
+    _613_$retval = (struct struct2) {.tag=0};
+    return _613_$retval;
 }
 
 
 int main(void) {
-  printf("%ld",_609_main());
+  printf("%ld",_611_main());
   return 0;
 }
