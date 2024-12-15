@@ -21,7 +21,7 @@ pub var int16_type: *ast_.AST = undefined;
 pub var int32_type: *ast_.AST = undefined;
 pub var int64_type: *ast_.AST = undefined;
 pub var package_type: *ast_.AST = undefined;
-pub var err_addr_package_type: *ast_.AST = undefined;
+pub var addr_package_type: *ast_.AST = undefined;
 pub var string_type: *ast_.AST = undefined;
 pub var type_type: *ast_.AST = undefined;
 pub var unit_type: *ast_.AST = undefined;
@@ -360,9 +360,17 @@ fn create_prelude() !void {
         \\)
         \\
         \\impl for Package {
+        \\  /// Creates an executable package
         \\  fn executable(root: String) -> Self { (root, .executable) }
+        \\
+        \\  /// Creates a static library package
         \\  fn static_library(root: String) -> Self { (root, .static_library) }
-        \\  fn find(name: String) -> ()!&Self { _ = name; .err }
+        \\
+        \\  /// Finds a package given a name
+        \\  /// NOTE: This is currently implemented as a builtin-function in the compiler
+        \\  fn find(name: String) -> &Self { _ = name; unreachable }
+        \\
+        \\  /// Adds a package to the list of required packages
         \\  fn requires(&mut self, other: &Package) -> () {
         \\      while let mut i = 0; i < 8; i += 1 {
         \\          if self.requirements[i] == .none {
@@ -394,11 +402,7 @@ fn create_prelude() !void {
     );
 
     package_type = module.scope.lookup("Package", false).found.init.?;
-    err_addr_package_type = ast_.AST.create_error_type(
-        unit_type,
-        ast_.AST.create_addr_of(package_type.token(), err_addr_package_type, false, std.heap.page_allocator),
-        std.heap.page_allocator,
-    );
+    addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, std.heap.page_allocator);
 }
 
 fn create_identifier(name: []const u8) *ast_.AST {

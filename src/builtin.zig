@@ -3,8 +3,12 @@ const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
 const interpreter_ = @import("interpreter.zig");
+const ir_ = @import("ir.zig");
+const lower_ = @import("lower.zig");
+const lval_ = @import("lval.zig");
 const primitives_ = @import("primitives.zig");
 const module_ = @import("module.zig");
+const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
 const Error: type = error{
@@ -15,27 +19,28 @@ const Error: type = error{
 
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
-pub fn package_find(current_module_path: []const u8, package_path: []const u8) Error!struct { mem: []u8, module: *module_.Module } {
+pub fn package_find(context: *interpreter_.Context, current_module_path: []const u8, package_path: []const u8) Error!i64 {
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
 
+    // Construct the path to the package's `build.orng` file
     const current_package = std.fs.path.dirname(current_module_path).?;
     const package_build_paths = [_][]const u8{ current_package, package_path, "build.orng" };
     const package_build_dir = std.fs.path.join(std.heap.page_allocator, &package_build_paths) catch unreachable;
     const package_build_file = std.fs.cwd().realpath(package_build_dir, &path_buffer) catch return error.CompileError;
+
+    // Compile the package's `build.orng` file
     const build_cfg = try compile_build_file(package_build_file, std.heap.page_allocator);
+    context.load_module(build_cfg.symbol.scope.module.?);
 
-    var build_context = interpreter_.Context.init();
-    build_context.set_entry_point(build_cfg, primitives_.package_type);
-    try build_context.interpret();
-    defer build_context.deinit();
+    // Allocate space for the package to be placed
+    const package_len: usize = @intCast(primitives_.package_type.sizeof());
+    const adrs: i64 = @intCast(try context.alloc(@intCast(package_len), 8));
+    const retval_place = lval_.L_Value.create_raw_address(adrs, std.heap.page_allocator);
 
-    // Extract the retval
-    const result = build_context.extract_memory_to_owned(
-        0,
-        @intCast(primitives_.package_type.sizeof()),
-        std.heap.page_allocator,
-    );
-    return .{ .mem = result, .module = build_cfg.symbol.scope.module.? };
+    // Call the `build()` fn
+    try context.call(build_cfg.symbol, retval_place, std.ArrayList(*lval_.L_Value).init(std.heap.page_allocator));
+
+    return adrs;
 }
 
 pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Error!*cfg_.CFG {

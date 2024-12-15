@@ -132,6 +132,7 @@ pub const Context = struct {
                 const base = try self.effective_address(lval.select.lhs);
                 return base + lval.select.offset;
             },
+            .raw_address => return lval.raw_address.adrs,
         }
     }
 
@@ -282,7 +283,7 @@ pub const Context = struct {
         return self.load_int(self.stack_pointer, int_size_bytes);
     }
 
-    fn alloc(self: *Context, nbytes: i64, align_to: i64) error{CompileError}!usize {
+    pub fn alloc(self: *Context, nbytes: i64, align_to: i64) error{CompileError}!usize {
         std.debug.assert(nbytes > 0);
         std.debug.assert(align_to == 1 or align_to == 2 or align_to == 4 or align_to == 8);
 
@@ -633,20 +634,10 @@ pub const Context = struct {
                         std.debug.print("searching for package: '{s}'\n", .{string.string.data});
                         const curr_module_path = (self.curr_module() catch unreachable).path;
                         const ret_addr = try self.effective_address(ir.dest.?);
-                        const ret_len = ir.dest.?.sizeof();
-                        if (builtin_.package_find(curr_module_path, string.string.data)) |found_package| {
-                            const mem = found_package.mem;
-                            self.load_module(found_package.module);
-                            const package_len: usize = @intCast(primitives_.package_type.sizeof());
-                            const package_addr = try self.alloc(@intCast(package_len), 8);
-                            std.debug.assert(mem.len <= package_len); // there's enough space to fit the package in the allocated space in memory
-                            std.debug.assert(ret_len == 16); // (addr: Word64, tag: Word64)
-                            // package finding was successful! copy the package to the heap, then set the return value to be `.ok(addr)`
-                            @memcpy(self.memory[package_addr .. package_addr + package_len], mem);
-                            self.store_int(ret_addr, 8, package_addr); // store address
-                            self.store_int(ret_addr + 8, 8, 0); // store tag
+                        if (builtin_.package_find(self, curr_module_path, string.string.data)) |package_address| {
+                            self.store_int(ret_addr, 8, package_address);
                         } else |_| {
-                            @memset(self.memory[@intCast(ret_addr)..@intCast(ret_addr + ret_len)], 0x01); // this sets the error status
+                            return self.panic("interpreter error: cannot find package", .{});
                         }
                         return;
                     }

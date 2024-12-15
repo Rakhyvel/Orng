@@ -1084,7 +1084,7 @@ fn wrap_error_return(
     }
 }
 
-fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
+pub fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
     const temp_symbol = create_temp_symbol(cfg, _type, allocator);
     const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
     return retval;
