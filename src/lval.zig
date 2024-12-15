@@ -61,6 +61,14 @@ pub const L_Value = union(enum) {
         allocator: std.mem.Allocator,
     },
 
+    /// Represents a raw address. Only used internally by the interpreter.
+    raw_address: struct {
+        /// The raw address that this lvalue refers to
+        adrs: i64,
+        /// Allocator that allocated this lvalue
+        allocator: std.mem.Allocator,
+    },
+
     fn create_symbver(symbver: *Symbol_Version, allocator: std.mem.Allocator) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{ .symbver = symbver };
@@ -124,12 +132,21 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
+    pub fn create_raw_address(adrs: i64, allocator: std.mem.Allocator) *L_Value {
+        const retval = allocator.create(L_Value) catch unreachable;
+        retval.* = L_Value{
+            .raw_address = .{ .adrs = adrs, .allocator = allocator },
+        };
+        return retval;
+    }
+
     pub fn deinit(self: *L_Value) void {
         switch (self.*) {
             .symbver => self.symbver.deinit(),
             .dereference => self.dereference.allocator.destroy(self),
             .index => self.index.allocator.destroy(self),
             .select => self.select.allocator.destroy(self),
+            .raw_address => self.raw_address.allocator.destroy(self),
         }
     }
 
@@ -149,6 +166,9 @@ pub const L_Value = union(enum) {
             },
             .select => {
                 try out.writer().print("{}._{}", .{ self.select.lhs, self.select.field });
+            },
+            .raw_address => {
+                try out.writer().print("0x{X}", .{self.raw_address.adrs});
             },
         }
 
@@ -172,6 +192,7 @@ pub const L_Value = union(enum) {
             .dereference => self.dereference.expr.extract_symbver(),
             .index => self.index.lhs.extract_symbver(),
             .select => self.select.lhs.extract_symbver(),
+            .raw_address => std.debug.panic("compiler error: raw addresses do not have symbvers", .{}),
         };
     }
 
@@ -190,6 +211,7 @@ pub const L_Value = union(enum) {
             .dereference => return self.dereference.expanded_type,
             .index => return self.index.expanded_type,
             .select => return self.select.expanded_type,
+            .raw_address => std.debug.panic("compiler error: raw addresses do not have types", .{}),
         }
     }
 
@@ -199,6 +221,7 @@ pub const L_Value = union(enum) {
             .dereference => 2,
             .index => 2,
             .select => 1,
+            .raw_address => std.debug.panic("compiler error: raw addresses do not have precedence", .{}),
         };
     }
 
@@ -222,6 +245,7 @@ pub const L_Value = union(enum) {
                     lval.select.tag.?.reset_usage();
                 }
             },
+            .raw_address => std.debug.panic("compiler error: raw addresses do not have usage", .{}),
         }
     }
 
@@ -245,6 +269,7 @@ pub const L_Value = union(enum) {
                     lval.select.tag.?.calculate_usage();
                 }
             },
+            .raw_address => std.debug.panic("compiler error: raw addresses do not have usage", .{}),
         }
     }
 };

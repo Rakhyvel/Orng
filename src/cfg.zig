@@ -337,6 +337,7 @@ pub const CFG = struct {
                     version_lvalue(lval.select.tag.?, bb, ir, parameters);
                 }
             },
+            .raw_address => std.debug.panic("compiler error: raw addresses cannot be versioned", .{}),
         }
     }
 

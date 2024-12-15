@@ -793,6 +793,7 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
                 try writer.print(");\n", .{});
             }
         },
+        .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),
     }
 }
 
@@ -822,6 +823,7 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             try writer.print("._{}", .{lvalue.select.field});
         },
         .symbver => try output_symbol(lvalue.symbver.symbol, writer),
+        .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),
     }
     if (outer_precedence < lvalue.precedence()) {
         // Closing paren, if needed by precedence
@@ -867,6 +869,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
                 try writer.print(")", .{});
             }
         },
+        .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),
     }
 }
 

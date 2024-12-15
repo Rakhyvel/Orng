@@ -3,7 +3,8 @@
 // `build()` is a function that's ran at compile-time. It returns a Package object, that details how the structure of 
 // the package being built.
 fn build() -> Package {
-    let ratval = Package::executable(.root="main.orng")
-    let _ = Package::find("../std") catch unreachable
-    ratval
+    let mut retval = Package::executable(.root="main.orng")
+    let std = Package::find("../std")
+    retval.>requires(std)
+    retval
 }

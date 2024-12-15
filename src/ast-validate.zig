@@ -569,7 +569,8 @@ fn validate_AST_internal(
             defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
+            var context = interpreter_.Context.init();
+            context.set_entry_point(cfg, ret_type);
             defer context.deinit();
             context.load_module(module);
             try context.interpret();
@@ -745,6 +746,9 @@ fn validate_AST_internal(
                 const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), allocator);
                 sum_value.sum_value.base = ast.lhs();
                 return validate_AST(sum_value, expected, errors, allocator);
+            } else if (expanded_lhs_type.* == .product and expanded_lhs_type.product.is_homotypical() and std.mem.eql(u8, "length", ast.rhs().token().data)) {
+                try type_check(ast.token().span, primitives_.int_type, expected, errors);
+                return ast_.AST.create_int(ast.token(), expanded_lhs_type.children().items.len, allocator).assert_valid();
             } else if (ast.pos() == null) {
                 ast.set_pos(try find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, errors));
             }

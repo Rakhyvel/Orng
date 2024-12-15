@@ -78,12 +78,29 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         else => return error.CompileError,
     };
     ast_.init_structures();
-    var build_context = try builtin_.compile_build_file(path, allocator);
+
+    const build_cfg = try builtin_.compile_build_file(path, allocator);
+
+    var build_context = interpreter_.Context.init();
+    build_context.set_entry_point(build_cfg, primitives_.package_type);
+    try build_context.interpret();
     defer build_context.deinit();
 
     // Extract the retval
     var result = build_context.extract_ast(0, primitives_.package_type, allocator);
-    std.debug.print("root: {s}\n", .{result.children().items[0].string.data});
+    print_package_name(result);
+    for (result.children().items[2].children().items) |item| {
+        if (item.sum_value._pos != 0) {
+            continue;
+        }
+        const dependency_addr: i64 = @intCast(item.sum_value.init.?.int.data);
+        const dependency = build_context.extract_ast(dependency_addr, primitives_.package_type, allocator);
+        print_package_name(dependency);
+    }
+}
+
+fn print_package_name(package: *ast_.AST) void {
+    std.debug.print("root: {s}\n", .{package.children().items[0].string.data});
 }
 
 fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {

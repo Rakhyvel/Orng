@@ -273,7 +273,6 @@ pub const Error = union(enum) {
     pub fn print(self: Error) void {
         bold.dump(out) catch unreachable;
         print_label(self.get_span(), "error: ", .red);
-        bold.dump(out) catch unreachable;
         self.print_msg();
         not_bold.dump(out) catch unreachable;
         print_epilude(self.get_span());
@@ -608,6 +607,7 @@ fn print_epilude(maybe_span: ?span_.Span) void {
         if (span.line_number == 0) {
             return;
         } else if (span.line_text.len > 0) {
+            not_bold.dump(out) catch unreachable;
             out.print("{s}\n", .{span.line_text}) catch unreachable;
         }
         for (2..span.col) |_| {
