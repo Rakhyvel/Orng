@@ -110,7 +110,6 @@ fn lower_AST(
             if (symbol.kind == .@"fn") {
                 return try lval_from_symbol_cfg(symbol, cfg, ast.token().span, errors, allocator);
             } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
-                std.debug.print("{s}: {}\n", .{ symbol.name, symbol.expanded_type.? });
                 return lval_from_ast(ast, cfg, allocator);
             } else if (symbol.kind == .@"const") {
                 return try lower_AST(cfg, symbol.init.?, labels, errors, allocator);
@@ -1084,7 +1083,7 @@ fn wrap_error_return(
     }
 }
 
-pub fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
+fn create_temp_lvalue(cfg: *cfg_.CFG, _type: *ast_.AST, allocator: std.mem.Allocator) *lval_.L_Value {
     const temp_symbol = create_temp_symbol(cfg, _type, allocator);
     const retval = lval_.L_Value.create_unversioned_symbver(temp_symbol, allocator);
     return retval;

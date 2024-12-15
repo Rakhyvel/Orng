@@ -746,6 +746,9 @@ fn validate_AST_internal(
                 const sum_value = ast_.AST.create_sum_value(ast.rhs().token(), allocator);
                 sum_value.sum_value.base = ast.lhs();
                 return validate_AST(sum_value, expected, errors, allocator);
+            } else if (expanded_lhs_type.* == .product and expanded_lhs_type.product.is_homotypical() and std.mem.eql(u8, "length", ast.rhs().token().data)) {
+                try type_check(ast.token().span, primitives_.int_type, expected, errors);
+                return ast_.AST.create_int(ast.token(), expanded_lhs_type.children().items.len, allocator).assert_valid();
             } else if (ast.pos() == null) {
                 ast.set_pos(try find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, errors));
             }
@@ -1954,7 +1957,7 @@ fn implicit_dereference(
 
 fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
     if (_type.* != .product and _type.* != .sum_type) {
-        return throw_not_selectable(span, errors); // TODO: Implement for arrays
+        return throw_not_selectable(span, errors);
     }
     for (_type.children().items, 0..) |term, i| {
         if (term.* != .annotation) {

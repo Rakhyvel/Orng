@@ -372,7 +372,7 @@ fn create_prelude() !void {
         \\
         \\  /// Adds a package to the list of required packages
         \\  fn requires(&mut self, other: &Package) -> () {
-        \\      while let mut i = 0; i < 8; i += 1 {
+        \\      while let mut i = 0; i < self.requirements.length; i += 1 {
         \\          if self.requirements[i] == .none {
         \\              self.requirements[i] = .some(other)
         \\              return

@@ -35,7 +35,6 @@ const Instruction_Pointer = struct {
 
 pub const Context = struct {
     // These are signed to make offsets (which can be negative from the base pointer) easier
-    // TODO: Ehh make these not
     stack_pointer: i64,
     base_pointer: i64,
     bump_alloc_pointer: i64,
@@ -251,22 +250,25 @@ pub const Context = struct {
     }
 
     /// Pushes a generic, compiler-comptime-known type to the stack
-    fn push(self: *Context, comptime T: type, val: T) void {
-        self.store(T, self.stack_pointer, val);
+    fn push(self: *Context, comptime T: type, val: T) error{CompileError}!void {
         const t_size: usize = @sizeOf(T);
-        self.stack_pointer += t_size; // TODO: Check for memory space
+        try self.memory_check(t_size);
+        self.store(T, self.stack_pointer, val);
+        self.stack_pointer += t_size;
     }
 
     /// Pushes an integer value onto the interpreter's stack.
-    fn push_int(self: *Context, size: i64, val: i128) void {
+    fn push_int(self: *Context, size: i64, val: i128) error{CompileError}!void {
+        try self.memory_check(size);
         self.store_int(self.stack_pointer, size, val);
-        self.stack_pointer += size; // TODO: Check for memory space
+        self.stack_pointer += size;
     }
 
     /// Pushes a memory block of the specified size onto the interpreter's stack.
-    fn push_move(self: *Context, block_addr: i64, block_size: i64) void {
+    fn push_move(self: *Context, block_addr: i64, block_size: i64) error{CompileError}!void {
+        try self.memory_check(block_size);
         self.move(self.stack_pointer, block_addr, block_size);
-        self.stack_pointer += block_size; // TODO: Check for memory space
+        self.stack_pointer += block_size;
     }
 
     /// Pops a generic, compiler-comptime-known type from the stack
@@ -287,16 +289,18 @@ pub const Context = struct {
         std.debug.assert(nbytes > 0);
         std.debug.assert(align_to == 1 or align_to == 2 or align_to == 4 or align_to == 8);
 
-        if (self.bump_alloc_pointer -| self.stack_pointer < nbytes) {
-            return self.panic("out of memory!", .{});
-        }
+        try self.memory_check(nbytes);
         self.bump_alloc_pointer -= nbytes;
         const alignment_subtract = @rem(self.bump_alloc_pointer, align_to);
-        if (self.bump_alloc_pointer -| self.stack_pointer < alignment_subtract) {
-            return self.panic("out of memory!", .{});
-        }
+        try self.memory_check(alignment_subtract);
         self.bump_alloc_pointer -= alignment_subtract;
         return @intCast(self.bump_alloc_pointer);
+    }
+
+    fn memory_check(self: *Context, space_needed: i64) error{CompileError}!void {
+        if (self.bump_alloc_pointer -| self.stack_pointer < space_needed) {
+            return self.panic("interpreter error: out of memory!", .{});
+        }
     }
 
     /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
@@ -313,19 +317,21 @@ pub const Context = struct {
             const size = arg.get_expanded_type().sizeof();
             const alignof = arg.get_expanded_type().alignof();
             self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
-            self.push_move(try self.effective_address(arg), size);
+            try self.push_move(try self.effective_address(arg), size);
         }
         self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
 
         // Setup next stackframe
-        self.push_int(8, try self.effective_address(retval_place)); // push return-value address
-        self.push_int(8, old_sp); //                                push old sp
-        self.push_int(8, self.base_pointer); //                     push bp
-        self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
+        try self.push_int(8, try self.effective_address(retval_place)); // push return-value address
+        try self.push_int(8, old_sp); //                                push old sp
+        try self.push_int(8, self.base_pointer); //                     push bp
+        try self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
         self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
 
         // allocate space for locals
-        self.stack_pointer += function_symbol.cfg.?.locals_size.?; // TODO: Check for memory space
+        const local_size_bytes = function_symbol.cfg.?.locals_size.?;
+        try self.memory_check(local_size_bytes);
+        self.stack_pointer += local_size_bytes;
 
         // jump to symbol addr
         self.instruction_pointer = Instruction_Pointer{
