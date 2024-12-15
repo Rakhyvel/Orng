@@ -47,36 +47,43 @@ pub const Context = struct {
     start_time: i64,
 
     /// Initializes a new interpreter context.
-    pub fn init(
-        cfg: *cfg_.CFG,
-        ret_type: *ast_.AST, // TODO: Just accept ret_type size
-        entry_point: Instruction_Pointer, // Address of the intruction to start execution at
-    ) Context {
-        const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
-        // std.debug.print("cfg:{s} frame_address:{}\n", .{ cfg.symbol.name, ret_type });
-        var retval = Context{
+    pub fn init() Context {
+        return Context{
             .memory = std.heap.page_allocator.alloc(u8, stack_limit) catch unreachable,
-            .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
-            .base_pointer = (3 * @sizeOf(i64)) + frame_address,
             .bump_alloc_pointer = stack_limit,
+            .stack_pointer = 0,
+            .base_pointer = 0,
 
             .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(std.heap.page_allocator),
-            .instruction_pointer = entry_point,
+            .instruction_pointer = .{ .module_uid = 0, .inst_idx = 0 },
             .debug_call_stack = std.ArrayList(span_.Span).init(std.heap.page_allocator),
 
             .start_time = std.time.milliTimestamp(),
         };
+    }
 
-        retval.debug_call_stack.append(cfg.symbol.span) catch unreachable;
+    pub fn set_entry_point(
+        self: *Context,
+        entry: *cfg_.CFG,
+        ret_type: *ast_.AST,
+    ) void {
+        const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
+        const module = entry.symbol.scope.module.?;
+
+        self.stack_pointer = (5 * @sizeOf(i64)) + frame_address + entry.locals_size.?;
+        self.base_pointer = (3 * @sizeOf(i64)) + frame_address;
+        self.instruction_pointer = .{ .module_uid = module.uid, .inst_idx = entry.offset.? };
 
         // First `ret_type.sizeof()` bytes are reserved for the return value
         // Initial stack frame is setup immediately after
-        retval.store_int(frame_address + 0 * @sizeOf(i64), @sizeOf(i64), 0); // Set the return value address to 0
-        retval.store_int(frame_address + 1 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-bp to 0
-        retval.store_int(frame_address + 2 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-sp to 0
-        retval.store(Instruction_Pointer, frame_address + 3 * @sizeOf(i64), .{ .module_uid = 0, .inst_idx = halt_trap_instruction }); // Set the return address to halt trap value
+        self.store_int(frame_address + 0 * @sizeOf(i64), @sizeOf(i64), 0); // Set the return value address to 0
+        self.store_int(frame_address + 1 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-bp to 0
+        self.store_int(frame_address + 2 * @sizeOf(i64), @sizeOf(i64), 0); // Set the prev-sp to 0
+        self.store(Instruction_Pointer, frame_address + 3 * @sizeOf(i64), .{ .module_uid = 0, .inst_idx = halt_trap_instruction }); // Set the return address to halt trap value
 
-        return retval;
+        self.debug_call_stack.append(entry.symbol.span) catch unreachable;
+
+        self.load_module(module);
     }
 
     pub fn deinit(self: *Context) void {
@@ -291,7 +298,42 @@ pub const Context = struct {
         return @intCast(self.bump_alloc_pointer);
     }
 
-    /// Handles the return operation in the interpreter's calling convention
+    /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
+    /// and then jumps to the function's code.
+    pub fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
+        // Save old stack pointer
+        const old_sp = self.stack_pointer;
+        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+
+        // push args in reverse order
+        var i: i64 = @as(i64, @intCast(args_list.items.len)) - 1;
+        while (i >= 0) : (i -= 1) {
+            const arg = args_list.items[@as(usize, @intCast(i))];
+            const size = arg.get_expanded_type().sizeof();
+            const alignof = arg.get_expanded_type().alignof();
+            self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
+            self.push_move(try self.effective_address(arg), size);
+        }
+        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
+
+        // Setup next stackframe
+        self.push_int(8, try self.effective_address(retval_place)); // push return-value address
+        self.push_int(8, old_sp); //                                push old sp
+        self.push_int(8, self.base_pointer); //                     push bp
+        self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
+        self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
+
+        // allocate space for locals
+        self.stack_pointer += function_symbol.cfg.?.locals_size.?; // TODO: Check for memory space
+
+        // jump to symbol addr
+        self.instruction_pointer = Instruction_Pointer{
+            .module_uid = function_symbol.scope.module.?.uid,
+            .inst_idx = function_symbol.cfg.?.offset.?,
+        };
+    }
+
+    /// Tears down the stack frame, and jumps back to the caller's location
     fn ret(self: *Context) void {
         // deallocate locals
         self.stack_pointer = self.base_pointer + 8;
@@ -592,7 +634,9 @@ pub const Context = struct {
                         const curr_module_path = (self.curr_module() catch unreachable).path;
                         const ret_addr = try self.effective_address(ir.dest.?);
                         const ret_len = ir.dest.?.sizeof();
-                        if (builtin_.package_find(curr_module_path, string.string.data)) |mem| {
+                        if (builtin_.package_find(curr_module_path, string.string.data)) |found_package| {
+                            const mem = found_package.mem;
+                            self.load_module(found_package.module);
                             const package_len: usize = @intCast(primitives_.package_type.sizeof());
                             const package_addr = try self.alloc(@intCast(package_len), 8);
                             std.debug.assert(mem.len <= package_len); // there's enough space to fit the package in the allocated space in memory
@@ -628,41 +672,6 @@ pub const Context = struct {
             },
             else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
         }
-    }
-
-    /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
-    /// and then jumps to the function's code.
-    fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
-        // Save old stack pointer
-        const old_sp = self.stack_pointer;
-        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
-
-        //  push args in reverse order
-        var i: i64 = @as(i64, @intCast(args_list.items.len)) - 1;
-        while (i >= 0) : (i -= 1) {
-            const arg = args_list.items[@as(usize, @intCast(i))];
-            const size = arg.get_expanded_type().sizeof();
-            const alignof = arg.get_expanded_type().alignof();
-            self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
-            self.push_move(try self.effective_address(arg), size);
-        }
-        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
-
-        // Setup next stackframe
-        self.push_int(8, try self.effective_address(retval_place)); // push return-value address
-        self.push_int(8, old_sp); //                                push old sp
-        self.push_int(8, self.base_pointer); //                     push bp
-        self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
-        self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
-
-        // allocate space for locals
-        self.stack_pointer += function_symbol.cfg.?.locals_size.?; // TODO: Check for memory space
-
-        // jump to symbol addr
-        self.instruction_pointer = Instruction_Pointer{
-            .module_uid = function_symbol.scope.module.?.uid,
-            .inst_idx = function_symbol.cfg.?.offset.?,
-        };
     }
 
     /// Signals an interpreter panic, printing an error message and call stack information.

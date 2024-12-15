@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
+const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
 const interpreter_ = @import("interpreter.zig");
 const primitives_ = @import("primitives.zig");
@@ -14,14 +15,19 @@ const Error: type = error{
 
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
-pub fn package_find(current_module_path: []const u8, package_path: []const u8) Error![]u8 {
+pub fn package_find(current_module_path: []const u8, package_path: []const u8) Error!struct { mem: []u8, module: *module_.Module } {
     var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
 
     const current_package = std.fs.path.dirname(current_module_path).?;
     const package_build_paths = [_][]const u8{ current_package, package_path, "build.orng" };
     const package_build_dir = std.fs.path.join(std.heap.page_allocator, &package_build_paths) catch unreachable;
     const package_build_file = std.fs.cwd().realpath(package_build_dir, &path_buffer) catch return error.CompileError;
-    var build_context = try compile_build_file(package_build_file, std.heap.page_allocator);
+    const build_cfg = try compile_build_file(package_build_file, std.heap.page_allocator);
+
+    var build_context = interpreter_.Context.init();
+    build_context.set_entry_point(build_cfg, primitives_.package_type);
+    try build_context.interpret();
+    defer build_context.deinit();
 
     // Extract the retval
     const result = build_context.extract_memory_to_owned(
@@ -29,10 +35,10 @@ pub fn package_find(current_module_path: []const u8, package_path: []const u8) E
         @intCast(primitives_.package_type.sizeof()),
         std.heap.page_allocator,
     );
-    return result;
+    return .{ .mem = result, .module = build_cfg.symbol.scope.module.? };
 }
 
-pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Error!interpreter_.Context {
+pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Error!*cfg_.CFG {
     var errors = errs_.Errors.init(allocator);
     defer errors.deinit();
 
@@ -42,12 +48,7 @@ pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Error!
 
     const build_module = try compile_module(&errors, path, "build", prelude, false, allocator);
 
-    const cfg = build_module.scope.lookup("build", false).found.cfg.?;
-
-    var build_context = interpreter_.Context.init(cfg, primitives_.package_type, .{ .module_uid = build_module.uid, .inst_idx = cfg.offset.? });
-    build_context.load_module(build_module);
-    try build_context.interpret();
-    return build_context;
+    return build_module.scope.lookup("build", false).found.cfg.?;
 }
 
 /// Compiles a module from a file

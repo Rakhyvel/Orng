@@ -552,7 +552,8 @@ pub fn interpret(
     defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret
-    var context = interpreter_.Context.init(cfg, ret_type, .{ .module_uid = module.uid, .inst_idx = cfg.offset.? });
+    var context = interpreter_.Context.init();
+    context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);
     try context.interpret();
