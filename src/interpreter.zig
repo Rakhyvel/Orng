@@ -16,8 +16,6 @@ const timeout_ms = 1000;
 /// Size of the stack. 32 KiB, or around 1024 stack frames.
 const stack_limit = 0x8000; // 32 KiB
 
-/// What uninitialized bytes are set to, purposely not set to 0x00 to stand out during debugging
-const uninit_byte: u8 = 0x55;
 /// Executing an instruction at this address causes the interpreter to halt. This is used as the return address for the
 /// entry point, so that if the entry returns, interpretation halts. Also allows for a way to halt interpretation from
 /// anywhere, by simply jumping to here.
@@ -36,11 +34,13 @@ const Instruction_Pointer = struct {
 };
 
 pub const Context = struct {
+    // These are signed to make offsets (which can be negative from the base pointer) easier
     stack_pointer: i64,
     base_pointer: i64,
+    bump_alloc_pointer: i64,
     instruction_pointer: Instruction_Pointer,
 
-    stack: []u8,
+    memory: []u8,
     modules: std.AutoArrayHashMap(module_.Module_UID, *module_.Module),
     debug_call_stack: std.ArrayList(span_.Span),
     start_time: i64,
@@ -54,9 +54,10 @@ pub const Context = struct {
         const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
         // std.debug.print("frame_address:{}", .{frame_address});
         var retval = Context{
-            .stack = std.heap.page_allocator.alloc(u8, stack_limit) catch unreachable,
+            .memory = std.heap.page_allocator.alloc(u8, stack_limit) catch unreachable,
             .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
             .base_pointer = (3 * @sizeOf(i64)) + frame_address,
+            .bump_alloc_pointer = stack_limit,
 
             .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(std.heap.page_allocator),
             .instruction_pointer = entry_point,
@@ -80,7 +81,7 @@ pub const Context = struct {
     pub fn deinit(self: *Context) void {
         self.modules.deinit();
         self.debug_call_stack.deinit();
-        std.heap.page_allocator.free(self.stack);
+        std.heap.page_allocator.free(self.memory);
     }
 
     pub fn load_module(self: *Context, module: *module_.Module) void {
@@ -130,7 +131,7 @@ pub const Context = struct {
     fn store(self: *Context, comptime T: type, address: i64, val: T) void {
         std.debug.assert(address >= 0);
         // std.debug.print("[0x{X}:{}] = {}\n", .{ address, @alignOf(T), val });
-        @as(*T, @alignCast(@ptrCast(&self.stack[@as(usize, @intCast(address))]))).* = val;
+        @as(*T, @alignCast(@ptrCast(&self.memory[@as(usize, @intCast(address))]))).* = val;
     }
 
     /// Stores an integer value at the specified address in the interpreter's memory.
@@ -158,7 +159,7 @@ pub const Context = struct {
     /// Loads a value of type T from the specified address in the interpreter's memory.
     fn load(self: *Context, comptime T: type, address: i64) T {
         std.debug.assert(address >= 0);
-        const val = @as(*T, @ptrCast(@alignCast(&self.stack[@as(usize, @intCast(address))]))).*;
+        const val = @as(*T, @ptrCast(@alignCast(&self.memory[@as(usize, @intCast(address))]))).*;
         // std.debug.print("[0x{X}:{}] \t// {}\n", .{ address, @alignOf(T), val });
         return val;
     }
@@ -215,8 +216,8 @@ pub const Context = struct {
             std.debug.assert(src >= dest + len); // src is not within dest
         }
         @memcpy(
-            self.stack[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
-            self.stack[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
+            self.memory[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
+            self.memory[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
         );
     }
 
@@ -244,19 +245,19 @@ pub const Context = struct {
     fn push(self: *Context, comptime T: type, val: T) void {
         self.store(T, self.stack_pointer, val);
         const t_size: usize = @sizeOf(T);
-        self.stack_pointer += t_size;
+        self.stack_pointer += t_size; // TODO: Check for memory space
     }
 
     /// Pushes an integer value onto the interpreter's stack.
     fn push_int(self: *Context, size: i64, val: i128) void {
         self.store_int(self.stack_pointer, size, val);
-        self.stack_pointer += size;
+        self.stack_pointer += size; // TODO: Check for memory space
     }
 
     /// Pushes a memory block of the specified size onto the interpreter's stack.
     fn push_move(self: *Context, block_addr: i64, block_size: i64) void {
         self.move(self.stack_pointer, block_addr, block_size);
-        self.stack_pointer += block_size;
+        self.stack_pointer += block_size; // TODO: Check for memory space
     }
 
     /// Pops a generic, compiler-comptime-known type from the stack
@@ -271,6 +272,22 @@ pub const Context = struct {
     fn pop_int(self: *Context, int_size_bytes: i64) i128 {
         self.stack_pointer -= int_size_bytes;
         return self.load_int(self.stack_pointer, int_size_bytes);
+    }
+
+    fn alloc(self: *Context, nbytes: i64, align_to: i64) error{CompileError}!usize {
+        std.debug.assert(nbytes > 0);
+        std.debug.assert(align_to == 1 or align_to == 2 or align_to == 4 or align_to == 8);
+
+        if (self.bump_alloc_pointer -| self.stack_pointer < nbytes) {
+            return self.panic("out of memory!", .{});
+        }
+        self.bump_alloc_pointer -= nbytes;
+        const alignment_subtract = @rem(self.bump_alloc_pointer, align_to);
+        if (self.bump_alloc_pointer -| self.stack_pointer < alignment_subtract) {
+            return self.panic("out of memory!", .{});
+        }
+        self.bump_alloc_pointer -= alignment_subtract;
+        return @intCast(self.bump_alloc_pointer);
     }
 
     /// Handles the return operation in the interpreter's calling convention
@@ -304,7 +321,7 @@ pub const Context = struct {
             if (@rem(i, 8) == 0) {
                 std.debug.print("0x{0X:0>2.}: ", .{i});
             }
-            std.debug.print("{X:0>2.}", .{self.stack[i]});
+            std.debug.print("{X:0>2.}", .{self.memory[i]});
             if (@rem(i, 8) == 7) {
                 std.debug.print(" ", .{});
             }
@@ -571,13 +588,20 @@ pub const Context = struct {
                         const arg: *lval_.L_Value = ir.data.lval_list.items[@as(usize, @intCast(0))];
                         const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, std.heap.page_allocator);
                         std.debug.print("searching for package: '{s}'\n", .{string.string.data});
-                        const ret_addr: usize = @intCast(try self.effective_address(ir.dest.?));
-                        const ret_len: usize = @intCast(ir.dest.?.sizeof());
                         const curr_module_path = (self.curr_module() catch unreachable).path;
+                        const ret_addr = try self.effective_address(ir.dest.?);
+                        const ret_len = ir.dest.?.sizeof();
                         if (builtin_.package_find(curr_module_path, string.string.data)) |mem| {
-                            @memcpy(self.stack[ret_addr .. ret_addr + ret_len], mem);
+                            const package_len: usize = @intCast(primitives_.package_type.sizeof());
+                            const package_addr = try self.alloc(@intCast(package_len), 8);
+                            std.debug.assert(mem.len <= package_len); // there's enough space to fit the package in the allocated space in memory
+                            std.debug.assert(ret_len == 16); // (addr: Word64, tag: Word64)
+                            // package finding was successful! copy the package to the heap, then set the return value to be `.ok(addr)`
+                            @memcpy(self.memory[package_addr .. package_addr + package_len], mem);
+                            self.store_int(ret_addr, 8, package_addr); // store address
+                            self.store_int(ret_addr + 8, 8, 0); // store tag
                         } else |_| {
-                            @memset(self.stack[ret_addr .. ret_addr + ret_len], 0x01); // this sets the error status
+                            @memset(self.memory[@intCast(ret_addr)..@intCast(ret_addr + ret_len)], 0x01); // this sets the error status
                         }
                         return;
                     }
@@ -606,7 +630,7 @@ pub const Context = struct {
                 self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
 
                 // allocate space for locals
-                self.stack_pointer += symbol.cfg.?.locals_size.?;
+                self.stack_pointer += symbol.cfg.?.locals_size.?; // TODO: Check for memory space
 
                 // jump to symbol addr
                 self.instruction_pointer = Instruction_Pointer{
@@ -767,7 +791,7 @@ pub const Context = struct {
     pub fn extract_memory_to_owned(self: *Context, address: usize, size_bytes: usize, allocator: std.mem.Allocator) []u8 {
         const owned = allocator.alloc(u8, size_bytes) catch unreachable;
 
-        @memcpy(owned, self.stack[address .. address + size_bytes]);
+        @memcpy(owned, self.memory[address .. address + size_bytes]);
 
         return owned;
     }

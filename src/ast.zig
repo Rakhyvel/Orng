@@ -2603,7 +2603,7 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data).size,
+            .identifier => return primitives_.info_from_name(self.token().data)._align,
 
             .product => {
                 var max_align: i64 = 0;
@@ -2968,7 +2968,7 @@ pub const AST = union(enum) {
                 try out.writer().print(", .from={s})", .{@tagName(self.sum_type.from)});
             },
             .sum_value => {
-                try out.writer().print("sum_value(.init={?})", .{self.sum_value.init});
+                try out.writer().print("sum_value(.init={?}, .tag={?})", .{ self.sum_value.init, self.sum_value._pos });
             },
             .product => {
                 try out.writer().print("product(", .{});

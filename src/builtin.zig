@@ -26,7 +26,7 @@ pub fn package_find(current_module_path: []const u8, package_path: []const u8) E
     // Extract the retval
     const result = build_context.extract_memory_to_owned(
         0,
-        @intCast(primitives_.err_package_type.expand_type(std.heap.page_allocator).sizeof()),
+        @intCast(primitives_.package_type.sizeof()),
         std.heap.page_allocator,
     );
     return result;
