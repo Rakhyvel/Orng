@@ -355,13 +355,23 @@ fn create_prelude() !void {
     const prelude_contents =
         \\const Package: Type = (
         \\  root: String,
-        \\  kind: (executable | static_library)
+        \\  kind: (executable | static_library),
+        \\  requirements: [8]?&Package = ((?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none)
         \\)
         \\
         \\impl for Package {
         \\  fn executable(root: String) -> Self { (root, .executable) }
         \\  fn static_library(root: String) -> Self { (root, .static_library) }
         \\  fn find(name: String) -> ()!&Self { _ = name; .err }
+        \\  fn requires(&mut self, other: &Package) -> () {
+        \\      while let mut i = 0; i < 8; i += 1 {
+        \\          if self.requirements[i] == .none {
+        \\              self.requirements[i] = .some(other)
+        \\              return
+        \\          }
+        \\      }
+        \\      unreachable // no more space!
+        \\  }
         \\}
         \\
     ;

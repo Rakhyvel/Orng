@@ -44,7 +44,7 @@ pub fn compile_build_file(path: []const u8, allocator: std.mem.Allocator) Error!
 
     const cfg = build_module.scope.lookup("build", false).found.cfg.?;
 
-    var build_context = interpreter_.Context.init(cfg, primitives_.int_type, .{ .module_uid = build_module.uid, .inst_idx = cfg.offset.? });
+    var build_context = interpreter_.Context.init(cfg, primitives_.package_type, .{ .module_uid = build_module.uid, .inst_idx = cfg.offset.? });
     build_context.load_module(build_module);
     try build_context.interpret();
     return build_context;

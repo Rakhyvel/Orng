@@ -1953,7 +1953,7 @@ fn implicit_dereference(
 
 fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
     if (_type.* != .product and _type.* != .sum_type) {
-        return throw_not_selectable(span, errors);
+        return throw_not_selectable(span, errors); // TODO: Implement for arrays
     }
     for (_type.children().items, 0..) |term, i| {
         if (term.* != .annotation) {

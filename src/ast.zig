@@ -2423,8 +2423,18 @@ pub const AST = union(enum) {
             .div,
             .mod,
             => return self.lhs().typeof(allocator),
+
             .@"catch",
             .@"orelse",
+            => {
+                const rhs_type = self.rhs().typeof(allocator);
+                if (rhs_type.types_match(primitives_.void_type)) {
+                    return self.lhs().typeof(allocator).children().items[0].annotation.type;
+                } else {
+                    return rhs_type;
+                }
+            },
+
             .mapping,
             => return self.rhs().typeof(allocator),
 

@@ -35,6 +35,7 @@ const Instruction_Pointer = struct {
 
 pub const Context = struct {
     // These are signed to make offsets (which can be negative from the base pointer) easier
+    // TODO: Ehh make these not
     stack_pointer: i64,
     base_pointer: i64,
     bump_alloc_pointer: i64,
@@ -52,7 +53,7 @@ pub const Context = struct {
         entry_point: Instruction_Pointer, // Address of the intruction to start execution at
     ) Context {
         const frame_address = offsets_.next_alignment(ret_type.sizeof(), 8);
-        // std.debug.print("frame_address:{}", .{frame_address});
+        // std.debug.print("cfg:{s} frame_address:{}\n", .{ cfg.symbol.name, ret_type });
         var retval = Context{
             .memory = std.heap.page_allocator.alloc(u8, stack_limit) catch unreachable,
             .stack_pointer = (5 * @sizeOf(i64)) + frame_address + cfg.locals_size.?,
@@ -607,36 +608,14 @@ pub const Context = struct {
                     }
                 }
 
-                // Save old stack pointer
-                const old_sp = self.stack_pointer;
-                self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+                try self.call(symbol, ir.dest.?, ir.data.lval_list);
+            },
+            .invoke => {
+                const symbol_loc = try self.effective_address(ir.data.invoke.method_decl_lval.?);
+                const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
+                const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
 
-                //  push args in reverse order
-                var i: i64 = @as(i64, @intCast(ir.data.lval_list.items.len)) - 1;
-                while (i >= 0) : (i -= 1) {
-                    const arg = ir.data.lval_list.items[@as(usize, @intCast(i))];
-                    const size = arg.get_expanded_type().sizeof();
-                    const alignof = arg.get_expanded_type().alignof();
-                    self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
-                    self.push_move(try self.effective_address(arg), size);
-                }
-                self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
-
-                // Setup next stackframe
-                self.push_int(8, try self.effective_address(ir.dest.?)); // push return-value address
-                self.push_int(8, old_sp); //                                push old sp
-                self.push_int(8, self.base_pointer); //                     push bp
-                self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
-                self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
-
-                // allocate space for locals
-                self.stack_pointer += symbol.cfg.?.locals_size.?; // TODO: Check for memory space
-
-                // jump to symbol addr
-                self.instruction_pointer = Instruction_Pointer{
-                    .module_uid = symbol.scope.module.?.uid,
-                    .inst_idx = symbol.cfg.?.offset.?,
-                };
+                try self.call(symbol, ir.dest.?, ir.data.invoke.lval_list);
             },
             .push_stack_trace => { // Pushes a static span/code to the lines array if debug mode is on
                 self.debug_call_stack.append(ir.span) catch unreachable;
@@ -649,6 +628,41 @@ pub const Context = struct {
             },
             else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
         }
+    }
+
+    /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
+    /// and then jumps to the function's code.
+    fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
+        // Save old stack pointer
+        const old_sp = self.stack_pointer;
+        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+
+        //  push args in reverse order
+        var i: i64 = @as(i64, @intCast(args_list.items.len)) - 1;
+        while (i >= 0) : (i -= 1) {
+            const arg = args_list.items[@as(usize, @intCast(i))];
+            const size = arg.get_expanded_type().sizeof();
+            const alignof = arg.get_expanded_type().alignof();
+            self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
+            self.push_move(try self.effective_address(arg), size);
+        }
+        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
+
+        // Setup next stackframe
+        self.push_int(8, try self.effective_address(retval_place)); // push return-value address
+        self.push_int(8, old_sp); //                                push old sp
+        self.push_int(8, self.base_pointer); //                     push bp
+        self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
+        self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
+
+        // allocate space for locals
+        self.stack_pointer += function_symbol.cfg.?.locals_size.?; // TODO: Check for memory space
+
+        // jump to symbol addr
+        self.instruction_pointer = Instruction_Pointer{
+            .module_uid = function_symbol.scope.module.?.uid,
+            .inst_idx = function_symbol.cfg.?.offset.?,
+        };
     }
 
     /// Signals an interpreter panic, printing an error message and call stack information.

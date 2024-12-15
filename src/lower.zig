@@ -110,6 +110,7 @@ fn lower_AST(
             if (symbol.kind == .@"fn") {
                 return try lval_from_symbol_cfg(symbol, cfg, ast.token().span, errors, allocator);
             } else if (symbol.expanded_type.?.types_match(primitives_.type_type)) {
+                std.debug.print("{s}: {}\n", .{ symbol.name, symbol.expanded_type.? });
                 return lval_from_ast(ast, cfg, allocator);
             } else if (symbol.kind == .@"const") {
                 return try lower_AST(cfg, symbol.init.?, labels, errors, allocator);
