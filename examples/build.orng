@@ -4,7 +4,7 @@
 // the package being built.
 fn build() -> Package {
     let mut retval = Package::executable(.root="main.orng")
-    let std = Package::find("../std") catch unreachable
+    let std = Package::find("../std")
     retval.>requires(std)
     retval
 }
