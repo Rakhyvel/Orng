@@ -210,8 +210,7 @@ fn symbol_table_from_AST(
 
             if (ast.decl.top_level) {
                 for (ast.decl.symbols.items) |symbol| {
-                    if (symbol.kind != .@"const" and symbol.kind != .@"extern") {
-                        std.debug.print("{}\n", .{ast.decl.pattern.pattern_symbol.kind});
+                    if (symbol.kind != .@"const" and symbol.kind != .@"extern" and symbol.kind != .import) {
                         errors.add_error(errs_.Error{ .basic = .{
                             .span = symbol.span,
                             .msg = "top level symbols must be marked `const`",

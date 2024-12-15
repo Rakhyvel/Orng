@@ -1,6 +1,7 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const errs_ = @import("errors.zig");
+const primitives_ = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const token_ = @import("token.zig");
@@ -80,6 +81,7 @@ pub const Parser = struct {
         return next_kind == .let or
             next_kind == .@"const" or
             next_kind == .@"extern" or
+            next_kind == .import or
             next_kind == .impl or
             next_kind == .trait or
             next_kind == .@"defer" or
@@ -138,6 +140,13 @@ pub const Parser = struct {
             }
             decl.decl.top_level = true;
             return decl;
+        } else if (self.peek_kind(.import)) {
+            var decl: *ast_.AST = try self.import_declaration();
+            if (!self.peek_kind(.EOF)) {
+                _ = try self.expect(.newline);
+            }
+            decl.decl.top_level = true;
+            return decl;
         } else if (self.peek_kind(.trait)) {
             return try self.trait_declaration();
         } else if (self.peek_kind(.impl)) {
@@ -149,6 +158,22 @@ pub const Parser = struct {
             } });
             return Parser_Error_Enum.ParseError;
         }
+    }
+
+    fn import_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const token = try self.expect(.import);
+
+        const identifier = try self.expect(.identifier);
+        const pattern = ast_.AST.create_symbol(identifier, .import, identifier.data, self.allocator);
+
+        return ast_.AST.create_decl(
+            token,
+            pattern,
+            primitives_.type_type,
+            primitives_.unit_type,
+            false,
+            self.allocator,
+        );
     }
 
     fn extern_const_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {

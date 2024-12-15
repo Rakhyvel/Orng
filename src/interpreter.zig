@@ -2,6 +2,7 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const builtin_ = @import("builtin.zig");
 const cfg_ = @import("cfg.zig");
+const compiler_ = @import("compiler.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
 const module_ = @import("module.zig");
@@ -91,335 +92,12 @@ pub const Context = struct {
         std.heap.page_allocator.free(self.memory);
     }
 
-    pub fn load_module(self: *Context, module: *module_.Module) void {
-        self.modules.put(module.uid, module) catch unreachable;
-    }
-
-    /// Gets the effective address of an lvalue in the interpreter's memory.
-    fn effective_address(self: *Context, lval: *lval_.L_Value) error{CompileError}!i64 {
-        switch (lval.*) {
-            .symbver => {
-                if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
-                    // Intercept stores to the return symbol of the form:
-                    //     retval := val
-                    // and replace with:
-                    //     retval^ := val
-                    return self.load(i64, self.base_pointer + offsets_.retval_offset);
-                } else if (lval.symbver.symbol.offset == null) {
-                    // If this is triggered for a temporary or a constant, you didn't offset it correctly
-                    if (lval.symbver.def != null) {
-                        // symbver def is real (Good fortune!!)
-                        self.debug_call_stack.append(lval.symbver.def.?.span) catch unreachable;
-                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
-                    } else {
-                        // symbver def is null, use symbol span instead (bad fortune!! curse on family)
-                        self.debug_call_stack.append(lval.symbver.symbol.span) catch unreachable;
-                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
-                    }
-                } else {
-                    // std.debug.print("{s}\n", .{lval.symbver.symbol.name});
-                    return self.base_pointer + lval.symbver.symbol.offset.?;
-                }
-            },
-            .dereference => return self.load(i64, try self.effective_address(lval.dereference.expr)),
-            .index => {
-                const base = try self.effective_address(lval.index.lhs);
-                const index = self.load(i64, try self.effective_address(lval.index.rhs));
-                return base + index * lval.sizeof();
-            },
-            .select => {
-                const base = try self.effective_address(lval.select.lhs);
-                return base + lval.select.offset;
-            },
-            .raw_address => return lval.raw_address.adrs,
-        }
-    }
-
-    /// Stores a value of type T at the specified address in the interpreter's memory.
-    fn store(self: *Context, comptime T: type, address: i64, val: T) void {
-        std.debug.assert(address >= 0);
-        // std.debug.print("[0x{X}:{}] = {}\n", .{ address, @alignOf(T), val });
-        @as(*T, @alignCast(@ptrCast(&self.memory[@as(usize, @intCast(address))]))).* = val;
-    }
-
-    /// Stores an integer value at the specified address in the interpreter's memory.
-    fn store_int(self: *Context, address: i64, size: i64, val: i128) void {
-        std.debug.assert(address >= 0);
-        switch (size) {
-            1 => self.store(i8, address, @as(i8, @intCast(val))),
-            2 => self.store(i16, address, @as(i16, @intCast(val))),
-            4 => self.store(i32, address, @as(i32, @intCast(val))),
-            8 => self.store(i64, address, @as(i64, @intCast(val))),
-            else => std.debug.panic("interpreter error: cannot store an int of size {}\n", .{size}),
-        }
-    }
-
-    /// Stores a floating-point value at the specified address in the interpreter's memory.
-    fn store_float(self: *Context, address: i64, size: i64, val: f64) void {
-        std.debug.assert(address >= 0);
-        switch (size) {
-            4 => self.store(f32, address, @as(f32, @floatCast(val))),
-            8 => self.store(f64, address, val),
-            else => unreachable,
-        }
-    }
-
-    /// Loads a value of type T from the specified address in the interpreter's memory.
-    fn load(self: *Context, comptime T: type, address: i64) T {
-        std.debug.assert(address >= 0);
-        const val = @as(*T, @ptrCast(@alignCast(&self.memory[@as(usize, @intCast(address))]))).*;
-        // std.debug.print("[0x{X}:{}] \t// {}\n", .{ address, @alignOf(T), val });
-        return val;
-    }
-
-    /// Loads an integer value from the specified address in the interpreter's memory.
-    fn load_int(self: *Context, address: i64, size: i64) i128 {
-        std.debug.assert(address >= 0);
-        return switch (size) {
-            1 => self.load(i8, address),
-            2 => self.load(i16, address),
-            4 => self.load(i32, address),
-            8 => self.load(i64, address),
-            else => unreachable,
-        };
-    }
-
-    /// Loads an integer value from the specified address in the interpreter's memory.
-    fn load_unsigned_int(self: *Context, address: i64, size: i64) u64 {
-        std.debug.assert(address >= 0);
-        return switch (size) {
-            1 => self.load(u8, address),
-            2 => self.load(u16, address),
-            4 => self.load(u32, address),
-            8 => self.load(u64, address),
-            else => unreachable,
-        };
-    }
-
-    /// Loads a floating-point value from the specified address in the interpreter's memory.
-    fn load_float(self: *Context, address: i64, size: i64) f64 {
-        std.debug.assert(address >= 0);
-        return switch (size) {
-            4 => self.load(f32, address),
-            8 => self.load(f64, address),
-            else => unreachable,
-        };
-    }
-
-    /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
-    fn move(self: *Context, dest: i64, src: i64, len: i64) void {
-        if (debugger) {
-            std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, len });
-        }
-        std.debug.assert(dest >= 0);
-        std.debug.assert(src >= 0);
-        if (len == 0) {
-            // moving no bytes is a no-op
-            return;
-        }
-        std.debug.assert(dest != src); // dest is not src
-        if (dest > src) {
-            std.debug.assert(dest >= src + len); // dest is not within src
-        } else {
-            std.debug.assert(src >= dest + len); // src is not within dest
-        }
-        @memcpy(
-            self.memory[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
-            self.memory[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
-        );
-    }
-
-    /// Copies memory blocks referenced by a list of L_Values to the specified destination address in the
-    /// interpreter's memory.
-    fn move_lval_list(
-        self: *Context,
-        dest: i64,
-        list: *std.ArrayList(*lval_.L_Value),
-    ) !void {
-        std.debug.assert(dest >= 0);
-        var cursor = dest;
-        for (list.items) |lval| {
-            cursor = offsets_.next_alignment(cursor, lval.alignof());
-            const src = try self.effective_address(lval);
-            const len = lval.sizeof();
-            // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ cursor, src, len });
-            // std.debug.print("{}\n", .{lval});
-            self.move(cursor, src, len);
-            cursor += len;
-        }
-    }
-
-    /// Pushes a generic, compiler-comptime-known type to the stack
-    fn push(self: *Context, comptime T: type, val: T) error{CompileError}!void {
-        const t_size: usize = @sizeOf(T);
-        try self.memory_check(t_size);
-        self.store(T, self.stack_pointer, val);
-        self.stack_pointer += t_size;
-    }
-
-    /// Pushes an integer value onto the interpreter's stack.
-    fn push_int(self: *Context, size: i64, val: i128) error{CompileError}!void {
-        try self.memory_check(size);
-        self.store_int(self.stack_pointer, size, val);
-        self.stack_pointer += size;
-    }
-
-    /// Pushes a memory block of the specified size onto the interpreter's stack.
-    fn push_move(self: *Context, block_addr: i64, block_size: i64) error{CompileError}!void {
-        try self.memory_check(block_size);
-        self.move(self.stack_pointer, block_addr, block_size);
-        self.stack_pointer += block_size;
-    }
-
-    /// Pops a generic, compiler-comptime-known type from the stack
-    fn pop(self: *Context, comptime T: type) T {
-        const t_size: usize = @sizeOf(T);
-        self.stack_pointer -= t_size;
-        return self.load(T, self.stack_pointer);
-    }
-
-    /// Pops and returns an integer value from the interpreter's stack. The size of the integer is allowed to be known
-    /// only at compiler runtime.
-    fn pop_int(self: *Context, int_size_bytes: i64) i128 {
-        self.stack_pointer -= int_size_bytes;
-        return self.load_int(self.stack_pointer, int_size_bytes);
-    }
-
-    pub fn alloc(self: *Context, nbytes: i64, align_to: i64) error{CompileError}!usize {
-        std.debug.assert(nbytes > 0);
-        std.debug.assert(align_to == 1 or align_to == 2 or align_to == 4 or align_to == 8);
-
-        try self.memory_check(nbytes);
-        self.bump_alloc_pointer -= nbytes;
-        const alignment_subtract = @rem(self.bump_alloc_pointer, align_to);
-        try self.memory_check(alignment_subtract);
-        self.bump_alloc_pointer -= alignment_subtract;
-        return @intCast(self.bump_alloc_pointer);
-    }
-
-    fn memory_check(self: *Context, space_needed: i64) error{CompileError}!void {
-        if (self.bump_alloc_pointer -| self.stack_pointer < space_needed) {
-            return self.panic("interpreter error: out of memory!", .{});
-        }
-    }
-
-    /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
-    /// and then jumps to the function's code.
-    pub fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
-        // Save old stack pointer
-        const old_sp = self.stack_pointer;
-        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
-
-        // push args in reverse order
-        var i: i64 = @as(i64, @intCast(args_list.items.len)) - 1;
-        while (i >= 0) : (i -= 1) {
-            const arg = args_list.items[@as(usize, @intCast(i))];
-            const size = arg.get_expanded_type().sizeof();
-            const alignof = arg.get_expanded_type().alignof();
-            self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
-            try self.push_move(try self.effective_address(arg), size);
-        }
-        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
-
-        // Setup next stackframe
-        try self.push_int(8, try self.effective_address(retval_place)); // push return-value address
-        try self.push_int(8, old_sp); //                                push old sp
-        try self.push_int(8, self.base_pointer); //                     push bp
-        try self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
-        self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
-
-        // allocate space for locals
-        const local_size_bytes = function_symbol.cfg.?.locals_size.?;
-        try self.memory_check(local_size_bytes);
-        self.stack_pointer += local_size_bytes;
-
-        // jump to symbol addr
-        self.instruction_pointer = Instruction_Pointer{
-            .module_uid = function_symbol.scope.module.?.uid,
-            .inst_idx = function_symbol.cfg.?.offset.?,
-        };
-    }
-
-    /// Tears down the stack frame, and jumps back to the caller's location
-    fn ret(self: *Context) void {
-        // deallocate locals
-        self.stack_pointer = self.base_pointer + 8;
-        // jump to return-address
-        self.instruction_pointer = self.pop(Instruction_Pointer);
-        // restore previous base-pointer
-        self.base_pointer = @as(i64, @intCast(self.pop_int(8)));
-        // restore previous stack-pointer, deallocate params, deallocate return-pointer
-        self.stack_pointer = @as(i64, @intCast(self.pop_int(8)));
-        // self.print_registers();
-    }
-
-    /// Prints the values of the interpreter's registers
-    fn print_registers(self: *Context) void {
-        const module: ?*module_.Module = self.curr_module() catch null;
-        std.debug.print("bp:0x{X} sp:0x{X} ip:[{s}#{}]@{X}\n", .{
-            self.base_pointer,
-            self.stack_pointer,
-            if (module != null) module.?.name else "?",
-            self.instruction_pointer.module_uid,
-            self.instruction_pointer.inst_idx,
-        });
-    }
-
-    /// Prints the contents of the interpreter's stack. Used for debugging.
-    fn print_stack(self: *Context) void {
-        for (0..@as(usize, @intCast(self.stack_pointer))) |i| {
-            if (@rem(i, 8) == 0) {
-                std.debug.print("0x{0X:0>2.}: ", .{i});
-            }
-            std.debug.print("{X:0>2.}", .{self.memory[i]});
-            if (@rem(i, 8) == 7) {
-                std.debug.print(" ", .{});
-            }
-            if (@rem(i, 32) == 31) {
-                std.debug.print("\n", .{});
-            }
-        }
-    }
-
-    fn print_debug_stack(self: *Context) void {
-        for (0..self.debug_call_stack.items.len) |i| {
-            const span = self.debug_call_stack.items[i];
-            std.debug.print("{}: {s}\n", .{ i, span.line_text });
-        }
-        std.debug.print("\n", .{});
-    }
-
-    /// Loads integer values from the specified L_Values and returns a structure containing both the loaded
-    /// values.
-    fn binop_load_int(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: i128, src2: i128 } {
-        return .{
-            .src1 = self.load_int(try self.effective_address(src1), src1.sizeof()),
-            .src2 = self.load_int(try self.effective_address(src2), src2.sizeof()),
-        };
-    }
-
-    /// Loads floating-point values from the specified L_Values and returns a structure containing both the
-    /// loaded values.
-    fn binop_load_float(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: f64, src2: f64 } {
-        return .{
-            .src1 = self.load_float(try self.effective_address(src1), src1.sizeof()),
-            .src2 = self.load_float(try self.effective_address(src2), src2.sizeof()),
-        };
-    }
-
-    fn curr_module(self: *Context) error{CompileError}!*module_.Module {
-        return self.modules.get(self.instruction_pointer.module_uid) orelse
-            self.panic("interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
-    }
-
-    fn curr_instruction(self: *Context) error{CompileError}!*ir_.IR {
-        const module = try self.curr_module();
-        return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
-    }
-
     /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
     /// the maximum allowed instructions.
-    pub fn interpret(self: *Context) error{CompileError}!void {
+    pub fn interpret(
+        self: *Context,
+        compiler: *compiler_.Context,
+    ) error{CompileError}!void {
         // Halt whenever instruction pointer is greater than the max allowed instructions
         while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
@@ -437,12 +115,12 @@ pub const Context = struct {
                 var in_buffer: [256]u8 = undefined;
                 _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
             }
-            try self.execute_instruction(ir);
+            try self.execute_instruction(ir, compiler);
         }
     }
 
     /// Executes an instruction within the interpreter context.
-    inline fn execute_instruction(self: *Context, ir: *ir_.IR) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
+    inline fn execute_instruction(self: *Context, ir: *ir_.IR, compiler: *compiler_.Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
         switch (ir.kind) {
             // Invalid instructions
             .load_extern,
@@ -638,9 +316,9 @@ pub const Context = struct {
                         const arg: *lval_.L_Value = ir.data.lval_list.items[@as(usize, @intCast(0))];
                         const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, std.heap.page_allocator);
                         std.debug.print("searching for package: '{s}'\n", .{string.string.data});
-                        const curr_module_path = (self.curr_module() catch unreachable).path;
+                        const current_module_path = (self.curr_module() catch unreachable).absolute_path;
                         const ret_addr = try self.effective_address(ir.dest.?);
-                        if (builtin_.package_find(self, curr_module_path, string.string.data)) |package_address| {
+                        if (builtin_.package_find(compiler, self, current_module_path, string.string.data)) |package_address| {
                             self.store_int(ret_addr, 8, package_address);
                         } else |_| {
                             return self.panic("interpreter error: cannot find package", .{});
@@ -671,32 +349,70 @@ pub const Context = struct {
         }
     }
 
-    /// Signals an interpreter panic, printing an error message and call stack information.
-    fn panic(self: *Context, comptime msg: []const u8, args: anytype) error{CompileError} {
-        std.io.getStdErr().writer().print(msg, args) catch return error.CompileError;
-
-        var i = self.debug_call_stack.items.len - 1;
-        while (true) {
-            const stack_span = self.debug_call_stack.items[i];
-            stack_span.print_debug_line(std.io.getStdErr().writer(), span_.interpreter_format) catch return error.CompileError;
-
-            if (i == 0) {
-                break;
-            } else {
-                i -= 1;
-            }
-        }
-        return error.CompileError;
+    pub fn load_module(self: *Context, module: *module_.Module) void {
+        self.modules.put(module.uid, module) catch unreachable;
     }
 
-    /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
-    /// Adds an error if the value is out of bounds.
-    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{CompileError}!void {
-        const bounds = primitives_.bounds_from_ast(_type) orelse return;
-        if (val < bounds.lower or val > bounds.upper) {
-            self.debug_call_stack.append(span) catch unreachable;
-            return self.panic("interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
+    /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
+    /// and then jumps to the function's code.
+    pub fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
+        // Save old stack pointer
+        const old_sp = self.stack_pointer;
+        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
+
+        // push args in reverse order
+        var i: i64 = @as(i64, @intCast(args_list.items.len)) - 1;
+        while (i >= 0) : (i -= 1) {
+            const arg = args_list.items[@as(usize, @intCast(i))];
+            const size = arg.get_expanded_type().sizeof();
+            const alignof = arg.get_expanded_type().alignof();
+            self.stack_pointer = offsets_.next_alignment(self.stack_pointer, alignof);
+            try self.push_move(try self.effective_address(arg), size);
         }
+        self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8);
+
+        // Setup next stackframe
+        try self.push_int(8, try self.effective_address(retval_place)); // push return-value address
+        try self.push_int(8, old_sp); //                                push old sp
+        try self.push_int(8, self.base_pointer); //                     push bp
+        try self.push(Instruction_Pointer, self.instruction_pointer); //          push return address
+        self.base_pointer = self.stack_pointer - 8; //                        bp := sp -1
+
+        // allocate space for locals
+        const local_size_bytes = function_symbol.cfg.?.locals_size.?;
+        try self.memory_check(local_size_bytes);
+        self.stack_pointer += local_size_bytes;
+
+        // jump to symbol addr
+        self.instruction_pointer = Instruction_Pointer{
+            .module_uid = function_symbol.scope.module.?.uid,
+            .inst_idx = function_symbol.cfg.?.offset.?,
+        };
+    }
+
+    /// Tears down the stack frame, and jumps back to the caller's location
+    inline fn ret(self: *Context) void {
+        // deallocate locals
+        self.stack_pointer = self.base_pointer + 8;
+        // jump to return-address
+        self.instruction_pointer = self.pop(Instruction_Pointer);
+        // restore previous base-pointer
+        self.base_pointer = @as(i64, @intCast(self.pop_int(8)));
+        // restore previous stack-pointer, deallocate params, deallocate return-pointer
+        self.stack_pointer = @as(i64, @intCast(self.pop_int(8)));
+        // self.print_registers();
+    }
+
+    pub fn alloc(self: *Context, nbytes: i64, align_to: i64) error{CompileError}!usize {
+        std.debug.assert(nbytes > 0);
+        std.debug.assert(align_to == 1 or align_to == 2 or align_to == 4 or align_to == 8);
+
+        try self.memory_check(nbytes);
+        self.bump_alloc_pointer -= nbytes;
+        const alignment_subtract = @rem(self.bump_alloc_pointer, align_to);
+        try self.memory_check(alignment_subtract);
+        self.bump_alloc_pointer -= alignment_subtract;
+        return @intCast(self.bump_alloc_pointer);
     }
 
     /// Extracts an AST value from a specified memory address in interpreter's memory, based on the given AST type.
@@ -814,5 +530,293 @@ pub const Context = struct {
         @memcpy(owned, self.memory[address .. address + size_bytes]);
 
         return owned;
+    }
+
+    /// Prints the values of the interpreter's registers
+    fn print_registers(self: *Context) void {
+        const module: ?*module_.Module = self.curr_module() catch null;
+        std.debug.print("bp:0x{X} sp:0x{X} ip:[{s}#{}]@{X}\n", .{
+            self.base_pointer,
+            self.stack_pointer,
+            if (module != null) module.?.name else "?",
+            self.instruction_pointer.module_uid,
+            self.instruction_pointer.inst_idx,
+        });
+    }
+
+    /// Prints the contents of the interpreter's stack. Used for debugging.
+    fn print_stack(self: *Context) void {
+        for (0..@as(usize, @intCast(self.stack_pointer))) |i| {
+            if (@rem(i, 8) == 0) {
+                std.debug.print("0x{0X:0>2.}: ", .{i});
+            }
+            std.debug.print("{X:0>2.}", .{self.memory[i]});
+            if (@rem(i, 8) == 7) {
+                std.debug.print(" ", .{});
+            }
+            if (@rem(i, 32) == 31) {
+                std.debug.print("\n", .{});
+            }
+        }
+    }
+
+    fn print_debug_stack(self: *Context) void {
+        for (0..self.debug_call_stack.items.len) |i| {
+            const span = self.debug_call_stack.items[i];
+            std.debug.print("{}: {s}\n", .{ i, span.line_text });
+        }
+        std.debug.print("\n", .{});
+    }
+
+    fn curr_instruction(self: *Context) error{CompileError}!*ir_.IR {
+        const module = try self.curr_module();
+        return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
+    }
+
+    fn curr_module(self: *Context) error{CompileError}!*module_.Module {
+        return self.modules.get(self.instruction_pointer.module_uid) orelse
+            self.panic("interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
+    }
+
+    /// Loads integer values from the specified L_Values and returns a structure containing both the loaded
+    /// values.
+    fn binop_load_int(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: i128, src2: i128 } {
+        return .{
+            .src1 = self.load_int(try self.effective_address(src1), src1.sizeof()),
+            .src2 = self.load_int(try self.effective_address(src2), src2.sizeof()),
+        };
+    }
+
+    /// Loads floating-point values from the specified L_Values and returns a structure containing both the
+    /// loaded values.
+    fn binop_load_float(self: *Context, src1: *lval_.L_Value, src2: *lval_.L_Value) !struct { src1: f64, src2: f64 } {
+        return .{
+            .src1 = self.load_float(try self.effective_address(src1), src1.sizeof()),
+            .src2 = self.load_float(try self.effective_address(src2), src2.sizeof()),
+        };
+    }
+
+    /// Copies memory blocks referenced by a list of L_Values to the specified destination address in the
+    /// interpreter's memory.
+    fn move_lval_list(
+        self: *Context,
+        dest: i64,
+        list: *std.ArrayList(*lval_.L_Value),
+    ) !void {
+        std.debug.assert(dest >= 0);
+        var cursor = dest;
+        for (list.items) |lval| {
+            cursor = offsets_.next_alignment(cursor, lval.alignof());
+            const src = try self.effective_address(lval);
+            const len = lval.sizeof();
+            // std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ cursor, src, len });
+            // std.debug.print("{}\n", .{lval});
+            self.move(cursor, src, len);
+            cursor += len;
+        }
+    }
+
+    /// Moves a block of memory from the source address to the destination address in the interpreter's memory.
+    fn move(self: *Context, dest: i64, src: i64, len: i64) void {
+        if (debugger) {
+            std.debug.print("dest:0x{X} src:0x{X} len:0x{X}\n", .{ dest, src, len });
+        }
+        std.debug.assert(dest >= 0);
+        std.debug.assert(src >= 0);
+        if (len == 0) {
+            // moving no bytes is a no-op
+            return;
+        }
+        std.debug.assert(dest != src); // dest is not src
+        if (dest > src) {
+            std.debug.assert(dest >= src + len); // dest is not within src
+        } else {
+            std.debug.assert(src >= dest + len); // src is not within dest
+        }
+        @memcpy(
+            self.memory[@as(usize, @intCast(dest))..@as(usize, @intCast(dest + len))],
+            self.memory[@as(usize, @intCast(src))..@as(usize, @intCast(src + len))],
+        );
+    }
+
+    /// Gets the effective address of an lvalue in the interpreter's memory.
+    fn effective_address(self: *Context, lval: *lval_.L_Value) error{CompileError}!i64 {
+        switch (lval.*) {
+            .symbver => {
+                if (std.mem.eql(u8, "$retval", lval.symbver.symbol.name)) {
+                    // Intercept stores to the return symbol of the form:
+                    //     retval := val
+                    // and replace with:
+                    //     retval^ := val
+                    return self.load(i64, self.base_pointer + offsets_.retval_offset);
+                } else if (lval.symbver.symbol.offset == null) {
+                    // If this is triggered for a temporary or a constant, you didn't offset it correctly
+                    if (lval.symbver.def != null) {
+                        // symbver def is real (Good fortune!!)
+                        self.debug_call_stack.append(lval.symbver.def.?.span) catch unreachable;
+                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                    } else {
+                        // symbver def is null, use symbol span instead (bad fortune!! curse on family)
+                        self.debug_call_stack.append(lval.symbver.symbol.span) catch unreachable;
+                        return self.panic("interpreter error: variable `{s}` isn't comptime known\n", .{lval.symbver.symbol.name});
+                    }
+                } else {
+                    // std.debug.print("{s}\n", .{lval.symbver.symbol.name});
+                    return self.base_pointer + lval.symbver.symbol.offset.?;
+                }
+            },
+            .dereference => return self.load(i64, try self.effective_address(lval.dereference.expr)),
+            .index => {
+                const base = try self.effective_address(lval.index.lhs);
+                const index = self.load(i64, try self.effective_address(lval.index.rhs));
+                return base + index * lval.sizeof();
+            },
+            .select => {
+                const base = try self.effective_address(lval.select.lhs);
+                return base + lval.select.offset;
+            },
+            .raw_address => return lval.raw_address.adrs,
+        }
+    }
+
+    /// Pops and returns an integer value from the interpreter's stack. The size of the integer is allowed to be known
+    /// only at compiler runtime.
+    fn pop_int(self: *Context, int_size_bytes: i64) i128 {
+        self.stack_pointer -= int_size_bytes;
+        return self.load_int(self.stack_pointer, int_size_bytes);
+    }
+
+    /// Pops a generic, compiler-comptime-known type from the stack
+    fn pop(self: *Context, comptime T: type) T {
+        const t_size: usize = @sizeOf(T);
+        self.stack_pointer -= t_size;
+        return self.load(T, self.stack_pointer);
+    }
+
+    /// Pushes an integer value onto the interpreter's stack.
+    fn push_int(self: *Context, size: i64, val: i128) error{CompileError}!void {
+        try self.memory_check(size);
+        self.store_int(self.stack_pointer, size, val);
+        self.stack_pointer += size;
+    }
+
+    /// Pushes a memory block of the specified size onto the interpreter's stack.
+    fn push_move(self: *Context, block_addr: i64, block_size: i64) error{CompileError}!void {
+        try self.memory_check(block_size);
+        self.move(self.stack_pointer, block_addr, block_size);
+        self.stack_pointer += block_size;
+    }
+
+    /// Pushes a generic, compiler-comptime-known type to the stack
+    fn push(self: *Context, comptime T: type, val: T) error{CompileError}!void {
+        const t_size: usize = @sizeOf(T);
+        try self.memory_check(t_size);
+        self.store(T, self.stack_pointer, val);
+        self.stack_pointer += t_size;
+    }
+
+    /// Stores an integer value at the specified address in the interpreter's memory.
+    fn store_int(self: *Context, address: i64, size: i64, val: i128) void {
+        std.debug.assert(address >= 0);
+        switch (size) {
+            1 => self.store(i8, address, @as(i8, @intCast(val))),
+            2 => self.store(i16, address, @as(i16, @intCast(val))),
+            4 => self.store(i32, address, @as(i32, @intCast(val))),
+            8 => self.store(i64, address, @as(i64, @intCast(val))),
+            else => std.debug.panic("interpreter error: cannot store an int of size {}\n", .{size}),
+        }
+    }
+
+    /// Stores a floating-point value at the specified address in the interpreter's memory.
+    fn store_float(self: *Context, address: i64, size: i64, val: f64) void {
+        std.debug.assert(address >= 0);
+        switch (size) {
+            4 => self.store(f32, address, @as(f32, @floatCast(val))),
+            8 => self.store(f64, address, val),
+            else => unreachable,
+        }
+    }
+
+    /// Stores a value of type T at the specified address in the interpreter's memory.
+    fn store(self: *Context, comptime T: type, address: i64, val: T) void {
+        std.debug.assert(address >= 0);
+        // std.debug.print("[0x{X}:{}] = {}\n", .{ address, @alignOf(T), val });
+        @as(*T, @alignCast(@ptrCast(&self.memory[@as(usize, @intCast(address))]))).* = val;
+    }
+
+    /// Loads an integer value from the specified address in the interpreter's memory.
+    fn load_int(self: *Context, address: i64, size: i64) i128 {
+        std.debug.assert(address >= 0);
+        return switch (size) {
+            1 => self.load(i8, address),
+            2 => self.load(i16, address),
+            4 => self.load(i32, address),
+            8 => self.load(i64, address),
+            else => unreachable,
+        };
+    }
+
+    /// Loads an integer value from the specified address in the interpreter's memory.
+    fn load_unsigned_int(self: *Context, address: i64, size: i64) u64 {
+        std.debug.assert(address >= 0);
+        return switch (size) {
+            1 => self.load(u8, address),
+            2 => self.load(u16, address),
+            4 => self.load(u32, address),
+            8 => self.load(u64, address),
+            else => unreachable,
+        };
+    }
+
+    /// Loads a floating-point value from the specified address in the interpreter's memory.
+    fn load_float(self: *Context, address: i64, size: i64) f64 {
+        std.debug.assert(address >= 0);
+        return switch (size) {
+            4 => self.load(f32, address),
+            8 => self.load(f64, address),
+            else => unreachable,
+        };
+    }
+
+    /// Loads a value of type T from the specified address in the interpreter's memory.
+    fn load(self: *Context, comptime T: type, address: i64) T {
+        std.debug.assert(address >= 0);
+        const val = @as(*T, @ptrCast(@alignCast(&self.memory[@as(usize, @intCast(address))]))).*;
+        // std.debug.print("[0x{X}:{}] \t// {}\n", .{ address, @alignOf(T), val });
+        return val;
+    }
+
+    /// Asserts that the provided `val` fits within the bounds specified by the data type `_type`.
+    /// Adds an error if the value is out of bounds.
+    fn assert_fits(self: *Context, val: i128, _type: *ast_.AST, operation_name: []const u8, span: span_.Span) error{CompileError}!void {
+        const bounds = primitives_.bounds_from_ast(_type) orelse return;
+        if (val < bounds.lower or val > bounds.upper) {
+            self.debug_call_stack.append(span) catch unreachable;
+            return self.panic("interpreter error: {s} is out of bounds; value={}\n", .{ operation_name, val });
+        }
+    }
+
+    fn memory_check(self: *Context, space_needed: i64) error{CompileError}!void {
+        if (self.bump_alloc_pointer -| self.stack_pointer < space_needed) {
+            return self.panic("interpreter error: out of memory!", .{});
+        }
+    }
+
+    /// Signals an interpreter panic, printing an error message and call stack information.
+    fn panic(self: *Context, comptime msg: []const u8, args: anytype) error{CompileError} {
+        std.io.getStdErr().writer().print(msg, args) catch return error.CompileError;
+
+        var i = self.debug_call_stack.items.len - 1;
+        while (true) {
+            const stack_span = self.debug_call_stack.items[i];
+            stack_span.print_debug_line(std.io.getStdErr().writer(), span_.interpreter_format) catch return error.CompileError;
+
+            if (i == 0) {
+                break;
+            } else {
+                i -= 1;
+            }
+        }
+        return error.CompileError;
     }
 };

@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
+const compiler_ = @import("compiler.zig");
 const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
 const span_ = @import("span.zig");
@@ -89,15 +90,14 @@ var primitives: std.StringArrayHashMap(Primitive_Info) = undefined;
 
 // The prelude should only be created once per compilation. _ALL_ packages and modules are within this one prelude scope.
 var prelude: ?*symbol_.Scope = null;
-pub fn get_scope() !*symbol_.Scope {
+pub fn get_scope(compiler: *compiler_.Context) !*symbol_.Scope {
     if (prelude == null) {
-        try create_prelude();
+        try create_prelude(compiler);
     }
     return prelude.?;
 }
 
-fn create_prelude() !void {
-
+fn create_prelude(compiler: *compiler_.Context) !void {
     // Create ASTs for primitives
     anyptr_type = create_anyptr_type();
     bool_type = create_identifier("Bool");
@@ -397,8 +397,7 @@ fn create_prelude() !void {
         prelude.?,
         module,
         false,
-        &errors,
-        std.heap.page_allocator,
+        compiler,
     );
 
     package_type = module.scope.lookup("Package", false).found.init.?;
