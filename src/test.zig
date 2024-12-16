@@ -122,8 +122,12 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     const expected_out = contents[3..new_line_idx];
 
     // Try to compile Orng (make sure no errors)
-    var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
-    const module = module_.Module.compile(contents, filename, "main", false, &compiler) catch {
+    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
+    errdefer {
+        _ = debug_alloc.deinit();
+    }
+    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+    const module = module_.Module.compile(contents, filename, "main", false, compiler) catch {
         if (!coverage) {
             compiler.errors.print_errors();
             term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
@@ -203,6 +207,14 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         return false;
     }
 
+    compiler.deinit();
+    const debug_result = debug_alloc.deinit();
+    if (debug_result == .leak) {
+        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+        out.print("compiler error: memory leak!\n", .{}) catch unreachable;
+        return false;
+    }
+
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
     term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
     return true;
@@ -247,7 +259,8 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     // Try to compile Orng (make sure no errors)
     var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
-    const module = module_.Module.compile(contents, filename, "main", false, &compiler) catch |err| {
+    defer compiler.deinit();
+    const module = module_.Module.compile(contents, filename, "main", false, compiler) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.LexerError,
@@ -340,11 +353,18 @@ fn fuzz_tests() !void { // TODO: Uninfer error
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
-            var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
+            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
+            errdefer {
+                _ = debug_alloc.deinit();
+            }
+            var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
+            errdefer arena_alloc.deinit();
+            var compiler = compiler_.Context.init(arena_alloc.allocator()) catch unreachable;
+            defer compiler.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            const module = module_.Module.compile(contents, "fuzz", "main", false, &compiler) catch |err| {
+            const module = module_.Module.compile(contents, "fuzz", "main", false, compiler) catch |err| {
                 compiler.errors.print_errors();
                 switch (err) {
                     error.LexerError,
@@ -391,6 +411,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             if (should_continue) {
                 continue;
             }
+
             try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
             // return;

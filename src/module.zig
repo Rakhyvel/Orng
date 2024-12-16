@@ -110,8 +110,8 @@ pub const Module = struct {
         const short_name: []const u8 = full_name[i + 1 ..];
 
         // Module/Symbol-Tree construction
-        var file_root = symbol_.Scope.init(compiler.prelude, full_name, compiler.allocator);
-        const module = Module.init(short_name, in_name, file_root, compiler.allocator);
+        var file_root = symbol_.Scope.init(compiler.prelude, full_name, compiler.allocator());
+        const module = Module.init(short_name, in_name, file_root, compiler.allocator());
         file_root.module = module;
 
         try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, compiler);
@@ -130,10 +130,10 @@ pub const Module = struct {
     ) Module_Errors!void {
         // Tokenize, and also append lines to the list of lines
         // TODO: Move this to it's own function
-        var lines = std.ArrayList([]const u8).init(compiler.allocator);
+        var lines = std.ArrayList([]const u8).init(compiler.allocator());
         defer lines.deinit();
         try lines_.get_lines(contents, &lines, &compiler.errors);
-        var scanner = lexer_.Scanner.init(&lines, in_name, &compiler.errors, fuzz_tokens, compiler.allocator); // TODO: Deinit?
+        var scanner = lexer_.Scanner.init(&lines, in_name, &compiler.errors, fuzz_tokens, compiler.allocator()); // TODO: Deinit?
         var tokens = try scanner.get_tokens();
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
@@ -175,12 +175,12 @@ pub const Module = struct {
 
         // TODO: Move to own function, returning module_ast
         // Parse, expand AST
-        ast_.init_structures();
-        var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator);
+        ast_.init_structures(compiler.allocator());
+        var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator());
         const module_ast = try parser.parse();
-        try expand_.expand_from_list(module_ast, &compiler.errors, compiler.allocator);
-        try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator);
-        try decorate_.decorate_identifiers_from_list(module_ast, file_root, &compiler.errors, compiler.allocator);
+        try expand_.expand_from_list(module_ast, &compiler.errors, compiler.allocator());
+        try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator());
+        try decorate_.decorate_identifiers_from_list(module_ast, file_root, &compiler.errors, compiler.allocator());
 
         // Validate the module
         try ast_validate_.validate_module(module, compiler);
@@ -201,7 +201,7 @@ pub const Module = struct {
                 continue;
             }
             // IR translation
-            const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator);
+            const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator());
             module.collect_cfgs(cfg);
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
@@ -222,7 +222,7 @@ pub const Module = struct {
         // Go through traits
         for (module.traits.items) |trait| {
             for (trait.trait.method_decls.items) |decl| {
-                _ = module.type_set.add(decl.method_decl.c_type.?, compiler.allocator);
+                _ = module.type_set.add(decl.method_decl.c_type.?, compiler.allocator());
             }
         }
 
@@ -230,7 +230,7 @@ pub const Module = struct {
         for (module.impls.items) |impl| {
             for (impl.impl.method_defs.items) |def| {
                 const symbol = def.symbol().?;
-                const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator);
+                const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator());
                 module.collect_cfgs(cfg);
                 cfg.needed_at_runtime = true;
             }
@@ -242,7 +242,7 @@ pub const Module = struct {
             const decl = cfg.symbol.decl.?;
             const param_symbols = if (decl.* == .fn_decl) decl.fn_decl.param_symbols else decl.method_decl.param_symbols;
             for (param_symbols.items) |param| {
-                _ = module.type_set.add(param.expanded_type.?, compiler.allocator);
+                _ = module.type_set.add(param.expanded_type.?, compiler.allocator());
             }
 
             // TODO: Move to own function
@@ -250,7 +250,7 @@ pub const Module = struct {
                 var maybe_ir = bb.ir_head;
                 while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                     if (ir.dest != null) {
-                        _ = module.type_set.add(ir.dest.?.get_expanded_type(), compiler.allocator);
+                        _ = module.type_set.add(ir.dest.?.get_expanded_type(), compiler.allocator());
                     }
                 }
             }
@@ -465,7 +465,7 @@ pub fn stamp(
     // TODO: Assert template_ast is template
     if (template_ast.template.memo == null) {
         // Clone out a new fn decl AST, with a new name
-        const fn_decl = template_ast.template.decl.clone(compiler.allocator);
+        const fn_decl = template_ast.template.decl.clone(compiler.allocator());
         fn_decl.fn_decl.remove_const_params();
         fn_decl.fn_decl.name = null; // make function anonymous
 
@@ -474,18 +474,18 @@ pub fn stamp(
             fn_decl,
             scope,
             &compiler.errors,
-            compiler.allocator,
+            compiler.allocator(),
         );
         try symbol_tree_.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
         fn_decl.set_symbol(fn_symbol);
 
-        const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, compiler.allocator);
-        args.* = try ast_validate_.default_args(args.*, domain, &compiler.errors, compiler.allocator);
+        const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
+        args.* = try ast_validate_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
         _ = try ast_validate_.validate_args_arity(.function, args, domain, call_span, &compiler.errors);
 
         // Go through each comptime arg, evaluate it, and store it in a list along with it's position
         // Combines the arg value and the position in the args/params list
-        var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator);
+        var const_decls = std.ArrayList(*ast_.AST).init(compiler.allocator());
         defer const_decls.deinit();
         for (template_ast.template.decl.fn_decl._params.items, args.items) |param, arg| {
             if (param.decl.pattern.pattern_symbol.kind == .@"const") {
@@ -495,27 +495,27 @@ pub fn stamp(
                     param.decl.type,
                     arg, // TODO: Comptime eval this
                     true,
-                    compiler.allocator,
+                    compiler.allocator(),
                 );
                 const_decls.append(decl) catch unreachable;
             }
         }
 
         // Define each constant parameter in the fn decl's scope
-        try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, &compiler.errors, compiler.allocator);
+        try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, &compiler.errors, compiler.allocator());
 
         // Decorate identifiers, validate
         for (const_decls.items) |decl| {
-            try decorate_.decorate_identifiers(decl, scope, &compiler.errors, compiler.allocator);
+            try decorate_.decorate_identifiers(decl, scope, &compiler.errors, compiler.allocator());
         }
-        try decorate_.decorate_identifiers(fn_decl, scope, &compiler.errors, compiler.allocator);
+        try decorate_.decorate_identifiers(fn_decl, scope, &compiler.errors, compiler.allocator());
         try ast_validate_.validate_scope(fn_symbol.scope, compiler);
 
         // Memoize symbol
         template_ast.template.memo = fn_symbol;
     }
 
-    const identifier = ast_.AST.create_identifier(token_.Token.init_simple(template_ast.template.memo.?.name), compiler.allocator);
+    const identifier = ast_.AST.create_identifier(token_.Token.init_simple(template_ast.template.memo.?.name), compiler.allocator());
     identifier.set_symbol(template_ast.template.memo);
     return identifier;
 }
@@ -540,24 +540,24 @@ pub fn interpret(
         ret_type,
         scope,
         &compiler.errors,
-        compiler.allocator,
+        compiler.allocator(),
     )).assert_valid().assert_init_valid();
 
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;
-    const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator);
+    const cfg = try get_cfg(symbol, null, &compiler.errors, compiler.allocator());
     defer cfg.deinit(); // Remove the cfg so that it isn't output
 
     const idx = module.emplace_cfg(cfg);
     defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret
-    var context = interpreter_.Context.init();
+    var context = interpreter_.Context.init(compiler.allocator());
     context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);
     try context.interpret(compiler);
 
     // Extract the retval
-    return context.extract_ast(0, ret_type, compiler.allocator);
+    return context.extract_ast(0, ret_type, compiler.allocator());
 }

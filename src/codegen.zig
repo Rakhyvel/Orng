@@ -471,7 +471,7 @@ fn output_basic_block(
     writer: Writer,
 ) CodeGen_Error!void {
     // FIXME: High Cyclo
-    var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator);
+    var bb_queue = std.ArrayList(*basic_block_.Basic_Block).init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
     defer bb_queue.deinit();
     bb_queue.append(start_bb) catch unreachable;
     start_bb.visited = true;
@@ -721,7 +721,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .branch_if_false,
         => {},
         .push_stack_trace => {
-            var spaces = String.init(std.heap.page_allocator);
+            var spaces = String.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
             defer spaces.deinit();
             for (1..ir.span.col - 1) |_| {
                 spaces.insert(" ", spaces.size) catch unreachable;

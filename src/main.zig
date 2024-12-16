@@ -68,8 +68,12 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     _ = name;
     _ = args;
     // Get the path
-    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    const path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| switch (err) {
+    const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    defer std.heap.page_allocator.free(build_path_buffer);
+    const root_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    defer std.heap.page_allocator.free(root_path_buffer);
+
+    const build_path = std.fs.cwd().realpath("build.orng", build_path_buffer) catch |err| switch (err) {
         error.FileNotFound => {
             (errs_.Error{ .basic = .{
                 .msg = "no `build.orng` file found in current working directory",
@@ -79,13 +83,13 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         else => return error.CompileError,
     };
 
-    var compiler = try compiler_.Context.init(std.heap.page_allocator);
+    var compiler = try compiler_.Context.init(allocator);
+    defer compiler.deinit();
+    const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
 
-    const build_cfg = compiler.compile_build_file(path) catch return error.CompileError;
-
-    var interpreter = interpreter_.Context.init();
+    var interpreter = interpreter_.Context.init(compiler.allocator());
     interpreter.set_entry_point(build_cfg, primitives_.package_type);
-    try interpreter.interpret(&compiler);
+    try interpreter.interpret(compiler);
     defer interpreter.deinit();
 
     // Extract the retval
@@ -99,8 +103,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         const dependency = interpreter.extract_ast(dependency_addr, primitives_.package_type, allocator);
         _ = print_package_name(dependency);
     }
-
-    const root_file_path = std.fs.cwd().realpath(root_name, &path_buffer) catch return error.CompileError;
+    const root_file_path = std.fs.cwd().realpath(root_name, root_path_buffer) catch return error.CompileError;
 
     const root_module = compiler.compile_module(
         root_file_path,
@@ -109,7 +112,8 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     ) catch return error.CompileError;
     _ = root_module; // autofix
 
-    std.fs.cwd().makeDir("build") catch return error.CompileError;
+    // std.fs.cwd().makeDir("build") catch return error.CompileError;
+    // compiler.loop_modules();
 }
 
 fn print_package_name(package: *ast_.AST) []const u8 {

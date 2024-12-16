@@ -22,13 +22,12 @@ pub fn module_path() []const u8 {}
 /// Implements the Package::find method at build-time. Takes in a string representing the name of
 /// the package in the Orng cache, and returns an AST representing the package.
 pub fn package_find(compiler: *compiler_.Context, interpreter: *interpreter_.Context, current_module_path: []const u8, package_path: []const u8) Error!i64 {
-    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-
     // Construct the path to the package's `build.orng` file
     const current_package = std.fs.path.dirname(current_module_path).?;
     const package_build_paths = [_][]const u8{ current_package, package_path, "build.orng" };
-    const package_build_dir = std.fs.path.join(std.heap.page_allocator, &package_build_paths) catch unreachable;
-    const package_build_file = std.fs.cwd().realpath(package_build_dir, &path_buffer) catch return error.CompileError;
+    const package_build_dir = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
+    const path_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    const package_build_file = std.fs.cwd().realpath(package_build_dir, path_buffer) catch return error.CompileError;
 
     // Compile the package's `build.orng` file
     const build_cfg = try compiler.compile_build_file(package_build_file);
@@ -37,10 +36,10 @@ pub fn package_find(compiler: *compiler_.Context, interpreter: *interpreter_.Con
     // Allocate space for the package to be placed
     const package_len: usize = @intCast(primitives_.package_type.sizeof());
     const adrs: i64 = @intCast(try interpreter.alloc(@intCast(package_len), 8));
-    const retval_place = lval_.L_Value.create_raw_address(adrs, std.heap.page_allocator);
+    const retval_place = lval_.L_Value.create_raw_address(adrs, compiler.allocator());
 
     // Call the `build()` fn
-    try interpreter.call(build_cfg.symbol, retval_place, std.ArrayList(*lval_.L_Value).init(std.heap.page_allocator));
+    try interpreter.call(build_cfg.symbol, retval_place, std.ArrayList(*lval_.L_Value).init(compiler.allocator()));
 
     return adrs;
 }

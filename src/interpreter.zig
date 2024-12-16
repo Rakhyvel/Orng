@@ -46,19 +46,23 @@ pub const Context = struct {
     debug_call_stack: std.ArrayList(span_.Span),
     start_time: i64,
 
+    allocator: std.mem.Allocator,
+
     /// Initializes a new interpreter context.
-    pub fn init() Context {
+    pub fn init(allocator: std.mem.Allocator) Context {
         return Context{
-            .memory = std.heap.page_allocator.alloc(u8, stack_limit) catch unreachable,
+            .memory = allocator.alloc(u8, stack_limit) catch unreachable,
             .bump_alloc_pointer = stack_limit,
             .stack_pointer = 0,
             .base_pointer = 0,
 
-            .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(std.heap.page_allocator),
+            .modules = std.AutoArrayHashMap(module_.Module_UID, *module_.Module).init(allocator),
             .instruction_pointer = .{ .module_uid = 0, .inst_idx = 0 },
-            .debug_call_stack = std.ArrayList(span_.Span).init(std.heap.page_allocator),
+            .debug_call_stack = std.ArrayList(span_.Span).init(allocator),
 
             .start_time = std.time.milliTimestamp(),
+
+            .allocator = allocator,
         };
     }
 
@@ -89,7 +93,7 @@ pub const Context = struct {
     pub fn deinit(self: *Context) void {
         self.modules.deinit();
         self.debug_call_stack.deinit();
-        std.heap.page_allocator.free(self.memory);
+        self.allocator.free(self.memory);
     }
 
     /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
@@ -314,7 +318,7 @@ pub const Context = struct {
                     const method_name = symbol.name;
                     if (std.mem.eql(u8, method_name, "find")) {
                         const arg: *lval_.L_Value = ir.data.lval_list.items[@as(usize, @intCast(0))];
-                        const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, std.heap.page_allocator);
+                        const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, self.allocator);
                         std.debug.print("searching for package: '{s}'\n", .{string.string.data});
                         const current_module_path = (self.curr_module() catch unreachable).absolute_path;
                         const ret_addr = try self.effective_address(ir.dest.?);

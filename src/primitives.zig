@@ -99,58 +99,58 @@ pub fn get_scope(compiler: *compiler_.Context) !*symbol_.Scope {
 
 fn create_prelude(compiler: *compiler_.Context) !void {
     // Create ASTs for primitives
-    anyptr_type = create_anyptr_type();
-    bool_type = create_identifier("Bool");
-    byte_type = create_identifier("Byte");
-    char_type = create_identifier("Char");
-    float_type = create_identifier("Float");
-    float32_type = create_identifier("Float32");
-    float64_type = create_identifier("Float64");
-    int_type = create_identifier("Int");
-    int8_type = create_identifier("Int8");
-    int16_type = create_identifier("Int16");
-    int32_type = create_identifier("Int32");
-    int64_type = create_identifier("Int64");
-    string_type = create_identifier("String");
-    type_type = create_identifier("Type");
-    unit_type = create_unit_type();
-    unit_value = create_unit_value();
-    void_type = create_identifier("Void");
-    word16_type = create_identifier("Word16");
-    word32_type = create_identifier("Word32");
-    word64_type = create_identifier("Word64");
+    anyptr_type = create_anyptr_type(compiler.allocator());
+    bool_type = create_identifier("Bool", compiler.allocator());
+    byte_type = create_identifier("Byte", compiler.allocator());
+    char_type = create_identifier("Char", compiler.allocator());
+    float_type = create_identifier("Float", compiler.allocator());
+    float32_type = create_identifier("Float32", compiler.allocator());
+    float64_type = create_identifier("Float64", compiler.allocator());
+    int_type = create_identifier("Int", compiler.allocator());
+    int8_type = create_identifier("Int8", compiler.allocator());
+    int16_type = create_identifier("Int16", compiler.allocator());
+    int32_type = create_identifier("Int32", compiler.allocator());
+    int64_type = create_identifier("Int64", compiler.allocator());
+    string_type = create_identifier("String", compiler.allocator());
+    type_type = create_identifier("Type", compiler.allocator());
+    unit_type = create_unit_type(compiler.allocator());
+    unit_value = create_unit_value(compiler.allocator());
+    void_type = create_identifier("Void", compiler.allocator());
+    word16_type = create_identifier("Word16", compiler.allocator());
+    word32_type = create_identifier("Word32", compiler.allocator());
+    word64_type = create_identifier("Word64", compiler.allocator());
     // Slice types must be AFTER int_type
-    byte_slice_type = ast_.AST.create_slice_type(byte_type, false, std.heap.page_allocator).assert_valid();
+    byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_valid();
 
     // Create prelude scope
-    prelude = symbol_.Scope.init(null, "", std.heap.page_allocator);
+    prelude = symbol_.Scope.init(null, "", compiler.allocator());
 
     // Create Symbols for primitives
-    _ = create_prelude_symbol("String", type_type, byte_slice_type);
-    _ = create_prelude_symbol("Type", type_type, type_type);
-    _ = create_prelude_symbol("Void", type_type, void_type);
-    blackhole = create_prelude_symbol("_", unit_type, unit_value);
+    _ = create_prelude_symbol("String", type_type, byte_slice_type, compiler.allocator());
+    _ = create_prelude_symbol("Type", type_type, type_type, compiler.allocator());
+    _ = create_prelude_symbol("Void", type_type, void_type, compiler.allocator());
+    blackhole = create_prelude_symbol("_", unit_type, unit_value, compiler.allocator());
 
     // Setup default values
     // These have to be all different AST nodes because they then represent different types
     // The types are created later, and then the represents field is set after that
-    const default_bool = ast_.AST.create_false(token_.Token.init_simple("false"), std.heap.page_allocator);
-    const default_char = ast_.AST.create_char(token_.Token.init_simple("'\\\\0'"), std.heap.page_allocator);
-    const default_float32 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
-    const default_float64 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, std.heap.page_allocator);
+    const default_bool = ast_.AST.create_false(token_.Token.init_simple("false"), compiler.allocator());
+    const default_char = ast_.AST.create_char(token_.Token.init_simple("'\\\\0'"), compiler.allocator());
+    const default_float32 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, compiler.allocator());
+    const default_float64 = ast_.AST.create_float(token_.Token.init_simple("0.0"), 0.0, compiler.allocator());
     // TODO: De-duplicate the following
-    const default_int8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_int16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_int32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_int64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_word8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_word16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_word32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_word64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, std.heap.page_allocator);
-    const default_string = ast_.AST.create_string(token_.Token.init_simple("\"\""), "", std.heap.page_allocator);
+    const default_int8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_int16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_int32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_int64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_word8 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_word16 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_word32 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_word64 = ast_.AST.create_int(token_.Token.init_simple("0"), 0, compiler.allocator());
+    const default_string = ast_.AST.create_string(token_.Token.init_simple("\"\""), "", compiler.allocator());
 
     // Setup primitive map
-    primitives = std.StringArrayHashMap(Primitive_Info).init(std.heap.page_allocator);
+    primitives = std.StringArrayHashMap(Primitive_Info).init(compiler.allocator());
     create_info(
         "Bool",
         null,
@@ -161,6 +161,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .boolean,
         default_bool,
         1,
+        compiler.allocator(),
     );
     create_info(
         "Byte",
@@ -172,6 +173,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .unsigned_integer,
         default_word8,
         1,
+        compiler.allocator(),
     );
     create_info(
         "Char",
@@ -183,6 +185,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .unsigned_integer,
         default_char,
         4,
+        compiler.allocator(),
     );
     create_info(
         "Float",
@@ -194,6 +197,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .floating_point,
         default_float64,
         8,
+        compiler.allocator(),
     );
     create_info(
         "Float32",
@@ -205,6 +209,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .floating_point,
         default_float32,
         4,
+        compiler.allocator(),
     );
     create_info(
         "Float64",
@@ -216,6 +221,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .floating_point,
         default_float64,
         8,
+        compiler.allocator(),
     );
     create_info(
         "Int",
@@ -227,6 +233,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .signed_integer,
         default_int64,
         8,
+        compiler.allocator(),
     );
     create_info(
         "Int8",
@@ -238,6 +245,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .signed_integer,
         default_int8,
         1,
+        compiler.allocator(),
     );
     create_info(
         "Int16",
@@ -249,6 +257,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .signed_integer,
         default_int16,
         2,
+        compiler.allocator(),
     );
     create_info(
         "Int32",
@@ -260,6 +269,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .signed_integer,
         default_int32,
         4,
+        compiler.allocator(),
     );
     create_info(
         "Int64",
@@ -271,6 +281,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .signed_integer,
         default_int64,
         8,
+        compiler.allocator(),
     );
     create_info(
         "String",
@@ -282,6 +293,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .string,
         default_string,
         16,
+        compiler.allocator(),
     );
     create_info(
         "Type",
@@ -293,6 +305,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .type,
         null,
         8,
+        compiler.allocator(),
     );
     create_info(
         "Void",
@@ -304,6 +317,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .none,
         null,
         0,
+        compiler.allocator(),
     );
     create_info(
         "Word16",
@@ -315,6 +329,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .unsigned_integer,
         default_word16,
         2,
+        compiler.allocator(),
     );
     create_info(
         "Word32",
@@ -326,6 +341,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .unsigned_integer,
         default_word32,
         4,
+        compiler.allocator(),
     );
     create_info(
         "Word64",
@@ -337,6 +353,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         .unsigned_integer,
         default_word64,
         8,
+        compiler.allocator(),
     );
 
     default_int8.set_represents(int8_type);
@@ -384,11 +401,11 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\
     ;
 
-    var errors = errs_.Errors.init(std.heap.page_allocator);
+    var errors = errs_.Errors.init(compiler.allocator());
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    const module = module_.Module.init("prelude", "", prelude.?, std.heap.page_allocator);
+    const module = module_.Module.init("prelude", "", prelude.?, compiler.allocator());
     prelude.?.module = module;
     try module_.Module.fill_contents(
         prelude_contents,
@@ -401,26 +418,26 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     );
 
     package_type = module.scope.lookup("Package", false).found.init.?;
-    addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, std.heap.page_allocator);
+    addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, compiler.allocator());
 }
 
-fn create_identifier(name: []const u8) *ast_.AST {
-    return ast_.AST.create_identifier(token_.Token.init_simple(name), std.heap.page_allocator).assert_valid();
+fn create_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_identifier(token_.Token.init_simple(name), allocator).assert_valid();
 }
 
-fn create_unit_type() *ast_.AST {
-    return ast_.AST.create_unit_type(token_.Token.init_simple("("), std.heap.page_allocator).assert_valid();
+fn create_unit_type(allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_unit_type(token_.Token.init_simple("("), allocator).assert_valid();
 }
 
-fn create_anyptr_type() *ast_.AST {
-    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), std.heap.page_allocator).assert_valid();
+fn create_anyptr_type(allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), allocator).assert_valid();
 }
 
-fn create_unit_value() *ast_.AST {
-    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), std.heap.page_allocator).assert_valid();
+fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), allocator).assert_valid();
 }
 
-fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *symbol_.Symbol {
+fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
     var symbol = symbol_.Symbol.init(
         prelude.?,
         name,
@@ -429,7 +446,7 @@ fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST) *s
         init,
         null,
         .@"const",
-        std.heap.page_allocator,
+        allocator,
     ).assert_valid();
     symbol.is_temp = true;
     symbol.expanded_type = _type;
@@ -447,13 +464,14 @@ fn create_info(
     type_kind: Type_Kind, // What kind of type this type is
     default_value: ?*ast_.AST, // Optional AST of default value for the primitive
     size: i64, // Size of values of the type in bytes
+    allocator: std.mem.Allocator,
 ) void {
     const symbol_lookup_res = prelude.?.lookup(name, false);
     var symbol: *symbol_.Symbol = undefined;
     if (symbol_lookup_res == .found) {
         symbol = symbol_lookup_res.found;
     } else {
-        symbol = create_prelude_symbol(name, type_type, definition orelse _ast);
+        symbol = create_prelude_symbol(name, type_type, definition orelse _ast, allocator);
     }
     _ast.set_symbol(symbol);
     primitives.put(name, Primitive_Info{
