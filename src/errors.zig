@@ -67,6 +67,10 @@ pub const Error = union(enum) {
         span: span_.Span,
         name: []const u8,
     },
+    import_file_not_found: struct {
+        span: span_.Span,
+        filename: []const u8,
+    },
 
     // Traits
     reimpl: struct {
@@ -232,6 +236,7 @@ pub const Error = union(enum) {
             .discard_marked => return self.discard_marked.span,
             .not_inside_loop => return self.not_inside_loop.span,
             .not_inside_function => return self.not_inside_function.span,
+            .import_file_not_found => return self.import_file_not_found.span,
 
             .reimpl => return self.reimpl.redefined_span,
             .type_not_impl_method => return self.type_not_impl_method.span,
@@ -312,6 +317,7 @@ pub const Error = union(enum) {
             .discard_marked => out.print("discarded symbol marked as `{s}`\n", .{@tagName(err.discard_marked.kind)}) catch unreachable,
             .not_inside_loop => out.print("`{s}` is not inside a loop\n", .{err.not_inside_loop.name}) catch unreachable,
             .not_inside_function => out.print("`{s}` is not inside a function\n", .{err.not_inside_function.name}) catch unreachable,
+            .import_file_not_found => out.print("file `{s}.orng` not found\n", .{err.import_file_not_found.filename}) catch unreachable,
 
             // Traits
             .reimpl => if (err.reimpl.name != null) {

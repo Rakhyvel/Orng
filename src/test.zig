@@ -1,5 +1,6 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
+const compiler_ = @import("compiler.zig");
 const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
@@ -15,7 +16,7 @@ const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
-const Test_File_Fn = fn ([]const u8, *symbol_.Scope, bool) bool;
+const Test_File_Fn = fn ([]const u8, bool) bool;
 
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -54,10 +55,8 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
-    ast_.init_structures();
-    const prelude = try primitives_.get_scope();
     while (args.next()) |next| {
-        const res = test_file(next, prelude, coverage);
+        const res = test_file(next, coverage);
         if (res) {
             results.passed += 1;
         } else {
@@ -75,7 +74,7 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 }
 
-fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) bool {
+fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     // FIXME: High Cyclo
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
@@ -123,11 +122,14 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
     const expected_out = contents[3..new_line_idx];
 
     // Try to compile Orng (make sure no errors)
-    var errors = errs_.Errors.init(allocator);
-    defer errors.deinit();
-    const module = module_.Module.compile(contents, filename, "main", prelude, false, &errors, allocator) catch {
+    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
+    errdefer {
+        _ = debug_alloc.deinit();
+    }
+    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+    const module = module_.Module.compile(contents, filename, "main", false, compiler) catch {
         if (!coverage) {
-            errors.print_errors();
+            compiler.errors.print_errors();
             term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
             out.print("Orng -> C.\n", .{}) catch unreachable;
             std.debug.dumpCurrentStackTrace(128);
@@ -205,12 +207,20 @@ fn integrate_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: 
         return false;
     }
 
+    compiler.deinit();
+    const debug_result = debug_alloc.deinit();
+    if (debug_result == .leak) {
+        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
+        out.print("compiler error: memory leak!\n", .{}) catch unreachable;
+        return false;
+    }
+
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
     term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
     return true;
 }
 
-fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: bool) bool {
+fn negative_test_file(filename: []const u8, coverage: bool) bool {
     // FIXME: High Cyclo
     if (filename.len < 4 or !std.mem.eql(u8, filename[filename.len - 4 ..], "orng")) {
         return true;
@@ -248,22 +258,21 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
     const contents = contents_arraylist.toOwnedSlice() catch unreachable;
 
     // Try to compile Orng (make sure no errors)
-    var errors = errs_.Errors.init(allocator);
-    defer errors.deinit();
-    const module = module_.Module.compile(contents, filename, "main", prelude, false, &errors, allocator) catch |err| {
+    var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
+    const module = module_.Module.compile(contents, filename, "main", false, compiler) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.LexerError,
                 error.CompileError,
                 => {
-                    errors.print_errors();
+                    compiler.errors.print_errors();
                     term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                     return true;
                 },
                 error.ParseError => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
-                    errors.print_errors();
+                    compiler.errors.print_errors();
                     if (str.find("parser") != null) {
                         term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                         return true;
@@ -271,7 +280,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
                         std.debug.print("{}\n", .{err});
                         term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
                         out.print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
-                        errors.print_errors();
+                        compiler.errors.print_errors();
                         return false;
                     }
                 },
@@ -280,6 +289,7 @@ fn negative_test_file(filename: []const u8, prelude: *symbol_.Scope, coverage: b
             return false;
         }
     };
+    compiler.deinit();
 
     // Test that codegen doesn't crash
     const negative_out_name = "a.out"; // this is gitignored
@@ -323,8 +333,6 @@ fn fuzz_tests() !void { // TODO: Uninfer error
     var failed: usize = 0;
     var i: usize = 0;
 
-    const prelude = try primitives_.get_scope();
-
     // Add lines to arraylist
     var start: usize = index_of(contents, '"').? + 1;
     var end: usize = start + 1;
@@ -345,13 +353,19 @@ fn fuzz_tests() !void { // TODO: Uninfer error
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
             // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
-            var errors = errs_.Errors.init(allocator);
-            defer errors.deinit();
+            var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
+            errdefer {
+                _ = debug_alloc.deinit();
+            }
+            var arena_alloc = std.heap.ArenaAllocator.init(debug_alloc.allocator());
+            errdefer arena_alloc.deinit();
+            var compiler = compiler_.Context.init(arena_alloc.allocator()) catch unreachable;
+            defer compiler.deinit();
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            const module = module_.Module.compile(contents, "fuzz", "main", prelude, false, &errors, allocator) catch |err| {
-                errors.print_errors();
+            const module = module_.Module.compile(contents, "fuzz", "main", false, compiler) catch |err| {
+                compiler.errors.print_errors();
                 switch (err) {
                     error.LexerError,
                     error.CompileError,
@@ -385,7 +399,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             };
 
             var should_continue: bool = false;
-            for (errors.errors_list.items) |err| {
+            for (compiler.errors.errors_list.items) |err| {
                 if (err == .expected2token or err == .expected_basic_token or err == .missing_close) {
                     try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                     try out.print("Orng failed to parse the above correctly!\n", .{});
@@ -397,6 +411,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             if (should_continue) {
                 continue;
             }
+
             try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
             passed += 1;
             // return;

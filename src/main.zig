@@ -1,6 +1,7 @@
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const builtin_ = @import("builtin.zig");
+const compiler_ = @import("compiler.zig");
 const errs_ = @import("errors.zig");
 const interpreter_ = @import("interpreter.zig");
 const module_ = @import("module.zig");
@@ -11,7 +12,7 @@ const version_year: usize = 25;
 const version_month: usize = 1;
 const version_minor: ?usize = null;
 
-pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError };
+pub const Command_Error: type = error{ LexerError, ParseError, CompileError, FileError, FileNotFound };
 
 const Command: type = *const fn (name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void;
 
@@ -67,8 +68,12 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     _ = name;
     _ = args;
     // Get the path
-    var path_buffer: [std.fs.MAX_PATH_BYTES]u8 = undefined;
-    const path = std.fs.cwd().realpath("build.orng", &path_buffer) catch |err| switch (err) {
+    const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    defer std.heap.page_allocator.free(build_path_buffer);
+    const root_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    defer std.heap.page_allocator.free(root_path_buffer);
+
+    const build_path = std.fs.cwd().realpath("build.orng", build_path_buffer) catch |err| switch (err) {
         error.FileNotFound => {
             (errs_.Error{ .basic = .{
                 .msg = "no `build.orng` file found in current working directory",
@@ -77,30 +82,44 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         },
         else => return error.CompileError,
     };
-    ast_.init_structures();
 
-    const build_cfg = try builtin_.compile_build_file(path, allocator);
+    var compiler = try compiler_.Context.init(allocator);
+    defer compiler.deinit();
+    const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
 
-    var build_context = interpreter_.Context.init();
-    build_context.set_entry_point(build_cfg, primitives_.package_type);
-    try build_context.interpret();
-    defer build_context.deinit();
+    var interpreter = interpreter_.Context.init(compiler.allocator());
+    interpreter.set_entry_point(build_cfg, primitives_.package_type);
+    try interpreter.interpret(compiler);
+    defer interpreter.deinit();
 
     // Extract the retval
-    var result = build_context.extract_ast(0, primitives_.package_type, allocator);
-    print_package_name(result);
+    var result = interpreter.extract_ast(0, primitives_.package_type, allocator);
+    const root_name = print_package_name(result);
     for (result.children().items[2].children().items) |item| {
         if (item.sum_value._pos != 0) {
             continue;
         }
         const dependency_addr: i64 = @intCast(item.sum_value.init.?.int.data);
-        const dependency = build_context.extract_ast(dependency_addr, primitives_.package_type, allocator);
-        print_package_name(dependency);
+        const dependency = interpreter.extract_ast(dependency_addr, primitives_.package_type, allocator);
+        _ = print_package_name(dependency);
     }
+    const root_file_path = std.fs.cwd().realpath(root_name, root_path_buffer) catch return error.CompileError;
+
+    const root_module = compiler.compile_module(
+        root_file_path,
+        "main",
+        false,
+    ) catch return error.CompileError;
+    _ = root_module; // autofix
+
+    // std.fs.cwd().makeDir("build") catch return error.CompileError;
+    // compiler.loop_modules();
 }
 
-fn print_package_name(package: *ast_.AST) void {
-    std.debug.print("root: {s}\n", .{package.children().items[0].string.data});
+fn print_package_name(package: *ast_.AST) []const u8 {
+    const retval = package.children().items[0].string.data;
+    std.debug.print("root: {s}\n", .{retval});
+    return retval;
 }
 
 fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {

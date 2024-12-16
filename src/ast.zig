@@ -15,11 +15,11 @@ pub var poisoned: *AST = undefined;
 var inited: bool = false;
 
 /// Initializes internal structures if they are not already initialized.
-pub fn init_structures() void {
+pub fn init_structures(allocator: std.mem.Allocator) void {
     if (!inited) {
         poisoned = AST.create_poison(
             token_.Token.init_simple("LMAO GET POISONED!"),
-            std.heap.page_allocator,
+            allocator,
         );
         _ = poisoned.enpoison();
         inited = true;
@@ -2504,7 +2504,7 @@ pub const AST = union(enum) {
                 if (child_type.types_match(primitives_.type_type)) {
                     return primitives_.type_type;
                 } else {
-                    return create_addr_of(self.token(), child_type, self.addr_of.mut, std.heap.page_allocator);
+                    return create_addr_of(self.token(), child_type, self.addr_of.mut, allocator);
                 }
             },
             .slice_of => {
@@ -3079,7 +3079,7 @@ pub const AST = union(enum) {
     pub fn format(self: AST, comptime fmt: []const u8, options: std.fmt.FormatOptions, writer: anytype) !void {
         _ = options;
         _ = fmt;
-        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
         defer arena.deinit();
 
         const out = self.pprint(arena.allocator()) catch unreachable;

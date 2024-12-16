@@ -172,6 +172,7 @@ pub const Symbol_Kind = union(enum) {
     @"comptime",
     trait,
     template,
+    import,
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);
