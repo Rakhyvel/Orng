@@ -19,6 +19,7 @@ const offsets_ = @import("offsets.zig");
 const optimizations_ = @import("optimizations.zig");
 const parser_ = @import("parser.zig");
 const span_ = @import("span.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const symbol_tree_ = @import("symbol-tree.zig");
 const token_ = @import("token.zig");
@@ -179,6 +180,7 @@ pub const Module = struct {
         var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator());
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, &compiler.errors, compiler.allocator());
+        try module.get_imports(compiler, module_ast);
         try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator());
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, &compiler.errors, compiler.allocator());
 
@@ -253,6 +255,34 @@ pub const Module = struct {
                         _ = module.type_set.add(ir.dest.?.get_expanded_type(), compiler.allocator());
                     }
                 }
+            }
+        }
+    }
+
+    // TODO: make AST visitors, transform this to a visit function
+    fn get_imports(
+        self: *Module,
+        compiler: *compiler_.Context,
+        asts: std.ArrayList(*ast_.AST),
+    ) !void {
+        for (asts.items) |ast| {
+            if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
+                const package_path = std.fs.path.dirname(self.absolute_path).?;
+                var import_filename = String.init(compiler.allocator());
+                defer import_filename.deinit();
+                import_filename.writer().print("{s}.orng", .{ast.decl.pattern.pattern_symbol.name}) catch unreachable;
+                const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
+                const import_file_path = std.fs.path.join(compiler.allocator(), &import_file_paths) catch unreachable;
+                _ = compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+                    error.FileNotFound => {
+                        compiler.errors.add_error(.{ .import_file_not_found = .{
+                            .filename = ast.decl.pattern.pattern_symbol.name,
+                            .span = ast.token().span,
+                        } });
+                        return error.CompileError;
+                    },
+                    else => return error.CompileError,
+                };
             }
         }
     }

@@ -68,7 +68,6 @@ pub const Context = struct {
         }
 
         // Open the file
-        std.debug.print("path: {s}\n", .{absolute_path});
         var file = std.fs.openFileAbsolute(absolute_path, .{}) catch |err| switch (err) {
             error.FileNotFound => return error.FileNotFound,
             else => return error.CompileError,

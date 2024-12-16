@@ -101,14 +101,14 @@ pub const Context = struct {
     }
 
     /// Interprets the interpreter's instructions until the interpreter has executed more return instructions than call
-    /// instructions.
+    /// instructions, and the instruction pointer isn't a trap representation.
     pub fn run(
         self: *Context,
         compiler: *compiler_.Context,
     ) error{CompileError}!void {
-        const call_depth_at_run = self.call_depth;
-        // Halt whenever instruction pointer is greater than the max allowed instructions
-        while (self.call_depth >= call_depth_at_run) : (self.instruction_pointer.inst_idx += 1) {
+        const initial_call_depth = self.call_depth;
+        // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
+        while (self.call_depth >= initial_call_depth and self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
             if (debugger) {
                 std.debug.print("\n", .{});
