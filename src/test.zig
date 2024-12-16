@@ -259,7 +259,6 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     // Try to compile Orng (make sure no errors)
     var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
-    defer compiler.deinit();
     const module = module_.Module.compile(contents, filename, "main", false, compiler) catch |err| {
         if (!coverage) {
             switch (err) {
@@ -290,6 +289,7 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
             return false;
         }
     };
+    compiler.deinit();
 
     // Test that codegen doesn't crash
     const negative_out_name = "a.out"; // this is gitignored
