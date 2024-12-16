@@ -133,7 +133,7 @@ pub const Module = struct {
         var lines = std.ArrayList([]const u8).init(compiler.allocator());
         defer lines.deinit();
         try lines_.get_lines(contents, &lines, &compiler.errors);
-        var scanner = lexer_.Scanner.init(&lines, in_name, &compiler.errors, fuzz_tokens, compiler.allocator()); // TODO: Deinit?
+        var scanner = lexer_.Scanner.init(&lines, in_name, &compiler.errors, fuzz_tokens, compiler.allocator());
         var tokens = try scanner.get_tokens();
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
@@ -210,7 +210,7 @@ pub const Module = struct {
                 found_entry = true;
             }
         }
-        if (need_entry and !found_entry) { // TODO: This will be reworked once we get project structure going
+        if (need_entry and !found_entry) {
             compiler.errors.add_error(errs_.Error{ .basic = .{
                 .span = span_.phony_span,
                 .msg = "no main function found",
@@ -462,7 +462,7 @@ pub fn stamp(
     scope: *symbol_.Scope,
     compiler: *compiler_.Context,
 ) !*ast_.AST {
-    // TODO: Assert template_ast is template
+    std.debug.assert(template_ast.* == .template);
     if (template_ast.template.memo == null) {
         // Clone out a new fn decl AST, with a new name
         const fn_decl = template_ast.template.decl.clone(compiler.allocator());

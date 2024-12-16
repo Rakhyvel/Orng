@@ -810,14 +810,11 @@ fn validate_AST_internal(
             access_result = validate_AST(access_result.?, null, compiler);
             try assert_none_poisoned(access_result);
 
-            std.debug.assert(access_result.?.* == .decl or access_result.?.* == .method_decl or access_result.?.* == .fn_decl);
             if (access_result.?.* == .decl) {
                 std.debug.assert(access_result.?.decl.symbols.items.len == 1);
                 ast.access._symbol = access_result.?.decl.symbols.items[0];
-            } else if (access_result.?.* == .method_decl) {
-                ast.access._symbol = access_result.?.method_decl._symbol;
-            } else if (access_result.?.* == .fn_decl) {
-                ast.access._symbol = access_result.?.fn_decl._symbol; // TODO: Can't this just be one block with .symbol()?
+            } else if (access_result.?.* == .method_decl or access_result.?.* == .fn_decl) {
+                ast.access._symbol = access_result.?.symbol();
             } else {
                 std.debug.panic("compiler error: type access isn't decl or method_decl, it's {s}", .{@tagName(access_result.?.*)});
             }
