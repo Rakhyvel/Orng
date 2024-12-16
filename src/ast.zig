@@ -284,6 +284,7 @@ pub const AST = union(enum) {
         }
 
         /// Retrieves the offset in bytes given a field's index
+        /// TODO: Add a version that works with field names!!
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
@@ -2570,7 +2571,13 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path for calculating the size of an AST type in bytes.
     fn sizeof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data).size,
+            .identifier => {
+                if (self.symbol() != null and self.symbol().?.init != null and self.symbol().?.init.?.* != .identifier) {
+                    return self.symbol().?.init.?.sizeof();
+                } else {
+                    return primitives_.info_from_name(self.token().data).?.size;
+                }
+            },
 
             .product => {
                 var total_size: i64 = 0;
@@ -2613,7 +2620,7 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data)._align,
+            .identifier => return primitives_.info_from_name(self.token().data).?._align,
 
             .product => {
                 var max_align: i64 = 0;

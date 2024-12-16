@@ -29,10 +29,16 @@ pub const Context = struct {
     pub fn init(alloc: std.mem.Allocator) Error!*Context {
         var retval: *Context = alloc.create(Context) catch unreachable;
         retval.arena = std.heap.ArenaAllocator.init(alloc);
+
         ast_.init_structures(retval.allocator());
         retval.errors = errs_.Errors.init(retval.allocator());
-        retval.prelude = try primitives_.get_scope(retval);
+        retval.prelude = primitives_.get_scope(retval) catch {
+            // Prelude compilation can sometimes fail :(
+            retval.errors.print_errors();
+            return error.CompileError;
+        };
         retval.modules = std.StringArrayHashMap(*module_.Module).init(retval.allocator());
+
         return retval;
     }
 
@@ -57,12 +63,12 @@ pub const Context = struct {
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
     ) Error!*module_.Module {
-        _ = self.allocator().alloc(u8, 100000) catch unreachable;
         if (self.modules.get(absolute_path)) |module| {
             return module;
         }
 
         // Open the file
+        std.debug.print("path: {s}\n", .{absolute_path});
         var file = std.fs.openFileAbsolute(absolute_path, .{}) catch |err| switch (err) {
             error.FileNotFound => return error.FileNotFound,
             else => return error.CompileError,

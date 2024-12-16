@@ -574,7 +574,7 @@ fn validate_AST_internal(
             context.set_entry_point(cfg, ret_type);
             defer context.deinit();
             context.load_module(module);
-            try context.interpret(compiler);
+            try context.run(compiler);
 
             // Extract the retval
             ast.@"comptime".result = context.extract_ast(0, ret_type, compiler.allocator());
@@ -2105,7 +2105,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
-                const primitive_info = primitives_.info_from_name(_type.token().data);
+                const primitive_info = primitives_.info_from_name(_type.token().data).?;
                 if (primitive_info.default_value != null) {
                     return primitive_info.default_value.?;
                 } else {

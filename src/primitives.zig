@@ -373,25 +373,37 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\const Package: Type = (
         \\  root: String,
         \\  kind: (executable | static_library),
-        \\  requirements: [8]?&Package = ((?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none, (?&Package).none)
+        \\  dir: String = ".",
+        \\  requirements: [8]?Requirement = (
+        \\    (?Requirement).none,
+        \\    (?Requirement).none,
+        \\    (?Requirement).none,
+        \\    (?Requirement).none,
+        \\    (?Requirement).none,
+        \\    (?Requirement).none,
+        \\    (?Requirement).none,
+        \\    (?Requirement).none
+        \\  ),
         \\)
+        \\
+        \\const Requirement: Type = (String, &Package)
         \\
         \\impl for Package {
         \\  /// Creates an executable package
-        \\  fn executable(root: String) -> Self { (root, .executable) }
+        \\  fn executable(root: String) -> Self { (root, .executable, "") }
         \\
         \\  /// Creates a static library package
-        \\  fn static_library(root: String) -> Self { (root, .static_library) }
+        \\  fn static_library(root: String) -> Self { (root, .static_library, "") }
         \\
         \\  /// Finds a package given a name
         \\  /// NOTE: This is currently implemented as a builtin-function in the compiler
         \\  fn find(name: String) -> &Self { _ = name; unreachable }
         \\
         \\  /// Adds a package to the list of required packages
-        \\  fn requires(&mut self, other: &Package) -> () {
+        \\  fn requires(&mut self, name: String, other: &Package) -> () {
         \\      while let mut i = 0; i < self.requirements.length; i += 1 {
         \\          if self.requirements[i] == .none {
-        \\              self.requirements[i] = .some(other)
+        \\              self.requirements[i] = .some((name, other))
         \\              return
         \\          }
         \\      }
@@ -418,6 +430,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     );
 
     package_type = module.scope.lookup("Package", false).found.init.?;
+    _ = module.scope.lookup("Requirement", false).found.init.?;
     addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, compiler.allocator());
 }
 
@@ -492,9 +505,8 @@ pub fn keys() [][]const u8 {
     return primitives.keys();
 }
 
-pub fn info_from_name(name: []const u8) Primitive_Info {
-    const res = primitives.get(name) orelse std.debug.panic("compiler error: unknown primitive `{s}`", .{name});
-    return res;
+pub fn info_from_name(name: []const u8) ?Primitive_Info {
+    return primitives.get(name);
 }
 
 pub fn bounds_from_ast(_type: *ast_.AST) ?Bounds {

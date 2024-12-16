@@ -556,7 +556,7 @@ pub fn interpret(
     context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);
-    try context.interpret(compiler);
+    try context.run(compiler);
 
     // Extract the retval
     return context.extract_ast(0, ret_type, compiler.allocator());
