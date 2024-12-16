@@ -113,13 +113,16 @@ fn make_package(
         }
         const requirement = maybe_requirement_addr.sum_value.init.?;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
-        // const requirement_name = requirement.children().items[0].string.data; // TODO: Will need this
+        const requirement_name = requirement.children().items[0].string.data;
         const required_package = interpreter.extract_ast(required_package_addr, primitives_.package_type, compiler.allocator());
         const required_package_dir = required_package.children().items[2].string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
-        _ = try make_package(required_package, compiler, interpreter, new_working_directory, null);
+        const module = try make_package(required_package, compiler, interpreter, new_working_directory, null);
+
+        compiler.register_package( // TODO: These should be package-specific
+            requirement_name, module);
     }
 
     const root_filename = package.children().items[0].string.data;

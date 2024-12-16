@@ -765,20 +765,7 @@ fn validate_AST_internal(
                 const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
                 const other_module_dir = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
 
-                const module = compiler.compile_module(
-                    other_module_dir,
-                    null,
-                    false,
-                ) catch |err| switch (err) {
-                    error.FileNotFound => {
-                        compiler.errors.add_error(.{ .import_file_not_found = .{
-                            .filename = ast.lhs().token().data,
-                            .span = ast.token().span,
-                        } });
-                        return error.CompileError;
-                    },
-                    else => return error.CompileError,
-                };
+                const module = compiler.lookup_module(other_module_dir) orelse compiler.packages.get(ast.lhs().token().data).?; // all imports should be compiled eagerly before the symbol-tree is constructed
                 const module_lookup_res = module.scope.lookup(
                     ast.rhs().token().data,
                     false,
@@ -786,10 +773,14 @@ fn validate_AST_internal(
                 access_result = switch (module_lookup_res) {
                     .found => module_lookup_res.found.decl,
                     else => {
-                        compiler.errors.add_error(errs_.Error{ .undeclared_identifier = .{
-                            .identifier = ast.token(),
-                            .expected = null,
-                        } });
+                        compiler.errors.add_error(errs_.Error{
+                            .member_not_in = .{
+                                .span = ast.token().span,
+                                .identifier = ast.rhs().token().data,
+                                .name = "module",
+                                .group = ast.lhs(),
+                            },
+                        });
                         return error.CompileError;
                     },
                 };

@@ -270,11 +270,12 @@ pub const Module = struct {
                 const package_path = std.fs.path.dirname(self.absolute_path).?;
                 var import_filename = String.init(compiler.allocator());
                 defer import_filename.deinit();
-                import_filename.writer().print("{s}.orng", .{ast.decl.pattern.pattern_symbol.name}) catch unreachable;
+                const import_name = ast.decl.pattern.pattern_symbol.name;
+                import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
                 const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
                 const import_file_path = std.fs.path.join(compiler.allocator(), &import_file_paths) catch unreachable;
                 _ = compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
-                    error.FileNotFound => {
+                    error.FileNotFound => if (compiler.packages.get(import_name) == null) {
                         compiler.errors.add_error(.{ .import_file_not_found = .{
                             .filename = ast.decl.pattern.pattern_symbol.name,
                             .span = ast.token().span,
