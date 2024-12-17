@@ -438,7 +438,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
         } else {
-            try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).c_name}).?;
+            try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).?.c_name});
         },
         .addr_of => {
             try output_type(_type.expr(), writer);
