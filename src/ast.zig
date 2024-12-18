@@ -283,6 +283,15 @@ pub const AST = union(enum) {
             return true;
         }
 
+        pub fn get_offset_field(self: *@This(), field_name: []const u8, allocator: std.mem.Allocator) i64 {
+            for (0.., self._terms.items) |i, term| {
+                if (term.* == .annotation and std.mem.eql(u8, field_name, term.annotation.pattern.token().data)) {
+                    return self.get_offset(i, allocator);
+                }
+            }
+            std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`\n", .{field_name});
+        }
+
         /// Retrieves the offset in bytes given a field's index
         /// TODO: Add a version that works with field names!!
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
@@ -1646,7 +1655,7 @@ pub const AST = union(enum) {
     }
 
     pub fn represents(self: AST) *AST {
-        return get_field(self, "_represents");
+        return get_struct_field(self, "_represents");
     }
 
     pub fn set_represents(self: *AST, val: *AST) void {
@@ -1654,7 +1663,7 @@ pub const AST = union(enum) {
     }
 
     pub fn expr(self: AST) *AST {
-        return get_field(self, "_expr");
+        return get_struct_field(self, "_expr");
     }
 
     pub fn set_expr(self: *AST, val: *AST) void {
@@ -1662,7 +1671,7 @@ pub const AST = union(enum) {
     }
 
     pub fn symbol(self: AST) ?*symbol_.Symbol {
-        return get_field(self, "_symbol");
+        return get_struct_field(self, "_symbol");
     }
 
     pub fn set_symbol(self: *AST, val: ?*symbol_.Symbol) void {
@@ -1670,7 +1679,7 @@ pub const AST = union(enum) {
     }
 
     pub fn lhs(self: AST) *AST {
-        return get_field(self, "_lhs");
+        return get_struct_field(self, "_lhs");
     }
 
     pub fn set_lhs(self: *AST, val: *AST) void {
@@ -1678,7 +1687,7 @@ pub const AST = union(enum) {
     }
 
     pub fn rhs(self: AST) *AST {
-        return get_field(self, "_rhs");
+        return get_struct_field(self, "_rhs");
     }
 
     pub fn set_rhs(self: *AST, val: *AST) void {
@@ -1713,8 +1722,17 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn get_field(self: *AST, _type: *AST, field_name: []const u8) *AST {
+        for (0.., _type.children().items) |i, child| {
+            if (child.* == .annotation and std.mem.eql(u8, field_name, child.annotation.pattern.token().data)) {
+                return self.children().items[i];
+            }
+        }
+        std.debug.panic("compiler error: {s} didn't have field `{s}`\n", .{ @tagName(self.*), field_name });
+    }
+
     pub fn pos(self: AST) ?usize {
-        return get_field(self, "_pos");
+        return get_struct_field(self, "_pos");
     }
 
     pub fn get_pos(self: *AST, field_name: []const u8) ?usize {
@@ -1731,7 +1749,7 @@ pub const AST = union(enum) {
     }
 
     pub fn statement(self: AST) *AST {
-        return get_field(self, "_statement");
+        return get_struct_field(self, "_statement");
     }
 
     pub fn set_statement(self: *AST, val: *AST) void {
@@ -1739,7 +1757,7 @@ pub const AST = union(enum) {
     }
 
     pub fn body_block(self: AST) *AST {
-        return get_field(self, "_body_block");
+        return get_struct_field(self, "_body_block");
     }
 
     pub fn set_body_block(self: *AST, val: *AST) void {
@@ -1747,7 +1765,7 @@ pub const AST = union(enum) {
     }
 
     pub fn else_block(self: AST) ?*AST {
-        return get_field(self, "_else_block");
+        return get_struct_field(self, "_else_block");
     }
 
     pub fn set_else_block(self: *AST, val: ?*AST) void {
@@ -1755,7 +1773,7 @@ pub const AST = union(enum) {
     }
 
     pub fn mut(self: AST) bool {
-        return get_field(self, "mut");
+        return get_struct_field(self, "mut");
     }
 
     pub fn set_mut(self: *AST, val: bool) void {
@@ -1772,7 +1790,7 @@ pub const AST = union(enum) {
     }
 
     /// Generically retrieve the value of a field in a Zig union type
-    fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
+    fn get_struct_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
         return switch (u) {
             inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
         } catch {

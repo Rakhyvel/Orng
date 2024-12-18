@@ -96,8 +96,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     _ = try make_package(package_dag, compiler, &interpreter, cwd, "main");
 
-    // std.fs.cwd().makeDir("build") catch return error.CompileError;
-    // compiler.loop_modules();
+    std.debug.print("done\n", .{});
 }
 
 fn make_package(
@@ -107,15 +106,15 @@ fn make_package(
     working_directory: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*module_.Module {
-    for (package.children().items[3].children().items) |maybe_requirement_addr| {
+    for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
             continue;
         }
         const requirement = maybe_requirement_addr.sum_value.init.?;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
-        const requirement_name = requirement.children().items[0].string.data;
+        const requirement_name = requirement.get_field(primitives_.package_type, "root").string.data;
         const required_package = interpreter.extract_ast(required_package_addr, primitives_.package_type, compiler.allocator());
-        const required_package_dir = required_package.children().items[2].string.data;
+        const required_package_dir = required_package.get_field(primitives_.package_type, "dir").string.data;
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
@@ -125,7 +124,7 @@ fn make_package(
             requirement_name, module);
     }
 
-    const root_filename = package.children().items[0].string.data;
+    const root_filename = package.get_field(primitives_.package_type, "root").string.data;
     const root_file_paths = [_][]const u8{ working_directory, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
     return compiler.compile_module(

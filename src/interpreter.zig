@@ -330,7 +330,7 @@ pub const Context = struct {
                             const adrs = package_info.package_adrs;
                             // Store the directory of the package inside the package struct before returning
                             const dir_string = self.modules.get(0).?.interned_string_set_add(package_info.package_dirname);
-                            const dir_offset = primitives_.package_type.product.get_offset(2, self.allocator);
+                            const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
                             self.store(ir_.String_Idx, adrs + dir_offset, dir_string);
                             // Store the address of the package in the retval
                             self.store_int(ret_addr, 8, adrs);
