@@ -25,14 +25,24 @@ pub const Context = struct {
     // This will need to be modified to store packages, too, and deal with module name collisions
     modules: std.StringArrayHashMap(*module_.Module),
 
+    // Maps package names to their root module
+    packages: std.StringArrayHashMap(*module_.Module),
+
     /// Throws an error if the prelude could not be compiled
     pub fn init(alloc: std.mem.Allocator) Error!*Context {
         var retval: *Context = alloc.create(Context) catch unreachable;
         retval.arena = std.heap.ArenaAllocator.init(alloc);
+
         ast_.init_structures(retval.allocator());
         retval.errors = errs_.Errors.init(retval.allocator());
-        retval.prelude = try primitives_.get_scope(retval);
+        retval.prelude = primitives_.get_scope(retval) catch {
+            // Prelude compilation can sometimes fail :(
+            retval.errors.print_errors();
+            return error.CompileError;
+        };
         retval.modules = std.StringArrayHashMap(*module_.Module).init(retval.allocator());
+        retval.packages = std.StringArrayHashMap(*module_.Module).init(retval.allocator());
+
         return retval;
     }
 
@@ -57,7 +67,6 @@ pub const Context = struct {
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
     ) Error!*module_.Module {
-        _ = self.allocator().alloc(u8, 100000) catch unreachable;
         if (self.modules.get(absolute_path)) |module| {
             return module;
         }
@@ -81,6 +90,7 @@ pub const Context = struct {
         in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
         const contents = contents_arraylist.toOwnedSlice() catch unreachable;
 
+        std.debug.print("  compiling {s}/{s}...\n", .{ std.fs.path.basename(std.fs.path.dirname(absolute_path).?), std.fs.path.basename(absolute_path) });
         const module = module_.Module.compile(contents, absolute_path, entry_name, fuzz_tokens, self) catch |err| {
             switch (err) {
                 // Always print these errors for fuzz testing
@@ -103,5 +113,13 @@ pub const Context = struct {
         };
         self.modules.put(absolute_path, module) catch unreachable;
         return module;
+    }
+
+    pub fn lookup_module(self: *Context, absolute_path: []const u8) ?*module_.Module {
+        return self.modules.get(absolute_path);
+    }
+
+    pub fn register_package(self: *Context, package_name: []const u8, package_root_module: *module_.Module) void {
+        self.packages.put(package_name, package_root_module) catch unreachable;
     }
 };

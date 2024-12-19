@@ -19,10 +19,12 @@ const offsets_ = @import("offsets.zig");
 const optimizations_ = @import("optimizations.zig");
 const parser_ = @import("parser.zig");
 const span_ = @import("span.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const symbol_tree_ = @import("symbol-tree.zig");
 const token_ = @import("token.zig");
 const type_set_ = @import("type-set.zig");
+const walker_ = @import("walker.zig");
 
 pub const Module_Errors = error{
     LexerError,
@@ -179,6 +181,8 @@ pub const Module = struct {
         var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator());
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, &compiler.errors, compiler.allocator());
+        // try module.get_imports(compiler, module_ast);
+        try walker_.walk_asts(module_ast, Import_Context{ .compiler = compiler, .module = module }, &get_imports);
         try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator());
         try decorate_.decorate_identifiers_from_list(module_ast, file_root, &compiler.errors, compiler.allocator());
 
@@ -255,6 +259,32 @@ pub const Module = struct {
                 }
             }
         }
+    }
+
+    const Import_Context = struct { module: *Module, compiler: *compiler_.Context };
+
+    fn get_imports(ast: *ast_.AST, ctx: Import_Context) walker_.Error!Import_Context {
+        if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
+            const package_path = std.fs.path.dirname(ctx.module.absolute_path).?;
+            var import_filename = String.init(ctx.compiler.allocator());
+            defer import_filename.deinit();
+            const import_name = ast.decl.pattern.pattern_symbol.name;
+            import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
+            const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
+            const import_file_path = std.fs.path.join(ctx.compiler.allocator(), &import_file_paths) catch unreachable;
+            _ = ctx.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+                error.FileNotFound => if (ctx.compiler.packages.get(import_name) == null) {
+                    ctx.compiler.errors.add_error(.{ .import_file_not_found = .{
+                        .filename = ast.decl.pattern.pattern_symbol.name,
+                        .span = ast.token().span,
+                    } });
+                    return error.CompileError;
+                },
+                else => return error.CompileError,
+            };
+        }
+
+        return ctx;
     }
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
@@ -556,7 +586,7 @@ pub fn interpret(
     context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);
-    try context.interpret(compiler);
+    try context.run(compiler);
 
     // Extract the retval
     return context.extract_ast(0, ret_type, compiler.allocator());

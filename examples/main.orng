@@ -1,5 +1,7 @@
+import std
 import externs
 
 fn main() -> () {
-    externs::println("Hello, World!")
+    externs::println("Hello, ")
+    std::println("World!")
 }

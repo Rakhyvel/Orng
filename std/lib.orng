@@ -1,1 +1,3 @@
 import debug
+
+const println = debug::println

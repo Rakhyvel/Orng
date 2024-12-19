@@ -31,22 +31,25 @@ pub fn decorate_identifiers_from_list(
 // TODO:
 //
 // // A struct to contain a generic pass
-// const Pass = struct {
-//     run: *const fn(ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Pass_Error!void
-// };
+// fn Pass(comptime ctx: type) type {
+//     return struct {
+//         run: *const fn(ast_.AST, ctx) Pass_Error!void
+//     };
+// }
 //
 // // A function that walks over an AST, applying pass's function to each one
-// fn walk_ast(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator, pass: Pass) Pass_Error!void {
-//     try pass.run(ast, scope, errors, allocator);
+// fn walk_ast(ast: *ast_.AST, context: anytype, pass: comptime{Pass(@TypeOf(context))}) Pass_Error!void {
+//     try pass.run(ast, context);
 //     switch (ast.*) {
 //         .add, sub, mul, div, .mod => {
-//             try walk_ast(ast.lhs(), scope, errors, allocator);
-//             try walk_ast(ast.rhs(), scope, errors, allocator);
+//             try walk_ast(ast.lhs(), context);
+//             try walk_ast(ast.rhs(), context);
 //         }
 //     }
 // }
 //
-// fn decorate(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Pass_Error!void {
+// const Decorate_Context = struct {scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator};
+// fn decorate(ast: *ast_.AST, ctx: Decorate_Context) Pass_Error!void {
 //     if (ast.* == .identifier) {
 //         // decorate the identifier
 //     } // That's it!
