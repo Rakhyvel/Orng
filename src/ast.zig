@@ -1,3 +1,5 @@
+// TODO: Can this file be split up?? At ALL?
+
 const std = @import("std");
 const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
@@ -293,7 +295,6 @@ pub const AST = union(enum) {
         }
 
         /// Retrieves the offset in bytes given a field's index
-        /// TODO: Add a version that works with field names!!
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
             var offset: i64 = 0;
             for (0..field) |i| {
