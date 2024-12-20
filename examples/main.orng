@@ -1,5 +1,6 @@
 import std
 import externs
+// import core // imported by std, this is what we want to prevent
 
 fn main() -> () {
     externs::println("Hello, ")
