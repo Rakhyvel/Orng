@@ -188,7 +188,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *compiler_.Context) Validate_Error_E
     const trait_ast = trait_symbol.decl.?;
 
     // Check that the (trait, type) pair is unique for this scope
-    const lookup_res = impl.impl.scope.?.impl_trait_lookup(impl.impl._type, trait_symbol);
+    const lookup_res = impl.scope().?.impl_trait_lookup(impl.impl._type, trait_symbol);
     if (lookup_res.count > 1) {
         // Check if there's already an implementation for the same trait and type
         compiler.errors.add_error(errs_.Error{ .reimpl = .{
@@ -574,7 +574,7 @@ fn validate_AST_internal(
             context.set_entry_point(cfg, ret_type);
             defer context.deinit();
             context.load_module(module);
-            try context.interpret(compiler);
+            try context.run(compiler);
 
             // Extract the retval
             ast.@"comptime".result = context.extract_ast(0, ret_type, compiler.allocator());
@@ -758,27 +758,18 @@ fn validate_AST_internal(
             // STRIP AWAY ADDRs!
             var access_result: ?*ast_.AST = null;
             if (ast.lhs().* == .identifier and ast.lhs().symbol().?.kind == .import) {
-                const curr_package_path = ast.lhs().symbol().?.scope.module.?.get_package_abs_path();
+                const this_module = ast.lhs().symbol().?.scope.module.?;
+                const curr_package_path = this_module.get_package_abs_path();
                 var module_path_name = String.init(compiler.allocator());
                 defer module_path_name.deinit();
                 module_path_name.writer().print("{s}.orng", .{ast.lhs().token().data}) catch unreachable;
                 const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
                 const other_module_dir = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
 
-                const module = compiler.compile_module(
-                    other_module_dir,
-                    null,
-                    false,
-                ) catch |err| switch (err) {
-                    error.FileNotFound => {
-                        compiler.errors.add_error(.{ .import_file_not_found = .{
-                            .filename = ast.lhs().token().data,
-                            .span = ast.token().span,
-                        } });
-                        return error.CompileError;
-                    },
-                    else => return error.CompileError,
-                };
+                std.debug.print("{s}::{s}\n", .{ ast.lhs().token().data, ast.rhs().token().data });
+
+                const module = compiler.lookup_module(other_module_dir) orelse
+                    compiler.lookup_package_root_module(this_module.package_name, ast.lhs().token().data).?; // all imports should be compiled eagerly before the symbol-tree is constructed
                 const module_lookup_res = module.scope.lookup(
                     ast.rhs().token().data,
                     false,
@@ -786,16 +777,20 @@ fn validate_AST_internal(
                 access_result = switch (module_lookup_res) {
                     .found => module_lookup_res.found.decl,
                     else => {
-                        compiler.errors.add_error(errs_.Error{ .undeclared_identifier = .{
-                            .identifier = ast.token(),
-                            .expected = null,
-                        } });
+                        compiler.errors.add_error(errs_.Error{
+                            .member_not_in = .{
+                                .span = ast.token().span,
+                                .identifier = ast.rhs().token().data,
+                                .name = "module",
+                                .group = ast.lhs(),
+                            },
+                        });
                         return error.CompileError;
                     },
                 };
             } else {
                 const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
-                access_result = ast.access.scope.?.lookup_impl_member(stripped_lhs, ast.rhs().token().data);
+                access_result = ast.scope().?.lookup_impl_member(stripped_lhs, ast.rhs().token().data);
                 if (access_result == null) {
                     compiler.errors.add_error(errs_.Error{
                         .type_not_impl_method = .{
@@ -839,7 +834,7 @@ fn validate_AST_internal(
             } else {
                 // The receiver is a regular type. STRIP AWAY ADDRs!
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
-                method_decl = ast.invoke.scope.?.lookup_impl_member(lhs_type, ast.rhs().token().data);
+                method_decl = ast.scope().?.lookup_impl_member(lhs_type, ast.rhs().token().data);
             }
             if (method_decl == null) {
                 compiler.errors.add_error(errs_.Error{
@@ -906,7 +901,7 @@ fn validate_AST_internal(
             ast.dyn_value.dyn_type = validate_AST(ast.dyn_value.dyn_type, primitives_.type_type, compiler);
             const expr_type = ast.expr().typeof(compiler.allocator());
 
-            const impl = ast.dyn_value.scope.?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
+            const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
             if (impl.ast == null) {
                 compiler.errors.add_error(errs_.Error{ .type_not_impl_trait = .{
                     .span = ast.token().span,
@@ -1001,7 +996,7 @@ fn validate_AST_internal(
                             ast.token(),
                             expanded_expected,
                             ast.expr(),
-                            ast.addr_of.scope.?,
+                            ast.scope().?,
                             ast.addr_of.mut,
                             compiler.allocator(),
                         ),
@@ -1209,7 +1204,7 @@ fn validate_AST_internal(
                         var statements = std.ArrayList(*ast_.AST).init(compiler.allocator());
                         statements.append(ast.@"if".let.?) catch unreachable;
                         const block = ast_.AST.create_block(ast.else_block().?.token(), statements, null, compiler.allocator());
-                        block.block.scope = ast.@"if".scope.?;
+                        block.set_scope(ast.scope());
                         ast.set_else_block(block);
                     }
                 }
@@ -1227,7 +1222,7 @@ fn validate_AST_internal(
                     statements.append(ast_.AST.create_none_value(opt_type, compiler.allocator())) catch unreachable;
                 }
                 const ret_block = ast_.AST.create_block(token_.Token.init_simple("{"), statements, null, compiler.allocator());
-                ret_block.block.scope = ast.@"if".scope.?.parent.?;
+                ret_block.set_scope(ast.scope().?.parent.?);
                 return ret_block;
             } else {
                 // condition is undeterminable at compile-time, return if AST
@@ -1601,7 +1596,7 @@ fn inset_let_into_if(ast: *ast_.AST, allocator: std.mem.Allocator) void {
             var statements = std.ArrayList(*ast_.AST).init(allocator);
             statements.append(ast.@"if".let.?) catch unreachable;
             const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
-            block.block.scope = ast.@"if".scope.?;
+            block.set_scope(ast.scope());
             ast.set_body_block(block);
         }
     }
@@ -2105,7 +2100,7 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
-                const primitive_info = primitives_.info_from_name(_type.token().data);
+                const primitive_info = primitives_.info_from_name(_type.token().data).?;
                 if (primitive_info.default_value != null) {
                     return primitive_info.default_value.?;
                 } else {

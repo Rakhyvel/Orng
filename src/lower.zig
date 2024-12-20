@@ -445,12 +445,12 @@ fn lower_AST(
             defer return_labels.deinit();
             var error_labels = std.ArrayList(*ir_.IR).init(allocator);
             defer error_labels.deinit();
-            for (ast.block.scope.?.defers.items) |_| {
+            for (ast.scope().?.defers.items) |_| {
                 continue_labels.append(ir_.IR.init_label(cfg, ast.token().span, allocator)) catch unreachable;
                 break_labels.append(ir_.IR.init_label(cfg, ast.token().span, allocator)) catch unreachable;
                 return_labels.append(ir_.IR.init_label(cfg, ast.token().span, allocator)) catch unreachable;
             }
-            for (ast.block.scope.?.errdefers.items) |_| {
+            for (ast.scope().?.errdefers.items) |_| {
                 error_labels.append(ir_.IR.init_label(cfg, ast.token().span, allocator)) catch unreachable;
             }
             const end_label = ir_.IR.init_label(cfg, ast.token().span, allocator);
@@ -481,16 +481,16 @@ fn lower_AST(
                 wrap_error_return(_temp, cfg, ast.token().span, current_labels, allocator);
             }
 
-            try generate_defers(cfg, &ast.block.scope.?.defers, &continue_labels, errors, allocator);
+            try generate_defers(cfg, &ast.scope().?.defers, &continue_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
 
-            try generate_defers(cfg, &ast.block.scope.?.defers, &break_labels, errors, allocator);
+            try generate_defers(cfg, &ast.scope().?.defers, &break_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(labels.break_label, ast.token().span, allocator));
 
-            try generate_defers(cfg, &ast.block.scope.?.defers, &return_labels, errors, allocator);
+            try generate_defers(cfg, &ast.scope().?.defers, &return_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(labels.return_label, ast.token().span, allocator));
 
-            try generate_defers(cfg, &ast.block.scope.?.errdefers, &error_labels, errors, allocator);
+            try generate_defers(cfg, &ast.scope().?.errdefers, &error_labels, errors, allocator);
             cfg.append_instruction(ir_.IR.init_jump(labels.error_label, ast.token().span, allocator));
 
             cfg.append_instruction(end_label);

@@ -1,3 +1,5 @@
 fn build() -> Package {
-    Package::static_library(.root="lib.orng")
+    let mut retval = Package::static_library(.root="lib.orng")
+    retval.>requires("core", Package::find("core"))
+    retval
 }

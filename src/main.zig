@@ -70,8 +70,6 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     // Get the path
     const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
     defer std.heap.page_allocator.free(build_path_buffer);
-    const root_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
-    defer std.heap.page_allocator.free(root_path_buffer);
 
     const build_path = std.fs.cwd().realpath("build.orng", build_path_buffer) catch |err| switch (err) {
         error.FileNotFound => {
@@ -88,38 +86,53 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const build_cfg = compiler.compile_build_file(build_path) catch return error.CompileError;
 
     var interpreter = interpreter_.Context.init(compiler.allocator());
-    interpreter.set_entry_point(build_cfg, primitives_.package_type);
-    try interpreter.interpret(compiler);
+    interpreter.set_entry_point(build_cfg, primitives_.package_type.expand_type(compiler.allocator()));
+    try interpreter.run(compiler);
     defer interpreter.deinit();
 
     // Extract the retval
-    var result = interpreter.extract_ast(0, primitives_.package_type, allocator);
-    const root_name = print_package_name(result);
-    for (result.children().items[2].children().items) |item| {
-        if (item.sum_value._pos != 0) {
-            continue;
-        }
-        const dependency_addr: i64 = @intCast(item.sum_value.init.?.int.data);
-        const dependency = interpreter.extract_ast(dependency_addr, primitives_.package_type, allocator);
-        _ = print_package_name(dependency);
-    }
-    const root_file_path = std.fs.cwd().realpath(root_name, root_path_buffer) catch return error.CompileError;
+    const package_dag = interpreter.extract_ast(0, primitives_.package_type, allocator);
+    const cwd_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+    const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
+    _ = try make_package(package_dag, std.fs.path.basename(cwd), compiler, &interpreter, cwd, "main");
 
-    const root_module = compiler.compile_module(
-        root_file_path,
-        "main",
-        false,
-    ) catch return error.CompileError;
-    _ = root_module; // autofix
-
-    // std.fs.cwd().makeDir("build") catch return error.CompileError;
-    // compiler.loop_modules();
+    std.debug.print("done\n", .{});
 }
 
-fn print_package_name(package: *ast_.AST) []const u8 {
-    const retval = package.children().items[0].string.data;
-    std.debug.print("root: {s}\n", .{retval});
-    return retval;
+fn make_package(
+    package: *ast_.AST,
+    package_name: []const u8,
+    compiler: *compiler_.Context,
+    interpreter: *interpreter_.Context,
+    working_directory: []const u8,
+    entry_name: ?[]const u8,
+) Command_Error!*module_.Module {
+    for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
+        if (maybe_requirement_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const requirement = maybe_requirement_addr.sum_value.init.?;
+        const required_package_name: []const u8 = requirement.children().items[0].string.data;
+        const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
+        const requirement_name = requirement.get_field(primitives_.package_type, "root").string.data;
+        const required_package = interpreter.extract_ast(required_package_addr, primitives_.package_type, compiler.allocator());
+        const required_package_dir = required_package.get_field(primitives_.package_type, "dir").string.data;
+
+        const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
+        const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
+        const module = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
+
+        compiler.register_package(package_name, requirement_name, module);
+    }
+
+    const root_filename = package.get_field(primitives_.package_type, "root").string.data;
+    const root_file_paths = [_][]const u8{ working_directory, root_filename };
+    const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
+    return compiler.compile_module(
+        root_file_path,
+        entry_name,
+        false,
+    ) catch error.CompileError;
 }
 
 fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {

@@ -1,3 +1,5 @@
+// TODO: Can this file be split up?? At ALL?
+
 const std = @import("std");
 const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
@@ -175,7 +177,7 @@ pub const AST = union(enum) {
         _rhs: *AST,
         // _pos: ?usize,
         _symbol: ?*symbol_.Symbol = null,
-        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     function: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     trait: struct {
@@ -184,7 +186,7 @@ pub const AST = union(enum) {
         const_decls: std.ArrayList(*AST),
         num_virtual_methods: i64 = 0,
         _symbol: ?*symbol_.Symbol = null, // Filled by symbol-tree pass.
-        scope: ?*symbol_.Scope = null, // Filled by symbol-tree pass.
+        _scope: ?*symbol_.Scope = null, // Filled by symbol-tree pass.
 
         pub fn find_method(self: @This(), name: []const u8) ?*AST {
             for (self.method_decls.items) |decl| {
@@ -202,7 +204,7 @@ pub const AST = union(enum) {
         method_defs: std.ArrayList(*AST),
         const_defs: std.ArrayList(*AST),
         num_virtual_methods: i64 = 0,
-        scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
+        _scope: ?*symbol_.Scope = null, // Scope used for `impl` methods, rooted in `impl`'s scope.
         impls_anon_trait: bool = false, // true when this impl implements an anonymous trait
     },
     invoke: struct {
@@ -210,7 +212,7 @@ pub const AST = union(enum) {
         _lhs: *AST,
         _rhs: *AST,
         _args: std.ArrayList(*AST),
-        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
         method_decl: ?*AST = null,
     },
     /// A product-type of pointers to the vtable, and to the receiver
@@ -226,7 +228,7 @@ pub const AST = union(enum) {
         _expr: *AST,
         mut: bool,
         impl: ?*AST = null, // The implementation AST, whose vtable should be used
-        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in when addr-of is converted
+        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in when addr-of is converted
     },
     sum_type: struct {
         common: AST_Common,
@@ -283,6 +285,15 @@ pub const AST = union(enum) {
             return true;
         }
 
+        pub fn get_offset_field(self: *@This(), field_name: []const u8, allocator: std.mem.Allocator) i64 {
+            for (0.., self._terms.items) |i, term| {
+                if (term.* == .annotation and std.mem.eql(u8, field_name, term.annotation.pattern.token().data)) {
+                    return self.get_offset(i, allocator);
+                }
+            }
+            std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`\n", .{field_name});
+        }
+
         /// Retrieves the offset in bytes given a field's index
         pub fn get_offset(self: *@This(), field: usize, allocator: std.mem.Allocator) i64 {
             var offset: i64 = 0;
@@ -305,7 +316,7 @@ pub const AST = union(enum) {
         _expr: *AST,
         mut: bool,
         anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
-        scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
+        _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
     slice_of: struct { common: AST_Common, _expr: *AST, kind: Slice_Kind },
     array_of: struct { common: AST_Common, _expr: *AST, len: *AST },
@@ -349,7 +360,7 @@ pub const AST = union(enum) {
     // Control-flow expressions
     @"if": struct {
         common: AST_Common,
-        scope: ?*symbol_.Scope,
+        _scope: ?*symbol_.Scope,
         let: ?*AST,
         condition: *AST,
         _body_block: *AST,
@@ -357,7 +368,7 @@ pub const AST = union(enum) {
     },
     match: struct {
         common: AST_Common,
-        scope: ?*symbol_.Scope,
+        _scope: ?*symbol_.Scope,
         let: ?*AST,
         _expr: *AST,
         _mappings: std.ArrayList(*AST),
@@ -366,11 +377,11 @@ pub const AST = union(enum) {
         common: AST_Common,
         _lhs: *AST,
         _rhs: *AST,
-        scope: ?*symbol_.Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
+        _scope: ?*symbol_.Scope, // Scope used for `match` mappings, rooted in `match`'s scope. Captures, rhs live in this scope
     },
     @"while": struct {
         common: AST_Common,
-        scope: ?*symbol_.Scope,
+        _scope: ?*symbol_.Scope,
         let: ?*AST,
         condition: *AST,
         post: ?*AST,
@@ -379,7 +390,7 @@ pub const AST = union(enum) {
     },
     @"for": struct {
         common: AST_Common,
-        scope: ?*symbol_.Scope,
+        _scope: ?*symbol_.Scope,
         let: ?*AST,
         elem: *AST,
         iterable: *AST,
@@ -388,7 +399,7 @@ pub const AST = union(enum) {
     },
     block: struct {
         common: AST_Common,
-        scope: ?*symbol_.Scope,
+        _scope: ?*symbol_.Scope,
         _statements: std.ArrayList(*AST),
         final: ?*AST, // either `return`, `continue`, or `break`
     },
@@ -888,7 +899,7 @@ pub const AST = union(enum) {
         _token: token_.Token,
         dyn_type: *AST,
         _expr: *AST,
-        scope: *symbol_.Scope,
+        _scope: *symbol_.Scope,
         _mut: bool,
         allocator: std.mem.Allocator,
     ) *AST {
@@ -897,7 +908,7 @@ pub const AST = union(enum) {
             .common = _common,
             .dyn_type = dyn_type,
             ._expr = _expr,
-            .scope = scope,
+            ._scope = _scope,
             .mut = _mut,
         } }, allocator);
     }
@@ -998,7 +1009,7 @@ pub const AST = union(enum) {
         return AST.box(
             AST{ .@"if" = .{
                 .common = _common,
-                .scope = null,
+                ._scope = null,
                 .let = let,
                 .condition = condition,
                 ._body_block = _body_block,
@@ -1018,7 +1029,7 @@ pub const AST = union(enum) {
         return AST.box(
             AST{ .match = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                .scope = null,
+                ._scope = null,
                 .let = let,
                 ._expr = _expr,
                 ._mappings = mappings,
@@ -1033,7 +1044,7 @@ pub const AST = union(enum) {
                 .common = AST_Common{ ._token = _token, ._type = null },
                 ._lhs = _lhs,
                 ._rhs = _rhs,
-                .scope = null,
+                ._scope = null,
             } },
             allocator,
         );
@@ -1051,7 +1062,7 @@ pub const AST = union(enum) {
         return AST.box(
             AST{ .@"while" = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                .scope = null,
+                ._scope = null,
                 .let = let,
                 .condition = condition,
                 .post = post,
@@ -1074,7 +1085,7 @@ pub const AST = union(enum) {
         return AST.box(
             AST{ .@"for" = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                .scope = null,
+                ._scope = null,
                 .let = let,
                 .elem = elem,
                 .iterable = iterable,
@@ -1097,7 +1108,7 @@ pub const AST = union(enum) {
         return AST.box(
             AST{ .block = .{
                 .common = AST_Common{ ._token = _token, ._type = null },
-                .scope = null,
+                ._scope = null,
                 ._statements = statements,
                 .final = final,
             } },
@@ -1645,7 +1656,7 @@ pub const AST = union(enum) {
     }
 
     pub fn represents(self: AST) *AST {
-        return get_field(self, "_represents");
+        return get_struct_field(self, "_represents");
     }
 
     pub fn set_represents(self: *AST, val: *AST) void {
@@ -1653,7 +1664,7 @@ pub const AST = union(enum) {
     }
 
     pub fn expr(self: AST) *AST {
-        return get_field(self, "_expr");
+        return get_struct_field(self, "_expr");
     }
 
     pub fn set_expr(self: *AST, val: *AST) void {
@@ -1661,15 +1672,23 @@ pub const AST = union(enum) {
     }
 
     pub fn symbol(self: AST) ?*symbol_.Symbol {
-        return get_field(self, "_symbol");
+        return get_struct_field(self, "_symbol");
     }
 
     pub fn set_symbol(self: *AST, val: ?*symbol_.Symbol) void {
         set_field(self, "_symbol", val);
     }
 
+    pub fn scope(self: AST) ?*symbol_.Scope {
+        return get_struct_field(self, "_scope");
+    }
+
+    pub fn set_scope(self: *AST, val: ?*symbol_.Scope) void {
+        set_field(self, "_scope", val);
+    }
+
     pub fn lhs(self: AST) *AST {
-        return get_field(self, "_lhs");
+        return get_struct_field(self, "_lhs");
     }
 
     pub fn set_lhs(self: *AST, val: *AST) void {
@@ -1677,7 +1696,7 @@ pub const AST = union(enum) {
     }
 
     pub fn rhs(self: AST) *AST {
-        return get_field(self, "_rhs");
+        return get_struct_field(self, "_rhs");
     }
 
     pub fn set_rhs(self: *AST, val: *AST) void {
@@ -1712,8 +1731,17 @@ pub const AST = union(enum) {
         }
     }
 
+    pub fn get_field(self: *AST, _type: *AST, field_name: []const u8) *AST {
+        for (0.., _type.children().items) |i, child| {
+            if (child.* == .annotation and std.mem.eql(u8, field_name, child.annotation.pattern.token().data)) {
+                return self.children().items[i];
+            }
+        }
+        std.debug.panic("compiler error: {s} didn't have field `{s}`\n", .{ @tagName(self.*), field_name });
+    }
+
     pub fn pos(self: AST) ?usize {
-        return get_field(self, "_pos");
+        return get_struct_field(self, "_pos");
     }
 
     pub fn get_pos(self: *AST, field_name: []const u8) ?usize {
@@ -1730,7 +1758,7 @@ pub const AST = union(enum) {
     }
 
     pub fn statement(self: AST) *AST {
-        return get_field(self, "_statement");
+        return get_struct_field(self, "_statement");
     }
 
     pub fn set_statement(self: *AST, val: *AST) void {
@@ -1738,7 +1766,7 @@ pub const AST = union(enum) {
     }
 
     pub fn body_block(self: AST) *AST {
-        return get_field(self, "_body_block");
+        return get_struct_field(self, "_body_block");
     }
 
     pub fn set_body_block(self: *AST, val: *AST) void {
@@ -1746,7 +1774,7 @@ pub const AST = union(enum) {
     }
 
     pub fn else_block(self: AST) ?*AST {
-        return get_field(self, "_else_block");
+        return get_struct_field(self, "_else_block");
     }
 
     pub fn set_else_block(self: *AST, val: ?*AST) void {
@@ -1754,7 +1782,7 @@ pub const AST = union(enum) {
     }
 
     pub fn mut(self: AST) bool {
-        return get_field(self, "mut");
+        return get_struct_field(self, "mut");
     }
 
     pub fn set_mut(self: *AST, val: bool) void {
@@ -1771,7 +1799,7 @@ pub const AST = union(enum) {
     }
 
     /// Generically retrieve the value of a field in a Zig union type
-    fn get_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
+    fn get_struct_field(u: anytype, comptime field: []const u8) Unwrapped(@TypeOf(u), field) {
         return switch (u) {
             inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
         } catch {
@@ -2570,7 +2598,13 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path for calculating the size of an AST type in bytes.
     fn sizeof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data).size,
+            .identifier => {
+                if (self.symbol() != null and self.symbol().?.init != null and self.symbol().?.init.?.* != .identifier) {
+                    return self.symbol().?.init.?.sizeof();
+                } else {
+                    return primitives_.info_from_name(self.token().data).?.size;
+                }
+            },
 
             .product => {
                 var total_size: i64 = 0;
@@ -2613,7 +2647,7 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data)._align,
+            .identifier => return primitives_.info_from_name(self.token().data).?._align,
 
             .product => {
                 var max_align: i64 = 0;

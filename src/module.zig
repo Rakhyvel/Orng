@@ -5,9 +5,9 @@ const basic_block_ = @import("basic-block.zig");
 const cfg_ = @import("cfg.zig");
 const codegen_ = @import("codegen.zig");
 const compiler_ = @import("compiler.zig");
-const decorate_ = @import("decorate.zig");
+const Decorate = @import("decorate.zig");
 const errs_ = @import("errors.zig");
-const expand_ = @import("expand.zig");
+const Expand = @import("expand.zig");
 const interpreter_ = @import("interpreter.zig");
 const ir_validate_ = @import("ir-validate.zig");
 const ir_ = @import("ir.zig");
@@ -19,10 +19,12 @@ const offsets_ = @import("offsets.zig");
 const optimizations_ = @import("optimizations.zig");
 const parser_ = @import("parser.zig");
 const span_ = @import("span.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
-const symbol_tree_ = @import("symbol-tree.zig");
+const Symbol_Tree = @import("symbol-tree.zig");
 const token_ = @import("token.zig");
 const type_set_ = @import("type-set.zig");
+const walker_ = @import("walker.zig");
 
 pub const Module_Errors = error{
     LexerError,
@@ -49,6 +51,9 @@ pub const Module = struct {
     // Absolute path of the module
     absolute_path: []const u8,
 
+    // The name of the package this module belongs to
+    package_name: []const u8,
+
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
@@ -58,8 +63,8 @@ pub const Module = struct {
     // List of CFGs defined in this module
     cfgs: std.ArrayList(*cfg_.CFG),
 
-    // Main function. TODO: Temporary
-    entry: *cfg_.CFG,
+    // Main function.
+    entry: ?*cfg_.CFG,
 
     // List of all traits defined in this module
     traits: std.ArrayList(*ast_.AST),
@@ -82,6 +87,7 @@ pub const Module = struct {
         module_uids += 1;
         retval.name = name;
         retval.absolute_path = absolute_path;
+        retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;
@@ -101,7 +107,6 @@ pub const Module = struct {
         compiler: *compiler_.Context,
     ) Module_Errors!*Module {
         // Construct the name
-        // TODO: Move this to it's own function
         var i: usize = 0;
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
         const full_name: []const u8 = in_name[0..i];
@@ -129,7 +134,6 @@ pub const Module = struct {
         compiler: *compiler_.Context,
     ) Module_Errors!void {
         // Tokenize, and also append lines to the list of lines
-        // TODO: Move this to it's own function
         var lines = std.ArrayList([]const u8).init(compiler.allocator());
         defer lines.deinit();
         try lines_.get_lines(contents, &lines, &compiler.errors);
@@ -137,7 +141,6 @@ pub const Module = struct {
         var tokens = try scanner.get_tokens();
         defer tokens.deinit(); // Make copies of tokens, never take their address
 
-        // TODO: Move to own function
         if (false and fuzz_tokens) { // print tokens before layout_
             for (tokens.items) |token| {
                 std.debug.print("{s} ", .{token.data});
@@ -150,7 +153,6 @@ pub const Module = struct {
             layout_.do_layout(&tokens);
         }
 
-        // TODO: Move to own function
         if (false) { // Print out tokens after layout_
             var indent: usize = 0;
             for (0..tokens.items.len - 1) |j| {
@@ -173,14 +175,14 @@ pub const Module = struct {
             std.debug.print("\n", .{});
         }
 
-        // TODO: Move to own function, returning module_ast
-        // Parse, expand AST
+        // Parse, do AST walks
         ast_.init_structures(compiler.allocator());
         var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator());
         const module_ast = try parser.parse();
-        try expand_.expand_from_list(module_ast, &compiler.errors, compiler.allocator());
-        try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator());
-        try decorate_.decorate_identifiers_from_list(module_ast, file_root, &compiler.errors, compiler.allocator());
+        try walker_.walk_asts(module_ast, Expand.new(&compiler.errors, compiler.allocator()));
+        try walker_.walk_asts(module_ast, Import_Context{ .compiler = compiler, .module = module });
+        try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
+        try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
 
         // Validate the module
         try ast_validate_.validate_module(module, compiler);
@@ -191,7 +193,6 @@ pub const Module = struct {
 
         module.collect_traits_and_impls(module.scope);
 
-        // TODO: Move to own function
         // Add each CFG's instructions to the module's instruction's list
         var found_entry = false;
         const need_entry = entry_name != null;
@@ -206,7 +207,7 @@ pub const Module = struct {
 
             if (need_entry and std.mem.eql(u8, key, entry_name.?)) {
                 module.entry = cfg;
-                module.entry.needed_at_runtime = true;
+                module.entry.?.needed_at_runtime = true;
                 found_entry = true;
             }
         }
@@ -245,7 +246,6 @@ pub const Module = struct {
                 _ = module.type_set.add(param.expanded_type.?, compiler.allocator());
             }
 
-            // TODO: Move to own function
             for (cfg.basic_blocks.items) |bb| {
                 var maybe_ir = bb.ir_head;
                 while (maybe_ir) |ir| : (maybe_ir = ir.next) {
@@ -256,6 +256,35 @@ pub const Module = struct {
             }
         }
     }
+
+    const Import_Context = struct {
+        module: *Module,
+        compiler: *compiler_.Context,
+
+        pub fn prefix(self: Import_Context, ast: *ast_.AST) walker_.Error!?Import_Context {
+            if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
+                const package_path = std.fs.path.dirname(self.module.absolute_path).?;
+                var import_filename = String.init(self.compiler.allocator());
+                defer import_filename.deinit();
+                const import_name = ast.decl.pattern.pattern_symbol.name;
+                import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
+                const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
+                const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+                _ = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+                    error.FileNotFound => if (self.compiler.packages.get(import_name) == null) {
+                        self.compiler.errors.add_error(.{ .import_file_not_found = .{
+                            .filename = ast.decl.pattern.pattern_symbol.name,
+                            .span = ast.token().span,
+                        } });
+                        return error.CompileError;
+                    },
+                    else => return error.CompileError,
+                };
+            }
+
+            return self;
+        }
+    };
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
     fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) void {
@@ -324,7 +353,7 @@ pub const Module = struct {
     /// Appends the instructions in a BasicBlock to the module's instructions.
     /// Returns the offset of the basic block
     fn append_basic_block(
-        self: *Module, // TODO: Accept instructions list and allocator
+        self: *Module,
         first_bb: *basic_block_.Basic_Block,
         cfg: *cfg_.CFG,
     ) offsets_.Instruction_Idx {
@@ -382,7 +411,7 @@ pub const Module = struct {
     /// instructions. The label is needed so that codegen_ can know there is a new function, and the return
     /// instruction is for interpreting so that jumping to the function won't jump to some random function.
     fn append_phony_block(
-        self: *Module, // TODO: Accept instructions and allocator
+        self: *Module,
         cfg: *cfg_.CFG,
     ) offsets_.Instruction_Idx {
         const offset = @as(offsets_.Instruction_Idx, @intCast(self.instructions.items.len));
@@ -470,16 +499,16 @@ pub fn stamp(
         fn_decl.fn_decl.name = null; // make function anonymous
 
         // Create a new symbol and scope for the new fn decl
-        const fn_symbol = try symbol_tree_.create_function_symbol(
+        const fn_symbol = try Symbol_Tree.create_function_symbol(
             fn_decl,
             scope,
             &compiler.errors,
             compiler.allocator(),
         );
-        try symbol_tree_.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
+        try Symbol_Tree.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
         fn_decl.set_symbol(fn_symbol);
 
-        const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
+        const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
         args.* = try ast_validate_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
         _ = try ast_validate_.validate_args_arity(.function, args, domain, call_span, &compiler.errors);
 
@@ -502,13 +531,14 @@ pub fn stamp(
         }
 
         // Define each constant parameter in the fn decl's scope
-        try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, &compiler.errors, compiler.allocator());
+        try walker_.walk_asts(const_decls, Symbol_Tree.new(scope, &compiler.errors, compiler.allocator()));
 
         // Decorate identifiers, validate
+        const decorate_context = Decorate.new(scope, &compiler.errors, compiler.allocator());
         for (const_decls.items) |decl| {
-            try decorate_.decorate_identifiers(decl, scope, &compiler.errors, compiler.allocator());
+            try walker_.walk_ast(decl, decorate_context);
         }
-        try decorate_.decorate_identifiers(fn_decl, scope, &compiler.errors, compiler.allocator());
+        try walker_.walk_ast(fn_decl, decorate_context);
         try ast_validate_.validate_scope(fn_symbol.scope, compiler);
 
         // Memoize symbol
@@ -535,7 +565,7 @@ pub fn interpret(
     scope: *symbol_.Scope,
     compiler: *compiler_.Context,
 ) !*ast_.AST {
-    const symbol: *symbol_.Symbol = (try symbol_tree_.create_temp_comptime_symbol(
+    const symbol: *symbol_.Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
         ast,
         ret_type,
         scope,
@@ -556,7 +586,7 @@ pub fn interpret(
     context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);
-    try context.interpret(compiler);
+    try context.run(compiler);
 
     // Extract the retval
     return context.extract_ast(0, ret_type, compiler.allocator());

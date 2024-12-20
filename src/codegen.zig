@@ -41,7 +41,7 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
     try output_impls(&module.impls, writer);
     try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
-    try output_main_function(module.entry, writer);
+    try output_main_function(module.entry.?, writer);
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
@@ -276,7 +276,7 @@ fn output_impls(
             continue;
         }
         const trait = impl.impl.trait.?;
-        try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.impl.scope.?.uid });
+        try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.scope().?.uid });
         for (impl.impl.method_defs.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
@@ -378,7 +378,7 @@ fn output_main_function(
     var specifier: []const u8 = undefined;
     switch (codomain.*) {
         .identifier => {
-            const info = primitives_.info_from_name(codomain.token().data);
+            const info = primitives_.info_from_name(codomain.token().data).?;
             specifier = switch (info.type_kind) {
                 .boolean, .signed_integer => "d",
                 .unsigned_integer => "u",
@@ -438,7 +438,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
         } else {
-            try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).c_name});
+            try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).?.c_name});
         },
         .addr_of => {
             try output_type(_type.expr(), writer);
@@ -927,8 +927,8 @@ fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
 
 /// Prints out the vtable name given an impl AST
 fn output_vtable_impl(
-    impl: *ast_.AST, // TODO: Accept uid
+    impl: *ast_.AST,
     writer: Writer,
 ) CodeGen_Error!void {
-    try writer.print("_{}_$vtable", .{impl.impl.scope.?.uid});
+    try writer.print("_{}_$vtable", .{impl.scope().?.uid});
 }

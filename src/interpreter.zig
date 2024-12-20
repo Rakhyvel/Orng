@@ -46,6 +46,8 @@ pub const Context = struct {
     debug_call_stack: std.ArrayList(span_.Span),
     start_time: i64,
 
+    call_depth: i64,
+
     allocator: std.mem.Allocator,
 
     /// Initializes a new interpreter context.
@@ -61,6 +63,8 @@ pub const Context = struct {
             .debug_call_stack = std.ArrayList(span_.Span).init(allocator),
 
             .start_time = std.time.milliTimestamp(),
+
+            .call_depth = 0,
 
             .allocator = allocator,
         };
@@ -96,20 +100,21 @@ pub const Context = struct {
         self.allocator.free(self.memory);
     }
 
-    /// Interprets the interpreter's instructions until the interpreter's instruction pointer is less than
-    /// the maximum allowed instructions.
-    pub fn interpret(
+    /// Interprets the interpreter's instructions until the interpreter has executed more return instructions than call
+    /// instructions, and the instruction pointer isn't a trap representation.
+    pub fn run(
         self: *Context,
         compiler: *compiler_.Context,
     ) error{CompileError}!void {
-        // Halt whenever instruction pointer is greater than the max allowed instructions
-        while (self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
+        const initial_call_depth = self.call_depth;
+        // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
+        while (self.call_depth >= initial_call_depth and self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
             const ir: *ir_.IR = try self.curr_instruction();
             if (debugger) {
                 std.debug.print("\n", .{});
                 self.print_registers();
                 self.print_stack();
-                std.debug.print("\n\n\n\n{}=> ", .{ir});
+                std.debug.print("\n\n\n\n{s}\n{}=> ", .{ ir.span.line_text, ir });
             }
             const time_now = std.time.milliTimestamp();
             if (!debugger and time_now - self.start_time > timeout_ms) {
@@ -318,12 +323,17 @@ pub const Context = struct {
                     const method_name = symbol.name;
                     if (std.mem.eql(u8, method_name, "find")) {
                         const arg: *lval_.L_Value = ir.data.lval_list.items[@as(usize, @intCast(0))];
-                        const string = self.extract_ast(try self.effective_address(arg), primitives_.string_type, self.allocator);
-                        std.debug.print("searching for package: '{s}'\n", .{string.string.data});
+                        const path_ast = self.extract_ast(try self.effective_address(arg), primitives_.string_type, self.allocator);
                         const current_module_path = (self.curr_module() catch unreachable).absolute_path;
                         const ret_addr = try self.effective_address(ir.dest.?);
-                        if (builtin_.package_find(compiler, self, current_module_path, string.string.data)) |package_address| {
-                            self.store_int(ret_addr, 8, package_address);
+                        if (builtin_.package_find(compiler, self, current_module_path, path_ast.string.data)) |package_info| {
+                            const adrs = package_info.package_adrs;
+                            // Store the directory of the package inside the package struct before returning
+                            const dir_string = self.modules.get(0).?.interned_string_set_add(package_info.package_dirname);
+                            const dir_offset = primitives_.package_type.product.get_offset_field("dir", self.allocator);
+                            self.store(ir_.String_Idx, adrs + dir_offset, dir_string);
+                            // Store the address of the package in the retval
+                            self.store_int(ret_addr, 8, adrs);
                         } else |_| {
                             return self.panic("interpreter error: cannot find package", .{});
                         }
@@ -360,6 +370,7 @@ pub const Context = struct {
     /// Sets up the caller's stack frame, pushes function arguments in reverse order, stores the return value location,
     /// and then jumps to the function's code.
     pub fn call(self: *Context, function_symbol: *symbol_.Symbol, retval_place: *lval_.L_Value, args_list: std.ArrayList(*lval_.L_Value)) error{CompileError}!void {
+        self.call_depth += 1;
         // Save old stack pointer
         const old_sp = self.stack_pointer;
         self.stack_pointer = offsets_.next_alignment(self.stack_pointer, 8); // align stack pointer to 8 before pushing args
@@ -396,6 +407,7 @@ pub const Context = struct {
 
     /// Tears down the stack frame, and jumps back to the caller's location
     inline fn ret(self: *Context) void {
+        self.call_depth -= 1;
         // deallocate locals
         self.stack_pointer = self.base_pointer + 8;
         // jump to return-address
@@ -426,7 +438,10 @@ pub const Context = struct {
         switch (_type.*) {
             .identifier => {
                 const info = primitives_.info_from_name(_type.token().data);
-                switch (info.type_kind) {
+                if (info == null) {
+                    return self.extract_ast(address, _type.symbol().?.init.?, allocator);
+                }
+                switch (info.?.type_kind) {
                     .type => {
                         const stack_value = self.load_unsigned_int(address, 8);
                         if (stack_value == 0xAAAAAAAAAAAAAAAA) { // NOTE: This only works if the interpreter never overwrites this address...
@@ -443,7 +458,7 @@ pub const Context = struct {
                     },
                     .none => unreachable,
                     .boolean => {
-                        const val = self.load_int(address, info.size);
+                        const val = self.load_int(address, info.?.size);
                         if (val == 0) {
                             return ast_.AST.create_false(token_.Token.init_simple("false"), allocator).assert_valid();
                         } else {
@@ -453,7 +468,7 @@ pub const Context = struct {
                     .signed_integer => {
                         const retval = ast_.AST.create_int(
                             token_.Token.init_simple("signed int"),
-                            self.load_int(address, info.size),
+                            self.load_int(address, info.?.size),
                             allocator,
                         ).assert_valid();
                         retval.set_represents(_type);
@@ -462,7 +477,7 @@ pub const Context = struct {
                     .unsigned_integer => {
                         const retval = ast_.AST.create_int(
                             token_.Token.init_simple("unsigned int"),
-                            self.load_int(address, info.size),
+                            self.load_int(address, info.?.size),
                             allocator,
                         ).assert_valid();
                         retval.set_represents(_type);
@@ -471,7 +486,7 @@ pub const Context = struct {
                     .floating_point => {
                         const retval = ast_.AST.create_float(
                             token_.Token.init_simple("float"),
-                            self.load_float(address, info.size),
+                            self.load_float(address, info.?.size),
                             allocator,
                         ).assert_valid();
                         retval.set_represents(_type);
@@ -514,7 +529,7 @@ pub const Context = struct {
                 var value_terms = std.ArrayList(*ast_.AST).init(allocator);
                 errdefer value_terms.deinit();
                 for (0.., _type.children().items) |i, term| {
-                    // std.debug.print("term:{}\n", .{term});
+                    // std.debug.print("term:{}\n", .{i});
                     const offset = _type.product.get_offset(i, allocator);
                     // std.debug.print("offset:{}\n", .{offset});
                     const extracted_term = self.extract_ast(address + offset, term, allocator);
@@ -550,7 +565,11 @@ pub const Context = struct {
 
     /// Prints the contents of the interpreter's stack. Used for debugging.
     fn print_stack(self: *Context) void {
-        for (0..@as(usize, @intCast(self.stack_pointer))) |i| {
+        self.print_memory(0, @as(usize, @intCast(self.stack_pointer)));
+    }
+
+    fn print_memory(self: *Context, start: usize, end: usize) void {
+        for (start..end) |i| {
             if (@rem(i, 8) == 0) {
                 std.debug.print("0x{0X:0>2.}: ", .{i});
             }
@@ -577,7 +596,7 @@ pub const Context = struct {
         return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
     }
 
-    fn curr_module(self: *Context) error{CompileError}!*module_.Module {
+    pub fn curr_module(self: *Context) error{CompileError}!*module_.Module {
         return self.modules.get(self.instruction_pointer.module_uid) orelse
             self.panic("interpreter error: attempt to use module 0x{X}, which hasn't been loaded yet\n", .{self.instruction_pointer.module_uid});
     }
