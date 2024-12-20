@@ -122,8 +122,7 @@ fn make_package(
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
         const module = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
 
-        compiler.register_package( // TODO: These should be package-specific
-            package_name, requirement_name, module);
+        compiler.register_package(package_name, requirement_name, module);
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
