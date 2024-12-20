@@ -19,7 +19,8 @@ pub fn new(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
     };
 }
 
-pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!Self {
+/// Expand ASTs before descending to further children
+pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => {},
 

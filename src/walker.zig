@@ -24,7 +24,12 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
 
     var new_context = context;
     if (@hasDecl(@TypeOf(context), "prefix")) {
-        new_context = try context.prefix(ast);
+        const maybe_new_context = try context.prefix(ast);
+        if (maybe_new_context == null) {
+            return;
+        } else {
+            new_context = maybe_new_context.?;
+        }
     }
 
     switch (ast.*) {
@@ -117,13 +122,13 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.annotation.init, new_context);
         },
         .@"if" => {
-            try walk_ast(ast.@"if".let, new_context);
-            try walk_ast(ast.@"if".condition, new_context);
+            try walk_ast(ast.@"if".let, context);
+            try walk_ast(ast.@"if".condition, context);
             try walk_ast(ast.body_block(), new_context);
             try walk_ast(ast.else_block(), new_context);
         },
         .match => {
-            try walk_ast(ast.match.let, new_context);
+            try walk_ast(ast.match.let, context);
             try walk_ast(ast.expr(), new_context);
             try walk_asts(ast.children().*, new_context);
         },
@@ -155,9 +160,6 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .decl => {
             try walk_ast(ast.decl.type, new_context);
             try walk_ast(ast.decl.init, new_context);
-            for (ast.decl.symbols.items) |symbol| {
-                symbol.defined = true;
-            }
         },
         .fn_decl => {
             try walk_ast(ast.fn_decl.init, new_context);
@@ -170,7 +172,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         },
         .impl => {
             try walk_ast(ast.impl._type, new_context);
-            try walk_ast(ast.impl.trait, new_context);
+            try walk_ast(ast.impl.trait, context);
             try walk_asts(ast.impl.method_defs, new_context);
             try walk_asts(ast.impl.const_defs, new_context);
         },

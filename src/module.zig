@@ -21,7 +21,7 @@ const parser_ = @import("parser.zig");
 const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
-const symbol_tree_ = @import("symbol-tree.zig");
+const Symbol_Tree = @import("symbol-tree.zig");
 const token_ = @import("token.zig");
 const type_set_ = @import("type-set.zig");
 const walker_ = @import("walker.zig");
@@ -177,7 +177,7 @@ pub const Module = struct {
         const module_ast = try parser.parse();
         try walker_.walk_asts(module_ast, Expand.new(&compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Import_Context{ .compiler = compiler, .module = module });
-        try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator());
+        try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
 
         // Validate the module
@@ -257,7 +257,7 @@ pub const Module = struct {
         module: *Module,
         compiler: *compiler_.Context,
 
-        pub fn prefix(self: Import_Context, ast: *ast_.AST) walker_.Error!Import_Context {
+        pub fn prefix(self: Import_Context, ast: *ast_.AST) walker_.Error!?Import_Context {
             if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
                 const package_path = std.fs.path.dirname(self.module.absolute_path).?;
                 var import_filename = String.init(self.compiler.allocator());
@@ -495,16 +495,16 @@ pub fn stamp(
         fn_decl.fn_decl.name = null; // make function anonymous
 
         // Create a new symbol and scope for the new fn decl
-        const fn_symbol = try symbol_tree_.create_function_symbol(
+        const fn_symbol = try Symbol_Tree.create_function_symbol(
             fn_decl,
             scope,
             &compiler.errors,
             compiler.allocator(),
         );
-        try symbol_tree_.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
+        try Symbol_Tree.put_symbol(fn_symbol, fn_symbol.scope, &compiler.errors);
         fn_decl.set_symbol(fn_symbol);
 
-        const domain = symbol_tree_.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
+        const domain = Symbol_Tree.extract_domain(template_ast.template.decl.children().*, compiler.allocator());
         args.* = try ast_validate_.default_args(args.*, domain, &compiler.errors, compiler.allocator());
         _ = try ast_validate_.validate_args_arity(.function, args, domain, call_span, &compiler.errors);
 
@@ -527,7 +527,7 @@ pub fn stamp(
         }
 
         // Define each constant parameter in the fn decl's scope
-        try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, &compiler.errors, compiler.allocator());
+        try walker_.walk_asts(const_decls, Symbol_Tree.new(scope, &compiler.errors, compiler.allocator()));
 
         // Decorate identifiers, validate
         const decorate_context = Decorate.new(scope, &compiler.errors, compiler.allocator());
@@ -561,7 +561,7 @@ pub fn interpret(
     scope: *symbol_.Scope,
     compiler: *compiler_.Context,
 ) !*ast_.AST {
-    const symbol: *symbol_.Symbol = (try symbol_tree_.create_temp_comptime_symbol(
+    const symbol: *symbol_.Symbol = (try Symbol_Tree.create_temp_comptime_symbol(
         ast,
         ret_type,
         scope,

@@ -20,7 +20,7 @@ pub fn new(scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allo
     };
 }
 
-pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!Self {
+pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => return self,
 
