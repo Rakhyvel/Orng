@@ -26,7 +26,11 @@ pub const Context = struct {
     modules: std.StringArrayHashMap(*module_.Module),
 
     // Maps package names to their root module
-    packages: std.StringArrayHashMap(*module_.Module),
+    packages: std.StringArrayHashMap(*Package),
+
+    const Package = struct {
+        requirements: std.StringArrayHashMap(*module_.Module),
+    };
 
     /// Throws an error if the prelude could not be compiled
     pub fn init(alloc: std.mem.Allocator) Error!*Context {
@@ -41,7 +45,7 @@ pub const Context = struct {
             return error.CompileError;
         };
         retval.modules = std.StringArrayHashMap(*module_.Module).init(retval.allocator());
-        retval.packages = std.StringArrayHashMap(*module_.Module).init(retval.allocator());
+        retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
 
         return retval;
     }
@@ -119,7 +123,18 @@ pub const Context = struct {
         return self.modules.get(absolute_path);
     }
 
-    pub fn register_package(self: *Context, package_name: []const u8, package_root_module: *module_.Module) void {
-        self.packages.put(package_name, package_root_module) catch unreachable;
+    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*module_.Module {
+        return self.packages.get(package_name).?.requirements.get(requirement_name);
+    }
+
+    pub fn register_package(self: *Context, package_name: []const u8, requirement_name: []const u8, requirement_root_module: *module_.Module) void {
+        if (self.packages.get(package_name)) |package| {
+            package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
+        } else {
+            const package = self.allocator().create(Package) catch unreachable;
+            package.requirements = std.StringArrayHashMap(*module_.Module).init(self.allocator());
+            self.packages.put(package_name, package) catch unreachable;
+            package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
+        }
     }
 };

@@ -927,7 +927,7 @@ fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
 
 /// Prints out the vtable name given an impl AST
 fn output_vtable_impl(
-    impl: *ast_.AST, // TODO: Accept uid
+    impl: *ast_.AST,
     writer: Writer,
 ) CodeGen_Error!void {
     try writer.print("_{}_$vtable", .{impl.scope().?.uid});

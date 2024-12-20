@@ -51,6 +51,9 @@ pub const Module = struct {
     // Absolute path of the module
     absolute_path: []const u8,
 
+    // The name of the package this module belongs to
+    package_name: []const u8,
+
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
@@ -84,6 +87,7 @@ pub const Module = struct {
         module_uids += 1;
         retval.name = name;
         retval.absolute_path = absolute_path;
+        retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.scope = scope;
         retval.allocator = allocator;

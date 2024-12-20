@@ -758,14 +758,18 @@ fn validate_AST_internal(
             // STRIP AWAY ADDRs!
             var access_result: ?*ast_.AST = null;
             if (ast.lhs().* == .identifier and ast.lhs().symbol().?.kind == .import) {
-                const curr_package_path = ast.lhs().symbol().?.scope.module.?.get_package_abs_path();
+                const this_module = ast.lhs().symbol().?.scope.module.?;
+                const curr_package_path = this_module.get_package_abs_path();
                 var module_path_name = String.init(compiler.allocator());
                 defer module_path_name.deinit();
                 module_path_name.writer().print("{s}.orng", .{ast.lhs().token().data}) catch unreachable;
                 const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
                 const other_module_dir = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
 
-                const module = compiler.lookup_module(other_module_dir) orelse compiler.packages.get(ast.lhs().token().data).?; // all imports should be compiled eagerly before the symbol-tree is constructed
+                std.debug.print("{s}::{s}\n", .{ ast.lhs().token().data, ast.rhs().token().data });
+
+                const module = compiler.lookup_module(other_module_dir) orelse
+                    compiler.lookup_package_root_module(this_module.package_name, ast.lhs().token().data).?; // all imports should be compiled eagerly before the symbol-tree is constructed
                 const module_lookup_res = module.scope.lookup(
                     ast.rhs().token().data,
                     false,

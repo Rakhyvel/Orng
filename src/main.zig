@@ -94,13 +94,14 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const package_dag = interpreter.extract_ast(0, primitives_.package_type, allocator);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
-    _ = try make_package(package_dag, compiler, &interpreter, cwd, "main");
+    _ = try make_package(package_dag, std.fs.path.basename(cwd), compiler, &interpreter, cwd, "main");
 
     std.debug.print("done\n", .{});
 }
 
 fn make_package(
     package: *ast_.AST,
+    package_name: []const u8,
     compiler: *compiler_.Context,
     interpreter: *interpreter_.Context,
     working_directory: []const u8,
@@ -111,6 +112,7 @@ fn make_package(
             continue;
         }
         const requirement = maybe_requirement_addr.sum_value.init.?;
+        const required_package_name: []const u8 = requirement.children().items[0].string.data;
         const required_package_addr: i64 = @intCast(requirement.children().items[1].int.data);
         const requirement_name = requirement.get_field(primitives_.package_type, "root").string.data;
         const required_package = interpreter.extract_ast(required_package_addr, primitives_.package_type, compiler.allocator());
@@ -118,10 +120,10 @@ fn make_package(
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
-        const module = try make_package(required_package, compiler, interpreter, new_working_directory, null);
+        const module = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
 
         compiler.register_package( // TODO: These should be package-specific
-            requirement_name, module);
+            package_name, requirement_name, module);
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
