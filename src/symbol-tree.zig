@@ -79,7 +79,7 @@ fn symbol_table_from_AST(
 
         .addr_of => {
             try symbol_table_from_AST(ast.expr(), scope, errors, allocator);
-            ast.addr_of.scope = scope;
+            ast.set_scope(scope);
         },
 
         .@"try" => {
@@ -118,11 +118,11 @@ fn symbol_table_from_AST(
             try symbol_table_from_AST(ast.rhs(), scope, errors, allocator);
         },
         .access => {
-            ast.access.scope = scope; // CANNOT do lookup here, because we do not have type info yet
+            ast.set_scope(scope); // CANNOT do lookup here, because we do not have type info yet
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
         },
         .invoke => {
-            ast.invoke.scope = scope; // CANNOT do lookup here, because we do not have type info yet
+            ast.set_scope(scope); // CANNOT do lookup here, because we do not have type info yet
             try symbol_table_from_AST(ast.lhs(), scope, errors, allocator);
             try symbol_table_from_AST_list(ast.children().*, scope, errors, allocator);
         },
@@ -153,7 +153,7 @@ fn symbol_table_from_AST(
 
         .@"if" => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            ast.@"if".scope = new_scope;
+            ast.set_scope(new_scope);
             try symbol_table_from_AST(ast.@"if".let, scope, errors, allocator);
             try symbol_table_from_AST(ast.@"if".condition, new_scope, errors, allocator);
             try symbol_table_from_AST(ast.body_block(), new_scope, errors, allocator);
@@ -161,7 +161,7 @@ fn symbol_table_from_AST(
         },
         .match => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            ast.match.scope = new_scope;
+            ast.set_scope(new_scope);
             try symbol_table_from_AST(ast.match.let, scope, errors, allocator);
             try symbol_table_from_AST(ast.expr(), new_scope, errors, allocator);
             try create_match_pattern_symbol(ast, new_scope, errors, allocator);
@@ -172,7 +172,7 @@ fn symbol_table_from_AST(
             const new_scope = symbol_.Scope.init(scope, "", allocator);
             var loop_scope = symbol_.Scope.init(new_scope, "", allocator); // let, cond, post are NOT in loop scope
             loop_scope.in_loop = true;
-            ast.@"while".scope = new_scope;
+            ast.set_scope(new_scope);
             try symbol_table_from_AST(ast.@"while".let, new_scope, errors, allocator);
             try symbol_table_from_AST(ast.@"while".condition, new_scope, errors, allocator);
             try symbol_table_from_AST(ast.@"while".post, new_scope, errors, allocator);
@@ -181,7 +181,7 @@ fn symbol_table_from_AST(
         },
         .@"for" => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            ast.@"for".scope = new_scope;
+            ast.set_scope(new_scope);
             try symbol_table_from_AST(ast.@"for".let, scope, errors, allocator);
             try symbol_table_from_AST(ast.@"for".elem, scope, errors, allocator);
             try symbol_table_from_AST(ast.@"for".iterable, scope, errors, allocator);
@@ -190,7 +190,7 @@ fn symbol_table_from_AST(
         },
         .block => {
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            ast.block.scope = new_scope;
+            ast.set_scope(new_scope);
             try symbol_table_from_AST_list(ast.children().*, new_scope, errors, allocator);
             if (ast.block.final) |final| {
                 try symbol_table_from_AST(final, new_scope, errors, allocator);
@@ -266,7 +266,7 @@ fn symbol_table_from_AST(
                 return;
             }
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            ast.trait.scope = new_scope;
+            ast.set_scope(new_scope);
             const symbol = try create_trait_symbol(ast, scope, allocator);
             try put_symbol(symbol, scope, errors);
             ast.set_symbol(symbol);
@@ -289,7 +289,7 @@ fn symbol_table_from_AST(
         .impl => {
             // Impls get there own scope, actually
             const new_scope = symbol_.Scope.init(scope, "", allocator);
-            ast.impl.scope = new_scope;
+            ast.set_scope(new_scope);
 
             if (ast.impl.trait == null) {
                 // impl'd for an anon trait, create an anon trait for it
@@ -471,7 +471,7 @@ fn create_symbol(
 fn create_match_pattern_symbol(match: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Errors, allocator: std.mem.Allocator) Symbol_Error_Enum!void {
     for (match.children().items) |mapping| {
         const new_scope = symbol_.Scope.init(scope, "", allocator);
-        mapping.mapping.scope = new_scope;
+        mapping.set_scope(new_scope);
         var symbols = std.ArrayList(*symbol_.Symbol).init(allocator);
         defer symbols.deinit();
         const match_expr = match.expr();

@@ -182,9 +182,12 @@ pub const Module = struct {
         const module_ast = try parser.parse();
         try expand_.expand_from_list(module_ast, &compiler.errors, compiler.allocator());
         // try module.get_imports(compiler, module_ast);
-        try walker_.walk_asts(module_ast, Import_Context{ .compiler = compiler, .module = module }, &get_imports);
+        try walker_.walk_asts(module_ast, Import_Context{
+            .compiler = compiler,
+            .module = module,
+        });
         try symbol_tree_.symbol_table_from_AST_list(module_ast, file_root, &compiler.errors, compiler.allocator());
-        try decorate_.decorate_identifiers_from_list(module_ast, file_root, &compiler.errors, compiler.allocator());
+        try walker_.walk_asts(module_ast, decorate_.Decorate_Identifiers.new(file_root, &compiler.errors, compiler.allocator()));
 
         // Validate the module
         try ast_validate_.validate_module(module, compiler);
@@ -261,31 +264,34 @@ pub const Module = struct {
         }
     }
 
-    const Import_Context = struct { module: *Module, compiler: *compiler_.Context };
+    const Import_Context = struct {
+        module: *Module,
+        compiler: *compiler_.Context,
 
-    fn get_imports(ast: *ast_.AST, ctx: Import_Context) walker_.Error!Import_Context {
-        if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
-            const package_path = std.fs.path.dirname(ctx.module.absolute_path).?;
-            var import_filename = String.init(ctx.compiler.allocator());
-            defer import_filename.deinit();
-            const import_name = ast.decl.pattern.pattern_symbol.name;
-            import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
-            const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
-            const import_file_path = std.fs.path.join(ctx.compiler.allocator(), &import_file_paths) catch unreachable;
-            _ = ctx.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
-                error.FileNotFound => if (ctx.compiler.packages.get(import_name) == null) {
-                    ctx.compiler.errors.add_error(.{ .import_file_not_found = .{
-                        .filename = ast.decl.pattern.pattern_symbol.name,
-                        .span = ast.token().span,
-                    } });
-                    return error.CompileError;
-                },
-                else => return error.CompileError,
-            };
+        pub fn prefix(self: Import_Context, ast: *ast_.AST) walker_.Error!Import_Context {
+            if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
+                const package_path = std.fs.path.dirname(self.module.absolute_path).?;
+                var import_filename = String.init(self.compiler.allocator());
+                defer import_filename.deinit();
+                const import_name = ast.decl.pattern.pattern_symbol.name;
+                import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
+                const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
+                const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+                _ = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+                    error.FileNotFound => if (self.compiler.packages.get(import_name) == null) {
+                        self.compiler.errors.add_error(.{ .import_file_not_found = .{
+                            .filename = ast.decl.pattern.pattern_symbol.name,
+                            .span = ast.token().span,
+                        } });
+                        return error.CompileError;
+                    },
+                    else => return error.CompileError,
+                };
+            }
+
+            return self;
         }
-
-        return ctx;
-    }
+    };
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
     fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) void {
@@ -535,10 +541,11 @@ pub fn stamp(
         try symbol_tree_.symbol_table_from_AST_list(const_decls, scope, &compiler.errors, compiler.allocator());
 
         // Decorate identifiers, validate
+        const decorate_context = decorate_.Decorate_Identifiers.new(scope, &compiler.errors, compiler.allocator());
         for (const_decls.items) |decl| {
-            try decorate_.decorate_identifiers(decl, scope, &compiler.errors, compiler.allocator());
+            try walker_.walk_ast(decl, decorate_context);
         }
-        try decorate_.decorate_identifiers(fn_decl, scope, &compiler.errors, compiler.allocator());
+        try walker_.walk_ast(fn_decl, decorate_context);
         try ast_validate_.validate_scope(fn_symbol.scope, compiler);
 
         // Memoize symbol

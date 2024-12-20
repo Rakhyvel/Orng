@@ -276,7 +276,7 @@ fn output_impls(
             continue;
         }
         const trait = impl.impl.trait.?;
-        try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.impl.scope.?.uid });
+        try writer.print("struct vtable_{s} _{}_$vtable = {{\n", .{ trait.symbol().?.name, impl.scope().?.uid });
         for (impl.impl.method_defs.items) |decl| {
             if (!decl.method_decl.is_virtual) {
                 continue;
@@ -930,5 +930,5 @@ fn output_vtable_impl(
     impl: *ast_.AST, // TODO: Accept uid
     writer: Writer,
 ) CodeGen_Error!void {
-    try writer.print("_{}_$vtable", .{impl.impl.scope.?.uid});
+    try writer.print("_{}_$vtable", .{impl.scope().?.uid});
 }

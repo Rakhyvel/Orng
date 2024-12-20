@@ -188,7 +188,7 @@ fn validate_impl(impl: *ast_.AST, compiler: *compiler_.Context) Validate_Error_E
     const trait_ast = trait_symbol.decl.?;
 
     // Check that the (trait, type) pair is unique for this scope
-    const lookup_res = impl.impl.scope.?.impl_trait_lookup(impl.impl._type, trait_symbol);
+    const lookup_res = impl.scope().?.impl_trait_lookup(impl.impl._type, trait_symbol);
     if (lookup_res.count > 1) {
         // Check if there's already an implementation for the same trait and type
         compiler.errors.add_error(errs_.Error{ .reimpl = .{
@@ -786,7 +786,7 @@ fn validate_AST_internal(
                 };
             } else {
                 const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
-                access_result = ast.access.scope.?.lookup_impl_member(stripped_lhs, ast.rhs().token().data);
+                access_result = ast.scope().?.lookup_impl_member(stripped_lhs, ast.rhs().token().data);
                 if (access_result == null) {
                     compiler.errors.add_error(errs_.Error{
                         .type_not_impl_method = .{
@@ -830,7 +830,7 @@ fn validate_AST_internal(
             } else {
                 // The receiver is a regular type. STRIP AWAY ADDRs!
                 const lhs_type = if (true_lhs_type.* == .addr_of) true_lhs_type.expr() else true_lhs_type;
-                method_decl = ast.invoke.scope.?.lookup_impl_member(lhs_type, ast.rhs().token().data);
+                method_decl = ast.scope().?.lookup_impl_member(lhs_type, ast.rhs().token().data);
             }
             if (method_decl == null) {
                 compiler.errors.add_error(errs_.Error{
@@ -897,7 +897,7 @@ fn validate_AST_internal(
             ast.dyn_value.dyn_type = validate_AST(ast.dyn_value.dyn_type, primitives_.type_type, compiler);
             const expr_type = ast.expr().typeof(compiler.allocator());
 
-            const impl = ast.dyn_value.scope.?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
+            const impl = ast.scope().?.impl_trait_lookup(expr_type, ast.dyn_value.dyn_type.expr().symbol().?);
             if (impl.ast == null) {
                 compiler.errors.add_error(errs_.Error{ .type_not_impl_trait = .{
                     .span = ast.token().span,
@@ -992,7 +992,7 @@ fn validate_AST_internal(
                             ast.token(),
                             expanded_expected,
                             ast.expr(),
-                            ast.addr_of.scope.?,
+                            ast.scope().?,
                             ast.addr_of.mut,
                             compiler.allocator(),
                         ),
@@ -1200,7 +1200,7 @@ fn validate_AST_internal(
                         var statements = std.ArrayList(*ast_.AST).init(compiler.allocator());
                         statements.append(ast.@"if".let.?) catch unreachable;
                         const block = ast_.AST.create_block(ast.else_block().?.token(), statements, null, compiler.allocator());
-                        block.block.scope = ast.@"if".scope.?;
+                        block.set_scope(ast.scope());
                         ast.set_else_block(block);
                     }
                 }
@@ -1218,7 +1218,7 @@ fn validate_AST_internal(
                     statements.append(ast_.AST.create_none_value(opt_type, compiler.allocator())) catch unreachable;
                 }
                 const ret_block = ast_.AST.create_block(token_.Token.init_simple("{"), statements, null, compiler.allocator());
-                ret_block.block.scope = ast.@"if".scope.?.parent.?;
+                ret_block.set_scope(ast.scope().?.parent.?);
                 return ret_block;
             } else {
                 // condition is undeterminable at compile-time, return if AST
@@ -1592,7 +1592,7 @@ fn inset_let_into_if(ast: *ast_.AST, allocator: std.mem.Allocator) void {
             var statements = std.ArrayList(*ast_.AST).init(allocator);
             statements.append(ast.@"if".let.?) catch unreachable;
             const block = ast_.AST.create_block(ast.body_block().token(), statements, null, allocator);
-            block.block.scope = ast.@"if".scope.?;
+            block.set_scope(ast.scope());
             ast.set_body_block(block);
         }
     }
