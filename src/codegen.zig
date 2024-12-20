@@ -41,7 +41,7 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
     try output_impls(&module.impls, writer);
     try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
-    try output_main_function(module.entry, writer);
+    try output_main_function(module.entry.?, writer);
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
