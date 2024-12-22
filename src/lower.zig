@@ -126,7 +126,7 @@ fn lower_AST(
         .dereference => {
             const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator) orelse return null;
             const expanded_type = ast.typeof(allocator).expand_type(allocator);
-            const temp = expr.create_dereference(expanded_type, allocator);
+            const temp = expr.create_dereference_lval(expanded_type, allocator);
             return temp;
         },
         .@"try" => {
@@ -150,7 +150,7 @@ fn lower_AST(
             cfg.append_instruction(err_label);
 
             const ok_type = expanded_expr_type.get_ok_type().expand_type(allocator);
-            const ok_lval = expr.create_select(0, 0, ok_type, null, allocator);
+            const ok_lval = expr.create_select_lval(0, 0, ok_type, null, allocator);
             cfg.append_instruction(ir_.IR.init_jump(end_label, ast.token().span, allocator));
             cfg.append_instruction(end_label);
 
@@ -255,13 +255,13 @@ fn lower_AST(
             const _type = ast.typeof(allocator);
             if (ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
-                new_lhs = new_lhs.create_select(0, 0, _type.expand_type(allocator), null, allocator);
-                new_lhs = new_lhs.create_dereference(_type.expand_type(allocator), allocator);
+                new_lhs = new_lhs.create_select_lval(0, 0, _type.expand_type(allocator), null, allocator);
+                new_lhs = new_lhs.create_dereference_lval(_type.expand_type(allocator), allocator);
             }
 
             // Surround with L_Value node
             const length: *lval_.L_Value = generate_indexable_length(cfg, lhs, ast_expanded_type, ast.token().span, allocator);
-            return new_lhs.create_index(rhs, length, _type.expand_type(allocator), allocator);
+            return new_lhs.create_index_lval(rhs, length, _type.expand_type(allocator), allocator);
         },
         .select => {
             // Recursively get select's ast L_Value node
@@ -284,7 +284,7 @@ fn lower_AST(
             // Surround with L_Value node
             const field = ast.pos().?;
             const expanded_type = ast.typeof(allocator).expand_type(allocator);
-            return ast_lval.?.create_select(field, offset, expanded_type, tag, allocator);
+            return ast_lval.?.create_select_lval(field, offset, expanded_type, tag, allocator);
         },
         .product => {
             if (ast.children().items[0].typeof(allocator).types_match(primitives_.type_type)) {
@@ -311,7 +311,7 @@ fn lower_AST(
             cfg.append_instruction(ir_.IR.init(.sub_int, new_size, upper, lower, ast.token().span, allocator));
 
             const data_type = ast.typeof(allocator).children().items[0];
-            const data_ptr = arr.create_select(0, 0, data_type.expand_type(allocator), null, allocator);
+            const data_ptr = arr.create_select_lval(0, 0, data_type.expand_type(allocator), null, allocator);
 
             const new_data_ptr = create_temp_lvalue(cfg, data_type, allocator);
             cfg.append_instruction(ir_.IR.init(.add_int, new_data_ptr, data_ptr, lower, ast.token().span, allocator));
@@ -736,8 +736,8 @@ fn tuple_equality_flow(
         for (0..lhs_type.children().items.len) |field| {
             const expanded_type = lhs_type.children().items[field].expand_type(allocator);
             const offset = lhs_type.product.get_offset(field, allocator);
-            const lhs_select = new_lhs.create_select(field, offset, expanded_type, null, allocator);
-            const rhs_select = new_rhs.create_select(field, offset, expanded_type, null, allocator);
+            const lhs_select = new_lhs.create_select_lval(field, offset, expanded_type, null, allocator);
+            const rhs_select = new_rhs.create_select_lval(field, offset, expanded_type, null, allocator);
             tuple_equality_flow(cfg, lhs_select, rhs_select, fail_label, allocator);
         }
     } else if (lhs_type.* == .sum_type) {
@@ -783,7 +783,7 @@ fn coalesce_op(
     // tag was `.ok` or `.some`, store lhs in temp
     cfg.append_instruction(zero_label);
     const expanded_type = ast.typeof(allocator).expand_type(allocator);
-    const val = lhs.create_select(0, 0, expanded_type, null, allocator);
+    const val = lhs.create_select_lval(0, 0, expanded_type, null, allocator);
     const ok_lval = lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
     cfg.append_instruction(ir_.IR.init_simple_copy(ok_lval, val, ast.token().span, allocator));
 
@@ -813,7 +813,7 @@ fn generate_assign(
             }
             const expanded_type = rhs.get_expanded_type().children().items[field].expand_type(allocator);
             const offset = lhs_expanded_type.product.get_offset(field, allocator);
-            const select = rhs.create_select(field, offset, expanded_type, null, allocator);
+            const select = rhs.create_select_lval(field, offset, expanded_type, null, allocator);
             _ = try generate_assign(cfg, term, select, labels, errors, allocator);
         }
         return null;
@@ -838,7 +838,7 @@ fn generate_indexable_length(
 ) *lval_.L_Value {
     if (_type.* == .product and _type.product.was_slice) {
         const offset = _type.product.get_offset(1, allocator);
-        return lhs.create_select(1, offset, primitives_.int64_type, null, allocator);
+        return lhs.create_select_lval(1, offset, primitives_.int64_type, null, allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
         const retval = create_temp_lvalue(cfg, primitives_.int_type, allocator);
         cfg.append_instruction(ir_.IR.init_int(retval, _type.children().items.len, span, allocator));
@@ -1017,7 +1017,7 @@ fn generate_match_pattern_check(
                 const expanded_type = expr.get_expanded_type().children().items[field].expand_type(allocator);
                 const pattern_type = pattern.?.typeof(allocator).expand_type(allocator);
                 const offset = pattern_type.product.get_offset(field, allocator);
-                const lval = expr.create_select(field, offset, expanded_type, null, allocator);
+                const lval = expr.create_select_lval(field, offset, expanded_type, null, allocator);
                 try generate_match_pattern_check(cfg, term, lval, next_pattern, labels, errors, allocator);
             }
         },
@@ -1140,13 +1140,13 @@ fn generate_pattern(
         for (pattern.children().items, 0..) |term, field| {
             const expanded_type = _type.children().items[field].expand_type(allocator);
             const offset = _type.product.get_offset(field, allocator);
-            const lval = def.create_select(field, offset, expanded_type, null, allocator);
+            const lval = def.create_select_lval(field, offset, expanded_type, null, allocator);
             try generate_pattern(cfg, term, expanded_type, lval, errors, allocator);
         }
     } else if (pattern.* == .sum_value) {
         const expanded_type = pattern.sum_value.domain.?.annotation.type.expand_type(allocator);
         const field = pattern.pos().?;
-        const lval = def.create_select(field, 0, expanded_type, null, allocator);
+        const lval = def.create_select_lval(field, 0, expanded_type, null, allocator);
         try generate_pattern(cfg, pattern.sum_value.init.?, expanded_type, lval, errors, allocator);
     }
 }

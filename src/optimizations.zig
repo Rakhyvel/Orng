@@ -76,7 +76,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
 
     switch (ir.kind) {
         .copy => {
-            if (ir.src1 == null or ir.src1.?.sizeof() == 0) {
+            if (ir.src1 == null or ir.src1.?.expanded_type_sizeof() == 0) {
                 log("unit-copy elimination");
                 ir.in_block.?.remove_instruction(ir);
             } else if (ir.dest.?.* == .symbver and
@@ -529,6 +529,7 @@ fn divide_by_zero_check(ir: ?*ir_.IR, errors: *errs_.Errors) error{CompileError}
 
 /// Removes unused definitions from the CFG, skipping calls and invokes (to avoid removing instructions with side
 /// effects). Returns true if any instructions were removed.
+/// TODO: Move to ssa file/namespace, along with the other use/def stuff
 fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     var retval = false;
 
@@ -728,6 +729,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     return retval;
 }
 
+// TODO: Move this out, and into a proper logging system that's configurable from the cmd line
 fn log_optimization_pass(msg: []const u8, cfg: *cfg_.CFG) void {
     if (debug) {
         std.debug.print("[OPTIMIZATION] {s}\n", .{msg});

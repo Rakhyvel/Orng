@@ -76,7 +76,7 @@ fn annot_from_ast(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
     if (ast.* == .annotation) {
         return ast;
     } else if (ast.* == .identifier) {
-        return ast_.AST.create_annotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_valid();
+        return ast_.AST.create_annotation(ast.token(), ast, primitives_.unit_type, null, null, allocator).assert_ast_valid();
     } else {
         errors.add_error(errs_.Error{ .basic = .{
             .span = ast.token().span,

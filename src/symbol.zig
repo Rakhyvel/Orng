@@ -179,6 +179,7 @@ pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);
 
 var number_of_comptime: usize = 0;
 pub const Symbol = struct {
+    // TODO: Much like AST, create a symbol-create.zig, and usingnamespace it here with `create_comptime_init`, `create_symbol`, `create_method_type`, `create_temp_comptime_symbol`, `create_template_symbol`, `create_function_symbol`, and any other supporting infra
     scope: *Scope, // Enclosing parent scope
     name: []const u8,
     span: span_.Span,
@@ -243,7 +244,7 @@ pub const Symbol = struct {
         return retval;
     }
 
-    pub fn assert_valid(self: *Symbol) *Symbol {
+    pub fn assert_symbol_valid(self: *Symbol) *Symbol {
         self.validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }

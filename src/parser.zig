@@ -164,7 +164,7 @@ pub const Parser = struct {
         const token = try self.expect(.import);
 
         const identifier = try self.expect(.identifier);
-        const pattern = ast_.AST.create_symbol(identifier, .import, identifier.data, self.allocator);
+        const pattern = ast_.AST.create_pattern_symbol(identifier, .import, identifier.data, self.allocator);
 
         return ast_.AST.create_decl(
             token,
@@ -188,7 +188,7 @@ pub const Parser = struct {
         _ = try self.expect(.@"const");
 
         const identifier = try self.expect(.identifier);
-        const pattern = ast_.AST.create_symbol(identifier, .{ .@"extern" = .{ .c_name = c_name } }, identifier.data, self.allocator);
+        const pattern = ast_.AST.create_pattern_symbol(identifier, .{ .@"extern" = .{ .c_name = c_name } }, identifier.data, self.allocator);
         _ = try self.expect(.single_colon);
         const _type: *ast_.AST = try self.arrow_expr();
 
@@ -208,7 +208,7 @@ pub const Parser = struct {
         const token = try self.expect(.@"const");
 
         const identifier = try self.expect(.identifier);
-        const pattern = ast_.AST.create_symbol(identifier, .@"const", identifier.data, self.allocator);
+        const pattern = ast_.AST.create_pattern_symbol(identifier, .@"const", identifier.data, self.allocator);
         var _type: ?*ast_.AST = null;
         var _init: ?*ast_.AST = null;
 
@@ -282,7 +282,7 @@ pub const Parser = struct {
                 kind = .let;
             }
             const identifier = try self.expect(.identifier);
-            return ast_.AST.create_symbol(identifier, kind, identifier.data, self.allocator);
+            return ast_.AST.create_pattern_symbol(identifier, kind, identifier.data, self.allocator);
         } else if (self.accept(.left_parenthesis)) |_| {
             const res = try self.let_pattern_product();
             _ = try self.expect(.right_parenthesis);
@@ -359,7 +359,7 @@ pub const Parser = struct {
         }
     }
 
-    fn expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
+    fn parse_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         return self.sum_type();
     }
 
@@ -916,7 +916,7 @@ pub const Parser = struct {
             kind = .let;
         }
         const identifier = try self.expect(.identifier);
-        const ident = ast_.AST.create_symbol(identifier, kind, identifier.data, self.allocator);
+        const ident = ast_.AST.create_pattern_symbol(identifier, kind, identifier.data, self.allocator);
 
         var _type: *ast_.AST = undefined;
         var _init: ?*ast_.AST = null;
@@ -1151,7 +1151,7 @@ pub const Parser = struct {
     fn match_pattern_atom(self: *Parser) Parser_Error_Enum!*ast_.AST {
         if (self.accept(.mut)) |_| {
             const identifier = try self.expect(.identifier);
-            return ast_.AST.create_symbol(identifier, .mut, identifier.data, self.allocator);
+            return ast_.AST.create_pattern_symbol(identifier, .mut, identifier.data, self.allocator);
         } else if (self.accept(.identifier)) |token| {
             if (self.peek_kind(.period)) {
                 var exp = ast_.AST.create_identifier(token, self.allocator);
@@ -1165,7 +1165,7 @@ pub const Parser = struct {
                 }
                 return exp;
             } else {
-                return ast_.AST.create_symbol(token, .let, token.data, self.allocator);
+                return ast_.AST.create_pattern_symbol(token, .let, token.data, self.allocator);
             }
         } else if (self.accept(.period)) |_| {
             const sum_val = ast_.AST.create_sum_value(try self.expect(.identifier), self.allocator); // member will be inferred
@@ -1208,7 +1208,7 @@ pub const Parser = struct {
         const token = try self.expect(.left_parenthesis);
         var exp: ?*ast_.AST = null;
         if (self.next_is_expr()) {
-            exp = try self.expr();
+            exp = try self.parse_expr();
         }
         if (self.peek_kind(.right_parenthesis)) {
             _ = self.expect(.right_parenthesis) catch {};

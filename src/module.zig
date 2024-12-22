@@ -99,6 +99,7 @@ pub const Module = struct {
         return retval;
     }
 
+    // TODO: Move to compiler context
     pub fn compile(
         contents: []const u8,
         in_name: []const u8,
@@ -257,6 +258,7 @@ pub const Module = struct {
         }
     }
 
+    // TODO: Move to own file
     const Import_Context = struct {
         module: *Module,
         compiler: *compiler_.Context,
@@ -454,6 +456,7 @@ pub const Module = struct {
     }
 };
 
+// TODO: Move to own file
 pub fn get_cfg(
     symbol: *symbol_.Symbol,
     caller: ?*cfg_.CFG,
@@ -484,6 +487,7 @@ pub fn get_cfg(
 ///
 /// ## Returns:
 /// An identifier AST, decorated with the stamped out anonymous function.
+/// TODO: Move to compiler
 pub fn stamp(
     template_ast: *ast_.AST,
     args: *std.ArrayList(*ast_.AST),
@@ -558,6 +562,8 @@ pub fn stamp(
 /// - `errors`: Error managing context, to output errors to
 /// - `allocator`: Allocator to use for interpretation
 ///
+/// TODO: Move to compiler
+///
 /// Errors out either during AST-IR lowering, or interpretation.
 pub fn interpret(
     ast: *ast_.AST,
@@ -571,7 +577,7 @@ pub fn interpret(
         scope,
         &compiler.errors,
         compiler.allocator(),
-    )).assert_valid().assert_init_valid();
+    )).assert_symbol_valid().assert_init_valid();
 
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;

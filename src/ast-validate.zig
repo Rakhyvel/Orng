@@ -1,4 +1,11 @@
 // This file validates a module of ASTs. It primarily is responsible for type-checking.
+// TODO: Split this file into:
+//   1. used in AST: ast-validate.zig: throw_unexpected_type errors, receivers_match, throw_unexpected_type, coalesce_operator, inset_let_into_if, assert_none_poisoned, assert_mutable_address, throw_wrong_from, type_check_ord, binary_operator_open, validate_args_arity, binary_operator_closed, void_check, given_name, validate_args_type, put_many_annot_map, takes_name, assert_mutable, assert_pattern_matches, throw_unexpected_void_type, put_ast_map, type_check_int, type_check, middle_statement_check, checked_types_match, type_check_integral, validate_AST, exhaustive_check, throw_not_selectable, implicit_dereference, type_check_arithmetic, type_check_eq, merge_sums, type_valid_check, put_assign, find_select_pos, validate_impl, validate_L_Value, exhaustive_check_sub
+//   2. generate-defaults.zig: generate_default_unvalidated
+//   3. args-validate.zig: default_args, named_args, args_are_named, positional_args
+//   4. used in symbol: symbol-validate.zig: type_is_type_type, type_is_type_type_atom, is_capitalized, validate_trait, validate_symbol,
+//   5. used in scope: validate_scope
+//   6. used in module: validate_module
 
 const std = @import("std");
 const ast_ = @import("ast.zig");
@@ -72,7 +79,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
     symbol._type = validate_AST(symbol._type, primitives_.type_type, compiler);
     // std.debug.print("type for: {s}: {}\n", .{ symbol.name, symbol._type });
     if (symbol._type.* != .poison) {
-        _ = symbol.assert_valid();
+        _ = symbol.assert_symbol_valid();
         symbol.expanded_type = symbol._type.expand_type(compiler.allocator());
         if (type_is_type_type(symbol.expanded_type.?)) {
             switch (symbol.kind) {
@@ -481,7 +488,7 @@ fn validate_AST_internal(
         .dereference => {
             const expr_span = ast.expr().token().span;
             if (expected != null) {
-                const addr_of = ast_.AST.create_addr_of(ast.token(), expected.?, false, compiler.allocator()).assert_valid();
+                const addr_of = ast_.AST.create_addr_of(ast.token(), expected.?, false, compiler.allocator()).assert_ast_valid();
                 ast.set_expr(validate_AST(ast.expr(), addr_of, compiler));
             } else {
                 ast.set_expr(validate_AST(ast.expr(), null, compiler));
@@ -718,7 +725,7 @@ fn validate_AST_internal(
                 }
                 // rhs is compile-time known, change to select
                 const field = ast_.AST.create_field(token_.Token.init_simple(""), compiler.allocator());
-                const select = ast_.AST.create_select(ast.token(), ast.lhs(), field, compiler.allocator()).assert_valid();
+                const select = ast_.AST.create_select(ast.token(), ast.lhs(), field, compiler.allocator()).assert_ast_valid();
                 select.set_pos(@as(usize, @intCast(ast.rhs().int.data)));
                 return select;
             } else if (expected != null) {
@@ -742,12 +749,12 @@ fn validate_AST_internal(
                 return validate_AST(sum_value, expected, compiler);
             } else if (expanded_lhs_type.* == .product and expanded_lhs_type.product.is_homotypical() and std.mem.eql(u8, "length", ast.rhs().token().data)) {
                 try type_check(ast.token().span, primitives_.int_type, expected, &compiler.errors);
-                return ast_.AST.create_int(ast.token(), expanded_lhs_type.children().items.len, compiler.allocator()).assert_valid();
+                return ast_.AST.create_int(ast.token(), expanded_lhs_type.children().items.len, compiler.allocator()).assert_ast_valid();
             } else if (ast.pos() == null) {
                 ast.set_pos(try find_select_pos(expanded_lhs_type, ast.rhs().token().data, ast.token().span, &compiler.errors));
             }
 
-            _ = ast.assert_valid();
+            _ = ast.assert_ast_valid();
             const ast_type = ast.typeof(compiler.allocator());
             try type_check(ast.token().span, ast_type, expected, &compiler.errors);
             return ast;
@@ -765,8 +772,6 @@ fn validate_AST_internal(
                 module_path_name.writer().print("{s}.orng", .{ast.lhs().token().data}) catch unreachable;
                 const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
                 const other_module_dir = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
-
-                std.debug.print("{s}::{s}\n", .{ ast.lhs().token().data, ast.rhs().token().data });
 
                 const module = compiler.lookup_module(other_module_dir) orelse
                     compiler.lookup_package_root_module(this_module.package_name, ast.lhs().token().data).?; // all imports should be compiled eagerly before the symbol-tree is constructed
@@ -814,7 +819,7 @@ fn validate_AST_internal(
                 std.debug.panic("compiler error: type access isn't decl or method_decl, it's {s}", .{@tagName(access_result.?.*)});
             }
 
-            _ = ast.assert_valid();
+            _ = ast.assert_ast_valid();
             const ast_type = ast.typeof(compiler.allocator());
             try type_check(ast.token().span, ast_type, expected, &compiler.errors);
             return ast;
@@ -878,7 +883,7 @@ fn validate_AST_internal(
             try validate_args_arity(.method, ast.children(), domain, ast.token().span, &compiler.errors);
             ast.set_children((try validate_args_type(ast.children(), domain, compiler)).*);
 
-            _ = ast.assert_valid();
+            _ = ast.assert_ast_valid();
             const ast_type = ast.typeof(compiler.allocator());
             try type_check(ast.token().span, ast_type, expected, &compiler.errors);
             return ast;
@@ -935,7 +940,7 @@ fn validate_AST_internal(
                 try assert_none_poisoned(ast.children());
             } else if (expanded_expected != null and expanded_expected.?.* == .product) {
                 // Expecting ast to be a product value of some product type
-                _ = ast.assert_valid();
+                _ = ast.assert_ast_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, &compiler.errors, compiler.allocator()));
                 try validate_args_arity(.product, ast.children(), expanded_expected.?, ast.token().span, &compiler.errors);
                 ast.set_children((try validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
@@ -982,7 +987,7 @@ fn validate_AST_internal(
                             return throw_unexpected_type(span, primitives_.type_type, got, &compiler.errors);
                         }
                     }
-                    _ = ast.expr().assert_valid();
+                    _ = ast.expr().assert_ast_valid();
                 } else {
                     ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, compiler));
                     try assert_none_poisoned(ast.expr());
@@ -1010,9 +1015,9 @@ fn validate_AST_internal(
                 _ = expanded_expected.expr().expand_type(compiler.allocator());
 
                 // Everythings Ok.
-                ast.set_expr(validate_AST(ast.expr(), expanded_expected.expr().assert_valid(), compiler));
+                ast.set_expr(validate_AST(ast.expr(), expanded_expected.expr().assert_ast_valid(), compiler));
                 try assert_none_poisoned(ast.expr());
-                _ = ast.assert_valid();
+                _ = ast.assert_ast_valid();
                 if (ast.expr().* != .product) {
                     // Validate that expr is an L-value *only if* expr is not a product
                     // It is possible to take a addr of a product. The address is the address of the temporary
@@ -1032,7 +1037,7 @@ fn validate_AST_internal(
             var expr_type = ast.expr().typeof(compiler.allocator());
             if (expr_type.* != .unit_type and try checked_types_match(primitives_.type_type, expr_type, &compiler.errors)) {
                 // Regular slice type, change to product of data address and length
-                const retval = ast_.AST.create_slice_type(ast.expr(), ast.slice_of.kind == .mut, compiler.allocator()).assert_valid();
+                const retval = ast_.AST.create_slice_type(ast.expr(), ast.slice_of.kind == .mut, compiler.allocator()).assert_ast_valid();
                 const retval_type = retval.typeof(compiler.allocator());
                 try type_check(ast.token().span, retval_type, expected, &compiler.errors);
                 return retval;
@@ -1046,7 +1051,7 @@ fn validate_AST_internal(
                     return ast.enpoison();
                 }
 
-                _ = ast.assert_valid();
+                _ = ast.assert_ast_valid();
                 const ast_type = ast.typeof(compiler.allocator());
                 try type_check(ast.token().span, ast_type, expected, &compiler.errors);
 
@@ -1301,7 +1306,7 @@ fn validate_AST_internal(
                 ast.block.final = validate_AST(final, expected, compiler);
                 try assert_none_poisoned(ast.block.final);
             } else {
-                _ = ast.assert_valid();
+                _ = ast.assert_ast_valid();
                 try type_check(ast.token().span, ast.typeof(compiler.allocator()), expected, &compiler.errors);
             }
             return ast;
@@ -2035,7 +2040,7 @@ fn assert_pattern_matches(
         .pattern_symbol => {},
         else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)}),
     }
-    _ = pattern.assert_valid();
+    _ = pattern.assert_ast_valid();
 }
 
 /// Checks that a match's mappings cover all possible cases
@@ -2090,7 +2095,7 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
 }
 
 fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
-    return (try generate_default_unvalidated(_type, span, errors, allocator)).assert_valid();
+    return (try generate_default_unvalidated(_type, span, errors, allocator)).assert_ast_valid();
 }
 
 fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {

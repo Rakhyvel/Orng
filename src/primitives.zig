@@ -99,28 +99,28 @@ pub fn get_scope(compiler: *compiler_.Context) !*symbol_.Scope {
 
 fn create_prelude(compiler: *compiler_.Context) !void {
     // Create ASTs for primitives
-    anyptr_type = create_anyptr_type(compiler.allocator());
-    bool_type = create_identifier("Bool", compiler.allocator());
-    byte_type = create_identifier("Byte", compiler.allocator());
-    char_type = create_identifier("Char", compiler.allocator());
-    float_type = create_identifier("Float", compiler.allocator());
-    float32_type = create_identifier("Float32", compiler.allocator());
-    float64_type = create_identifier("Float64", compiler.allocator());
-    int_type = create_identifier("Int", compiler.allocator());
-    int8_type = create_identifier("Int8", compiler.allocator());
-    int16_type = create_identifier("Int16", compiler.allocator());
-    int32_type = create_identifier("Int32", compiler.allocator());
-    int64_type = create_identifier("Int64", compiler.allocator());
-    string_type = create_identifier("String", compiler.allocator());
-    type_type = create_identifier("Type", compiler.allocator());
+    anyptr_type = create_anyptr_type_primitive(compiler.allocator());
+    bool_type = create_primitive_identifier("Bool", compiler.allocator());
+    byte_type = create_primitive_identifier("Byte", compiler.allocator());
+    char_type = create_primitive_identifier("Char", compiler.allocator());
+    float_type = create_primitive_identifier("Float", compiler.allocator());
+    float32_type = create_primitive_identifier("Float32", compiler.allocator());
+    float64_type = create_primitive_identifier("Float64", compiler.allocator());
+    int_type = create_primitive_identifier("Int", compiler.allocator());
+    int8_type = create_primitive_identifier("Int8", compiler.allocator());
+    int16_type = create_primitive_identifier("Int16", compiler.allocator());
+    int32_type = create_primitive_identifier("Int32", compiler.allocator());
+    int64_type = create_primitive_identifier("Int64", compiler.allocator());
+    string_type = create_primitive_identifier("String", compiler.allocator());
+    type_type = create_primitive_identifier("Type", compiler.allocator());
     unit_type = create_unit_type(compiler.allocator());
     unit_value = create_unit_value(compiler.allocator());
-    void_type = create_identifier("Void", compiler.allocator());
-    word16_type = create_identifier("Word16", compiler.allocator());
-    word32_type = create_identifier("Word32", compiler.allocator());
-    word64_type = create_identifier("Word64", compiler.allocator());
+    void_type = create_primitive_identifier("Void", compiler.allocator());
+    word16_type = create_primitive_identifier("Word16", compiler.allocator());
+    word32_type = create_primitive_identifier("Word32", compiler.allocator());
+    word64_type = create_primitive_identifier("Word64", compiler.allocator());
     // Slice types must be AFTER int_type
-    byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_valid();
+    byte_slice_type = ast_.AST.create_slice_type(byte_type, false, compiler.allocator()).assert_ast_valid();
 
     // Create prelude scope
     prelude = symbol_.Scope.init(null, "", compiler.allocator());
@@ -434,20 +434,20 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, compiler.allocator());
 }
 
-fn create_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_identifier(token_.Token.init_simple(name), allocator).assert_valid();
+fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_identifier(token_.Token.init_simple(name), allocator).assert_ast_valid();
 }
 
 fn create_unit_type(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_type(token_.Token.init_simple("("), allocator).assert_valid();
+    return ast_.AST.create_unit_type(token_.Token.init_simple("("), allocator).assert_ast_valid();
 }
 
-fn create_anyptr_type(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), allocator).assert_valid();
+fn create_anyptr_type_primitive(allocator: std.mem.Allocator) *ast_.AST {
+    return ast_.AST.create_anyptr_type(token_.Token.init_simple("anyptr_type"), allocator).assert_ast_valid();
 }
 
 fn create_unit_value(allocator: std.mem.Allocator) *ast_.AST {
-    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), allocator).assert_valid();
+    return ast_.AST.create_unit_value(token_.Token.init_simple("{"), allocator).assert_ast_valid();
 }
 
 fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, allocator: std.mem.Allocator) *symbol_.Symbol {
@@ -460,7 +460,7 @@ fn create_prelude_symbol(name: []const u8, _type: *ast_.AST, init: *ast_.AST, al
         null,
         .@"const",
         allocator,
-    ).assert_valid();
+    ).assert_symbol_valid();
     symbol.is_temp = true;
     symbol.expanded_type = _type;
     prelude.?.symbols.put(name, symbol) catch unreachable;
@@ -499,10 +499,6 @@ fn create_info(
         .size = size,
         ._align = if (size < 8) size else 8,
     }) catch unreachable;
-}
-
-pub fn keys() [][]const u8 {
-    return primitives.keys();
 }
 
 pub fn info_from_name(name: []const u8) ?Primitive_Info {

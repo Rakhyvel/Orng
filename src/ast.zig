@@ -1,4 +1,10 @@
 // TODO: Can this file be split up?? At ALL?
+// 1. keep AST union in this file
+// 2. `pub using namespace @import("type-check.zig");`
+// 3. `pub using namespace @import("type-properties.zig");`
+// 4. `pub using namespace @import("validate-ast.zig");`
+// 5. `pub using namespace @import("type-representation.zig");`, or a better name, for `can_represent_X`, `is_ord`, etc
+// 6. `pub using namespace @import("poisoned-ast.zig");
 
 const std = @import("std");
 const errs_ = @import("errors.zig");
@@ -488,7 +494,7 @@ pub const AST = union(enum) {
     @"defer": struct { common: AST_Common, _statement: *AST },
     @"errdefer": struct { common: AST_Common, _statement: *AST },
 
-    pub fn create_poison(_token: token_.Token, allocator: std.mem.Allocator) *AST {
+    fn create_poison(_token: token_.Token, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .poison = .{ .common = AST_Common{
             ._token = _token,
             ._type = null,
@@ -1139,7 +1145,7 @@ pub const AST = union(enum) {
         );
     }
 
-    pub fn create_symbol(
+    pub fn create_pattern_symbol(
         _token: token_.Token,
         kind: symbol_.Symbol_Kind,
         name: []const u8,
@@ -1589,7 +1595,7 @@ pub const AST = union(enum) {
                 if (self.@"return"._ret_expr) |ret_expr| ret_expr.clone(allocator) else null,
                 allocator,
             ),
-            .pattern_symbol => return create_symbol(
+            .pattern_symbol => return create_pattern_symbol(
                 self.token(),
                 self.pattern_symbol.kind,
                 self.pattern_symbol.name,
@@ -1846,7 +1852,7 @@ pub const AST = union(enum) {
             of,
             _mut,
             allocator,
-        ).assert_valid();
+        ).assert_ast_valid();
         const annot_type = AST.create_annotation(
             of.token(),
             AST.create_identifier(token_.Token.init("data", null, "", "", 0, 0), allocator),
@@ -1854,7 +1860,7 @@ pub const AST = union(enum) {
             null,
             null,
             allocator,
-        ).assert_valid();
+        ).assert_ast_valid();
         term_types.append(annot_type) catch unreachable;
         term_types.append(AST.create_annotation(
             of.token(),
@@ -1864,7 +1870,7 @@ pub const AST = union(enum) {
             null,
             allocator,
         )) catch unreachable;
-        var retval = AST.create_product(of.token(), term_types, allocator).assert_valid();
+        var retval = AST.create_product(of.token(), term_types, allocator).assert_ast_valid();
         retval.product.was_slice = true;
         return retval;
     }
@@ -1872,22 +1878,22 @@ pub const AST = union(enum) {
     // Expr must be a product value of length `l`. Slice value is `(&expr[0], l)`.
     pub fn create_slice_value(_expr: *AST, _mut: bool, expr_type: *AST, allocator: std.mem.Allocator) *AST {
         var new_terms = std.ArrayList(*AST).init(allocator);
-        const zero = (AST.create_int(_expr.token(), 0, allocator)).assert_valid();
+        const zero = (AST.create_int(_expr.token(), 0, allocator)).assert_ast_valid();
         const index = (AST.create_index(
             _expr.token(),
             _expr,
             zero,
             allocator,
-        )).assert_valid();
+        )).assert_ast_valid();
         const addr = (AST.create_addr_of(
             _expr.token(),
             index,
             _mut,
             allocator,
-        )).assert_valid();
+        )).assert_ast_valid();
         new_terms.append(addr) catch unreachable;
 
-        const length = (AST.create_int(_expr.token(), expr_type.children().items.len, allocator)).assert_valid();
+        const length = (AST.create_int(_expr.token(), expr_type.children().items.len, allocator)).assert_ast_valid();
         new_terms.append(length) catch unreachable;
 
         var retval = AST.create_product(_expr.token(), new_terms, allocator);
@@ -1928,14 +1934,14 @@ pub const AST = union(enum) {
         member.sum_value.base = opt_type;
         member.sum_value.init = value;
         member.set_pos(opt_type.get_pos("some"));
-        return member.assert_valid();
+        return member.assert_ast_valid();
     }
 
     pub fn create_none_value(opt_type: *AST, allocator: std.mem.Allocator) *AST {
         const member = create_sum_value(token_.Token.init_simple("none"), allocator);
         member.sum_value.base = opt_type;
         member.set_pos(opt_type.get_pos("none"));
-        return member.assert_valid();
+        return member.assert_ast_valid();
     }
 
     // Err!Ok => (ok:Ok | err:Err)
@@ -2133,7 +2139,7 @@ pub const AST = union(enum) {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
-        const retval = expand_type_internal(self, allocator).assert_valid();
+        const retval = expand_type_internal(self, allocator).assert_ast_valid();
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
         return retval;
@@ -2380,7 +2386,7 @@ pub const AST = union(enum) {
         if (self.common()._type) |_type| {
             return _type;
         }
-        const retval: *AST = self.typeof_internal(allocator).assert_valid();
+        const retval: *AST = self.typeof_internal(allocator).assert_ast_valid();
         self.common()._type = retval;
         return retval;
     }
@@ -2884,7 +2890,7 @@ pub const AST = union(enum) {
     }
 
     /// Sets an ASTs validation status to valid.
-    pub fn assert_valid(self: *AST) *AST {
+    pub fn assert_ast_valid(self: *AST) *AST {
         self.common().validation_state = AST_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }
@@ -3115,6 +3121,8 @@ pub const AST = union(enum) {
         _ = fmt;
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
         defer arena.deinit();
+
+        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
 
         const out = self.pprint(arena.allocator()) catch unreachable;
 

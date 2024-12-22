@@ -389,6 +389,8 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
 
         const out = self.pprint(arena.allocator()) catch unreachable;
 
+        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
+
         try writer.print("{s}", .{out});
     }
 
@@ -525,7 +527,7 @@ pub const Kind = enum {
         };
     }
 
-    pub fn symbol(self: Kind) []const u8 {
+    pub fn c_token(self: Kind) []const u8 {
         return switch (self) {
             .not => "!",
             .negate_int, .negate_float => "-",
@@ -689,6 +691,7 @@ pub const Data = union(enum) {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
 
+        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
         const out = self.pprint(arena.allocator()) catch unreachable;
 
         try writer.print("{s}", .{out});

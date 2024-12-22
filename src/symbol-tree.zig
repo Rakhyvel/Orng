@@ -48,17 +48,10 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return null;
         },
 
-        .@"if", .@"for", .block, .match => {
+        .@"if", .block, .match, .@"while", .@"for" => {
             var new_self = self;
             new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
-            ast.set_scope(new_self.scope);
-            return new_self;
-        },
-
-        .@"while" => {
-            var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
-            new_self.scope.in_loop = true;
+            new_self.scope.in_loop = new_self.scope.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;
         },
@@ -130,7 +123,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_symbol(
+                ast_.AST.create_pattern_symbol(
                     token_.Token.init_simple("Self"),
                     .@"const",
                     "Self",
@@ -142,9 +135,6 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 self.allocator,
             );
             try walk_.walk_ast(self_type_decl, new_self);
-
-            // TODO: Put this somewhere?
-            // method_decl.method_decl.c_type = create_method_type(method_decl, allocator);
 
             return new_self;
         },
@@ -170,7 +160,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             }
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_symbol(
+                ast_.AST.create_pattern_symbol(
                     token_.Token.init_simple("Self"),
                     .@"const",
                     "Self",
@@ -190,8 +180,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return null;
-            }
-            if (ast.method_decl.init == null) {
+            } else if (ast.method_decl.init == null) {
                 // Trait method decl
                 var new_self = self;
                 new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
@@ -675,7 +664,7 @@ fn create_method_symbol(
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_symbol(token_.Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
+                ast_.AST.create_pattern_symbol(token_.Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
                 self_type,
                 self_init,
                 false,

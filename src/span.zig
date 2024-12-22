@@ -54,6 +54,7 @@ pub const Span = struct {
         defer out.deinit();
         const writer = out.writer();
 
+        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
         try writer.print("{s}:{}:{}", .{ self.filename, self.line_number, self.col });
 
         return (try out.toOwned()).?;
