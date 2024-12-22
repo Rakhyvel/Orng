@@ -26,15 +26,20 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => {},
 
+        // Capture scope
         .access, .invoke, .addr_of => ast.set_scope(self.scope),
 
+        // Check that AST is inside a loop
         .@"break", .@"continue" => try in_loop_check(ast, self.scope, self.errors),
 
+        // Check that AST is inside a function
+        .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
+
+        // Add to scope's defers
         .@"defer" => self.scope.defers.append(ast.statement()) catch unreachable,
         .@"errdefer" => self.scope.errdefers.append(ast.statement()) catch unreachable,
 
-        .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
-
+        // Create comptime symbol, place inside scope
         .@"comptime" => {
             const symbol = try create_temp_comptime_symbol(
                 ast.expr(),
@@ -45,9 +50,11 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             );
             try put_symbol(symbol, self.scope, self.errors); // Why? No one refers to it...
             ast.set_symbol(symbol);
-            return null;
+
+            return null; // NOTE: DO NOT WALK CHILDREN!
         },
 
+        // Create a new scope, pass it to children
         .@"if", .block, .match, .@"while", .@"for" => {
             var new_self = self;
             new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
@@ -56,8 +63,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
+        // Create symbols (potentially >1) from pattern, put inside scope
         .decl => {
-            // Both put a Symbol in the current scope, and recurse
             try create_symbol(
                 &ast.decl.symbols,
                 ast.decl.pattern,
@@ -71,6 +78,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             try put_all_symbols(&ast.decl.symbols, self.scope, self.errors);
         },
 
+        // Create a symbol for this function
+        // Transform into template if templated
         .fn_decl => {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
@@ -106,9 +115,10 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.set_symbol(symbol);
             }
 
-            return null;
+            return null; // NOTE: DO NOT WALK CHILDREN!
         },
 
+        // Create new scope, create and walk trait symbols/decls
         .trait => {
             if (ast.symbol() != null) {
                 // Do not re-do symboo if already declared
@@ -139,6 +149,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
+        // Create new scope, create anon trait, create and walk impl symbols/decls
         .impl => {
             // Impls get there own scope, actually
             var new_self = self;
@@ -176,6 +187,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
+        // Create scope
         .method_decl => {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
@@ -191,7 +203,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 const symbol = try create_method_symbol(ast, self.scope, self.errors, self.allocator);
                 try put_symbol(symbol, self.scope, self.errors);
                 ast.set_symbol(symbol);
-                return null;
+                return null; // NOTE: DO NOT WALK CHILDREN!
             }
         },
     }
@@ -353,6 +365,41 @@ fn create_symbol(
                 try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
             }
         },
+        .access => {
+            var curr: *ast_.AST = pattern;
+            // Delve down into the lmhs (left-most-hand-side)
+            while (curr.lhs().* == .access) : (curr = curr.lhs()) {}
+            const root = curr.lhs();
+
+            // Error if the lmhs isn't an import pattern symbol
+            // You shouldn't be able to do something like:
+            //   (a::x, a:y) = (1, 3)
+            // nor
+            //   (a, b, c)::x = 3
+            std.debug.assert(root.* == .pattern_symbol and root.pattern_symbol.kind == .import);
+
+            // Create a named symbol, whose init is an access chain from the lmhs
+            // NOTE: This HAS to be done before the lmhs symbol is created, so that it occupies the first slot in the
+            //       decl's symbols list
+            const symbol = symbol_.Symbol.init(
+                scope,
+                pattern.rhs().token().data,
+                pattern.token().span,
+                _type,
+                pattern,
+                decl,
+                .import,
+                allocator,
+            );
+            symbols.append(symbol) catch unreachable;
+            std.debug.print("appended to symbols\n", .{});
+            pattern.set_scope(scope);
+
+            // Change the name of the pattern symbol to be anonymous
+            root.pattern_symbol.name = next_anon_name("anon", allocator);
+            try create_symbol(symbols, root, decl, _type, init, scope, errors, allocator);
+        },
+
         // Likely literals etc, for `match` mappings
         else => {},
     }

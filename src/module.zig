@@ -264,7 +264,17 @@ pub const Module = struct {
         compiler: *compiler_.Context,
 
         pub fn prefix(self: Import_Context, ast: *ast_.AST) walker_.Error!?Import_Context {
-            if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
+            if (ast.* == .decl) {
+                if ((ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) or (ast.decl.pattern.* == .access)) {
+                    _ = try self.get_left_most_module(ast);
+                }
+            }
+
+            return self;
+        }
+
+        fn get_left_most_module(self: Import_Context, ast: *ast_.AST) walker_.Error!*Module {
+            if (ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
                 const package_path = std.fs.path.dirname(self.module.absolute_path).?;
                 var import_filename = String.init(self.compiler.allocator());
                 defer import_filename.deinit();
@@ -272,19 +282,24 @@ pub const Module = struct {
                 import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
                 const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
                 const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
-                _ = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+                const retval = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
                     error.FileNotFound => if (self.compiler.packages.get(import_name) == null) {
                         self.compiler.errors.add_error(.{ .import_file_not_found = .{
                             .filename = ast.decl.pattern.pattern_symbol.name,
                             .span = ast.token().span,
                         } });
                         return error.CompileError;
+                    } else {
+                        return error.CompileError;
                     },
                     else => return error.CompileError,
                 };
+                return retval;
+            } else if (ast.decl.pattern.* == .access) {
+                // Simply compile the lhs
+                _ = try self.get_left_most_module(ast.lhs());
             }
-
-            return self;
+            std.debug.panic("compiler error: this shouldn't be reachable\n", .{});
         }
     };
 

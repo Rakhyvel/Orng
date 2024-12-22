@@ -4,5 +4,5 @@ import std::debug
 
 fn main() -> () {
     externs::println("Hello, ")
-    std::println("World!")
+    debug::println("World!")
 }

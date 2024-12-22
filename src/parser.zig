@@ -164,7 +164,16 @@ pub const Parser = struct {
         const token = try self.expect(.import);
 
         const identifier = try self.expect(.identifier);
-        const pattern = ast_.AST.create_pattern_symbol(identifier, .import, identifier.data, self.allocator);
+        var pattern = ast_.AST.create_pattern_symbol(identifier, .import, identifier.data, self.allocator);
+
+        while (self.accept(.double_colon)) |access_token| {
+            pattern = ast_.AST.create_access(
+                access_token,
+                pattern,
+                ast_.AST.create_field(try self.expect(.identifier), self.allocator),
+                self.allocator,
+            );
+        }
 
         return ast_.AST.create_decl(
             token,

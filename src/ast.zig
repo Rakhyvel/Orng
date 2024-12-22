@@ -2091,6 +2091,8 @@ pub const AST = union(enum) {
             .invoke,
             .poison,
             .identifier,
+            .access,
+            .pattern_symbol,
             => true,
 
             // Anything else probably isn't a valid type
@@ -2248,6 +2250,7 @@ pub const AST = union(enum) {
             .anyptr_type => try out.print("anyptr_type", .{}),
             .unit_type => try out.print("()", .{}),
             .identifier => try out.print("{s}", .{self.token().data}),
+            .pattern_symbol => try out.print("{s}", .{self.token().data}),
             .addr_of => {
                 try out.print("&", .{});
                 if (self.addr_of.mut) {

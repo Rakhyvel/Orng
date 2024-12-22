@@ -811,7 +811,7 @@ fn validate_AST_internal(
             try assert_none_poisoned(access_result);
 
             if (access_result.?.* == .decl) {
-                std.debug.assert(access_result.?.decl.symbols.items.len == 1);
+                std.debug.assert(access_result.?.decl.symbols.items.len > 0);
                 ast.access._symbol = access_result.?.decl.symbols.items[0];
             } else if (access_result.?.* == .method_decl or access_result.?.* == .fn_decl) {
                 ast.access._symbol = access_result.?.symbol();
