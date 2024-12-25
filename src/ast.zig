@@ -291,7 +291,7 @@ pub const AST = union(enum) {
                     return self.get_offset(i, allocator);
                 }
             }
-            std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`\n", .{field_name});
+            std.debug.panic("compiler error: couldn't get offset; product didn't have the field `{s}`", .{field_name});
         }
 
         /// Retrieves the offset in bytes given a field's index
@@ -1737,7 +1737,7 @@ pub const AST = union(enum) {
                 return self.children().items[i];
             }
         }
-        std.debug.panic("compiler error: {s} didn't have field `{s}`\n", .{ @tagName(self.*), field_name });
+        std.debug.panic("compiler error: {s} didn't have field `{s}`", .{ @tagName(self.*), field_name });
     }
 
     pub fn pos(self: AST) ?usize {
@@ -1803,7 +1803,7 @@ pub const AST = union(enum) {
         return switch (u) {
             inline else => |v| if (@hasField(@TypeOf(v), field)) @field(v, field) else error.NoField,
         } catch {
-            std.debug.panic("compiler error: `{s}` does not have field `{s}` {}\n", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
+            std.debug.panic("compiler error: `{s}` does not have field `{s}` {}", .{ @tagName(u), field, Unwrapped(@TypeOf(u), field) });
         };
     }
 
@@ -1820,7 +1820,7 @@ pub const AST = union(enum) {
             inline else => |*v| if (@hasField(@TypeOf(v.*), field)) {
                 @field(v, field) = val;
             } else {
-                std.debug.panic("compiler error: `{s}` does not have field `{s}`\n", .{ @tagName(u.*), field });
+                std.debug.panic("compiler error: `{s}` does not have field `{s}`", .{ @tagName(u.*), field });
             },
         }
     }
@@ -2233,7 +2233,7 @@ pub const AST = union(enum) {
             .star_equals => return create_mult(_token, _lhs, _rhs, allocator),
             .slash_equals => return create_div(_token, _lhs, _rhs, allocator),
             .percent_equals => return create_mod(_token, _lhs, _rhs, allocator),
-            else => std.debug.panic("compiler error: {s} is not a operator-assign token\n", .{@tagName(_token.kind)}),
+            else => std.debug.panic("compiler error: {s} is not a operator-assign token", .{@tagName(_token.kind)}),
         }
     }
 
@@ -2369,7 +2369,7 @@ pub const AST = union(enum) {
                 }
                 try out.print(")", .{});
             },
-            else => std.debug.panic("compiler error: unimplemented or not a type: {s}\n", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: unimplemented or not a type: {s}", .{@tagName(self.*)}),
         }
     }
 
@@ -2503,7 +2503,7 @@ pub const AST = union(enum) {
                 } else if (lhs_type.* == .poison) {
                     return poisoned;
                 } else {
-                    std.debug.panic("compiler error: {s} is not indexable\n", .{@tagName(lhs_type.*)});
+                    std.debug.panic("compiler error: {s} is not indexable", .{@tagName(lhs_type.*)});
                 }
             },
 
@@ -2580,7 +2580,7 @@ pub const AST = union(enum) {
             .fn_decl => return self.symbol().?._type,
             .pattern_symbol => return self.symbol().?._type,
 
-            else => std.debug.panic("compiler error: unimplemented typeof() for: AST.{s}\n", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: unimplemented typeof() for: AST.{s}", .{@tagName(self.*)}),
         }
     }
 
@@ -2629,7 +2629,7 @@ pub const AST = union(enum) {
 
             .annotation => return self.annotation.type.sizeof(),
 
-            else => std.debug.panic("compiler error: unimplemented sizeof() for {}\n", .{self}),
+            else => std.debug.panic("compiler error: unimplemented sizeof() for {}", .{self}),
         }
     }
 
@@ -2667,7 +2667,7 @@ pub const AST = union(enum) {
 
             .annotation => return self.annotation.type.alignof(),
 
-            else => std.debug.panic("compiler error: unimplemented alignof for {s}\n", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: unimplemented alignof for {s}", .{@tagName(self.*)}),
         }
     }
 
@@ -2779,7 +2779,7 @@ pub const AST = union(enum) {
                 return A.expr().symbol() == B.expr().symbol();
             },
             .call => return std.mem.eql(u8, A.lhs().token().data, B.lhs().token().data),
-            else => std.debug.panic("compiler error: unimplemented types_match() for {s}\n", .{@tagName(A.*)}),
+            else => std.debug.panic("compiler error: unimplemented types_match() for {s}", .{@tagName(A.*)}),
         }
     }
 
@@ -2924,7 +2924,7 @@ pub const AST = union(enum) {
                 return retval;
             },
             .function => return self.lhs().c_types_match(other.lhs()) and self.rhs().c_types_match(other.rhs()),
-            else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}\n", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: c_types_match(): unimplemented for {s}", .{@tagName(self.*)}),
         }
     }
 
