@@ -1,5 +1,4 @@
 import std
-<<<<<<< HEAD
 // define a symbol called `externs`, which refers to a module symbol externs.orng
 // if you're looking to resolve `externs`, then look for `externs.orng`
 import externs
@@ -11,10 +10,6 @@ fn main() -> () {
     let mut x: Int = 45
     _ = x
     
-    // find println in externs
-    // externs is an import, it refers to externs.orng module
-    // find println in externs.orng module
-    // externs::println refers to the (externs.orng)::println symbol
     externs::println("Hello, ")
     
     // find println in debug
@@ -29,12 +24,4 @@ fn main() -> () {
     // they must refer to their child scope, somehow
     // perhaps their init is a special `module` ast, contains the scope
     // Module struct refers to this symbol, rather than the scope. The scope can be acquired indirectly
-=======
-import externs
-// import core // imported by std, this is what we want to prevent
-
-fn main() -> () {
-    externs::println("Hello, ")
-    std::println("World!")
->>>>>>> origin/main
 }
