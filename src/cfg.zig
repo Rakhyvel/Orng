@@ -7,6 +7,7 @@ const std = @import("std");
 const basic_block_ = @import("basic-block.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
+const module_ = @import("module.zig");
 const offsets_ = @import("offsets.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
@@ -35,6 +36,9 @@ pub const CFG = struct {
 
     /// The function that this CFG represents
     symbol: *symbol_.Symbol,
+
+    /// The module that this CFG belongs to
+    module: *module_.Module,
 
     number_temps: usize,
 

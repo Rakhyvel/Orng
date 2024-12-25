@@ -109,7 +109,7 @@ pub const Module = struct {
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
         compiler: *compiler_.Context,
-    ) Module_Errors!*symbol_.Symbol {
+    ) Module_Errors!*Module {
         // Construct the name
         var i: usize = 0;
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
@@ -121,6 +121,7 @@ pub const Module = struct {
         // Create the symbol for this module
         var file_root = symbol_.Scope.init(compiler.prelude, full_name, compiler.allocator());
         var module = Module.init(short_name, in_name, undefined, compiler.allocator());
+        file_root.module = module;
         const symbol = symbol_.Symbol.init(
             compiler.prelude,
             short_name,
@@ -143,7 +144,7 @@ pub const Module = struct {
         try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, compiler);
         // module.top_level_scope().pprint();
 
-        return symbol;
+        return module;
     }
 
     pub fn fill_contents(
@@ -203,7 +204,7 @@ pub const Module = struct {
         var module_ast = try parser.parse();
         try walker_.walk_asts(module_ast, Expand.new(&compiler.errors, compiler.allocator()));
         try walker_.walk_asts_flat(&module_ast, Import.new(compiler, module));
-        try walker_.walk_asts(module_ast, Symbol_Tree.new(module.top_level_scope(), &compiler.errors, compiler.allocator()));
+        try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate_Access.new(file_root, compiler));
 

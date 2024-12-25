@@ -115,8 +115,8 @@ pub const Context = struct {
                 },
             }
         };
-        self.modules.put(absolute_path, module) catch unreachable;
-        return module;
+        self.modules.put(absolute_path, module.symbol) catch unreachable;
+        return module.symbol;
     }
 
     pub fn lookup_module(self: *Context, absolute_path: []const u8) ?*symbol_.Symbol {

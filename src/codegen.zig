@@ -213,28 +213,26 @@ fn output_traits(
 
 /// Outputs the interned strings declarations
 fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer: Writer) CodeGen_Error!void {
-    _ = interned_strings; // autofix
-    _ = writer; // autofix
-    // if (interned_strings.items.len > 0) {
-    //     // Do not output header comment if there are no interned strings!
-    //     try writer.print("/* Interned Strings */\n", .{});
-    // }
+    if (interned_strings.items.len > 0) {
+        // Do not output header comment if there are no interned strings!
+        try writer.print("/* Interned Strings */\n", .{});
+    }
 
-    // // Output each string in the string hash map
-    // for (0..interned_strings.items.len) |i| {
-    //     try writer.print("char* string_{} = \"", .{i});
-    //     // Print each byte in the string in hex format
-    //     const str = interned_strings.items[i];
-    //     for (str) |byte| {
-    //         try writer.print("\\x{X:0>2}", .{byte});
-    //     }
-    //     try writer.print("\";\n", .{});
-    // }
+    // Output each string in the string hash map
+    for (0..interned_strings.items.len) |i| {
+        try writer.print("char* string_{} = \"", .{i});
+        // Print each byte in the string in hex format
+        const str = interned_strings.items[i];
+        for (str) |byte| {
+            try writer.print("\\x{X:0>2}", .{byte});
+        }
+        try writer.print("\";\n", .{});
+    }
 
-    // if (interned_strings.items.len > 0) {
-    //     // Do not output this newline if there are no interned strings!
-    //     try writer.print("\n", .{});
-    // }
+    if (interned_strings.items.len > 0) {
+        // Do not output this newline if there are no interned strings!
+        try writer.print("\n", .{});
+    }
 }
 
 /// Applies a function to all CFGs in a list of CFGs.
