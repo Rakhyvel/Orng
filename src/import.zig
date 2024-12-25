@@ -28,14 +28,14 @@ fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
 
 pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: usize) walker_.Error!usize {
     if (ast.* == .import) {
-        // TODO: If the import is complex, split it up into a root import, and const decl's off of it
-        //       Remember: modules are _just_ names unit types!
-        //       So something like:
-        //         import a::b::c
-        //       would become:
-        //         import a as $anon_module_0
-        //         const $anon_module_1 = $anon_module_0::b
-        //         const c = $anon_module_1::c
+        // If the import is complex, split it up into a root import, and const decl's off of it
+        //   Remember: modules are _just_ named unit types!
+        //   So something like:
+        //     import a::b::c
+        //   would become:
+        //     import a as $anon_module_0
+        //     const $anon_module_1 = $anon_module_0::b
+        //     const c = $anon_module_1::c
         if (ast.import.pattern.* == .pattern_symbol and ast.import.pattern.pattern_symbol.kind == .import) {
             // Re-arrange to be a decl for the import
             const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
