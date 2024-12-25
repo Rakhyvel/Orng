@@ -32,6 +32,13 @@ pub const Context = struct {
         requirements: std.StringArrayHashMap(*symbol_.Symbol),
     };
 
+    // Maps package names to their root module
+    packages: std.StringArrayHashMap(*Package),
+
+    const Package = struct {
+        requirements: std.StringArrayHashMap(*module_.Module),
+    };
+
     /// Throws an error if the prelude could not be compiled
     pub fn init(alloc: std.mem.Allocator) Error!*Context {
         var retval: *Context = alloc.create(Context) catch unreachable;
