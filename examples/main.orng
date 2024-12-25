@@ -1,9 +1,5 @@
 import std
-// define a symbol called `externs`, which refers to a module symbol externs.orng
-// if you're looking to resolve `externs`, then look for `externs.orng`
 import externs
-// define a symbol called `debug`, which refers to a module symbol std::debug
-// if you're looking to resolve `debug`, then find `std::debug`
 import std::debug
 
 fn main() -> () {
@@ -12,16 +8,5 @@ fn main() -> () {
     
     externs::println("Hello, ")
     
-    // find println in debug
-    // what does debug refer to? import symbol
-    // what import symbol? import symbol: std::debug
-    // what does std refer to? import symbol
-    // what import symbol? module symbol: std/lib.orng
-    // is there a debug symbol in the child scope of `std/lib.orng`? yes
     debug::println("World!")
-
-    // there must be module symbols
-    // they must refer to their child scope, somehow
-    // perhaps their init is a special `module` ast, contains the scope
-    // Module struct refers to this symbol, rather than the scope. The scope can be acquired indirectly
 }
