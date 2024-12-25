@@ -56,13 +56,13 @@ fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*symbol_.Symbo
     } else if (ast.* == .access) {
         const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
         const expanded_lhs = try self.resolve_qualified_name(stripped_lhs);
-        return try self.resolve_access_symbol(expanded_lhs, ast.rhs());
+        return try self.resolve_access_symbol(expanded_lhs, ast.rhs(), ast.scope().?);
     } else {
         std.debug.panic("compiler error: fell through {}", .{ast});
     }
 }
 
-fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST) walk_.Error!*symbol_.Symbol {
+fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST, scope: *symbol_.Scope) walk_.Error!*symbol_.Symbol {
     var access_result: ?*ast_.AST = null;
     switch (lhs.kind) {
         else => std.debug.panic("unsupported: {}\n", .{lhs.kind}),
@@ -90,15 +90,15 @@ fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST) walk_
 
         .import => {
             const module_lookup_res = lhs.scope.parent.?.lookup(lhs.kind.import.real_name, .{ .allow_modules = true }).found;
-            return try self.resolve_access_symbol(module_lookup_res, rhs);
+            return try self.resolve_access_symbol(module_lookup_res, rhs, scope);
         },
 
         .import_inner => {
-            return try self.resolve_access_symbol(try self.resolve_qualified_name(lhs.init.?), rhs);
+            return try self.resolve_access_symbol(try self.resolve_qualified_name(lhs.init.?), rhs, scope);
         },
 
         .@"const" => {
-            access_result = lhs.scope.lookup_impl_member(lhs.init.?, rhs.token().data);
+            access_result = scope.lookup_impl_member(lhs.init.?, rhs.token().data);
             if (access_result == null) {
                 self.compiler.errors.add_error(errs_.Error{
                     .type_not_impl_method = .{

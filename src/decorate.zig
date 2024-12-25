@@ -67,6 +67,12 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             new_context.scope = ast.symbol().?.scope;
             return new_context;
         },
+
+        .access => {
+            // Capture scope, so that `Trait::member` accesses are began at the access point
+            ast.set_scope(self.scope);
+            return self;
+        },
     }
 }
 
