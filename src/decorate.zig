@@ -25,7 +25,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
         else => return self,
 
         .identifier => {
-            const res = self.scope.lookup(ast.token().data, false);
+            const res = self.scope.lookup(ast.token().data, .{});
             switch (res) {
                 // Found the symbol, decorate the identifier AST with it
                 .found => ast.set_symbol(res.found),

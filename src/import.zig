@@ -1,0 +1,154 @@
+const std = @import("std");
+const ast_ = @import("ast.zig");
+const compiler_ = @import("compiler.zig");
+const module_ = @import("module.zig");
+const primitives_ = @import("primitives.zig");
+const String = @import("zig-string/zig-string.zig").String;
+const symbol_ = @import("symbol.zig");
+const walker_ = @import("walker.zig");
+
+module: *module_.Module,
+compiler: *compiler_.Context,
+
+const Self = @This();
+
+pub fn new(compiler: *compiler_.Context, module: *module_.Module) Self {
+    return Self{ .compiler = compiler, .module = module };
+}
+
+var num_anons: usize = 0;
+fn next_anon_name(class: []const u8, allocator: std.mem.Allocator) []const u8 {
+    defer num_anons += 1;
+    var out = String.init(allocator);
+    defer out.deinit();
+    const writer = out.writer();
+    writer.print("${s}{}", .{ class, num_anons }) catch unreachable;
+    return (out.toOwned() catch unreachable).?;
+}
+
+pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: usize) walker_.Error!usize {
+    if (ast.* == .import) {
+        // TODO: If the import is complex, split it up into a root import, and const decl's off of it
+        //       Remember: modules are _just_ names unit types!
+        //       So something like:
+        //         import a::b::c
+        //       would become:
+        //         import a as $anon_module_0
+        //         const $anon_module_1 = $anon_module_0::b
+        //         const c = $anon_module_1::c
+        if (ast.import.pattern.* == .pattern_symbol and ast.import.pattern.pattern_symbol.kind == .import) {
+            // Re-arrange to be a decl for the import
+            const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
+            ast.* = ast_.AST{ .decl = .{
+                .common = common,
+                .symbols = std.ArrayList(*symbol_.Symbol).init(self.compiler.allocator()),
+                .pattern = ast.import.pattern,
+                .type = primitives_.type_type,
+                .init = primitives_.unit_type,
+                .top_level = true,
+                .is_alias = false,
+                .prohibit_defaults = false,
+            } };
+            _ = try self.resolve_import(ast.decl.pattern);
+            return 0;
+        } else if (ast.import.pattern.* == .access) {
+            // given lhms::a0::a1::rmhs
+            // ((lmhs::a0)::a1)::rmhs
+            // The lmhs should be turned into an anon import decl
+            // an.. are consts that are accesses of the previous, with anon names
+            // rmhs is a const access with the real name
+            var curr = ast.import.pattern;
+            var terms = std.ArrayList(*ast_.AST).init(self.compiler.allocator());
+            defer terms.deinit();
+            while (curr.* == .access) : (curr = curr.lhs()) {
+                terms.append(curr.rhs()) catch unreachable;
+            }
+            terms.append(curr) catch unreachable;
+            for (0.., terms.items) |i, term| {
+                if (i < terms.items.len - 1) {
+                    // Insert `const rhs = lhs::rhs`
+                    const init = ast_.AST.create_access(
+                        ast.token(),
+                        ast_.AST.create_identifier(terms.items[i + 1].token(), self.compiler.allocator()),
+                        terms.items[i],
+                        self.compiler.allocator(),
+                    );
+                    const const_decl = ast_.AST.create_decl(
+                        ast.import.pattern.token(),
+                        ast_.AST.create_pattern_symbol(
+                            ast.token(),
+                            .import_inner,
+                            if (i == 0) term.token().data else next_anon_name("anon", self.compiler.allocator()),
+                            self.compiler.allocator(),
+                        ),
+                        ast_.AST.create_type_of(ast.token(), init, self.compiler.allocator()),
+                        init,
+                        false,
+                        self.compiler.allocator(),
+                    );
+                    asts.insert(idx, const_decl) catch unreachable;
+                } else {
+                    const common = ast_.AST_Common{ ._token = ast.token(), ._type = null };
+                    ast.* = ast_.AST{ .decl = .{
+                        .common = common,
+                        .symbols = std.ArrayList(*symbol_.Symbol).init(self.compiler.allocator()),
+                        .pattern = ast_.AST.create_pattern_symbol(
+                            ast.token(),
+                            .{ .import = .{ .real_name = term.token().data } },
+                            next_anon_name("anon", self.compiler.allocator()),
+                            self.compiler.allocator(),
+                        ),
+                        .type = primitives_.type_type,
+                        .init = primitives_.unit_type,
+                        .top_level = true,
+                        .is_alias = false,
+                        .prohibit_defaults = false,
+                    } };
+                    _ = try self.resolve_import(ast.decl.pattern);
+                }
+            }
+
+            return terms.items.len - 1;
+        }
+    }
+
+    return 0;
+}
+
+fn get_left_most_module(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
+    if (ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import) {
+        return try self.resolve_import(ast);
+    } else if (ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
+        return try self.get_left_most_module(ast.decl.pattern);
+    } else if (ast.decl.pattern.* == .access) {
+        return try self.get_left_most_module(ast.decl.pattern.lhs());
+    }
+    std.debug.panic("compiler error: this shouldn't be reachable {}\n", .{ast});
+}
+
+/// Given an import pattern symbol `ast`, resolve the module symbol that it refers to, potentially compiling it if necessary
+fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
+    std.debug.assert(ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import);
+    const package_path = std.fs.path.dirname(self.module.absolute_path).?;
+    const package_name = self.module.package_name;
+    var import_filename = String.init(self.compiler.allocator());
+    defer import_filename.deinit();
+    const import_name = ast.pattern_symbol.kind.import.real_name;
+    import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
+    const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
+    const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+    if (self.compiler.packages.get(package_name) != null and self.compiler.packages.get(package_name).?.requirements.get(import_name) != null) {
+        return self.compiler.packages.get(package_name).?.requirements.get(import_name).?;
+    } else {
+        return self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+            error.FileNotFound => {
+                self.compiler.errors.add_error(.{ .import_file_not_found = .{
+                    .filename = import_name,
+                    .span = ast.token().span,
+                } });
+                return error.CompileError;
+            },
+            else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
+        };
+    }
+}

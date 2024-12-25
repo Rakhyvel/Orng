@@ -485,6 +485,15 @@ pub const AST = union(enum) {
         _symbol: ?*symbol_.Symbol = null,
         infer_error: bool,
     },
+    module: struct {
+        common: AST_Common,
+        _scope: ?*symbol_.Scope, // Only null for compatibility. Always present.
+        module: *module_.Module,
+    },
+    import: struct {
+        common: AST_Common,
+        pattern: *AST,
+    },
     template: struct {
         common: AST_Common,
         decl: *AST, // The decl of the symbol(s) that is being templated
@@ -1230,6 +1239,30 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_module(
+        _token: token_.Token,
+        _scope: *symbol_.Scope,
+        module: *module_.Module,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .module = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._scope = _scope,
+            .module = module,
+        } }, allocator);
+    }
+
+    pub fn create_import(
+        _token: token_.Token,
+        pattern: *AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .import = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            .pattern = pattern,
+        } }, allocator);
+    }
+
     pub fn create_defer(_token: token_.Token, _statement: *AST, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .@"defer" = .{
             .common = AST_Common{ ._token = _token, ._type = null },
@@ -1641,6 +1674,8 @@ pub const AST = union(enum) {
                     allocator,
                 );
             },
+            .import => return create_import(self.token(), self.import.pattern, allocator),
+            .module => return create_module(self.token(), self.scope().?, self.module.module, allocator),
             .@"defer" => return create_defer(self.token(), self.statement().clone(allocator), allocator),
             .@"errdefer" => return create_errdefer(self.token(), self.statement().clone(allocator), allocator),
         }
@@ -2151,7 +2186,7 @@ pub const AST = union(enum) {
     fn expand_type_internal(self: *AST, allocator: std.mem.Allocator) *AST {
         // FIXME: High Cyclo
         switch (self.*) {
-            .identifier => {
+            .access, .identifier => {
                 const _symbol = self.symbol().?;
                 if (_symbol.init == self) {
                     return self;
@@ -2226,7 +2261,7 @@ pub const AST = union(enum) {
 
     /// Expands an ast one level if it is an identifier
     pub fn expand_identifier(self: *AST) *AST {
-        if (self.* == .identifier and self.symbol().?.init != null) {
+        if ((self.* == .identifier or self.* == .access) and self.symbol().?.init != null) {
             const init = self.symbol().?.init.?;
             return init;
         } else {
@@ -3064,7 +3099,7 @@ pub const AST = union(enum) {
             .@"break" => try out.writer().print("break", .{}),
             .@"continue" => try out.writer().print("continue", .{}),
             .@"return" => try out.writer().print("return()", .{}),
-            .pattern_symbol => try out.writer().print("pattern_symbol({s})", .{self.pattern_symbol.name}),
+            .pattern_symbol => try out.writer().print("pattern_symbol({s}, {s})", .{ @tagName(self.pattern_symbol.kind), self.pattern_symbol.name }),
             .decl => {
                 try out.writer().print("decl(\n", .{});
                 try out.writer().print("    .pattern = {},\n", .{self.decl.pattern});
@@ -3098,6 +3133,8 @@ pub const AST = union(enum) {
                 try out.writer().print("    .infer_error = {},\n", .{self.fn_decl.infer_error});
                 try out.writer().print(")", .{});
             },
+            .module => try out.writer().print("module()", .{}),
+            .import => try out.writer().print("import({})", .{self.import.pattern}),
             .template => try out.writer().print("template()", .{}),
             .method_decl => {
                 try out.writer().print("method_decl(.name={s}, .receiver={?}, .params=[", .{

@@ -47,7 +47,7 @@ const Validate_Args_Thing = enum {
 };
 
 pub fn validate_module(module: *module_.Module, compiler: *compiler_.Context) Validate_Error_Enum!void {
-    try validate_scope(module.scope, compiler);
+    try validate_scope(module.top_level_scope(), compiler);
 }
 
 pub fn validate_scope(scope: *symbol_.Scope, compiler: *compiler_.Context) Validate_Error_Enum!void {
@@ -120,7 +120,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
     }
 
     // Symbol's name must be capitalized iff its type is Type
-    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.name[0] != '$') {
+    if (symbol.expanded_type != null and !std.mem.eql(u8, symbol.name, "_") and symbol.kind != .trait and symbol.kind != .import_inner and symbol.name[0] != '$') {
         if (symbol.kind != .import and type_is_type_type(symbol.expanded_type.?) and !is_capitalized(symbol.name)) {
             compiler.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type `Type` must start with an uppercase letter",
@@ -427,6 +427,7 @@ fn validate_AST_internal(
     switch (ast.*) {
         // Nop, always "valid"
         .poison,
+        .module,
         // Pattern symbols, traits, and impls are validated elsewhere, the AST doesn't need to be re-validated.
         .pattern_symbol,
         .trait,
@@ -655,6 +656,7 @@ fn validate_AST_internal(
             var lhs_type = ast.lhs().typeof(compiler.allocator());
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
+                std.debug.print("{}\n", .{ast.lhs()});
                 return throw_wrong_from(
                     "function",
                     "call",
@@ -762,62 +764,14 @@ fn validate_AST_internal(
         .access => {
             ast.set_lhs(validate_AST(ast.lhs(), primitives_.type_type, compiler));
             try assert_none_poisoned(ast.lhs());
-            // STRIP AWAY ADDRs!
-            var access_result: ?*ast_.AST = null;
-            if (ast.lhs().* == .identifier and ast.lhs().symbol().?.kind == .import) {
-                const this_module = ast.lhs().symbol().?.scope.module.?;
-                const curr_package_path = this_module.get_package_abs_path();
-                var module_path_name = String.init(compiler.allocator());
-                defer module_path_name.deinit();
-                module_path_name.writer().print("{s}.orng", .{ast.lhs().token().data}) catch unreachable;
-                const package_build_paths = [_][]const u8{ curr_package_path, module_path_name.str() };
-                const other_module_dir = std.fs.path.join(compiler.allocator(), &package_build_paths) catch unreachable;
 
-                const module = compiler.lookup_module(other_module_dir) orelse
-                    compiler.lookup_package_root_module(this_module.package_name, ast.lhs().token().data).?; // all imports should be compiled eagerly before the symbol-tree is constructed
-                const module_lookup_res = module.scope.lookup(
-                    ast.rhs().token().data,
-                    false,
-                );
-                access_result = switch (module_lookup_res) {
-                    .found => module_lookup_res.found.decl,
-                    else => {
-                        compiler.errors.add_error(errs_.Error{
-                            .member_not_in = .{
-                                .span = ast.token().span,
-                                .identifier = ast.rhs().token().data,
-                                .name = "module",
-                                .group = ast.lhs(),
-                            },
-                        });
-                        return error.CompileError;
-                    },
-                };
-            } else {
-                const stripped_lhs = if (ast.lhs().* == .addr_of) ast.lhs().expr() else ast.lhs();
-                access_result = ast.scope().?.lookup_impl_member(stripped_lhs, ast.rhs().token().data);
-                if (access_result == null) {
-                    compiler.errors.add_error(errs_.Error{
-                        .type_not_impl_method = .{
-                            .span = ast.token().span,
-                            .method_name = ast.rhs().token().data,
-                            ._type = stripped_lhs, // TODO: Strip away addr_of's
-                        },
-                    });
-                    return error.CompileError;
-                }
+            // look up symbol, that's the type
+            const symbol = ast.symbol().?;
+            if (symbol.validation_state == .invalid) {
+                return error.CompileError;
             }
-            access_result = validate_AST(access_result.?, null, compiler);
-            try assert_none_poisoned(access_result);
-
-            if (access_result.?.* == .decl) {
-                std.debug.assert(access_result.?.decl.symbols.items.len > 0);
-                ast.access._symbol = access_result.?.decl.symbols.items[0];
-            } else if (access_result.?.* == .method_decl or access_result.?.* == .fn_decl) {
-                ast.access._symbol = access_result.?.symbol();
-            } else {
-                std.debug.panic("compiler error: type access isn't decl or method_decl, it's {s}", .{@tagName(access_result.?.*)});
-            }
+            try validate_symbol(symbol, compiler);
+            // try type_check(ast.token().span, symbol._type, expected, &compiler.errors);
 
             _ = ast.assert_ast_valid();
             const ast_type = ast.typeof(compiler.allocator());

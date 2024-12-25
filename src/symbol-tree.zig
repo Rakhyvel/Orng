@@ -280,7 +280,7 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
 }
 
 pub fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Error!void {
-    const res = scope.lookup(symbol.name, false);
+    const res = scope.lookup(symbol.name, .{});
     switch (res) {
         .found => {
             const first = res.found;
@@ -364,40 +364,6 @@ fn create_symbol(
                 // Here init is null!
                 try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
             }
-        },
-        .access => {
-            var curr: *ast_.AST = pattern;
-            // Delve down into the lmhs (left-most-hand-side)
-            while (curr.lhs().* == .access) : (curr = curr.lhs()) {}
-            const root = curr.lhs();
-
-            // Error if the lmhs isn't an import pattern symbol
-            // You shouldn't be able to do something like:
-            //   (a::x, a:y) = (1, 3)
-            // nor
-            //   (a, b, c)::x = 3
-            std.debug.assert(root.* == .pattern_symbol and root.pattern_symbol.kind == .import);
-
-            // Create a named symbol, whose init is an access chain from the lmhs
-            // NOTE: This HAS to be done before the lmhs symbol is created, so that it occupies the first slot in the
-            //       decl's symbols list
-            const symbol = symbol_.Symbol.init(
-                scope,
-                pattern.rhs().token().data,
-                pattern.token().span,
-                _type,
-                pattern,
-                decl,
-                .import,
-                allocator,
-            );
-            symbols.append(symbol) catch unreachable;
-            std.debug.print("appended to symbols\n", .{});
-            pattern.set_scope(scope);
-
-            // Change the name of the pattern symbol to be anonymous
-            root.pattern_symbol.name = next_anon_name("anon", allocator);
-            try create_symbol(symbols, root, decl, _type, init, scope, errors, allocator);
         },
 
         // Likely literals etc, for `match` mappings

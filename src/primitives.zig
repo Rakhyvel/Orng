@@ -5,6 +5,7 @@ const errs_ = @import("errors.zig");
 const module_ = @import("module.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
+const Symbol_Tree = @import("symbol-tree.zig");
 const token_ = @import("token.zig");
 
 // TODO: Think about how to remove these public variables. They're only variable because they need to be constructed later.
@@ -417,7 +418,25 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    const module = module_.Module.init("prelude", "prelude/prelude.orng", prelude.?, compiler.allocator());
+    var module = module_.Module.init("prelude", "prelude/prelude.orng", undefined, compiler.allocator());
+    const symbol = symbol_.Symbol.init(
+        compiler.prelude,
+        "prelude",
+        span_.Span{ .col = 1, .line_number = 1, .filename = "prelude", .line_text = "" },
+        unit_type,
+        ast_.AST.create_module(
+            token_.Token.init_simple("prelude"),
+            prelude.?,
+            module,
+            compiler.allocator(),
+        ),
+        null,
+        .module,
+        compiler.allocator(),
+    );
+    module.symbol = symbol;
+    try Symbol_Tree.put_symbol(symbol, prelude.?, &compiler.errors);
+
     prelude.?.module = module;
     try module_.Module.fill_contents(
         prelude_contents,
@@ -429,8 +448,8 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         compiler,
     );
 
-    package_type = module.scope.lookup("Package", false).found.init.?;
-    _ = module.scope.lookup("Requirement", false).found.init.?;
+    package_type = module.top_level_scope().lookup("Package", .{}).found.init.?;
+    _ = module.top_level_scope().lookup("Requirement", .{}).found.init.?;
     addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, compiler.allocator());
 }
 
@@ -479,7 +498,7 @@ fn create_info(
     size: i64, // Size of values of the type in bytes
     allocator: std.mem.Allocator,
 ) void {
-    const symbol_lookup_res = prelude.?.lookup(name, false);
+    const symbol_lookup_res = prelude.?.lookup(name, .{});
     var symbol: *symbol_.Symbol = undefined;
     if (symbol_lookup_res == .found) {
         symbol = symbol_lookup_res.found;

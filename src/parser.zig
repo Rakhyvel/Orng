@@ -141,12 +141,11 @@ pub const Parser = struct {
             decl.decl.top_level = true;
             return decl;
         } else if (self.peek_kind(.import)) {
-            var decl: *ast_.AST = try self.import_declaration();
+            const import: *ast_.AST = try self.import_declaration();
             if (!self.peek_kind(.EOF)) {
                 _ = try self.expect(.newline);
             }
-            decl.decl.top_level = true;
-            return decl;
+            return import;
         } else if (self.peek_kind(.trait)) {
             return try self.trait_declaration();
         } else if (self.peek_kind(.impl)) {
@@ -164,7 +163,12 @@ pub const Parser = struct {
         const token = try self.expect(.import);
 
         const identifier = try self.expect(.identifier);
-        var pattern = ast_.AST.create_pattern_symbol(identifier, .import, identifier.data, self.allocator);
+        var pattern = ast_.AST.create_pattern_symbol(
+            identifier,
+            .{ .import = .{ .real_name = identifier.data } },
+            identifier.data,
+            self.allocator,
+        );
 
         while (self.accept(.double_colon)) |access_token| {
             pattern = ast_.AST.create_access(
@@ -175,12 +179,9 @@ pub const Parser = struct {
             );
         }
 
-        return ast_.AST.create_decl(
+        return ast_.AST.create_import(
             token,
             pattern,
-            primitives_.type_type,
-            primitives_.unit_type,
-            false,
             self.allocator,
         );
     }
