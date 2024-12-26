@@ -1,4 +1,5 @@
 // This file contains the implementation of the Orng compiler's C code generator.
+// TODO: Make this a context struct (to fix cheat_module)
 
 const std = @import("std");
 const ast_ = @import("ast.zig");
@@ -799,7 +800,7 @@ fn output_lvalue_check(span: span_.Span, lvalue: *lval_.L_Value, writer: Writer)
 
 /// Outputs the C code for an rvalue expression based on the provided lvalue.
 fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
-    if (outer_precedence < lvalue.precedence()) {
+    if (outer_precedence < lvalue.lval_precedence()) {
         // Opening paren, if needed by precedence
         try writer.print("(", .{});
     }
@@ -812,20 +813,20 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
                 try output_type(lvalue.get_expanded_type(), writer);
                 try writer.print("*)", .{});
             }
-            try output_rvalue(lvalue.dereference.expr, lvalue.precedence(), writer);
+            try output_rvalue(lvalue.dereference.expr, lvalue.lval_precedence(), writer);
         },
         .index => {
             try writer.print("*", .{});
-            try output_lvalue(lvalue, lvalue.precedence(), writer);
+            try output_lvalue(lvalue, lvalue.lval_precedence(), writer);
         },
         .select => {
-            try output_rvalue(lvalue.select.lhs, lvalue.precedence(), writer); // This will dereference, no need for `->`
+            try output_rvalue(lvalue.select.lhs, lvalue.lval_precedence(), writer); // This will dereference, no need for `->`
             try writer.print("._{}", .{lvalue.select.field});
         },
         .symbver => try output_symbol(lvalue.symbver.symbol, writer),
         .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),
     }
-    if (outer_precedence < lvalue.precedence()) {
+    if (outer_precedence < lvalue.lval_precedence()) {
         // Closing paren, if needed by precedence
         try writer.print(")", .{});
     }
@@ -833,7 +834,7 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
 
 /// Outputs the C code for an lvalue expression.
 fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer) CodeGen_Error!void {
-    if (lvalue.sizeof() == 0) {
+    if (lvalue.expanded_type_sizeof() == 0) {
         try writer.print("(void*) 0xAAAAAAAA", .{});
         return;
     }
@@ -854,7 +855,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             // Only generate index add if index is non-zero
             // NOTE: Do not generate checked addition. The index is already checked.
             try writer.print(" + ", .{});
-            try output_rvalue(lvalue.index.rhs, lvalue.precedence(), writer);
+            try output_rvalue(lvalue.index.rhs, lvalue.lval_precedence(), writer);
 
             try writer.print(")", .{});
         },
@@ -914,12 +915,12 @@ fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         try writer.print(")", .{});
     } else if (ir.kind.arity() == .unop) {
         // Unop, no-check
-        try writer.print("{s}", .{ir.kind.symbol()});
+        try writer.print("{s}", .{ir.kind.c_token()});
         try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
     } else {
         // Binop, no-check
         try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
-        try writer.print("{s}", .{ir.kind.symbol()});
+        try writer.print("{s}", .{ir.kind.c_token()});
         try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
     }
     try writer.print(";\n", .{});

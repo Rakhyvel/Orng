@@ -13,9 +13,15 @@ pub fn walk_asts(asts: std.ArrayList(*ast_.AST), context: anytype) Error!void {
     }
 }
 
+pub fn walk_asts_flat(asts: *std.ArrayList(*ast_.AST), context: anytype) Error!void {
+    var i: usize = 0;
+    while (i < asts.items.len) : (i += 1) {
+        const ast = asts.items[i];
+        i += try context.flat(ast, asts, i);
+    }
+}
+
 // A function that walks over an AST, applying prefix, postfix's function to each one
-// try YOUR_FUNCTION_HERE\(.*, (?!al|er|sco)
-// ^(?! *(try YOUR_FUNCTION_HERE|\}|\.|=>|//)).*
 pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
     if (maybe_ast == null) {
         return;
@@ -52,7 +58,10 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .receiver,
         .template,
         .identifier,
+        .import,
         => {},
+
+        .module => std.debug.panic("compiler error: walking over modules not implemented!\n", .{}),
 
         .type_of,
         .default,

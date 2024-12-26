@@ -26,15 +26,20 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
     switch (ast.*) {
         else => {},
 
+        // Capture scope
         .access, .invoke, .addr_of => ast.set_scope(self.scope),
 
+        // Check that AST is inside a loop
         .@"break", .@"continue" => try in_loop_check(ast, self.scope, self.errors),
 
+        // Check that AST is inside a function
+        .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
+
+        // Add to scope's defers
         .@"defer" => self.scope.defers.append(ast.statement()) catch unreachable,
         .@"errdefer" => self.scope.errdefers.append(ast.statement()) catch unreachable,
 
-        .@"try", .@"return" => ast.set_symbol(try in_function_check(ast, self.scope, self.errors)),
-
+        // Create comptime symbol, place inside scope
         .@"comptime" => {
             const symbol = try create_temp_comptime_symbol(
                 ast.expr(),
@@ -45,26 +50,21 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             );
             try put_symbol(symbol, self.scope, self.errors); // Why? No one refers to it...
             ast.set_symbol(symbol);
-            return null;
+
+            return null; // NOTE: DO NOT WALK CHILDREN!
         },
 
-        .@"if", .@"for", .block, .match => {
+        // Create a new scope, pass it to children
+        .@"if", .block, .match, .@"while", .@"for" => {
             var new_self = self;
             new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
+            new_self.scope.in_loop = new_self.scope.in_loop or ast.* == .@"while" or ast.* == .@"for";
             ast.set_scope(new_self.scope);
             return new_self;
         },
 
-        .@"while" => {
-            var new_self = self;
-            new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
-            new_self.scope.in_loop = true;
-            ast.set_scope(new_self.scope);
-            return new_self;
-        },
-
+        // Create symbols (potentially >1) from pattern, put inside scope
         .decl => {
-            // Both put a Symbol in the current scope, and recurse
             try create_symbol(
                 &ast.decl.symbols,
                 ast.decl.pattern,
@@ -78,6 +78,8 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             try put_all_symbols(&ast.decl.symbols, self.scope, self.errors);
         },
 
+        // Create a symbol for this function
+        // Transform into template if templated
         .fn_decl => {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
@@ -113,9 +115,10 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 ast.set_symbol(symbol);
             }
 
-            return null;
+            return null; // NOTE: DO NOT WALK CHILDREN!
         },
 
+        // Create new scope, create and walk trait symbols/decls
         .trait => {
             if (ast.symbol() != null) {
                 // Do not re-do symboo if already declared
@@ -130,7 +133,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
 
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_symbol(
+                ast_.AST.create_pattern_symbol(
                     token_.Token.init_simple("Self"),
                     .@"const",
                     "Self",
@@ -143,12 +146,10 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             );
             try walk_.walk_ast(self_type_decl, new_self);
 
-            // TODO: Put this somewhere?
-            // method_decl.method_decl.c_type = create_method_type(method_decl, allocator);
-
             return new_self;
         },
 
+        // Create new scope, create anon trait, create and walk impl symbols/decls
         .impl => {
             // Impls get there own scope, actually
             var new_self = self;
@@ -170,7 +171,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             }
             const self_type_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_symbol(
+                ast_.AST.create_pattern_symbol(
                     token_.Token.init_simple("Self"),
                     .@"const",
                     "Self",
@@ -186,12 +187,12 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
             return new_self;
         },
 
+        // Create scope
         .method_decl => {
             if (ast.symbol() != null) {
                 // Do not re-do symbol if already declared
                 return null;
-            }
-            if (ast.method_decl.init == null) {
+            } else if (ast.method_decl.init == null) {
                 // Trait method decl
                 var new_self = self;
                 new_self.scope = symbol_.Scope.init(self.scope, "", self.allocator);
@@ -202,7 +203,7 @@ pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
                 const symbol = try create_method_symbol(ast, self.scope, self.errors, self.allocator);
                 try put_symbol(symbol, self.scope, self.errors);
                 ast.set_symbol(symbol);
-                return null;
+                return null; // NOTE: DO NOT WALK CHILDREN!
             }
         },
     }
@@ -279,7 +280,7 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
 }
 
 pub fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Error!void {
-    const res = scope.lookup(symbol.name, false);
+    const res = scope.lookup(symbol.name, .{});
     switch (res) {
         .found => {
             const first = res.found;
@@ -364,6 +365,7 @@ fn create_symbol(
                 try create_symbol(symbols, pattern.sum_value.init.?, decl, rhs_type, pattern.sum_value.init.?, scope, errors, allocator);
             }
         },
+
         // Likely literals etc, for `match` mappings
         else => {},
     }
@@ -675,7 +677,7 @@ fn create_method_symbol(
             const receiver_span = ast.method_decl.receiver.?.token().span;
             const self_decl = ast_.AST.create_decl(
                 ast.token(),
-                ast_.AST.create_symbol(token_.Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
+                ast_.AST.create_pattern_symbol(token_.Token.init("self", .identifier, receiver_span.filename, receiver_span.line_text, receiver_span.line_number, receiver_span.col), .let, "self", allocator),
                 self_type,
                 self_init,
                 false,

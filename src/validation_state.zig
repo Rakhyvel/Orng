@@ -13,6 +13,7 @@
 ///        |
 ///   unvalidated    - Object has not been validated, yet. This is where all objects start
 ///
+/// TODO: Add `assert_valid` here
 pub fn Validation_State(comptime T: type) type {
     return union(enum) {
         /// Validation has not been done, undetermined state.

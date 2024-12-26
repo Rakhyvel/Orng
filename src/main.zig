@@ -7,6 +7,7 @@ const interpreter_ = @import("interpreter.zig");
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
+const symbol_ = @import("symbol.zig");
 
 const version_year: usize = 25;
 const version_month: usize = 1;
@@ -106,7 +107,7 @@ fn make_package(
     interpreter: *interpreter_.Context,
     working_directory: []const u8,
     entry_name: ?[]const u8,
-) Command_Error!*module_.Module {
+) Command_Error!*symbol_.Symbol {
     for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
             continue;
@@ -128,11 +129,14 @@ fn make_package(
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
     const root_file_paths = [_][]const u8{ working_directory, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
-    return compiler.compile_module(
+
+    const mod_sym = compiler.compile_module(
         root_file_path,
         entry_name,
         false,
-    ) catch error.CompileError;
+    ) catch return error.CompileError;
+
+    return mod_sym;
 }
 
 fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {

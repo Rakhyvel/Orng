@@ -1,3 +1,5 @@
+// TODO: Separate `Errors` and `Error` to their own file
+
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const span_ = @import("span.zig");
@@ -271,11 +273,11 @@ pub const Error = union(enum) {
     }
 
     pub fn fatal_error(self: Error) noreturn {
-        self.print();
+        self.print_error();
         std.process.exit(1);
     }
 
-    pub fn print(self: Error) void {
+    pub fn print_error(self: Error) void {
         bold.dump(out) catch unreachable;
         print_label(self.get_span(), "error: ", .red);
         self.print_msg();
@@ -570,7 +572,7 @@ pub const Error = union(enum) {
     }
 
     fn peek_error(err: Error) void {
-        err.print();
+        err.print_error();
         unreachable;
     }
 };
@@ -593,12 +595,12 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        // err.peek_error(); // uncomment if you want to see where errors come from
+        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
     }
 
     pub fn print_errors(self: *Errors) void {
         for (self.errors_list.items) |err| {
-            err.print();
+            err.print_error();
         }
     }
 };

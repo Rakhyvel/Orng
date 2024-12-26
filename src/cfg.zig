@@ -1,9 +1,13 @@
 // This file contains the definition of a Control Flow Graph (CFG) data structure.
+// TODO: Create IR list, which gets converted to a BB graph
+//   * `pub using namespace @import("ssa.zig");` for ['propagate_arguments', 'collect_generated_symbvers', 'count_bb_predecessors', 'fill_parent_args', 'calculate_phi_params_and_args', 'clear_visited_BBs']
+//   * `pub using namespace @import("use-def-analysis.zig");` for ['calculate_versions', 'calculate_usage']
 
 const std = @import("std");
 const basic_block_ = @import("basic-block.zig");
 const ir_ = @import("ir.zig");
 const lval_ = @import("lval.zig");
+const module_ = @import("module.zig");
 const offsets_ = @import("offsets.zig");
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
@@ -23,13 +27,18 @@ pub const CFG = struct {
     children: std.ArrayList(*CFG),
 
     /// All symbol versions that are parameters to the function this CFG defines
+    /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
     parameters: std.ArrayList(*lval_.Symbol_Version),
 
     /// All symbol versions that are used. Should be filled in after optimizations.
+    /// TODO: Make this it's own type, in it's own file, with `put` and `get` methods
     symbvers: std.ArrayList(*lval_.Symbol_Version),
 
     /// The function that this CFG represents
     symbol: *symbol_.Symbol,
+
+    /// The module that this CFG belongs to
+    module: *module_.Module,
 
     number_temps: usize,
 
@@ -447,28 +456,28 @@ pub const CFG = struct {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and ir.dest.?.* != .symbver) {
-                    ir.dest.?.calculate_usage();
+                    ir.dest.?.calculate_lval_usage();
                 }
                 if (ir.src1 != null) {
-                    ir.src1.?.calculate_usage();
+                    ir.src1.?.calculate_lval_usage();
                 }
                 if (ir.src2 != null) {
-                    ir.src2.?.calculate_usage();
+                    ir.src2.?.calculate_lval_usage();
                 }
                 if (ir.data == .lval_list) {
                     for (ir.data.lval_list.items) |lval| {
-                        lval.calculate_usage();
+                        lval.calculate_lval_usage();
                     }
                 }
                 if (ir.data == .invoke) {
                     if (ir.data.invoke.dyn_value != null) {
-                        ir.data.invoke.dyn_value.?.calculate_usage();
+                        ir.data.invoke.dyn_value.?.calculate_lval_usage();
                     }
                     if (ir.data.invoke.method_decl_lval != null and !ir.data.invoke.method_decl.method_decl.is_virtual) {
-                        ir.data.invoke.method_decl_lval.?.calculate_usage();
+                        ir.data.invoke.method_decl_lval.?.calculate_lval_usage();
                     }
                     for (ir.data.invoke.lval_list.items) |lval| {
-                        lval.calculate_usage();
+                        lval.calculate_lval_usage();
                     }
                 }
             }

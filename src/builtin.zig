@@ -43,7 +43,7 @@ pub fn package_find(compiler: *compiler_.Context, interpreter: *interpreter_.Con
     // Allocate space for the package to be placed
     const package_len: usize = @intCast(primitives_.package_type.sizeof());
     const adrs: i64 = @intCast(try interpreter.alloc(@intCast(package_len), 8));
-    const retval_place = lval_.L_Value.create_raw_address(adrs, compiler.allocator());
+    const retval_place = lval_.L_Value.create_raw_address_lval(adrs, compiler.allocator());
 
     // Jump to the `build()` fn
     try interpreter.call(build_cfg.symbol, retval_place, std.ArrayList(*lval_.L_Value).init(compiler.allocator()));

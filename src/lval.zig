@@ -1,3 +1,5 @@
+// TODO: Split up symbol version and lval, put them in the SSA namespace along with basic blocks
+
 const std = @import("std");
 const ast_ = @import("ast.zig");
 const ir_ = @import("ir.zig");
@@ -80,7 +82,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_dereference(lhs: *L_Value, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_dereference_lval(lhs: *L_Value, expanded_type: *ast_.AST, allocator: std.mem.Allocator) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{
             .dereference = .{
@@ -92,7 +94,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_index(
+    pub fn create_index_lval(
         lhs: *L_Value,
         rhs: *L_Value,
         length: ?*L_Value,
@@ -110,7 +112,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_select(
+    pub fn create_select_lval(
         lhs: *L_Value,
         field: i128,
         offset: i64,
@@ -132,7 +134,7 @@ pub const L_Value = union(enum) {
         return retval;
     }
 
-    pub fn create_raw_address(adrs: i64, allocator: std.mem.Allocator) *L_Value {
+    pub fn create_raw_address_lval(adrs: i64, allocator: std.mem.Allocator) *L_Value {
         const retval = allocator.create(L_Value) catch unreachable;
         retval.* = L_Value{
             .raw_address = .{ .adrs = adrs, .allocator = allocator },
@@ -181,6 +183,7 @@ pub const L_Value = union(enum) {
         var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
         defer arena.deinit();
 
+        // TODO: Generic pprinter that makes the arena and string and passes the writer to a pprint method
         const out = self.pprint(arena.allocator()) catch unreachable;
 
         try writer.print("{s}", .{out});
@@ -196,12 +199,12 @@ pub const L_Value = union(enum) {
         };
     }
 
-    pub fn sizeof(self: *L_Value) i64 {
+    pub fn expanded_type_sizeof(self: *L_Value) i64 {
         std.debug.assert(self.get_expanded_type().valid_type()); // This is it!
         return self.get_expanded_type().sizeof();
     }
 
-    pub fn alignof(self: *L_Value) i64 {
+    pub fn expanded_type_alignof(self: *L_Value) i64 {
         return self.get_expanded_type().alignof();
     }
 
@@ -215,7 +218,7 @@ pub const L_Value = union(enum) {
         }
     }
 
-    pub fn precedence(self: *L_Value) i64 {
+    pub fn lval_precedence(self: *L_Value) i64 {
         return switch (self.*) {
             .symbver => ir_.Kind.precedence(ir_.Kind.load_symbol),
             .dereference => 2,
@@ -249,24 +252,24 @@ pub const L_Value = union(enum) {
         }
     }
 
-    pub fn calculate_usage(lval: *L_Value) void {
+    pub fn calculate_lval_usage(lval: *L_Value) void {
         switch (lval.*) {
             .symbver => {
                 lval.symbver.uses += 1;
                 lval.symbver.symbol.uses += 1;
             },
-            .dereference => lval.dereference.expr.calculate_usage(),
+            .dereference => lval.dereference.expr.calculate_lval_usage(),
             .index => {
-                lval.index.lhs.calculate_usage();
-                lval.index.rhs.calculate_usage();
+                lval.index.lhs.calculate_lval_usage();
+                lval.index.rhs.calculate_lval_usage();
                 if (lval.index.length != null) {
-                    lval.index.length.?.calculate_usage();
+                    lval.index.length.?.calculate_lval_usage();
                 }
             },
             .select => {
-                lval.select.lhs.calculate_usage();
+                lval.select.lhs.calculate_lval_usage();
                 if (lval.select.tag != null) {
-                    lval.select.tag.?.calculate_usage();
+                    lval.select.tag.?.calculate_lval_usage();
                 }
             },
             .raw_address => std.debug.panic("compiler error: raw addresses do not have usage", .{}),

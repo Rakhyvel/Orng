@@ -6,8 +6,10 @@ const cfg_ = @import("cfg.zig");
 const codegen_ = @import("codegen.zig");
 const compiler_ = @import("compiler.zig");
 const Decorate = @import("decorate.zig");
+const Decorate_Access = @import("decorate-access.zig");
 const errs_ = @import("errors.zig");
 const Expand = @import("expand.zig");
+const Import = @import("import.zig");
 const interpreter_ = @import("interpreter.zig");
 const ir_validate_ = @import("ir-validate.zig");
 const ir_ = @import("ir.zig");
@@ -18,6 +20,7 @@ const lower_ = @import("lower.zig");
 const offsets_ = @import("offsets.zig");
 const optimizations_ = @import("optimizations.zig");
 const parser_ = @import("parser.zig");
+const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
@@ -75,13 +78,13 @@ pub const Module = struct {
     // Interned strings
     interned_strings: std.ArrayList([]const u8),
 
-    // The root scope node for the module
-    scope: *symbol_.Scope,
+    // The symbol that represents this module
+    symbol: *symbol_.Symbol,
 
     // Allocator for the module
     allocator: std.mem.Allocator,
 
-    pub fn init(name: []const u8, absolute_path: []const u8, scope: *symbol_.Scope, allocator: std.mem.Allocator) *Module {
+    pub fn init(name: []const u8, absolute_path: []const u8, symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Module {
         var retval = allocator.create(Module) catch unreachable;
         retval.uid = module_uids;
         module_uids += 1;
@@ -89,7 +92,7 @@ pub const Module = struct {
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
-        retval.scope = scope;
+        retval.symbol = symbol;
         retval.allocator = allocator;
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
@@ -99,6 +102,7 @@ pub const Module = struct {
         return retval;
     }
 
+    // TODO: Move to compiler context
     pub fn compile(
         contents: []const u8,
         in_name: []const u8,
@@ -114,12 +118,31 @@ pub const Module = struct {
         while (i >= 1 and full_name[i] != '/') : (i -= 1) {}
         const short_name: []const u8 = full_name[i + 1 ..];
 
-        // Module/Symbol-Tree construction
+        // Create the symbol for this module
         var file_root = symbol_.Scope.init(compiler.prelude, full_name, compiler.allocator());
-        const module = Module.init(short_name, in_name, file_root, compiler.allocator());
+        var module = Module.init(short_name, in_name, undefined, compiler.allocator());
+        file_root.module = module;
+        const symbol = symbol_.Symbol.init(
+            compiler.prelude,
+            short_name,
+            span_.Span{ .col = 1, .line_number = 1, .filename = in_name, .line_text = "" },
+            primitives_.unit_type,
+            ast_.AST.create_module(
+                token_.Token.init_simple(short_name),
+                file_root,
+                module,
+                compiler.allocator(),
+            ),
+            null,
+            .module,
+            compiler.allocator(),
+        );
+        module.symbol = symbol;
+        try Symbol_Tree.put_symbol(symbol, compiler.prelude, &compiler.errors);
         file_root.module = module;
 
         try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, compiler);
+        // module.top_level_scope().pprint();
 
         return module;
     }
@@ -178,11 +201,12 @@ pub const Module = struct {
         // Parse, do AST walks
         ast_.init_structures(compiler.allocator());
         var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator());
-        const module_ast = try parser.parse();
+        var module_ast = try parser.parse();
         try walker_.walk_asts(module_ast, Expand.new(&compiler.errors, compiler.allocator()));
-        try walker_.walk_asts(module_ast, Import_Context{ .compiler = compiler, .module = module });
+        try walker_.walk_asts_flat(&module_ast, Import.new(compiler, module));
         try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
+        try walker_.walk_asts(module_ast, Decorate_Access.new(file_root, compiler));
 
         // Validate the module
         try ast_validate_.validate_module(module, compiler);
@@ -191,13 +215,13 @@ pub const Module = struct {
             return error.CompileError;
         }
 
-        module.collect_traits_and_impls(module.scope);
+        module.collect_traits_and_impls(module.top_level_scope());
 
         // Add each CFG's instructions to the module's instruction's list
         var found_entry = false;
         const need_entry = entry_name != null;
-        for (module.scope.symbols.keys()) |key| {
-            const symbol: *symbol_.Symbol = module.scope.symbols.get(key).?;
+        for (module.top_level_scope().symbols.keys()) |key| {
+            const symbol: *symbol_.Symbol = module.top_level_scope().symbols.get(key).?;
             if (symbol.kind != .@"fn") {
                 continue;
             }
@@ -257,34 +281,7 @@ pub const Module = struct {
         }
     }
 
-    const Import_Context = struct {
-        module: *Module,
-        compiler: *compiler_.Context,
-
-        pub fn prefix(self: Import_Context, ast: *ast_.AST) walker_.Error!?Import_Context {
-            if (ast.* == .decl and ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
-                const package_path = std.fs.path.dirname(self.module.absolute_path).?;
-                var import_filename = String.init(self.compiler.allocator());
-                defer import_filename.deinit();
-                const import_name = ast.decl.pattern.pattern_symbol.name;
-                import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
-                const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
-                const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
-                _ = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
-                    error.FileNotFound => if (self.compiler.packages.get(import_name) == null) {
-                        self.compiler.errors.add_error(.{ .import_file_not_found = .{
-                            .filename = ast.decl.pattern.pattern_symbol.name,
-                            .span = ast.token().span,
-                        } });
-                        return error.CompileError;
-                    },
-                    else => return error.CompileError,
-                };
-            }
-
-            return self;
-        }
-    };
+    // TODO: Move to own file
 
     /// This allows us to pick up anon and inner CFGs that wouldn't be exposed to the module's scope
     fn collect_cfgs(self: *Module, cfg: *cfg_.CFG) void {
@@ -447,6 +444,11 @@ pub const Module = struct {
         return .{ .module_uid = self.uid, .string_idx = idx };
     }
 
+    /// Returns the scope that contains this module's top-level definitions
+    pub fn top_level_scope(self: *Module) *symbol_.Scope {
+        return self.symbol.init.?.scope().?;
+    }
+
     pub fn print_instructions(self: *Module) void {
         for (self.instructions.items) |ir| {
             std.debug.print("{}", .{ir});
@@ -454,6 +456,7 @@ pub const Module = struct {
     }
 };
 
+// TODO: Move to own file
 pub fn get_cfg(
     symbol: *symbol_.Symbol,
     caller: ?*cfg_.CFG,
@@ -484,6 +487,7 @@ pub fn get_cfg(
 ///
 /// ## Returns:
 /// An identifier AST, decorated with the stamped out anonymous function.
+/// TODO: Move to compiler
 pub fn stamp(
     template_ast: *ast_.AST,
     args: *std.ArrayList(*ast_.AST),
@@ -535,10 +539,13 @@ pub fn stamp(
 
         // Decorate identifiers, validate
         const decorate_context = Decorate.new(scope, &compiler.errors, compiler.allocator());
+        const decorate_access_context = Decorate_Access.new(scope, compiler);
         for (const_decls.items) |decl| {
             try walker_.walk_ast(decl, decorate_context);
+            try walker_.walk_ast(decl, decorate_access_context);
         }
         try walker_.walk_ast(fn_decl, decorate_context);
+        try walker_.walk_ast(fn_decl, decorate_access_context);
         try ast_validate_.validate_scope(fn_symbol.scope, compiler);
 
         // Memoize symbol
@@ -558,6 +565,8 @@ pub fn stamp(
 /// - `errors`: Error managing context, to output errors to
 /// - `allocator`: Allocator to use for interpretation
 ///
+/// TODO: Move to compiler
+///
 /// Errors out either during AST-IR lowering, or interpretation.
 pub fn interpret(
     ast: *ast_.AST,
@@ -571,7 +580,7 @@ pub fn interpret(
         scope,
         &compiler.errors,
         compiler.allocator(),
-    )).assert_valid().assert_init_valid();
+    )).assert_symbol_valid().assert_init_valid();
 
     // Get the cfg from the symbol, and embed into the module
     const module = symbol.scope.module.?;

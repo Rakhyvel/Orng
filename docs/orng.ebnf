@@ -12,7 +12,7 @@ top_level_declaration: fn_declaration
                      | impl
                      .
 
-import_declaration: "import" ident.
+import_declaration: "import" ident ["::" ident].
 
 extern_const_declaration: "extern" ["(" arrow_expr ")"] "const" ident ":" arrow_expr.
 

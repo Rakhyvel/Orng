@@ -53,9 +53,23 @@ pub const Scope = struct {
         return retval;
     }
 
-    pub fn lookup(self: *Scope, name: []const u8, crossed_boundary: bool) Lookup_Result {
+    pub const Lookup_Flags = struct {
+        crossed_boundary: bool = false,
+        allow_modules: bool = false,
+    };
+    pub fn lookup(self: *Scope, name: []const u8, flags: Lookup_Flags) Lookup_Result {
         if (self.symbols.get(name)) |symbol| {
-            if (crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
+            if (!flags.allow_modules and symbol.kind == .module) {
+                if (self.parent) |parent| {
+                    var new_flags = flags;
+                    new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
+                    return parent.lookup(name, new_flags);
+                } else {
+                    return .not_found;
+                }
+            }
+
+            if (flags.crossed_boundary and (symbol.kind == .mut or symbol.kind == .let)) {
                 // Found the symbol, but it's non-const and we've crossed an inner-function boundary
                 return .found_but_fn;
             } else {
@@ -63,7 +77,9 @@ pub const Scope = struct {
                 return Lookup_Result{ .found = symbol };
             }
         } else if (self.parent) |parent| {
-            const res = parent.lookup(name, parent.function_depth < self.function_depth or crossed_boundary);
+            var new_flags = flags;
+            new_flags.crossed_boundary = parent.function_depth < self.function_depth or flags.crossed_boundary;
+            const res = parent.lookup(name, new_flags);
             if (res == .found_but_fn and self.inner_function != null and self.inner_function.?.kind == .@"comptime") {
                 // If have to cross a `comptime` boundary, change fn error to rt error
                 return .found_but_rt;
@@ -161,6 +177,14 @@ pub const Scope = struct {
             }
         }
     }
+
+    pub fn pprint(self: *Scope) void {
+        std.debug.print("scope_{}:\n", .{self.uid});
+        for (self.symbols.keys()) |name| {
+            const symbol = self.symbols.get(name).?;
+            std.debug.print("  {s} {s}\n", .{ @tagName(symbol.kind), name });
+        }
+    }
 };
 
 pub const Symbol_Kind = union(enum) {
@@ -172,13 +196,19 @@ pub const Symbol_Kind = union(enum) {
     @"comptime",
     trait,
     template,
-    import,
+    import: struct { // Refers indirectly to modules, or to refinements on modules.
+        // Real name of the module, as oposed to the `as` name
+        real_name: []const u8,
+    },
+    import_inner, // Created from the inner expressions of qualified import statements, similar to consts
+    module, // Refers to modules. The init is the `module` AST, which refers to the module and to the scope. `Module`s have their symbol
 };
 
 pub const Symbol_Validation_State = validation_state_.Validation_State(*Symbol);
 
 var number_of_comptime: usize = 0;
 pub const Symbol = struct {
+    // TODO: Much like AST, create a symbol-create.zig, and usingnamespace it here with `create_comptime_init`, `create_symbol`, `create_method_type`, `create_temp_comptime_symbol`, `create_template_symbol`, `create_function_symbol`, and any other supporting infra
     scope: *Scope, // Enclosing parent scope
     name: []const u8,
     span: span_.Span,
@@ -243,7 +273,7 @@ pub const Symbol = struct {
         return retval;
     }
 
-    pub fn assert_valid(self: *Symbol) *Symbol {
+    pub fn assert_symbol_valid(self: *Symbol) *Symbol {
         self.validation_state = Symbol_Validation_State{ .valid = .{ .valid_form = self } };
         return self;
     }

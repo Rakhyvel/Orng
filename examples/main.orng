@@ -1,8 +1,12 @@
 import std
 import externs
-// import core // imported by std, this is what we want to prevent
+import std::debug
 
 fn main() -> () {
+    let mut x: Int = 45
+    _ = x
+    
     externs::println("Hello, ")
-    std::println("World!")
+    
+    debug::println("World!")
 }

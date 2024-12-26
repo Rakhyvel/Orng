@@ -23,13 +23,13 @@ pub const Context = struct {
 
     // So far, only stores a local module's name to it's module struct
     // This will need to be modified to store packages, too, and deal with module name collisions
-    modules: std.StringArrayHashMap(*module_.Module),
+    modules: std.StringArrayHashMap(*symbol_.Symbol),
 
     // Maps package names to their root module
     packages: std.StringArrayHashMap(*Package),
 
     const Package = struct {
-        requirements: std.StringArrayHashMap(*module_.Module),
+        requirements: std.StringArrayHashMap(*symbol_.Symbol),
     };
 
     /// Throws an error if the prelude could not be compiled
@@ -44,7 +44,7 @@ pub const Context = struct {
             retval.errors.print_errors();
             return error.CompileError;
         };
-        retval.modules = std.StringArrayHashMap(*module_.Module).init(retval.allocator());
+        retval.modules = std.StringArrayHashMap(*symbol_.Symbol).init(retval.allocator());
         retval.packages = std.StringArrayHashMap(*Package).init(retval.allocator());
 
         return retval;
@@ -61,7 +61,7 @@ pub const Context = struct {
 
     pub fn compile_build_file(self: *Context, absolute_path: []const u8) Error!*cfg_.CFG {
         const build_module = try self.compile_module(absolute_path, "build", false);
-        return build_module.scope.lookup("build", false).found.cfg.?;
+        return build_module.init.?.scope().?.lookup("build", .{}).found.cfg.?;
     }
 
     /// Compiles a module from a file
@@ -70,7 +70,7 @@ pub const Context = struct {
         absolute_path: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
-    ) Error!*module_.Module {
+    ) Error!*symbol_.Symbol {
         if (self.modules.get(absolute_path)) |module| {
             return module;
         }
@@ -115,24 +115,25 @@ pub const Context = struct {
                 },
             }
         };
-        self.modules.put(absolute_path, module) catch unreachable;
-        return module;
+        self.modules.put(absolute_path, module.symbol) catch unreachable;
+        return module.symbol;
     }
 
-    pub fn lookup_module(self: *Context, absolute_path: []const u8) ?*module_.Module {
+    pub fn lookup_module(self: *Context, absolute_path: []const u8) ?*symbol_.Symbol {
         return self.modules.get(absolute_path);
     }
 
-    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*module_.Module {
+    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*symbol_.Symbol {
         return self.packages.get(package_name).?.requirements.get(requirement_name);
     }
 
-    pub fn register_package(self: *Context, package_name: []const u8, requirement_name: []const u8, requirement_root_module: *module_.Module) void {
+    pub fn register_package(self: *Context, package_name: []const u8, requirement_name: []const u8, requirement_root_module: *symbol_.Symbol) void {
+        std.debug.print("package name:{s}, requirement name:{s}\n", .{ package_name, requirement_name });
         if (self.packages.get(package_name)) |package| {
             package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
         } else {
             const package = self.allocator().create(Package) catch unreachable;
-            package.requirements = std.StringArrayHashMap(*module_.Module).init(self.allocator());
+            package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(self.allocator());
             self.packages.put(package_name, package) catch unreachable;
             package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
         }
