@@ -45,7 +45,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                 .pattern = ast.import.pattern,
                 .type = primitives_.type_type,
                 .init = primitives_.unit_type,
-                .top_level = true,
+                ._top_level = true,
                 .is_alias = false,
                 .prohibit_defaults = false,
             } };
@@ -100,7 +100,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                         ),
                         .type = primitives_.type_type,
                         .init = primitives_.unit_type,
-                        .top_level = true,
+                        ._top_level = true,
                         .is_alias = false,
                         .prohibit_defaults = false,
                     } };

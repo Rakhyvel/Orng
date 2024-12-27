@@ -21,11 +21,40 @@ pub const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
 /// Generates C code for the provided Orng module and writes it to the given writer.
-pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
+pub fn generate(module: *module_.Module, source_writer: Writer, header_writer: Writer) CodeGen_Error!void {
     cheat_module = module;
+    try generate_source(module, source_writer);
+    try generate_header(module, header_writer);
+}
+
+pub fn generate_source(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try writer.print(
-        \\/* Code generated using the Orng compiler https://ornglang.org */
-        \\#include <math.h>
+        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\
+        \\#include "{s}.h"
+        \\
+        \\
+    , .{module.name});
+
+    // try output_forward_typedefs(&module.type_set, writer);
+    // try output_typedefs(&module.type_set, writer);
+    try output_interned_strings(&module.interned_strings, writer);
+    // try output_traits(&module.traits, writer);
+    // try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
+    try output_impls(&module.impls, writer);
+    try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
+    if (module.entry) |entry| {
+        try output_main_function(entry, writer);
+    }
+}
+
+pub fn generate_header(module: *module_.Module, writer: Writer) CodeGen_Error!void {
+    try writer.print(
+        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\
+        \\#ifndef _{0s}_{1s}_h
+        \\#define _{0s}_{1s}_h
+        \\
         \\#include <stdio.h>
         \\#include <stdint.h>
         \\#include <stdlib.h>
@@ -33,18 +62,30 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
         \\#include "debug.inc"
         \\
         \\
-    , .{});
+    , .{ module.package_name, module.name });
 
+    try output_includes(module.local_imported_modules, writer);
     try output_forward_typedefs(&module.type_set, writer);
     try output_typedefs(&module.type_set, writer);
-    try output_interned_strings(&module.interned_strings, writer);
     try output_traits(&module.traits, writer);
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
-    try output_impls(&module.impls, writer);
-    try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
-    if (module.entry) |entry| {
-        try output_main_function(entry, writer);
+    try writer.print(
+        \\
+        \\#endif
+        \\
+    , .{});
+}
+
+fn output_includes(modules: std.ArrayList(*module_.Module), writer: Writer) CodeGen_Error!void {
+    if (modules.items.len == 0) {
+        return;
     }
+
+    for (modules.items) |module| {
+        try writer.print("#include \"{s}.h\"\n", .{module.name});
+    }
+
+    try writer.print("\n", .{});
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
@@ -440,6 +481,8 @@ fn output_var_decl(
 fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     if (symbol.kind == .@"extern") {
         try writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
+    } else if (symbol.decl != null and symbol.decl.?.top_level()) {
+        try writer.print("{s}_{s}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name, symbol.name });
     } else {
         try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
     }

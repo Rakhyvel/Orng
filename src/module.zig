@@ -348,7 +348,7 @@ pub const Module = struct {
         var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
         defer output_h_file.close();
 
-        codegen_.generate(self, output_c_file.writer()) catch unreachable;
+        codegen_.generate(self, output_c_file.writer(), output_h_file.writer()) catch unreachable;
 
         for (self.local_imported_modules.items) |child| {
             try child.output(allocator);

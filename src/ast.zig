@@ -434,7 +434,7 @@ pub const AST = union(enum) {
         pattern: *AST, // Structure of ASTs. Has to be structured to allow tree patterns like `let ((a, b), (c, d)) = blah`
         type: *AST,
         init: ?*AST,
-        top_level: bool,
+        _top_level: bool,
         is_alias: bool,
         prohibit_defaults: bool,
     },
@@ -1185,7 +1185,7 @@ pub const AST = union(enum) {
                 .pattern = pattern,
                 .type = _type,
                 .init = init,
-                .top_level = false,
+                ._top_level = false,
                 .is_alias = is_alias,
                 .prohibit_defaults = false,
             } },
@@ -1769,6 +1769,21 @@ pub const AST = union(enum) {
             .method_decl => self.method_decl._params = val,
             .invoke => self.invoke._args = val,
             else => std.debug.panic("compiler error: cannot call `.set_children()` on the AST `{s}`", .{@tagName(self.*)}),
+        }
+    }
+
+    pub fn top_level(self: *AST) bool {
+        return switch (self.*) {
+            .decl => self.decl._top_level,
+            .fn_decl, .method_decl => true,
+            else => std.debug.panic("compiler error: cannot call `.top_level()` on the AST `{s}`", .{@tagName(self.*)}),
+        };
+    }
+
+    pub fn set_top_level(self: *AST, _top_level: bool) void {
+        switch (self.*) {
+            .decl => self.decl._top_level = _top_level,
+            else => std.debug.panic("compiler error: cannot call `.set_top_level()` on the AST `{s}`", .{@tagName(self.*)}),
         }
     }
 

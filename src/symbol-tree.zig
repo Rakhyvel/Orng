@@ -220,7 +220,7 @@ pub fn postfix(self: Self, ast: *ast_.AST) walk_.Error!void {
         },
 
         .decl => {
-            if (ast.decl.top_level) {
+            if (ast.decl._top_level) {
                 for (ast.decl.symbols.items) |symbol| {
                     if (symbol.kind != .@"const" and symbol.kind != .@"extern" and symbol.kind != .import) {
                         self.errors.add_error(errs_.Error{ .basic = .{
