@@ -138,4 +138,12 @@ pub const Context = struct {
             package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
         }
     }
+
+    pub fn output_modules(self: *Context) void {
+        // Start from root module, of each package, DFS through imports and generate
+        for (self.modules.keys()) |name| {
+            const module = self.modules.get(name).?.init.?.module.module;
+            std.debug.print(" generating: {s}\n", .{module.name});
+        }
+    }
 };

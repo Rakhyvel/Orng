@@ -97,6 +97,8 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     _ = try make_package(package_dag, std.fs.path.basename(cwd), compiler, &interpreter, cwd, "main");
 
+    compiler.output_modules();
+
     std.debug.print("done\n", .{});
 }
 
