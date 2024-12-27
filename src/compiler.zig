@@ -29,6 +29,7 @@ pub const Context = struct {
     packages: std.StringArrayHashMap(*Package),
 
     const Package = struct {
+        root: *symbol_.Symbol,
         requirements: std.StringArrayHashMap(*symbol_.Symbol),
     };
 
@@ -127,23 +128,33 @@ pub const Context = struct {
         return self.packages.get(package_name).?.requirements.get(requirement_name);
     }
 
-    pub fn register_package(self: *Context, package_name: []const u8, requirement_name: []const u8, requirement_root_module: *symbol_.Symbol) void {
-        std.debug.print("package name:{s}, requirement name:{s}\n", .{ package_name, requirement_name });
-        if (self.packages.get(package_name)) |package| {
-            package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
-        } else {
+    pub fn register_package(self: *Context, package_name: []const u8) void {
+        if (self.packages.get(package_name) == null) {
             const package = self.allocator().create(Package) catch unreachable;
+            package.root = undefined; // filled in later
             package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(self.allocator());
             self.packages.put(package_name, package) catch unreachable;
-            package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
         }
     }
 
-    pub fn output_modules(self: *Context) void {
+    pub fn make_package_requirement_link(self: *Context, package_name: []const u8, requirement_name: []const u8) void {
+        const package = self.packages.get(package_name).?;
+        const requirement = self.packages.get(requirement_name).?;
+        package.requirements.put(requirement_name, requirement.root) catch unreachable;
+    }
+
+    pub fn set_package_root(self: *Context, package_name: []const u8, root: *symbol_.Symbol) void {
+        const package = self.packages.get(package_name).?;
+        package.root = root;
+    }
+
+    pub fn output_modules(self: *Context) !void {
         // Start from root module, of each package, DFS through imports and generate
-        for (self.modules.keys()) |name| {
-            const module = self.modules.get(name).?.init.?.module.module;
-            std.debug.print(" generating: {s}\n", .{module.name});
+        for (self.packages.keys()) |package_name| {
+            const package = self.packages.get(package_name).?;
+            const module = package.root.init.?.module.module;
+            std.debug.print("  generating: {s}...\n", .{module.name});
+            try module.output(self.allocator());
         }
     }
 };

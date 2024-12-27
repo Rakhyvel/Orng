@@ -42,7 +42,9 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
     try output_impls(&module.impls, writer);
     try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
-    try output_main_function(module.entry.?, writer);
+    if (module.entry) |entry| {
+        try output_main_function(entry, writer);
+    }
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
@@ -376,7 +378,7 @@ fn output_main_function(
 ) CodeGen_Error!void {
     const codomain = cfg.symbol.expanded_type.?.rhs();
     var string_access: []const u8 = "";
-    var specifier: []const u8 = undefined;
+    var specifier: ?[]const u8 = null;
     switch (codomain.*) {
         .identifier => {
             const info = primitives_.info_from_name(codomain.token().data).?;
@@ -391,19 +393,29 @@ fn output_main_function(
             string_access = "._0";
             specifier = "s";
         },
-        else => unreachable,
+        else => {},
     }
+
     try writer.print(
         \\int main(void) {{
-        \\  printf("%{s}{s}",
-    , .{ if (codomain.sizeof() == 8) "l" else "", specifier });
-    try output_symbol(cfg.symbol, writer);
+        \\  
+    , .{});
+    if (specifier != null) {
+        try writer.print("printf(\"%{s}{s}\", ", .{ if (codomain.sizeof() == 8) "l" else "", specifier.? });
+        try output_symbol(cfg.symbol, writer);
+        try writer.print("(){s});", .{string_access});
+    } else {
+        try output_symbol(cfg.symbol, writer);
+        try writer.print(
+            \\();
+            \\
+        , .{});
+    }
     try writer.print(
-        \\(){s});
         \\  return 0;
         \\}}
         \\
-    , .{string_access});
+    , .{});
 }
 
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a

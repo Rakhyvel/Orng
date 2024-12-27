@@ -97,7 +97,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
     _ = try make_package(package_dag, std.fs.path.basename(cwd), compiler, &interpreter, cwd, "main");
 
-    compiler.output_modules();
+    try compiler.output_modules();
 
     std.debug.print("done\n", .{});
 }
@@ -110,6 +110,8 @@ fn make_package(
     working_directory: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*symbol_.Symbol {
+    compiler.register_package(package_name);
+
     for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
             continue;
@@ -123,22 +125,23 @@ fn make_package(
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
-        const module = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
+        _ = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
 
-        compiler.register_package(package_name, requirement_name, module);
+        compiler.make_package_requirement_link(package_name, requirement_name);
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
     const root_file_paths = [_][]const u8{ working_directory, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
 
-    const mod_sym = compiler.compile_module(
+    const package_root = compiler.compile_module(
         root_file_path,
         entry_name,
         false,
     ) catch return error.CompileError;
+    compiler.set_package_root(package_name, package_root);
 
-    return mod_sym;
+    return package_root;
 }
 
 fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
