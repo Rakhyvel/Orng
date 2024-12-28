@@ -58,7 +58,7 @@ pub const Module = struct {
     package_name: []const u8,
 
     // List of local modules that are imported
-    local_imported_modules: std.ArrayList(*Module),
+    local_imported_modules: std.AutoArrayHashMap(*Module, void),
 
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
@@ -100,7 +100,7 @@ pub const Module = struct {
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.symbol = symbol;
         retval.allocator = allocator;
-        retval.local_imported_modules = std.ArrayList(*Module).init(allocator);
+        retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
@@ -330,19 +330,14 @@ pub const Module = struct {
         defer output_c_filename.deinit();
         var output_h_filename = String.init(allocator);
         defer output_h_filename.deinit();
-        output_c_filename.writer().print("{s}.c", .{self.name}) catch unreachable;
-        output_h_filename.writer().print("{s}.h", .{self.name}) catch unreachable;
-        const build_paths = [_][]const u8{ package_path, "build" };
+        output_c_filename.writer().print("{s}-{s}.c", .{ self.package_name, self.name }) catch unreachable;
+        output_h_filename.writer().print("{s}-{s}.h", .{ self.package_name, self.name }) catch unreachable;
         const out_c_paths = [_][]const u8{ package_path, "build", output_c_filename.str() };
         const out_h_paths = [_][]const u8{ package_path, "build", output_h_filename.str() };
-        const build_path = std.fs.path.join(allocator, &build_paths) catch unreachable;
         const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
         const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
 
-        std.fs.makeDirAbsolute(build_path) catch |err| switch (err) {
-            error.PathAlreadyExists => {},
-            else => unreachable,
-        };
+        std.debug.print("{s}\n", .{out_c_path});
         var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
         defer output_c_file.close();
         var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
@@ -350,8 +345,10 @@ pub const Module = struct {
 
         codegen_.generate(self, output_c_file.writer(), output_h_file.writer()) catch unreachable;
 
-        for (self.local_imported_modules.items) |child| {
-            try child.output(allocator);
+        for (self.local_imported_modules.keys()) |child| {
+            if (std.mem.eql(u8, child.package_name, self.package_name)) {
+                try child.output(allocator);
+            }
         }
     }
 

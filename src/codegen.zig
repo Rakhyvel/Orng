@@ -31,10 +31,10 @@ pub fn generate_source(module: *module_.Module, writer: Writer) CodeGen_Error!vo
     try writer.print(
         \\/* Code generated using the Orng compiler http://ornglang.org */
         \\
-        \\#include "{s}.h"
+        \\#include "{s}-{s}.h"
         \\
         \\
-    , .{module.name});
+    , .{ module.package_name, module.name });
 
     // try output_forward_typedefs(&module.type_set, writer);
     // try output_typedefs(&module.type_set, writer);
@@ -64,7 +64,7 @@ pub fn generate_header(module: *module_.Module, writer: Writer) CodeGen_Error!vo
         \\
     , .{ module.package_name, module.name });
 
-    try output_includes(module.local_imported_modules, writer);
+    try output_includes(module.local_imported_modules.keys(), writer);
     try output_forward_typedefs(&module.type_set, writer);
     try output_typedefs(&module.type_set, writer);
     try output_traits(&module.traits, writer);
@@ -76,13 +76,13 @@ pub fn generate_header(module: *module_.Module, writer: Writer) CodeGen_Error!vo
     , .{});
 }
 
-fn output_includes(modules: std.ArrayList(*module_.Module), writer: Writer) CodeGen_Error!void {
-    if (modules.items.len == 0) {
+fn output_includes(modules: []*module_.Module, writer: Writer) CodeGen_Error!void {
+    if (modules.len == 0) {
         return;
     }
 
-    for (modules.items) |module| {
-        try writer.print("#include \"{s}.h\"\n", .{module.name});
+    for (modules) |module| {
+        try writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name });
     }
 
     try writer.print("\n", .{});

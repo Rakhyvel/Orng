@@ -153,6 +153,13 @@ pub const Context = struct {
         for (self.packages.keys()) |package_name| {
             const package = self.packages.get(package_name).?;
             const module = package.root.init.?.module.module;
+
+            const package_path = module.get_package_abs_path();
+            const build_paths = [_][]const u8{ package_path, "build" };
+            const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
+            std.fs.deleteTreeAbsolute(build_path) catch unreachable;
+            std.fs.makeDirAbsolute(build_path) catch unreachable;
+
             std.debug.print("  generating: {s}...\n", .{module.name});
             try module.output(self.allocator());
         }

@@ -126,12 +126,14 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
     import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
     const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
     const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+
+    var import_symbol: *symbol_.Symbol = undefined;
     if (self.compiler.packages.get(package_name) != null and self.compiler.packages.get(package_name).?.requirements.get(import_name) != null) {
         // Foreign import of a package
-        return self.compiler.packages.get(package_name).?.requirements.get(import_name).?;
+        import_symbol = self.compiler.packages.get(package_name).?.requirements.get(import_name).?;
     } else {
         // Local import of a module
-        const import_symbol = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+        import_symbol = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
             error.FileNotFound => {
                 self.compiler.errors.add_error(.{ .import_file_not_found = .{
                     .filename = import_name,
@@ -141,7 +143,7 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
             },
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
         };
-        self.module.local_imported_modules.append(import_symbol.init.?.module.module) catch unreachable;
-        return import_symbol;
     }
+    self.module.local_imported_modules.put(import_symbol.init.?.module.module, void{}) catch unreachable;
+    return import_symbol;
 }
