@@ -57,6 +57,9 @@ pub const Module = struct {
     // The name of the package this module belongs to
     package_name: []const u8,
 
+    // List of local modules that are imported
+    local_imported_modules: std.AutoArrayHashMap(*Module, void),
+
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
@@ -81,6 +84,9 @@ pub const Module = struct {
     // The symbol that represents this module
     symbol: *symbol_.Symbol,
 
+    // Whether or not this module has been visited in a graph traversal
+    visited: bool,
+
     // Allocator for the module
     allocator: std.mem.Allocator,
 
@@ -89,16 +95,20 @@ pub const Module = struct {
         retval.uid = module_uids;
         module_uids += 1;
         retval.name = name;
+        std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
         retval.symbol = symbol;
         retval.allocator = allocator;
+        retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
         retval.cfgs = std.ArrayList(*cfg_.CFG).init(allocator);
         retval.type_set = type_set_.Type_Set.init(allocator);
+        retval.visited = false;
+        retval.entry = null;
         return retval;
     }
 
@@ -310,8 +320,37 @@ pub const Module = struct {
     }
 
     /// Takes in a statically correct symbol tree, writes it out to a file
-    pub fn output(self: *Module, writer: Writer) codegen_.CodeGen_Error!void {
-        try codegen_.generate(self, writer);
+    pub fn output(self: *Module, build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
+        if (self.visited) {
+            return;
+        }
+        self.visited = true;
+
+        local_modules.append(self) catch unreachable;
+
+        var output_c_filename = String.init(allocator);
+        defer output_c_filename.deinit();
+        var output_h_filename = String.init(allocator);
+        defer output_h_filename.deinit();
+        output_c_filename.writer().print("{s}-{s}.c", .{ self.package_name, self.name }) catch unreachable;
+        output_h_filename.writer().print("{s}-{s}.h", .{ self.package_name, self.name }) catch unreachable;
+        const out_c_paths = [_][]const u8{ build_path, output_c_filename.str() };
+        const out_h_paths = [_][]const u8{ build_path, output_h_filename.str() };
+        const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
+        const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
+
+        var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
+        defer output_c_file.close();
+        var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;
+        defer output_h_file.close();
+
+        codegen_.generate(self, output_c_file.writer(), output_h_file.writer()) catch unreachable;
+
+        for (self.local_imported_modules.keys()) |child| {
+            if (std.mem.eql(u8, child.package_name, self.package_name)) {
+                try child.output(build_path, local_modules, allocator);
+            }
+        }
     }
 
     /// Flattens all CFG's instructions to the module's list of instructions, recursively.

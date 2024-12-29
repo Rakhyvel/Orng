@@ -21,11 +21,40 @@ pub const CodeGen_Error = std.fs.File.WriteError;
 const Writer = std.fs.File.Writer;
 
 /// Generates C code for the provided Orng module and writes it to the given writer.
-pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
+pub fn generate(module: *module_.Module, source_writer: Writer, header_writer: Writer) CodeGen_Error!void {
     cheat_module = module;
+    try generate_source(module, source_writer);
+    try generate_header(module, header_writer);
+}
+
+pub fn generate_source(module: *module_.Module, writer: Writer) CodeGen_Error!void {
     try writer.print(
-        \\/* Code generated using the Orng compiler https://ornglang.org */
-        \\#include <math.h>
+        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\
+        \\#include "{s}-{s}.h"
+        \\
+        \\
+    , .{ module.package_name, module.name });
+
+    // try output_forward_typedefs(&module.type_set, writer);
+    // try output_typedefs(&module.type_set, writer);
+    try output_interned_strings(&module.interned_strings, writer);
+    // try output_traits(&module.traits, writer);
+    // try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
+    try output_impls(&module.impls, writer);
+    try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
+    if (module.entry) |entry| {
+        try output_main_function(entry, writer);
+    }
+}
+
+pub fn generate_header(module: *module_.Module, writer: Writer) CodeGen_Error!void {
+    try writer.print(
+        \\/* Code generated using the Orng compiler http://ornglang.org */
+        \\
+        \\#ifndef _{0s}_{1s}_h
+        \\#define _{0s}_{1s}_h
+        \\
         \\#include <stdio.h>
         \\#include <stdint.h>
         \\#include <stdlib.h>
@@ -33,16 +62,30 @@ pub fn generate(module: *module_.Module, writer: Writer) CodeGen_Error!void {
         \\#include "debug.inc"
         \\
         \\
-    , .{});
+    , .{ module.package_name, module.name });
 
+    try output_includes(module.local_imported_modules.keys(), writer);
     try output_forward_typedefs(&module.type_set, writer);
     try output_typedefs(&module.type_set, writer);
-    try output_interned_strings(&module.interned_strings, writer);
     try output_traits(&module.traits, writer);
     try forall_functions(&module.cfgs, "/* Function forward definitions */", writer, output_forward_function);
-    try output_impls(&module.impls, writer);
-    try forall_functions(&module.cfgs, "\n/* Function definitions */", writer, output_function_definition);
-    try output_main_function(module.entry.?, writer);
+    try writer.print(
+        \\
+        \\#endif
+        \\
+    , .{});
+}
+
+fn output_includes(modules: []*module_.Module, writer: Writer) CodeGen_Error!void {
+    if (modules.len == 0) {
+        return;
+    }
+
+    for (modules) |module| {
+        try writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name });
+    }
+
+    try writer.print("\n", .{});
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
@@ -58,9 +101,9 @@ fn output_forward_typedefs(
     // Forward declare all structs/unions
     for (type_set.types.items) |dag| {
         if (dag.base.* == .product or dag.base.* == .sum_type) {
-            try writer.print("struct struct{};\n", .{dag.uid});
+            try writer.print("struct {s}_struct{};\n", .{ cheat_module.package_name, dag.uid });
         } else if (dag.base.* == .dyn_type) {
-            try writer.print("struct dyn{};\n", .{dag.uid});
+            try writer.print("struct {s}_dyn{};\n", .{ cheat_module.package_name, dag.uid });
         }
     }
 }
@@ -101,7 +144,7 @@ fn output_typedef(
     if (dag.base.* == .function) {
         try writer.print("typedef ", .{});
         try output_type(dag.base.rhs(), writer);
-        try writer.print("(*function{})(", .{dag.uid});
+        try writer.print("(*{s}_function{})(", .{ cheat_module.package_name, dag.uid });
         if (dag.base.lhs().* == .product) {
             // Function pointer takes more than one argument
             const product = dag.base.lhs();
@@ -120,11 +163,11 @@ fn output_typedef(
         }
         try writer.print(");\n\n", .{});
     } else if (dag.base.* == .product) {
-        try writer.print("struct struct{} {{\n", .{dag.uid});
+        try writer.print("struct {s}_struct{} {{\n", .{ cheat_module.package_name, dag.uid });
         try output_field_list(dag.base.children(), 4, writer);
         try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .sum_type) {
-        try writer.print("struct struct{} {{\n    uint64_t tag;\n", .{dag.uid});
+        try writer.print("struct {s}_struct{} {{\n    uint64_t tag;\n", .{ cheat_module.package_name, dag.uid });
         if (!dag.base.sum_type.is_all_unit()) {
             try writer.print("    union {{\n", .{});
             try output_field_list(dag.base.children(), 8, writer);
@@ -132,7 +175,7 @@ fn output_typedef(
         }
         try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .dyn_type) {
-        try writer.print("struct dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ dag.uid, dag.base.expr().symbol().?.name });
+        try writer.print("struct {s}_dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ cheat_module.package_name, dag.uid, dag.base.expr().symbol().?.name });
         try writer.print("* vtable;\n}};\n\n", .{});
     }
 }
@@ -220,7 +263,7 @@ fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer:
 
     // Output each string in the string hash map
     for (0..interned_strings.items.len) |i| {
-        try writer.print("char* string_{} = \"", .{i});
+        try writer.print("static char* string_{} = \"", .{i});
         // Print each byte in the string in hex format
         const str = interned_strings.items[i];
         for (str) |byte| {
@@ -282,11 +325,9 @@ fn output_impls(
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
-            try writer.print("    .{s} = _{}_{s},\n", .{
-                decl.method_decl.name.token().data,
-                decl.symbol().?.scope.uid,
-                decl.symbol().?.name,
-            });
+            try writer.print("    .{s} = ", .{decl.method_decl.name.token().data});
+            try output_symbol(decl.symbol().?, writer);
+            try writer.print(",\n", .{});
         }
         try writer.print("}};\n\n", .{});
     }
@@ -376,7 +417,7 @@ fn output_main_function(
 ) CodeGen_Error!void {
     const codomain = cfg.symbol.expanded_type.?.rhs();
     var string_access: []const u8 = "";
-    var specifier: []const u8 = undefined;
+    var specifier: ?[]const u8 = null;
     switch (codomain.*) {
         .identifier => {
             const info = primitives_.info_from_name(codomain.token().data).?;
@@ -391,19 +432,29 @@ fn output_main_function(
             string_access = "._0";
             specifier = "s";
         },
-        else => unreachable,
+        else => {},
     }
+
     try writer.print(
         \\int main(void) {{
-        \\  printf("%{s}{s}",
-    , .{ if (codomain.sizeof() == 8) "l" else "", specifier });
-    try output_symbol(cfg.symbol, writer);
+        \\  
+    , .{});
+    if (specifier != null) {
+        try writer.print("printf(\"%{s}{s}\", ", .{ if (codomain.sizeof() == 8) "l" else "", specifier.? });
+        try output_symbol(cfg.symbol, writer);
+        try writer.print("(){s});", .{string_access});
+    } else {
+        try output_symbol(cfg.symbol, writer);
+        try writer.print(
+            \\();
+            \\
+        , .{});
+    }
     try writer.print(
-        \\(){s});
         \\  return 0;
         \\}}
         \\
-    , .{string_access});
+    , .{});
 }
 
 /// Outputs a symbol's declaration. Parameters are not formatted with a preceding tab, nor a
@@ -428,6 +479,8 @@ fn output_var_decl(
 fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     if (symbol.kind == .@"extern") {
         try writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
+    } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
+        try writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name, symbol.scope.uid, symbol.name });
     } else {
         try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
     }
@@ -448,15 +501,15 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         .anyptr_type => try writer.print("void", .{}),
         .function => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("function{}", .{type_uid});
+            try writer.print("{s}_function{}", .{ cheat_module.package_name, type_uid });
         },
         .sum_type, .product => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("struct struct{}", .{type_uid});
+            try writer.print("struct {s}_struct{}", .{ cheat_module.package_name, type_uid });
         },
         .dyn_type => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("struct dyn{}", .{type_uid});
+            try writer.print("struct {s}_dyn{}", .{ cheat_module.package_name, type_uid });
         },
         .unit_type => try writer.print("void", .{}),
         .annotation => try output_type(_type.annotation.type, writer),

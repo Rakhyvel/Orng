@@ -418,7 +418,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     defer errors.deinit();
     errdefer errors.print_errors();
 
-    var module = module_.Module.init("prelude", "prelude/prelude.orng", undefined, compiler.allocator());
+    var module = module_.Module.init("prelude", "/prelude/prelude.orng", undefined, compiler.allocator());
     const symbol = symbol_.Symbol.init(
         compiler.prelude,
         "prelude",

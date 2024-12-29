@@ -2,6 +2,7 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const compiler_ = @import("compiler.zig");
 const errs_ = @import("errors.zig");
+const exec = @import("exec.zig").exec;
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
@@ -21,6 +22,9 @@ const Test_File_Fn = fn ([]const u8, bool) bool;
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
+
+    _ = std.fs.cwd().realpathAlloc(allocator, ".") catch unreachable;
+
     var arg: []const u8 = undefined;
     if (args.next()) |_arg| {
         arg = _arg;
@@ -85,16 +89,6 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     };
     var test_name = filename[17..dot_index];
 
-    // Output .c file
-    var out_name: String = String.init_with_contents(allocator, "tests/integration/build") catch unreachable;
-    defer out_name.deinit();
-    out_name.concat(test_name) catch unreachable;
-    if (!coverage) { // Create output directory if it doesn't exist
-        const slash_index = last_index_of(out_name.str(), '/').?;
-        _ = exec(&[_][]const u8{ "/bin/mkdir", "-p", out_name.str()[0..slash_index] }) catch {};
-    }
-    out_name.concat(".c") catch unreachable;
-
     if (!coverage) {
         term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
         out.print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
@@ -127,7 +121,8 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         _ = debug_alloc.deinit();
     }
     var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
-    const module = module_.Module.compile(contents, filename, "main", false, compiler) catch {
+    const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
+    const module = module_.Module.compile(contents, absolute_filename, "main", false, compiler) catch {
         if (!coverage) {
             compiler.errors.print_errors();
             term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
@@ -136,66 +131,22 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         }
         return false;
     };
-    // Open the output file
-    var output_file = std.fs.cwd().createFile(
-        out_name.str(),
-        .{ .read = false },
-    ) catch |e| switch (e) {
-        error.FileNotFound => {
-            std.debug.print("Cannot create file: {s}\n", .{out_name.str()});
-            return false;
-        },
-        else => return false,
-    };
-    defer output_file.close();
-    module.output(output_file.writer()) catch unreachable;
+
     if (coverage) {
         return false;
     }
 
-    // compile C (make sure no errors)
-    const gcc_res = exec(&[_][]const u8{
-        "/bin/gcc",
-        out_name.str(),
-        "-std=c11",
-        "-lm",
-        "-Istd",
-        "-O3",
-        "-g",
-        "-Werror",
-        "-Wall",
-        "-Wextra",
-        "-Wpedantic",
-        "-pedantic-errors",
-        "-Wconversion",
-        "-Wsign-conversion",
-        "-Wfloat-conversion",
-        "-Wcast-qual",
-        "-Wlogical-op",
-        "-Wshadow",
-        "-Wformat=2",
-        "-Wmisleading-indentation",
-        "-Wstrict-prototypes",
-        "-Wmissing-prototypes",
-        "-Winit-self",
-        "-Wjump-misses-init",
-        "-Wdeclaration-after-statement",
-        "-Wbad-function-cast",
-        "-Wc11-c2x-compat",
-        "-Wcast-align",
-        "-fsanitize=undefined,address",
-    }) catch {
-        std.debug.print("Error compiling with GCC", .{});
-        return false;
-    };
-    if (gcc_res.retcode != 0) {
-        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-        out.print("C -> Executable.\n", .{}) catch unreachable;
-        return false;
-    }
+    compiler.register_package(module.package_name, module.get_package_abs_path(), false);
+    compiler.set_package_root(module.package_name, module.symbol);
+
+    compiler.output_modules() catch unreachable;
+
+    compiler.compile_c(module.package_name, true) catch unreachable;
 
     // execute (make sure no signals)
-    const res = exec(&[_][]const u8{"./a.out"}) catch |e| {
+    var output_name = String.init(allocator);
+    output_name.writer().print("{s}/build/{s}", .{ module.get_package_abs_path(), module.package_name }) catch unreachable;
+    const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
         out.print("{?}\n", .{e}) catch unreachable;
         term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
         out.print("Execution interrupted!\n", .{}) catch unreachable;
@@ -259,7 +210,8 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
 
     // Try to compile Orng (make sure no errors)
     var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
-    const module = module_.Module.compile(contents, filename, "main", false, compiler) catch |err| {
+    const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
+    _ = module_.Module.compile(contents, absolute_filename, "main", false, compiler) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.LexerError,
@@ -277,7 +229,6 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
                         term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
                         return true;
                     } else {
-                        std.debug.print("{}\n", .{err});
                         term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
                         out.print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
                         compiler.errors.print_errors();
@@ -291,20 +242,6 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
     };
     compiler.deinit();
 
-    // Test that codegen doesn't crash
-    const negative_out_name = "a.out"; // this is gitignored
-    var output_file = std.fs.cwd().createFile(
-        negative_out_name,
-        .{ .read = false },
-    ) catch |e| switch (e) {
-        error.FileNotFound => {
-            std.debug.print("Cannot create file: {s}\n", .{negative_out_name});
-            return false;
-        },
-        else => return false,
-    };
-    defer output_file.close();
-    module.output(output_file.writer()) catch unreachable;
     if (coverage) {
         return false;
     }
@@ -379,6 +316,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                     },
                 }
             };
+            _ = module; // autofix
             // Open the output file
             var output_file = std.fs.cwd().createFile(
                 "tests/fuzz/fuzz-out.c",
@@ -391,7 +329,10 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                 else => return error.IoError,
             };
             defer output_file.close();
-            module.output(output_file.writer()) catch {
+            // var _local_modules = std.ArrayList(*module_.Module).init(allocator);
+            // defer _local_modules.deinit();
+            // module.output(&_local_modules, output_file.writer())
+            compiler.output_modules() catch {
                 failed += 1;
                 try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
                 try out.print("Orng Compiler crashed with input above!\n", .{});
@@ -418,35 +359,6 @@ fn fuzz_tests() !void { // TODO: Uninfer error
         }
     }
     std.debug.print("Fuzz test percentage: {d}% ({} / {})\n", .{ 100.0 * std.math.lossyCast(f64, passed) / std.math.lossyCast(f64, passed + failed), passed, failed });
-}
-
-fn exec(argv: []const []const u8) !struct { stdout: []u8, retcode: i64 } { // TODO: Uninfer error
-    const max_output_size = 100 * 1024 * 1024;
-    var child_process = std.process.Child.init(argv, allocator);
-    defer _ = child_process.kill() catch unreachable;
-
-    child_process.stdout_behavior = .Pipe;
-    child_process.spawn() catch |err| {
-        return err;
-    };
-
-    const child_stdout_reader = child_process.stdout.?.reader();
-    const child_stdout = try child_stdout_reader.readAllAlloc(allocator, max_output_size);
-    var retcode: i64 = 0;
-    errdefer allocator.free(child_stdout);
-
-    const child = try child_process.wait();
-    switch (child) {
-        .Exited => |c| {
-            retcode = c;
-        },
-        .Signal => |c| switch (c) {
-            11 => return error.SegmentationFault,
-            else => return error.UnknownSignal,
-        },
-        else => return error.CommandFailed,
-    }
-    return .{ .stdout = child_stdout, .retcode = retcode };
 }
 
 // Great std lib function candidate! Holy hell...

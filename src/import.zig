@@ -45,7 +45,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                 .pattern = ast.import.pattern,
                 .type = primitives_.type_type,
                 .init = primitives_.unit_type,
-                .top_level = true,
+                ._top_level = true,
                 .is_alias = false,
                 .prohibit_defaults = false,
             } };
@@ -100,7 +100,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                         ),
                         .type = primitives_.type_type,
                         .init = primitives_.unit_type,
-                        .top_level = true,
+                        ._top_level = true,
                         .is_alias = false,
                         .prohibit_defaults = false,
                     } };
@@ -115,17 +115,6 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
     return 0;
 }
 
-fn get_left_most_module(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
-    if (ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import) {
-        return try self.resolve_import(ast);
-    } else if (ast.decl.pattern.* == .pattern_symbol and ast.decl.pattern.pattern_symbol.kind == .import) {
-        return try self.get_left_most_module(ast.decl.pattern);
-    } else if (ast.decl.pattern.* == .access) {
-        return try self.get_left_most_module(ast.decl.pattern.lhs());
-    }
-    std.debug.panic("compiler error: this shouldn't be reachable {}\n", .{ast});
-}
-
 /// Given an import pattern symbol `ast`, resolve the module symbol that it refers to, potentially compiling it if necessary
 fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
     std.debug.assert(ast.* == .pattern_symbol and ast.pattern_symbol.kind == .import);
@@ -137,10 +126,14 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
     import_filename.writer().print("{s}.orng", .{import_name}) catch unreachable;
     const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
     const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
+
+    var import_symbol: *symbol_.Symbol = undefined;
     if (self.compiler.packages.get(package_name) != null and self.compiler.packages.get(package_name).?.requirements.get(import_name) != null) {
-        return self.compiler.packages.get(package_name).?.requirements.get(import_name).?;
+        // Foreign import of a package
+        import_symbol = self.compiler.packages.get(package_name).?.requirements.get(import_name).?;
     } else {
-        return self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
+        // Local import of a module
+        import_symbol = self.compiler.compile_module(import_file_path, null, false) catch |err| switch (err) {
             error.FileNotFound => {
                 self.compiler.errors.add_error(.{ .import_file_not_found = .{
                     .filename = import_name,
@@ -151,4 +144,6 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
             else => std.debug.panic("compiler error: this shouldn't be reachable\n", .{}),
         };
     }
+    self.module.local_imported_modules.put(import_symbol.init.?.module.module, void{}) catch unreachable;
+    return import_symbol;
 }

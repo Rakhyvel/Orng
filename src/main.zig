@@ -23,12 +23,14 @@ const Command_Entry: type = struct {
     func: Command, // Command to be performed when selected
 };
 
+// Keep these in alphabetical order
 const command_table = [_]Command_Entry{
     Command_Entry{ .name = "build", .help = "Builds an Orng package", .func = build },
     Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
-    Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
     Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init },
+    Command_Entry{ .name = "run", .help = "Builds and runs an Orng package", .func = build },
+    Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
 };
 
 // Right now, I'll see if it's possible to store the main.orng and build.orng functions as text and write them to a file - dellzer 12/8/24
@@ -41,7 +43,8 @@ pub fn main() !void {
 
     // Get second command line argument
     var args = std.process.ArgIterator.initWithAllocator(allocator) catch unreachable;
-    _ = args.next() orelse unreachable;
+    const location = args.next() orelse unreachable;
+    _ = location; // autofix
 
     // Parse the command arg
     const command = args.next() orelse {
@@ -66,7 +69,6 @@ pub fn main() !void {
 }
 
 fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
-    _ = name;
     _ = args;
     // Get the path
     const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
@@ -95,9 +97,34 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const package_dag = interpreter.extract_ast(0, primitives_.package_type, allocator);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
-    _ = try make_package(package_dag, std.fs.path.basename(cwd), compiler, &interpreter, cwd, "main");
+    const package_name = std.fs.path.basename(cwd);
+    _ = try make_package(package_dag, package_name, compiler, &interpreter, cwd, "main");
+
+    try compiler.output_modules();
+
+    try compiler.compile_c(package_name, false);
 
     std.debug.print("done\n", .{});
+
+    if (std.mem.eql(u8, name, "run")) {
+        const curr_package = compiler.lookup_package(package_name).?;
+        if (curr_package.is_static_lib) {
+            (errs_.Error{ .basic = .{
+                .msg = "cannot run a non-executable package",
+                .span = span_.phony_span,
+            } }).fatal_error();
+            return error.CompileError;
+        }
+
+        const argv = &[_][]const u8{curr_package.output_absolute_path};
+        var child = std.process.Child.init(argv, allocator);
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Inherit;
+        child.stderr_behavior = .Inherit;
+
+        child.spawn() catch return error.CompileError;
+        _ = child.wait() catch return error.CompileError;
+    }
 }
 
 fn make_package(
@@ -108,6 +135,9 @@ fn make_package(
     working_directory: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*symbol_.Symbol {
+    const is_static_lib = package.get_field(primitives_.package_type, "kind").pos() == 1;
+    compiler.register_package(package_name, working_directory, is_static_lib);
+
     for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {
             continue;
@@ -121,22 +151,23 @@ fn make_package(
 
         const new_working_directory_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
         const new_working_directory = std.fs.cwd().realpath(required_package_dir, new_working_directory_buffer) catch unreachable;
-        const module = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
+        _ = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
 
-        compiler.register_package(package_name, requirement_name, module);
+        compiler.make_package_requirement_link(package_name, requirement_name);
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
     const root_file_paths = [_][]const u8{ working_directory, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;
 
-    const mod_sym = compiler.compile_module(
+    const package_root = compiler.compile_module(
         root_file_path,
         entry_name,
         false,
     ) catch return error.CompileError;
+    compiler.set_package_root(package_name, package_root);
 
-    return mod_sym;
+    return package_root;
 }
 
 fn print_version(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {

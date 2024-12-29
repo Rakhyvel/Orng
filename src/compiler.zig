@@ -2,8 +2,11 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
+const exec = @import("exec.zig").exec;
 const module_ = @import("module.zig");
+const Package = @import("package.zig");
 const primitives_ = @import("primitives.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 const Error: type = error{
@@ -27,10 +30,6 @@ pub const Context = struct {
 
     // Maps package names to their root module
     packages: std.StringArrayHashMap(*Package),
-
-    const Package = struct {
-        requirements: std.StringArrayHashMap(*symbol_.Symbol),
-    };
 
     /// Throws an error if the prelude could not be compiled
     pub fn init(alloc: std.mem.Allocator) Error!*Context {
@@ -123,19 +122,50 @@ pub const Context = struct {
         return self.modules.get(absolute_path);
     }
 
-    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*symbol_.Symbol {
-        return self.packages.get(package_name).?.requirements.get(requirement_name);
+    pub fn lookup_package(self: *Context, package_name: []const u8) ?*Package {
+        return self.packages.get(package_name);
     }
 
-    pub fn register_package(self: *Context, package_name: []const u8, requirement_name: []const u8, requirement_root_module: *symbol_.Symbol) void {
-        std.debug.print("package name:{s}, requirement name:{s}\n", .{ package_name, requirement_name });
-        if (self.packages.get(package_name)) |package| {
-            package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
-        } else {
-            const package = self.allocator().create(Package) catch unreachable;
-            package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(self.allocator());
+    pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*symbol_.Symbol {
+        return self.lookup_package(package_name).?.requirements.get(requirement_name);
+    }
+
+    pub fn register_package(self: *Context, package_name: []const u8, package_absolute_path: []const u8, is_static_lib: bool) void {
+        if (self.lookup_package(package_name) == null) {
+            const package = Package.new(self.allocator(), package_name, package_absolute_path, is_static_lib);
             self.packages.put(package_name, package) catch unreachable;
-            package.requirements.put(requirement_name, requirement_root_module) catch unreachable;
         }
+    }
+
+    pub fn make_package_requirement_link(self: *Context, package_name: []const u8, requirement_name: []const u8) void {
+        const package = self.lookup_package(package_name).?;
+        const requirement = self.packages.get(requirement_name).?;
+        package.requirements.put(requirement_name, requirement.root) catch unreachable;
+    }
+
+    pub fn set_package_root(self: *Context, package_name: []const u8, root: *symbol_.Symbol) void {
+        const package = self.lookup_package(package_name).?;
+        package.root = root;
+    }
+
+    pub fn output_modules(self: *Context) !void {
+        // Start from root module, of each package, DFS through imports and generate
+        for (self.packages.keys()) |package_name| {
+            const package = self.lookup_package(package_name).?;
+            const module = package.root.init.?.module.module;
+
+            const package_path = module.get_package_abs_path();
+            const build_paths = [_][]const u8{ package_path, "build" };
+            const build_path = std.fs.path.join(self.allocator(), &build_paths) catch unreachable;
+            std.fs.deleteTreeAbsolute(build_path) catch unreachable;
+            std.fs.makeDirAbsolute(build_path) catch unreachable;
+
+            // std.debug.print("  generating: {s}...\n", .{module.name});
+            try module.output(build_path, &package.local_modules, self.allocator());
+        }
+    }
+
+    pub fn compile_c(self: *Context, root_package_name: []const u8, extra_flags: bool) !void {
+        try self.packages.get(root_package_name).?.compile_c(self.packages, extra_flags, self.allocator());
     }
 };

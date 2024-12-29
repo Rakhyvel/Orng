@@ -131,14 +131,14 @@ pub const Parser = struct {
             if (!self.peek_kind(.EOF)) {
                 _ = try self.expect(.newline);
             }
-            decl.decl.top_level = true;
+            decl.decl._top_level = true;
             return decl;
         } else if (self.peek_kind(.@"extern")) {
             var decl: *ast_.AST = try self.extern_const_declaration();
             if (!self.peek_kind(.EOF)) {
                 _ = try self.expect(.newline);
             }
-            decl.decl.top_level = true;
+            decl.decl._top_level = true;
             return decl;
         } else if (self.peek_kind(.import)) {
             const import: *ast_.AST = try self.import_declaration();
