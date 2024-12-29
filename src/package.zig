@@ -82,7 +82,7 @@ fn gcc(
 
     std.debug.print("src:{s}", .{@src().file});
 
-    const orng_path = std.fs.path.dirname(std.fs.path.dirname(@src().file).?).?;
+    const orng_path = std.fs.path.dirname(std.fs.path.dirname(@src().file).?) orelse "";
     var std_path = String.init(allocator);
     std_path.writer().print("-I{s}/std", .{orng_path}) catch unreachable;
 
