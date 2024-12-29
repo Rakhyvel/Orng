@@ -42,9 +42,8 @@ fn resolve_qualified_name(self: Self, ast: *ast_.AST) walk_.Error!*symbol_.Symbo
         //       If these are both null, report that the module was not found
 
         const local_module_lookup = self.compiler.lookup_module(other_module_dir);
-        const foreign_module_lookup = self.compiler.lookup_package_root_module(this_module.package_name, ast.token().data);
+        const foreign_module_lookup = self.compiler.lookup_package_root_module(this_module.package_name, ast.symbol().?.kind.import.real_name);
 
-        // It's natural to return the scope...
         return (local_module_lookup orelse foreign_module_lookup).?;
     } else if ((ast.* == .identifier or ast.* == .pattern_symbol) and ast.symbol().?.kind == .module) {
         return ast.symbol().?;

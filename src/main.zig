@@ -246,7 +246,9 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
 
     const build_content =
         \\fn build() -> Package {
-        \\    Package::executable(.root="main.orng")
+        \\    let mut retval = Package::executable(.root="main.orng")
+        \\    retval.>requires("std", Package::find("../std"))
+        \\    retval
         \\}
     ;
     build_orng.writer().writeAll(build_content) catch return error.FileError;

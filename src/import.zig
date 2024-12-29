@@ -5,6 +5,7 @@ const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
+const token_ = @import("token.zig");
 const walker_ = @import("walker.zig");
 
 module: *module_.Module,
@@ -60,16 +61,27 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
             var curr = ast.import.pattern;
             var terms = std.ArrayList(*ast_.AST).init(self.compiler.allocator());
             defer terms.deinit();
+
             while (curr.* == .access) : (curr = curr.lhs()) {
                 terms.append(curr.rhs()) catch unreachable;
             }
             terms.append(curr) catch unreachable;
+
+            var anon_names = std.ArrayList([]const u8).init(self.compiler.allocator());
+            defer anon_names.deinit();
+
+            for (0.., terms.items) |i, term| {
+                anon_names.append(
+                    if (i == 0) term.token().data else next_anon_name("anon", self.compiler.allocator()),
+                ) catch unreachable;
+            }
+
             for (0.., terms.items) |i, term| {
                 if (i < terms.items.len - 1) {
                     // Insert `const rhs = lhs::rhs`
                     const init = ast_.AST.create_access(
                         ast.token(),
-                        ast_.AST.create_identifier(terms.items[i + 1].token(), self.compiler.allocator()),
+                        ast_.AST.create_identifier(token_.Token.init_simple(anon_names.items[i + 1]), self.compiler.allocator()),
                         terms.items[i],
                         self.compiler.allocator(),
                     );
@@ -78,7 +90,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                         ast_.AST.create_pattern_symbol(
                             ast.token(),
                             .import_inner,
-                            if (i == 0) term.token().data else next_anon_name("anon", self.compiler.allocator()),
+                            anon_names.items[i],
                             self.compiler.allocator(),
                         ),
                         ast_.AST.create_type_of(ast.token(), init, self.compiler.allocator()),
@@ -95,7 +107,7 @@ pub fn flat(self: Self, ast: *ast_.AST, asts: *std.ArrayList(*ast_.AST), idx: us
                         .pattern = ast_.AST.create_pattern_symbol(
                             ast.token(),
                             .{ .import = .{ .real_name = term.token().data } },
-                            next_anon_name("anon", self.compiler.allocator()),
+                            anon_names.items[i],
                             self.compiler.allocator(),
                         ),
                         .type = primitives_.type_type,
