@@ -80,23 +80,16 @@ fn gcc(
     output_flag_string.writer().print("-o{s}", .{o_file}) catch unreachable;
     gcc_cmd.append(output_flag_string.str()) catch unreachable;
 
-    const src_path = std.fs.path.dirname(@src().file).?;
-    const orng_path = std.fs.path.dirname(src_path);
-    var std_path = String.init(allocator);
-    if (orng_path != null) {
-        std_path.writer().print("-I{s}/std", .{orng_path.?}) catch unreachable;
-    } else {
-        std_path.writer().print("-Istd", .{}) catch unreachable;
-    }
-
-    std.debug.print("src:{s}", .{std_path.str()});
+    const std_path = std.fs.cwd().realpathAlloc(allocator, "../std") catch unreachable;
+    var std_include_path = String.init(allocator);
+    std_include_path.writer().print("-I{s}", .{std_path}) catch unreachable;
 
     // Add basic flags
     gcc_cmd.appendSlice(&[_][]const u8{
         "-std=c11",
         "-O3",
         "-g",
-        std_path.str(),
+        std_include_path.str(),
     }) catch unreachable;
 
     if (extra_flags) {
