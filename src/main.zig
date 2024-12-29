@@ -95,9 +95,12 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     const package_dag = interpreter.extract_ast(0, primitives_.package_type, allocator);
     const cwd_buffer = compiler.allocator().alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
     const cwd = std.fs.cwd().realpath(".", cwd_buffer) catch unreachable;
-    _ = try make_package(package_dag, std.fs.path.basename(cwd), compiler, &interpreter, cwd, "main");
+    const package_name = std.fs.path.basename(cwd);
+    _ = try make_package(package_dag, package_name, compiler, &interpreter, cwd, "main");
 
     try compiler.output_modules();
+
+    try compiler.compile_c(package_name);
 
     std.debug.print("done\n", .{});
 }
@@ -110,7 +113,8 @@ fn make_package(
     working_directory: []const u8,
     entry_name: ?[]const u8,
 ) Command_Error!*symbol_.Symbol {
-    compiler.register_package(package_name);
+    const is_static_lib = package.get_field(primitives_.package_type, "kind").pos() == 1;
+    compiler.register_package(package_name, working_directory, is_static_lib);
 
     for (package.get_field(primitives_.package_type, "requirements").children().items) |maybe_requirement_addr| {
         if (maybe_requirement_addr.sum_value._pos != 0) {

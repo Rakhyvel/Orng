@@ -337,7 +337,6 @@ pub const Module = struct {
         const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
         const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
 
-        std.debug.print("{s}\n", .{out_c_path});
         var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
         defer output_c_file.close();
         var output_h_file = std.fs.createFileAbsolute(out_h_path, .{}) catch unreachable;

@@ -101,9 +101,9 @@ fn output_forward_typedefs(
     // Forward declare all structs/unions
     for (type_set.types.items) |dag| {
         if (dag.base.* == .product or dag.base.* == .sum_type) {
-            try writer.print("struct struct{};\n", .{dag.uid});
+            try writer.print("struct {s}_struct{};\n", .{ cheat_module.package_name, dag.uid });
         } else if (dag.base.* == .dyn_type) {
-            try writer.print("struct dyn{};\n", .{dag.uid});
+            try writer.print("struct {s}_dyn{};\n", .{ cheat_module.package_name, dag.uid });
         }
     }
 }
@@ -144,7 +144,7 @@ fn output_typedef(
     if (dag.base.* == .function) {
         try writer.print("typedef ", .{});
         try output_type(dag.base.rhs(), writer);
-        try writer.print("(*function{})(", .{dag.uid});
+        try writer.print("(*{s}_function{})(", .{ cheat_module.package_name, dag.uid });
         if (dag.base.lhs().* == .product) {
             // Function pointer takes more than one argument
             const product = dag.base.lhs();
@@ -163,11 +163,11 @@ fn output_typedef(
         }
         try writer.print(");\n\n", .{});
     } else if (dag.base.* == .product) {
-        try writer.print("struct struct{} {{\n", .{dag.uid});
+        try writer.print("struct {s}_struct{} {{\n", .{ cheat_module.package_name, dag.uid });
         try output_field_list(dag.base.children(), 4, writer);
         try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .sum_type) {
-        try writer.print("struct struct{} {{\n    uint64_t tag;\n", .{dag.uid});
+        try writer.print("struct {s}_struct{} {{\n    uint64_t tag;\n", .{ cheat_module.package_name, dag.uid });
         if (!dag.base.sum_type.is_all_unit()) {
             try writer.print("    union {{\n", .{});
             try output_field_list(dag.base.children(), 8, writer);
@@ -175,7 +175,7 @@ fn output_typedef(
         }
         try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .dyn_type) {
-        try writer.print("struct dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ dag.uid, dag.base.expr().symbol().?.name });
+        try writer.print("struct {s}_dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ cheat_module.package_name, dag.uid, dag.base.expr().symbol().?.name });
         try writer.print("* vtable;\n}};\n\n", .{});
     }
 }
@@ -503,15 +503,15 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         .anyptr_type => try writer.print("void", .{}),
         .function => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("function{}", .{type_uid});
+            try writer.print("{s}_function{}", .{ cheat_module.package_name, type_uid });
         },
         .sum_type, .product => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("struct struct{}", .{type_uid});
+            try writer.print("struct {s}_struct{}", .{ cheat_module.package_name, type_uid });
         },
         .dyn_type => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("struct dyn{}", .{type_uid});
+            try writer.print("struct {s}_dyn{}", .{ cheat_module.package_name, type_uid });
         },
         .unit_type => try writer.print("void", .{}),
         .annotation => try output_type(_type.annotation.type, writer),

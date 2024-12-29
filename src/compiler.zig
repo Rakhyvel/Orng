@@ -2,8 +2,11 @@ const std = @import("std");
 const ast_ = @import("ast.zig");
 const cfg_ = @import("cfg.zig");
 const errs_ = @import("errors.zig");
+const exec = @import("exec.zig").exec;
 const module_ = @import("module.zig");
+const Package = @import("package.zig");
 const primitives_ = @import("primitives.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 const Error: type = error{
@@ -27,11 +30,6 @@ pub const Context = struct {
 
     // Maps package names to their root module
     packages: std.StringArrayHashMap(*Package),
-
-    const Package = struct {
-        root: *symbol_.Symbol,
-        requirements: std.StringArrayHashMap(*symbol_.Symbol),
-    };
 
     /// Throws an error if the prelude could not be compiled
     pub fn init(alloc: std.mem.Allocator) Error!*Context {
@@ -128,11 +126,9 @@ pub const Context = struct {
         return self.packages.get(package_name).?.requirements.get(requirement_name);
     }
 
-    pub fn register_package(self: *Context, package_name: []const u8) void {
+    pub fn register_package(self: *Context, package_name: []const u8, package_absolute_path: []const u8, is_static_lib: bool) void {
         if (self.packages.get(package_name) == null) {
-            const package = self.allocator().create(Package) catch unreachable;
-            package.root = undefined; // filled in later
-            package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(self.allocator());
+            const package = Package.new(self.allocator(), package_name, package_absolute_path, is_static_lib);
             self.packages.put(package_name, package) catch unreachable;
         }
     }
@@ -163,5 +159,9 @@ pub const Context = struct {
             std.debug.print("  generating: {s}...\n", .{module.name});
             try module.output(self.allocator());
         }
+    }
+
+    pub fn compile_c(self: *Context, root_package_name: []const u8) !void {
+        try self.packages.get(root_package_name).?.compile_c(self.packages, self.allocator());
     }
 };
