@@ -122,32 +122,36 @@ pub const Context = struct {
         return self.modules.get(absolute_path);
     }
 
+    pub fn lookup_package(self: *Context, package_name: []const u8) ?*Package {
+        return self.packages.get(package_name);
+    }
+
     pub fn lookup_package_root_module(self: *Context, package_name: []const u8, requirement_name: []const u8) ?*symbol_.Symbol {
-        return self.packages.get(package_name).?.requirements.get(requirement_name);
+        return self.lookup_package(package_name).?.requirements.get(requirement_name);
     }
 
     pub fn register_package(self: *Context, package_name: []const u8, package_absolute_path: []const u8, is_static_lib: bool) void {
-        if (self.packages.get(package_name) == null) {
+        if (self.lookup_package(package_name) == null) {
             const package = Package.new(self.allocator(), package_name, package_absolute_path, is_static_lib);
             self.packages.put(package_name, package) catch unreachable;
         }
     }
 
     pub fn make_package_requirement_link(self: *Context, package_name: []const u8, requirement_name: []const u8) void {
-        const package = self.packages.get(package_name).?;
+        const package = self.lookup_package(package_name).?;
         const requirement = self.packages.get(requirement_name).?;
         package.requirements.put(requirement_name, requirement.root) catch unreachable;
     }
 
     pub fn set_package_root(self: *Context, package_name: []const u8, root: *symbol_.Symbol) void {
-        const package = self.packages.get(package_name).?;
+        const package = self.lookup_package(package_name).?;
         package.root = root;
     }
 
     pub fn output_modules(self: *Context) !void {
         // Start from root module, of each package, DFS through imports and generate
         for (self.packages.keys()) |package_name| {
-            const package = self.packages.get(package_name).?;
+            const package = self.lookup_package(package_name).?;
             const module = package.root.init.?.module.module;
 
             const package_path = module.get_package_abs_path();

@@ -23,12 +23,14 @@ const Command_Entry: type = struct {
     func: Command, // Command to be performed when selected
 };
 
+// Keep these in alphabetical order
 const command_table = [_]Command_Entry{
     Command_Entry{ .name = "build", .help = "Builds an Orng package", .func = build },
     Command_Entry{ .name = "_fuzz_tokens", .help = "Builds an Orng package with fuzz tokens", .func = build },
     Command_Entry{ .name = "help", .help = "Prints this help menu", .func = help },
-    Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
     Command_Entry{ .name = "init", .help = "Creates two files, one containing a sample Hello World program and a file to allow for it to be built", .func = init },
+    Command_Entry{ .name = "run", .help = "Builds and runs an Orng package", .func = build },
+    Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
 };
 
 // Right now, I'll see if it's possible to store the main.orng and build.orng functions as text and write them to a file - dellzer 12/8/24
@@ -66,7 +68,6 @@ pub fn main() !void {
 }
 
 fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Allocator) Command_Error!void {
-    _ = name;
     _ = args;
     // Get the path
     const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
@@ -103,6 +104,26 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
     try compiler.compile_c(package_name, false);
 
     std.debug.print("done\n", .{});
+
+    if (std.mem.eql(u8, name, "run")) {
+        const curr_package = compiler.lookup_package(package_name).?;
+        if (curr_package.is_static_lib) {
+            (errs_.Error{ .basic = .{
+                .msg = "cannot run a non-executable package",
+                .span = span_.phony_span,
+            } }).fatal_error();
+            return error.CompileError;
+        }
+
+        const argv = &[_][]const u8{curr_package.output_absolute_path};
+        var child = std.process.Child.init(argv, allocator);
+        child.stdin_behavior = .Inherit;
+        child.stdout_behavior = .Inherit;
+        child.stderr_behavior = .Inherit;
+
+        child.spawn() catch return error.CompileError;
+        _ = child.wait() catch return error.CompileError;
+    }
 }
 
 fn make_package(

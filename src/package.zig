@@ -8,6 +8,7 @@ const Package = @This();
 
 name: []const u8,
 absolute_path: []const u8,
+output_absolute_path: []const u8,
 root: *symbol_.Symbol,
 local_modules: std.ArrayList(*module_.Module),
 requirements: std.StringArrayHashMap(*symbol_.Symbol),
@@ -17,6 +18,7 @@ visited: bool,
 pub fn new(allocator: std.mem.Allocator, package_name: []const u8, package_absolute_path: []const u8, is_static_lib: bool) *Package {
     const package = allocator.create(Package) catch unreachable;
     package.root = undefined; // filled in later
+    package.output_absolute_path = undefined; // filled in when the output binary is created
     package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(allocator);
     package.local_modules = std.ArrayList(*module_.Module).init(allocator);
     package.visited = false;
@@ -222,10 +224,6 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
     for (self.requirements.keys()) |requirement_name| {
         const requirement = packages.get(requirement_name).?;
 
-        // var requirement_include_path = String.init(allocator);
-        // requirement_include_path.writer().print("-I{s}/build", .{requirement.root.init.?.module.module.get_package_abs_path()}) catch unreachable;
-        // cmd.append(requirement_include_path.str()) catch unreachable;
-
         var requirement_library_path = String.init(allocator);
         requirement_library_path.writer().print("{s}/build", .{requirement.root.init.?.module.module.get_package_abs_path()}) catch unreachable;
         cmd.append("-L") catch unreachable;
@@ -236,11 +234,15 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         cmd.append(requirement_library.str()) catch unreachable;
     }
 
-    // Add the executable name
-    var lib_name = String.init(allocator);
-    lib_name.writer().print("{s}", .{self.name}) catch unreachable;
+    // Add the output name
+    var output_name = String.init(allocator);
+    output_name.writer().print("{s}", .{self.name}) catch unreachable;
     cmd.append("-o") catch unreachable;
-    cmd.append(lib_name.str()) catch unreachable;
+    cmd.append(output_name.str()) catch unreachable;
+
+    var output_absolute_path = String.init(allocator);
+    output_absolute_path.writer().print("{s}/build/{s}", .{ self.absolute_path, self.name }) catch unreachable;
+    self.output_absolute_path = output_absolute_path.str();
 
     // Set cwd
     var cwd_string = String.init(allocator);
