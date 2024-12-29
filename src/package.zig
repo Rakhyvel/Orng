@@ -81,11 +81,15 @@ fn gcc(
     gcc_cmd.append(output_flag_string.str()) catch unreachable;
 
     const src_path = std.fs.path.dirname(@src().file).?;
-    const orng_path = std.fs.path.dirname(src_path) orelse ".";
+    const orng_path = std.fs.path.dirname(src_path);
     var std_path = String.init(allocator);
-    std_path.writer().print("-I{s}/std", .{orng_path}) catch unreachable;
+    if (orng_path != null) {
+        std_path.writer().print("-I{s}/std", .{orng_path.?}) catch unreachable;
+    } else {
+        std_path.writer().print("-Istd", .{}) catch unreachable;
+    }
 
-    std.debug.print("src:{s}", .{@src().file});
+    std.debug.print("src:{s}", .{std_path.str()});
 
     // Add basic flags
     gcc_cmd.appendSlice(&[_][]const u8{
