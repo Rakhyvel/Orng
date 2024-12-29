@@ -1331,7 +1331,7 @@ fn validate_AST_internal(
             try type_check(ast.token().span, primitives_.unit_type, expected, &compiler.errors);
             return ast;
         },
-        else => std.debug.panic("compiler error: validate_AST() unimplemented for {s}\n", .{@tagName(ast.*)}),
+        else => std.debug.panic("compiler error: validate_AST() unimplemented for {s}", .{@tagName(ast.*)}),
     }
 }
 
@@ -1665,7 +1665,7 @@ fn positional_args(
 
         .unit_type, .identifier => filled_args = asts,
 
-        else => std.debug.panic("compiler error: positional_args(): unimplemented for {s}\n", .{@tagName(expected.*)}),
+        else => std.debug.panic("compiler error: positional_args(): unimplemented for {s}", .{@tagName(expected.*)}),
     }
     return filled_args;
 }
@@ -1992,7 +1992,7 @@ fn assert_pattern_matches(
             }
         },
         .pattern_symbol => {},
-        else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}\n", .{@tagName(pattern.*)}),
+        else => std.debug.panic("compiler error: unimplemented assert_pattern_matches() for {s}", .{@tagName(pattern.*)}),
     }
     _ = pattern.assert_ast_valid();
 }
@@ -2105,6 +2105,6 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
         } else {
             return generate_default(_type.annotation.type, span, errors, allocator);
         },
-        else => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)}),
+        else => std.debug.panic("compiler error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
     }
 }

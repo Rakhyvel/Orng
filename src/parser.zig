@@ -1258,7 +1258,7 @@ fn resolve_escapes(input: []const u8, allocator: std.mem.Allocator) []const u8 {
                 retval.append(get_nibble(input[j + 1]) * 16 + get_nibble(input[j + 2])) catch unreachable;
                 skip = 2;
             } else {
-                std.debug.panic("compiler error: unknown escape sequence '{c}'\n", .{byte});
+                std.debug.panic("compiler error: unknown escape sequence '{c}'", .{byte});
             }
         } else {
             if (byte == '\\') {

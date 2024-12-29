@@ -798,7 +798,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 .{ir.data.string},
             );
         },
-        else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}\n", .{@tagName(ir.kind)}),
+        else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}", .{@tagName(ir.kind)}),
     }
 }
 

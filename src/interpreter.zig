@@ -359,7 +359,7 @@ pub const Context = struct {
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
                 return self.interpreter_panic("interpreter error: reached unreachable code\n", .{});
             },
-            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
+            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}", .{@tagName(ir.kind)}),
         }
     }
 
@@ -539,7 +539,7 @@ pub const Context = struct {
                 return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_ast_valid();
             },
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
-            else => std.debug.panic("interpreter error: unimplemented generate_default() for: AST.{s}\n", .{@tagName(_type.*)}),
+            else => std.debug.panic("interpreter error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
         }
     }
 
@@ -746,7 +746,7 @@ pub const Context = struct {
             2 => self.store(i16, address, @as(i16, @intCast(val))),
             4 => self.store(i32, address, @as(i32, @intCast(val))),
             8 => self.store(i64, address, @as(i64, @intCast(val))),
-            else => std.debug.panic("interpreter error: cannot store an int of size {}\n", .{size}),
+            else => std.debug.panic("interpreter error: cannot store an int of size {}", .{size}),
         }
     }
 

@@ -536,7 +536,7 @@ fn lower_AST(
             return null;
         },
 
-        else => std.debug.panic("compiler error: unimplemented lower_AST() for: AST.{s}\n", .{@tagName(ast.*)}),
+        else => std.debug.panic("compiler error: unimplemented lower_AST() for: AST.{s}", .{@tagName(ast.*)}),
     }
 }
 
@@ -1035,7 +1035,7 @@ fn generate_match_pattern_check(
             cfg.append_instruction(ir_.IR.init(.equal, neql, tag, sel, pattern.?.token().span, allocator));
             cfg.append_instruction(ir_.IR.init_branch(neql, next_pattern, pattern.?.token().span, allocator));
         },
-        else => std.debug.panic("compiler error: unimplemented generate_match_pattern_check() for {s}\n", .{@tagName(pattern.?.*)}),
+        else => std.debug.panic("compiler error: unimplemented generate_match_pattern_check() for {s}", .{@tagName(pattern.?.*)}),
     }
 }
 
