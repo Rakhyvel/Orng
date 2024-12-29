@@ -263,7 +263,7 @@ fn output_interned_strings(interned_strings: *std.ArrayList([]const u8), writer:
 
     // Output each string in the string hash map
     for (0..interned_strings.items.len) |i| {
-        try writer.print("char* string_{} = \"", .{i});
+        try writer.print("static char* string_{} = \"", .{i});
         // Print each byte in the string in hex format
         const str = interned_strings.items[i];
         for (str) |byte| {

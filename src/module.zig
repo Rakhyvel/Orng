@@ -319,11 +319,13 @@ pub const Module = struct {
     }
 
     /// Takes in a statically correct symbol tree, writes it out to a file
-    pub fn output(self: *Module, allocator: std.mem.Allocator) !void {
+    pub fn output(self: *Module, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
         if (self.visited) {
             return;
         }
         self.visited = true;
+
+        local_modules.append(self) catch unreachable;
 
         const package_path = self.get_package_abs_path();
         var output_c_filename = String.init(allocator);
@@ -346,7 +348,7 @@ pub const Module = struct {
 
         for (self.local_imported_modules.keys()) |child| {
             if (std.mem.eql(u8, child.package_name, self.package_name)) {
-                try child.output(allocator);
+                try child.output(local_modules, allocator);
             }
         }
     }

@@ -157,7 +157,7 @@ pub const Context = struct {
             std.fs.makeDirAbsolute(build_path) catch unreachable;
 
             std.debug.print("  generating: {s}...\n", .{module.name});
-            try module.output(self.allocator());
+            try module.output(&package.local_modules, self.allocator());
         }
     }
 
