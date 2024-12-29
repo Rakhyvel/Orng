@@ -7,7 +7,7 @@ on:
     branches: [ main ]
   
 env:
-  ORNG_STD_PATH: ${{ GITHUB_WORKSPACE }}/std
+  ORNG_STD_PATH: ${{ env.GITHUB_WORKSPACE }}/std
 
 jobs:
   build-and-test:
