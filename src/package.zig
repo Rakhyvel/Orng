@@ -80,11 +80,12 @@ fn gcc(
     output_flag_string.writer().print("-o{s}", .{o_file}) catch unreachable;
     gcc_cmd.append(output_flag_string.str()) catch unreachable;
 
-    std.debug.print("src:{s}", .{@src().file});
-
-    const orng_path = std.fs.path.dirname(std.fs.path.dirname(@src().file).?) orelse "";
+    const src_path = std.fs.path.dirname(@src().file).?;
+    const orng_path = std.fs.path.dirname(src_path) orelse ".";
     var std_path = String.init(allocator);
     std_path.writer().print("-I{s}/std", .{orng_path}) catch unreachable;
+
+    std.debug.print("src:{s}", .{@src().file});
 
     // Add basic flags
     gcc_cmd.appendSlice(&[_][]const u8{
