@@ -95,6 +95,7 @@ pub const Module = struct {
         retval.uid = module_uids;
         module_uids += 1;
         retval.name = name;
+        std.debug.assert(std.fs.path.isAbsolute(absolute_path));
         retval.absolute_path = absolute_path;
         retval.package_name = std.fs.path.basename(std.fs.path.dirname(absolute_path).?);
         retval.interned_strings = std.ArrayList([]const u8).init(allocator);
@@ -319,7 +320,7 @@ pub const Module = struct {
     }
 
     /// Takes in a statically correct symbol tree, writes it out to a file
-    pub fn output(self: *Module, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
+    pub fn output(self: *Module, build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
         if (self.visited) {
             return;
         }
@@ -327,17 +328,18 @@ pub const Module = struct {
 
         local_modules.append(self) catch unreachable;
 
-        const package_path = self.get_package_abs_path();
         var output_c_filename = String.init(allocator);
         defer output_c_filename.deinit();
         var output_h_filename = String.init(allocator);
         defer output_h_filename.deinit();
         output_c_filename.writer().print("{s}-{s}.c", .{ self.package_name, self.name }) catch unreachable;
         output_h_filename.writer().print("{s}-{s}.h", .{ self.package_name, self.name }) catch unreachable;
-        const out_c_paths = [_][]const u8{ package_path, "build", output_c_filename.str() };
-        const out_h_paths = [_][]const u8{ package_path, "build", output_h_filename.str() };
+        const out_c_paths = [_][]const u8{ build_path, output_c_filename.str() };
+        const out_h_paths = [_][]const u8{ build_path, output_h_filename.str() };
         const out_c_path = std.fs.path.join(allocator, &out_c_paths) catch unreachable;
         const out_h_path = std.fs.path.join(allocator, &out_h_paths) catch unreachable;
+
+        std.debug.print("here:{s}\n", .{out_c_path});
 
         var output_c_file = std.fs.createFileAbsolute(out_c_path, .{}) catch unreachable;
         defer output_c_file.close();
@@ -348,7 +350,7 @@ pub const Module = struct {
 
         for (self.local_imported_modules.keys()) |child| {
             if (std.mem.eql(u8, child.package_name, self.package_name)) {
-                try child.output(local_modules, allocator);
+                try child.output(build_path, local_modules, allocator);
             }
         }
     }
