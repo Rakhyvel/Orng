@@ -29,6 +29,7 @@ jobs:
     - name: Build example project
       run: |
         #!/bin/bash
+        export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         zig build orng
         cd examples
         ../zig-out/bin/orng build
