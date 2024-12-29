@@ -43,7 +43,8 @@ pub fn main() !void {
 
     // Get second command line argument
     var args = std.process.ArgIterator.initWithAllocator(allocator) catch unreachable;
-    _ = args.next() orelse unreachable;
+    const location = args.next() orelse unreachable;
+    _ = location; // autofix
 
     // Parse the command arg
     const command = args.next() orelse {

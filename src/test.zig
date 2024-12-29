@@ -22,6 +22,9 @@ const Test_File_Fn = fn ([]const u8, bool) bool;
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
     _ = args.next() orelse unreachable;
+
+    _ = std.fs.cwd().realpathAlloc(allocator, ".") catch unreachable;
+
     var arg: []const u8 = undefined;
     if (args.next()) |_arg| {
         arg = _arg;

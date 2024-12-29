@@ -80,7 +80,10 @@ fn gcc(
     output_flag_string.writer().print("-o{s}", .{o_file}) catch unreachable;
     gcc_cmd.append(output_flag_string.str()) catch unreachable;
 
-    const std_path = std.fs.cwd().realpathAlloc(allocator, "../std") catch unreachable;
+    var env_map = std.process.getEnvMap(allocator) catch unreachable;
+    defer env_map.deinit();
+
+    const std_path = env_map.get("ORNG_STD_PATH").?;
     var std_include_path = String.init(allocator);
     std_include_path.writer().print("-I{s}", .{std_path}) catch unreachable;
 

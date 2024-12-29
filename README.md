@@ -19,6 +19,11 @@ Orng is a versatile systems programming language I've been developing that gives
 ```sh
 # Orng compiler requires Zig 0.13.0 at the moment
 git clone --recursive https://github.com/Rakhyvel/Orng.git
+
+# Set the Orng Standard Library path environment variable
+export ORNG_STD_PATH="/wherever/you/put/Orng/std"
+
+# Build Orng
 cd Orng
 zig build orng
 ```
