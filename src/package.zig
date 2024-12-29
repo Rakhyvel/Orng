@@ -80,17 +80,21 @@ fn gcc(
     output_flag_string.writer().print("-o{s}", .{o_file}) catch unreachable;
     gcc_cmd.append(output_flag_string.str()) catch unreachable;
 
+    const orng_path = std.fs.path.dirname(std.fs.path.dirname(@src().file).?).?;
+    var std_path = String.init(allocator);
+    std_path.writer().print("-I{s}/std", .{orng_path}) catch unreachable;
+
     // Add basic flags
     gcc_cmd.appendSlice(&[_][]const u8{
         "-std=c11",
         "-O3",
         "-g",
-        "-I/home/jshimel/Orng/std",
+        std_path.str(),
     }) catch unreachable;
 
     if (extra_flags) {
         gcc_cmd.appendSlice(&[_][]const u8{
-            // "-Werror",
+            // "-Werror", // TODO: Requires us to know when interned strings are unused
             "-Wall",
             "-Wextra",
             "-Wpedantic",
