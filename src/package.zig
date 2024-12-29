@@ -26,7 +26,7 @@ pub fn new(allocator: std.mem.Allocator, package_name: []const u8, package_absol
     return package;
 }
 
-pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), extra_flags: bool, allocator: std.mem.Allocator) !void {
     if (self.visited) {
         return;
     }
@@ -34,9 +34,9 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), all
 
     for (self.requirements.keys()) |requirement_name| {
         const required_package = packages.get(requirement_name).?;
-        try required_package.compile_c(packages, allocator);
+        try required_package.compile_c(packages, extra_flags, allocator);
     }
-    std.debug.print("DOING PACKAGE {s}: {s}: {} module(s)\n", .{ self.name, self.absolute_path, self.local_modules.items.len });
+    // std.debug.print("DOING PACKAGE {s}: {s}: {} module(s)\n", .{ self.name, self.absolute_path, self.local_modules.items.len });
 
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
@@ -47,7 +47,7 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), all
         o_file.writer().print("{s}.o", .{local_module.name}) catch unreachable;
         obj_files.append(o_file.str()) catch unreachable;
 
-        try self.gcc(c_file.str(), o_file.str(), packages, allocator);
+        try self.gcc(c_file.str(), o_file.str(), packages, extra_flags, allocator);
     }
     if (self.is_static_lib) {
         try self.ar(obj_files, allocator);
@@ -56,7 +56,14 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), all
     }
 }
 
-fn gcc(self: *Package, c_file: []const u8, o_file: []const u8, packages: std.StringArrayHashMap(*Package), allocator: std.mem.Allocator) !void {
+fn gcc(
+    self: *Package,
+    c_file: []const u8,
+    o_file: []const u8,
+    packages: std.StringArrayHashMap(*Package),
+    extra_flags: bool,
+    allocator: std.mem.Allocator,
+) !void {
     // Base gcc command
     var gcc_cmd = std.ArrayList([]const u8).init(allocator);
     gcc_cmd.appendSlice(&[_][]const u8{
@@ -78,6 +85,33 @@ fn gcc(self: *Package, c_file: []const u8, o_file: []const u8, packages: std.Str
         "-g",
         "-I/home/jshimel/Orng/std",
     }) catch unreachable;
+
+    if (extra_flags) {
+        gcc_cmd.appendSlice(&[_][]const u8{
+            // "-Werror",
+            "-Wall",
+            "-Wextra",
+            "-Wpedantic",
+            "-pedantic-errors",
+            "-Wconversion",
+            "-Wsign-conversion",
+            "-Wfloat-conversion",
+            "-Wcast-qual",
+            "-Wlogical-op",
+            "-Wshadow",
+            "-Wformat=2",
+            "-Wmisleading-indentation",
+            "-Wstrict-prototypes",
+            "-Wmissing-prototypes",
+            "-Winit-self",
+            "-Wjump-misses-init",
+            "-Wdeclaration-after-statement",
+            "-Wbad-function-cast",
+            "-Wc11-c2x-compat",
+            "-Wcast-align",
+            // "-fsanitize=undefined,address", // TODO: Needs some kind of linking
+        }) catch unreachable;
+    }
 
     // Add dependency include directories and libraries
     for (self.requirements.keys()) |requirement_name| {

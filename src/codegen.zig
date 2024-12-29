@@ -325,11 +325,9 @@ fn output_impls(
             if (!decl.method_decl.is_virtual) {
                 continue;
             }
-            try writer.print("    .{s} = _{}_{s},\n", .{
-                decl.method_decl.name.token().data,
-                decl.symbol().?.scope.uid,
-                decl.symbol().?.name,
-            });
+            try writer.print("    .{s} = ", .{decl.method_decl.name.token().data});
+            try output_symbol(decl.symbol().?, writer);
+            try writer.print(",\n", .{});
         }
         try writer.print("}};\n\n", .{});
     }
@@ -481,8 +479,8 @@ fn output_var_decl(
 fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     if (symbol.kind == .@"extern") {
         try writer.print("{s}", .{symbol.kind.@"extern".c_name.?.string.data});
-    } else if (symbol.decl != null and symbol.decl.?.top_level()) {
-        try writer.print("{s}_{s}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name, symbol.name });
+    } else if (symbol.decl != null and symbol.decl.?.* != .receiver and symbol.decl.?.top_level()) {
+        try writer.print("p{s}_m{s}_{}_{s}", .{ symbol.scope.module.?.package_name, symbol.scope.module.?.name, symbol.scope.uid, symbol.name });
     } else {
         try writer.print("_{}_{s}", .{ symbol.scope.uid, symbol.name });
     }

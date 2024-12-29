@@ -100,7 +100,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 
     try compiler.output_modules();
 
-    try compiler.compile_c(package_name);
+    try compiler.compile_c(package_name, false);
 
     std.debug.print("done\n", .{});
 }

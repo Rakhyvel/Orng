@@ -156,12 +156,12 @@ pub const Context = struct {
             std.fs.deleteTreeAbsolute(build_path) catch unreachable;
             std.fs.makeDirAbsolute(build_path) catch unreachable;
 
-            std.debug.print("  generating: {s}...\n", .{module.name});
+            // std.debug.print("  generating: {s}...\n", .{module.name});
             try module.output(build_path, &package.local_modules, self.allocator());
         }
     }
 
-    pub fn compile_c(self: *Context, root_package_name: []const u8) !void {
-        try self.packages.get(root_package_name).?.compile_c(self.packages, self.allocator());
+    pub fn compile_c(self: *Context, root_package_name: []const u8, extra_flags: bool) !void {
+        try self.packages.get(root_package_name).?.compile_c(self.packages, extra_flags, self.allocator());
     }
 };
