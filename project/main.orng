@@ -1,0 +1,5 @@
+import std::debug
+
+fn main() -> () {
+    debug::println("Hello, World!")
+}

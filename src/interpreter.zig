@@ -827,12 +827,12 @@ pub const Context = struct {
 
     /// Signals an interpreter panic, printing an error message and call stack information.
     fn interpreter_panic(self: *Context, comptime msg: []const u8, args: anytype) error{CompileError} {
-        std.io.getStdErr().writer().print(msg, args) catch return error.CompileError;
+        std.io.getStdOut().writer().print(msg, args) catch return error.CompileError;
 
         var i = self.debug_call_stack.items.len - 1;
         while (true) {
             const stack_span = self.debug_call_stack.items[i];
-            stack_span.print_debug_line(std.io.getStdErr().writer(), span_.interpreter_format) catch return error.CompileError;
+            stack_span.print_debug_line(std.io.getStdOut().writer(), span_.interpreter_format) catch return error.CompileError;
 
             if (i == 0) {
                 break;
