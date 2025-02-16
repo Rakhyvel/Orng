@@ -8,7 +8,11 @@ on:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest # TODO: Should build on Windows too!
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-2019]  # Add Windows support here
+    
+    runs-on: ${{ matrix.os }}
     
     steps:
     - name: Checkout main
@@ -26,8 +30,16 @@ jobs:
       with:
         zig-version: 0.13.0
     
+    - name: Set ORNG_STD_PATH (Linux)
+      if: runner.os == 'Linux'
+      run: export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+    
+    - name: Set ORNG_STD_PATH (Windows)
+      if: runner.os == 'Windows'
+      run: echo "ORNG_STD_PATH=$GITHUB_WORKSPACE\std" >> $GITHUB_ENV
+
     - name: Build project
-      run: export ORNG_STD_PATH="$GITHUB_WORKSPACE/std" && python tests/test.py all --no-coverage
+      run: python tests/test.py all --no-coverage
 
     # Optional: Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
