@@ -37,7 +37,9 @@ jobs:
     
     - name: Build project (Linux)
       if: runner.os == 'Linux'
-      run: export ORNG_STD_PATH="$GITHUB_WORKSPACE/std" && python tests/test.py all --no-coverage
+      run: |
+        export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+        python tests/test.py all --no-coverage
     
     - name: Build project (Windows)
       if: runner.os == 'Windows'
