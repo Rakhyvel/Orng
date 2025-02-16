@@ -41,7 +41,7 @@ jobs:
     
     - name: Build project (Windows)
       if: runner.os == 'Windows'
-      run: echo "ORNG_STD_PATH=$GITHUB_WORKSPACE\std" >> $GITHUB_ENV ; python3.10 .\tests\test.py all --no-coverage
+      run: echo "ORNG_STD_PATH=$GITHUB_WORKSPACE\std" >> $GITHUB_ENV ; python .\tests\test.py all --no-coverage
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
