@@ -33,17 +33,6 @@ const command_table = [_]Command_Entry{
     Command_Entry{ .name = "version", .help = "Prints the version of Orng", .func = print_version },
 };
 
-const Env_Var_Entry: type = struct {
-    name: []const u8, // Name of the environment variable
-    kind: enum { dir_path, file_path }, // What kind of environment variable this is
-};
-
-const env_var_table = [_]Env_Var_Entry{
-    Env_Var_Entry{ .name = "ORNG_STD_PATH", .kind = .dir_path },
-};
-
-// Right now, I'll see if it's possible to store the main.orng and build.orng functions as text and write them to a file - dellzer 12/8/24
-
 // Accepts a file as an argument. That file should contain orng constant/type/function declarations, and an entry-point
 // Files may also call some built-in compiletime functions which may import other Orng files, C headers, etc...
 // Afterwards, the program is collated to a CFG and written to a .c file. A C compiler may be called, and a
@@ -145,55 +134,36 @@ fn validate_env_vars(allocator: std.mem.Allocator) Command_Error!void {
     const build_path_buffer = std.heap.page_allocator.alloc(u8, std.fs.MAX_PATH_BYTES) catch unreachable;
     defer std.heap.page_allocator.free(build_path_buffer);
 
-    for (env_var_table) |env_var_entry| {
-        const env_var_res = env_map.get(env_var_entry.name);
-        if (env_var_res == null) {
-            // TODO: Better error format
-            (errs_.Error{
-                .basic = .{
-                    .msg = "an environment variable is not defined",
-                    .span = span_.phony_span,
-                },
-            }).fatal_error();
-            return error.CompileError;
-        }
-
-        switch (env_var_entry.kind) {
-            .dir_path => _ = std.fs.Dir.openDir(std.fs.cwd(), env_var_res.?, .{}) catch |err| switch (err) {
-                error.FileNotFound => {
-                    (errs_.Error{ .basic = .{
-                        .msg = "the path specified by an environment variable does not exist",
-                        .span = span_.phony_span,
-                    } }).fatal_error();
-                    return error.CompileError;
-                },
-                error.NotDir => {
-                    (errs_.Error{ .basic = .{
-                        .msg = "the path specified by an environment variable does not refer to a directory",
-                        .span = span_.phony_span,
-                    } }).fatal_error();
-                    return error.CompileError;
-                },
-                else => {
-                    std.debug.print("an unexpected error occurred when trying to stat an environment variable: {}\n", .{err});
-                    return error.CompileError;
-                },
+    const env_var_res = env_map.get("ORNG_STD_PATH");
+    if (env_var_res == null) {
+        (errs_.Error{
+            .basic = .{
+                .msg = "an environment variable is not defined",
+                .span = span_.phony_span,
             },
-            .file_path => _ = std.fs.Dir.openFile(std.fs.cwd(), env_var_res.?, .{}) catch |err| switch (err) {
-                error.FileNotFound => {
-                    (errs_.Error{ .basic = .{
-                        .msg = "the path specified by an environment variable does not exist",
-                        .span = span_.phony_span,
-                    } }).fatal_error();
-                    return error.CompileError;
-                },
-                else => {
-                    std.debug.print("an unexpected error occurred when trying to stat an environment variable: {}\n", .{err});
-                    return error.CompileError;
-                },
-            },
-        }
+        }).fatal_error();
+        return error.CompileError;
     }
+    _ = std.fs.Dir.openDir(std.fs.cwd(), env_var_res.?, .{}) catch |err| switch (err) {
+        error.FileNotFound => {
+            (errs_.Error{ .basic = .{
+                .msg = "the path specified by an environment variable does not exist",
+                .span = span_.phony_span,
+            } }).fatal_error();
+            return error.CompileError;
+        },
+        error.NotDir => {
+            (errs_.Error{ .basic = .{
+                .msg = "the path specified by an environment variable does not refer to a directory",
+                .span = span_.phony_span,
+            } }).fatal_error();
+            return error.CompileError;
+        },
+        else => {
+            std.debug.print("an unexpected error occurred when trying to stat an environment variable: {}\n", .{err});
+            return error.CompileError;
+        },
+    };
 }
 
 fn make_package(
