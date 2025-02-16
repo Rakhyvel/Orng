@@ -26,6 +26,7 @@ commands:
 import argparse
 import datetime
 import os
+import platform
 import shutil
 import subprocess
 
@@ -37,7 +38,8 @@ SRC_DIR = os.path.normpath(os.path.join(TEST_DIR, "..", "src"))
 def main():
     args = parse_args()
 
-    subprocess.run(["rm", "-rf", "zig-cache", "zig-out"])
+    shutil.rmtree("zig-cache", ignore_errors=True)
+    shutil.rmtree("zig-out", ignore_errors=True)
     res = subprocess.run(["zig", "build", "orng-test"]).returncode
     if res != 0:
         exit(1)
@@ -51,8 +53,8 @@ def main():
             all(args)
         case "fuzz":
             fuzz()
-        case "count":
-            count(args)
+        # case "count":
+        #     count(args)
 
 
 def parse_args():
@@ -91,7 +93,10 @@ def integration(args):
     if args.no_coverage:
         return
     elif res == 0:
-        shutil.rmtree("kcov-out")
+        if platform.system() == "Windows":
+            print("test coverage not supported on Windows :(")
+            return
+        shutil.rmtree("kcov-out", ignore_errors=True)
         subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
         print("kcov ouput written to kcov-out/index.html")
     else:
@@ -110,6 +115,9 @@ def negative(args):
     if args.no_coverage:
         return
     elif res == 0:
+        if platform.system() == "Windows":
+            print("test coverage not supported on Windows :(")
+            return
         subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative-coverage"] + files)
         print("kcov ouput written to kcov-out/index.html")
     else:
@@ -119,12 +127,12 @@ def negative(args):
 def all(args):
     files = collect_files(args, "tests/integration")
     integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
-    if not args.no_coverage:
+    if not args.no_coverage and platform.system() != "Windows":
         subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
         
     files = collect_files(args, "tests/negative")
     negative_res = 0
-    if not args.no_coverage:
+    if not args.no_coverage and platform.system() != "Windows":
         subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
     else:
         negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode

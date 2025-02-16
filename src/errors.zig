@@ -577,6 +577,7 @@ pub const Error = union(enum) {
     }
 };
 
+// This is for compatability with Windows, since stdout for Windows isn't known at compile-time
 fn get_std_err() std.fs.File.Writer {
     return std.io.getStdErr().writer();
 }
