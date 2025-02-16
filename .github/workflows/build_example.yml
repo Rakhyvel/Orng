@@ -37,6 +37,7 @@ jobs:
     
     - name: Build example project (Linux)
       if: runner.os == 'Linux'
+      shell: bash
       run: |
         #!/bin/bash
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
@@ -46,6 +47,7 @@ jobs:
     
     - name: Build example project (Windows)
       if: runner.os == 'Windows'
+      shell: bash
       run: |
         #!/bin/bash
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
