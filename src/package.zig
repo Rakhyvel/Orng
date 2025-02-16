@@ -42,8 +42,13 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
     var obj_files = std.ArrayList([]const u8).init(allocator);
     for (self.local_modules.items) |local_module| {
         var c_file = String.init(allocator);
-        // TODO: OS independent sep
-        c_file.writer().print("{s}\\build\\{s}-{s}.c", .{ self.absolute_path, self.name, local_module.name }) catch unreachable;
+        c_file.writer().print("{s}{c}build{c}{s}-{s}.c", .{
+            self.absolute_path,
+            std.fs.path.sep,
+            std.fs.path.sep,
+            self.name,
+            local_module.name,
+        }) catch unreachable;
 
         var o_file = String.init(allocator);
         o_file.writer().print("{s}.o", .{local_module.name}) catch unreachable;
@@ -124,8 +129,7 @@ fn gcc(
         const requirement = packages.get(requirement_name).?;
 
         var requirement_include_path = String.init(allocator);
-        // TODO: OS independent sep
-        requirement_include_path.writer().print("-I{s}\\build", .{requirement.root.init.?.module.module.get_package_abs_path()}) catch unreachable;
+        requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         gcc_cmd.append(requirement_include_path.str()) catch unreachable;
 
         // var requirement_library_path = String.init(allocator);
@@ -176,7 +180,6 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
 
     // Base command
     var cmd = std.ArrayList([]const u8).init(allocator);
-    // TODO: ORNG_AR
     cmd.appendSlice(&[_][]const u8{
         "zig",
         "ar",
@@ -193,8 +196,7 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
 
     // Set cwd
     var cwd_string = String.init(allocator);
-    // TODO: OS independent sep
-    cwd_string.writer().print("{s}/build", .{self.absolute_path}) catch unreachable;
+    cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
@@ -229,7 +231,6 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
 
     // Base command
     var cmd = std.ArrayList([]const u8).init(allocator);
-    // TODO: ORNG_CC
     cmd.appendSlice(&[_][]const u8{ "zig", "cc" }) catch unreachable;
 
     // Add all the object files
@@ -239,8 +240,7 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         const requirement = packages.get(requirement_name).?;
 
         var requirement_library_path = String.init(allocator);
-        // TODO: OS independent sep
-        requirement_library_path.writer().print("{s}/build", .{requirement.root.init.?.module.module.get_package_abs_path()}) catch unreachable;
+        requirement_library_path.writer().print("{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         cmd.append("-L") catch unreachable;
         cmd.append(requirement_library_path.str()) catch unreachable;
 
@@ -256,21 +256,23 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
     cmd.append(output_name.str()) catch unreachable;
 
     var output_absolute_path = String.init(allocator);
-    // TODO: OS independent sep
-    output_absolute_path.writer().print("{s}/build/{s}", .{ self.absolute_path, self.name }) catch unreachable;
+    output_absolute_path.writer().print("{s}{c}build{c}{s}", .{
+        self.absolute_path,
+        std.fs.path.sep,
+        std.fs.path.sep,
+        self.name,
+    }) catch unreachable;
     self.output_absolute_path = output_absolute_path.str();
 
     // Set cwd
     var cwd_string = String.init(allocator);
-    // TODO: OS independent sep
-    cwd_string.writer().print("{s}\\build", .{self.absolute_path}) catch unreachable;
+    cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
 
     const run_res = std.process.Child.run(.{
         .allocator = allocator,
         .argv = cmd.items,
         .cwd = cwd_string.str(),
     }) catch unreachable;
-    std.debug.print("here (?)\n", .{});
 
     var retcode: u8 = 0;
     switch (run_res.term) {

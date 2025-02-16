@@ -7,5 +7,5 @@ fn main() -> () {
     
     externs::println("Hello, ")
     
-    //debug::println("World!")
+    debug::println("World!")
 }

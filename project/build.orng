@@ -1,5 +1,0 @@
-fn build() -> Package {
-    let mut retval = Package::executable(.root="main.orng")
-    retval.>requires("std", Package::find("../std"))
-    retval
-}
