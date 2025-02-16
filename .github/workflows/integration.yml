@@ -24,6 +24,11 @@ jobs:
         repository: 'JakubSzark/zig-string'
         path: src/zig-string
         submodules: recursive
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
     
     - name: Set up Zig
       uses: korandoru/setup-zig@v1
