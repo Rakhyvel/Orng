@@ -131,16 +131,6 @@ fn gcc(
         var requirement_include_path = String.init(allocator);
         requirement_include_path.writer().print("-I{s}{c}build", .{ requirement.root.init.?.module.module.get_package_abs_path(), std.fs.path.sep }) catch unreachable;
         gcc_cmd.append(requirement_include_path.str()) catch unreachable;
-
-        // var requirement_library_path = String.init(allocator);
-        // // TODO: OS independent sep
-        // requirement_library_path.writer().print("{s}\\build", .{requirement.root.init.?.module.module.get_package_abs_path()}) catch unreachable;
-        // gcc_cmd.append("-L") catch unreachable;
-        // gcc_cmd.append(requirement_library_path.str()) catch unreachable;
-
-        // var requirement_library = String.init(allocator);
-        // requirement_library.writer().print("-l{s}", .{requirement_name}) catch unreachable;
-        // gcc_cmd.append(requirement_library.str()) catch unreachable;
     }
 
     // Set cwd
