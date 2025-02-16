@@ -40,8 +40,6 @@ const Env_Var_Entry: type = struct {
 
 const env_var_table = [_]Env_Var_Entry{
     Env_Var_Entry{ .name = "ORNG_STD_PATH", .kind = .dir_path },
-    Env_Var_Entry{ .name = "ORNG_CC", .kind = .file_path },
-    Env_Var_Entry{ .name = "ORNG_AR", .kind = .file_path },
 };
 
 // Right now, I'll see if it's possible to store the main.orng and build.orng functions as text and write them to a file - dellzer 12/8/24

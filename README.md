@@ -16,6 +16,7 @@ Orng is a versatile systems programming language I've been developing that gives
 * Documentation can be found [here (coming soon)](http://ornglang.orng/docs).
 
 ## 🚀 Quick Start
+<!-- TODO: Add Windows instructions -->
 ```sh
 # Orng compiler requires Zig 0.13.0 at the moment
 git clone --recursive https://github.com/Rakhyvel/Orng.git
