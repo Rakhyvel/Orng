@@ -41,9 +41,9 @@ jobs:
     
     - name: Build project (Windows)
       if: runner.os == 'Windows'
-      shell: bash 
+      shell: bash
       run: |
-        echo "ORNG_STD_PATH=${{ github.workspace }}/std" >> $env:GITHUB_ENV
+        export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         python tests/test.py all --no-coverage
 
     # Upload artifacts if build fails
