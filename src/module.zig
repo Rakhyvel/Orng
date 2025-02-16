@@ -125,7 +125,7 @@ pub const Module = struct {
         while (i < in_name.len and in_name[i] != '.') : (i += 1) {}
         const full_name: []const u8 = in_name[0..i];
         i = full_name.len - 1;
-        while (i >= 1 and full_name[i] != '/') : (i -= 1) {}
+        while (i >= 1 and full_name[i] != std.fs.path.sep) : (i -= 1) {}
         const short_name: []const u8 = full_name[i + 1 ..];
 
         // Create the symbol for this module
@@ -216,7 +216,7 @@ pub const Module = struct {
         try walker_.walk_asts_flat(&module_ast, Import.new(compiler, module));
         try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
-        try walker_.walk_asts(module_ast, Decorate_Access.new(file_root, compiler));
+        try walker_.walk_asts(module_ast, Decorate_Access.new(file_root, &compiler.errors, compiler));
 
         // Validate the module
         try ast_validate_.validate_module(module, compiler);
@@ -578,7 +578,7 @@ pub fn stamp(
 
         // Decorate identifiers, validate
         const decorate_context = Decorate.new(scope, &compiler.errors, compiler.allocator());
-        const decorate_access_context = Decorate_Access.new(scope, compiler);
+        const decorate_access_context = Decorate_Access.new(scope, &compiler.errors, compiler);
         for (const_decls.items) |decl| {
             try walker_.walk_ast(decl, decorate_context);
             try walker_.walk_ast(decl, decorate_access_context);

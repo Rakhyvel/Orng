@@ -9,12 +9,13 @@ const symbol_ = @import("symbol.zig");
 const walk_ = @import("walker.zig");
 
 scope: *symbol_.Scope,
+errors: *errs_.Errors,
 compiler: *compiler_.Context,
 
 const Self = @This();
 
-pub fn new(scope: *symbol_.Scope, compiler: *compiler_.Context) Self {
-    return Self{ .scope = scope, .compiler = compiler };
+pub fn new(scope: *symbol_.Scope, errors: *errs_.Errors, compiler: *compiler_.Context) Self {
+    return Self{ .scope = scope, .errors = errors, .compiler = compiler };
 }
 
 pub fn prefix(self: Self, ast: *ast_.AST) walk_.Error!?Self {
@@ -88,8 +89,29 @@ fn resolve_access_symbol(self: Self, lhs: *symbol_.Symbol, rhs: *ast_.AST, scope
         },
 
         .import => {
-            const module_lookup_res = lhs.scope.parent.?.lookup(lhs.kind.import.real_name, .{ .allow_modules = true }).found;
-            return try self.resolve_access_symbol(module_lookup_res, rhs, scope);
+            const res = lhs.scope.parent.?.lookup(lhs.kind.import.real_name, .{ .allow_modules = true });
+            switch (res) {
+                // Found the symbol, decorate the identifier AST with it
+                .found => return try self.resolve_access_symbol(res.found, rhs, scope),
+
+                // Couldn't find the symbol
+                .not_found => {
+                    self.errors.add_error(errs_.Error{ .undeclared_identifier = .{ .identifier = rhs.token(), .expected = null } });
+                    return error.CompileError;
+                },
+
+                // Found the symbol, but must cross a comptime-boundary to access it, and it is not const
+                .found_but_rt => {
+                    self.errors.add_error(errs_.Error{ .comptime_access_runtime = .{ .identifier = rhs.token() } });
+                    return error.CompileError;
+                },
+
+                // Found the symbol, but must cross an inner-function boundary to access it, and it is not const
+                .found_but_fn => {
+                    self.errors.add_error(errs_.Error{ .inner_fn_access_runtime = .{ .identifier = rhs.token() } });
+                    return error.CompileError;
+                },
+            }
         },
 
         .import_inner => {

@@ -13,7 +13,7 @@ pub const c_format: Span_Format = .{
 };
 
 pub const interpreter_format: Span_Format = .{
-    .fmt_str = "{s}:{}:{}:\n{s}\n{s}^\n",
+    .fmt_str = "{s}:{}:{}:\n{s}\n{s}A^\n",
     .sanitize = false,
 };
 
@@ -35,13 +35,16 @@ pub const Span = struct {
                 spaces.insert(" ", spaces.size) catch unreachable;
             }
         }
+
+        const sanitized_filename = sanitize_string(self.filename, std.heap.page_allocator);
+
         const text_to_write = if (span_format.sanitize)
             sanitize_string(self.line_text, std.heap.page_allocator)
         else
             self.line_text;
 
         try writer.print(span_format.fmt_str, .{
-            self.filename,
+            sanitized_filename,
             self.line_number,
             self.col,
             text_to_write,
@@ -87,8 +90,14 @@ fn sanitize_string(str: []const u8, allocator: std.mem.Allocator) []const u8 {
         if (byte == '\\' or byte == '"') {
             builder.insert("\\", builder.len()) catch unreachable;
         }
-        const insert_me: [1]u8 = .{byte};
-        builder.insert(&insert_me, builder.len()) catch unreachable;
+        if (byte == '\r') {
+            builder.insert("\\r", builder.len()) catch unreachable;
+        } else if (byte == '\n') {
+            builder.insert("\\n", builder.len()) catch unreachable;
+        } else {
+            const insert_me: [1]u8 = .{byte};
+            builder.insert(&insert_me, builder.len()) catch unreachable;
+        }
     }
     return (builder.toOwned() catch unreachable).?;
 }

@@ -21,7 +21,10 @@ Orng is a versatile systems programming language I've been developing that gives
 git clone --recursive https://github.com/Rakhyvel/Orng.git
 
 # Set the Orng Standard Library path environment variable
+# For Linux:
 export ORNG_STD_PATH="/wherever/you/put/Orng/std"
+# For Windows:
+$env:ORNG_STD_PATH="/wherever/you/put/Orng/std"
 
 # Build Orng
 cd Orng

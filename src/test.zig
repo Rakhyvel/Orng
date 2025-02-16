@@ -11,13 +11,16 @@ const term_ = @import("term.zig");
 
 const allocator = std.heap.page_allocator;
 const revert = term_.Attr{};
-const stdout = std.io.getStdOut();
-const out = stdout.writer();
 const succeed_color = term_.Attr{ .fg = .green, .bold = true };
 const fail_color = term_.Attr{ .fg = .red, .bold = true };
 const not_orng_color = term_.Attr{ .fg = .blue, .bold = true };
 
 const Test_File_Fn = fn ([]const u8, bool) bool;
+
+// This is for compatability with Windows, since stdout for Windows isn't known at compile-time
+fn get_std_out() std.fs.File.Writer {
+    return std.io.getStdOut().writer();
+}
 
 pub fn main() !void {
     var args = try std.process.ArgIterator.initWithAllocator(allocator);
@@ -55,7 +58,7 @@ const Results = struct { passed: usize, failed: usize };
 fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_file: Test_File_Fn) !void { // TODO: Uninfer error
     var args = old_args;
     if (!coverage) {
-        try term_.outputColor(succeed_color, "[============]\n", out);
+        try term_.outputColor(succeed_color, "[============]\n", get_std_out());
     }
 
     var results = Results{ .passed = 0, .failed = 0 };
@@ -69,9 +72,9 @@ fn parse_args(old_args: std.process.ArgIterator, coverage: bool, comptime test_f
     }
 
     if (!coverage) {
-        try term_.outputColor(succeed_color, "[============]\n", out);
-        try out.print("Passed tests: {}\n", .{results.passed});
-        try out.print("Failed tests: {}\n", .{results.failed});
+        try term_.outputColor(succeed_color, "[============]\n", get_std_out());
+        try get_std_out().print("Passed tests: {}\n", .{results.passed});
+        try get_std_out().print("Failed tests: {}\n", .{results.failed});
         if (results.failed > 0) {
             return error.TestsFailed;
         }
@@ -90,8 +93,8 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     var test_name = filename[17..dot_index];
 
     if (!coverage) {
-        term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
-        out.print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
+        term_.outputColor(succeed_color, "[ RUN    ... ] ", get_std_out()) catch unreachable;
+        get_std_out().print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
 
     // Read in the expected value and stdout
@@ -125,8 +128,8 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     const module = module_.Module.compile(contents, absolute_filename, "main", false, compiler) catch {
         if (!coverage) {
             compiler.errors.print_errors();
-            term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-            out.print("Orng -> C.\n", .{}) catch unreachable;
+            term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+            get_std_out().print("Orng -> C.\n", .{}) catch unreachable;
             std.debug.dumpCurrentStackTrace(128);
         }
         return false;
@@ -147,27 +150,27 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
     var output_name = String.init(allocator);
     output_name.writer().print("{s}/build/{s}", .{ module.get_package_abs_path(), module.package_name }) catch unreachable;
     const res = exec(&[_][]const u8{output_name.str()}) catch |e| {
-        out.print("{?}\n", .{e}) catch unreachable;
-        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-        out.print("Execution interrupted!\n", .{}) catch unreachable;
+        get_std_out().print("{?}\n", .{e}) catch unreachable;
+        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+        get_std_out().print("Execution interrupted!\n", .{}) catch unreachable;
         return false;
     };
     if (!std.mem.eql(u8, res.stdout, expected_out)) {
-        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-        out.print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout }) catch unreachable;
+        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+        get_std_out().print("Expected \"{s}\" retcode, got \"{s}\"\n", .{ expected_out, res.stdout }) catch unreachable;
         return false;
     }
 
     compiler.deinit();
     const debug_result = debug_alloc.deinit();
     if (debug_result == .leak) {
-        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-        out.print("compiler error: memory leak!\n", .{}) catch unreachable;
+        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+        get_std_out().print("compiler error: memory leak!\n", .{}) catch unreachable;
         return false;
     }
 
     // Monitor stdout and capture return value, if these don't match expected as commented in the file, print error
-    term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
+    term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
     return true;
 }
 
@@ -188,8 +191,8 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
     out_name.concat(test_name) catch unreachable;
 
     if (!coverage) {
-        term_.outputColor(succeed_color, "[ RUN    ... ] ", out) catch unreachable;
-        out.print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
+        term_.outputColor(succeed_color, "[ RUN    ... ] ", get_std_out()) catch unreachable;
+        get_std_out().print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
 
     // Read in the expected value and stdout
@@ -218,7 +221,7 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
                 error.CompileError,
                 => {
                     compiler.errors.print_errors();
-                    term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
+                    term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
                     return true;
                 },
                 error.ParseError => {
@@ -226,11 +229,11 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
                     defer str.deinit();
                     compiler.errors.print_errors();
                     if (str.find("parser") != null) {
-                        term_.outputColor(succeed_color, "[ ... PASSED ]\n", out) catch unreachable;
+                        term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
                         return true;
                     } else {
-                        term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-                        out.print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
+                        term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+                        get_std_out().print("Non-parser negative tests should parse!\n", .{}) catch unreachable;
                         compiler.errors.print_errors();
                         return false;
                     }
@@ -246,8 +249,8 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
         return false;
     }
 
-    term_.outputColor(fail_color, "[ ... FAILED ] ", out) catch unreachable;
-    out.print("Negative test compiled without error.\n", .{}) catch unreachable;
+    term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
+    get_std_out().print("Negative test compiled without error.\n", .{}) catch unreachable;
     return false;
 }
 
@@ -289,7 +292,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             const program_text: []const u8 = contents[start..end];
 
             std.debug.print("{}: {s}\n", .{ i, program_text });
-            // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-out.c
+            // Feed to Orng compiler (specifying fuzz tokens) to compile to fuzz-get_std_out().c
             var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
             errdefer {
                 _ = debug_alloc.deinit();
@@ -310,8 +313,8 @@ fn fuzz_tests() !void { // TODO: Uninfer error
 
                     error.ParseError => {
                         failed += 1;
-                        try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                        try out.print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
+                        try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
+                        try get_std_out().print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
                         return;
                     },
                 }
@@ -334,16 +337,16 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             // module.output(&_local_modules, output_file.writer())
             compiler.output_modules() catch {
                 failed += 1;
-                try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                try out.print("Orng Compiler crashed with input above!\n", .{});
+                try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
+                try get_std_out().print("Orng Compiler crashed with input above!\n", .{});
                 return;
             };
 
             var should_continue: bool = false;
             for (compiler.errors.errors_list.items) |err| {
                 if (err == .expected2token or err == .expected_basic_token or err == .missing_close) {
-                    try term_.outputColor(fail_color, "[ ... FAILED ] ", out);
-                    try out.print("Orng failed to parse the above correctly!\n", .{});
+                    try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
+                    try get_std_out().print("Orng failed to parse the above correctly!\n", .{});
                     failed += 1;
                     should_continue = true;
                     break;
@@ -353,7 +356,7 @@ fn fuzz_tests() !void { // TODO: Uninfer error
                 continue;
             }
 
-            try term_.outputColor(succeed_color, "[ ... PASSED ]\n", out);
+            try term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out());
             passed += 1;
             // return;
         }
@@ -383,6 +386,6 @@ fn last_index_of(str: []const u8, c: u8) ?usize {
 
 fn until_newline(str: []const u8) usize {
     var i: usize = 0;
-    while (i < str.len and str[i] != '\n') : (i += 1) {}
+    while (i < str.len and str[i] != '\n' and str[i] != '\r') : (i += 1) {}
     return i;
 }

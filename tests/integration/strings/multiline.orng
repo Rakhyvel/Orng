@@ -1,6 +1,6 @@
 // 60
 fn main() -> Int {
-    let x = (
+    let s = (
         \\Hello, World!
         \\ This
         \\  Is
@@ -9,5 +9,15 @@ fn main() -> Int {
         \\     string!
         \\
     )
-    x.length
+    length_without_carriage_returns(s)
+}
+
+fn length_without_carriage_returns(s: String) -> Int {
+    let mut retval = 0
+    while let mut i = 0; i < s.length; i += 1 {
+        if s[i] != "\r"[0] {
+            retval += 1
+        }
+    }
+    retval
 }
