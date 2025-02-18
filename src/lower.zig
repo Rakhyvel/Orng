@@ -122,7 +122,7 @@ fn lower_AST(
         .true => return lval_from_int(1, ast.typeof(allocator), ast.token().span, cfg, allocator),
         .false => return lval_from_int(0, ast.typeof(allocator), ast.token().span, cfg, allocator),
         // Unary operators
-        .not, .negate, .addr_of => return try unop(ast, cfg, labels, errors, allocator),
+        .not, .negate, .addr_of, .bit_not => return try unop(ast, cfg, labels, errors, allocator),
         .dereference => {
             const expr = try lower_AST(cfg, ast.expr(), labels, errors, allocator) orelse return null;
             const expanded_type = ast.typeof(allocator).expand_type(allocator);
@@ -175,6 +175,8 @@ fn lower_AST(
         .mult,
         .div,
         .mod,
+        .left_shift,
+        .right_shift,
         .greater,
         .lesser,
         .greater_equal,
@@ -185,6 +187,18 @@ fn lower_AST(
 
         .@"catch", .@"orelse" => return try coalesce_op(ast, cfg, labels, errors, allocator),
 
+        .bit_and, .bit_or, .bit_xor => {
+            var temp: *lval_.L_Value = undefined;
+            var src1 = (try lower_AST(cfg, ast.children().items[0], labels, errors, allocator)) orelse return null;
+
+            for (1..ast.children().items.len) |i| {
+                temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
+                const src2 = (try lower_AST(cfg, ast.children().items[i], labels, errors, allocator)) orelse continue;
+                cfg.append_instruction(ir_.IR.init(bit_ir_kind_from_ast_kind(ast), temp, src1, src2, ast.token().span, allocator));
+                src1 = temp;
+            }
+            return temp;
+        },
         .call => {
             const lhs = (try lower_AST(cfg, ast.lhs(), labels, errors, allocator)) orelse return null;
             var temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
@@ -626,12 +640,15 @@ fn int_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_int,
+        .bit_not => .bit_not,
         .addr_of => if (ast.addr_of.mut) .mut_addr_of else .addr_of,
         .add => .add_int,
         .sub => .sub_int,
         .mult => .mult_int,
         .div => .div_int,
         .mod => .mod,
+        .left_shift => .left_shift,
+        .right_shift => .right_shift,
         .greater => .greater_int,
         .lesser => .lesser_int,
         .greater_equal => .greater_equal_int,
@@ -644,6 +661,7 @@ fn float_kind(ast: *ast_.AST) ir_.Kind {
     return switch (ast.*) {
         .not => .not,
         .negate => .negate_float,
+        .bit_not => .bit_not,
         .addr_of => if (ast.addr_of.mut) .mut_addr_of else .addr_of,
         .add => .add_float,
         .sub => .sub_float,
@@ -654,6 +672,8 @@ fn float_kind(ast: *ast_.AST) ir_.Kind {
         .lesser => .lesser_float,
         .greater_equal => .greater_equal_float,
         .lesser_equal => .lesser_equal_float,
+        .left_shift => .left_shift,
+        .right_shift => .right_shift,
         else => unreachable,
     };
 }
@@ -789,6 +809,15 @@ fn coalesce_op(
 
     cfg.append_instruction(end_label);
     return lval_.L_Value.create_unversioned_symbver(coalesce_symbol, allocator);
+}
+
+fn bit_ir_kind_from_ast_kind(ast: *ast_.AST) ir_.Kind {
+    return switch (ast.*) {
+        .bit_and => ir_.Kind.bit_and,
+        .bit_or => ir_.Kind.bit_or,
+        .bit_xor => ir_.Kind.bit_xor,
+        else => std.debug.panic("compiler error: not a bit ast: {s}\n", .{@tagName(ast.*)}),
+    };
 }
 
 fn generate_assign(

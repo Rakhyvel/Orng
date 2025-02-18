@@ -423,8 +423,7 @@ pub const Error = union(enum) {
                 get_std_err().print("`\n", .{}) catch unreachable;
             },
             .expected_builtin_typeclass => {
-                // just so happens to work get_std_err() that all builtin type classes start with a vowel :-)
-                get_std_err().print("expected a value of an {s} type, got `", .{err.expected_builtin_typeclass.expected}) catch unreachable;
+                get_std_err().print("expected a value of a(n) {s} type, got `", .{err.expected_builtin_typeclass.expected}) catch unreachable;
                 err.expected_builtin_typeclass.got.print_type(get_std_err()) catch unreachable;
                 get_std_err().print("`\n", .{}) catch unreachable;
             },

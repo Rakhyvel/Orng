@@ -551,23 +551,130 @@ pub const Parser = struct {
         if (self.accept(.not)) |token| {
             return ast_.AST.create_not(token, try self.prefix_expr(), self.allocator);
         } else if (self.accept(.at_symbol)) |_| {
-            if (self.accept(.typeof)) |token| {
-                _ = try self.expect(.left_parenthesis);
-                const exp = try self.assignment_expr();
-                _ = try self.expect(.right_parenthesis);
-                return ast_.AST.create_type_of(token, exp, self.allocator);
-            } else if (self.accept(.default)) |token| {
-                _ = try self.expect(.left_parenthesis);
-                const exp = try self.assignment_expr();
-                _ = try self.expect(.right_parenthesis);
-                return ast_.AST.create_default(token, exp, self.allocator);
-            } else if (self.accept(.sizeof)) |token| {
-                _ = try self.expect(.left_parenthesis);
-                const exp = try self.assignment_expr();
-                _ = try self.expect(.right_parenthesis);
-                return ast_.AST.create_size_of(token, exp, self.allocator);
+            const token = try self.expect(.identifier);
+
+            const args = try self.call_args();
+
+            // TODO: Could totally table this up
+            if (std.mem.eql(u8, token.data, "typeof")) {
+                if (args.items.len != 1) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 1,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_type_of(token, args.items[0], self.allocator);
+            } else if (std.mem.eql(u8, token.data, "default")) {
+                if (args.items.len != 1) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 1,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_default(token, args.items[0], self.allocator);
+            } else if (std.mem.eql(u8, token.data, "sizeof")) {
+                if (args.items.len != 1) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 1,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_size_of(token, args.items[0], self.allocator);
+            } else if (std.mem.eql(u8, token.data, "bit_and")) {
+                if (args.items.len < 2) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 2,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_bit_and(token, args, self.allocator);
+            } else if (std.mem.eql(u8, token.data, "bit_or")) {
+                if (args.items.len < 2) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 2,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_bit_or(token, args, self.allocator);
+            } else if (std.mem.eql(u8, token.data, "bit_xor")) {
+                if (args.items.len < 2) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 2,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_bit_xor(token, args, self.allocator);
+            } else if (std.mem.eql(u8, token.data, "bit_not")) {
+                if (args.items.len != 1) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 1,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_bit_not(token, args.items[0], self.allocator);
+            } else if (std.mem.eql(u8, token.data, "left_shift")) {
+                if (args.items.len != 2) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 2,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_left_shift(token, args.items[0], args.items[1], self.allocator);
+            } else if (std.mem.eql(u8, token.data, "right_shift")) {
+                if (args.items.len != 2) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 2,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_right_shift(token, args.items[0], args.items[1], self.allocator);
             } else {
-                self.errors.add_error(errs_.Error{ .expected_basic_token = .{ .expected = "a built-in function here", .got = self.peek() } });
+                self.errors.add_error(errs_.Error{ .basic = .{ .msg = "unknown built-in function", .span = token.span } });
                 return error.ParseError;
             }
         } else if (self.accept(.minus)) |token| {

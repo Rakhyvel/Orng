@@ -121,6 +121,46 @@ inline static int64_t $add_int64_t(const int64_t lhs, const int64_t rhs, const c
     return lhs + rhs;
 }
 
+inline static uint8_t $add_uint8_t(const uint8_t lhs, const uint8_t rhs, const char *restrict line)
+{
+    if (lhs > UINT8_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
+inline static uint16_t $add_uint16_t(const uint16_t lhs, const uint16_t rhs, const char *restrict line)
+{
+    if (lhs > UINT16_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
+inline static uint32_t $add_uint32_t(const uint32_t lhs, const uint32_t rhs, const char *restrict line)
+{
+    if (lhs > UINT32_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
+inline static uint64_t $add_uint64_t(const uint64_t lhs, const uint64_t rhs, const char *restrict line) // TODO: Fill out the rest of these!
+{
+    if (lhs > UINT64_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
 inline static int8_t $sub_int8_t(const int8_t lhs, const int8_t rhs, const char *restrict line)
 {
     if ((rhs > 0 && lhs < INT8_MIN + rhs) ||

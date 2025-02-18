@@ -75,6 +75,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .slice_of,
         .dyn_type,
         .dyn_value,
+        .bit_not,
         => try walk_ast(ast.expr(), new_context),
 
         .assign,
@@ -98,6 +99,8 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .access,
         .function,
         .@"union",
+        .left_shift,
+        .right_shift,
         => {
             try walk_ast(ast.lhs(), new_context);
             try walk_ast(ast.rhs(), new_context);
@@ -111,7 +114,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.lhs(), new_context);
             try walk_asts(ast.children().*, new_context);
         },
-        .sum_type, .product => try walk_asts(ast.children().*, new_context),
+        .sum_type, .product, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children().*, new_context),
         .sum_value => {
             try walk_ast(ast.sum_value.init, new_context);
             try walk_ast(ast.sum_value.base, new_context);

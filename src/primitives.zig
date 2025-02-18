@@ -62,6 +62,10 @@ pub const Primitive_Info = struct {
     pub fn is_int(self: Primitive_Info) bool {
         return self.type_class == .int;
     }
+
+    pub fn is_bits(self: Primitive_Info) bool {
+        return self.type_kind == .unsigned_integer;
+    }
 };
 
 pub const Bounds = struct {

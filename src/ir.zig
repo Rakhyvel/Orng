@@ -461,6 +461,7 @@ pub const Kind = enum {
     not,
     negate_int,
     negate_float,
+    bit_not,
     size_of, //< For extern types that Orng can't do automatically
     addr_of,
     mut_addr_of, // Separate kind to allow for aliasing analysis
@@ -478,6 +479,11 @@ pub const Kind = enum {
     greater_equal_float,
     lesser_equal_int,
     lesser_equal_float,
+    bit_and,
+    bit_or,
+    bit_xor,
+    left_shift,
+    right_shift,
     add_int,
     add_float,
     sub_int,
@@ -530,6 +536,7 @@ pub const Kind = enum {
     pub fn c_token(self: Kind) []const u8 {
         return switch (self) {
             .not => "!",
+            .bit_not => "~",
             .negate_int, .negate_float => "-",
             .equal => "==",
             .not_equal => "!=",
@@ -542,13 +549,18 @@ pub const Kind = enum {
             .mult_int, .mult_float => "*",
             .div_int, .div_float => "/",
             .mod => "%",
+            .bit_and => "&",
+            .bit_or => "|",
+            .bit_xor => "^",
+            .left_shift => "<<",
+            .right_shift => ">>",
             else => unreachable,
         };
     }
 
     pub fn arity(self: Kind) enum { unop, binop } {
         return switch (self) {
-            .not, .negate_int, .negate_float => .unop,
+            .not, .negate_int, .negate_float, .bit_not => .unop,
             .equal,
             .not_equal,
             .greater_int,
@@ -568,6 +580,11 @@ pub const Kind = enum {
             .div_int,
             .div_float,
             .mod,
+            .bit_and,
+            .bit_or,
+            .bit_xor,
+            .left_shift,
+            .right_shift,
             => .binop,
             else => unreachable,
         };
@@ -591,6 +608,7 @@ pub const Kind = enum {
             .negate_int,
             .negate_float,
             .not,
+            .bit_not,
             .size_of,
             .cast,
             .mut_addr_of,
@@ -612,7 +630,7 @@ pub const Kind = enum {
             .sub_float,
             => 4,
 
-            // No bitshift operators, would be precedence 5
+            .bit_and, .bit_or, .bit_xor, .left_shift, .right_shift => 5,
 
             .greater_int,
             .greater_float,
