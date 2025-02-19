@@ -555,7 +555,7 @@ pub const Parser = struct {
 
             const args = try self.call_args();
 
-            // TODO: Could totally table this up
+            // TODO: Would be nice to make a table of this, somehow!
             if (std.mem.eql(u8, token.data, "typeof")) {
                 if (args.items.len != 1) {
                     self.errors.add_error(errs_.Error{ .mismatch_arity = .{

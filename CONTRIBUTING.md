@@ -21,7 +21,7 @@ Help us improve Orng by reporting bugs effectively:
 ## Submitting Pull Requests
 
 ### Prerequisites
-- Ensure you are working on linux or WSL (for now)
+- Ensure you are working on Linux, WSL, or Windows 10
 - Ensure you have Zig installed (version 0.13.0 or later)
 - Ensure you have Python installed (version 3.10.12 or later)
 
@@ -76,4 +76,4 @@ Need help or want to discuss the project?
 * Open a discussion in the GitHub Discussions tab
 * Create an issue for a specific problem
 
-_Last updated: 2024-09-12_
+_Last updated: 2025-02-18_
