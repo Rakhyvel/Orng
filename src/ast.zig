@@ -170,6 +170,12 @@ pub const AST = union(enum) {
     @"catch": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     @"orelse": struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     call: struct { common: AST_Common, _lhs: *AST, _args: std.ArrayList(*AST) },
+    bit_and: struct { common: AST_Common, _args: std.ArrayList(*AST) },
+    bit_or: struct { common: AST_Common, _args: std.ArrayList(*AST) },
+    bit_xor: struct { common: AST_Common, _args: std.ArrayList(*AST) },
+    bit_not: struct { common: AST_Common, _expr: *AST },
+    left_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
+    right_shift: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     index: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
     select: struct {
         common: AST_Common,
@@ -804,6 +810,50 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_bit_and(_token: token_.Token, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .bit_and = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._args = args,
+        } }, allocator);
+    }
+
+    pub fn create_bit_or(_token: token_.Token, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .bit_or = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._args = args,
+        } }, allocator);
+    }
+
+    pub fn create_bit_xor(_token: token_.Token, args: std.ArrayList(*AST), allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .bit_xor = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._args = args,
+        } }, allocator);
+    }
+
+    pub fn create_bit_not(_token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .bit_not = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._expr = _expr,
+        } }, allocator);
+    }
+
+    pub fn create_left_shift(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .left_shift = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._lhs = _lhs,
+            ._rhs = _rhs,
+        } }, allocator);
+    }
+
+    pub fn create_right_shift(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .right_shift = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._lhs = _lhs,
+            ._rhs = _rhs,
+        } }, allocator);
+    }
+
     pub fn create_index(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .index = .{
             .common = AST_Common{ ._token = _token, ._type = null },
@@ -1420,6 +1470,30 @@ pub const AST = union(enum) {
                 }
                 return create_call(self.token(), self.lhs().clone(allocator), cloned_args, allocator);
             },
+            .bit_and => {
+                var cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
+                    cloned_args.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_bit_and(self.token(), cloned_args, allocator);
+            },
+            .bit_or => {
+                var cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
+                    cloned_args.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_bit_or(self.token(), cloned_args, allocator);
+            },
+            .bit_xor => {
+                var cloned_args = std.ArrayList(*AST).init(allocator);
+                for (self.children().items) |child| {
+                    cloned_args.append(child.clone(allocator)) catch unreachable;
+                }
+                return create_bit_xor(self.token(), cloned_args, allocator);
+            },
+            .bit_not => return create_bit_not(self.token(), self.expr().clone(allocator), allocator),
+            .left_shift => return create_left_shift(self.token(), self.lhs().clone(allocator), self.rhs().clone(allocator), allocator),
+            .right_shift => return create_right_shift(self.token(), self.lhs().clone(allocator), self.rhs().clone(allocator), allocator),
             .index => return create_index(
                 self.token(),
                 self.lhs().clone(allocator),
@@ -1754,6 +1828,9 @@ pub const AST = union(enum) {
             .fn_decl => &self.fn_decl._params,
             .method_decl => &self.method_decl._params,
             .invoke => &self.invoke._args,
+            .bit_and => &self.bit_and._args,
+            .bit_or => &self.bit_or._args,
+            .bit_xor => &self.bit_xor._args,
             else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{s}`", .{@tagName(self.*)}),
         };
     }
@@ -1768,6 +1845,9 @@ pub const AST = union(enum) {
             .fn_decl => self.fn_decl._params = val,
             .method_decl => self.method_decl._params = val,
             .invoke => self.invoke._args = val,
+            .bit_and => self.bit_and._args = val,
+            .bit_or => self.bit_or._args = val,
+            .bit_xor => self.bit_xor._args = val,
             else => std.debug.panic("compiler error: cannot call `.set_children()` on the AST `{s}`", .{@tagName(self.*)}),
         }
     }
@@ -2509,11 +2589,13 @@ pub const AST = union(enum) {
             .mult,
             .div,
             .mod,
+            .left_shift,
+            .right_shift,
             => return self.lhs().typeof(allocator),
 
-            .@"catch",
-            .@"orelse",
-            => {
+            .bit_and, .bit_or, .bit_xor => return self.children().items[0].typeof(allocator),
+
+            .@"catch", .@"orelse" => {
                 const rhs_type = self.rhs().typeof(allocator);
                 if (rhs_type.types_match(primitives_.void_type)) {
                     return self.lhs().typeof(allocator).children().items[0].annotation.type;
@@ -2581,7 +2663,7 @@ pub const AST = union(enum) {
             .access, .identifier => return self.symbol().?._type,
 
             // Unary Operators
-            .@"comptime", .negate => return self.expr().typeof(allocator),
+            .@"comptime", .negate, .bit_not => return self.expr().typeof(allocator),
             .dereference => {
                 const _type = self.expr().typeof(allocator).expand_type(allocator);
                 return _type.expr();
@@ -2921,6 +3003,17 @@ pub const AST = union(enum) {
         return primitives_.info_from_ast(expanded).?.is_int();
     }
 
+    pub fn is_bits_type(self: *AST) bool {
+        var expanded = self.expand_identifier();
+        while (expanded.* == .annotation) {
+            expanded = expanded.annotation.type;
+        }
+        if (expanded.* != .identifier) {
+            return false;
+        }
+        return primitives_.info_from_ast(expanded).?.is_bits();
+    }
+
     /// Determines if an AST expression can be evaluated at compile-time without having to specify a `comptime`
     /// keyword.
     pub fn is_comptime_expr(self: *AST) bool {
@@ -3047,6 +3140,39 @@ pub const AST = union(enum) {
                 }
                 try out.writer().print(")", .{});
             },
+            .bit_and => {
+                try out.writer().print("@bit_and(", .{});
+                for (self.call._args.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.call._args.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
+            .bit_or => {
+                try out.writer().print("@bit_or(", .{});
+                for (self.call._args.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.call._args.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
+            .bit_xor => {
+                try out.writer().print("@bit_xor(", .{});
+                for (self.call._args.items, 0..) |item, i| {
+                    try out.writer().print("{}", .{item});
+                    if (i < self.call._args.items.len - 1) {
+                        try out.writer().print(",", .{});
+                    }
+                }
+                try out.writer().print(")", .{});
+            },
+            .bit_not => try out.writer().print("@bit_not({})", .{self.expr()}),
+            .left_shift => try out.writer().print("@left_shift({}, {})", .{ self.lhs(), self.rhs() }),
+            .right_shift => try out.writer().print("@right_shift({}, {})", .{ self.lhs(), self.rhs() }),
             .index => try out.writer().print("index({}, {})", .{ self.lhs(), self.rhs() }),
             .select => {
                 try out.writer().print("select({},{})", .{ self.lhs(), self.rhs() });

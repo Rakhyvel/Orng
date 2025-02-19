@@ -640,6 +640,31 @@ fn validate_AST_internal(
             try type_check(ast.token().span, expanded_lhs_type.get_nominal_type().annotation.type, expected, &compiler.errors);
             return ast;
         },
+        .bit_and, .bit_or, .bit_xor => {
+            for (0..ast.children().items.len) |i| {
+                ast.children().items[i] = validate_AST(ast.children().items[i], expected, compiler);
+                try assert_none_poisoned(ast.children().items[i]);
+                const arg_type = ast.children().items[i].typeof(compiler.allocator());
+                try type_check_bits(ast.token().span, arg_type, &compiler.errors);
+                try type_check(ast.token().span, arg_type, expected, &compiler.errors);
+            }
+            return ast;
+        },
+        .bit_not => {
+            ast.set_expr(validate_AST(ast.expr(), expected, compiler));
+            try assert_none_poisoned(ast.expr());
+            try type_check_bits(ast.token().span, ast.expr().typeof(compiler.allocator()), &compiler.errors);
+            try type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
+            return ast;
+        },
+        .left_shift, .right_shift => {
+            ast.set_lhs(validate_AST(ast.lhs(), expected, compiler));
+            ast.set_rhs(validate_AST(ast.rhs(), expected, compiler));
+            const lhs_type = ast.typeof(compiler.allocator());
+            try type_check_bits(ast.token().span, lhs_type, &compiler.errors);
+            try type_check(ast.token().span, lhs_type, expected, &compiler.errors);
+            return ast;
+        },
         .call => {
             const lhs_span = ast.lhs().token().span;
             ast.set_lhs(validate_AST(ast.lhs(), null, compiler));
@@ -1435,6 +1460,13 @@ fn type_check_integral(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) 
     }
 }
 
+fn type_check_bits(span: span_.Span, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!void {
+    if (!got.is_bits_type()) {
+        errors.add_error(errs_.Error{ .expected_builtin_typeclass = .{ .span = span, .expected = "bits", .got = got } });
+        return error.CompileError;
+    }
+}
+
 fn throw_unexpected_type(span: span_.Span, expected: *ast_.AST, got: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum {
     errors.add_error(errs_.Error{ .unexpected_type = .{ .span = span, .expected = expected, .got = got } });
     return error.CompileError;
@@ -1700,7 +1732,7 @@ fn named_args(
                     .span = asts.items[0].token().span,
                     .takes = 1,
                     .given = arg_name_to_val_map.keys().len,
-                    .thing_name = "functionlol",
+                    .thing_name = "function",
                     .takes_name = "parameter",
                     .given_name = "argument",
                 } });

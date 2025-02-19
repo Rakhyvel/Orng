@@ -46,10 +46,7 @@ pub const Token_Kind = enum(u32) {
     @"unreachable",
     where,
     @"while",
-    typeof,
-    default,
     self,
-    sizeof,
     virtual,
 
     // Equals
@@ -166,10 +163,7 @@ pub const Token_Kind = enum(u32) {
             .where => "where",
             .@"while" => "while",
             .trait => "trait",
-            .typeof => "typeof",
-            .default => "default",
             .self => "self",
-            .sizeof => "sizeof",
             .virtual => "virtual",
 
             // Equals

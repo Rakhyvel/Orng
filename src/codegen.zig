@@ -695,6 +695,7 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .not,
         .negate_int,
         .negate_float,
+        .bit_not,
         .equal,
         .not_equal,
         .greater_int,
@@ -714,6 +715,11 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .div_int,
         .div_float,
         .mod,
+        .bit_and,
+        .bit_or,
+        .bit_xor,
+        .left_shift,
+        .right_shift,
         => try output_operator(ir, writer),
         .get_tag => {
             try output_var_assign(ir.dest.?, writer);

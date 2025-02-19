@@ -1,5 +1,5 @@
 // debug utilities made use by the Orng compiler when in debug mode
-// Copyright (c) 2023-2024, Joseph Shimel and contributors.
+// Copyright (c) 2023-2025, Joseph Shimel and contributors.
 
 #ifndef _STD_DEBUG_INC
 #define _STD_DEBUG_INC
@@ -121,6 +121,46 @@ inline static int64_t $add_int64_t(const int64_t lhs, const int64_t rhs, const c
     return lhs + rhs;
 }
 
+inline static uint8_t $add_uint8_t(const uint8_t lhs, const uint8_t rhs, const char *restrict line)
+{
+    if (lhs > UINT8_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
+inline static uint16_t $add_uint16_t(const uint16_t lhs, const uint16_t rhs, const char *restrict line)
+{
+    if (lhs > UINT16_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
+inline static uint32_t $add_uint32_t(const uint32_t lhs, const uint32_t rhs, const char *restrict line)
+{
+    if (lhs > UINT32_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
+inline static uint64_t $add_uint64_t(const uint64_t lhs, const uint64_t rhs, const char *restrict line) // TODO: Fill out the rest of these!
+{
+    if (lhs > UINT64_MAX - rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("addition overflow");
+    }
+    return lhs + rhs;
+}
+
 inline static int8_t $sub_int8_t(const int8_t lhs, const int8_t rhs, const char *restrict line)
 {
     if ((rhs > 0 && lhs < INT8_MIN + rhs) ||
@@ -158,6 +198,46 @@ inline static int64_t $sub_int64_t(const int64_t lhs, const int64_t rhs, const c
 {
     if ((rhs > 0 && lhs < INT64_MIN + rhs) ||
         (rhs < 0 && lhs > INT64_MAX + rhs))
+    {
+        $lines[$line_idx++] = line;
+        $panic("subtraction overflow");
+    }
+    return lhs - rhs;
+}
+
+inline static uint8_t $sub_uint8_t(const uint8_t lhs, const uint8_t rhs, const char *restrict line)
+{
+    if (rhs > lhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("subtraction overflow");
+    }
+    return lhs - rhs;
+}
+
+inline static uint16_t $sub_uint16_t(const uint16_t lhs, const uint16_t rhs, const char *restrict line)
+{
+    if (rhs > lhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("subtraction overflow");
+    }
+    return lhs - rhs;
+}
+
+inline static uint32_t $sub_uint32_t(const uint32_t lhs, const uint32_t rhs, const char *restrict line)
+{
+    if (rhs > lhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("subtraction overflow");
+    }
+    return lhs - rhs;
+}
+
+inline static uint64_t $sub_uint64_t(const uint64_t lhs, const uint64_t rhs, const char *restrict line)
+{
+    if (rhs > lhs)
     {
         $lines[$line_idx++] = line;
         $panic("subtraction overflow");
@@ -229,6 +309,66 @@ inline static int64_t $mult_int64_t(const int64_t lhs, const int64_t rhs, const 
     return lhs * rhs;
 }
 
+inline static uint8_t $mult_uint8_t(const uint8_t lhs, const uint8_t rhs, const char *restrict line)
+{
+    if (lhs == 0 || rhs == 0)
+    {
+        return 0;
+    }
+    else if (lhs > UINT8_MAX / rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("multiplication overflow");
+    }
+
+    return lhs * rhs;
+}
+
+inline static uint16_t $mult_uint16_t(const uint16_t lhs, const uint16_t rhs, const char *restrict line)
+{
+    if (lhs == 0 || rhs == 0)
+    {
+        return 0;
+    }
+    else if (lhs > UINT16_MAX / rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("multiplication overflow");
+    }
+
+    return lhs * rhs;
+}
+
+inline static uint32_t $mult_uint32_t(const uint32_t lhs, const uint32_t rhs, const char *restrict line)
+{
+    if (lhs == 0 || rhs == 0)
+    {
+        return 0;
+    }
+    else if (lhs > UINT32_MAX / rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("multiplication overflow");
+    }
+
+    return lhs * rhs;
+}
+
+inline static uint64_t $mult_uint64_t(const uint64_t lhs, const uint64_t rhs, const char *restrict line)
+{
+    if (lhs == 0 || rhs == 0)
+    {
+        return 0;
+    }
+    else if (lhs > UINT64_MAX / rhs)
+    {
+        $lines[$line_idx++] = line;
+        $panic("multiplication overflow");
+    }
+
+    return lhs * rhs;
+}
+
 inline static int8_t $div_int8_t(const int8_t lhs, const int8_t rhs, const char *restrict line)
 {
     if (rhs == 0 || (lhs == INT8_MIN && rhs == -1))
@@ -273,6 +413,50 @@ inline static int64_t $div_int64_t(const int64_t lhs, const int64_t rhs, const c
     return lhs / rhs;
 }
 
+inline static uint8_t $div_uint8_t(const uint8_t lhs, const uint8_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs / rhs;
+}
+
+inline static uint16_t $div_uint16_t(const uint16_t lhs, const uint16_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs / rhs;
+}
+
+inline static uint32_t $div_uint32_t(const uint32_t lhs, const uint32_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs / rhs;
+}
+
+inline static uint64_t $div_uint64_t(const uint64_t lhs, const uint64_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs / rhs;
+}
+
 inline static int8_t $mod_int8_t(const int8_t lhs, const int8_t rhs, const char *restrict line)
 {
     if (rhs == 0 || (lhs == INT8_MIN && rhs == -1))
@@ -309,6 +493,50 @@ inline static int32_t $mod_int32_t(const int32_t lhs, const int32_t rhs, const c
 inline static int64_t $mod_int64_t(const int64_t lhs, const int64_t rhs, const char *restrict line)
 {
     if (rhs == 0 || (lhs == INT64_MIN && rhs == -1))
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs % rhs;
+}
+
+inline static uint8_t $mod_uint8_t(const uint8_t lhs, const uint8_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs % rhs;
+}
+
+inline static uint16_t $mod_uint16_t(const uint16_t lhs, const uint16_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs % rhs;
+}
+
+inline static uint32_t $mod_uint32_t(const uint32_t lhs, const uint32_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
+    {
+        $lines[$line_idx++] = line;
+        $panic("division overflow");
+    }
+
+    return lhs % rhs;
+}
+
+inline static uint64_t $mod_uint64_t(const uint64_t lhs, const uint64_t rhs, const char *restrict line)
+{
+    if (rhs == 0)
     {
         $lines[$line_idx++] = line;
         $panic("division overflow");
