@@ -1,11 +1,5 @@
-import externs
-import std::debug
+import sdl
 
 fn main() -> () {
-    let mut x: Int = 45
-    _ = x
-    
-    externs::println("Hello, ")
-    
-    debug::println("World!")
+    _ = sdl::init(sdl::init_everything)
 }

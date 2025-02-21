@@ -10,6 +10,7 @@ const Decorate_Access = @import("decorate-access.zig");
 const errs_ = @import("errors.zig");
 const Expand = @import("expand.zig");
 const Import = @import("import.zig");
+const Cinclude = @import("cinclude.zig");
 const interpreter_ = @import("interpreter.zig");
 const ir_validate_ = @import("ir-validate.zig");
 const ir_ = @import("ir.zig");
@@ -60,6 +61,9 @@ pub const Module = struct {
     // List of local modules that are imported
     local_imported_modules: std.AutoArrayHashMap(*Module, void),
 
+    // Set of C headers to include
+    cincludes: std.ArrayList(*ast_.AST),
+
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
@@ -102,6 +106,7 @@ pub const Module = struct {
         retval.symbol = symbol;
         retval.allocator = allocator;
         retval.local_imported_modules = std.AutoArrayHashMap(*Module, void).init(allocator);
+        retval.cincludes = std.ArrayList(*ast_.AST).init(allocator);
         retval.instructions = std.ArrayList(*ir_.IR).init(allocator);
         retval.traits = std.ArrayList(*ast_.AST).init(allocator);
         retval.impls = std.ArrayList(*ast_.AST).init(allocator);
@@ -214,6 +219,7 @@ pub const Module = struct {
         var module_ast = try parser.parse();
         try walker_.walk_asts(module_ast, Expand.new(&compiler.errors, compiler.allocator()));
         try walker_.walk_asts_flat(&module_ast, Import.new(compiler, module));
+        try walker_.walk_asts_flat(&module_ast, Cinclude.new(module));
         try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
         try walker_.walk_asts(module_ast, Decorate_Access.new(file_root, &compiler.errors, compiler));

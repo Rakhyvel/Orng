@@ -102,6 +102,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 
     try compiler.output_modules();
 
+    compiler.propagate_include_directories(package_name);
     try compiler.compile_c(package_name, false);
 
     std.debug.print("done\n", .{});
@@ -193,6 +194,14 @@ fn make_package(
         _ = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
 
         compiler.make_package_requirement_link(package_name, requirement_name);
+    }
+
+    for (package.get_field(primitives_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
+        if (maybe_include_dir_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const include_dir = maybe_include_dir_addr.sum_value.init.?;
+        compiler.lookup_package(package_name).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;

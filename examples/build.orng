@@ -5,5 +5,6 @@
 fn build() -> Package {
     let mut retval = Package::executable(.root="main.orng")
     retval.>requires("std", Package::find("../std"))
+    retval.>requires("sdl", Package::find("sdl3"))
     retval
 }

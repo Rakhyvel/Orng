@@ -76,6 +76,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .dyn_type,
         .dyn_value,
         .bit_not,
+        .cinclude,
         => try walk_ast(ast.expr(), new_context),
 
         .assign,

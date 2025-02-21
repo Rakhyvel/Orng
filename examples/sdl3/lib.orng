@@ -1,0 +1,4 @@
+cinclude comptime { "SDL.h" }
+
+extern("SDL_Init") const init: Word32 -> Int32
+extern("SDL_INIT_EVERYTHING") const init_everything: Word32

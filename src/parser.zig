@@ -82,6 +82,7 @@ pub const Parser = struct {
             next_kind == .@"const" or
             next_kind == .@"extern" or
             next_kind == .import or
+            next_kind == .cinclude or
             next_kind == .impl or
             next_kind == .trait or
             next_kind == .@"defer" or
@@ -146,6 +147,12 @@ pub const Parser = struct {
                 _ = try self.expect(.newline);
             }
             return import;
+        } else if (self.peek_kind(.cinclude)) {
+            const cinclude: *ast_.AST = try self.cinclude_declaration();
+            if (!self.peek_kind(.EOF)) {
+                _ = try self.expect(.newline);
+            }
+            return cinclude;
         } else if (self.peek_kind(.trait)) {
             return try self.trait_declaration();
         } else if (self.peek_kind(.impl)) {
@@ -182,6 +189,15 @@ pub const Parser = struct {
         return ast_.AST.create_import(
             token,
             pattern,
+            self.allocator,
+        );
+    }
+
+    fn cinclude_declaration(self: *Parser) Parser_Error_Enum!*ast_.AST {
+        const token = try self.expect(.cinclude);
+        return ast_.AST.create_cinclude(
+            token,
+            try self.arrow_expr(),
             self.allocator,
         );
     }
