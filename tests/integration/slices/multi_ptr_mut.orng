@@ -1,0 +1,10 @@
+// 338
+fn main() -> Int {
+    let xs: [mut]Int = [mut](37, 2, 300, 4)
+    adjust_1(xs.data)
+    xs[1]
+}
+
+fn adjust_1(xs: [*mut]Int) -> () {
+    xs[1] = 338
+}

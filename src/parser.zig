@@ -711,9 +711,7 @@ pub const Parser = struct {
             var slice_kind: enum { multiptr, array, slice } = undefined;
             var mut = false;
             var len: ?*ast_.AST = null;
-            if (self.accept(.mut)) |_| {
-                mut = true;
-            } else if (self.accept(.star)) |_| {
+            if (self.accept(.star)) |_| {
                 slice_kind = .multiptr;
             } else if (self.next_is_expr()) {
                 slice_kind = .array;
@@ -724,6 +722,9 @@ pub const Parser = struct {
                 }
             } else {
                 slice_kind = .slice;
+            }
+            if (self.accept(.mut)) |_| {
+                mut = true;
             }
             if (self.peek_kind(.right_square)) {
                 _ = self.expect(.right_square) catch {};

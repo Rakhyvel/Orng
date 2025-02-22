@@ -1953,6 +1953,8 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
             const lhs_type = ast.lhs().typeof(allocator);
             if (lhs_type.* == .product and lhs_type.product.was_slice) {
                 try assert_mutable_address(lhs_type.children().items[0].annotation.type, errors);
+            } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
+                try assert_mutable_address(lhs_type, errors);
             } else {
                 try assert_mutable(ast.lhs(), errors, allocator);
             }
@@ -1964,7 +1966,7 @@ fn assert_mutable(ast: *ast_.AST, errors: *errs_.Errors, allocator: std.mem.Allo
 
         .select => try assert_mutable(ast.lhs(), errors, allocator),
 
-        else => unreachable,
+        else => {},
     }
 }
 
