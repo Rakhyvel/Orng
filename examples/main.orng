@@ -1,6 +1,7 @@
-import sdl
 import std::debug
+import externs
 
 fn main() -> () {
     debug::println("Hello, World!")
+    externs::println("Hello, World!")
 }

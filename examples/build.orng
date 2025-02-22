@@ -5,10 +5,9 @@
 fn build() -> Package {
     let mut retval = Package::executable(.root="main.orng")
     retval.>requires("std", Package::find("../std"))
-    retval.>requires("std", Package::find("../std"))
-    retval.>requires("sdl", Package::find("sdl3"))
-    retval.>add_library_directory("C:\\Users\\Joseph\\Downloads\\SDL2-devel-2.30.2-VC\\SDL2-2.30.2\\lib\\x64")
-    retval.>add_library("SDL2")
-    retval.>add_library("SDL2main")
+    //retval.>requires("sdl", Package::find("sdl3"))
+    //retval.>add_library_directory("C:\\Users\\Joseph\\Downloads\\SDL2-devel-2.30.2-VC\\SDL2-2.30.2\\lib\\x64")
+    //retval.>add_library("SDL2")
+    //retval.>add_library("SDL2main")
     retval
 }
