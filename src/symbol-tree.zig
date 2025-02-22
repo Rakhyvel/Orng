@@ -520,8 +520,8 @@ fn extract_domain_with_receiver(impl_type: *ast_.AST, receiver: *ast_.AST, param
 
 fn create_receiver_addr(impl_type: *ast_.AST, receiver: *ast_.AST, allocator: std.mem.Allocator) *ast_.AST {
     return switch (receiver.receiver.kind) {
-        .value, .addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, false, allocator),
-        .mut_addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, true, allocator),
+        .value, .addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, false, false, allocator),
+        .mut_addr_of => ast_.AST.create_addr_of(receiver.token(), impl_type, true, false, allocator),
     };
 }
 

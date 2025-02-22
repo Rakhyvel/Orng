@@ -512,7 +512,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
 
     package_type = module.top_level_scope().lookup("Package", .{}).found.init.?;
     _ = module.top_level_scope().lookup("Requirement", .{}).found.init.?;
-    addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, compiler.allocator());
+    addr_package_type = ast_.AST.create_addr_of(package_type.token(), package_type, false, false, compiler.allocator());
 }
 
 fn create_primitive_identifier(name: []const u8, allocator: std.mem.Allocator) *ast_.AST {

@@ -879,6 +879,7 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             try output_rvalue(lvalue.dereference.expr, lvalue.lval_precedence(), writer);
         },
         .index => {
+            try writer.print("/*rvalue*/", .{});
             try writer.print("*", .{});
             try output_lvalue(lvalue, lvalue.lval_precedence(), writer);
         },
@@ -907,13 +908,20 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             try output_rvalue(lvalue.dereference.expr, outer_precedence, writer);
         },
         .index => {
-            try writer.print("(", .{});
+            try writer.print("/*{}*/(", .{lvalue.index.lhs.get_expanded_type().* == .addr_of});
 
             // Generate reinterpret cast to pointer of elements
             try writer.print("(", .{});
             try output_type(lvalue.get_expanded_type(), writer);
             try writer.print("*)", .{});
-            try output_lvalue(lvalue.index.lhs, 2, writer);
+            if (lvalue.index.lhs.get_expanded_type().* == .addr_of) {
+                // Index of a multiptr addr, lvalue is simply the rvalue
+                std.debug.assert(lvalue.index.lhs.get_expanded_type().addr_of.multiptr);
+                try output_rvalue(lvalue.index.lhs, 2, writer);
+            } else {
+                // Index a slice, usual lvalue of lhs
+                try output_lvalue(lvalue.index.lhs, 2, writer);
+            }
 
             // Only generate index add if index is non-zero
             // NOTE: Do not generate checked addition. The index is already checked.

@@ -705,14 +705,13 @@ pub const Parser = struct {
                     self.allocator,
                 );
             } else {
-                return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, self.allocator);
+                return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut != null, false, self.allocator);
             }
         } else if (self.accept(.left_square)) |token| {
-            var slice_kind: ast_.Slice_Kind = undefined;
+            var slice_kind: enum { multiptr, array, slice } = undefined;
+            var mut = false;
             var len: ?*ast_.AST = null;
-            if (self.accept(.mut)) |_| {
-                slice_kind = .mut;
-            } else if (self.accept(.star)) |_| {
+            if (self.accept(.star)) |_| {
                 slice_kind = .multiptr;
             } else if (self.next_is_expr()) {
                 slice_kind = .array;
@@ -724,16 +723,19 @@ pub const Parser = struct {
             } else {
                 slice_kind = .slice;
             }
+            if (self.accept(.mut)) |_| {
+                mut = true;
+            }
             if (self.peek_kind(.right_square)) {
                 _ = self.expect(.right_square) catch {};
             } else {
                 self.errors.add_error(errs_.Error{ .missing_close = .{ .expected = .right_square, .got = self.peek(), .open = token } });
                 return error.ParseError;
             }
-            if (slice_kind == .array) {
-                return ast_.AST.create_array_of(token, try self.prefix_expr(), len.?, self.allocator);
-            } else {
-                return ast_.AST.create_slice_of(token, try self.prefix_expr(), slice_kind, self.allocator);
+            switch (slice_kind) {
+                .multiptr => return ast_.AST.create_addr_of(token, try self.prefix_expr(), mut, true, self.allocator),
+                .slice => return ast_.AST.create_slice_of(token, try self.prefix_expr(), mut, self.allocator),
+                .array => return ast_.AST.create_array_of(token, try self.prefix_expr(), len.?, self.allocator),
             }
         } else if (self.accept(.question_mark)) |_| {
             return ast_.AST.create_optional_type(try self.prefix_expr(), self.allocator);

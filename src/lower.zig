@@ -267,14 +267,17 @@ fn lower_AST(
             // Get the type of the index ast. This will determine if this is an array index or a slice index
             const ast_expanded_type = ast.lhs().typeof(allocator).expand_type(allocator);
             const _type = ast.typeof(allocator);
-            if (ast_expanded_type.product.was_slice) {
+            if (ast_expanded_type.* == .addr_of) {
+                // Indexing a multi-ptr, don't change lhs
+                std.debug.assert(ast_expanded_type.addr_of.multiptr);
+            } else if (ast_expanded_type.* == .product and ast_expanded_type.product.was_slice) {
                 // Indexing a slice; index_val := lhs._0^[rhs]
                 new_lhs = new_lhs.create_select_lval(0, 0, _type.expand_type(allocator), null, allocator);
                 new_lhs = new_lhs.create_dereference_lval(_type.expand_type(allocator), allocator);
             }
 
             // Surround with L_Value node
-            const length: *lval_.L_Value = generate_indexable_length(cfg, lhs, ast_expanded_type, ast.token().span, allocator);
+            const length: ?*lval_.L_Value = generate_indexable_length(cfg, lhs, ast_expanded_type, ast.token().span, allocator);
             return new_lhs.create_index_lval(rhs, length, _type.expand_type(allocator), allocator);
         },
         .select => {
@@ -864,8 +867,12 @@ fn generate_indexable_length(
     _type: *ast_.AST,
     span: span_.Span,
     allocator: std.mem.Allocator,
-) *lval_.L_Value {
-    if (_type.* == .product and _type.product.was_slice) {
+) ?*lval_.L_Value {
+    if (_type.* == .addr_of) {
+        // Implies multiptr, unfortunately there is no way to get the length
+        std.debug.assert(_type.addr_of.multiptr);
+        return null;
+    } else if (_type.* == .product and _type.product.was_slice) {
         const offset = _type.product.get_offset(1, allocator);
         return lhs.create_select_lval(1, offset, primitives_.int64_type, null, allocator);
     } else if (_type.* == .product and !_type.product.was_slice) {
@@ -873,7 +880,7 @@ fn generate_indexable_length(
         cfg.append_instruction(ir_.IR.init_int(retval, _type.children().items.len, span, allocator));
         return retval;
     } else {
-        unreachable;
+        std.debug.panic("compiler error: cannot generate IR to get length of type AST.{s}\n", .{@tagName(_type.*)});
     }
 }
 
