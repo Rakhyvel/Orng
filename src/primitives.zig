@@ -408,7 +408,17 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\    (?String).none,
         \\    (?String).none,
         \\    (?String).none,
-        \\  )
+        \\  ),
+        \\  lib_dirs: [8]?String = ( // TODO: Replace with an Arraylist
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\  ),
         \\)
         \\
         \\const Requirement: Type = (String, &Package)
@@ -446,9 +456,21 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\  }
         \\
         \\  fn add_library(&mut self, library: String) -> () {
+        \\    // TODO: assert not static library
         \\    while let mut i = 0; i < self.libs.length; i += 1 {
         \\      if self.libs[i] == .none {
         \\        self.libs[i] = .some(library)
+        \\        return
+        \\      }
+        \\    }
+        \\    unreachable // no more space!
+        \\  }
+        \\
+        \\  fn add_library_directory(&mut self, library_directory: String) -> () {
+        \\    // TODO: assert not static library
+        \\    while let mut i = 0; i < self.lib_dirs.length; i += 1 {
+        \\      if self.lib_dirs[i] == .none {
+        \\        self.lib_dirs[i] = .some(library_directory)
         \\        return
         \\      }
         \\    }

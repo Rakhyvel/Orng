@@ -10,9 +10,10 @@ const String = @import("zig-string/zig-string.zig").String;
 const span_ = @import("span.zig");
 const symbol_ = @import("symbol.zig");
 
-const debug = false;
+var debug = false;
 
 pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!void {
+    // debug = std.mem.eql(u8, cfg.symbol.name, "requires");
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();

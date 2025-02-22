@@ -360,17 +360,15 @@ pub const CFG = struct {
         }
         bb.visited = true;
 
-        if (bb.next) |next| { // Have the next block request parameters
-            retval = self.propagate_arguments(next, allocator) or
-                request_undefined_args(next, bb, allocator) or
-                fill_parent_args(next, bb, &bb.branch_arguments) or
-                retval;
+        if (bb.next != null) { // Have the next block request parameters
+            retval = self.propagate_arguments(bb.next.?, allocator) or retval;
+            retval = request_undefined_args(bb.next.?, bb, allocator) or retval;
+            retval = fill_parent_args(bb.next.?, bb, &bb.branch_arguments) or retval;
         }
         if (bb.has_branch and bb.branch != null) { // Have the branch block request parameters
-            retval = self.propagate_arguments(bb.branch.?, allocator) or
-                request_undefined_args(bb.branch.?, bb, allocator) or
-                fill_parent_args(bb.branch.?, bb, &bb.branch_arguments) or
-                retval;
+            retval = self.propagate_arguments(bb.branch.?, allocator) or retval;
+            retval = request_undefined_args(bb.branch.?, bb, allocator) or retval;
+            retval = fill_parent_args(bb.branch.?, bb, &bb.branch_arguments) or retval;
         }
 
         return retval;

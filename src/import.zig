@@ -139,6 +139,13 @@ fn resolve_import(self: Self, ast: *ast_.AST) walker_.Error!*symbol_.Symbol {
     const import_file_paths = [_][]const u8{ package_path, import_filename.str() };
     const import_file_path = std.fs.path.join(self.compiler.allocator(), &import_file_paths) catch unreachable;
 
+    if (self.compiler.packages.get(package_name) != null) {
+        const reqs = self.compiler.packages.get(package_name).?.requirements;
+        for (reqs.keys()) |key| {
+            std.debug.print("req: {s}\n", .{key});
+        }
+    }
+
     var import_symbol: *symbol_.Symbol = undefined;
     if (self.compiler.packages.get(package_name) != null and self.compiler.packages.get(package_name).?.requirements.get(import_name) != null) {
         // Foreign import of a package

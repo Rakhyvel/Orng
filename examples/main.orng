@@ -1,5 +1,7 @@
 import sdl
+import std
 
 fn main() -> () {
     _ = sdl::init(sdl::init_everything)
+    debug::println("sdl2 started!")
 }

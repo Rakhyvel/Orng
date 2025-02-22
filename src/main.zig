@@ -204,6 +204,22 @@ fn make_package(
         compiler.lookup_package(package_name).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
     }
 
+    for (package.get_field(primitives_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
+        if (maybe_lib_dir_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const include_dir = maybe_lib_dir_addr.sum_value.init.?;
+        compiler.lookup_package(package_name).?.library_directories.put(include_dir.string.data, void{}) catch unreachable;
+    }
+
+    for (package.get_field(primitives_.package_type, "libs").children().items) |maybe_lib_addr| {
+        if (maybe_lib_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const include_dir = maybe_lib_addr.sum_value.init.?;
+        compiler.lookup_package(package_name).?.libraries.put(include_dir.string.data, void{}) catch unreachable;
+    }
+
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;
     const root_file_paths = [_][]const u8{ working_directory, root_filename };
     const root_file_path = std.fs.path.join(compiler.allocator(), &root_file_paths) catch unreachable;

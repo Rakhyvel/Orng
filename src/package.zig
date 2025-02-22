@@ -13,6 +13,7 @@ root: *symbol_.Symbol,
 local_modules: std.ArrayList(*module_.Module),
 requirements: std.StringArrayHashMap(*symbol_.Symbol),
 include_directories: std.StringArrayHashMap(void),
+library_directories: std.StringArrayHashMap(void),
 libraries: std.StringArrayHashMap(void),
 is_static_lib: bool,
 visited: bool,
@@ -23,6 +24,7 @@ pub fn new(allocator: std.mem.Allocator, package_absolute_path: []const u8, is_s
     package.output_absolute_path = undefined; // filled in when the output binary is created
     package.requirements = std.StringArrayHashMap(*symbol_.Symbol).init(allocator);
     package.include_directories = std.StringArrayHashMap(void).init(allocator);
+    package.library_directories = std.StringArrayHashMap(void).init(allocator);
     package.libraries = std.StringArrayHashMap(void).init(allocator);
     package.local_modules = std.ArrayList(*module_.Module).init(allocator);
     package.visited = false;
@@ -68,7 +70,6 @@ pub fn compile_c(self: *Package, packages: std.StringArrayHashMap(*Package), ext
 }
 
 pub fn append_include_dir(self: *Package, packages: std.StringArrayHashMap(*Package), include_dirs: *std.StringArrayHashMap(void)) void {
-    std.debug.print("append_include_dir: {s}\n", .{self.name});
     for (self.requirements.keys()) |requirement_name| {
         const required_package = packages.get(requirement_name).?;
         required_package.append_include_dir(packages, &self.include_directories);
@@ -155,6 +156,8 @@ fn gcc(
         gcc_cmd.append(requirement_include_path.str()) catch unreachable;
     }
 
+    // print_cmd(&gcc_cmd);
+
     // Set cwd
     var cwd_string = String.init(allocator);
     cwd_string.writer().print("{s}{c}build", .{ self.absolute_path, std.fs.path.sep }) catch unreachable;
@@ -164,11 +167,6 @@ fn gcc(
         .argv = gcc_cmd.items,
         .cwd = cwd_string.str(),
     }) catch unreachable;
-
-    for (gcc_cmd.items) |item| {
-        std.debug.print("{s} ", .{item});
-    }
-    std.debug.print("\n", .{});
 
     var retcode: u8 = 0;
     switch (run_res.term) {
@@ -210,6 +208,8 @@ fn ar(self: *Package, obj_files: std.ArrayList([]const u8), allocator: std.mem.A
 
     // Add all the object files
     cmd.appendSlice(obj_files.items) catch unreachable;
+
+    // print_cmd(&cmd);
 
     // Set cwd
     var cwd_string = String.init(allocator);
@@ -261,9 +261,19 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         cmd.append("-L") catch unreachable;
         cmd.append(requirement_library_path.str()) catch unreachable;
 
+        for (self.library_directories.keys()) |lib_dir| {
+            cmd.append("-L") catch unreachable;
+            cmd.append(lib_dir) catch unreachable;
+        }
+
         var requirement_library = String.init(allocator);
         requirement_library.writer().print("-l{s}", .{requirement.name}) catch unreachable;
         cmd.append(requirement_library.str()) catch unreachable;
+
+        for (self.libraries.keys()) |lib| {
+            cmd.append("-l") catch unreachable;
+            cmd.append(lib) catch unreachable;
+        }
     }
 
     // Add the output name
@@ -280,6 +290,8 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         self.name,
     }) catch unreachable;
     self.output_absolute_path = output_absolute_path.str();
+
+    // print_cmd(&cmd);
 
     // Set cwd
     var cwd_string = String.init(allocator);
@@ -310,4 +322,11 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
         std.debug.print("err:{s}\n", .{run_res.stderr});
         return error.CompileError;
     }
+}
+
+fn print_cmd(cmd: *const std.ArrayList([]const u8)) void {
+    for (cmd.items) |item| {
+        std.debug.print("{s} ", .{item});
+    }
+    std.debug.print("\n", .{});
 }

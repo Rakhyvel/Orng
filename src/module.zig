@@ -519,6 +519,7 @@ pub fn get_cfg(
     }
     if (symbol.cfg == null) {
         symbol.cfg = cfg_.CFG.init(symbol, caller, allocator);
+        symbol.cfg.?.module = symbol.scope.module.?;
         try lower_.lower_AST_into_cfg(symbol.cfg.?, errors, allocator);
         try ir_validate_.validate_cfg(symbol.cfg.?, errors);
         try optimizations_.optimize(symbol.cfg.?, errors, allocator);

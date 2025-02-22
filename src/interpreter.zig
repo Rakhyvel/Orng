@@ -539,7 +539,7 @@ pub const Context = struct {
                 return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_ast_valid();
             },
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
-            else => std.debug.panic("interpreter error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
+            else => std.debug.panic("interpreter error: unimplemented extract_ast() for: AST.{s}", .{@tagName(_type.*)}),
         }
     }
 
