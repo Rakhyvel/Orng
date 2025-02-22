@@ -119,7 +119,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
         }
 
         var output_name = String.init(allocator);
-        output_name.writer().print("{s}.exe", .{curr_package.output_absolute_path}) catch unreachable;
+        output_name.writer().print("{s}", .{curr_package.output_absolute_path}) catch unreachable;
         const argv = &[_][]const u8{output_name.str()};
         var child = std.process.Child.init(argv, allocator);
         child.stdin_behavior = .Inherit;
