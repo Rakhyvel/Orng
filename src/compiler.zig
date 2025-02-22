@@ -132,7 +132,7 @@ pub const Context = struct {
 
     pub fn register_package(self: *Context, package_name: []const u8, package_absolute_path: []const u8, is_static_lib: bool) void {
         if (self.lookup_package(package_name) == null) {
-            const package = Package.new(self.allocator(), package_name, package_absolute_path, is_static_lib);
+            const package = Package.new(self.allocator(), package_absolute_path, is_static_lib);
             self.packages.put(package_name, package) catch unreachable;
         }
     }
@@ -163,6 +163,11 @@ pub const Context = struct {
             // std.debug.print("  generating: {s}...\n", .{module.name});
             try module.output(build_path, &package.local_modules, self.allocator());
         }
+    }
+
+    pub fn propagate_include_directories(self: *Context, root_package_name: []const u8) void {
+        const package = self.packages.get(root_package_name).?;
+        package.append_include_dir(self.packages, &package.include_directories);
     }
 
     pub fn compile_c(self: *Context, root_package_name: []const u8, extra_flags: bool) !void {

@@ -1,0 +1,5 @@
+fn build() -> Package {
+    let mut retval = Package::static_library(.root="lib.orng")
+    retval.>add_include_directory("C:\\Users\\Joseph\\Documents\\SDL2\\x86_64-w64-mingw32\\include\\SDL2")
+    retval
+}

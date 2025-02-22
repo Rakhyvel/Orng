@@ -379,7 +379,8 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\  root: String,
         \\  kind: (executable | static_library),
         \\  dir: String = ".",
-        \\  requirements: [8]?Requirement = (
+        \\  num_requirements: Int = 0,
+        \\  requirements: [8]?Requirement = ( // TODO: Replace with an Arraylist
         \\    (?Requirement).none,
         \\    (?Requirement).none,
         \\    (?Requirement).none,
@@ -389,13 +390,43 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\    (?Requirement).none,
         \\    (?Requirement).none
         \\  ),
+        \\  include_dirs: [8]?String = ( // TODO: Replace with an Arraylist
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\  ),
+        \\  libs: [8]?String = ( // TODO: Replace with an Arraylist
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\  ),
+        \\  lib_dirs: [8]?String = ( // TODO: Replace with an Arraylist
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\    (?String).none,
+        \\  ),
         \\)
         \\
         \\const Requirement: Type = (String, &Package)
         \\
         \\impl for Package {
         \\  /// Creates an executable package
-        \\  fn executable(root: String) -> Self { (root, .executable, "") }
+        \\  fn executable(root: String) -> Self { (root, .executable, "", 0) }
         \\
         \\  /// Creates a static library package
         \\  fn static_library(root: String) -> Self { (root, .static_library, "") }
@@ -406,13 +437,40 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\
         \\  /// Adds a package to the list of required packages
         \\  fn requires(&mut self, name: String, other: &Package) -> () {
-        \\      while let mut i = 0; i < self.requirements.length; i += 1 {
-        \\          if self.requirements[i] == .none {
-        \\              self.requirements[i] = .some((name, other))
-        \\              return
-        \\          }
+        \\      self.requirements[self.num_requirements] = .some((name, other))
+        \\      self.num_requirements += 1
+        \\  }
+        \\
+        \\  fn add_include_directory(&mut self, include_directory: String) -> () {
+        \\    while let mut i = 0; i < self.include_dirs.length; i += 1 {
+        \\      if self.include_dirs[i] == .none {
+        \\        self.include_dirs[i] = .some(include_directory)
+        \\        return
         \\      }
-        \\      unreachable // no more space!
+        \\    }
+        \\    unreachable // no more space!
+        \\  }
+        \\
+        \\  fn add_library(&mut self, library: String) -> () {
+        \\    // TODO: assert not static library
+        \\    while let mut i = 0; i < self.libs.length; i += 1 {
+        \\      if self.libs[i] == .none {
+        \\        self.libs[i] = .some(library)
+        \\        return
+        \\      }
+        \\    }
+        \\    unreachable // no more space!
+        \\  }
+        \\
+        \\  fn add_library_directory(&mut self, library_directory: String) -> () {
+        \\    // TODO: assert not static library
+        \\    while let mut i = 0; i < self.lib_dirs.length; i += 1 {
+        \\      if self.lib_dirs[i] == .none {
+        \\        self.lib_dirs[i] = .some(library_directory)
+        \\        return
+        \\      }
+        \\    }
+        \\    unreachable // no more space!
         \\  }
         \\}
         \\

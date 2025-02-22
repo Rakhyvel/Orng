@@ -347,7 +347,6 @@ pub const AST = union(enum) {
         common: AST_Common,
         _expr: *AST,
     },
-
     /// This node type is needed for pattern matching.
     /// Symbols for captured sum-values in a `match` statement are created before their type information is
     /// known. For example:
@@ -499,6 +498,10 @@ pub const AST = union(enum) {
     import: struct {
         common: AST_Common,
         pattern: *AST,
+    },
+    cinclude: struct {
+        common: AST_Common,
+        _expr: *AST,
     },
     template: struct {
         common: AST_Common,
@@ -1313,6 +1316,17 @@ pub const AST = union(enum) {
         } }, allocator);
     }
 
+    pub fn create_cinclude(
+        _token: token_.Token,
+        _expr: *AST,
+        allocator: std.mem.Allocator,
+    ) *AST {
+        return AST.box(AST{ .cinclude = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._expr = _expr,
+        } }, allocator);
+    }
+
     pub fn create_defer(_token: token_.Token, _statement: *AST, allocator: std.mem.Allocator) *AST {
         return AST.box(AST{ .@"defer" = .{
             .common = AST_Common{ ._token = _token, ._type = null },
@@ -1749,6 +1763,7 @@ pub const AST = union(enum) {
                 );
             },
             .import => return create_import(self.token(), self.import.pattern, allocator),
+            .cinclude => return create_cinclude(self.token(), self.cinclude._expr, allocator),
             .module => return create_module(self.token(), self.scope().?, self.module.module, allocator),
             .@"defer" => return create_defer(self.token(), self.statement().clone(allocator), allocator),
             .@"errdefer" => return create_errdefer(self.token(), self.statement().clone(allocator), allocator),
@@ -1831,7 +1846,7 @@ pub const AST = union(enum) {
             .bit_and => &self.bit_and._args,
             .bit_or => &self.bit_or._args,
             .bit_xor => &self.bit_xor._args,
-            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{s}`", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{}`", .{self.*}),
         };
     }
 
@@ -2649,7 +2664,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = self.lhs().typeof(allocator).expand_identifier();
+                var select_lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
                 var retval = select_lhs_type.children().items[self.pos().?];
                 while (retval.* == .annotation) {
                     retval = retval.annotation.type;
@@ -3276,6 +3291,7 @@ pub const AST = union(enum) {
             },
             .module => try out.writer().print("module()", .{}),
             .import => try out.writer().print("import({})", .{self.import.pattern}),
+            .cinclude => try out.writer().print("cinclude({})", .{self.cinclude._expr}),
             .template => try out.writer().print("template()", .{}),
             .method_decl => {
                 try out.writer().print("method_decl(.name={s}, .receiver={?}, .params=[", .{

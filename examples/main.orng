@@ -1,11 +1,7 @@
-import externs
 import std::debug
+import externs
 
 fn main() -> () {
-    let mut x: Int = 45
-    _ = x
-    
-    externs::println("Hello, ")
-    
-    debug::println("World!")
+    debug::println("Hello, World!")
+    externs::println("Hello, World!")
 }

@@ -64,7 +64,7 @@ pub fn generate_header(module: *module_.Module, writer: Writer) CodeGen_Error!vo
         \\
     , .{ module.package_name, module.name });
 
-    try output_includes(module.local_imported_modules.keys(), writer);
+    try output_includes(module.cincludes.items, module.local_imported_modules.keys(), writer);
     try output_forward_typedefs(&module.type_set, writer);
     try output_typedefs(&module.type_set, writer);
     try output_traits(&module.traits, writer);
@@ -76,16 +76,20 @@ pub fn generate_header(module: *module_.Module, writer: Writer) CodeGen_Error!vo
     , .{});
 }
 
-fn output_includes(modules: []*module_.Module, writer: Writer) CodeGen_Error!void {
-    if (modules.len == 0) {
-        return;
+fn output_includes(cincludes: []*ast_.AST, modules: []*module_.Module, writer: Writer) CodeGen_Error!void {
+    if (cincludes.len != 0) {
+        for (cincludes) |cinclude| {
+            try writer.print("#include \"{s}\"\n", .{cinclude.string.data});
+        }
+        try writer.print("\n", .{});
     }
 
-    for (modules) |module| {
-        try writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name });
+    if (modules.len != 0) {
+        for (modules) |module| {
+            try writer.print("#include \"{s}-{s}.h\"\n", .{ module.package_name, module.name });
+        }
+        try writer.print("\n", .{});
     }
-
-    try writer.print("\n", .{});
 }
 
 /// Outputs forward declarations for typedefs based on the provided `Type_Set`.
@@ -436,7 +440,7 @@ fn output_main_function(
     }
 
     try writer.print(
-        \\int main(void) {{
+        \\int main(int argc, char *argv[]) {{
         \\  
     , .{});
     if (specifier != null) {

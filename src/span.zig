@@ -13,7 +13,7 @@ pub const c_format: Span_Format = .{
 };
 
 pub const interpreter_format: Span_Format = .{
-    .fmt_str = "{s}:{}:{}:\n{s}\n{s}A^\n",
+    .fmt_str = "{s}:{}:{}:\n{s}\n{s}^\n",
     .sanitize = false,
 };
 
@@ -36,7 +36,10 @@ pub const Span = struct {
             }
         }
 
-        const sanitized_filename = sanitize_string(self.filename, std.heap.page_allocator);
+        const sanitized_filename = if (span_format.sanitize)
+            sanitize_string(self.filename, std.heap.page_allocator)
+        else
+            self.filename;
 
         const text_to_write = if (span_format.sanitize)
             sanitize_string(self.line_text, std.heap.page_allocator)

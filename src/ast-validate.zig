@@ -48,6 +48,10 @@ const Validate_Args_Thing = enum {
 
 pub fn validate_module(module: *module_.Module, compiler: *compiler_.Context) Validate_Error_Enum!void {
     try validate_scope(module.top_level_scope(), compiler);
+    for (0..module.cincludes.items.len) |i| {
+        module.cincludes.items[i] = validate_AST(module.cincludes.items[i], primitives_.string_type, compiler);
+    }
+    try assert_none_poisoned(module.cincludes.items);
 }
 
 pub fn validate_scope(scope: *symbol_.Scope, compiler: *compiler_.Context) Validate_Error_Enum!void {
@@ -569,6 +573,11 @@ fn validate_AST_internal(
             }
             try type_check(ast.token().span, ret_type, expected, &compiler.errors);
 
+            var expanded_expected = expected;
+            if (expected != null and expected.?.* == .type_of) {
+                expanded_expected = expected.?.expand_type(compiler.allocator());
+            }
+
             // Get the cfg from the symbol, and embed into the module
             const module = ast.symbol().?.scope.module.?;
             const cfg = try module_.get_cfg(ast.symbol().?, null, &compiler.errors, compiler.allocator());
@@ -579,13 +588,13 @@ fn validate_AST_internal(
 
             // Create a context and interpret
             var context = interpreter_.Context.init(compiler.allocator());
-            context.set_entry_point(cfg, ret_type);
+            context.set_entry_point(cfg, expanded_expected orelse ret_type);
             defer context.deinit();
             context.load_module(module);
             try context.run(compiler);
 
             // Extract the retval
-            ast.@"comptime".result = context.extract_ast(0, ret_type, compiler.allocator());
+            ast.@"comptime".result = context.extract_ast(0, expanded_expected orelse ret_type, compiler.allocator());
             return ast.@"comptime".result.?;
         },
         .assign => {
@@ -1514,7 +1523,13 @@ fn assert_none_poisoned(value: anytype) Validate_Error_Enum!void {
             }
         },
         .Optional => if (value != null and value.?.* == .poison) return error.CompileError,
-        .Pointer => if (value.* == .poison) return error.CompileError,
+        .Pointer => |info| switch (info.size) {
+            .One => if (value.* == .poison) return error.CompileError,
+            .Slice => for (value) |f| {
+                try assert_none_poisoned(f);
+            },
+            else => unreachable,
+        },
         else => {},
     }
 }

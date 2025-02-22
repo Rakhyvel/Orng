@@ -1,0 +1,49 @@
+// 336
+
+const Inner: Type = (String, Int)
+
+const Outer: Type = (
+  dummy: Int,
+  requirements: [8]?Inner = ( 
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none
+  )
+)
+
+impl for Outer {
+    fn new() -> Self { (.dummy = 4, .requirements = ( 
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none,
+    (?Inner).none
+  )) }
+
+    fn add_entry(&mut self, name: String, other: Int) -> () {
+        while let mut i = 0; i < self.requirements.length; i += 1 {
+            if self.requirements[i] == .none {
+                self.requirements[i] = .some((name, other))
+                return
+            }
+        }
+        unreachable // no more space!
+    }
+}
+
+fn main() -> Int {
+    comptime {
+        let mut package: Outer
+        package.>add_entry("Entry 1", 633)
+        package.>add_entry("Entry 2", 336)
+        package.requirements[1].some[1]
+    }
+}

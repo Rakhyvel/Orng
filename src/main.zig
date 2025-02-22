@@ -7,6 +7,7 @@ const interpreter_ = @import("interpreter.zig");
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 const version_year: usize = 25;
@@ -102,6 +103,7 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
 
     try compiler.output_modules();
 
+    compiler.propagate_include_directories(package_name);
     try compiler.compile_c(package_name, false);
 
     std.debug.print("done\n", .{});
@@ -116,14 +118,17 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
             return error.CompileError;
         }
 
-        const argv = &[_][]const u8{curr_package.output_absolute_path};
+        var output_name = String.init(allocator);
+        output_name.writer().print("{s}", .{curr_package.output_absolute_path}) catch unreachable;
+        const argv = &[_][]const u8{output_name.str()};
         var child = std.process.Child.init(argv, allocator);
         child.stdin_behavior = .Inherit;
         child.stdout_behavior = .Inherit;
         child.stderr_behavior = .Inherit;
 
         child.spawn() catch return error.CompileError;
-        _ = child.wait() catch return error.CompileError;
+        const term = child.wait() catch return error.CompileError;
+        std.debug.print("exited: {}", .{term.Exited});
     }
 }
 
@@ -193,6 +198,30 @@ fn make_package(
         _ = try make_package(required_package, required_package_name, compiler, interpreter, new_working_directory, null);
 
         compiler.make_package_requirement_link(package_name, requirement_name);
+    }
+
+    for (package.get_field(primitives_.package_type, "include_dirs").children().items) |maybe_include_dir_addr| {
+        if (maybe_include_dir_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const include_dir = maybe_include_dir_addr.sum_value.init.?;
+        compiler.lookup_package(package_name).?.include_directories.put(include_dir.string.data, void{}) catch unreachable;
+    }
+
+    for (package.get_field(primitives_.package_type, "lib_dirs").children().items) |maybe_lib_dir_addr| {
+        if (maybe_lib_dir_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const include_dir = maybe_lib_dir_addr.sum_value.init.?;
+        compiler.lookup_package(package_name).?.library_directories.put(include_dir.string.data, void{}) catch unreachable;
+    }
+
+    for (package.get_field(primitives_.package_type, "libs").children().items) |maybe_lib_addr| {
+        if (maybe_lib_addr.sum_value._pos != 0) {
+            continue;
+        }
+        const include_dir = maybe_lib_addr.sum_value.init.?;
+        compiler.lookup_package(package_name).?.libraries.put(include_dir.string.data, void{}) catch unreachable;
     }
 
     const root_filename = package.get_field(primitives_.package_type, "root").string.data;

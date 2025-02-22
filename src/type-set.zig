@@ -13,39 +13,54 @@ pub const Type_Set = struct {
     }
 
     pub fn add(self: *Type_Set, oldast_: *ast_.AST, allocator: std.mem.Allocator) ?*DAG {
-        const ast = oldast_;
+        const ast = oldast_.expand_type(allocator);
         if (self.get(ast)) |dag| {
             // Type is already in the set, return DAG entry for it
             return dag;
-        } else if (ast.* == .function) {
-            var dag = DAG.init(ast, self.types.items.len, allocator);
-            self.types.append(dag) catch unreachable;
-            if (self.add(ast.lhs(), allocator)) |domain| {
-                dag.dependencies.append(domain) catch unreachable;
-            }
-            if (self.add(ast.rhs(), allocator)) |codomain| {
-                dag.dependencies.append(codomain) catch unreachable;
-            }
-            return dag;
-        } else if (ast.* == .product or ast.* == .sum_type) {
-            var dag = DAG.init(ast, self.types.items.len, allocator);
-            self.types.append(dag) catch unreachable;
-            for (ast.children().items) |term| {
-                if (self.add(term, allocator)) |dependency| {
-                    dag.dependencies.append(dependency) catch unreachable;
+        }
+        switch (ast.*) {
+            .function => {
+                var dag = DAG.init(ast, self.types.items.len, allocator);
+                self.types.append(dag) catch unreachable;
+                if (self.add(ast.lhs(), allocator)) |domain| {
+                    dag.dependencies.append(domain) catch unreachable;
                 }
-            }
-            return dag;
-        } else if (ast.* == .dyn_type) {
-            const dag = DAG.init(ast, self.types.items.len, allocator);
-            self.types.append(dag) catch unreachable;
-            return dag;
-        } else if (ast.* == .annotation) {
-            return self.add(ast.annotation.type, allocator);
-        } else if (ast.* == .addr_of) {
-            return self.add(ast.expr(), allocator);
-        } else {
-            return null;
+                if (self.add(ast.rhs(), allocator)) |codomain| {
+                    dag.dependencies.append(codomain) catch unreachable;
+                }
+                return dag;
+            },
+            .product, .sum_type => {
+                var dag = DAG.init(ast, self.types.items.len, allocator);
+                self.types.append(dag) catch unreachable;
+                for (ast.children().items) |term| {
+                    if (self.add(term, allocator)) |dependency| {
+                        if (term.* != .addr_of)
+                            dag.dependencies.append(dependency) catch unreachable;
+                    }
+                }
+                return dag;
+            },
+            .dyn_type => {
+                const dag = DAG.init(ast, self.types.items.len, allocator);
+                self.types.append(dag) catch unreachable;
+                return dag;
+            },
+            .annotation => {
+                return self.add(ast.annotation.type, allocator);
+            },
+            .addr_of => {
+                // return self.add(ast.expr(), allocator);
+                return null;
+            },
+            .identifier, .unit_type, .anyptr_type => {
+                // Do not add to DAG
+                return null;
+            },
+            else => {
+                std.debug.panic("unknown: {}", .{ast});
+                return null;
+            },
         }
     }
 
@@ -57,6 +72,12 @@ pub const Type_Set = struct {
             }
         }
         return null;
+    }
+
+    pub fn print(self: *Type_Set) void {
+        for (self.types.items) |dag| {
+            dag.print();
+        }
     }
 };
 
@@ -73,5 +94,13 @@ pub const DAG = struct {
         retval.dependencies = std.ArrayList(*DAG).init(allocator);
         retval.visited = false;
         return retval;
+    }
+
+    fn print(self: *DAG) void {
+        std.debug.print("{} <= ", .{self.uid});
+        for (self.dependencies.items) |dag| {
+            std.debug.print("{} ", .{dag.uid});
+        }
+        std.debug.print("\n", .{});
     }
 };

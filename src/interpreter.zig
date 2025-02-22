@@ -163,8 +163,8 @@ pub const Context = struct {
                     self.move(dest, src, ir.src1.?.expanded_type_sizeof());
                 }
                 // Store tag in last field
-                const address = try self.effective_address(ir.dest.?) + ir.dest.?.expanded_type_sizeof() - 8;
-                self.store(i64, address, @as(i64, @intCast(ir.data.int)));
+                const tag_address = try self.effective_address(ir.dest.?) + ir.dest.?.expanded_type_sizeof() - 8;
+                self.store(i64, tag_address, @as(i64, @intCast(ir.data.int)));
             },
 
             .copy => {
@@ -335,7 +335,7 @@ pub const Context = struct {
                             // Store the address of the package in the retval
                             self.store_int(ret_addr, 8, adrs);
                         } else |_| {
-                            return self.interpreter_panic("interpreter error: cannot find package", .{});
+                            return self.interpreter_panic("interpreter error: cannot find package\n", .{});
                         }
                         return;
                     }
@@ -359,7 +359,7 @@ pub const Context = struct {
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
                 return self.interpreter_panic("interpreter error: reached unreachable code\n", .{});
             },
-            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}", .{@tagName(ir.kind)}),
+            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
         }
     }
 
@@ -452,7 +452,7 @@ pub const Context = struct {
                     },
                     .string => {
                         const idx = self.load(ir_.String_Idx, address);
-                        const module = self.modules.get(idx.module_uid) orelse std.debug.panic("interpreter error: unknown module uid: {}", .{idx.module_uid});
+                        const module = self.modules.get(idx.module_uid) orelse std.debug.panic("interpreter error: unknown module uid: {}\n", .{idx.module_uid});
                         const string = module.interned_strings.items[idx.string_idx];
                         return ast_.AST.create_string(token_.Token.init_simple("\""), string, allocator);
                     },
@@ -539,7 +539,7 @@ pub const Context = struct {
                 return ast_.AST.create_product(_type.token(), value_terms, allocator).assert_ast_valid();
             },
             .annotation => return self.extract_ast(address, _type.annotation.type, allocator),
-            else => std.debug.panic("interpreter error: unimplemented generate_default() for: AST.{s}", .{@tagName(_type.*)}),
+            else => std.debug.panic("interpreter error: unimplemented extract_ast() for: AST.{s}\n", .{@tagName(_type.*)}),
         }
     }
 
@@ -746,7 +746,7 @@ pub const Context = struct {
             2 => self.store(i16, address, @as(i16, @intCast(val))),
             4 => self.store(i32, address, @as(i32, @intCast(val))),
             8 => self.store(i64, address, @as(i64, @intCast(val))),
-            else => std.debug.panic("interpreter error: cannot store an int of size {}", .{size}),
+            else => std.debug.panic("interpreter error: cannot store an int of size {}\n", .{size}),
         }
     }
 
@@ -821,7 +821,7 @@ pub const Context = struct {
 
     fn memory_check(self: *Context, space_needed: i64) error{CompileError}!void {
         if (self.bump_alloc_pointer -| self.stack_pointer < space_needed) {
-            return self.interpreter_panic("interpreter error: out of memory!", .{});
+            return self.interpreter_panic("interpreter error: out of memory!\n", .{});
         }
     }
 
