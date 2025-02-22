@@ -116,6 +116,7 @@ inline static int64_t $add_int64_t(const int64_t lhs, const int64_t rhs, const c
         ((rhs < 0) && (lhs < (INT64_MIN - rhs))))
     {
         $lines[$line_idx++] = line;
+        fprintf(stderr, "%d + %d\n", lhs, rhs);
         $panic("addition overflow");
     }
     return lhs + rhs;

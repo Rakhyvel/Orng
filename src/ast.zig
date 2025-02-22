@@ -37,8 +37,6 @@ pub fn init_structures(allocator: std.mem.Allocator) void {
 /// Represents the kind of a slice.
 pub const Slice_Kind = enum {
     slice, // data ptr and len. indexing is supported.
-    mut, // mutable data ptr and len. indexing is supported.
-    multiptr, // c-style `*` pointer, no len. both dereferencing and indexing is supported.
     array, // static homogenous tuple, compile-time len. indexing is supported.
 };
 
@@ -327,10 +325,15 @@ pub const AST = union(enum) {
         common: AST_Common,
         _expr: *AST,
         mut: bool,
+        multiptr: bool = false,
         anytptr: bool = false, // When this is true, the addr_of should output as a void*, and should be cast whenever dereferenced
         _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
-    slice_of: struct { common: AST_Common, _expr: *AST, kind: Slice_Kind },
+    slice_of: struct {
+        common: AST_Common,
+        _expr: *AST,
+        mut: bool,
+    },
     array_of: struct { common: AST_Common, _expr: *AST, len: *AST },
     sub_slice: struct { common: AST_Common, super: *AST, lower: ?*AST, upper: ?*AST },
     annotation: struct { common: AST_Common, pattern: *AST, type: *AST, predicate: ?*AST, init: ?*AST },
@@ -993,21 +996,22 @@ pub const AST = union(enum) {
         return AST.box(AST{ .@"union" = .{ .common = _common, ._lhs = _lhs, ._rhs = _rhs } }, allocator);
     }
 
-    pub fn create_addr_of(_token: token_.Token, _expr: *AST, _mut: bool, allocator: std.mem.Allocator) *AST {
+    pub fn create_addr_of(_token: token_.Token, _expr: *AST, _mut: bool, multiptr: bool, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .addr_of = .{
             .common = _common,
             ._expr = _expr,
             .mut = _mut,
+            .multiptr = multiptr,
         } }, allocator);
     }
 
-    pub fn create_slice_of(_token: token_.Token, _expr: *AST, kind: Slice_Kind, allocator: std.mem.Allocator) *AST {
+    pub fn create_slice_of(_token: token_.Token, _expr: *AST, _mut: bool, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .slice_of = .{
             .common = _common,
             ._expr = _expr,
-            .kind = kind,
+            .mut = _mut,
         } }, allocator);
     }
 
@@ -1625,12 +1629,13 @@ pub const AST = union(enum) {
                 self.token(),
                 self.expr().clone(allocator),
                 self.mut(),
+                self.addr_of.multiptr,
                 allocator,
             ),
             .slice_of => return create_slice_of(
                 self.token(),
                 self.expr().clone(allocator),
-                self.slice_of.kind,
+                self.slice_of.mut,
                 allocator,
             ),
             .array_of => return create_array_of(
@@ -1996,6 +2001,7 @@ pub const AST = union(enum) {
             of.token(),
             of,
             _mut,
+            true,
             allocator,
         ).assert_ast_valid();
         const annot_type = AST.create_annotation(
@@ -2034,6 +2040,7 @@ pub const AST = union(enum) {
             _expr.token(),
             index,
             _mut,
+            true,
             allocator,
         )).assert_ast_valid();
         new_terms.append(addr) catch unreachable;
@@ -2161,11 +2168,11 @@ pub const AST = union(enum) {
             },
             .addr_of => {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
-                return create_addr_of(trait_type.token(), _expr, trait_type.mut(), allocator);
+                return create_addr_of(trait_type.token(), _expr, trait_type.mut(), trait_type.addr_of.multiptr, allocator);
             },
             .slice_of => {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
-                return create_slice_of(trait_type.token(), _expr, trait_type.slice_of.kind, allocator);
+                return create_slice_of(trait_type.token(), _expr, trait_type.slice_of.mut, allocator);
             },
             .array_of => {
                 const _expr = convert_self_type(trait_type.expr(), for_type, allocator);
@@ -2397,9 +2404,17 @@ pub const AST = union(enum) {
             .identifier => try out.print("{s}", .{self.token().data}),
             .pattern_symbol => try out.print("{s}", .{self.token().data}),
             .addr_of => {
-                try out.print("&", .{});
-                if (self.addr_of.mut) {
-                    try out.print("mut ", .{});
+                if (self.addr_of.multiptr) {
+                    try out.print("[*", .{});
+                    if (self.addr_of.mut) {
+                        try out.print("mut", .{});
+                    }
+                    try out.print("]", .{});
+                } else {
+                    try out.print("&", .{});
+                    if (self.addr_of.mut) {
+                        try out.print("mut ", .{});
+                    }
                 }
                 try self.expr().print_type(out);
             },
@@ -2413,11 +2428,8 @@ pub const AST = union(enum) {
             },
             .slice_of => {
                 try out.print("[", .{});
-                switch (self.slice_of.kind) {
-                    .mut => try out.print("mut", .{}),
-                    .multiptr => try out.print("*", .{}),
-                    .slice => {},
-                    .array => unreachable,
+                if (self.slice_of.mut) {
+                    try out.print("mut", .{});
                 }
                 try out.print("]", .{});
                 try self.expr().print_type(out);
@@ -2654,6 +2666,8 @@ pub const AST = union(enum) {
                     } else {
                         return lhs_type.children().items[0];
                     }
+                } else if (lhs_type.* == .addr_of and lhs_type.addr_of.multiptr) {
+                    return lhs_type.expr();
                 } else if (lhs_type.* == .identifier and std.mem.eql(u8, lhs_type.token().data, "String")) {
                     return primitives_.byte_type;
                 } else if (lhs_type.* == .poison) {
@@ -2688,7 +2702,7 @@ pub const AST = union(enum) {
                 if (child_type.types_match(primitives_.type_type)) {
                     return primitives_.type_type;
                 } else {
-                    return create_addr_of(self.token(), child_type, self.addr_of.mut, allocator);
+                    return create_addr_of(self.token(), child_type, self.addr_of.mut, self.addr_of.multiptr, allocator);
                 }
             },
             .slice_of => {
@@ -2700,7 +2714,7 @@ pub const AST = union(enum) {
                     if (child_type.types_match(primitives_.type_type)) {
                         return primitives_.type_type;
                     } else {
-                        return create_slice_type(expr_type.children().items[0], self.slice_of.kind == .mut, allocator);
+                        return create_slice_type(expr_type.children().items[0], self.slice_of.mut, allocator);
                     }
                 }
             },
@@ -2901,10 +2915,8 @@ pub const AST = union(enum) {
 
         switch (A.*) {
             .identifier => return std.mem.eql(u8, A.token().data, B.token().data),
-            .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and types_match(A.expr(), B.expr()),
-            .slice_of => return (B.slice_of.kind != .mut or
-                @intFromEnum(B.slice_of.kind) == @intFromEnum(A.slice_of.kind)) and
-                types_match(A.expr(), B.expr()),
+            .addr_of => return (!B.addr_of.mut or B.addr_of.mut == A.addr_of.mut) and (B.addr_of.multiptr == A.addr_of.multiptr) and types_match(A.expr(), B.expr()),
+            .slice_of => return (!B.slice_of.mut or B.slice_of.mut == A.slice_of.mut) and types_match(A.expr(), B.expr()),
             .array_of => return types_match(A.expr(), B.expr()),
             .anyptr_type => return B.* == .anyptr_type,
             .unit_type => return true,

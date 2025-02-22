@@ -493,7 +493,7 @@ fn validate_AST_internal(
         .dereference => {
             const expr_span = ast.expr().token().span;
             if (expected != null) {
-                const addr_of = ast_.AST.create_addr_of(ast.token(), expected.?, false, compiler.allocator()).assert_ast_valid();
+                const addr_of = ast_.AST.create_addr_of(ast.token(), expected.?, false, false, compiler.allocator()).assert_ast_valid();
                 ast.set_expr(validate_AST(ast.expr(), addr_of, compiler));
             } else {
                 ast.set_expr(validate_AST(ast.expr(), null, compiler));
@@ -744,7 +744,8 @@ fn validate_AST_internal(
             {
                 // Index a product type, resolve immediately
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
-            } else if (expanded_lhs_type.* != .product) {
+            } else if (expanded_lhs_type.* != .product and !(expanded_lhs_type.* == .addr_of and expanded_lhs_type.addr_of.multiptr)) {
+                std.debug.print("{}\n", .{expanded_lhs_type});
                 compiler.errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.CompileError;
             } else if (expanded_lhs_type.* == .product and
@@ -863,7 +864,7 @@ fn validate_AST_internal(
                     ast.children().insert(0, ast.lhs()) catch unreachable; // prepend lhs to children as a receiver
                 } else {
                     // lhs type is not dynamic and not an address
-                    const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, compiler.allocator());
+                    const addr_of = ast_.AST.create_addr_of(ast.lhs().token(), ast.lhs(), receiver_kind.? == .mut_addr_of, false, compiler.allocator());
                     ast.children().insert(0, addr_of) catch unreachable; // prepend lhs to children as a receiver
                 }
             }
@@ -1025,7 +1026,7 @@ fn validate_AST_internal(
             var expr_type = ast.expr().typeof(compiler.allocator());
             if (expr_type.* != .unit_type and try checked_types_match(primitives_.type_type, expr_type, &compiler.errors)) {
                 // Regular slice type, change to product of data address and length
-                const retval = ast_.AST.create_slice_type(ast.expr(), ast.slice_of.kind == .mut, compiler.allocator()).assert_ast_valid();
+                const retval = ast_.AST.create_slice_type(ast.expr(), ast.slice_of.mut, compiler.allocator()).assert_ast_valid();
                 const retval_type = retval.typeof(compiler.allocator());
                 try type_check(ast.token().span, retval_type, expected, &compiler.errors);
                 return retval;
@@ -1049,10 +1050,10 @@ fn validate_AST_internal(
                     // This is mirrored with addr_of a product.
                     try validate_L_Value(ast.expr(), &compiler.errors);
                 }
-                if (ast.slice_of.kind == .mut) {
+                if (ast.slice_of.mut) {
                     try assert_mutable(ast.expr(), &compiler.errors, compiler.allocator());
                 }
-                return ast_.AST.create_slice_value(ast.expr(), ast.slice_of.kind == .mut, expr_type, compiler.allocator());
+                return ast_.AST.create_slice_value(ast.expr(), ast.slice_of.mut, expr_type, compiler.allocator());
             }
         },
         .array_of => {
@@ -1980,7 +1981,7 @@ fn implicit_dereference(
     compiler: *compiler_.Context,
 ) Validate_Error_Enum!*ast_.AST {
     var lhs_type = old_lhs_type;
-    if (lhs_type.* == .addr_of) {
+    if (lhs_type.* == .addr_of and !lhs_type.addr_of.multiptr) {
         ast.set_lhs(validate_AST(ast_.AST.create_dereference(ast.token(), ast.lhs(), compiler.allocator()), null, compiler));
         lhs_type = ast.lhs().typeof(compiler.allocator()).expand_type(compiler.allocator());
     }
