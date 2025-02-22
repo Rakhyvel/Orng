@@ -272,7 +272,7 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
                 try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
             },
             .mut_addr_of => {
-                try out.writer().print("    {} := &{}\n", .{ self.dest.?, self.src1.? });
+                try out.writer().print("    {} := &mut {}\n", .{ self.dest.?, self.src1.? });
             },
             .equal => {
                 try out.writer().print("    {} := {} == {}\n", .{ self.dest.?, self.src1.?, self.src2.? });
@@ -360,7 +360,7 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
                 try out.writer().print(")\n", .{});
             },
             .invoke => {
-                try out.writer().print("    {} := {s}(", .{ self.dest.?, self.data.invoke.method_decl.method_decl.name.token().data });
+                try out.writer().print("    {} := ::{s}(", .{ self.dest.?, self.data.invoke.method_decl.method_decl.name.token().data });
                 try print_lval_list(self.data.invoke.lval_list, out.writer());
                 try out.writer().print(")\n", .{});
             },

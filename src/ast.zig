@@ -1846,7 +1846,7 @@ pub const AST = union(enum) {
             .bit_and => &self.bit_and._args,
             .bit_or => &self.bit_or._args,
             .bit_xor => &self.bit_xor._args,
-            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{s}`", .{@tagName(self.*)}),
+            else => std.debug.panic("compiler error: cannot call `.children()` on the AST `{}`", .{self.*}),
         };
     }
 
@@ -2664,7 +2664,7 @@ pub const AST = union(enum) {
             },
 
             .select => {
-                var select_lhs_type = self.lhs().typeof(allocator).expand_identifier();
+                var select_lhs_type = self.lhs().typeof(allocator).expand_type(allocator);
                 var retval = select_lhs_type.children().items[self.pos().?];
                 while (retval.* == .annotation) {
                     retval = retval.annotation.type;

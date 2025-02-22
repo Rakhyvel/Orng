@@ -13,7 +13,7 @@ const symbol_ = @import("symbol.zig");
 var debug = false;
 
 pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!void {
-    // debug = std.mem.eql(u8, cfg.symbol.name, "requires");
+    // debug = std.mem.eql(u8, cfg.symbol.name, "build") and std.mem.eql(u8, cfg.module.package_name, "examples");
     if (debug) {
         std.debug.print("[  CFG  ]: {s}\n", .{cfg.symbol.name});
         cfg.block_graph_head.?.pprint();
@@ -454,7 +454,8 @@ fn copy_prop(ir: *ir_.IR, src1_def: ?*ir_.IR, kind: ir_.Kind, errors: *errs_.Err
 /// Determines if a source value can be safely replaced by its definition in the IR and updates the source if possible,
 /// modifying src when propagation is performed.
 fn copy_of_prop(ir: *ir_.IR, src: *?*lval_.L_Value, src_def: ?*ir_.IR) bool {
-    if (src_def != null and // src has a definition
+    if (ir.kind != .addr_of and ir.kind != .mut_addr_of and // ir is not an address, this could mess with aliasing
+        src_def != null and // src has a definition
         src_def.?.kind == .copy and // src's definition is a copy of something
         src_def.?.src1.?.* == .symbver and // src's copy definition is of a plain symbver
         (src_def.?.dest.?.* != .symbver or src_def.?.src1.?.extract_symbver() != src_def.?.dest.?.extract_symbver()) // prevent self-copy
@@ -463,6 +464,7 @@ fn copy_of_prop(ir: *ir_.IR, src: *?*lval_.L_Value, src_def: ?*ir_.IR) bool {
         const src_def_redefinition = src_def.?.next.?.any_def_after(src_def.?.src1.?.symbver.symbol, ir);
         if (src_def_redefinition == null) {
             // there is no re-definition in between src's definition and this IR, safe to copy-propagate
+            logfln("copy-of propagation: {?} => {?} {}", .{ src, src_def.?.src1, ir });
             src.* = src_def.?.src1;
             return true;
         } else {

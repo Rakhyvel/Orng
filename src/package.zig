@@ -278,7 +278,7 @@ fn executable(self: *Package, obj_files: std.ArrayList([]const u8), packages: st
 
     // Add the output name
     var output_name = String.init(allocator);
-    output_name.writer().print("{s}", .{self.name}) catch unreachable;
+    output_name.writer().print("{s}.exe", .{self.name}) catch unreachable;
     cmd.append("-o") catch unreachable;
     cmd.append(output_name.str()) catch unreachable;
 

@@ -28,7 +28,7 @@ impl for Outer {
     (?Inner).none
   )) }
 
-    fn requires(&mut self, name: String, other: Int) -> () {
+    fn add_entry(&mut self, name: String, other: Int) -> () {
         while let mut i = 0; i < self.requirements.length; i += 1 {
             if self.requirements[i] == .none {
                 self.requirements[i] = .some((name, other))
@@ -40,8 +40,10 @@ impl for Outer {
 }
 
 fn main() -> Int {
-    let mut package: Outer
-    package.>requires("Entry 1", 633)
-    package.>requires("Entry 2", 336)
-    package.requirements[1].some[1]
+    comptime {
+        let mut package: Outer
+        package.>add_entry("Entry 1", 633)
+        package.>add_entry("Entry 2", 336)
+        package.requirements[1].some[1]
+    }
 }

@@ -7,6 +7,7 @@ const interpreter_ = @import("interpreter.zig");
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
+const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 
 const version_year: usize = 25;
@@ -117,14 +118,17 @@ fn build(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem.Al
             return error.CompileError;
         }
 
-        const argv = &[_][]const u8{curr_package.output_absolute_path};
+        var output_name = String.init(allocator);
+        output_name.writer().print("{s}.exe", .{curr_package.output_absolute_path}) catch unreachable;
+        const argv = &[_][]const u8{output_name.str()};
         var child = std.process.Child.init(argv, allocator);
         child.stdin_behavior = .Inherit;
         child.stdout_behavior = .Inherit;
         child.stderr_behavior = .Inherit;
 
         child.spawn() catch return error.CompileError;
-        _ = child.wait() catch return error.CompileError;
+        const term = child.wait() catch return error.CompileError;
+        std.debug.print("exited: {}", .{term.Exited});
     }
 }
 

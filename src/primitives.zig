@@ -379,6 +379,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\  root: String,
         \\  kind: (executable | static_library),
         \\  dir: String = ".",
+        \\  num_requirements: Int = 0,
         \\  requirements: [8]?Requirement = ( // TODO: Replace with an Arraylist
         \\    (?Requirement).none,
         \\    (?Requirement).none,
@@ -425,7 +426,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\
         \\impl for Package {
         \\  /// Creates an executable package
-        \\  fn executable(root: String) -> Self { (root, .executable, "") }
+        \\  fn executable(root: String) -> Self { (root, .executable, "", 0) }
         \\
         \\  /// Creates a static library package
         \\  fn static_library(root: String) -> Self { (root, .static_library, "") }
@@ -436,13 +437,8 @@ fn create_prelude(compiler: *compiler_.Context) !void {
         \\
         \\  /// Adds a package to the list of required packages
         \\  fn requires(&mut self, name: String, other: &Package) -> () {
-        \\      while let mut i = 0; i < self.requirements.length; i += 1 {
-        \\          if self.requirements[i] == .none {
-        \\              self.requirements[i] = .some((name, other))
-        \\              return
-        \\          }
-        \\      }
-        \\      unreachable // no more space!
+        \\      self.requirements[self.num_requirements] = .some((name, other))
+        \\      self.num_requirements += 1
         \\  }
         \\
         \\  fn add_include_directory(&mut self, include_directory: String) -> () {
