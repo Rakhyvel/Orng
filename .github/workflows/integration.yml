@@ -52,11 +52,9 @@ jobs:
     
     - name: Install kcov
       run: |
-        sudo apt update
-        sudo apt install software-properties-common
-        sudo add-apt-repository universe
-        sudo apt update
-        sudo apt install kcov
+        wget https://github.com/SimonKagstrom/kcov/releases/latest/download/kcov-x86_64.tar.gz
+        tar -xvf kcov-x86_64.tar.gz
+        sudo mv kcov /usr/local/bin/
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
