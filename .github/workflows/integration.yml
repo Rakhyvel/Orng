@@ -55,6 +55,7 @@ jobs:
         sudo apt update
         sudo apt install libcurl4-openssl-dev
         sudo apt install libelf-dev
+        sudo apt install libdw-dev
         git clone https://github.com/SimonKagstrom/kcov.git
         cd kcov
         mkdir build && cd build
