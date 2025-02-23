@@ -39,8 +39,9 @@ jobs:
       if: runner.os == 'Linux'
       id: modified_files
       run: |
-        TEST_FILES=$(git diff --name-only --diff-filter=AM origin/${{ github.event.pull_request.base.ref }} | grep '^test/' || echo "")
-        SRC_FILES=$(git diff --name-only --diff-filter=AM origin/${{ github.event.pull_request.base.ref }} | grep '^src/' || echo "")
+        BASE_BRANCH=${{ github.event.pull_request.base.ref }}
+        TEST_FILES=$(git diff --name-only --diff-filter=AM $BASE_BRANCH...HEAD | grep '^test/' || echo "")
+        SRC_FILES=$(git diff --name-only --diff-filter=AM $BASE_BRANCH...HEAD | grep '^src/' || echo "")
         echo "test_files=$TEST_FILES" >> $GITHUB_ENV
         echo "src_files=$SRC_FILES" >> $GITHUB_ENV
 
