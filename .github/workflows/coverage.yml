@@ -60,7 +60,6 @@ jobs:
       run: |
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         python tests/test.py modified
-        ls -lah kcov-out/
 
     - name: Ensure Modified Lines in src/ Are Covered
       run: python tests/coverage-check.py -s $src_files -b origin/${{ github.event.pull_request.base.ref }}
