@@ -10,6 +10,8 @@ def parse_args():
     return parser.parse_args()
 
 def check_coverage(src_files, base_ref):
+    print(f"src_files={src_files}")
+    print(f"base_ref={base_ref}")
     if not src_files:
         print("No modified source files, skipping coverage check.")
         sys.exit(0)
@@ -38,7 +40,7 @@ def check_coverage(src_files, base_ref):
         try:
             # Get modified lines using git diff
             diff_process = subprocess.run(
-                ["git", "diff", "-U0", f"origin/{base_ref}", "--", src_file],
+                ["git", "diff", "-U0", f"{base_ref}", "--", src_file],
                 capture_output=True,
                 text=True
             )
