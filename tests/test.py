@@ -151,7 +151,7 @@ def modified(args):
     if len(files) > 0:
         integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
         if platform.system() != "Windows":
-            subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+            subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
 
     files = collect_modified_files(args, "tests/negative")
     negative_res = 0
