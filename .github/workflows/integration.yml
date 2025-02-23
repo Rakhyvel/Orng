@@ -62,6 +62,7 @@ jobs:
         cmake ..
         make -j$(nproc)
         sudo make install
+        kcov --version
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
