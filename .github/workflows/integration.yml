@@ -34,6 +34,12 @@ jobs:
       uses: korandoru/setup-zig@v1
       with:
         zig-version: 0.13.0
+
+    - name: Install Dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y kcov
     
     - name: Build project (Linux)
       if: runner.os == 'Linux'
