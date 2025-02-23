@@ -52,7 +52,7 @@ jobs:
       if: runner.os == 'Linux'
       uses: sudo-bot/action-kcov@latest
       with:
-        cli-args: "--clean --include-path $GITHUB_WORKSPACE/src kcov-out ./$GITHUB_WORKSPACE/zig-out/bin/orng-test coverage"
+        cli-args: "--clean --include-path $GITHUB_WORKSPACE/src kcov-out .$GITHUB_WORKSPACE/zig-out/bin/orng-test coverage"
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
