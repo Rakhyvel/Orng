@@ -16,6 +16,7 @@ fn executable(b: *std.Build, optimize: std.builtin.OptimizeMode, target: std.Bui
         .target = target,
         .optimize = optimize,
     });
+    exe.want_lto = false;
     const install_cmd = b.addInstallArtifact(exe, .{});
     const install_step = b.step(run, run_desc);
     install_step.dependOn(&install_cmd.step);

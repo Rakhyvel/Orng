@@ -1,0 +1,8 @@
+[0;1;32m[============]
+[0;37m[0;1;32m[ RUN    ... ] [0;37mexterns/extern_type.orng
+[0;1;32m[ ... PASSED ]
+[0;37m[0;1;32m[ RUN    ... ] [0;37mexterns/extern_type_opaque.orng
+[0;1;32m[ ... PASSED ]
+[0;37m[0;1;32m[============]
+[0;37mPassed tests: 2
+Failed tests: 0
