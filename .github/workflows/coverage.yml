@@ -73,6 +73,7 @@ jobs:
         UNCOVERED_LINES=()
 
         for src_file in $src_files; do
+          echo $src_file
           MODIFIED_LINES=$(git diff -U0 origin/${{ github.event.pull_request.base.ref }} -- $src_file | grep -E '^\+' | grep -oE '[0-9]+')
           for line in $MODIFIED_LINES; do
             if ! echo "$COVERED_LINES" | grep -q "^$line$"; then
@@ -86,13 +87,7 @@ jobs:
           printf '%s\n' "${UNCOVERED_LINES[@]}"
           exit 1
         fi
-
-    - name: Build project (Windows)
-      shell: bash
-      run: |
-        export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
-        python tests/test.py all --no-coverage
-
+        
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
       if: failure()
