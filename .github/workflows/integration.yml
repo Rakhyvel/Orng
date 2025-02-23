@@ -41,6 +41,7 @@ jobs:
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
         python tests/test.py all --no-coverage
         tree $GITHUB_WORKSPACE -a
+        sudo sysctl kernel.yama.ptrace_scope=0
     
     - name: Build project (Windows)
       if: runner.os == 'Windows'
