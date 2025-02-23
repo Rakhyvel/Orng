@@ -157,7 +157,7 @@ def modified(args):
     negative_res = 0
     if len(files) > 0:
         if platform.system() != "Windows":
-            subprocess.run(["kcov", "--collect-only", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
+            subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
         else:
             negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode
 

@@ -4,5 +4,5 @@ cinclude "helper.h"
 fn main() -> () {
     extern const printf_wrapper: (fmt: [*]Byte) variadic -> Int32
 
-    _ = printf_wrapper("%d".data, 339)
+    _ = printf_wrapper("%d%d".data, 33, 9)
 }

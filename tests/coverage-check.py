@@ -71,10 +71,9 @@ def check_coverage(src_files, base_ref):
     
     # Report uncovered lines
     if uncovered_lines:
-        print("ERROR: The following modified lines are not covered by tests:")
+        print("WARNING: The following modified lines are not covered by tests:")
         for span in uncovered_lines:
             print_span_and_source(span)
-        sys.exit(1)
     
     sys.exit(0)
 

@@ -1813,6 +1813,7 @@ pub fn validate_args_arity(
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
     if (variadic) {
         if (args.items.len < expected_length) {
+            std.debug.print("yup!\n", .{});
             errors.add_error(errs_.Error{ .mismatch_arity = .{
                 .span = span,
                 .takes = expected_length,
