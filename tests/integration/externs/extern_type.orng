@@ -5,6 +5,7 @@ extern const Some_Type: Type = (x: Int, y: Int)
 extern const sum: Some_Type -> Int
 
 fn main() -> Int {
-    let x: Some_Type = (300, 41)
+    let mut x: Some_Type = (300, 40)
+    x.y = 41
     sum(x)
 }
