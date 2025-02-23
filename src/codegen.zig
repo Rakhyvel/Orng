@@ -495,6 +495,8 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
+        } else if (_type.symbol() != null and _type.symbol().?.kind == .@"extern") {
+            try writer.print("{s}", .{_type.symbol().?.kind.@"extern".c_name.?.string.data});
         } else {
             try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).?.c_name});
         },

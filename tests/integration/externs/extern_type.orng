@@ -1,0 +1,10 @@
+// 340
+cinclude "helper.h"
+extern const Some_Type: Type
+extern const construct_some_type: () -> Some_Type
+extern const sum: Some_Type -> Int
+
+fn main() -> Int {
+    let x: Some_Type = construct_some_type(300, 40)
+    sum(x)
+}

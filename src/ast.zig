@@ -2312,6 +2312,8 @@ pub const AST = union(enum) {
                 const _symbol = self.symbol().?;
                 if (_symbol.init == self) {
                     return self;
+                } else if (_symbol.kind == .@"extern" and _symbol.init == null) {
+                    return self;
                 } else {
                     return _symbol.init.?.expand_type(allocator);
                 }
@@ -2776,6 +2778,8 @@ pub const AST = union(enum) {
             .identifier => {
                 if (self.symbol() != null and self.symbol().?.init != null and self.symbol().?.init.?.* != .identifier) {
                     return self.symbol().?.init.?.sizeof();
+                } else if (self.symbol() != null and self.symbol().?.init == null and self.symbol().?.kind == .@"extern") {
+                    return 4;
                 } else {
                     return primitives_.info_from_name(self.token().data).?.size;
                 }
@@ -2822,7 +2826,11 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data).?._align,
+            .identifier => if (self.symbol() != null and self.symbol().?.init == null and self.symbol().?.kind == .@"extern") {
+                return 4;
+            } else {
+                return primitives_.info_from_name(self.token().data).?._align;
+            },
 
             .product => {
                 var max_align: i64 = 0;
