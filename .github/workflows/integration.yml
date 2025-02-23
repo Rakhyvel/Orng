@@ -55,6 +55,7 @@ jobs:
         wget https://github.com/SimonKagstrom/kcov/archive/refs/tags/v43.tar.gz
         tar -xvf v43.tar.gz
         sudo mv kcov /usr/local/bin/
+        kcov --version
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
