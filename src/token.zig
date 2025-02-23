@@ -48,6 +48,7 @@ pub const Token_Kind = enum(u32) {
     where,
     @"while",
     self,
+    variadic,
     virtual,
 
     // Equals
@@ -166,6 +167,7 @@ pub const Token_Kind = enum(u32) {
             .@"while" => "while",
             .trait => "trait",
             .self => "self",
+            .variadic => "variadic",
             .virtual => "virtual",
 
             // Equals

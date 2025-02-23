@@ -1,0 +1,6 @@
+extern const printf: [*]Byte -> Int32
+
+fn main() -> Int {
+    printf()
+    30
+}

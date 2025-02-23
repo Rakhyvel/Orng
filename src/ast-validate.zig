@@ -705,8 +705,9 @@ fn validate_AST_internal(
 
             const domain = if (expanded_lhs_type.* == .function) expanded_lhs_type.lhs() else ast.lhs().sum_value.domain.?;
             const codomain = if (expanded_lhs_type.* == .function) expanded_lhs_type.rhs() else ast.lhs().sum_value.base.?;
+            const variadic = expanded_lhs_type.* == .function and expanded_lhs_type.function.variadic;
             ast.set_children(try default_args(ast.children().*, domain, &compiler.errors, compiler.allocator()));
-            try validate_args_arity(.function, ast.children(), domain, ast.token().span, &compiler.errors);
+            try validate_args_arity(.function, ast.children(), domain, variadic, ast.token().span, &compiler.errors);
             ast.set_children((try validate_args_type(ast.children(), domain, compiler)).*);
             try type_check(ast.token().span, codomain, expected, &compiler.errors);
             if (ast.lhs().* == .sum_value) {
@@ -869,7 +870,7 @@ fn validate_AST_internal(
                 }
             }
             ast.set_children(try default_args(ast.children().*, domain, &compiler.errors, compiler.allocator()));
-            try validate_args_arity(.method, ast.children(), domain, ast.token().span, &compiler.errors);
+            try validate_args_arity(.method, ast.children(), domain, false, ast.token().span, &compiler.errors);
             ast.set_children((try validate_args_type(ast.children(), domain, compiler)).*);
 
             _ = ast.assert_ast_valid();
@@ -931,7 +932,7 @@ fn validate_AST_internal(
                 // Expecting ast to be a product value of some product type
                 _ = ast.assert_ast_valid();
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, &compiler.errors, compiler.allocator()));
-                try validate_args_arity(.product, ast.children(), expanded_expected.?, ast.token().span, &compiler.errors);
+                try validate_args_arity(.product, ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
                 ast.set_children((try validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
             } else if (expanded_expected == null or !try checked_types_match(primitives_.unit_type, expanded_expected.?, &compiler.errors)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
@@ -1612,7 +1613,7 @@ fn inset_let_into_if(ast: *ast_.AST, allocator: std.mem.Allocator) void {
 // This has to be public for stamps to use it when fleshing out the default args
 // This has to be ok to do twice for the same args, because stamps have to do it internally.
 pub fn default_args(
-    asts: std.ArrayList(*ast_.AST),
+    asts: std.ArrayList(*ast_.AST), // The args for a call, or the terms for a product
     expected: *ast_.AST,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
@@ -1711,9 +1712,15 @@ fn positional_args(
             }
         },
 
-        .unit_type, .identifier => filled_args = asts,
+        else => filled_args = asts,
 
-        else => std.debug.panic("compiler error: positional_args(): unimplemented for {s}", .{@tagName(expected.*)}),
+        // else => std.debug.panic("compiler error: positional_args(): unimplemented for {s}", .{@tagName(expected.*)}),
+    }
+    if (filled_args.items.len < asts.items.len) {
+        // Add the rest, for extern variadic function calls
+        for (filled_args.items.len..asts.items.len) |i| {
+            filled_args.append(asts.items[i]) catch unreachable;
+        }
     }
     return filled_args;
 }
@@ -1799,11 +1806,25 @@ pub fn validate_args_arity(
     thing: Validate_Args_Thing,
     args: *std.ArrayList(*ast_.AST),
     expected: *ast_.AST,
+    variadic: bool,
     span: span_.Span,
     errors: *errs_.Errors,
 ) Validate_Error_Enum!void {
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
-    if (args.items.len != expected_length) {
+    if (variadic) {
+        if (args.items.len < expected_length) {
+            std.debug.print("yup!\n", .{});
+            errors.add_error(errs_.Error{ .mismatch_arity = .{
+                .span = span,
+                .takes = expected_length,
+                .given = args.items.len,
+                .thing_name = thing.name(),
+                .takes_name = thing.takes_name(),
+                .given_name = thing.given_name(),
+            } });
+            return error.CompileError;
+        }
+    } else if (args.items.len != expected_length) {
         errors.add_error(errs_.Error{ .mismatch_arity = .{
             .span = span,
             .takes = expected_length,

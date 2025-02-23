@@ -144,6 +144,8 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
 
     compiler.output_modules() catch unreachable;
 
+    compiler.lookup_package(module.package_name).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
+
     compiler.compile_c(module.package_name, true) catch unreachable;
 
     // execute (make sure no signals)
