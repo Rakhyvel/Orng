@@ -492,11 +492,19 @@ fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
 
 /// Outputs the C type which corresponds to an AST type.
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
+    if (_type.common()._unexpanded_type != null and
+        _type.common()._unexpanded_type.?.* == .identifier and
+        _type.common()._unexpanded_type.?.symbol() != null and
+        _type.common()._unexpanded_type.?.symbol().?.kind == .@"extern")
+    {
+        try writer.print("{s}", .{_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
+        return;
+    }
     switch (_type.*) {
-        .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
-            try output_type(_type.common()._expanded_type.?, writer);
-        } else if (_type.symbol() != null and _type.symbol().?.kind == .@"extern") {
+        .identifier => if (_type.symbol() != null and _type.symbol().?.kind == .@"extern") {
             try writer.print("{s}", .{_type.symbol().?.kind.@"extern".c_name.?.string.data});
+        } else if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
+            try output_type(_type.common()._expanded_type.?, writer);
         } else {
             try writer.print("{s}", .{primitives_.info_from_name(_type.token().data).?.c_name});
         },

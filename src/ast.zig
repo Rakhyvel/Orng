@@ -73,6 +73,9 @@ pub const AST_Common = struct {
     /// Memoized, use `expanded_type()`.
     _expanded_type: ?*AST = null,
 
+    /// What this type was expanded from
+    _unexpanded_type: ?*AST = null,
+
     /// The number of bytes a value in an AST type takes up.
     /// Memoized, use `sizeof()`.
     _size: ?i64 = null,
@@ -2298,9 +2301,10 @@ pub const AST = union(enum) {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
-        const retval = expand_type_internal(self, allocator).assert_ast_valid();
+        var retval = expand_type_internal(self, allocator).assert_ast_valid();
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
+        retval.common()._unexpanded_type = self;
         return retval;
     }
 
