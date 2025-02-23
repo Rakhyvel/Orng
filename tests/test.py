@@ -51,6 +51,8 @@ def main():
             negative(args)
         case "all":
             all(args)
+        case "modified":
+            modified(args)
         case "fuzz":
             fuzz()
         # case "count":
@@ -75,6 +77,8 @@ def parse_args():
     create.add_argument("-t", "--test", nargs="*", help="list of one or more files/directories of negative tests to run")
     create.add_argument("-c", "--count", nargs="*", help="recursively counts the number of negative test files in the directories specified")
     create.add_argument("-n", "--no-coverage", action='store_const', default=False, const=True, help="does not perform coverage after negative testing, even if tests pass")
+
+    create = subparsers.add_parser("modified", help="run integration and negative tests, merge code coverage")
     
     create = subparsers.add_parser("fuzz", help="create fuzz and run fuzz tests")
 
@@ -140,6 +144,23 @@ def all(args):
     if negative_res != 0 or integration_res != 0:
         exit(1)
 
+
+def modified(args):
+    files = collect_modified_files(args, "tests/integration")
+    integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
+    if platform.system() != "Windows":
+        subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+        
+    files = collect_modified_files(args, "tests/negative")
+    negative_res = 0
+    if platform.system() != "Windows":
+        subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
+    else:
+        negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode
+
+    if negative_res != 0 or integration_res != 0:
+        exit(1)
+
     
 def fuzz():
     res = subprocess.run(["zig", "build", "orng"]).returncode
@@ -187,6 +208,12 @@ def collect_files(args, base):
     for path in full_path:
         files += collect_files_recursive(path)
     return list(dict.fromkeys(files))
+
+
+def collect_modified_files(args, base):
+    res = subprocess.run(["git", "diff", "--name-only", "--diff-filter=AM", "origin/main...HEAD"], capture_output=True).stdout.decode('utf-8').split('\n')
+    res = list(filter(lambda x: x.startswith(base) and x.endswith('.orng'), res))
+    return res
 
 
 def collect_files_recursive(root_filename):
