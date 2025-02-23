@@ -52,9 +52,11 @@ jobs:
     
     - name: Install kcov
       run: |
-        sudo apt search kcov
         sudo apt update
-        sudo apt install -y kcov
+        sudo apt install software-properties-common
+        sudo add-apt-repository universe
+        sudo apt update
+        sudo apt install kcov
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
