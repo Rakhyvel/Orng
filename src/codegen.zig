@@ -492,6 +492,16 @@ fn output_symbol(symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
 
 /// Outputs the C type which corresponds to an AST type.
 fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
+    if (_type.common()._unexpanded_type != null and
+        _type.common()._unexpanded_type.?.* == .identifier and
+        _type.common()._unexpanded_type.?.symbol() != null and
+        _type.common()._unexpanded_type.?.symbol().?.kind == .@"extern")
+    {
+        // Output simply the C name for an extern type
+        try writer.print("{s}", .{_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
+        return;
+    }
+
     switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
@@ -879,13 +889,20 @@ fn output_rvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             try output_rvalue(lvalue.dereference.expr, lvalue.lval_precedence(), writer);
         },
         .index => {
-            try writer.print("/*rvalue*/", .{});
             try writer.print("*", .{});
             try output_lvalue(lvalue, lvalue.lval_precedence(), writer);
         },
         .select => {
             try output_rvalue(lvalue.select.lhs, lvalue.lval_precedence(), writer); // This will dereference, no need for `->`
-            try writer.print("._{}", .{lvalue.select.field});
+            const unexpanded_type: ?*ast_.AST = lvalue.select.lhs.get_expanded_type().common()._unexpanded_type;
+            if (unexpanded_type != null and unexpanded_type.?.* == .identifier and unexpanded_type.?.symbol() != null and unexpanded_type.?.symbol().?.kind == .@"extern") {
+                // Select the nominal C name
+                const field_name = lvalue.select.lhs.get_expanded_type().children().items[@intCast(lvalue.select.field)].annotation.pattern.token().data;
+                try writer.print(".{s}", .{field_name});
+            } else {
+                // Select the structural Orng name
+                try writer.print("._{}", .{lvalue.select.field});
+            }
         },
         .symbver => try output_symbol(lvalue.symbver.symbol, writer),
         .raw_address => std.debug.panic("compiler error: cannot output raw address lvalue", .{}),

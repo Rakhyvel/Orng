@@ -217,12 +217,16 @@ pub const Parser = struct {
         const pattern = ast_.AST.create_pattern_symbol(identifier, .{ .@"extern" = .{ .c_name = c_name } }, identifier.data, self.allocator);
         _ = try self.expect(.single_colon);
         const _type: *ast_.AST = try self.arrow_expr();
+        var _init: ?*ast_.AST = null;
+        if (self.accept(.single_equals)) |_| {
+            _init = try self.arrow_expr();
+        }
 
         var retval = ast_.AST.create_decl(
             token,
             pattern,
             _type,
-            null,
+            _init,
             false,
             self.allocator,
         );

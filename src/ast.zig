@@ -73,6 +73,9 @@ pub const AST_Common = struct {
     /// Memoized, use `expanded_type()`.
     _expanded_type: ?*AST = null,
 
+    /// What this type was expanded from
+    _unexpanded_type: ?*AST = null,
+
     /// The number of bytes a value in an AST type takes up.
     /// Memoized, use `sizeof()`.
     _size: ?i64 = null,
@@ -2298,9 +2301,10 @@ pub const AST = union(enum) {
         if (self.common()._expanded_type != null and self.* != .identifier) {
             return self.common()._expanded_type.?;
         }
-        const retval = expand_type_internal(self, allocator).assert_ast_valid();
+        var retval = expand_type_internal(self, allocator).assert_ast_valid();
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
+        retval.common()._unexpanded_type = self;
         return retval;
     }
 
@@ -2311,6 +2315,8 @@ pub const AST = union(enum) {
             .access, .identifier => {
                 const _symbol = self.symbol().?;
                 if (_symbol.init == self) {
+                    return self;
+                } else if (_symbol.kind == .@"extern" and _symbol.init == null) {
                     return self;
                 } else {
                     return _symbol.init.?.expand_type(allocator);
@@ -2776,6 +2782,8 @@ pub const AST = union(enum) {
             .identifier => {
                 if (self.symbol() != null and self.symbol().?.init != null and self.symbol().?.init.?.* != .identifier) {
                     return self.symbol().?.init.?.sizeof();
+                } else if (self.symbol() != null and self.symbol().?.init == null and self.symbol().?.kind == .@"extern") {
+                    return 4;
                 } else {
                     return primitives_.info_from_name(self.token().data).?.size;
                 }
@@ -2822,7 +2830,11 @@ pub const AST = union(enum) {
     /// Non-memoized slow-path of alignment calculation.
     fn alignof_internal(self: *AST) i64 {
         switch (self.*) {
-            .identifier => return primitives_.info_from_name(self.token().data).?._align,
+            .identifier => if (self.symbol() != null and self.symbol().?.init == null and self.symbol().?.kind == .@"extern") {
+                return 4;
+            } else {
+                return primitives_.info_from_name(self.token().data).?._align;
+            },
 
             .product => {
                 var max_align: i64 = 0;

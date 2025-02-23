@@ -40,7 +40,7 @@ def main():
 
     shutil.rmtree("zig-cache", ignore_errors=True)
     shutil.rmtree("zig-out", ignore_errors=True)
-    res = subprocess.run(["zig", "build", "orng-test"]).returncode
+    res = subprocess.run(["zig", "build", "orng-test", "--release=safe", "-Doptimize=Debug"]).returncode
     if res != 0:
         exit(1)
 
@@ -151,8 +151,8 @@ def modified(args):
     if len(files) > 0:
         integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
         if platform.system() != "Windows":
-            subprocess.run(["kcov", "--clean","--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
-        
+            subprocess.run(["kcov", "--clean", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+
     files = collect_modified_files(args, "tests/negative")
     negative_res = 0
     if len(files) > 0:

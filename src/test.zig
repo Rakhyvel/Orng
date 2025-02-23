@@ -135,16 +135,17 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         return false;
     };
 
-    if (coverage) {
-        return false;
-    }
-
     compiler.register_package(module.package_name, module.get_package_abs_path(), false);
     compiler.set_package_root(module.package_name, module.symbol);
 
     compiler.output_modules() catch unreachable;
 
     compiler.lookup_package(module.package_name).?.include_directories.put(std.fs.path.dirname(absolute_filename).?, void{}) catch unreachable;
+
+    if (coverage) {
+        // kcov can't call gcc, so stop JUST before it calls gcc
+        return false;
+    }
 
     compiler.compile_c(module.package_name, true) catch unreachable;
 

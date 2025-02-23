@@ -74,8 +74,8 @@ def check_coverage(src_files, base_ref):
         print("WARNING: The following modified lines are not covered by tests:")
         for span in uncovered_lines:
             print_span_and_source(span)
-    
-    sys.exit(0)
+    else:
+        print("WOW! 🤩 all lines were covered by tests")
 
 if __name__ == "__main__":
     args = parse_args()
