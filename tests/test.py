@@ -147,16 +147,19 @@ def all(args):
 
 def modified(args):
     files = collect_modified_files(args, "tests/integration")
-    integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
-    if platform.system() != "Windows":
-        subprocess.run(["kcov", "--clean", "--include-path", "--collect-only", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
+    integration_res = 0
+    if len(files) > 0:
+        integration_res = subprocess.run(["./zig-out/bin/orng-test", "integration"] + files).returncode
+        if platform.system() != "Windows":
+            subprocess.run(["kcov", "--clean","--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "coverage"] + files)
         
     files = collect_modified_files(args, "tests/negative")
     negative_res = 0
-    if platform.system() != "Windows":
-        subprocess.run(["kcov", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
-    else:
-        negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode
+    if len(files) > 0:
+        if platform.system() != "Windows":
+            subprocess.run(["kcov", "--collect-only", "--include-path", SRC_DIR, "kcov-out", "./zig-out/bin/orng-test", "negative"] + files)
+        else:
+            negative_res = subprocess.run(["./zig-out/bin/orng-test", "negative"] + files).returncode
 
     if negative_res != 0 or integration_res != 0:
         exit(1)

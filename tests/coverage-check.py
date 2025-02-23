@@ -1,7 +1,9 @@
 import argparse
 import os
+import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -9,29 +11,39 @@ def parse_args():
     parser.add_argument('-b', '--base_ref', nargs=1, help="the base ref")
     return parser.parse_args()
 
+def parse_coverage(xml_file):
+    tree = ET.parse(xml_file)
+    root = tree.getroot()
+
+    coverage_data = {}
+
+    for package in root.findall(".//package"):
+        for class_elem in package.findall(".//class"):
+            filename = class_elem.get("filename")
+            lines = class_elem.find("lines")
+
+            if filename and lines is not None:
+                coverage_data['src/' + filename] = {
+                    int(line.get("number")): int(line.get("hits")) > 0
+                    for line in lines.findall("line")
+                }
+
+    return coverage_data
+
+def print_span_and_source(span):
+    [filename, line] = span.split(':')
+    with open(filename) as f:
+        lines = f.readlines()
+        print(f"{span}\n  {lines[int(line) - 1]}", end="")
+
 def check_coverage(src_files, base_ref):
-    print(f"src_files={src_files}")
-    print(f"base_ref={base_ref}")
     if not src_files:
         print("No modified source files, skipping coverage check.")
         sys.exit(0)
-    
-    # Get covered lines from kcov output
-    covered_lines = set()
-    try:
-        # Use subprocess.run to execute grep command
-        grep_process = subprocess.run(
-            ["grep", "-rohE", "src/[^:]+:[0-9]+", "kcov-out/"],
-            capture_output=True,
-            text=True
-        )
-        
-        for line in grep_process.stdout.splitlines():
-            line_num = line.split(':')[1]
-            covered_lines.add(line_num)
-    except subprocess.CalledProcessError:
-        # Handle case where grep finds no matches
-        pass
+
+    # Open, read, and parse the XML file
+    cov_xml_path = subprocess.run(["find", ".", "-iname", "cov.xml"], capture_output=True).stdout.decode('utf-8').strip()
+    coverage_data = parse_coverage(cov_xml_path)
 
     uncovered_lines = []
     
@@ -39,25 +51,18 @@ def check_coverage(src_files, base_ref):
     for src_file in src_files:
         try:
             # Get modified lines using git diff
-            diff_process = subprocess.run(
-                ["git", "diff", "-U0", f"{base_ref}", "--", src_file],
-                capture_output=True,
-                text=True
-            )
-            
-            # Extract line numbers from git diff output
+            diff_output = subprocess.run(["git", "diff", "--unified=0", base_ref[0], "--", src_file], capture_output=True, text=True).stdout
             modified_lines = []
-            for line in diff_process.stdout.splitlines():
-                if line.startswith('+'):
-                    # Extract numbers from the line
-                    nums = [n for n in line.split() if n.isdigit()]
-                    modified_lines.extend(nums)
-            
-            print(modified_lines)
+            for line in diff_output.split("\n"):
+                match = re.match(r"@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@", line)
+                if match:
+                    start_line = int(match.group(1))
+                    num_lines = int(match.group(2)) if match.group(2) else 1
+                    modified_lines.extend(range(start_line, start_line + num_lines))
             
             # Check if modified lines are covered
             for line in modified_lines:
-                if line not in covered_lines:
+                if line in coverage_data[src_file] and not coverage_data[src_file][line]:
                     uncovered_lines.append(f"{src_file}:{line}")
                     
         except subprocess.CalledProcessError as e:
@@ -67,8 +72,8 @@ def check_coverage(src_files, base_ref):
     # Report uncovered lines
     if uncovered_lines:
         print("ERROR: The following modified lines are not covered by tests:")
-        for line in uncovered_lines:
-            print(line)
+        for span in uncovered_lines:
+            print_span_and_source(span)
         sys.exit(1)
     
     sys.exit(0)
