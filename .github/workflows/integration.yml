@@ -52,11 +52,12 @@ jobs:
     
     - name: Install kcov
       run: |
-        wget https://github.com/SimonKagstrom/kcov/releases/download/v42/kcov-amd64.tar.gz
-        tar -xvf kcov-amd64.tar.gz
-        tree usr
-        sudo mv ./usr/local/bin/kcov /usr/local/bin/
-        kcov --version
+        git clone https://github.com/SimonKagstrom/kcov.git
+        cd kcov
+        mkdir build && cd build
+        cmake ..
+        make -j$(nproc)
+        sudo make install
 
     # Upload artifacts if build fails
     - uses: actions/upload-artifact@v4
