@@ -480,8 +480,14 @@ pub const Parser = struct {
 
     fn arrow_expr(self: *Parser) Parser_Error_Enum!*ast_.AST {
         var exp = try self.bool_expr();
-        while (self.accept(.skinny_arrow)) |token| {
+        while (self.accept(.skinny_arrow) orelse self.accept(.variadic)) |token| {
+            var variadic = false;
+            if (token.kind == .variadic) {
+                _ = try self.expect(.skinny_arrow);
+                variadic = true;
+            }
             exp = ast_.AST.create_function(token, exp, try self.bool_expr(), self.allocator);
+            exp.function.variadic = true;
         }
         return exp;
     }

@@ -189,7 +189,12 @@ pub const AST = union(enum) {
         _symbol: ?*symbol_.Symbol = null,
         _scope: ?*symbol_.Scope = null, // Surrounding scope. Filled in at symbol-tree creation.
     },
-    function: struct { common: AST_Common, _lhs: *AST, _rhs: *AST },
+    function: struct {
+        common: AST_Common,
+        _lhs: *AST,
+        _rhs: *AST,
+        variadic: bool = false,
+    },
     trait: struct {
         common: AST_Common,
         method_decls: std.ArrayList(*AST),
