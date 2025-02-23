@@ -42,8 +42,8 @@ jobs:
       id: modified_files
       run: |
         BASE_BRANCH=${{ github.event.pull_request.base.ref }}
-        TEST_FILES=$(git diff --name-only --diff-filter=AM $BASE_BRANCH...HEAD | grep '^test/' || echo "")
-        SRC_FILES=$(git diff --name-only --diff-filter=AM $BASE_BRANCH...HEAD | grep '^src/' || echo "")
+        TEST_FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD | grep '^test/' || echo "")
+        SRC_FILES=$(git diff --name-only --diff-filter=AM origin/main...HEAD | grep '^src/' || echo "")
         echo "test_files=$TEST_FILES" >> $GITHUB_ENV
         echo "src_files=$SRC_FILES" >> $GITHUB_ENV
 
