@@ -1,0 +1,7 @@
+// 342
+extern ("int") const C_Int: Type = Int32
+
+fn main() -> Int {
+    let xs: []C_Int = [](1, 2, 3, 4)
+    xs[1] + 340
+}
