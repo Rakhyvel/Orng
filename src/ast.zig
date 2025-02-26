@@ -2304,7 +2304,7 @@ pub const AST = union(enum) {
         var retval = expand_type_internal(self, allocator).assert_ast_valid();
         self.common()._expanded_type = retval;
         retval.common()._expanded_type = retval;
-        retval.common()._unexpanded_type = self;
+        retval.common()._unexpanded_type = self.common()._unexpanded_type orelse self;
         return retval;
     }
 
@@ -3251,7 +3251,11 @@ pub const AST = union(enum) {
                         try out.writer().print(",", .{});
                     }
                 }
-                try out.writer().print(")", .{});
+                if (self.product.common._unexpanded_type) |unexpanded| {
+                    try out.writer().print(", _unexpanded={s})", .{@tagName(unexpanded.*)});
+                } else {
+                    try out.writer().print(", _unexpanded=null)", .{});
+                }
             },
             .@"union" => try out.writer().print("union()", .{}),
 

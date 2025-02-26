@@ -934,6 +934,7 @@ fn validate_AST_internal(
                 ast.set_children(try default_args(ast.children().*, expanded_expected.?, &compiler.errors, compiler.allocator()));
                 try validate_args_arity(.product, ast.children(), expanded_expected.?, false, ast.token().span, &compiler.errors);
                 ast.set_children((try validate_args_type(ast.children(), expanded_expected.?, compiler)).*);
+                ast.common()._type = expected.?;
             } else if (expanded_expected == null or !try checked_types_match(primitives_.unit_type, expanded_expected.?, &compiler.errors)) {
                 // It's ok to assign this to a unit type, something like `_ = (1, 2, 3)`
                 // expecting something that is not a type nor a product is not ok!
@@ -2130,7 +2131,10 @@ fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *err
         .identifier => {
             const expanded_type = _type.expand_type(allocator);
             if (expanded_type == _type) {
-                const primitive_info = primitives_.info_from_name(_type.token().data).?;
+                const primitive_info = primitives_.info_from_name(_type.token().data) orelse {
+                    errors.add_error(errs_.Error{ .no_default = .{ .span = span, ._type = _type } });
+                    return error.CompileError;
+                };
                 if (primitive_info.default_value != null) {
                     return primitive_info.default_value.?;
                 } else {

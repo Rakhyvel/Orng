@@ -1,7 +1,10 @@
 // 342
-extern ("int") const C_Int: Type = Int32
+
+cinclude "helper.h"
+extern ("Some_Type") const C_Int: Type = (x: Int, y: Int)
 
 fn main() -> Int {
-    let xs: []C_Int = [](1, 2, 3, 4)
-    xs[1] + 340
+    let mut xs: [5]C_Int = ((0, 0), (0, 0), (0, 0), (0, 0), (0, 0))
+    xs[3] = (326, 4)
+    xs[3][0] + @sizeof(C_Int)
 }

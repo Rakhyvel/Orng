@@ -519,7 +519,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         },
         .sum_type, .product => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("struct {s}_struct{}", .{ cheat_module.package_name, type_uid });
+            try writer.print("/*{?}*/ struct {s}_struct{}", .{ _type.common()._unexpanded_type, cheat_module.package_name, type_uid });
         },
         .dyn_type => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
@@ -925,7 +925,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
             try output_rvalue(lvalue.dereference.expr, outer_precedence, writer);
         },
         .index => {
-            try writer.print("/*{}*/(", .{lvalue.index.lhs.get_expanded_type().* == .addr_of});
+            try writer.print("(", .{});
 
             // Generate reinterpret cast to pointer of elements
             try writer.print("(", .{});
