@@ -550,7 +550,7 @@ fn validate_AST_internal(
             try assert_none_poisoned(ast.expr());
             const ast_type = ast.typeof(compiler.allocator());
             try type_check(ast.token().span, ast_type, expected, &compiler.errors);
-            const retval = generate_default(ast_type, ast.expr().token().span, &compiler.errors, compiler.allocator());
+            const retval = generate_default(ast_type.expand_type(compiler.allocator()), ast.expr().token().span, &compiler.errors, compiler.allocator());
             return retval;
         },
         .size_of => {
@@ -2121,7 +2121,9 @@ fn exhaustive_check_sub(ast: *ast_.AST, ids: *std.ArrayList(usize)) void {
 }
 
 fn generate_default(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
-    return (try generate_default_unvalidated(_type, span, errors, allocator)).assert_ast_valid();
+    var retval = (try generate_default_unvalidated(_type, span, errors, allocator)).assert_ast_valid();
+    retval.common()._type = _type;
+    return retval;
 }
 
 fn generate_default_unvalidated(_type: *ast_.AST, span: span_.Span, errors: *errs_.Errors, allocator: std.mem.Allocator) Validate_Error_Enum!*ast_.AST {
