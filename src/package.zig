@@ -166,7 +166,9 @@ fn gcc(
         .allocator = allocator,
         .argv = gcc_cmd.items,
         .cwd = cwd_string.str(),
-    }) catch unreachable;
+    }) catch |err| switch (err) {
+        else => std.debug.panic("compile error: on cc invoke: {}", .{err}),
+    };
 
     var retcode: u8 = 0;
     switch (run_res.term) {
