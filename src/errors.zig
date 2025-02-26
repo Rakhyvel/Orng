@@ -473,7 +473,7 @@ pub const Error = union(enum) {
                 get_std_err().print("`\n", .{}) catch unreachable;
             },
             .integer_out_of_bounds => {
-                get_std_err().print("error: integer is get_std_err() of bounds for type `", .{}) catch unreachable;
+                get_std_err().print("error: integer is out of bounds for type `", .{}) catch unreachable;
                 err.integer_out_of_bounds.expected.print_type(get_std_err()) catch unreachable;
                 get_std_err().print("`; value={}\n", .{err.integer_out_of_bounds.value}) catch unreachable;
             },

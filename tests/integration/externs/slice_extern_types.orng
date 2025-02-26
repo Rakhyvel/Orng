@@ -1,0 +1,12 @@
+// 342
+
+cinclude "helper.h"
+extern ("Some_Type") const C_Int: Type = (x: Int, y: Int)
+
+fn main() -> Int {
+    let mut xs: [5]C_Int = ((0, 0), (0, 0), (0, 0), (0, 0), (0, 0))
+    let mut ys: [5]C_Int
+    xs[3] = (326, 4)
+    ys[2] = (@sizeof(C_Int), 4)
+    xs[3][0] + ys[2][0]
+}

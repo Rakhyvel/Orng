@@ -1,0 +1,10 @@
+extern ("int") const C_Int: Type
+
+fn main() -> Int {
+    comptime { 
+        let mut xs: [5]C_Int
+        xs[3] = 2
+        xs[2] = 0xFFFFFFFFFFFFFFF
+        xs[3] + 340
+    }
+}
