@@ -179,10 +179,6 @@ pub const CFG = struct {
             // TODO: Too long
             ir.in_block = retval;
 
-            // if (ir.dest != null and ir.dest.?.* == .symbver) {
-            //     ir.dest.?.symbver.make_unique();
-            // }
-
             if (ir.kind == .label) {
                 // If you find a label declaration, end this block and jump to new block
                 retval.has_branch = false;
