@@ -689,7 +689,6 @@ fn validate_AST_internal(
             var lhs_type = ast.lhs().typeof(compiler.allocator());
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
-                std.debug.print("{}\n", .{ast.lhs()});
                 return throw_wrong_from(
                     "function",
                     "call",

@@ -1,0 +1,11 @@
+// 344
+
+impl for Int {
+    fn add(self, other: Int) -> Int { self + other }
+}
+
+fn main() -> Int {
+    let x: Int = 300
+    let y: Int = 44
+    Int::add(&y, x)
+}

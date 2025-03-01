@@ -494,17 +494,20 @@ pub const CFG = struct {
             // Reset all reachable symbol verison counts to 0
             var maybe_ir: ?*ir_.IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest != null and ir.dest.?.* == .symbver) {
-                    ir.dest.?.symbver.symbol.versions = 0;
-                    ir.dest.?.symbver.symbol.defs = 0;
+                reset_defs(ir.dest);
+                reset_defs(ir.src1);
+                reset_defs(ir.src2);
+                if (ir.data == .lval_list) {
+                    for (ir.data.lval_list.items) |lval| {
+                        reset_defs(lval);
+                    }
                 }
-                if (ir.src1 != null and ir.src1.?.* == .symbver) {
-                    ir.src1.?.symbver.symbol.versions = 0;
-                    ir.src1.?.symbver.symbol.defs = 0;
-                }
-                if (ir.src2 != null and ir.src2.?.* == .symbver) {
-                    ir.src2.?.symbver.symbol.versions = 0;
-                    ir.src2.?.symbver.symbol.defs = 0;
+                if (ir.data == .invoke) {
+                    reset_defs(ir.data.invoke.dyn_value);
+                    reset_defs(ir.data.invoke.method_decl_lval);
+                    for (ir.data.invoke.lval_list.items) |lval| {
+                        reset_defs(lval);
+                    }
                 }
             }
             cfg.return_symbol.versions = 0;
@@ -532,6 +535,30 @@ pub const CFG = struct {
                     ir.src1.?.extract_symbver().symbol.aliases += 1;
                 }
             }
+        }
+    }
+
+    pub fn reset_defs(maybe_lval: ?*lval_.L_Value) void {
+        if (maybe_lval == null) {
+            return;
+        }
+
+        switch (maybe_lval.?.*) {
+            .symbver => {
+                maybe_lval.?.symbver.symbol.versions = 0;
+                maybe_lval.?.symbver.symbol.defs = 0;
+            },
+            .dereference => reset_defs(maybe_lval.?.dereference.expr),
+            .index => {
+                reset_defs(maybe_lval.?.index.length);
+                reset_defs(maybe_lval.?.index.lhs);
+                reset_defs(maybe_lval.?.index.rhs);
+            },
+            .select => {
+                reset_defs(maybe_lval.?.select.tag);
+                reset_defs(maybe_lval.?.select.lhs);
+            },
+            .raw_address => std.debug.panic("compiler error: undefined reset_defs for raw_address", .{}),
         }
     }
 
