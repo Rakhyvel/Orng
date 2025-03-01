@@ -108,7 +108,6 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
             // might be null for parameters
             symbol.init = validate_AST(init, expected, compiler);
         }
-        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
         } else if (symbol.init != null and symbol.init.?.* == .poison) {
@@ -1371,6 +1370,7 @@ fn validate_AST_internal(
         else => std.debug.panic("compiler error: validate_AST() unimplemented for {s}", .{@tagName(ast.*)}),
     }
 }
+var counter: usize = 0;
 
 fn checked_types_match(A: *ast_.AST, B: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!bool {
     try type_valid_check(A.token().span, A, errors);

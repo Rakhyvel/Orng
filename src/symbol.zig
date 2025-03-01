@@ -225,6 +225,7 @@ pub const Symbol = struct {
     aliases: u64 = 0, // How many times the symbol is taken as a mutable address
     roots: u64 = 0, // How many times the symbol is the root of an lvaue tree
     uses: u64 = 0,
+    defs: u64 = 0,
 
     defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,

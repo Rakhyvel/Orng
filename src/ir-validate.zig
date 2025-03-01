@@ -24,19 +24,35 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!v
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
         while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and // has a dest symbol to test
-                !ir.removed and // isn't removed
-                ir.dest.?.* == .symbver and // dest is symbver
-                !ir.dest.?.symbver.symbol.is_temp and // dest symbver's symbol isn't temporary
-                ir.dest.?.symbver.symbol != cfg.return_symbol // dest symbver's symbol isn't the function's return value
-            ) {
-                try err_if_unused(ir.dest.?.symbver.symbol, errors);
-                try err_if_var_not_mutated(ir.dest.?.symbver.symbol, errors);
+            if (ir.removed) {
+                continue;
+            }
+            if (lvalue_is_symbol(ir.dest, cfg.return_symbol)) |symbol| {
+                try err_if_unused(symbol, errors);
+                try err_if_var_not_mutated(symbol, errors);
+            }
+            if (lvalue_is_symbol(ir.src1, cfg.return_symbol)) |symbol| {
+                try err_if_undefd(symbol, errors);
+            }
+            if (lvalue_is_symbol(ir.src2, cfg.return_symbol)) |symbol| {
+                try err_if_undefd(symbol, errors);
             }
             try valid_lvalue_expanded_type_check(ir.span, ir.dest, errors);
             try valid_lvalue_expanded_type_check(ir.span, ir.src1, errors);
             try valid_lvalue_expanded_type_check(ir.span, ir.src2, errors);
         }
+    }
+}
+
+fn lvalue_is_symbol(maybe_lval: ?*lval_.L_Value, return_symbol: *symbol_.Symbol) ?*symbol_.Symbol {
+    if (maybe_lval != null and // exists
+        maybe_lval.?.* == .symbver and // root is a symbver
+        !maybe_lval.?.symbver.symbol.is_temp and // isnt temporary
+        maybe_lval.?.symbver.symbol != return_symbol // isnt the function's return value
+    ) {
+        return maybe_lval.?.symbver.symbol;
+    } else {
+        return null;
     }
 }
 
@@ -50,6 +66,23 @@ fn err_if_unused(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileEr
             .context_span = null,
             .name = symbol.name,
             .problem = "is never used",
+            .context_message = "",
+        } });
+        return error.CompileError;
+    }
+}
+
+fn err_if_undefd(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileError}!void {
+    if (symbol.uses != 0 and // symbol has been used somewhere
+        symbol.defs == 0 and // symbol hasn't been defined anywhere
+        !symbol.param and // symbol isn't a parameter (these don't have defs!)
+        symbol.kind != .@"extern" // symbol isn't an extern (these also don't have defs!)
+    ) {
+        errors.add_error(errs_.Error{ .symbol_error = .{
+            .span = symbol.span,
+            .context_span = null,
+            .name = symbol.name,
+            .problem = "is never defined",
             .context_message = "",
         } });
         return error.CompileError;

@@ -496,21 +496,25 @@ pub const CFG = struct {
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and ir.dest.?.* == .symbver) {
                     ir.dest.?.symbver.symbol.versions = 0;
+                    ir.dest.?.symbver.symbol.defs = 0;
                 }
                 if (ir.src1 != null and ir.src1.?.* == .symbver) {
                     ir.src1.?.symbver.symbol.versions = 0;
+                    ir.src1.?.symbver.symbol.defs = 0;
                 }
                 if (ir.src2 != null and ir.src2.?.* == .symbver) {
                     ir.src2.?.symbver.symbol.versions = 0;
+                    ir.src2.?.symbver.symbol.defs = 0;
                 }
             }
             cfg.return_symbol.versions = 0;
+            cfg.return_symbol.defs = 0;
         }
 
         for (cfg.basic_blocks.items) |bb| {
             // Parameters define symbol versions
             for (bb.next_arguments.items) |symbver| {
-                symbver.symbol.versions += 1;
+                symbver.symbol.versions += 1; // only versions are increased, defs are not
             }
 
             // Go through sum up each definition
@@ -519,6 +523,7 @@ pub const CFG = struct {
                 if (ir.dest != null and ir.dest.?.* == .symbver) {
                     ir.dest.?.symbver.def = ir;
                     ir.dest.?.symbver.symbol.versions += 1;
+                    ir.dest.?.symbver.symbol.defs += 1;
                 }
                 if (ir.dest != null) {
                     ir.dest.?.extract_symbver().symbol.roots += 1;

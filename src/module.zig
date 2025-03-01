@@ -192,23 +192,9 @@ pub const Module = struct {
         }
 
         if (false) { // Print out tokens after layout_
-            var indent: usize = 0;
             for (0..tokens.items.len - 1) |j| {
-                var token = tokens.items[j];
-                const next_token = tokens.items[j + 1];
-                if (next_token.kind == .INDENT) {
-                    indent += 1;
-                }
-                if (next_token.kind == .DEDENT) {
-                    indent -= 1;
-                }
-                std.debug.print("{s} ", .{token.repr()});
-                if (token.kind == .NEWLINE or token.kind == .INDENT or token.kind == .DEDENT) {
-                    std.debug.print("\n", .{});
-                    for (0..indent) |_| {
-                        std.debug.print("    ", .{});
-                    }
-                }
+                const token = tokens.items[j];
+                std.debug.print("{}\n", .{token.kind});
             }
             std.debug.print("\n", .{});
         }
