@@ -48,6 +48,7 @@ pub const Token_Kind = enum(u32) {
     where,
     @"while",
     self,
+    undefined,
     variadic,
     virtual,
 
@@ -167,6 +168,7 @@ pub const Token_Kind = enum(u32) {
             .@"while" => "while",
             .trait => "trait",
             .self => "self",
+            .undefined => "undefined",
             .variadic => "variadic",
             .virtual => "virtual",
 
@@ -262,6 +264,7 @@ pub const Token_Kind = enum(u32) {
         .true,
         .false,
         .caret,
+        .undefined,
     };
 };
 

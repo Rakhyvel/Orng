@@ -1,0 +1,4 @@
+fn main() -> Int {
+    let x: Int = undefined
+    4 + x
+}

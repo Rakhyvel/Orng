@@ -1,0 +1,8 @@
+trait Add {
+    virtual fn add(&self, other: Int) -> Int
+}
+
+fn main() -> Int {
+    let x: &dyn Add = undefined
+    x.>add(4)
+}

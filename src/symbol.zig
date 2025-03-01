@@ -221,10 +221,10 @@ pub const Symbol = struct {
     is_alias: bool, // when this is true, this symbol is a type-alias, and should be expanded before use
 
     // Use-def
-    versions: u64 = 0,
     aliases: u64 = 0, // How many times the symbol is taken as a mutable address
     roots: u64 = 0, // How many times the symbol is the root of an lvaue tree
     uses: u64 = 0,
+    defs: u64 = 0,
 
     defined: bool, // Used for decorating identifiers. True when the symbol is defined at the identifier
     validation_state: Symbol_Validation_State,
@@ -255,7 +255,6 @@ pub const Symbol = struct {
         retval.init = _init;
         retval.decl = decl;
         retval.is_alias = if (decl != null and decl.?.* == .decl) decl.?.decl.is_alias else false;
-        retval.versions = 0;
         retval.aliases = 0;
         retval.roots = 0;
         retval.uses = 0;

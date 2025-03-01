@@ -279,7 +279,6 @@ pub const L_Value = union(enum) {
 
 pub const Symbol_Version = struct {
     symbol: *symbol_.Symbol,
-    version: ?u64,
     def: ?*ir_.IR,
 
     uses: usize = 0,
@@ -290,7 +289,6 @@ pub const Symbol_Version = struct {
         var retval = allocator.create(Symbol_Version) catch unreachable;
         retval.symbol = symbol;
         retval.uses = 0;
-        retval.version = null;
         retval.def = null;
         retval.allocator = allocator;
         return retval;
@@ -301,13 +299,6 @@ pub const Symbol_Version = struct {
         // self.allocator.destroy(self); // TODO: Bwuh?!
     }
 
-    pub fn make_unique(self: *Symbol_Version) void {
-        if (self.version == null) {
-            self.version = self.symbol.versions;
-            self.symbol.versions += 1;
-        }
-    }
-
     fn pprint(self: ?*Symbol_Version) void {
         if (self) |symbver| {
             var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -315,7 +306,7 @@ pub const Symbol_Version = struct {
             var out = String.init(arena.allocator());
             defer out.deinit();
 
-            out.writer().print("{s}_{?}", .{ symbver.symbol.name, symbver.version }) catch unreachable;
+            out.writer().print("{s}", .{symbver.symbol.name}) catch unreachable;
             std.debug.print("{s:<10}", .{out.str()});
         } else {
             std.debug.print("<null>    ", .{});
@@ -330,7 +321,7 @@ pub const Symbol_Version = struct {
         var out = String.init(arena.allocator());
         defer out.deinit();
 
-        writer.print("{s}_{?}", .{ self.symbol.name, self.version }) catch unreachable;
+        writer.print("{s}", .{self.symbol.name}) catch unreachable;
         // try writer.print("{s:<10}", .{out.str()});
     }
 

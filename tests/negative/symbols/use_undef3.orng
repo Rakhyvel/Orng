@@ -1,0 +1,6 @@
+fn main() -> Int {
+    let x: Int = undefined
+    add(4, x)
+}
+
+fn add(x: Int, y: Int) -> Int { x + y }

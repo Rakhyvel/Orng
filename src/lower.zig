@@ -38,6 +38,17 @@ pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.
     }
     cfg.append_instruction(ir_.IR.init_jump(null, cfg.symbol.span, allocator));
 
+    if (false) {
+        // Print symbol IR after lowering, before breaking up into basic blocks
+        std.debug.print("CFG {s}:\n", .{cfg.symbol.name});
+        var maybe_ir = cfg.ir_head;
+        while (maybe_ir) |ir| {
+            std.debug.print("{}", .{ir});
+            maybe_ir = ir.next;
+        }
+        std.debug.print("\n", .{});
+    }
+
     cfg.block_graph_head = cfg.basic_block_from_IR(cfg.ir_head, allocator);
     cfg.remove_last_instruction();
 
@@ -51,7 +62,28 @@ fn lower_AST(
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
 ) Lower_Errors!?*lval_.L_Value {
+    const retval = lower_AST_inner(cfg, ast, labels, errors, allocator);
     // std.debug.print("{}\n", .{ast});
+    if (false) {
+        // Print symbol IR after lowering, before breaking up into basic blocks
+        std.debug.print("CFG {s}:\n", .{cfg.symbol.name});
+        var maybe_ir = cfg.ir_head;
+        while (maybe_ir) |ir| {
+            std.debug.print("{}", .{ir});
+            maybe_ir = ir.next;
+        }
+        std.debug.print("\n", .{});
+    }
+    return retval;
+}
+
+fn lower_AST_inner(
+    cfg: *cfg_.CFG,
+    ast: *ast_.AST,
+    labels: Labels,
+    errors: *errs_.Errors,
+    allocator: std.mem.Allocator,
+) Lower_Errors!?*lval_.L_Value {
     switch (ast.*) {
         // Straight up types, yo
         .function,

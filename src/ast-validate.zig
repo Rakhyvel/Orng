@@ -108,7 +108,6 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
             // might be null for parameters
             symbol.init = validate_AST(init, expected, compiler);
         }
-        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
         } else if (symbol.init != null and symbol.init.?.* == .poison) {
@@ -690,7 +689,6 @@ fn validate_AST_internal(
             var lhs_type = ast.lhs().typeof(compiler.allocator());
             const expanded_lhs_type = lhs_type.expand_identifier();
             if (ast.lhs().* != .sum_value and expanded_lhs_type.* != .function) {
-                std.debug.print("{}\n", .{ast.lhs()});
                 return throw_wrong_from(
                     "function",
                     "call",

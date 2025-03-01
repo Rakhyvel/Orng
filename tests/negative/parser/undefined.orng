@@ -1,0 +1,7 @@
+// 343
+
+fn main() -> Int {
+    let x = undefined
+    x = 343
+    x
+}

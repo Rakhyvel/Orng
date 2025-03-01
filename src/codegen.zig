@@ -965,7 +965,7 @@ fn output_lvalue(lvalue: *lval_.L_Value, outer_precedence: i128, writer: Writer)
 /// Emits the return statement from a function
 fn output_return(return_symbol: *symbol_.Symbol, writer: Writer) CodeGen_Error!void {
     try writer.print("    return", .{});
-    if (return_symbol.versions > 0 and !return_symbol.expanded_type.?.is_c_void_type()) {
+    if (return_symbol.defs > 0 and !return_symbol.expanded_type.?.is_c_void_type()) {
         try writer.print(" ", .{});
         try output_symbol(return_symbol, writer);
     }

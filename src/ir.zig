@@ -335,21 +335,21 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
                 try out.writer().print("    {} := {}.tag\n", .{ self.dest.?, self.src1.? });
             },
             .jump => {
-                if (self.data.jump_bb.next) |next| {
-                    try out.writer().print("    jump BB{}\n", .{next.uid});
+                if (self.data == .jump_bb and self.data.jump_bb.next != null) {
+                    try out.writer().print("    jump BB{}\n", .{self.data.jump_bb.next.?.uid});
                 } else {
                     try out.writer().print("    ret\n", .{});
                 }
             },
             .branch_if_false => {
-                if (self.data.branch_bb.next) |next| {
-                    try out.writer().print("    if ({}) jump BB{}", .{ self.src1.?, next.uid });
+                if (self.data == .branch_bb and self.data.branch_bb.next != null) {
+                    try out.writer().print("    if ({}) jump BB{}", .{ self.src1.?, self.data.branch_bb.next.?.uid });
                 } else {
                     try out.writer().print("    if ({}) ret", .{self.src1.?});
                 }
                 try out.writer().print(" ", .{});
-                if (self.data.branch_bb.branch) |branch| {
-                    try out.writer().print("else jump BB{}\n", .{branch.uid});
+                if (self.data == .branch_bb and self.data.branch_bb.branch != null) {
+                    try out.writer().print("else jump BB{}\n", .{self.data.branch_bb.branch.?.uid});
                 } else {
                     try out.writer().print("else ret\n", .{});
                 }

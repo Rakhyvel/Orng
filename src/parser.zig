@@ -274,12 +274,17 @@ pub const Parser = struct {
         const ident = try self.let_pattern_atom();
         var _type: ?*ast_.AST = null;
         var _init: ?*ast_.AST = null;
+        var is_undefined = false;
 
         if (self.accept(.single_colon)) |_| {
             _type = try self.arrow_expr();
             if (self.peek_kind(.single_equals)) {
                 _ = try self.expect(.single_equals);
-                _init = try self.arrow_expr();
+                if (self.accept(.undefined)) |_| {
+                    is_undefined = true;
+                } else {
+                    _init = try self.arrow_expr();
+                }
             }
         } else if (self.accept(.single_equals)) |_| {
             _init = try self.arrow_expr();
@@ -291,14 +296,16 @@ pub const Parser = struct {
             return error.ParseError;
         }
 
-        return ast_.AST.create_decl(
+        var decl = ast_.AST.create_decl(
             token,
             ident,
             _type orelse ast_.AST.create_type_of(token, _init.?, self.allocator), // type inference done here!
-            _init orelse ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
+            _init orelse if (is_undefined) null else ast_.AST.create_default(token, _type.?, self.allocator), // default value generate done here!
             false,
             self.allocator,
         );
+        decl.decl.prohibit_defaults = is_undefined;
+        return decl;
     }
 
     fn let_pattern_atom(self: *Parser) Parser_Error_Enum!*ast_.AST {

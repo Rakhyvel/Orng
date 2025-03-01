@@ -1,0 +1,7 @@
+// 343
+
+fn main() -> Int {
+    let mut x: Int = undefined
+    x = 343
+    x
+}
