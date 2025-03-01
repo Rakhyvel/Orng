@@ -5,5 +5,5 @@ impl for Int {
 fn main() -> Int {
     let x: Int = undefined
     let y: Int = 44
-    Int::add(&y, x)
+    y.>add(x)
 }
