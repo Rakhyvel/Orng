@@ -179,9 +179,9 @@ pub const CFG = struct {
             // TODO: Too long
             ir.in_block = retval;
 
-            if (ir.dest != null and ir.dest.?.* == .symbver) {
-                ir.dest.?.symbver.make_unique();
-            }
+            // if (ir.dest != null and ir.dest.?.* == .symbver) {
+            //     ir.dest.?.symbver.make_unique();
+            // }
 
             if (ir.kind == .label) {
                 // If you find a label declaration, end this block and jump to new block
@@ -325,11 +325,7 @@ pub const CFG = struct {
         switch (lval.*) {
             .symbver => {
                 var retval = lval.symbver.find_version(bb.ir_head, ir);
-                if (retval.version == null) {
-                    // symbver symbol isn't defined in this basic-block
-                    // request it as a parameter
-                    _ = retval.put_symbol_version_set(parameters);
-                }
+                _ = retval.put_symbol_version_set(parameters);
                 lval.symbver = retval;
             },
             .dereference => version_lvalue(lval.dereference.expr, bb, ir, parameters),
@@ -488,7 +484,7 @@ pub const CFG = struct {
         }
     }
 
-    pub fn calculate_versions(cfg: *CFG) void {
+    pub fn calculate_definitions(cfg: *CFG) void {
         // FIXME: High Cyclo
         for (cfg.basic_blocks.items) |bb| {
             // Reset all reachable symbol verison counts to 0
@@ -510,22 +506,15 @@ pub const CFG = struct {
                     }
                 }
             }
-            cfg.return_symbol.versions = 0;
             cfg.return_symbol.defs = 0;
         }
 
         for (cfg.basic_blocks.items) |bb| {
-            // Parameters define symbol versions
-            for (bb.next_arguments.items) |symbver| {
-                symbver.symbol.versions += 1; // only versions are increased, defs are not
-            }
-
             // Go through sum up each definition
             var maybe_ir: ?*ir_.IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and ir.dest.?.* == .symbver) {
                     ir.dest.?.symbver.def = ir;
-                    ir.dest.?.symbver.symbol.versions += 1;
                     ir.dest.?.symbver.symbol.defs += 1;
                 }
                 if (ir.dest != null) {
@@ -545,7 +534,6 @@ pub const CFG = struct {
 
         switch (maybe_lval.?.*) {
             .symbver => {
-                maybe_lval.?.symbver.symbol.versions = 0;
                 maybe_lval.?.symbver.symbol.defs = 0;
             },
             .dereference => reset_defs(maybe_lval.?.dereference.expr),

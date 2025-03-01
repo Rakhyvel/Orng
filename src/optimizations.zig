@@ -33,7 +33,7 @@ pub fn optimize(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Alloca
 fn propagate(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.mem.Allocator) error{CompileError}!bool {
     var retval = false;
 
-    cfg.calculate_versions();
+    cfg.calculate_definitions();
     cfg.calculate_usage();
 
     for (cfg.basic_blocks.items) |bb| {
@@ -83,8 +83,7 @@ fn propagate_IR(ir: *ir_.IR, src1_def: ?*ir_.IR, src2_def: ?*ir_.IR, errors: *er
             } else if (ir.dest.?.* == .symbver and
                 ir.src1.?.* == .symbver and
                 ir.dest.?.symbver.symbol == ir.src1.?.symbver.symbol and
-                src1_def != null and
-                ir.dest.?.symbver.version == ir.src1.?.symbver.version)
+                src1_def != null)
             {
                 log("self-copy elimination");
                 ir.in_block.?.remove_instruction(ir);
@@ -537,7 +536,7 @@ fn remove_unused_defs(cfg: *cfg_.CFG) bool {
     var retval = false;
 
     cfg.calculate_usage();
-    cfg.calculate_versions();
+    cfg.calculate_definitions();
 
     for (cfg.basic_blocks.items) |bb| {
         var maybe_ir: ?*ir_.IR = bb.ir_head;
@@ -572,7 +571,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
 
     cfg.count_bb_predecessors();
     cfg.calculate_phi_params_and_args(allocator);
-    cfg.calculate_versions();
+    cfg.calculate_definitions();
 
     for (cfg.basic_blocks.items) |bb| {
         if (bb.number_predecessors == 0) {

@@ -1369,7 +1369,6 @@ fn validate_AST_internal(
         else => std.debug.panic("compiler error: validate_AST() unimplemented for {s}", .{@tagName(ast.*)}),
     }
 }
-var counter: usize = 0;
 
 fn checked_types_match(A: *ast_.AST, B: *ast_.AST, errors: *errs_.Errors) Validate_Error_Enum!bool {
     try type_valid_check(A.token().span, A, errors);

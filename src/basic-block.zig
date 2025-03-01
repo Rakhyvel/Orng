@@ -139,7 +139,7 @@ pub const Basic_Block = struct {
         var i: usize = 0;
         while (i < list.items.len) : (i += 1) {
             const symbver = list.items[i];
-            std.debug.print("{s}_{?}", .{ symbver.symbol.name, symbver.version });
+            std.debug.print("{s}", .{symbver.symbol.name});
             if (i < list.items.len - 1) {
                 std.debug.print(", ", .{});
             }
