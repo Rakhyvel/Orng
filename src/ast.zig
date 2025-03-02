@@ -2833,7 +2833,7 @@ pub const AST = union(enum) {
                 return max_size; // Same as the sum type, but without the tag and without the padding for the tag
             },
 
-            .function, .addr_of, .dyn_type => return 8,
+            .function, .addr_of, .dyn_type, .anyptr_type => return 8,
 
             .unit_type => return 0,
 

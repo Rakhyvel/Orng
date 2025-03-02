@@ -508,7 +508,7 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         return;
     }
 
-    if (_type.sizeof() == 0) {
+    if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
         // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
         try writer.print("void", .{});
         return;
