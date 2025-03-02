@@ -1,0 +1,13 @@
+// 348
+const My_Untagged_Union: Type = @Untagged((x | y))
+
+fn main() -> Int {
+    let mut x: My_Untagged_Union = undefined
+    x.x = {}
+    set_to_y(&mut x)
+    348
+}
+
+fn set_to_y(x: &mut My_Untagged_Union) -> () {
+    x.y = {}
+}

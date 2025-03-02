@@ -1,0 +1,19 @@
+// 345
+const My_Untagged_Union: Type = @Untagged((i: Int | f: Float))
+
+fn main() -> Int {
+    let mut x: My_Untagged_Union = undefined
+    x.i = 300
+    let was_greater = is_greater(x.i, 200)
+    x.f = -300.0
+    let was_lesser = is_lesser(x.f, -200.0)
+    if was_greater and was_lesser {
+        345
+    } else {
+        unreachable
+    }
+}
+
+fn is_greater(x: Int, y: Int) -> Bool { x > y }
+
+fn is_lesser(x: Float, y: Float) -> Bool { x < y }

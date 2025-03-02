@@ -77,6 +77,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .dyn_value,
         .bit_not,
         .cinclude,
+        .untagged_sum_type,
         => try walk_ast(ast.expr(), new_context),
 
         .assign,
@@ -171,8 +172,14 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         },
         .@"return" => try walk_ast(ast.@"return"._ret_expr, new_context),
         .decl => {
-            try walk_ast(ast.decl.type, new_context);
-            try walk_ast(ast.decl.init, new_context);
+            if (!(ast.decl.type.* == .type_of and ast.decl.type.expr() == ast.decl.init)) {
+                // Don't double-walk
+                try walk_ast(ast.decl.type, new_context);
+            }
+            if (!(ast.decl.init != null and ast.decl.init.?.* == .default and ast.decl.init.?.expr() == ast.decl.type)) {
+                // Don't double-walk
+                try walk_ast(ast.decl.init, new_context);
+            }
         },
         .fn_decl => {
             try walk_ast(ast.fn_decl.init, new_context);

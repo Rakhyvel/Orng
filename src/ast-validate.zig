@@ -108,6 +108,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
             // might be null for parameters
             symbol.init = validate_AST(init, expected, compiler);
         }
+        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
         } else if (symbol.init != null and symbol.init.?.* == .poison) {
@@ -130,7 +131,8 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
                 .span = symbol.span,
                 .name = symbol.name,
             } });
-        } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name)) {
+        } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name) and symbol.kind != .template) {
+            // TODO: Make it so that these rules apply to templates. I think we'll need to stamp first, of course. Are symbols re-validated when they're stamped? They probably should be
             compiler.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type other than `Type` must start with a lowercase letter",
                 .span = symbol.span,
@@ -586,14 +588,14 @@ fn validate_AST_internal(
             defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = interpreter_.Context.init(compiler.allocator());
+            var context = interpreter_.Context.init(&compiler.errors, compiler.allocator());
             context.set_entry_point(cfg, expanded_expected orelse ret_type);
             defer context.deinit();
             context.load_module(module);
             try context.run(compiler);
 
             // Extract the retval
-            ast.@"comptime".result = context.extract_ast(0, expanded_expected orelse ret_type, compiler.allocator());
+            ast.@"comptime".result = try context.extract_ast(0, expanded_expected orelse ret_type, ast.token().span);
             return ast.@"comptime".result.?;
         },
         .assign => {
@@ -744,7 +746,6 @@ fn validate_AST_internal(
                 // Index a product type, resolve immediately
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (expanded_lhs_type.* != .product and !(expanded_lhs_type.* == .addr_of and expanded_lhs_type.addr_of.multiptr)) {
-                std.debug.print("{}\n", .{expanded_lhs_type});
                 compiler.errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.CompileError;
             } else if (expanded_lhs_type.* == .product and
@@ -916,6 +917,16 @@ fn validate_AST_internal(
             }
             try assert_none_poisoned(ast.children());
             try type_check(ast.token().span, primitives_.type_type, expected, &compiler.errors);
+            return ast;
+        },
+        .untagged_sum_type => {
+            ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, compiler).expand_type(compiler.allocator()));
+            try assert_none_poisoned(ast.expr());
+            if (ast.expr().* != .sum_type) {
+                compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a sum type" } });
+                return ast.enpoison();
+            }
+            try type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
             return ast;
         },
         .product => {
@@ -1812,7 +1823,6 @@ pub fn validate_args_arity(
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
     if (variadic) {
         if (args.items.len < expected_length) {
-            std.debug.print("yup!\n", .{});
             errors.add_error(errs_.Error{ .mismatch_arity = .{
                 .span = span,
                 .takes = expected_length,
@@ -2012,7 +2022,7 @@ fn implicit_dereference(
 }
 
 fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
-    if (_type.* != .product and _type.* != .sum_type) {
+    if (_type.* != .product and _type.* != .sum_type and _type.* != .untagged_sum_type) {
         return throw_not_selectable(span, errors);
     }
     for (_type.children().items, 0..) |term, i| {

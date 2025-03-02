@@ -706,8 +706,21 @@ pub const Parser = struct {
                     return error.ParseError;
                 }
                 return ast_.AST.create_right_shift(token, args.items[0], args.items[1], self.allocator);
+            } else if (std.mem.eql(u8, token.data, "Untagged")) {
+                if (args.items.len != 1) {
+                    self.errors.add_error(errs_.Error{ .mismatch_arity = .{
+                        .span = token.span,
+                        .takes = 2,
+                        .given = args.items.len,
+                        .thing_name = "built-in function",
+                        .takes_name = "parameter",
+                        .given_name = "argument",
+                    } });
+                    return error.ParseError;
+                }
+                return ast_.AST.create_untagged_sum_type(token, args.items[0], self.allocator);
             } else {
-                self.errors.add_error(errs_.Error{ .basic = .{ .msg = "unknown built-in function", .span = token.span } });
+                self.errors.add_error(errs_.Error{ .basic = .{ .msg = "unknown built-in function", .span = token.span } }); // TODO: Unique error message that says the builtin function name
                 return error.ParseError;
             }
         } else if (self.accept(.minus)) |token| {

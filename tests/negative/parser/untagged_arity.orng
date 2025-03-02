@@ -1,0 +1,1 @@
+const My_Untagged_Union: Type = @Untagged()

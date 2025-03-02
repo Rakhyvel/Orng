@@ -178,6 +178,12 @@ fn output_typedef(
             try writer.print("    }};\n", .{});
         }
         try writer.print("}};\n\n", .{});
+    } else if (dag.base.* == .untagged_sum_type) {
+        try writer.print("union {s}_union{} {{\n", .{ cheat_module.package_name, dag.uid });
+        if (!dag.base.expr().sum_type.is_all_unit()) {
+            try output_field_list(dag.base.children(), 4, writer);
+        }
+        try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .dyn_type) {
         try writer.print("struct {s}_dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ cheat_module.package_name, dag.uid, dag.base.expr().symbol().?.name });
         try writer.print("* vtable;\n}};\n\n", .{});
@@ -344,8 +350,8 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
 
     // Declare local variables
     for (cfg.symbvers.items) |symbver| {
-        if (symbver.symbol.expanded_type.?.is_c_void_type() or // symbol's C type is `void`
-            symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$' // non-bookkeeping symbol is not used
+        if (symbver.symbol.expanded_type.?.sizeof() == 0 or // symbol's C type is `void`
+            (symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$') // non-bookkeeping symbol is not used
         ) {
             continue; // Do not output unit variables
         }
@@ -502,6 +508,12 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         return;
     }
 
+    if (_type.common()._expanded_type != null and _type.common()._expanded_type.?.sizeof() == 0) {
+        // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
+        try writer.print("void", .{});
+        return;
+    }
+
     switch (_type.*) {
         .identifier => if (_type.common()._expanded_type != null and _type.common()._expanded_type.? != _type) {
             try output_type(_type.common()._expanded_type.?, writer);
@@ -519,7 +531,11 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         },
         .sum_type, .product => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("/*{?}*/ struct {s}_struct{}", .{ _type.common()._unexpanded_type, cheat_module.package_name, type_uid });
+            try writer.print("struct {s}_struct{}", .{ cheat_module.package_name, type_uid });
+        },
+        .untagged_sum_type => {
+            const type_uid = cheat_module.type_set.get(_type).?.uid;
+            try writer.print("union {s}_union{}", .{ cheat_module.package_name, type_uid });
         },
         .dyn_type => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;

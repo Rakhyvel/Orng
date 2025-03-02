@@ -30,7 +30,7 @@ pub const Type_Set = struct {
                 }
                 return dag;
             },
-            .product, .sum_type => {
+            .product, .sum_type, .untagged_sum_type => {
                 var dag = DAG.init(ast, self.types.items.len, allocator);
                 self.types.append(dag) catch unreachable;
                 for (ast.children().items) |term| {

@@ -89,6 +89,7 @@ fn lower_AST_inner(
         .function,
         .unit_type,
         .sum_type,
+        .untagged_sum_type,
         .annotation,
         .dyn_type,
         => return lval_from_ast(ast.expand_type(allocator), cfg, allocator),
@@ -197,7 +198,8 @@ fn lower_AST_inner(
             }
             // If product, recursively generate a series of assignments
             // Else, create a *single* copy IR with an L_Value tree
-            return try generate_assign(cfg, ast.lhs(), rhs.?, labels, errors, allocator);
+            try generate_assign(cfg, ast.lhs(), rhs.?, labels, errors, allocator);
+            return lval_from_unit_value(ast, cfg, allocator);
         },
 
         .@"or", .@"and" => return try or_and_op(ast, cfg, labels, errors, allocator),
@@ -862,8 +864,7 @@ fn generate_assign(
     labels: Labels,
     errors: *errs_.Errors,
     allocator: std.mem.Allocator,
-) Lower_Errors!?*lval_.L_Value // If assign is to a single symbver, returns the symbver
-{
+) Lower_Errors!void {
     if (lhs.* == .product) {
         // Recursively call `generate_assign` for each term in the product.
         // product-assigns may be nested, for example:
@@ -878,9 +879,13 @@ fn generate_assign(
             const expanded_type = rhs.get_expanded_type().children().items[field].expand_type(allocator);
             const offset = lhs_expanded_type.product.get_offset(field, allocator);
             const select = rhs.create_select_lval(field, offset, expanded_type, null, allocator);
-            _ = try generate_assign(cfg, term, select, labels, errors, allocator);
+            try generate_assign(cfg, term, select, labels, errors, allocator);
         }
-        return null;
+    } else if (lhs.* == .select and lhs.lhs().typeof(allocator).expand_type(allocator).* == .sum_type) {
+        // Select on a sum-type, convert to a copy of a sum_value
+        const sum_value = create_temp_lvalue(cfg, lhs.lhs().typeof(allocator).expand_type(allocator), allocator);
+        cfg.append_instruction(ir_.IR.init_union(sum_value, rhs, lhs.pos().?, lhs.token().span, allocator));
+        try generate_assign(cfg, lhs.lhs(), sum_value, labels, errors, allocator);
     } else {
         // Get L_Value tree, create a `copy` IR of L_Value tree and rhs
         const lval = try lower_AST(cfg, lhs, labels, errors, allocator);
@@ -888,7 +893,6 @@ fn generate_assign(
         ir.dest = lval;
         ir.safe = true;
         cfg.append_instruction(ir);
-        return null;
     }
 }
 

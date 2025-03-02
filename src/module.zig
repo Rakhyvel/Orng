@@ -277,6 +277,7 @@ pub const Module = struct {
                 while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                     if (ir.dest != null) {
                         _ = module.type_set.add(ir.dest.?.get_expanded_type(), compiler.allocator());
+                        _ = module.type_set.add(ir.dest.?.extract_symbver().symbol.expanded_type.?, compiler.allocator());
                     }
                 }
             }
@@ -623,12 +624,12 @@ pub fn interpret(
     defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
     // Create a context and interpret
-    var context = interpreter_.Context.init(compiler.allocator());
+    var context = interpreter_.Context.init(&compiler.errors, compiler.allocator());
     context.set_entry_point(cfg, ret_type);
     defer context.deinit();
     context.load_module(module);
     try context.run(compiler);
 
     // Extract the retval
-    return context.extract_ast(0, ret_type, compiler.allocator());
+    return try context.extract_ast(0, ret_type, ast.token().span);
 }

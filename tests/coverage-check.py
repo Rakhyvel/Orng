@@ -62,7 +62,7 @@ def check_coverage(src_files, base_ref):
             
             # Check if modified lines are covered
             for line in modified_lines:
-                if line in coverage_data[src_file] and not coverage_data[src_file][line]:
+                if (src_file not in coverage_data) or (line in coverage_data[src_file] and not coverage_data[src_file][line]):
                     uncovered_lines.append(f"{src_file}:{line}")
                     
         except subprocess.CalledProcessError as e:

@@ -1,0 +1,8 @@
+fn main() -> Int {
+    let x = comptime {
+        let mut y: @Untagged(?Int) = undefined
+        y.some = 4
+        y
+    }
+    4
+}

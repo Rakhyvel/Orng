@@ -9,7 +9,7 @@ const token_ = @import("token.zig");
 
 pub const Error = union(enum) {
     // General errors
-    basic: struct {
+    basic: struct { // TODO: Add a fmt'd constructor for one of these in the Error struct
         span: span_.Span,
         msg: []const u8,
     },
