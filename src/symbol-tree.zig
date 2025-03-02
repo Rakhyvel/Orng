@@ -415,7 +415,7 @@ pub fn create_function_symbol(
 
     // Recurse parameters and init
     const symbol_walk = Self.new(fn_scope, errors, allocator);
-    try walk_.walk_asts(ast.children().*, symbol_walk);
+    try walk_.walk_asts(ast.children(), symbol_walk);
     try walk_.walk_ast(ast.fn_decl.ret_type, symbol_walk);
 
     // Put the param symbols in the param symbols list
@@ -650,7 +650,7 @@ fn create_method_symbol(
     // Recurse parameters and init
 
     const symbol_walk = Self.new(fn_scope, errors, allocator);
-    try walk_.walk_asts(ast.children().*, symbol_walk);
+    try walk_.walk_asts(ast.children(), symbol_walk);
     try walk_.walk_ast(ast.method_decl.ret_type, symbol_walk);
 
     if (ast.method_decl.receiver != null) {

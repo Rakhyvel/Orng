@@ -42,9 +42,8 @@ const Lex_State = enum {
     }
 };
 
-pub const Scanner = struct {
-    tokens: std.ArrayList(token_.Token),
-    lines: *std.ArrayList([]const u8),
+pub const Tokenize = struct {
+    tokens: *std.ArrayList(token_.Token),
     filename: []const u8,
     errors: *errs_.Errors,
     fuzz_tokens: bool,
@@ -57,15 +56,13 @@ pub const Scanner = struct {
 
     /// Will always end in an EOF on the first column of the next line
     pub fn init(
-        lines: *std.ArrayList([]const u8),
         filename: []const u8,
         errors: *errs_.Errors,
         fuzz_tokens: bool,
         allocator: std.mem.Allocator,
-    ) Scanner {
-        return Scanner{
-            .tokens = std.ArrayList(token_.Token).init(allocator),
-            .lines = lines,
+    ) Tokenize {
+        const retval = Tokenize{
+            .tokens = allocator.create(std.ArrayList(token_.Token)) catch unreachable,
             .filename = filename,
             .errors = errors,
             .fuzz_tokens = fuzz_tokens,
@@ -76,10 +73,12 @@ pub const Scanner = struct {
             .ix = 0,
             .state = .none,
         };
+        retval.tokens.* = std.ArrayList(token_.Token).init(allocator);
+        return retval;
     }
 
-    pub fn get_tokens(self: *Scanner) Lexer_Errors!std.ArrayList(token_.Token) {
-        for (self.lines.items) |line| {
+    pub fn run(self: *Tokenize, lines: std.ArrayList([]const u8)) Lexer_Errors!*std.ArrayList(token_.Token) {
+        for (lines.items) |line| {
             self.slice_start = 0;
             self.ix = 0;
             self.state = .none;
@@ -99,13 +98,13 @@ pub const Scanner = struct {
         return self.tokens;
     }
 
-    fn advance_ix(self: *Scanner, state: Lex_State) void {
+    fn advance_ix(self: *Tokenize, state: Lex_State) void {
         self.ix += 1;
         self.col += 1;
         self.state = state;
     }
 
-    fn state_machine(self: *Scanner, next_char: u8, line: []const u8) Lexer_Errors!void {
+    fn state_machine(self: *Tokenize, next_char: u8, line: []const u8) Lexer_Errors!void {
         switch (self.state) {
             .none => if (std.ascii.isWhitespace(next_char)) {
                 self.advance_ix(.whitespace);
@@ -385,11 +384,11 @@ pub const Scanner = struct {
         }
     }
 
-    fn get_span(self: *Scanner, line: []const u8, offset: usize) span_.Span {
+    fn get_span(self: *Tokenize, line: []const u8, offset: usize) span_.Span {
         return span_.Span{ .filename = self.filename, .line_text = line, .col = self.col + offset, .line_number = self.line_number };
     }
 
-    fn throw_invalid_decimal(self: *Scanner, line: []const u8, digit: u8, base: []const u8) Lexer_Errors {
+    fn throw_invalid_decimal(self: *Tokenize, line: []const u8, digit: u8, base: []const u8) Lexer_Errors {
         self.errors.add_error(errs_.Error{ .invalid_digit = .{
             .span = self.get_span(line, 1),
             .digit = digit,
@@ -398,11 +397,11 @@ pub const Scanner = struct {
         return Lexer_Errors.LexerError;
     }
 
-    fn throw_camel_case_unsupported(self: *Scanner, line: []const u8) Lexer_Errors {
+    fn throw_camel_case_unsupported(self: *Tokenize, line: []const u8) Lexer_Errors {
         return self.throw_basic_error(line, "camelCase is not supported");
     }
 
-    fn throw_invalid_escape(self: *Scanner, line: []const u8, next_char: u8) Lexer_Errors {
+    fn throw_invalid_escape(self: *Tokenize, line: []const u8, next_char: u8) Lexer_Errors {
         self.errors.add_error(errs_.Error{ .invalid_escape = .{
             .span = self.get_span(line, 1),
             .digit = next_char,
@@ -410,7 +409,7 @@ pub const Scanner = struct {
         return Lexer_Errors.LexerError;
     }
 
-    fn throw_basic_error(self: *Scanner, line: []const u8, msg: []const u8) Lexer_Errors {
+    fn throw_basic_error(self: *Tokenize, line: []const u8, msg: []const u8) Lexer_Errors {
         self.errors.add_error(errs_.Error{ .basic = .{
             .span = self.get_span(line, 0),
             .msg = msg,
@@ -418,7 +417,7 @@ pub const Scanner = struct {
         return Lexer_Errors.LexerError;
     }
 
-    fn identifier(self: *Scanner, line: []const u8, next_char: u8) void {
+    fn identifier(self: *Tokenize, line: []const u8, next_char: u8) void {
         if (next_char == '_') {
             // => underscore on _
             self.advance_ix(.underscore);
@@ -439,8 +438,8 @@ pub const Scanner = struct {
         }
     }
 
-    /// Creates a token from the scanner's line and col and filename
-    fn create_token(self: *Scanner, line: []const u8, kind: ?token_.Token_Kind) token_.Token {
+    /// Creates a token from the Tokenize's line and col and filename
+    fn create_token(self: *Tokenize, line: []const u8, kind: ?token_.Token_Kind) token_.Token {
         return token_.Token.init(
             line[self.slice_start..self.ix],
             kind,

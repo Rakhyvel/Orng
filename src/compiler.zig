@@ -74,31 +74,13 @@ pub const Context = struct {
             return module;
         }
 
-        // Open the file
-        var file = std.fs.openFileAbsolute(absolute_path, .{}) catch |err| switch (err) {
-            error.FileNotFound => return error.FileNotFound,
-            else => return error.CompileError,
-        };
-        defer file.close();
-
-        const stat = file.stat() catch return error.CompileError;
-        const uid = stat.mtime;
-        _ = uid;
-
-        // Read in the contents of the file
-        var buf_reader = std.io.bufferedReader(file.reader());
-        var in_stream = buf_reader.reader();
-        var contents_arraylist = std.ArrayList(u8).init(self.allocator());
-        defer contents_arraylist.deinit();
-        in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
-        const contents = contents_arraylist.toOwnedSlice() catch unreachable;
-
         std.debug.print("  compiling {s}/{s}...\n", .{ std.fs.path.basename(std.fs.path.dirname(absolute_path).?), std.fs.path.basename(absolute_path) });
-        const module = module_.Module.compile(contents, absolute_path, entry_name, fuzz_tokens, self) catch |err| {
+        const module = module_.Module.compile(absolute_path, entry_name, fuzz_tokens, self) catch |err| {
             switch (err) {
                 // Always print these errors for fuzz testing
                 error.LexerError,
                 error.ParseError,
+                error.FileNotFound,
                 => {
                     self.errors.print_errors();
                     return err;

@@ -2,23 +2,37 @@ const std = @import("std");
 const errs_ = @import("errors.zig");
 const span_ = @import("span.zig");
 
-// Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
-// However, we couldn't print out the line for the error if we did tokens and lines at the same time
-// It's desirable to print the line, therefore lines must be done before tokens
-pub fn get_lines(contents: []const u8, lines: *std.ArrayList([]const u8), errors: *errs_.Errors) error{LexerError}!void {
-    var start: usize = 0;
-    if (contents.len == 0) {
-        errors.add_error(errs_.Error{ .basic = .{
-            .span = span_.phony_span,
-            .msg = "file is empty",
-        } });
-        return error.LexerError;
+pub const Split_Lines = struct {
+    const Self: type = @This();
+    lines: std.ArrayList([]const u8),
+    errors: *errs_.Errors,
+
+    pub fn init(errors: *errs_.Errors, allocator: std.mem.Allocator) Self {
+        return Self{
+            .lines = std.ArrayList([]const u8).init(allocator),
+            .errors = errors,
+        };
     }
-    for (1..contents.len) |end| {
-        if (contents[end] == '\n') {
-            lines.append(contents[start..end]) catch unreachable;
-            start = end + 1;
+
+    // Has to be done separately from the lexer, because the lexer might throw errors, which would need to be printed out
+    // However, we couldn't print out the line for the error if we did tokens and lines at the same time
+    // It's desirable to print the line, therefore lines must be done before tokens
+    pub fn run(self: *Self, contents: []const u8) error{LexerError}!std.ArrayList([]const u8) {
+        var start: usize = 0;
+        if (contents.len == 0) {
+            self.errors.add_error(errs_.Error{ .basic = .{
+                .span = span_.phony_span,
+                .msg = "file is empty",
+            } });
+            return error.LexerError;
         }
+        for (1..contents.len) |end| {
+            if (contents[end] == '\n') {
+                self.lines.append(contents[start..end]) catch unreachable;
+                start = end + 1;
+            }
+        }
+        self.lines.append(contents[start..contents.len]) catch unreachable;
+        return self.lines;
     }
-    lines.append(contents[start..contents.len]) catch unreachable;
-}
+};

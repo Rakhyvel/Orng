@@ -14,13 +14,10 @@ const Cinclude = @import("cinclude.zig");
 const interpreter_ = @import("interpreter.zig");
 const ir_validate_ = @import("ir-validate.zig");
 const ir_ = @import("ir.zig");
-const layout_ = @import("layout.zig");
-const lines_ = @import("lines.zig");
-const lexer_ = @import("lexer.zig");
 const lower_ = @import("lower.zig");
 const offsets_ = @import("offsets.zig");
 const optimizations_ = @import("optimizations.zig");
-const parser_ = @import("parser.zig");
+const pipeline_ = @import("pipeline.zig");
 const primitives_ = @import("primitives.zig");
 const span_ = @import("span.zig");
 const String = @import("zig-string/zig-string.zig").String;
@@ -30,11 +27,16 @@ const token_ = @import("token.zig");
 const type_set_ = @import("type-set.zig");
 const walker_ = @import("walker.zig");
 
-pub const Module_Errors = error{
-    LexerError,
-    ParseError,
-    CompileError,
-};
+// Front-end pipeline steps
+const Read_File = @import("files.zig").Read_File;
+const Split_Lines = @import("lines.zig").Split_Lines;
+const Tokenize = @import("lexer.zig").Tokenize;
+const Apply_Layout = @import("layout.zig").Apply_Layout;
+const Parse = @import("parser.zig").Parse;
+const Apply_Ast_Walk = @import("walker.zig").Apply_Ast_Walk;
+const Apply_Flat_Ast_Walk = @import("walker.zig").Apply_Flat_Ast_Walk;
+
+pub const Module_Errors = error{ LexerError, ParseError, CompileError, FileNotFound };
 
 pub const Module_UID: type = u32;
 
@@ -119,7 +121,6 @@ pub const Module = struct {
 
     // TODO: Move to compiler context
     pub fn compile(
-        contents: []const u8,
         in_name: []const u8,
         entry_name: ?[]const u8,
         fuzz_tokens: bool,
@@ -132,6 +133,14 @@ pub const Module = struct {
         i = full_name.len - 1;
         while (i >= 1 and full_name[i] != std.fs.path.sep) : (i -= 1) {}
         const short_name: []const u8 = full_name[i + 1 ..];
+
+        if (!module_name_is_good(short_name)) {
+            compiler.errors.add_error(errs_.Error{ .symbol_error = .{
+                .problem = "has an improper module name",
+                .span = span_.Span{ .filename = in_name, .col = 0, .line_number = 0, .line_text = "" },
+                .name = short_name,
+            } });
+        }
 
         // Create the symbol for this module
         var file_root = symbol_.Scope.init(compiler.prelude, full_name, compiler.allocator());
@@ -156,14 +165,28 @@ pub const Module = struct {
         try Symbol_Tree.put_symbol(symbol, compiler.prelude, &compiler.errors);
         file_root.module = module;
 
-        try fill_contents(contents, in_name, entry_name, file_root, module, fuzz_tokens, compiler);
+        try fill_contents(in_name, entry_name, file_root, module, fuzz_tokens, compiler);
         // module.top_level_scope().pprint();
 
         return module;
     }
 
+    fn module_name_is_good(module_name: []const u8) bool {
+        if (module_name.len == 0) {
+            return false;
+        }
+        if (!std.ascii.isLower(module_name[0])) {
+            return false;
+        }
+        for (module_name) |c| {
+            if (!std.ascii.isAlphanumeric(c) and c != '_') {
+                return false;
+            }
+        }
+        return true;
+    }
+
     pub fn fill_contents(
-        contents: []const u8,
         in_name: []const u8,
         entry_name: ?[]const u8,
         file_root: *symbol_.Scope,
@@ -171,44 +194,20 @@ pub const Module = struct {
         fuzz_tokens: bool,
         compiler: *compiler_.Context,
     ) Module_Errors!void {
-        // Tokenize, and also append lines to the list of lines
-        var lines = std.ArrayList([]const u8).init(compiler.allocator());
-        defer lines.deinit();
-        try lines_.get_lines(contents, &lines, &compiler.errors);
-        var scanner = lexer_.Scanner.init(&lines, in_name, &compiler.errors, fuzz_tokens, compiler.allocator());
-        var tokens = try scanner.get_tokens();
-        defer tokens.deinit(); // Make copies of tokens, never take their address
-
-        if (false and fuzz_tokens) { // print tokens before layout_
-            for (tokens.items) |token| {
-                std.debug.print("{s} ", .{token.data});
-            }
-            std.debug.print("\n", .{});
-        }
-
-        // Layout
-        if (!fuzz_tokens) {
-            layout_.do_layout(&tokens);
-        }
-
-        if (false) { // Print out tokens after layout_
-            for (0..tokens.items.len - 1) |j| {
-                const token = tokens.items[j];
-                std.debug.print("{}\n", .{token.kind});
-            }
-            std.debug.print("\n", .{});
-        }
-
-        // Parse, do AST walks
-        ast_.init_structures(compiler.allocator());
-        var parser = parser_.Parser.init(&tokens, &compiler.errors, compiler.allocator());
-        var module_ast = try parser.parse();
-        try walker_.walk_asts(module_ast, Expand.new(&compiler.errors, compiler.allocator()));
-        try walker_.walk_asts_flat(&module_ast, Import.new(compiler, module));
-        try walker_.walk_asts_flat(&module_ast, Cinclude.new(module));
-        try walker_.walk_asts(module_ast, Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator()));
-        try walker_.walk_asts(module_ast, Decorate.new(file_root, &compiler.errors, compiler.allocator()));
-        try walker_.walk_asts(module_ast, Decorate_Access.new(file_root, &compiler.errors, compiler));
+        // Setup and run the front-end pipeline
+        _ = try pipeline_.run(in_name, .{
+            Read_File.init(compiler.allocator()),
+            Split_Lines.init(&compiler.errors, compiler.allocator()),
+            Tokenize.init(in_name, &compiler.errors, fuzz_tokens, compiler.allocator()),
+            Apply_Layout.init(),
+            Parse.init(&compiler.errors, compiler.allocator()),
+            Apply_Ast_Walk(Expand).init(Expand.new(&compiler.errors, compiler.allocator())),
+            Apply_Flat_Ast_Walk(Import).init(Import.new(compiler, module)),
+            Apply_Flat_Ast_Walk(Cinclude).init(Cinclude.new(module)),
+            Apply_Ast_Walk(Symbol_Tree).init(Symbol_Tree.new(file_root, &compiler.errors, compiler.allocator())),
+            Apply_Ast_Walk(Decorate).init(Decorate.new(file_root, &compiler.errors, compiler.allocator())),
+            Apply_Ast_Walk(Decorate_Access).init(Decorate_Access.new(file_root, &compiler.errors, compiler)),
+        });
 
         // Validate the module
         try ast_validate_.validate_module(module, compiler);
@@ -568,7 +567,7 @@ pub fn stamp(
         }
 
         // Define each constant parameter in the fn decl's scope
-        try walker_.walk_asts(const_decls, Symbol_Tree.new(scope, &compiler.errors, compiler.allocator()));
+        try walker_.walk_asts(&const_decls, Symbol_Tree.new(scope, &compiler.errors, compiler.allocator()));
 
         // Decorate identifiers, validate
         const decorate_context = Decorate.new(scope, &compiler.errors, compiler.allocator());

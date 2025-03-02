@@ -3,11 +3,39 @@ const ast_ = @import("ast.zig");
 
 pub const Error = error{CompileError};
 
-pub fn Pass(comptime ctx: type) type {
-    return *const fn (*ast_.AST, ctx) Error!ctx;
+pub fn Apply_Ast_Walk(Context_Type: type) type {
+    return struct {
+        const Self: type = @This();
+        context: Context_Type,
+
+        pub fn init(context: Context_Type) Self {
+            return Self{ .context = context };
+        }
+
+        pub fn run(self: *Self, asts: *std.ArrayList(*ast_.AST)) Error!*std.ArrayList(*ast_.AST) {
+            try walk_asts(asts, self.context);
+            return asts;
+        }
+    };
 }
 
-pub fn walk_asts(asts: std.ArrayList(*ast_.AST), context: anytype) Error!void {
+pub fn Apply_Flat_Ast_Walk(Context_Type: type) type {
+    return struct {
+        const Self: type = @This();
+        context: Context_Type,
+
+        pub fn init(context: Context_Type) Self {
+            return Self{ .context = context };
+        }
+
+        pub fn run(self: *Self, asts: *std.ArrayList(*ast_.AST)) Error!*std.ArrayList(*ast_.AST) {
+            try walk_asts_flat(asts, self.context);
+            return asts;
+        }
+    };
+}
+
+pub fn walk_asts(asts: *std.ArrayList(*ast_.AST), context: anytype) Error!void {
     for (asts.items) |ast| {
         try walk_ast(ast, context);
     }
@@ -110,13 +138,13 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .invoke => {
             try walk_ast(ast.lhs(), new_context);
             try walk_ast(ast.rhs(), new_context);
-            try walk_asts(ast.children().*, new_context);
+            try walk_asts(ast.children(), new_context);
         },
         .call => {
             try walk_ast(ast.lhs(), new_context);
-            try walk_asts(ast.children().*, new_context);
+            try walk_asts(ast.children(), new_context);
         },
-        .sum_type, .product, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children().*, new_context),
+        .sum_type, .product, .bit_and, .bit_or, .bit_xor => try walk_asts(ast.children(), new_context),
         .sum_value => {
             try walk_ast(ast.sum_value.init, new_context);
             try walk_ast(ast.sum_value.base, new_context);
@@ -144,7 +172,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         .match => {
             try walk_ast(ast.match.let, context);
             try walk_ast(ast.expr(), new_context);
-            try walk_asts(ast.children().*, new_context);
+            try walk_asts(ast.children(), new_context);
         },
         .mapping => {
             try walk_ast(ast.lhs(), new_context);
@@ -165,7 +193,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.else_block(), new_context);
         },
         .block => {
-            try walk_asts(ast.children().*, new_context);
+            try walk_asts(ast.children(), new_context);
             if (ast.block.final) |final| {
                 try walk_ast(final, new_context);
             }
@@ -183,22 +211,22 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
         },
         .fn_decl => {
             try walk_ast(ast.fn_decl.init, new_context);
-            try walk_asts(ast.children().*, new_context);
+            try walk_asts(ast.children(), new_context);
             try walk_ast(ast.fn_decl.ret_type, new_context);
         },
         .trait => {
-            try walk_asts(ast.trait.method_decls, new_context);
-            try walk_asts(ast.trait.const_decls, new_context);
+            try walk_asts(&ast.trait.method_decls, new_context);
+            try walk_asts(&ast.trait.const_decls, new_context);
         },
         .impl => {
             try walk_ast(ast.impl._type, new_context);
             try walk_ast(ast.impl.trait, context);
-            try walk_asts(ast.impl.method_defs, new_context);
-            try walk_asts(ast.impl.const_defs, new_context);
+            try walk_asts(&ast.impl.method_defs, new_context);
+            try walk_asts(&ast.impl.const_defs, new_context);
         },
         .method_decl => {
             try walk_ast(ast.method_decl.init, new_context);
-            try walk_asts(ast.children().*, new_context);
+            try walk_asts(ast.children(), new_context);
             try walk_ast(ast.method_decl.ret_type, new_context);
         },
         .@"defer", .@"errdefer" => try walk_ast(ast.statement(), new_context),

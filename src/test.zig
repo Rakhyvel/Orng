@@ -5,6 +5,7 @@ const errs_ = @import("errors.zig");
 const exec = @import("exec.zig").exec;
 const module_ = @import("module.zig");
 const primitives_ = @import("primitives.zig");
+const Read_File = @import("files.zig").Read_File;
 const String = @import("zig-string/zig-string.zig").String;
 const symbol_ = @import("symbol.zig");
 const term_ = @import("term.zig");
@@ -96,36 +97,21 @@ fn integrate_test_file(filename: []const u8, coverage: bool) bool {
         term_.outputColor(succeed_color, "[ RUN    ... ] ", get_std_out()) catch unreachable;
         get_std_out().print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
-
-    // Read in the expected value and stdout
-    var f = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
-        error.FileNotFound => {
-            std.debug.print("filename {s} doesn't exist\n", .{filename});
-            return false;
-        },
-        else => return false,
-    };
-    defer f.close();
-    var buf_reader = std.io.bufferedReader(f.reader());
-    var in_stream = buf_reader.reader();
-    var contents_arraylist = std.ArrayList(u8).init(allocator);
-    defer contents_arraylist.deinit();
-    in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
-    var contents = contents_arraylist.toOwnedSlice() catch unreachable;
-    const new_line_idx = until_newline(contents);
-    if (new_line_idx < 3) {
-        std.debug.print("hey dumby, make it `// ` at least", .{});
-    }
-    const expected_out = contents[3..new_line_idx];
-
+    const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
     // Try to compile Orng (make sure no errors)
     var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
     errdefer {
         _ = debug_alloc.deinit();
     }
     var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
-    const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
-    const module = module_.Module.compile(contents, absolute_filename, "main", false, compiler) catch {
+    var contents = Read_File.init(compiler.allocator()).run(absolute_filename) catch unreachable;
+    const new_line_idx = until_newline(contents);
+    if (new_line_idx < 3) {
+        std.debug.print("hey dumby, make it `// ` at least", .{});
+    }
+    const expected_out = contents[3..new_line_idx];
+
+    const module = module_.Module.compile(absolute_filename, "main", false, compiler) catch {
         if (!coverage) {
             compiler.errors.print_errors();
             term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out()) catch unreachable;
@@ -198,26 +184,16 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
         get_std_out().print("{s}.orng\n", .{test_name[1..]}) catch unreachable;
     }
 
-    // Read in the expected value and stdout
-    var f = std.fs.cwd().openFile(filename, .{}) catch |err| switch (err) {
-        error.FileNotFound => {
-            std.debug.print("filename {s} doesn't exist\n", .{filename});
-            return false;
-        },
-        else => return false,
-    };
-    defer f.close();
-    var buf_reader = std.io.bufferedReader(f.reader());
-    var in_stream = buf_reader.reader();
-    var contents_arraylist = std.ArrayList(u8).init(allocator);
-    defer contents_arraylist.deinit();
-    in_stream.readAllArrayList(&contents_arraylist, 0xFFFF_FFFF) catch unreachable;
-    const contents = contents_arraylist.toOwnedSlice() catch unreachable;
-
-    // Try to compile Orng (make sure no errors)
-    var compiler = compiler_.Context.init(std.heap.page_allocator) catch unreachable;
     const absolute_filename = std.fs.cwd().realpathAlloc(allocator, filename) catch unreachable;
-    _ = module_.Module.compile(contents, absolute_filename, "main", false, compiler) catch |err| {
+    // Try to compile Orng (make sure no errors)
+    var debug_alloc = std.heap.GeneralPurposeAllocator(.{ .never_unmap = true, .safety = true }){};
+    errdefer {
+        _ = debug_alloc.deinit();
+    }
+    var compiler = compiler_.Context.init(debug_alloc.allocator()) catch unreachable;
+
+    // Try to compile Orng (make sure YES errors)
+    _ = module_.Module.compile(absolute_filename, "main", false, compiler) catch |err| {
         if (!coverage) {
             switch (err) {
                 error.LexerError,
@@ -227,7 +203,7 @@ fn negative_test_file(filename: []const u8, coverage: bool) bool {
                     term_.outputColor(succeed_color, "[ ... PASSED ]\n", get_std_out()) catch unreachable;
                     return true;
                 },
-                error.ParseError => {
+                error.ParseError, error.FileNotFound => {
                     var str = String.init_with_contents(allocator, filename) catch unreachable;
                     defer str.deinit();
                     compiler.errors.print_errors();
@@ -307,14 +283,14 @@ fn fuzz_tests() !void { // TODO: Uninfer error
             var lines = std.ArrayList([]const u8).init(allocator);
             defer lines.deinit();
             i += 1;
-            const module = module_.Module.compile(contents, "fuzz", "main", false, compiler) catch |err| {
+            const module = module_.Module.compile("fuzz", "main", false, compiler) catch |err| {
                 compiler.errors.print_errors();
                 switch (err) {
                     error.LexerError,
                     error.CompileError,
                     => continue,
 
-                    error.ParseError => {
+                    error.ParseError, error.FileNotFound => {
                         failed += 1;
                         try term_.outputColor(fail_color, "[ ... FAILED ] ", get_std_out());
                         try get_std_out().print("Parsing mismatch! (Remember: you want the parser to be consistent with the EBNF!)\n", .{});
