@@ -282,10 +282,6 @@ pub const AST = union(enum) {
             return self.common._token.data;
         }
     },
-    untagged_sum_value: struct { // Represents random data, that can only be interpreted through one of the variants in the `base` untagged union
-        common: AST_Common,
-        base: ?*AST = null,
-    },
     product: struct {
         common: AST_Common,
         _terms: std.ArrayList(*AST),
@@ -920,11 +916,6 @@ pub const AST = union(enum) {
     pub fn create_sum_value(_token: token_.Token, allocator: std.mem.Allocator) *AST {
         const _common: AST_Common = .{ ._token = _token };
         return AST.box(AST{ .sum_value = .{ .common = _common } }, allocator);
-    }
-
-    pub fn create_untagged_sum_value(_token: token_.Token, allocator: std.mem.Allocator) *AST {
-        const _common: AST_Common = .{ ._token = _token };
-        return AST.box(AST{ .untagged_sum_value = .{ .common = _common } }, allocator);
     }
 
     pub fn create_function(_token: token_.Token, _lhs: *AST, _rhs: *AST, allocator: std.mem.Allocator) *AST {
@@ -1634,7 +1625,6 @@ pub const AST = union(enum) {
             },
             .untagged_sum_type => return create_untagged_sum_type(self.token(), self.expr().clone(allocator), allocator),
             .sum_value => return create_sum_value(self.token(), allocator),
-            .untagged_sum_value => return create_untagged_sum_value(self.token(), allocator),
             .product => {
                 var cloned_terms = std.ArrayList(*AST).init(allocator);
                 for (self.children().items) |child| {
@@ -2287,7 +2277,7 @@ pub const AST = union(enum) {
             .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
             .annotation => _type.annotation.type.valid_type(),
             .function, .@"union" => _type.lhs().valid_type() and _type.rhs().valid_type(),
-            .product, .sum_type => {
+            .product, .sum_type, .untagged_sum_type => {
                 for (_type.children().items) |item| {
                     if (!item.valid_type()) {
                         return false;
@@ -2620,6 +2610,7 @@ pub const AST = union(enum) {
             .unit_type,
             .annotation,
             .sum_type,
+            .untagged_sum_type,
             .@"union",
             .function,
             .type_of,
@@ -2755,7 +2746,6 @@ pub const AST = union(enum) {
             },
             .sub_slice => return self.sub_slice.super.typeof(allocator),
             .sum_value => return self.sum_value.base.?.expand_type(allocator),
-            .untagged_sum_value => return self.untagged_sum_value.base.?.expand_type(allocator),
             .@"try" => return self.expr().typeof(allocator).get_ok_type(),
             .default => return self.expr(),
 
@@ -3287,9 +3277,6 @@ pub const AST = union(enum) {
             },
             .sum_value => {
                 try out.writer().print("sum_value(.init={?}, .tag={?})", .{ self.sum_value.init, self.sum_value._pos });
-            },
-            .untagged_sum_value => {
-                try out.writer().print("untagged_sum_value()", .{});
             },
             .product => {
                 try out.writer().print("product(", .{});

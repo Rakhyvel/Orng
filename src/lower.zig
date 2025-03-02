@@ -388,11 +388,6 @@ fn lower_AST_inner(
             cfg.append_instruction(ir_.IR.init_union(temp, init, ast.pos().?, ast.token().span, allocator));
             return temp;
         },
-        .untagged_sum_value => {
-            const temp = create_temp_lvalue(cfg, ast.typeof(allocator), allocator);
-            cfg.append_instruction(ir_.IR.init_union(temp, null, null, ast.token().span, allocator));
-            return temp;
-        },
         // Control-flow expressions
         .@"if" => {
             // Create the result symbol and labels used
