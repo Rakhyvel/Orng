@@ -918,6 +918,16 @@ fn validate_AST_internal(
             try type_check(ast.token().span, primitives_.type_type, expected, &compiler.errors);
             return ast;
         },
+        .untagged_sum_type => {
+            ast.set_expr(validate_AST(ast.expr(), primitives_.type_type, compiler).expand_type(compiler.allocator()));
+            try assert_none_poisoned(ast.expr());
+            if (ast.expr().* != .sum_type) {
+                compiler.errors.add_error(errs_.Error{ .basic = .{ .span = ast.token().span, .msg = "not a sum type" } });
+                return ast.enpoison();
+            }
+            try type_check(ast.token().span, ast.expr().typeof(compiler.allocator()), expected, &compiler.errors);
+            return ast;
+        },
         .product => {
             const expanded_expected: ?*ast_.AST = if (expected == null) null else expected.?.expand_type(compiler.allocator());
             if (expanded_expected == null or try checked_types_match(expanded_expected.?, primitives_.type_type, &compiler.errors)) {
@@ -2012,7 +2022,7 @@ fn implicit_dereference(
 }
 
 fn find_select_pos(_type: *ast_.AST, field: []const u8, span: span_.Span, errors: *errs_.Errors) Validate_Error_Enum!usize {
-    if (_type.* != .product and _type.* != .sum_type) {
+    if (_type.* != .product and _type.* != .sum_type and _type.* != .untagged_sum_type) {
         return throw_not_selectable(span, errors);
     }
     for (_type.children().items, 0..) |term, i| {

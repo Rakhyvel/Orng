@@ -277,6 +277,7 @@ pub const Module = struct {
                 while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                     if (ir.dest != null) {
                         _ = module.type_set.add(ir.dest.?.get_expanded_type(), compiler.allocator());
+                        _ = module.type_set.add(ir.dest.?.extract_symbver().symbol.expanded_type.?, compiler.allocator());
                     }
                 }
             }

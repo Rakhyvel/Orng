@@ -138,10 +138,9 @@ pub const CFG = struct {
             var maybe_ir = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
                 if (ir.dest != null and
-                    ir.dest.?.* == .symbver and
-                    ir.dest.?.symbver.find_symbol_version_set(&self.parameters) == null)
+                    ir.dest.?.extract_symbver().find_symbol_version_set(&self.parameters) == null)
                 {
-                    _ = ir.dest.?.symbver.put_symbol_version_set(&self.symbvers);
+                    _ = ir.dest.?.extract_symbver().put_symbol_version_set(&self.symbvers);
                 }
             }
         }
@@ -509,9 +508,10 @@ pub const CFG = struct {
             // Go through sum up each definition
             var maybe_ir: ?*ir_.IR = bb.ir_head;
             while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-                if (ir.dest != null and ir.dest.?.* == .symbver) {
-                    ir.dest.?.symbver.def = ir;
-                    ir.dest.?.symbver.symbol.defs += 1;
+                if (ir.dest != null) {
+                    var symbver = ir.dest.?.extract_symbver();
+                    symbver.def = ir;
+                    symbver.symbol.defs += 1;
                 }
                 if (ir.dest != null) {
                     ir.dest.?.extract_symbver().symbol.roots += 1;

@@ -89,6 +89,7 @@ fn lower_AST_inner(
         .function,
         .unit_type,
         .sum_type,
+        .untagged_sum_type,
         .annotation,
         .dyn_type,
         => return lval_from_ast(ast.expand_type(allocator), cfg, allocator),

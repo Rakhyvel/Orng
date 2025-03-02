@@ -1,0 +1,9 @@
+// 346
+const My_Untagged_Union: Type = @Untagged(?Int)
+
+fn main() -> Int {
+    let mut x: My_Untagged_Union = undefined
+    x.none = {}
+    x.some = 346
+    x.some
+}

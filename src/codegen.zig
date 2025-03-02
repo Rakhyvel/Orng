@@ -178,6 +178,12 @@ fn output_typedef(
             try writer.print("    }};\n", .{});
         }
         try writer.print("}};\n\n", .{});
+    } else if (dag.base.* == .untagged_sum_type) {
+        try writer.print("union {s}_union{} {{\n", .{ cheat_module.package_name, dag.uid });
+        if (!dag.base.expr().sum_type.is_all_unit()) {
+            try output_field_list(dag.base.children(), 4, writer);
+        }
+        try writer.print("}};\n\n", .{});
     } else if (dag.base.* == .dyn_type) {
         try writer.print("struct {s}_dyn{} {{\n    void* data_ptr;\n    struct vtable_{s}", .{ cheat_module.package_name, dag.uid, dag.base.expr().symbol().?.name });
         try writer.print("* vtable;\n}};\n\n", .{});
@@ -519,7 +525,11 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
         },
         .sum_type, .product => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;
-            try writer.print("/*{?}*/ struct {s}_struct{}", .{ _type.common()._unexpanded_type, cheat_module.package_name, type_uid });
+            try writer.print("struct {s}_struct{}", .{ cheat_module.package_name, type_uid });
+        },
+        .untagged_sum_type => {
+            const type_uid = cheat_module.type_set.get(_type).?.uid;
+            try writer.print("union {s}_union{}", .{ cheat_module.package_name, type_uid });
         },
         .dyn_type => {
             const type_uid = cheat_module.type_set.get(_type).?.uid;

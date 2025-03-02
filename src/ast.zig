@@ -267,6 +267,10 @@ pub const AST = union(enum) {
             return res;
         }
     },
+    untagged_sum_type: struct {
+        common: AST_Common,
+        _expr: *AST,
+    },
     sum_value: struct {
         common: AST_Common,
         domain: ?*AST = null, // kept in it's annotation form, for compatability with calls
@@ -899,6 +903,13 @@ pub const AST = union(enum) {
         return AST.box(AST{ .sum_type = .{
             .common = AST_Common{ ._token = _token, ._type = null },
             ._terms = terms,
+        } }, allocator);
+    }
+
+    pub fn create_untagged_sum_type(_token: token_.Token, _expr: *AST, allocator: std.mem.Allocator) *AST {
+        return AST.box(AST{ .untagged_sum_type = .{
+            .common = AST_Common{ ._token = _token, ._type = null },
+            ._expr = _expr,
         } }, allocator);
     }
 
@@ -1612,6 +1623,7 @@ pub const AST = union(enum) {
                 retval.sum_type.all_unit = self.sum_type.all_unit;
                 return retval;
             },
+            .untagged_sum_type => return create_untagged_sum_type(self.token(), self.expr().clone(allocator), allocator),
             .sum_value => return create_sum_value(self.token(), allocator),
             .product => {
                 var cloned_terms = std.ArrayList(*AST).init(allocator);
@@ -1775,8 +1787,8 @@ pub const AST = union(enum) {
                     allocator,
                 );
             },
-            .import => return create_import(self.token(), self.import.pattern, allocator),
-            .cinclude => return create_cinclude(self.token(), self.cinclude._expr, allocator),
+            .import => return create_import(self.token(), self.import.pattern.clone(allocator), allocator),
+            .cinclude => return create_cinclude(self.token(), self.cinclude._expr.clone(allocator), allocator),
             .module => return create_module(self.token(), self.scope().?, self.module.module, allocator),
             .@"defer" => return create_defer(self.token(), self.statement().clone(allocator), allocator),
             .@"errdefer" => return create_errdefer(self.token(), self.statement().clone(allocator), allocator),
@@ -1850,6 +1862,7 @@ pub const AST = union(enum) {
         return switch (self.*) {
             .call => &self.call._args,
             .sum_type => &self.sum_type._terms,
+            .untagged_sum_type => &self.untagged_sum_type._expr.sum_type._terms,
             .product => &self.product._terms,
             .match => &self.match._mappings,
             .block => &self.block._statements,
@@ -1867,6 +1880,7 @@ pub const AST = union(enum) {
         switch (self.*) {
             .call => self.call._args = val,
             .sum_type => self.sum_type._terms = val,
+            .untagged_sum_type => self.untagged_sum_type._expr.sum_type._terms = val,
             .product => self.product._terms = val,
             .match => self.match._mappings = val,
             .block => self.block._statements = val,
@@ -2805,6 +2819,14 @@ pub const AST = union(enum) {
                 }
                 return offsets_.next_alignment(max_size, 8) + 8;
             },
+            .untagged_sum_type => {
+                std.debug.assert(self.expr().* == .sum_type);
+                var max_size: i64 = 0;
+                for (self.children().items) |child| {
+                    max_size = @max(max_size, child.sizeof());
+                }
+                return max_size; // Same as the sum type, but without the tag and without the padding for the tag
+            },
 
             .function, .addr_of, .dyn_type => return 8,
 
@@ -2849,6 +2871,15 @@ pub const AST = union(enum) {
             .addr_of,
             .dyn_type,
             => return 8,
+
+            .untagged_sum_type => {
+                std.debug.assert(self.expr().* == .sum_type);
+                var max_size: i64 = 0;
+                for (self.children().items) |child| {
+                    max_size = @max(max_size, child.alignof());
+                }
+                return max_size;
+            },
 
             .unit_type => return 1, // fogedda bout it
 
@@ -3109,7 +3140,7 @@ pub const AST = union(enum) {
             .unit_type => return other.* == .unit_type,
             .anyptr_type => return other.* == .anyptr_type,
             .dyn_type => return self.expr().symbol() == other.expr().symbol(),
-            .product, .sum_type => {
+            .product, .sum_type, .untagged_sum_type => {
                 if (other.children().items.len != self.children().items.len) {
                     return false;
                 }
@@ -3239,6 +3270,9 @@ pub const AST = union(enum) {
                     }
                 }
                 try out.writer().print(", .from={s})", .{@tagName(self.sum_type.from)});
+            },
+            .untagged_sum_type => {
+                try out.writer().print("@Untagged({})", .{self.untagged_sum_type._expr});
             },
             .sum_value => {
                 try out.writer().print("sum_value(.init={?}, .tag={?})", .{ self.sum_value.init, self.sum_value._pos });
