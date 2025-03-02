@@ -697,13 +697,10 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .load_union => {
             try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
-            try writer.print("{{", .{});
-            if (ir.data == .int) {
-                try writer.print(".tag={}", .{ir.data.int});
-                if (ir.src1 != null and !ir.src1.?.get_expanded_type().is_c_void_type()) {
-                    try writer.print(", ._{}=", .{ir.data.int});
-                    try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
-                }
+            try writer.print("{{.tag={}", .{ir.data.int});
+            if (ir.src1 != null and !ir.src1.?.get_expanded_type().is_c_void_type()) {
+                try writer.print(", ._{}=", .{ir.data.int});
+                try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
             }
             try writer.print("}};\n", .{});
         },

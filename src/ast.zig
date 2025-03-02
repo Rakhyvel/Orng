@@ -3161,11 +3161,7 @@ pub const AST = union(enum) {
     }
 
     pub fn is_c_void_type(self: *AST) bool {
-        if (self.* == .untagged_sum_type) {
-            return self.expr().sum_type.is_all_unit();
-        } else {
-            return primitives_.unit_type.c_types_match(self);
-        }
+        return primitives_.unit_type.c_types_match(self);
     }
 
     // TODO: Use Tree Writer, don't call writer print, recursively call pprint

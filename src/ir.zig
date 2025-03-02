@@ -158,9 +158,9 @@ pub const IR = struct { // TODO: Add IR_List struct, with some append_instructio
         return retval;
     }
 
-    pub fn init_union(dest: *lval_.L_Value, _init: ?*lval_.L_Value, tag: ?i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
+    pub fn init_union(dest: *lval_.L_Value, _init: ?*lval_.L_Value, tag: i128, span: span_.Span, allocator: std.mem.Allocator) *IR {
         var retval = IR.init(.load_union, dest, _init, null, span, allocator);
-        retval.data = if (tag) |t| Data{ .int = t } else Data.none;
+        retval.data = Data{ .int = tag };
         return retval;
     }
 

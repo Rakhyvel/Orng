@@ -131,7 +131,9 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
                 .span = symbol.span,
                 .name = symbol.name,
             } });
-        } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name)) {
+        } else if (!(symbol.kind != .import and type_is_type_type(symbol.expanded_type.?)) and is_capitalized(symbol.name) and symbol.kind != .template) {
+            // TODO: Make it so that these rules apply to templates. I think we'll need to stamp first, of course. Are symbols re-validated when they're stamped? They probably should be
+            std.debug.print("{}\n", .{symbol.kind});
             compiler.errors.add_error(errs_.Error{ .symbol_error = .{
                 .problem = "of type other than `Type` must start with a lowercase letter",
                 .span = symbol.span,

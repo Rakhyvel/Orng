@@ -280,9 +280,6 @@ fn in_function_check(ast: *ast_.AST, scope: *symbol_.Scope, errors: *errs_.Error
 }
 
 pub fn put_symbol(symbol: *symbol_.Symbol, scope: *symbol_.Scope, errors: *errs_.Errors) Error!void {
-    if (std.mem.eql(u8, symbol.name, "dsfgd")) {
-        unreachable;
-    }
     const res = scope.lookup(symbol.name, .{});
     switch (res) {
         .found => {
