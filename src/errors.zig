@@ -598,7 +598,7 @@ pub const Errors = struct {
 
     pub fn add_error(self: *Errors, err: Error) void {
         self.errors_list.append(err) catch unreachable;
-        err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
+        // err.peek_error(); // uncomment if you want to see where errors come from TODO: Make this a cmd line flag
     }
 
     pub fn print_errors(self: *Errors) void {
