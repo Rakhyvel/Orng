@@ -156,7 +156,10 @@ pub const Context = struct {
                 }
                 self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), @intFromPtr(ir.data.symbol));
             },
-            .load_AST => self.store_int(try self.effective_address(ir.dest.?), 8, @intFromPtr(ir.data.ast)),
+            .load_AST => {
+                // std.debug.print("loading: {}\n", .{ir.data.ast});
+                self.store_int(try self.effective_address(ir.dest.?), 8, @intFromPtr(ir.data.ast));
+            },
             .load_struct => try self.move_lval_list(try self.effective_address(ir.dest.?), &ir.data.lval_list),
             .load_union => {
                 if (ir.src1 != null) {

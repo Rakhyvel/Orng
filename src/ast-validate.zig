@@ -108,6 +108,7 @@ pub fn validate_symbol(symbol: *symbol_.Symbol, compiler: *compiler_.Context) Va
             // might be null for parameters
             symbol.init = validate_AST(init, expected, compiler);
         }
+        // std.debug.print("init for: {s}: {?}\n", .{ symbol.name, symbol.init });
         if (symbol.kind == .trait) {
             try validate_trait(symbol, compiler);
         } else if (symbol.init != null and symbol.init.?.* == .poison) {
@@ -744,7 +745,6 @@ fn validate_AST_internal(
                 // Index a product type, resolve immediately
                 return ast.lhs().children().items[@as(usize, @intCast(ast.rhs().int.data))];
             } else if (expanded_lhs_type.* != .product and !(expanded_lhs_type.* == .addr_of and expanded_lhs_type.addr_of.multiptr)) {
-                std.debug.print("{}\n", .{expanded_lhs_type});
                 compiler.errors.add_error(errs_.Error{ .not_indexable = .{ .span = lhs_span, ._type = expanded_lhs_type } });
                 return error.CompileError;
             } else if (expanded_lhs_type.* == .product and
@@ -1822,7 +1822,6 @@ pub fn validate_args_arity(
     const expected_length = if (expected.* == .unit_type) 0 else if (expected.* == .product) expected.children().items.len else 1;
     if (variadic) {
         if (args.items.len < expected_length) {
-            std.debug.print("yup!\n", .{});
             errors.add_error(errs_.Error{ .mismatch_arity = .{
                 .span = span,
                 .takes = expected_length,

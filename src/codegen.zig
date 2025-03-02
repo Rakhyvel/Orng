@@ -350,8 +350,8 @@ fn output_function_definition(cfg: *cfg_.CFG, writer: Writer) CodeGen_Error!void
 
     // Declare local variables
     for (cfg.symbvers.items) |symbver| {
-        if (symbver.symbol.expanded_type.?.is_c_void_type() or // symbol's C type is `void`
-            symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$' // non-bookkeeping symbol is not used
+        if (symbver.symbol.expanded_type.?.sizeof() == 0 or // symbol's C type is `void`
+            (symbver.symbol.uses == 0 and symbver.symbol.name[0] != '$') // non-bookkeeping symbol is not used
         ) {
             continue; // Do not output unit variables
         }
@@ -505,6 +505,12 @@ fn output_type(_type: *ast_.AST, writer: Writer) CodeGen_Error!void {
     {
         // Output simply the C name for an extern type
         try writer.print("{s}", .{_type.common()._unexpanded_type.?.symbol().?.kind.@"extern".c_name.?.string.data});
+        return;
+    }
+
+    if (_type.sizeof() == 0) {
+        // For zero-size types that are still required to be output, ie pointers to empty untagged unions, structs, or ()
+        try writer.print("void", .{});
         return;
     }
 

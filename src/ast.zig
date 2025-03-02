@@ -2267,6 +2267,7 @@ pub const AST = union(enum) {
             .identifier,
             .access,
             .pattern_symbol,
+            .untagged_sum_type,
             => true,
 
             // Anything else probably isn't a valid type
@@ -2277,7 +2278,7 @@ pub const AST = union(enum) {
             .addr_of, .slice_of, .array_of => _type.expr().valid_type(),
             .annotation => _type.annotation.type.valid_type(),
             .function, .@"union" => _type.lhs().valid_type() and _type.rhs().valid_type(),
-            .product, .sum_type, .untagged_sum_type => {
+            .product, .sum_type => {
                 for (_type.children().items) |item| {
                     if (!item.valid_type()) {
                         return false;
@@ -2353,6 +2354,9 @@ pub const AST = union(enum) {
                 } else {
                     return self;
                 }
+            },
+            .untagged_sum_type => {
+                return AST.create_untagged_sum_type(self.token(), self.expr().expand_type(allocator), allocator);
             },
             .function => {
                 const _lhs = self.lhs().expand_type(allocator);
@@ -3157,7 +3161,11 @@ pub const AST = union(enum) {
     }
 
     pub fn is_c_void_type(self: *AST) bool {
-        return primitives_.unit_type.c_types_match(self);
+        if (self.* == .untagged_sum_type) {
+            return self.expr().sum_type.is_all_unit();
+        } else {
+            return primitives_.unit_type.c_types_match(self);
+        }
     }
 
     // TODO: Use Tree Writer, don't call writer print, recursively call pprint
