@@ -586,14 +586,14 @@ fn validate_AST_internal(
             defer module.pop_cfg(idx); // Remove the cfg so that it isn't output
 
             // Create a context and interpret
-            var context = interpreter_.Context.init(compiler.allocator());
+            var context = interpreter_.Context.init(&compiler.errors, compiler.allocator());
             context.set_entry_point(cfg, expanded_expected orelse ret_type);
             defer context.deinit();
             context.load_module(module);
             try context.run(compiler);
 
             // Extract the retval
-            ast.@"comptime".result = context.extract_ast(0, expanded_expected orelse ret_type, compiler.allocator());
+            ast.@"comptime".result = try context.extract_ast(0, expanded_expected orelse ret_type, ast.token().span);
             return ast.@"comptime".result.?;
         },
         .assign => {

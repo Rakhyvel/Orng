@@ -121,6 +121,7 @@ pub fn walk_ast(maybe_ast: ?*ast_.AST, context: anytype) Error!void {
             try walk_ast(ast.sum_value.init, new_context);
             try walk_ast(ast.sum_value.base, new_context);
         },
+        .untagged_sum_value => try walk_ast(ast.untagged_sum_value.base, new_context),
         .array_of => {
             try walk_ast(ast.expr(), new_context);
             try walk_ast(ast.array_of.len, new_context);

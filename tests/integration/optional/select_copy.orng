@@ -1,0 +1,9 @@
+// 347
+fn main() -> Int {
+    let y: ?Int = comptime {
+        let mut x: ?Int = undefined
+        x.some = 347
+        x
+    }
+    y.some
+}
