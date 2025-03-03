@@ -56,6 +56,7 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+        export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         python tests/test.py all --no-coverage
 
     - name: Build project (Windows)
@@ -63,6 +64,7 @@ jobs:
       shell: bash
       run: |
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+        export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         python tests/test.py all --no-coverage
 
     # Upload artifacts if build fails

@@ -1,14 +1,13 @@
 const std = @import("std");
-const ast_ = @import("ast.zig");
-const builtin_ = @import("builtin.zig");
-const compiler_ = @import("compiler.zig");
-const errs_ = @import("errors.zig");
-const interpreter_ = @import("interpreter.zig");
-const module_ = @import("module.zig");
-const primitives_ = @import("primitives.zig");
-const span_ = @import("span.zig");
+const ast_ = @import("ast/ast.zig");
+const compiler_ = @import("compilation/compiler.zig");
+const errs_ = @import("util/errors.zig");
+const interpreter_ = @import("interpretation/interpreter.zig");
+const module_ = @import("hierarchy/module.zig");
+const primitives_ = @import("hierarchy/primitives.zig");
+const span_ = @import("util/span.zig");
 const String = @import("zig-string/zig-string.zig").String;
-const symbol_ = @import("symbol.zig");
+const symbol_ = @import("symbol/symbol.zig");
 
 const version_year: usize = 25;
 const version_month: usize = 1;
@@ -315,7 +314,7 @@ pub fn init(name: []const u8, args: *std.process.ArgIterator, allocator: std.mem
     const build_content =
         \\fn build() -> Package {
         \\    let mut retval = Package::executable(.root="main.orng")
-        \\    retval.>requires("std", Package::find("../std"))
+        \\    retval.>requires("std", Package::find("std"))
         \\    retval
         \\}
     ;
