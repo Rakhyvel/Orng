@@ -1,6 +1,5 @@
 const std = @import("std");
 const ast_ = @import("ast/ast.zig");
-const builtin_ = @import("builtin.zig");
 const compiler_ = @import("compilation/compiler.zig");
 const errs_ = @import("util/errors.zig");
 const interpreter_ = @import("interpretation/interpreter.zig");
