@@ -279,7 +279,7 @@ pub const L_Value = union(enum) {
 
 pub const Symbol_Version = struct {
     symbol: *symbol_.Symbol,
-    def: ?*ir_.IR,
+    def: ?*ir_.Instruction,
 
     uses: usize = 0,
 
@@ -325,18 +325,18 @@ pub const Symbol_Version = struct {
         // try writer.print("{s:<10}", .{out.str()});
     }
 
-    /// Finds the last definition of a Symbol_Version in a given range of an IR linked-list
-    pub fn find_version(self: *Symbol_Version, ir: ?*ir_.IR, stop: ?*ir_.IR) *Symbol_Version {
+    /// Finds the last definition of a Symbol_Version in a given range of an Instruction linked-list
+    pub fn find_version(self: *Symbol_Version, instr: ?*ir_.Instruction, stop: ?*ir_.Instruction) *Symbol_Version {
         var retval: *Symbol_Version = self;
-        var maybe_ir = ir;
-        // Go through IR linked-list, stop at `stop` IR, if it's not null.
-        while (maybe_ir != null and maybe_ir != stop) : (maybe_ir = maybe_ir.?.next) {
-            if (maybe_ir.?.dest != null and // ir dest exists
-                maybe_ir.?.dest.?.* == .symbver and // ir dest is a symbver lvalue
-                maybe_ir.?.dest.?.symbver.symbol == self.symbol // ir dest symbver symbol is this symbol
+        var maybe_instr = instr;
+        // Go through Instruction linked-list, stop at `stop` Instruction, if it's not null.
+        while (maybe_instr != null and maybe_instr != stop) : (maybe_instr = maybe_instr.?.next) {
+            if (maybe_instr.?.dest != null and // instr dest exists
+                maybe_instr.?.dest.?.* == .symbver and // instr dest is a symbver lvalue
+                maybe_instr.?.dest.?.symbver.symbol == self.symbol // instr dest symbver symbol is this symbol
             ) {
                 // remember this symbver, but keep looking to find the very latest until `stop`
-                retval = maybe_ir.?.dest.?.symbver;
+                retval = maybe_instr.?.dest.?.symbver;
             }
         }
         return retval;

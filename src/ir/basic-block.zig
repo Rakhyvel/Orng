@@ -8,7 +8,7 @@ const offsets_ = @import("../hierarchy/offsets.zig");
 /// Unique id for a basic-block.
 var uid: u64 = 0;
 
-/// Basic-blocks are contiguous chunks of IR instructions with one entry point and one exit point.
+/// Basic-blocks are contiguous chunks of Instruction instructions with one entry point and one exit point.
 ///
 /// Basic-blocks use a parameter/argument system rather than the traditional phi-nodes. This means that
 /// symbol-versions are passed to basic-blocks as parameters, like function parameters. This is
@@ -16,8 +16,8 @@ var uid: u64 = 0;
 /// copying can be optimized out.
 pub const Basic_Block = struct {
     uid: u64,
-    ir_head: ?*ir_.IR,
-    removed_irs: std.ArrayList(*ir_.IR),
+    instr_head: ?*ir_.Instruction,
+    removed_instrs: std.ArrayList(*ir_.Instruction),
     has_branch: bool,
     has_panic: bool,
     parameters: std.ArrayList(*lval_.Symbol_Version),
@@ -36,17 +36,17 @@ pub const Basic_Block = struct {
     allocator: std.mem.Allocator,
 
     /// Address in the first instruction of this Basic_Block
-    /// Used for IR interpretation
+    /// Used for Instruction interpretation
     offset: ?offsets_.Instruction_Idx,
 
     /// Initializes a basic-block
     pub fn init(allocator: std.mem.Allocator) *Basic_Block {
         var retval = allocator.create(Basic_Block) catch unreachable;
-        retval.ir_head = null;
+        retval.instr_head = null;
         retval.condition = null;
         retval.has_panic = false;
         retval.offset = null;
-        retval.removed_irs = std.ArrayList(*ir_.IR).init(allocator);
+        retval.removed_instrs = std.ArrayList(*ir_.Instruction).init(allocator);
         retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.next = null;
         retval.next_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
@@ -75,14 +75,14 @@ pub const Basic_Block = struct {
         }
         self.branch_arguments.deinit();
 
-        var maybe_ir: ?*ir_.IR = self.ir_head;
-        while (maybe_ir) |ir| {
-            maybe_ir = ir.next;
-            ir.deinit();
+        var maybe_instr: ?*ir_.Instruction = self.instr_head;
+        while (maybe_instr) |instr| {
+            maybe_instr = instr.next;
+            instr.deinit();
         }
 
-        for (self.removed_irs.items) |ir| {
-            ir.deinit();
+        for (self.removed_instrs.items) |instr| {
+            instr.deinit();
         }
 
         self.allocator.destroy(self);
@@ -97,9 +97,9 @@ pub const Basic_Block = struct {
         std.debug.print("BB{}", .{self.uid});
         Basic_Block.print_symbver_list(&self.parameters);
         std.debug.print(":\n", .{});
-        var maybe_ir = self.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            std.debug.print("{}", .{ir});
+        var maybe_instr = self.instr_head;
+        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+            std.debug.print("{}", .{instr});
         }
         if (self.has_branch) {
             if (self.next) |next| {
@@ -148,37 +148,37 @@ pub const Basic_Block = struct {
     }
 
     /// Removes an instruction from a basic-block
-    pub fn remove_instruction(bb: *Basic_Block, ir: *ir_.IR) void {
-        std.debug.assert(ir.in_block == bb); // Can't remove ir from random blocks! It's gotta belong to this block!
-        ir.removed = true;
-        if (bb.ir_head != null and bb.ir_head == ir) {
-            bb.ir_head = bb.ir_head.?.next;
+    pub fn remove_instruction(bb: *Basic_Block, instr: *ir_.Instruction) void {
+        std.debug.assert(instr.in_block == bb); // Can't remove instr from random blocks! It's gotta belong to this block!
+        instr.removed = true;
+        if (bb.instr_head != null and bb.instr_head == instr) {
+            bb.instr_head = bb.instr_head.?.next;
         }
-        if (ir.prev != null) {
-            ir.prev.?.next = ir.next;
+        if (instr.prev != null) {
+            instr.prev.?.next = instr.next;
         }
-        if (ir.next != null) {
-            ir.next.?.prev = ir.prev;
+        if (instr.next != null) {
+            instr.next.?.prev = instr.prev;
         }
-        bb.removed_irs.append(ir) catch unreachable;
+        bb.removed_instrs.append(instr) catch unreachable;
     }
 
-    /// Gets the latest definition of an L_Value's symbol from the start of this basic-block to a stop-at IR. If
-    /// the stop-at IR is `null`, will check entire block's instructions.
+    /// Gets the latest definition of an L_Value's symbol from the start of this basic-block to a stop-at Instruction. If
+    /// the stop-at Instruction is `null`, will check entire block's instructions.
     ///
     /// This functions is O(n) where n is the number of instructions in the block.
     pub fn get_latest_def(
         bb: *Basic_Block,
         lval: *lval_.L_Value,
-        stop_at_ir: ?*ir_.IR,
-    ) ?*ir_.IR {
+        stop_at_ir: ?*ir_.Instruction,
+    ) ?*ir_.Instruction {
         if (lval.* != .symbver) {
             return null;
         }
-        if (bb.ir_head == null) {
+        if (bb.instr_head == null) {
             return null;
         } else {
-            return bb.ir_head.?.get_latest_def_after(lval.symbver.symbol, stop_at_ir);
+            return bb.instr_head.?.get_latest_def_after(lval.symbver.symbol, stop_at_ir);
         }
     }
 
@@ -201,9 +201,9 @@ pub const Basic_Block = struct {
     pub fn mark_irs_as_removed(
         bb: *Basic_Block,
     ) void {
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            ir.removed = true;
+        var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+            instr.removed = true;
         }
     }
 };

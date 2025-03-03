@@ -1,4 +1,4 @@
-// This file validates a CFG of IR. It checks for things like unused symbols, symbols marked `mut` that are never mutated, etc.
+// This file validates a CFG of Instruction. It checks for things like unused symbols, symbols marked `mut` that are never mutated, etc.
 
 const std = @import("std");
 const cfg_ = @import("../ir/cfg.zig");
@@ -22,32 +22,32 @@ pub fn validate_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors) error{CompileError}!v
     }
 
     for (cfg.basic_blocks.items) |bb| {
-        var maybe_ir: ?*ir_.IR = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            if (ir.dest != null and // has a dest symbol to test
-                ir.dest.?.* == .symbver and // dest is symbver
-                !ir.dest.?.symbver.symbol.is_temp and // dest symbver's symbol isn't temporary
-                ir.dest.?.symbver.symbol != cfg.return_symbol // dest symbver's symbol isn't the function's return value
+        var maybe_instr: ?*ir_.Instruction = bb.instr_head;
+        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+            if (instr.dest != null and // has a dest symbol to test
+                instr.dest.?.* == .symbver and // dest is symbver
+                !instr.dest.?.symbver.symbol.is_temp and // dest symbver's symbol isn't temporary
+                instr.dest.?.symbver.symbol != cfg.return_symbol // dest symbver's symbol isn't the function's return value
             ) {
-                try err_if_unused(ir.dest.?.symbver.symbol, errors);
-                try err_if_var_not_mutated(ir.dest.?.symbver.symbol, errors);
+                try err_if_unused(instr.dest.?.symbver.symbol, errors);
+                try err_if_var_not_mutated(instr.dest.?.symbver.symbol, errors);
             }
-            try err_if_chain_undefd(ir.src1, errors, cfg.return_symbol, ir.span);
-            try err_if_chain_undefd(ir.src2, errors, cfg.return_symbol, ir.span);
-            if (ir.data == .lval_list) {
-                for (ir.data.lval_list.items) |lval| {
-                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, ir.span);
+            try err_if_chain_undefd(instr.src1, errors, cfg.return_symbol, instr.span);
+            try err_if_chain_undefd(instr.src2, errors, cfg.return_symbol, instr.span);
+            if (instr.data == .lval_list) {
+                for (instr.data.lval_list.items) |lval| {
+                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
                 }
             }
-            if (ir.data == .invoke) {
-                try err_if_chain_undefd(ir.data.invoke.dyn_value, errors, cfg.return_symbol, ir.span);
-                for (ir.data.invoke.lval_list.items) |lval| {
-                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, ir.span);
+            if (instr.data == .invoke) {
+                try err_if_chain_undefd(instr.data.invoke.dyn_value, errors, cfg.return_symbol, instr.span);
+                for (instr.data.invoke.lval_list.items) |lval| {
+                    try err_if_chain_undefd(lval, errors, cfg.return_symbol, instr.span);
                 }
             }
-            try valid_lvalue_expanded_type_check(ir.span, ir.dest, errors);
-            try valid_lvalue_expanded_type_check(ir.span, ir.src1, errors);
-            try valid_lvalue_expanded_type_check(ir.span, ir.src2, errors);
+            try valid_lvalue_expanded_type_check(instr.span, instr.dest, errors);
+            try valid_lvalue_expanded_type_check(instr.span, instr.src1, errors);
+            try valid_lvalue_expanded_type_check(instr.span, instr.src2, errors);
         }
     }
 }
@@ -118,7 +118,7 @@ fn err_if_undefd(symbol: *symbol_.Symbol, errors: *errs_.Errors, use: span_.Span
 /// Throws an `error.CompileError` if a symbol is marked `mut`, but is never mutated.
 ///
 /// Symbols are mutated when:
-/// - They are the root of at least one IR's destination's L-Value tree, OR
+/// - They are the root of at least one Instruction's destination's L-Value tree, OR
 /// - They are aliased with `&mut`.
 fn err_if_var_not_mutated(symbol: *symbol_.Symbol, errors: *errs_.Errors) error{CompileError}!void {
     if (symbol.kind == .mut and

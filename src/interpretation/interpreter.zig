@@ -112,12 +112,12 @@ pub const Context = struct {
         const initial_call_depth = self.call_depth;
         // Stop whenever has returned more than called, or instruction pointer is not a halt trap representation
         while (self.call_depth >= initial_call_depth and self.instruction_pointer.inst_idx < halt_trap_instruction) : (self.instruction_pointer.inst_idx += 1) {
-            const ir: *ir_.IR = try self.curr_instruction();
+            const instr: *ir_.Instruction = try self.curr_instruction();
             if (debugger) {
                 std.debug.print("\n", .{});
                 self.print_registers();
                 self.print_stack();
-                std.debug.print("\n\n\n\n{s}\n{}=> ", .{ ir.span.line_text, ir });
+                std.debug.print("\n\n\n\n{s}\n{}=> ", .{ instr.span.line_text, instr });
             }
             const time_now = std.time.milliTimestamp();
             if (!debugger and time_now - self.start_time > timeout_ms) {
@@ -127,13 +127,13 @@ pub const Context = struct {
                 var in_buffer: [256]u8 = undefined;
                 _ = std.io.getStdIn().read(&in_buffer) catch unreachable;
             }
-            try self.execute_instruction(ir, compiler);
+            try self.execute_instruction(instr, compiler);
         }
     }
 
     /// Executes an instruction within the interpreter context.
-    inline fn execute_instruction(self: *Context, ir: *ir_.IR, compiler: *compiler_.Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
-        switch (ir.kind) {
+    inline fn execute_instruction(self: *Context, instr: *ir_.Instruction, compiler: *compiler_.Context) error{CompileError}!void { // This doesn't work if it's not inlined, lol!
+        switch (instr.kind) {
             // Invalid instructions
             .load_extern,
             .size_of,
@@ -144,168 +144,168 @@ pub const Context = struct {
 
             // Load literals
             .load_int => {
-                try self.assert_fits(ir.data.int, ir.dest.?.get_expanded_type(), "integer value", ir.span);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), ir.data.int);
+                try self.assert_fits(instr.data.int, instr.dest.?.get_expanded_type(), "integer value", instr.span);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.int);
             },
-            .load_float => self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), ir.data.float),
-            .load_string => self.store(ir_.String_Idx, try self.effective_address(ir.dest.?), ir.data.string_id),
+            .load_float => self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), instr.data.float),
+            .load_string => self.store(ir_.String_Idx, try self.effective_address(instr.dest.?), instr.data.string_id),
             .load_symbol => {
-                const symbol_module = ir.data.symbol.scope.module.?;
+                const symbol_module = instr.data.symbol.scope.module.?;
                 if (self.modules.get(symbol_module.uid) == null) {
                     self.load_module(symbol_module);
                 }
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), @intFromPtr(ir.data.symbol));
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), @intFromPtr(instr.data.symbol));
             },
             .load_AST => {
-                // std.debug.print("loading: {}\n", .{ir.data.ast});
-                self.store_int(try self.effective_address(ir.dest.?), 8, @intFromPtr(ir.data.ast));
+                // std.debug.print("loading: {}\n", .{instr.data.ast});
+                self.store_int(try self.effective_address(instr.dest.?), 8, @intFromPtr(instr.data.ast));
             },
-            .load_struct => try self.move_lval_list(try self.effective_address(ir.dest.?), &ir.data.lval_list),
+            .load_struct => try self.move_lval_list(try self.effective_address(instr.dest.?), &instr.data.lval_list),
             .load_union => {
-                if (ir.src1 != null) {
+                if (instr.src1 != null) {
                     // Store data into first field
-                    const dest = try self.effective_address(ir.dest.?);
-                    const src = try self.effective_address(ir.src1.?);
-                    self.move(dest, src, ir.src1.?.expanded_type_sizeof());
+                    const dest = try self.effective_address(instr.dest.?);
+                    const src = try self.effective_address(instr.src1.?);
+                    self.move(dest, src, instr.src1.?.expanded_type_sizeof());
                 }
                 // Store tag in last field
-                const tag_address = try self.effective_address(ir.dest.?) + ir.dest.?.expanded_type_sizeof() - 8;
-                self.store(i64, tag_address, @as(i64, @intCast(ir.data.int)));
+                const tag_address = try self.effective_address(instr.dest.?) + instr.dest.?.expanded_type_sizeof() - 8;
+                self.store(i64, tag_address, @as(i64, @intCast(instr.data.int)));
             },
 
             .copy => {
-                std.debug.assert(ir.dest.?.expanded_type_sizeof() == ir.src1.?.expanded_type_sizeof());
-                const dest = try self.effective_address(ir.dest.?);
-                const src = try self.effective_address(ir.src1.?);
-                self.move(dest, src, ir.dest.?.expanded_type_sizeof());
+                std.debug.assert(instr.dest.?.expanded_type_sizeof() == instr.src1.?.expanded_type_sizeof());
+                const dest = try self.effective_address(instr.dest.?);
+                const src = try self.effective_address(instr.src1.?);
+                self.move(dest, src, instr.dest.?.expanded_type_sizeof());
             },
             .not => {
-                const data = self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.expanded_type_sizeof());
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data != 0) 0 else 1);
+                const data = self.load_int(try self.effective_address(instr.src1.?), instr.src1.?.expanded_type_sizeof());
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data != 0) 0 else 1);
             },
             .negate_int => {
-                const data = self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.expanded_type_sizeof());
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), -data);
+                const data = self.load_int(try self.effective_address(instr.src1.?), instr.src1.?.expanded_type_sizeof());
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), -data);
             },
             .negate_float => {
-                const data = self.load_float(try self.effective_address(ir.src1.?), ir.src1.?.expanded_type_sizeof());
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), -data);
+                const data = self.load_float(try self.effective_address(instr.src1.?), instr.src1.?.expanded_type_sizeof());
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), -data);
             },
             .mut_addr_of, .addr_of => {
-                const data = try self.effective_address(ir.src1.?);
-                self.store_int(try self.effective_address(ir.dest.?), 8, data);
+                const data = try self.effective_address(instr.src1.?);
+                self.store_int(try self.effective_address(instr.dest.?), 8, data);
             },
             .equal => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 == data.src2) 1 else 0);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 == data.src2) 1 else 0);
             },
             .not_equal => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 != data.src2) 1 else 0);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 != data.src2) 1 else 0);
             },
             .greater_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 > data.src2) 1 else 0);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 > data.src2) 1 else 0);
             },
             .greater_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 > data.src2) 1 else 0);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 > data.src2) 1 else 0);
             },
             .lesser_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 < data.src2) 1 else 0);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 < data.src2) 1 else 0);
             },
             .lesser_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 < data.src2) 1 else 0);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 < data.src2) 1 else 0);
             },
             .greater_equal_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 >= data.src2) 1 else 0);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 >= data.src2) 1 else 0);
             },
             .greater_equal_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 >= data.src2) 1 else 0);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 >= data.src2) 1 else 0);
             },
             .lesser_equal_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 <= data.src2) 1 else 0);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 <= data.src2) 1 else 0);
             },
             .lesser_equal_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), if (data.src1 <= data.src2) 1 else 0);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), if (data.src1 <= data.src2) 1 else 0);
             },
             .add_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
                 const val = data.src1 + data.src2;
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "addition result", ir.span);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), val);
+                try self.assert_fits(val, instr.dest.?.get_expanded_type(), "addition result", instr.span);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), val);
             },
             .add_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), data.src1 + data.src2);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), data.src1 + data.src2);
             },
             .sub_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
                 const val = data.src1 - data.src2;
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "subtraction result", ir.span);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), val);
+                try self.assert_fits(val, instr.dest.?.get_expanded_type(), "subtraction result", instr.span);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), val);
             },
             .sub_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), data.src1 - data.src2);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), data.src1 - data.src2);
             },
             .mult_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
                 const val = data.src1 * data.src2;
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "multiplication result", ir.span);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), val);
+                try self.assert_fits(val, instr.dest.?.get_expanded_type(), "multiplication result", instr.span);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), val);
             },
             .mult_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), data.src1 * data.src2);
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), data.src1 * data.src2);
             },
             .div_int => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
                 if (data.src2 == 0) {
-                    self.debug_call_stack.append(ir.span) catch unreachable;
+                    self.debug_call_stack.append(instr.span) catch unreachable;
                     return self.interpreter_panic("interpreter error: division by zero\n", .{});
                 }
                 const val = @divTrunc(data.src1, data.src2);
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "division result", ir.span);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), val);
+                try self.assert_fits(val, instr.dest.?.get_expanded_type(), "division result", instr.span);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), val);
             },
             .div_float => {
-                const data = try self.binop_load_float(ir.src1.?, ir.src2.?);
-                self.store_float(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), @divTrunc(data.src1, data.src2));
+                const data = try self.binop_load_float(instr.src1.?, instr.src2.?);
+                self.store_float(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), @divTrunc(data.src1, data.src2));
             },
             .mod => {
-                const data = try self.binop_load_int(ir.src1.?, ir.src2.?);
+                const data = try self.binop_load_int(instr.src1.?, instr.src2.?);
                 const val = @rem(data.src1, data.src2);
-                try self.assert_fits(val, ir.dest.?.get_expanded_type(), "modulus result", ir.span);
-                self.store_int(try self.effective_address(ir.dest.?), ir.dest.?.expanded_type_sizeof(), val);
+                try self.assert_fits(val, instr.dest.?.get_expanded_type(), "modulus result", instr.span);
+                self.store_int(try self.effective_address(instr.dest.?), instr.dest.?.expanded_type_sizeof(), val);
             },
             .get_tag => { // gets the tag of a union value. The tag will be located in the last slot
-                const tag_offset = ir.src1.?.expanded_type_sizeof() - 8;
-                std.debug.assert(ir.dest.?.expanded_type_sizeof() == 8);
-                self.move(try self.effective_address(ir.dest.?), try self.effective_address(ir.src1.?) + tag_offset, 8);
+                const tag_offset = instr.src1.?.expanded_type_sizeof() - 8;
+                std.debug.assert(instr.dest.?.expanded_type_sizeof() == 8);
+                self.move(try self.effective_address(instr.dest.?), try self.effective_address(instr.src1.?) + tag_offset, 8);
             },
             .jump => {
-                if (ir.data.jump_bb.next) |next| {
+                if (instr.data.jump_bb.next) |next| {
                     self.instruction_pointer.inst_idx = next.offset.?;
                 } else {
                     self.ret();
                 }
             },
             .branch_if_false => {
-                if (self.load_int(try self.effective_address(ir.src1.?), ir.src1.?.expanded_type_sizeof()) != 0) {
-                    if (ir.data.branch_bb.next) |next| {
+                if (self.load_int(try self.effective_address(instr.src1.?), instr.src1.?.expanded_type_sizeof()) != 0) {
+                    if (instr.data.branch_bb.next) |next| {
                         self.instruction_pointer.inst_idx = next.offset.?;
                     } else {
                         self.ret();
                     }
                 } else {
-                    if (ir.data.branch_bb.branch) |branch| {
+                    if (instr.data.branch_bb.branch) |branch| {
                         self.instruction_pointer.inst_idx = branch.offset.?;
                     } else {
                         self.ret();
@@ -313,8 +313,8 @@ pub const Context = struct {
                 }
             },
             .call => {
-                // std.debug.print("symbol ir src: {}\n", .{ir.src1.?});
-                const symbol_loc = try self.effective_address(ir.src1.?);
+                // std.debug.print("symbol instr src: {}\n", .{instr.src1.?});
+                const symbol_loc = try self.effective_address(instr.src1.?);
                 // std.debug.print("symbol_loc: {}\n", .{symbol_loc});
                 const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
                 // std.debug.print("symbol_int: {}\n", .{symbol_int});
@@ -328,10 +328,10 @@ pub const Context = struct {
                 {
                     const method_name = symbol.name;
                     if (std.mem.eql(u8, method_name, "find")) {
-                        const arg: *lval_.L_Value = ir.data.lval_list.items[@as(usize, @intCast(0))];
-                        const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, ir.span);
+                        const arg: *lval_.L_Value = instr.data.lval_list.items[@as(usize, @intCast(0))];
+                        const path_ast = try self.extract_ast(try self.effective_address(arg), primitives_.string_type, instr.span);
                         const current_module_path = (self.curr_module() catch unreachable).absolute_path;
-                        const ret_addr = try self.effective_address(ir.dest.?);
+                        const ret_addr = try self.effective_address(instr.dest.?);
                         if (builtin_.package_find(compiler, self, current_module_path, path_ast.string.data)) |package_info| {
                             const adrs = package_info.package_adrs;
                             // Store the directory of the package inside the package struct before returning
@@ -347,17 +347,17 @@ pub const Context = struct {
                     }
                 }
 
-                try self.call(symbol, ir.dest.?, ir.data.lval_list);
+                try self.call(symbol, instr.dest.?, instr.data.lval_list);
             },
             .invoke => {
-                const symbol_loc = try self.effective_address(ir.data.invoke.method_decl_lval.?);
+                const symbol_loc = try self.effective_address(instr.data.invoke.method_decl_lval.?);
                 const symbol_int = @as(usize, @intCast(self.load_int(symbol_loc, 8)));
                 const symbol: *symbol_.Symbol = @ptrFromInt(symbol_int);
 
-                try self.call(symbol, ir.dest.?, ir.data.invoke.lval_list);
+                try self.call(symbol, instr.dest.?, instr.data.invoke.lval_list);
             },
             .push_stack_trace => { // Pushes a static span/code to the lines array if debug mode is on
-                self.debug_call_stack.append(ir.span) catch unreachable;
+                self.debug_call_stack.append(instr.span) catch unreachable;
             },
             .pop_stack_trace => { // Pops a message off the stack after a function is successfully called
                 _ = self.debug_call_stack.pop();
@@ -365,7 +365,7 @@ pub const Context = struct {
             .panic => { // if debug mode is on, panics with a message, unrolls lines stack, exits
                 return self.interpreter_panic("interpreter error: reached unreachable code\n", .{});
             },
-            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented IR for {s}\n", .{@tagName(ir.kind)}),
+            else => std.debug.panic("interpreter error: interpreter.zig::interpret(): Unimplemented Instruction for {s}\n", .{@tagName(instr.kind)}),
         }
     }
 
@@ -605,7 +605,7 @@ pub const Context = struct {
         std.debug.print("\n", .{});
     }
 
-    fn curr_instruction(self: *Context) error{CompileError}!*ir_.IR {
+    fn curr_instruction(self: *Context) error{CompileError}!*ir_.Instruction {
         const module = try self.curr_module();
         return module.instructions.items[@as(usize, @intCast(self.instruction_pointer.inst_idx))];
     }

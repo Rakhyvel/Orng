@@ -573,10 +573,10 @@ fn output_basic_block(
             try writer.print("BB{}:\n", .{bb.uid});
         }
 
-        // Output IR instructions for the basic-block
-        var maybe_ir = bb.ir_head;
-        while (maybe_ir) |ir| : (maybe_ir = ir.next) {
-            try output_IR(ir, writer);
+        // Output Instruction instructions for the basic-block
+        var maybe_instr = bb.instr_head;
+        while (maybe_instr) |instr| : (maybe_instr = instr.next) {
+            try output_instruction(instr, writer);
         }
 
         if (!bb.has_panic) {
@@ -626,68 +626,68 @@ fn output_basic_block(
     }
 }
 
-/// Outputs the C code for an IR instruction.
-fn output_IR(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
-    if (ir.dest != null) {
-        try output_lvalue_check(ir.span, ir.dest.?, writer);
+/// Outputs the C code for an instruction.
+fn output_instruction(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!void {
+    if (instr.dest != null) {
+        try output_lvalue_check(instr.span, instr.dest.?, writer);
     }
-    if (ir.src1 != null) {
-        try output_lvalue_check(ir.span, ir.src1.?, writer);
+    if (instr.src1 != null) {
+        try output_lvalue_check(instr.span, instr.src1.?, writer);
     }
-    if (ir.src2 != null) {
-        try output_lvalue_check(ir.span, ir.src2.?, writer);
+    if (instr.src2 != null) {
+        try output_lvalue_check(instr.span, instr.src2.?, writer);
     }
-    if (ir.data == .lval_list) {
-        for (ir.data.lval_list.items) |lval| {
-            try output_lvalue_check(ir.span, lval, writer);
+    if (instr.data == .lval_list) {
+        for (instr.data.lval_list.items) |lval| {
+            try output_lvalue_check(instr.span, lval, writer);
         }
     }
 
-    if (ir.dest != null and ir.dest.?.get_expanded_type().is_c_void_type() and ir.kind != .call and ir.kind != .invoke) {
+    if (instr.dest != null and instr.dest.?.get_expanded_type().is_c_void_type() and instr.kind != .call and instr.kind != .invoke) {
         return;
     }
 
-    try output_IR_post_check(ir, writer);
+    try output_instruction_post_check(instr, writer);
 }
 
-/// Outputs the C code for an IR instruction after runtime checks have run.
-fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
-    switch (ir.kind) {
+/// Outputs the C code for an Instruction instruction after runtime checks have run.
+fn output_instruction_post_check(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!void {
+    switch (instr.kind) {
         .load_unit => {
             // Do nothing!
         },
         .load_symbol => {
-            if (ir.dest.?.get_expanded_type().* == .function) {
-                try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
+            if (instr.dest.?.get_expanded_type().* == .function) {
+                try output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type(), writer);
             } else {
-                try output_var_assign(ir.dest.?, writer);
+                try output_var_assign(instr.dest.?, writer);
             }
-            try output_symbol(ir.data.symbol, writer);
+            try output_symbol(instr.data.symbol, writer);
             try writer.print(";\n", .{});
         },
         .load_int => {
-            try output_var_assign(ir.dest.?, writer);
-            try writer.print("{};\n", .{ir.data.int});
+            try output_var_assign(instr.dest.?, writer);
+            try writer.print("{};\n", .{instr.data.int});
         },
         .load_float => {
-            try output_var_assign(ir.dest.?, writer);
-            try writer.print("{};\n", .{ir.data.float});
+            try output_var_assign(instr.dest.?, writer);
+            try writer.print("{};\n", .{instr.data.float});
         },
         .load_string => {
-            try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
+            try output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type(), writer);
             try writer.print("{{(uint8_t*)string_{}, {}}};\n", .{
-                ir.data.string_id.string_idx,
-                cheat_module.interned_strings.items[ir.data.string_id.string_idx].len,
+                instr.data.string_id.string_idx,
+                cheat_module.interned_strings.items[instr.data.string_id.string_idx].len,
             });
         },
         .load_struct => {
-            try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
+            try output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type(), writer);
             try writer.print("{{", .{});
-            var product_list = ir.dest.?.get_expanded_type().children().*;
-            for (ir.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
+            var product_list = instr.dest.?.get_expanded_type().children().*;
+            for (instr.data.lval_list.items, product_list.items, 1..) |term, expected, i| {
                 if (!expected.is_c_void_type()) {
                     // Don't use values of type `void` (don't exist in C! (Goobersville!))
-                    try output_rvalue(term, ir.kind.precedence(), writer);
+                    try output_rvalue(term, instr.kind.precedence(), writer);
                     if (i < product_list.items.len and !product_list.items[i - 1].is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
@@ -696,30 +696,30 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
             try writer.print("}};\n", .{});
         },
         .load_union => {
-            try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
-            try writer.print("{{.tag={}", .{ir.data.int});
-            if (ir.src1 != null and !ir.src1.?.get_expanded_type().is_c_void_type()) {
-                try writer.print(", ._{}=", .{ir.data.int});
-                try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type(), writer);
+            try writer.print("{{.tag={}", .{instr.data.int});
+            if (instr.src1 != null and !instr.src1.?.get_expanded_type().is_c_void_type()) {
+                try writer.print(", ._{}=", .{instr.data.int});
+                try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
             }
             try writer.print("}};\n", .{});
         },
         .copy => {
-            try output_var_assign(ir.dest.?, writer);
-            try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try output_var_assign(instr.dest.?, writer);
+            try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
             try writer.print(";\n", .{});
         },
         .mut_addr_of, .addr_of => {
-            try output_var_assign(ir.dest.?, writer);
-            try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try output_var_assign(instr.dest.?, writer);
+            try output_lvalue(instr.src1.?, instr.kind.precedence(), writer);
             try writer.print(";\n", .{});
         },
         .mut_dyn_value, .dyn_value => {
-            try output_var_assign_cast(ir.dest.?, ir.dest.?.get_expanded_type(), writer);
+            try output_var_assign_cast(instr.dest.?, instr.dest.?.get_expanded_type(), writer);
             try writer.print("{{", .{});
-            try output_lvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try output_lvalue(instr.src1.?, instr.kind.precedence(), writer);
             try writer.print(", &", .{});
-            try output_vtable_impl(ir.data.dyn.impl, writer);
+            try output_vtable_impl(instr.data.dyn.impl, writer);
             try writer.print("}};\n", .{});
         },
         .not,
@@ -750,22 +750,22 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .bit_xor,
         .left_shift,
         .right_shift,
-        => try output_operator(ir, writer),
+        => try output_operator(instr, writer),
         .get_tag => {
-            try output_var_assign(ir.dest.?, writer);
-            try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try output_var_assign(instr.dest.?, writer);
+            try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
             try writer.print(".tag;\n", .{});
         },
         .call => {
             // TODO: De-duplicate 2
-            try output_call_prefix(ir, writer);
-            try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+            try output_call_prefix(instr, writer);
+            try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
             try writer.print("(", .{});
-            for (ir.data.lval_list.items, 0..) |term, i| {
+            for (instr.data.lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
-                    if (i + 1 < ir.data.lval_list.items.len and !ir.data.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
+                    if (i + 1 < instr.data.lval_list.items.len and !instr.data.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -774,32 +774,32 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         },
         .invoke => {
             // FIXME: High Cyclo
-            try output_call_prefix(ir, writer);
-            if (!ir.data.invoke.method_decl.method_decl.is_virtual) {
+            try output_call_prefix(instr, writer);
+            if (!instr.data.invoke.method_decl.method_decl.is_virtual) {
                 // method is non-virtual
                 // { method name }({ args })
-                try output_rvalue(ir.data.invoke.method_decl_lval.?, 2, writer);
+                try output_rvalue(instr.data.invoke.method_decl_lval.?, 2, writer);
                 try writer.print("(", .{});
-            } else if (ir.data.invoke.dyn_value != null) {
+            } else if (instr.data.invoke.dyn_value != null) {
                 // method is virtual, dyn_value (receiver ptr + vtable ptr) isn't null
                 // { dyn value }.vtable->{ method name }({ args })
-                try output_rvalue(ir.data.invoke.dyn_value.?, 2, writer);
-                try writer.print(".vtable->{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+                try output_rvalue(instr.data.invoke.dyn_value.?, 2, writer);
+                try writer.print(".vtable->{s}(", .{instr.data.invoke.method_decl.method_decl.name.token().data});
             } else {
                 // method is virtual, dyn_value is null
                 // { vtable impl }.{ method name }({ args })
-                try output_vtable_impl(ir.data.invoke.method_decl.method_decl.impl.?, writer);
-                try writer.print(".{s}(", .{ir.data.invoke.method_decl.method_decl.name.token().data});
+                try output_vtable_impl(instr.data.invoke.method_decl.method_decl.impl.?, writer);
+                try writer.print(".{s}(", .{instr.data.invoke.method_decl.method_decl.name.token().data});
             }
-            const num_invoke_args = ir.data.invoke.lval_list.items.len;
-            for (ir.data.invoke.lval_list.items, 0..) |term, i| {
+            const num_invoke_args = instr.data.invoke.lval_list.items.len;
+            for (instr.data.invoke.lval_list.items, 0..) |term, i| {
                 if (!term.get_expanded_type().is_c_void_type()) {
                     // Do not output `void` arguments
                     try output_rvalue(term, HIGHEST_PRECEDENCE, writer);
-                    if (ir.data.invoke.dyn_value != null and ir.data.invoke.dyn_value == term and i == 0) {
+                    if (instr.data.invoke.dyn_value != null and instr.data.invoke.dyn_value == term and i == 0) {
                         try writer.print(".data_ptr", .{});
                     }
-                    if (i + 1 < num_invoke_args and !ir.data.invoke.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
+                    if (i + 1 < num_invoke_args and !instr.data.invoke.lval_list.items[i + 1].get_expanded_type().is_c_void_type()) {
                         try writer.print(", ", .{});
                     }
                 }
@@ -813,11 +813,11 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
         .push_stack_trace => {
             var spaces = String.init(std.heap.page_allocator); // page alloc ok, immediately deinit'd
             defer spaces.deinit();
-            for (1..ir.span.col - 1) |_| {
+            for (1..instr.span.col - 1) |_| {
                 spaces.insert(" ", spaces.size) catch unreachable;
             }
             try writer.print("    $lines[$line_idx++] = ", .{});
-            try ir.span.print_debug_line(writer, span_.c_format);
+            try instr.span.print_debug_line(writer, span_.c_format);
             try writer.print(";\n", .{});
         },
         .pop_stack_trace => {
@@ -831,21 +831,21 @@ fn output_IR_post_check(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
                 \\    $panic("{s}\n");
                 \\
             ,
-                .{ir.data.string},
+                .{instr.data.string},
             );
         },
-        else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}", .{@tagName(ir.kind)}),
+        else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}", .{@tagName(instr.kind)}),
     }
 }
 
 /// Outputs C code for the prefix of a call
-fn output_call_prefix(ir: *ir_.IR, writer: anytype) !void {
-    const void_fn = ir.dest.?.get_expanded_type().is_c_void_type();
-    const symbol_used = if (ir.dest.?.* == .symbver) ir.dest.?.symbver.symbol.uses > 0 else false;
+fn output_call_prefix(instr: *ir_.Instruction, writer: anytype) !void {
+    const void_fn = instr.dest.?.get_expanded_type().is_c_void_type();
+    const symbol_used = if (instr.dest.?.* == .symbver) instr.dest.?.symbver.symbol.uses > 0 else false;
     if (!symbol_used) {
         try writer.print("    (void) ", .{});
     } else if (!void_fn) {
-        try output_var_assign(ir.dest.?, writer);
+        try output_var_assign(instr.dest.?, writer);
     } else {
         try writer.print("    ", .{});
     }
@@ -1004,28 +1004,28 @@ fn output_var_assign_cast(lval: *lval_.L_Value, _type: *ast_.AST, writer: Writer
     try writer.print(") ", .{});
 }
 
-/// Outputs the C code for an operator from an IR.
-fn output_operator(ir: *ir_.IR, writer: Writer) CodeGen_Error!void {
-    try output_var_assign(ir.dest.?, writer);
-    if (ir.kind.is_checked() and ir.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
-        try writer.print("${s}_{s}(", .{ ir.kind.checked_name(), primitives_.info_from_ast(ir.dest.?.get_expanded_type()).?.c_name });
-        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+/// Outputs the C code for an operator from an Instruction.
+fn output_operator(instr: *ir_.Instruction, writer: Writer) CodeGen_Error!void {
+    try output_var_assign(instr.dest.?, writer);
+    if (instr.kind.is_checked() and instr.dest.?.get_expanded_type().can_expanded_represent_int()) { // TODO: Check if checked operations are enabled, too
+        try writer.print("${s}_{s}(", .{ instr.kind.checked_name(), primitives_.info_from_ast(instr.dest.?.get_expanded_type()).?.c_name });
+        try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
         try writer.print(", ", .{});
-        if (ir.kind.arity() == .binop) {
-            try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
+        if (instr.kind.arity() == .binop) {
+            try output_rvalue(instr.src2.?, instr.kind.precedence(), writer);
             try writer.print(", ", .{});
         }
-        try ir.span.print_debug_line(writer, span_.c_format);
+        try instr.span.print_debug_line(writer, span_.c_format);
         try writer.print(")", .{});
-    } else if (ir.kind.arity() == .unop) {
+    } else if (instr.kind.arity() == .unop) {
         // Unop, no-check
-        try writer.print("{s}", .{ir.kind.c_token()});
-        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
+        try writer.print("{s}", .{instr.kind.c_token()});
+        try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
     } else {
         // Binop, no-check
-        try output_rvalue(ir.src1.?, ir.kind.precedence(), writer);
-        try writer.print("{s}", .{ir.kind.c_token()});
-        try output_rvalue(ir.src2.?, ir.kind.precedence(), writer);
+        try output_rvalue(instr.src1.?, instr.kind.precedence(), writer);
+        try writer.print("{s}", .{instr.kind.c_token()});
+        try output_rvalue(instr.src2.?, instr.kind.precedence(), writer);
     }
     try writer.print(";\n", .{});
 }
