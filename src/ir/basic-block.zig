@@ -170,7 +170,7 @@ pub const Basic_Block = struct {
     pub fn get_latest_def(
         bb: *Basic_Block,
         lval: *lval_.L_Value,
-        stop_at_ir: ?*ir_.Instruction,
+        stop_at_instr: ?*ir_.Instruction,
     ) ?*ir_.Instruction {
         if (lval.* != .symbver) {
             return null;
@@ -178,7 +178,7 @@ pub const Basic_Block = struct {
         if (bb.instr_head == null) {
             return null;
         } else {
-            return bb.instr_head.?.get_latest_def_after(lval.symbver.symbol, stop_at_ir);
+            return bb.instr_head.?.get_latest_def_after(lval.symbver.symbol, stop_at_instr);
         }
     }
 
@@ -198,7 +198,7 @@ pub const Basic_Block = struct {
         }
     }
 
-    pub fn mark_irs_as_removed(
+    pub fn mark_instructions_as_removed(
         bb: *Basic_Block,
     ) void {
         var maybe_instr: ?*ir_.Instruction = bb.instr_head;

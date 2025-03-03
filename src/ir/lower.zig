@@ -49,7 +49,7 @@ pub fn lower_AST_into_cfg(cfg: *cfg_.CFG, errors: *errs_.Errors, allocator: std.
         std.debug.print("\n", .{});
     }
 
-    cfg.block_graph_head = cfg.basic_block_from_IR(cfg.instr_head, allocator);
+    cfg.block_graph_head = cfg.basic_block_from_instructions(cfg.instr_head, allocator);
     cfg.remove_last_instruction();
 
     cfg.calculate_phi_params_and_args(allocator);

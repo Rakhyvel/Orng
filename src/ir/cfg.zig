@@ -163,7 +163,7 @@ pub const CFG = struct {
 
     /// Converts the list of Instruction to a web of BB's
     /// Also versions Instruction dest's if they are symbvers. This versioning should persist and should not be wiped.
-    pub fn basic_block_from_IR(self: *CFG, maybe_instr: ?*ir_.Instruction, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
+    pub fn basic_block_from_instructions(self: *CFG, maybe_instr: ?*ir_.Instruction, allocator: std.mem.Allocator) ?*basic_block_.Basic_Block {
         // FIXME: High Cyclo
         if (maybe_instr == null) {
             return null;
@@ -173,15 +173,15 @@ pub const CFG = struct {
         var retval: *basic_block_.Basic_Block = basic_block_.Basic_Block.init(allocator);
         self.basic_blocks.append(retval) catch unreachable; // TODO: If you just accept a list, you don't even need this function to be in CFG!
         retval.instr_head = maybe_instr;
-        var _maybe_ir = maybe_instr;
-        while (_maybe_ir) |instr| : (_maybe_ir = instr.next) {
+        var _maybe_instr = maybe_instr;
+        while (_maybe_instr) |instr| : (_maybe_instr = instr.next) {
             // TODO: Too long
             instr.in_block = retval;
 
             if (instr.kind == .label) {
                 // If you find a label declaration, end this block and jump to new block
                 retval.has_branch = false;
-                retval.next = self.basic_block_from_IR(instr.next, allocator);
+                retval.next = self.basic_block_from_instructions(instr.next, allocator);
                 instr.snip();
                 break;
             } else if (instr.kind == .jump) {
@@ -189,9 +189,9 @@ pub const CFG = struct {
                 retval.has_branch = false;
                 if (instr.data == .branch) {
                     if (instr.data.branch) |branch| {
-                        retval.next = self.basic_block_from_IR(branch.next, allocator);
+                        retval.next = self.basic_block_from_instructions(branch.next, allocator);
                     } else {
-                        retval.next = self.basic_block_from_IR(null, allocator);
+                        retval.next = self.basic_block_from_instructions(null, allocator);
                     }
                 } else {
                     retval.next = null;
@@ -211,15 +211,15 @@ pub const CFG = struct {
             } else if (instr.kind == .branch_if_false) {
                 // If you find a branch, end this block, start both blocks
                 retval.has_branch = true;
-                var branch_next: ?*ir_.Instruction = null; // = ir.data.branch.next;
-                // Since ir->branch->next may get nullifued by calling this function on ir->next
+                var branch_next: ?*ir_.Instruction = null; // = instr.data.branch.next;
+                // Since instr->branch->next may get nullifued by calling this function on instr->next
                 if (instr.data.branch) |branch| {
                     branch_next = branch.next;
                 } else {
                     branch_next = null;
                 }
-                retval.next = self.basic_block_from_IR(instr.next, allocator);
-                retval.branch = self.basic_block_from_IR(branch_next, allocator);
+                retval.next = self.basic_block_from_instructions(instr.next, allocator);
+                retval.branch = self.basic_block_from_instructions(branch_next, allocator);
                 retval.condition = instr.src1;
                 instr.snip();
                 break;

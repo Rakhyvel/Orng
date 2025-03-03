@@ -13,8 +13,8 @@ pub const String_Idx: type = struct {
     string_idx: u32,
 };
 
-var ir_uid: u64 = 0;
-pub const Instruction = struct { // TODO: Add IR_List struct, with some append_instruction, mark_irs_as_removed, and get_latest_def
+var instruction_uid: u64 = 0;
+pub const Instruction = struct { // TODO: Add Instruction_List struct, with some append_instruction, mark_instructions_as_removed, and get_latest_def
     uid: u64,
     kind: Kind,
     dest: ?*lval_.L_Value,
@@ -46,14 +46,14 @@ pub const Instruction = struct { // TODO: Add IR_List struct, with some append_i
         retval.dest = dest;
         retval.src1 = src1;
         retval.src2 = src2;
-        retval.uid = ir_uid;
+        retval.uid = instruction_uid;
         retval.in_block = null;
         retval.prev = null;
         retval.next = null;
         retval.data = Data.none;
         retval.span = span;
         retval.allocator = allocator;
-        ir_uid += 1;
+        instruction_uid += 1;
         return retval;
     }
 
@@ -407,10 +407,10 @@ pub const Instruction = struct { // TODO: Add IR_List struct, with some append_i
     }
 
     /// This function is O(n) in terms of Instruction between start and stop
-    pub fn get_latest_def_after(start_at_ir: *Instruction, symbol: *symbol_.Symbol, stop_at_ir: ?*Instruction) ?*Instruction {
-        var maybe_instr: ?*Instruction = start_at_ir;
+    pub fn get_latest_def_after(start_at_instr: *Instruction, symbol: *symbol_.Symbol, stop_at_instr: ?*Instruction) ?*Instruction {
+        var maybe_instr: ?*Instruction = start_at_instr;
         var retval: ?*Instruction = null;
-        while (maybe_instr != null and maybe_instr != stop_at_ir) : (maybe_instr = maybe_instr.?.next) {
+        while (maybe_instr != null and maybe_instr != stop_at_instr) : (maybe_instr = maybe_instr.?.next) {
             var instr: *Instruction = maybe_instr.?;
             if (instr.dest != null and instr.dest.?.* == .select and instr.dest.?.extract_symbver().symbol == symbol) {
                 return null;
@@ -426,9 +426,9 @@ pub const Instruction = struct { // TODO: Add IR_List struct, with some append_i
     }
 
     // This function is O(n)
-    pub fn any_def_after(start_at_ir: *Instruction, symbol: *symbol_.Symbol, stop_at_ir: ?*Instruction) ?*Instruction {
-        var maybe_instr: ?*Instruction = start_at_ir;
-        while (maybe_instr != null and maybe_instr != stop_at_ir) : (maybe_instr = maybe_instr.?.next) {
+    pub fn any_def_after(start_at_instr: *Instruction, symbol: *symbol_.Symbol, stop_at_instr: ?*Instruction) ?*Instruction {
+        var maybe_instr: ?*Instruction = start_at_instr;
+        while (maybe_instr != null and maybe_instr != stop_at_instr) : (maybe_instr = maybe_instr.?.next) {
             var instr: *Instruction = maybe_instr.?;
             if (instr.dest != null and instr.dest.?.* == .select and instr.dest.?.extract_symbver().symbol == symbol) {
                 return instr;

@@ -578,7 +578,7 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
         if (bb.number_predecessors == 0) {
             defer log_optimization_pass("remove unused block", cfg);
             cfg.remove_basic_block(bb);
-            bb.mark_irs_as_removed();
+            bb.mark_instructions_as_removed();
             return true; // Perhaps mark these and remove them in a sweep pass?
         }
     }
