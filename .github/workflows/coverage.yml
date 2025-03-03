@@ -59,6 +59,7 @@ jobs:
     - name: Build project (Linux)
       run: |
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+        export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         python tests/test.py modified
 
     - name: Ensure Modified Lines in src/ Are Covered

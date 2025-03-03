@@ -41,6 +41,7 @@ jobs:
       run: |
         #!/bin/bash
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+        export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         zig build orng
         cd examples
         ../zig-out/bin/orng build
@@ -51,6 +52,7 @@ jobs:
       run: |
         #!/bin/bash
         export ORNG_STD_PATH="$GITHUB_WORKSPACE/std"
+        export ORNG_BUILTIN_PATH="$GITHUB_WORKSPACE/src/hierarchy/builtin.orng"
         zig build orng
         cd examples
         ../zig-out/bin/orng build
