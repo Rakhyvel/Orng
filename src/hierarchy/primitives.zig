@@ -401,7 +401,7 @@ fn create_prelude(compiler: *compiler_.Context) !void {
     defer env_map.deinit();
     prelude.?.module = module;
     try module_.Module.fill_contents(
-        env_map.get("ORNG_BUILTIN_PATH"),
+        env_map.get("ORNG_BUILTIN_PATH").?,
         null,
         prelude.?,
         module,
