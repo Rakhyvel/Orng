@@ -571,7 +571,6 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
     var retval: bool = false;
 
     cfg.count_bb_predecessors();
-    cfg.calculate_phi_params_and_args(allocator);
     cfg.calculate_definitions();
 
     for (cfg.basic_blocks.items) |bb| {
@@ -603,8 +602,6 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             bb.has_branch = bb.next.?.has_branch;
             bb.branch = bb.next.?.branch;
             bb.condition = bb.next.?.condition;
-            bb.next_arguments = bb.next.?.next_arguments;
-            bb.branch_arguments = bb.next.?.branch_arguments;
 
             var maybe_child: ?*ir_.Instruction = bb.next.?.instr_head;
             while (maybe_child) |child| : (maybe_child = child.next) {
@@ -626,7 +623,6 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
                 bb.has_branch = false;
                 if (bb.condition.?.symbver.def.?.data.int == 0) {
                     bb.next = bb.branch;
-                    bb.next_arguments = bb.branch_arguments;
                 }
                 bb.branch = null;
                 retval = true;
@@ -723,10 +719,6 @@ fn bb_optimizations(cfg: *cfg_.CFG, allocator: std.mem.Allocator) bool {
             cfg.block_graph_head = head.next;
             retval = true;
         }
-    }
-
-    if (retval) {
-        cfg.calculate_phi_params_and_args(allocator);
     }
 
     return retval;

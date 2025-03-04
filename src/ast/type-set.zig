@@ -27,10 +27,10 @@ pub const Type_Set = struct {
                 var dag = DAG.init(ast, self.types.items.len, allocator);
                 self.types.append(dag) catch unreachable;
                 if (self.add(ast.lhs(), allocator)) |domain| {
-                    dag.dependencies.append(domain) catch unreachable;
+                    dag.add_dependency(domain);
                 }
                 if (self.add(ast.rhs(), allocator)) |codomain| {
-                    dag.dependencies.append(codomain) catch unreachable;
+                    dag.add_dependency(codomain);
                 }
                 return dag;
             },
@@ -40,7 +40,7 @@ pub const Type_Set = struct {
                 for (ast.children().items) |term| {
                     if (self.add(term, allocator)) |dependency| {
                         if (term.* != .addr_of)
-                            dag.dependencies.append(dependency) catch unreachable;
+                            dag.add_dependency(dependency);
                     }
                 }
                 return dag;
@@ -98,6 +98,14 @@ pub const DAG = struct {
         retval.dependencies = std.ArrayList(*DAG).init(allocator);
         retval.visited = false;
         return retval;
+    }
+
+    pub fn add_dependency(self: *DAG, dependency: *DAG) void {
+        self.dependencies.append(dependency) catch unreachable;
+    }
+
+    pub fn visit(self: *DAG) void {
+        self.visited = true;
     }
 
     fn print(self: *DAG) void {

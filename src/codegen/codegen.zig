@@ -138,7 +138,7 @@ fn output_typedef(
         // only visit a DAG node once
         return;
     }
-    dag.visited = true;
+    dag.visit();
 
     // output any types that this type depends on
     for (dag.dependencies.items) |depen| {
@@ -834,7 +834,7 @@ fn output_instruction_post_check(instr: *ir_.Instruction, writer: Writer) CodeGe
                 .{instr.data.string},
             );
         },
-        else => std.debug.panic("compiler error: unimplemented output_IR() for: Kind.{s}", .{@tagName(instr.kind)}),
+        else => std.debug.panic("compiler error: unimplemented output_instr() for: Kind.{s}", .{@tagName(instr.kind)}),
     }
 }
 

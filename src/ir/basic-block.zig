@@ -15,26 +15,28 @@ var uid: u64 = 0;
 /// equivalently powerful to using phi-nodes, but more intuitive to reason about. Argument-parameter
 /// copying can be optimized out.
 pub const Basic_Block = struct {
+    /// Unique id for this basic-block. Used by codegen for jump labels.
     uid: u64,
+    /// Linked list of the instructions in this basic-block.
     instr_head: ?*ir_.Instruction,
+    /// List of the instructions that have been removed from this block, used for deinitialization.
     removed_instrs: std.ArrayList(*ir_.Instruction),
+    /// Whether or not this basic-block has a branch.
     has_branch: bool,
+    /// Whether or not this basic-block has a panic (ie it doesn't return!)
     has_panic: bool,
-    parameters: std.ArrayList(*lval_.Symbol_Version),
-
     /// If null, jump to function end label
     next: ?*Basic_Block,
-    next_arguments: std.ArrayList(*lval_.Symbol_Version),
-
+    /// The block to jump to if the condition is false. If null, jump to function end label.
     branch: ?*Basic_Block,
+    /// The condition to use if this block has a branch.
     condition: ?*lval_.L_Value,
-    branch_arguments: std.ArrayList(*lval_.Symbol_Version),
-
+    /// Whether or not this block has been visited in a traversal.
     visited: bool,
+    /// The number of blocks that jump to this block.
     number_predecessors: usize,
-    removed: bool,
+    /// The allocator used to allocate this basic-block.
     allocator: std.mem.Allocator,
-
     /// Address in the first instruction of this Basic_Block
     /// Used for Instruction interpretation
     offset: ?offsets_.Instruction_Idx,
@@ -47,11 +49,8 @@ pub const Basic_Block = struct {
         retval.has_panic = false;
         retval.offset = null;
         retval.removed_instrs = std.ArrayList(*ir_.Instruction).init(allocator);
-        retval.parameters = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.next = null;
-        retval.next_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.branch = null;
-        retval.branch_arguments = std.ArrayList(*lval_.Symbol_Version).init(allocator);
         retval.uid = uid;
         uid += 1;
         retval.allocator = allocator;
@@ -60,21 +59,6 @@ pub const Basic_Block = struct {
 
     /// Deinitializes a basic-block
     pub fn deinit(self: *Basic_Block) void {
-        for (self.parameters.items) |param| {
-            param.deinit();
-        }
-        self.parameters.deinit();
-
-        for (self.next_arguments.items) |arg| {
-            arg.deinit();
-        }
-        self.next_arguments.deinit();
-
-        for (self.branch_arguments.items) |arg| {
-            arg.deinit();
-        }
-        self.branch_arguments.deinit();
-
         var maybe_instr: ?*ir_.Instruction = self.instr_head;
         while (maybe_instr) |instr| {
             maybe_instr = instr.next;
@@ -95,7 +79,6 @@ pub const Basic_Block = struct {
         self.visited = true;
 
         std.debug.print("BB{}", .{self.uid});
-        Basic_Block.print_symbver_list(&self.parameters);
         std.debug.print(":\n", .{});
         var maybe_instr = self.instr_head;
         while (maybe_instr) |instr| : (maybe_instr = instr.next) {
@@ -104,21 +87,18 @@ pub const Basic_Block = struct {
         if (self.has_branch) {
             if (self.next) |next| {
                 std.debug.print("    if ({}) jump BB{}", .{ self.condition.?, next.uid });
-                Basic_Block.print_symbver_list(&self.next_arguments);
             } else {
                 std.debug.print("    if ({}) return", .{self.condition.?});
             }
             std.debug.print(" ", .{});
             if (self.branch) |branch| {
                 std.debug.print("else jump BB{}", .{branch.uid});
-                Basic_Block.print_symbver_list(&self.branch_arguments);
             } else {
                 std.debug.print("else return", .{});
             }
         } else {
             if (self.next) |next| {
                 std.debug.print("    jump BB{}", .{next.uid});
-                Basic_Block.print_symbver_list(&self.next_arguments);
             } else {
                 std.debug.print("    return", .{});
             }
@@ -130,21 +110,6 @@ pub const Basic_Block = struct {
         if (self.branch) |branch| {
             branch.pprint();
         }
-    }
-
-    pub fn print_symbver_list(
-        list: *std.ArrayList(*lval_.Symbol_Version),
-    ) void {
-        std.debug.print("(", .{});
-        var i: usize = 0;
-        while (i < list.items.len) : (i += 1) {
-            const symbver = list.items[i];
-            std.debug.print("{s}", .{symbver.symbol.name});
-            if (i < list.items.len - 1) {
-                std.debug.print(", ", .{});
-            }
-        }
-        std.debug.print(")", .{});
     }
 
     /// Removes an instruction from a basic-block

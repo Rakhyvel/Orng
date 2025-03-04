@@ -70,31 +70,35 @@ pub const Module = struct {
     // A graph of type dependencies
     type_set: type_set_.Type_Set,
 
-    // List of instructions for this module
+    /// List of instructions for this module. Used by the interpreter, so that instructions are indexable by a random
+    /// access instruction pointer.
     instructions: std.ArrayList(*ir_.Instruction),
 
-    // List of CFGs defined in this module
+    /// List of CFGs defined in this module. Used by codegen to generate functions and method definitions.
     cfgs: std.ArrayList(*cfg_.CFG),
 
-    // Main function.
+    /// Main function. Used by codegen to jump to the main function. May be null for modules that don't contain the
+    /// entry point of the package.
+    /// TODO: Isn't this more of a property of the package than the module?
     entry: ?*cfg_.CFG,
 
-    // List of all traits defined in this module
+    /// List of all traits defined in this module. Used by codegen to output the vtable structs definitions
     traits: std.ArrayList(*ast_.AST),
 
-    // List of all impls defined in this module
+    /// List of all impls defined in this module. Used by codegen to output the vtable implementations.
     impls: std.ArrayList(*ast_.AST),
 
-    // Interned strings
+    /// Interned strings. Used by codegen to output the interned strings for this module.
     interned_strings: std.ArrayList([]const u8),
 
-    // The symbol that represents this module
+    /// The symbol that represents this module. Mainly used to get the scope for the module
+    /// TODO: Make this better
     symbol: *symbol_.Symbol,
 
-    // Whether or not this module has been visited in a graph traversal
+    /// Whether or not this module has been visited in a graph traversal
     visited: bool,
 
-    // Allocator for the module
+    /// Allocator for the module
     allocator: std.mem.Allocator,
 
     pub fn init(name: []const u8, absolute_path: []const u8, symbol: *symbol_.Symbol, allocator: std.mem.Allocator) *Module {

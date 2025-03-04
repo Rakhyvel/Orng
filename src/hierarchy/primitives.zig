@@ -36,11 +36,8 @@ pub var word64_type: *ast_.AST = undefined;
 pub var blackhole: *symbol_.Symbol = undefined;
 
 pub const Primitive_Info = struct {
-    name: []const u8,
     c_name: []const u8,
     bounds: ?Bounds,
-    ast: *ast_.AST,
-    symbol: *symbol_.Symbol,
     type_class: Type_Class,
     type_kind: Type_Kind,
     default_value: ?*ast_.AST,
@@ -468,11 +465,8 @@ fn create_info(
     }
     _ast.set_symbol(symbol);
     primitives.put(name, Primitive_Info{
-        .name = name,
         .bounds = bounds,
         .c_name = c_name,
-        .ast = _ast,
-        .symbol = symbol,
         .type_class = type_class,
         .type_kind = type_kind,
         .default_value = default_value,
