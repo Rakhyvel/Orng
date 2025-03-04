@@ -25,9 +25,11 @@ pub const Context = struct {
 
     // So far, only stores a local module's name to it's module struct
     // This will need to be modified to store packages, too, and deal with module name collisions
+    // TODO: Module_Registry
     modules: std.StringArrayHashMap(*symbol_.Symbol),
 
     // Maps package names to their root module
+    // TODO: Package_Registry
     packages: std.StringArrayHashMap(*Package),
 
     /// Throws an error if the prelude could not be compiled

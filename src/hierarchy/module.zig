@@ -317,6 +317,7 @@ pub const Module = struct {
     }
 
     /// Takes in a statically correct symbol tree, writes it out to a file
+    /// TODO: Codegen Context that has this method instead
     pub fn output(self: *Module, build_path: []const u8, local_modules: *std.ArrayList(*Module), allocator: std.mem.Allocator) !void {
         if (self.visited) {
             return;
@@ -467,6 +468,7 @@ pub const Module = struct {
         _ = self.cfgs.orderedRemove(@as(usize, @intCast(idx)));
     }
 
+    // TODO: Interned String Set type that takes module uid
     pub fn interned_string_set_add(self: *Module, str: []const u8) ir_.String_Idx {
         for (0..self.interned_strings.items.len) |i| {
             const item = self.interned_strings.items[i];
@@ -481,6 +483,7 @@ pub const Module = struct {
     }
 
     /// Returns the scope that contains this module's top-level definitions
+    /// TODO: Remove from module, pass around as needed
     pub fn top_level_scope(self: *Module) *symbol_.Scope {
         return self.symbol.init.?.scope().?;
     }

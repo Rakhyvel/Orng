@@ -42,7 +42,7 @@ pub const Context = struct {
     bump_alloc_pointer: i64,
     instruction_pointer: Instruction_Pointer,
 
-    memory: []u8,
+    memory: []u8, // TODO: Memory pool with load, store, move methods
     modules: std.AutoArrayHashMap(module_.Module_UID, *module_.Module),
     debug_call_stack: std.ArrayList(span_.Span),
     start_time: i64,

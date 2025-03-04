@@ -104,7 +104,7 @@ pub const DAG = struct {
         self.dependencies.append(dependency) catch unreachable;
     }
 
-    pub fn visit(self: *DAG) void {
+    pub fn mark_visited(self: *DAG) void {
         self.visited = true;
     }
 

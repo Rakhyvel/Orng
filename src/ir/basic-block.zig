@@ -18,6 +18,7 @@ pub const Basic_Block = struct {
     /// Unique id for this basic-block. Used by codegen for jump labels.
     uid: u64,
     /// Linked list of the instructions in this basic-block.
+    /// TODO: Linked List type with `remove_instruction`, `get_latest_def`, and `mark_instructions_as_removed` methods
     instr_head: ?*ir_.Instruction,
     /// List of the instructions that have been removed from this block, used for deinitialization.
     removed_instrs: std.ArrayList(*ir_.Instruction),

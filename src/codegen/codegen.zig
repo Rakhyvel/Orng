@@ -138,7 +138,7 @@ fn output_typedef(
         // only visit a DAG node once
         return;
     }
-    dag.visit();
+    dag.mark_visited();
 
     // output any types that this type depends on
     for (dag.dependencies.items) |depen| {
